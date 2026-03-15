@@ -13,6 +13,7 @@ type CalendarEvent = {
   start_time: string
   end_time: string
   category: 'N21' | 'Personal'
+  event_type: 'in-person' | 'online' | 'hybrid' | null
   week_number: number
   visibility_roles: string[]
 }
@@ -628,7 +629,6 @@ export default function CalendarClient({
               ))}
             </div>
             <div className="flex gap-1.5">
-              {/* N21 pill */}
               <button onClick={() => setShowN21(v => !v)}
                 className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-all"
                 style={{
@@ -639,7 +639,6 @@ export default function CalendarClient({
                   style={{ backgroundColor: showN21 ? 'rgba(255,255,255,0.6)' : 'var(--forest)' }} />
                 N21
               </button>
-              {/* Personal pill — only for authenticated non-guests */}
               {canSeePersonal && (
                 <button onClick={() => setShowPersonal(v => !v)}
                   className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-all"
@@ -657,7 +656,6 @@ export default function CalendarClient({
 
           {/* Desktop: single row */}
           <div className="hidden md:flex items-center gap-3 py-2.5">
-            {/* Left: ← Today → */}
             <div className="flex items-center gap-1">
               <button onClick={() => navigate(-1)}
                 className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors"
@@ -682,14 +680,11 @@ export default function CalendarClient({
               </button>
             </div>
 
-            {/* Center: period label */}
             <p className="flex-1 text-sm font-semibold" style={{ color: 'var(--deep)' }}>
               {periodLabel}
             </p>
 
-            {/* Right: view toggle + category pills */}
             <div className="flex items-center gap-3">
-              {/* Category pills */}
               <div className="flex gap-1.5">
                 <button onClick={() => setShowN21(v => !v)}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
@@ -715,7 +710,6 @@ export default function CalendarClient({
                 )}
               </div>
 
-              {/* View toggle */}
               <div className="flex gap-0.5 p-0.5 rounded-lg" style={{ backgroundColor: 'rgba(0,0,0,0.05)' }}>
                 {views.map(v => (
                   <button key={v.key} onClick={() => setView(v.key)}

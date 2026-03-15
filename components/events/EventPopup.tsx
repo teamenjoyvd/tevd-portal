@@ -18,6 +18,7 @@ type EventDetail = {
   start_time: string
   end_time: string
   category: 'N21' | 'Personal'
+  event_type: 'in-person' | 'online' | 'hybrid' | null
   week_number: number
   role_requests: RoleRequest[]
 }
@@ -38,6 +39,12 @@ const STATUS_STYLES = {
   denied:   { bg: '#bc474920', color: '#bc4749'  },
 }
 
+const EVENT_TYPE_STYLES: Record<string, { bg: string; color: string; label: string }> = {
+  'in-person': { bg: 'rgba(129,178,154,0.18)', color: '#2d6a4f',  label: 'In-Person' },
+  'online':    { bg: 'rgba(61,64,91,0.10)',    color: '#3d405b',  label: 'Online'    },
+  'hybrid':    { bg: 'rgba(242,204,143,0.35)', color: '#7a5c00',  label: 'Hybrid'    },
+}
+
 function formatDateTime(iso: string) {
   const d = new Date(iso)
   return {
@@ -56,19 +63,20 @@ export default function EventPopup({
   const [selectedRole, setSelectedRole] = useState(AVAILABLE_ROLES[0])
   const [note, setNote] = useState('')
   const [showForm, setShowForm] = useState(false)
-  const [position, setPosition] = useState({ top: 0, left: 0 })
+  // Start invisible — revealed only after position is calculated
+  const [position, setPosition] = useState<{ top: number; left: number } | null>(null)
 
   const { data: event, isLoading } = useQuery<EventDetail>({
     queryKey: ['event', eventId],
     queryFn: () => fetch(`/api/events/${eventId}`).then(r => r.json()),
   })
 
-  // Calculate popover position based on anchor rect
+  // Calculate popover position after we have both the anchor rect and a rendered size
   useEffect(() => {
     if (!anchorRect || !popoverRef.current) return
     const popover = popoverRef.current
     const popW = 320
-    const popH = popover.offsetHeight || 400
+    const popH = popover.offsetHeight || 420
     const vw = window.innerWidth
     const vh = window.innerHeight
     const scroll = window.scrollY
@@ -76,10 +84,8 @@ export default function EventPopup({
     let left = anchorRect.left + anchorRect.width / 2 - popW / 2
     let top  = anchorRect.bottom + scroll + 8
 
-    // Clamp horizontal
     left = Math.max(8, Math.min(left, vw - popW - 8))
 
-    // Flip above if not enough space below
     if (anchorRect.bottom + popH + 8 > vh) {
       top = anchorRect.top + scroll - popH - 8
     }
@@ -147,23 +153,35 @@ export default function EventPopup({
   const start = event ? formatDateTime(event.start_time) : null
   const end   = event ? formatDateTime(event.end_time)   : null
 
+  const eventTypeStyle = event?.event_type ? EVENT_TYPE_STYLES[event.event_type] : null
+
+  // Visible roles: admin sees all, member sees only their own
+  const visibleRoleRequests = isAdmin
+    ? (event?.role_requests ?? [])
+    : (event?.role_requests ?? []).filter(r => r.profile?.id === userProfileId)
+
   return (
     <div
       ref={popoverRef}
-      className="fixed z-50 bg-white rounded-2xl shadow-xl overflow-hidden"
+      className="fixed z-50 bg-white rounded-2xl overflow-hidden"
       style={{
-        top: position.top,
-        left: position.left,
+        top: position?.top ?? 0,
+        left: position?.left ?? 0,
         width: 320,
         border: '1px solid rgba(0,0,0,0.08)',
         boxShadow: '0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)',
+        // Hide until position is resolved to prevent top-left flash
+        opacity: position ? 1 : 0,
+        pointerEvents: position ? 'auto' : 'none',
+        transition: 'opacity 0.1s ease',
       }}
     >
       {/* Header */}
       <div className="px-4 pt-4 pb-3 border-b border-black/5">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 mb-1">
+            {/* Pills row: category + event type + week */}
+            <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
               <span
                 className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
                 style={{
@@ -173,6 +191,17 @@ export default function EventPopup({
               >
                 {event?.category ?? '…'}
               </span>
+              {eventTypeStyle && (
+                <span
+                  className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                  style={{
+                    backgroundColor: eventTypeStyle.bg,
+                    color: eventTypeStyle.color,
+                  }}
+                >
+                  {eventTypeStyle.label}
+                </span>
+              )}
               {event && (
                 <span className="text-[10px] font-medium" style={{ color: 'var(--stone)' }}>
                   W{event.week_number}
@@ -246,10 +275,7 @@ export default function EventPopup({
               </p>
 
               {/* Existing requests */}
-              {(isAdmin
-                ? event.role_requests
-                : event.role_requests.filter(r => r.profile?.id === userProfileId)
-              ).map(r => (
+              {visibleRoleRequests.map(r => (
                 <div key={r.id}
                   className="rounded-lg p-2.5 mb-2"
                   style={{ backgroundColor: STATUS_STYLES[r.status].bg }}>
@@ -316,6 +342,13 @@ export default function EventPopup({
                 </div>
               ))}
 
+              {/* Empty state for members with no request */}
+              {!isAdmin && visibleRoleRequests.length === 0 && !canRequestRole && (
+                <p className="text-xs" style={{ color: 'var(--stone)' }}>
+                  Sign in to request a role.
+                </p>
+              )}
+
               {/* Request role form */}
               {canRequestRole && !myRequest && !isAdmin && (
                 <>
@@ -379,12 +412,6 @@ export default function EventPopup({
                     </div>
                   )}
                 </>
-              )}
-
-              {!canRequestRole && (
-                <p className="text-xs" style={{ color: 'var(--stone)' }}>
-                  Sign in to request a role.
-                </p>
               )}
             </div>
           </>

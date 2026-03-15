@@ -1,0 +1,20 @@
+.gitmessage
+
+# <type>(<scope>): <subject>
+# |<----  Limit subject to 50 characters  ---->|
+
+# Body: Explain *what* and *why* vs. *how*. 
+# |<----  Wrap body at 72 characters  ---------------------------->|
+
+# --- Types ---
+# feat:     A new feature
+# fix:      A bug fix
+# docs:     Documentation only
+# style:    Formatting, missing semi colons, etc; no code change
+# refactor: Refactoring production code
+# perf:     Code change that improves performance
+# test:     Adding missing tests, refactoring tests
+# chore:    Updating build tasks, package manager configs, etc.
+
+# --- Footer ---
+# Use for BREAKING CHANGE: <description> or referencing issues.

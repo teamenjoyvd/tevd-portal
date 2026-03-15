@@ -18,7 +18,7 @@ export default function PageHeading({ title, accent, subtitle }: Props) {
     >
       <div className="max-w-[1024px] mx-auto px-4 md:px-6 lg:px-8 py-8">
         <h1
-          className="font-serif text-4xl md:text-5xl font-bold leading-tight tracking-tight"
+          className="font-serif text-2xl md:text-3xl font-bold leading-tight tracking-widest uppercase"
           style={{ color: 'var(--deep)' }}
         >
           {baseWords && <>{baseWords} </>}
