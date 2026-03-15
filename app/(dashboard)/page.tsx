@@ -7,7 +7,9 @@ type CalendarEvent = {
   end_time: string; week_number: number; category: string
 }
 type Announcement = {
-  id: string; titles: Record<string,string>; contents: Record<string,string>
+  id: string
+  titles: Record<string, string>
+  contents: Record<string, string>
   is_active: boolean
 }
 type QuickLink = {
@@ -36,16 +38,6 @@ export default async function HomePage() {
   const { userId } = await auth()
   const supabase = createServiceClient()
 
-  // Determine role for content filtering
-  let role = 'guest'
-  if (userId) {
-    const { data: profile } = await supabase
-      .from('profiles').select('role').eq('clerk_id', userId).single()
-    if (profile?.role) role = profile.role
-  }
-
-  const roleArr = ['guest', ...(role !== 'guest' ? ['member'] : []), ...(role === 'core' || role === 'admin' ? ['core'] : []), ...(role === 'admin' ? ['admin'] : [])]
-
   const [settingsRes, announcementsRes, quickLinksRes, eventsRes] = await Promise.all([
     supabase.from('home_settings').select('*').single(),
     supabase.from('announcements').select('*').eq('is_active', true)
@@ -55,12 +47,10 @@ export default async function HomePage() {
       .gte('start_time', new Date().toISOString()).order('start_time').limit(3),
   ])
 
-  const settings: HomeSettings | null = settingsRes.data
-  const announcements: Announcement[] = (announcementsRes.data ?? []).filter(
-    (a: Announcement) => true // RLS handles filtering; service role sees all, filter by role clientside
-  )
-  const quickLinks: QuickLink[] = quickLinksRes.data ?? []
-  const nextEvents: CalendarEvent[] = eventsRes.data ?? []
+  const settings = settingsRes.data as HomeSettings | null
+  const announcements = (announcementsRes.data ?? []) as unknown as Announcement[]
+  const quickLinks = (quickLinksRes.data ?? []) as unknown as QuickLink[]
+  const nextEvents = (eventsRes.data ?? []) as unknown as CalendarEvent[]
 
   const carets = [
     { show: settings?.show_caret_1, text: settings?.caret_1_text },
@@ -137,10 +127,10 @@ export default async function HomePage() {
               {announcements.map(a => (
                 <div key={a.id} className="bg-white rounded-xl p-5 border border-[#8e8b82]/20">
                   <h3 className="font-medium text-[#3d405b] mb-1">
-                    {a.titles.en ?? a.titles.bg ?? 'Announcement'}
+                    {a.titles?.en ?? a.titles?.bg ?? 'Announcement'}
                   </h3>
                   <p className="text-sm text-[#8e8b82] leading-relaxed">
-                    {a.contents.en ?? a.contents.bg ?? ''}
+                    {a.contents?.en ?? a.contents?.bg ?? ''}
                   </p>
                 </div>
               ))}
@@ -156,7 +146,8 @@ export default async function HomePage() {
             </h2>
             <div className="grid grid-cols-2 gap-2">
               {quickLinks.map(link => (
-                <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer"
+                <a key={link.id} href={link.url}
+                  target="_blank" rel="noopener noreferrer"
                   className="bg-white rounded-xl px-4 py-3 border border-[#8e8b82]/20 text-sm font-medium text-[#3d405b] hover:border-[#bc4749]/40 transition-colors flex items-center gap-2">
                   <span className="text-[#bc4749]">→</span>
                   {link.label}
@@ -166,7 +157,6 @@ export default async function HomePage() {
           </section>
         )}
 
-        {/* Empty state for guest with no content */}
         {!userId && carets.length === 0 && nextEvents.length === 0 && announcements.length === 0 && (
           <div className="text-center py-10 text-[#8e8b82]">
             <p className="text-sm">Sign in to access your portal.</p>
