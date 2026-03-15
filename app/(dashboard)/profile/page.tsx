@@ -2,6 +2,8 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, useEffect } from 'react'
+import PageContainer from '@/components/layout/PageContainer'
+import PageHeading from '@/components/layout/PageHeading'
 
 type Profile = {
   id: string
@@ -20,10 +22,7 @@ type Profile = {
 
 function getExpiryState(validThrough: string | null): 'ok' | 'warning' | 'critical' | null {
   if (!validThrough) return null
-  const expiry = new Date(validThrough)
-  const now = new Date()
-  const diffMs = expiry.getTime() - now.getTime()
-  const diffDays = diffMs / (1000 * 60 * 60 * 24)
+  const diffDays = (new Date(validThrough).getTime() - Date.now()) / 86400000
   if (diffDays < 0)   return 'critical'
   if (diffDays < 90)  return 'critical'
   if (diffDays < 180) return 'warning'
@@ -31,8 +30,8 @@ function getExpiryState(validThrough: string | null): 'ok' | 'warning' | 'critic
 }
 
 const EXPIRY_STYLES = {
-  ok:       'bg-[#81b29a]/10 border-[#81b29a]/30 text-[#81b29a]',
-  warning:  'bg-[#f2cc8f]/20 border-[#f2cc8f] text-[#8e6a00]',
+  ok:       'bg-[#81b29a]/10 border-[#81b29a]/30 text-[#2d6a4f]',
+  warning:  'bg-[#f2cc8f]/20 border-[#f2cc8f] text-[#7a5c00]',
   critical: 'bg-[#bc4749]/10 border-[#bc4749]/40 text-[#bc4749]',
 }
 
@@ -42,16 +41,19 @@ const EXPIRY_LABELS = {
   critical: 'Expired or expiring very soon — action required',
 }
 
+const ROLE_LABELS: Record<string, string> = {
+  admin: 'Admin', core: 'Core', member: 'Member', guest: 'Guest',
+}
+
 export default function ProfilePage() {
   const qc = useQueryClient()
+  const [form, setForm] = useState<Partial<Profile>>({})
+  const [saved, setSaved] = useState(false)
 
   const { data: profile, isLoading } = useQuery<Profile>({
     queryKey: ['profile'],
     queryFn: () => fetch('/api/profile').then(r => r.json()),
   })
-
-  const [form, setForm] = useState<Partial<Profile>>({})
-  const [saved, setSaved] = useState(false)
 
   useEffect(() => {
     if (profile) setForm({
@@ -93,134 +95,156 @@ export default function ProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="p-6 max-w-xl mx-auto space-y-4">
-        {[...Array(5)].map((_, i) => (
-          <div key={i} className="h-12 bg-gray-100 rounded-xl animate-pulse" />
-        ))}
-      </div>
+      <PageContainer>
+        <PageHeading title="My Profile" subtitle="Account details and travel documents" />
+        <div className="max-w-xl space-y-4 pb-8">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-24 rounded-2xl animate-pulse"
+              style={{ backgroundColor: 'rgba(0,0,0,0.06)' }} />
+          ))}
+        </div>
+      </PageContainer>
     )
   }
 
   if (!profile) return null
 
   const activeDocType = form.document_active_type ?? profile.document_active_type
-  const activeDocNumber = activeDocType === 'passport'
-    ? (form.passport_number ?? profile.passport_number)
-    : (form.id_number ?? profile.id_number)
-
   const expiryState = getExpiryState(form.valid_through ?? profile.valid_through)
-  const expiryStyle = expiryState ? EXPIRY_STYLES[expiryState] : null
-  const expiryLabel = expiryState ? EXPIRY_LABELS[expiryState] : null
-
-  const ROLE_LABELS: Record<string, string> = {
-    admin: 'Admin', core: 'Core', member: 'Member', guest: 'Guest',
-  }
 
   return (
-    <div className="p-6 max-w-xl mx-auto">
-      <h1 className="text-2xl font-semibold mb-1">Profile</h1>
-      <p className="text-sm text-gray-500 mb-8">Your account details and travel documents.</p>
+    <PageContainer>
+      <PageHeading title="My Profile" subtitle="Account details and travel documents" />
 
-      {/* Identity */}
-      <section className="bg-white border border-gray-200 rounded-xl p-6 mb-6">
-        <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wide mb-4">Identity</h2>
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <div>
-            <label className="text-xs text-gray-500 mb-1 block">First name</label>
-            <input
-              value={form.first_name ?? ''}
-              onChange={e => setForm(f => ({ ...f, first_name: e.target.value }))}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label className="text-xs text-gray-500 mb-1 block">Last name</label>
-            <input
-              value={form.last_name ?? ''}
-              onChange={e => setForm(f => ({ ...f, last_name: e.target.value }))}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
-            />
-          </div>
-        </div>
-        <div className="flex items-center gap-4 text-sm text-gray-500">
-          <span>ABO: <span className="text-gray-800 font-medium">{profile.abo_number ?? '—'}</span></span>
-          <span>Role: <span className="text-gray-800 font-medium">{ROLE_LABELS[profile.role]}</span></span>
-        </div>
-      </section>
+      <div className="max-w-xl pb-12 space-y-4">
 
-      {/* Travel document */}
-      <section className="bg-white border border-gray-200 rounded-xl p-6 mb-6">
-        <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wide mb-4">
-          Travel document
-        </h2>
-
-        {/* Toggle */}
-        <div className="flex gap-2 mb-5">
-          {(['id', 'passport'] as const).map(type => (
-            <button
-              key={type}
-              onClick={() => toggleDoc.mutate(type)}
-              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                activeDocType === type
-                  ? 'bg-[#3d405b] text-white'
-                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-              }`}
-            >
-              {type === 'id' ? 'National ID' : 'Passport'}
-            </button>
-          ))}
-        </div>
-
-        <div className="space-y-4">
-          <div>
-            <label className="text-xs text-gray-500 mb-1 block">
-              {activeDocType === 'passport' ? 'Passport number' : 'ID number'}
-            </label>
-            <input
-              value={activeDocType === 'passport'
-                ? (form.passport_number ?? '')
-                : (form.id_number ?? '')}
-              onChange={e => setForm(f => ({
-                ...f,
-                [activeDocType === 'passport' ? 'passport_number' : 'id_number']: e.target.value,
-              }))}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono"
-            />
-          </div>
-          <div>
-            <label className="text-xs text-gray-500 mb-1 block">Valid through</label>
-            <input
-              type="date"
-              value={form.valid_through ?? ''}
-              onChange={e => setForm(f => ({ ...f, valid_through: e.target.value }))}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
-            />
-          </div>
-
-          {/* Expiry state badge */}
-          {expiryStyle && (
-            <div className={`rounded-lg border px-4 py-3 text-sm font-medium ${expiryStyle}`}>
-              {expiryLabel}
-              {form.valid_through && (
-                <span className="font-normal ml-1 opacity-70">
-                  · {new Date(form.valid_through).toLocaleDateString('en-GB', {
-                    day: 'numeric', month: 'long', year: 'numeric',
-                  })}
-                </span>
-              )}
+        {/* Identity */}
+        <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-5">
+          <p className="text-xs font-semibold tracking-widest uppercase mb-4"
+            style={{ color: 'var(--stone)' }}>
+            Identity
+          </p>
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="text-xs mb-1 block" style={{ color: 'var(--stone)' }}>
+                First name
+              </label>
+              <input
+                value={form.first_name ?? ''}
+                onChange={e => setForm(f => ({ ...f, first_name: e.target.value }))}
+                className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+                style={{ color: 'var(--deep)' }}
+              />
             </div>
-          )}
+            <div>
+              <label className="text-xs mb-1 block" style={{ color: 'var(--stone)' }}>
+                Last name
+              </label>
+              <input
+                value={form.last_name ?? ''}
+                onChange={e => setForm(f => ({ ...f, last_name: e.target.value }))}
+                className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+                style={{ color: 'var(--deep)' }}
+              />
+            </div>
+          </div>
+          <div className="flex items-center gap-4 text-sm" style={{ color: 'var(--stone)' }}>
+            <span>
+              ABO:{' '}
+              <span className="font-medium" style={{ color: 'var(--deep)' }}>
+                {profile.abo_number ?? '—'}
+              </span>
+            </span>
+            <span>
+              Role:{' '}
+              <span className="font-medium" style={{ color: 'var(--deep)' }}>
+                {ROLE_LABELS[profile.role]}
+              </span>
+            </span>
+          </div>
         </div>
-      </section>
 
-      {/* Save */}
-      <button
-        onClick={() => saveMutation.mutate(form)}
-        disabled={saveMutation.isPending}
-        className="w-full bg-[#bc4749] text-white py-3 rounded-xl text-sm font-medium disabled:opacity-50 transition-colors hover:bg-[#a33d3f]"
-      >
-        {saveMutation.isPending ? 'Saving...' : saved ? 'Saved ✓' : 'Save changes'}
-      </button>
-    </div>
+        {/* Travel document */}
+        <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-5">
+          <p className="text-xs font-semibold tracking-widest uppercase mb-4"
+            style={{ color: 'var(--stone)' }}>
+            Travel document
+          </p>
+
+          {/* Toggle */}
+          <div className="flex gap-2 mb-5">
+            {(['id', 'passport'] as const).map(type => (
+              <button
+                key={type}
+                onClick={() => toggleDoc.mutate(type)}
+                className="px-4 py-2 rounded-xl text-sm font-medium transition-colors"
+                style={{
+                  backgroundColor: activeDocType === type ? 'var(--deep)' : 'rgba(0,0,0,0.05)',
+                  color: activeDocType === type ? 'white' : 'var(--stone)',
+                }}
+              >
+                {type === 'id' ? 'National ID' : 'Passport'}
+              </button>
+            ))}
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="text-xs mb-1 block" style={{ color: 'var(--stone)' }}>
+                {activeDocType === 'passport' ? 'Passport number' : 'ID number'}
+              </label>
+              <input
+                value={activeDocType === 'passport'
+                  ? (form.passport_number ?? '')
+                  : (form.id_number ?? '')}
+                onChange={e => setForm(f => ({
+                  ...f,
+                  [activeDocType === 'passport' ? 'passport_number' : 'id_number']: e.target.value,
+                }))}
+                className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm font-mono"
+                style={{ color: 'var(--deep)' }}
+              />
+            </div>
+
+            <div>
+              <label className="text-xs mb-1 block" style={{ color: 'var(--stone)' }}>
+                Valid through
+              </label>
+              <input
+                type="date"
+                value={form.valid_through ?? ''}
+                onChange={e => setForm(f => ({ ...f, valid_through: e.target.value }))}
+                className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+                style={{ color: 'var(--deep)' }}
+              />
+            </div>
+
+            {expiryState && (
+              <div className={`rounded-xl border px-4 py-3 text-sm font-medium ${EXPIRY_STYLES[expiryState]}`}>
+                {EXPIRY_LABELS[expiryState]}
+                {form.valid_through && (
+                  <span className="font-normal ml-1 opacity-70">
+                    · {new Date(form.valid_through).toLocaleDateString('en-GB', {
+                      day: 'numeric', month: 'long', year: 'numeric',
+                    })}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Save */}
+        <button
+          onClick={() => saveMutation.mutate(form)}
+          disabled={saveMutation.isPending}
+          className="w-full py-3 rounded-2xl text-sm font-semibold text-white disabled:opacity-50 transition-all hover:opacity-90 active:scale-[0.99]"
+          style={{ backgroundColor: 'var(--crimson)' }}
+        >
+          {saveMutation.isPending ? 'Saving…' : saved ? 'Saved ✓' : 'Save changes'}
+        </button>
+
+      </div>
+    </PageContainer>
   )
 }

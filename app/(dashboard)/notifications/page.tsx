@@ -1,6 +1,8 @@
 'use client'
 
 import { useNotifications, useMarkRead, useMarkAllRead } from '@/lib/hooks/useNotifications'
+import PageContainer from '@/components/layout/PageContainer'
+import PageHeading from '@/components/layout/PageHeading'
 
 const TYPE_LABELS: Record<string, string> = {
   role_request:  'Role request',
@@ -37,78 +39,104 @@ export default function NotificationsPage() {
   const unreadCount = notifications.filter(n => !n.is_read).length
 
   return (
-    <div className="p-6 max-w-2xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-semibold">Notifications</h1>
+    <PageContainer>
+      <div className="max-w-2xl">
+        <div className="flex items-end justify-between">
+          <PageHeading
+            title="Notifications"
+            subtitle="Your activity and alerts"
+          />
           {unreadCount > 0 && (
-            <p className="text-sm text-gray-500 mt-0.5">{unreadCount} unread</p>
+            <div className="pb-8">
+              <button
+                onClick={() => markAllRead.mutate()}
+                disabled={markAllRead.isPending}
+                className="text-sm font-medium disabled:opacity-50 hover:underline"
+                style={{ color: 'var(--crimson)' }}
+              >
+                Mark all as read
+              </button>
+            </div>
           )}
         </div>
+
         {unreadCount > 0 && (
-          <button
-            onClick={() => markAllRead.mutate()}
-            disabled={markAllRead.isPending}
-            className="text-sm text-[#bc4749] hover:underline disabled:opacity-50"
-          >
-            Mark all as read
-          </button>
+          <p className="text-sm -mt-4 mb-6" style={{ color: 'var(--stone)' }}>
+            {unreadCount} unread
+          </p>
+        )}
+
+        {isLoading ? (
+          <div className="space-y-3">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="h-16 rounded-xl animate-pulse"
+                style={{ backgroundColor: 'rgba(0,0,0,0.06)' }} />
+            ))}
+          </div>
+        ) : notifications.length === 0 ? (
+          <div className="text-center py-20">
+            <div
+              className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
+              style={{ backgroundColor: 'rgba(0,0,0,0.05)' }}
+            >
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
+                stroke="var(--stone)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+              </svg>
+            </div>
+            <p className="font-medium" style={{ color: 'var(--deep)' }}>All caught up</p>
+            <p className="text-sm mt-1" style={{ color: 'var(--stone)' }}>No notifications yet.</p>
+          </div>
+        ) : (
+          <div className="space-y-2 pb-8">
+            {notifications.map(n => (
+              <div
+                key={n.id}
+                onClick={() => { if (!n.is_read) markRead.mutate(n.id) }}
+                className="rounded-xl p-4 border transition-colors cursor-pointer"
+                style={{
+                  backgroundColor: n.is_read ? 'white' : 'var(--eggshell)',
+                  borderColor: n.is_read ? 'rgba(0,0,0,0.05)' : 'rgba(224,122,95,0.2)',
+                }}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${TYPE_COLORS[n.type] ?? 'bg-gray-100 text-gray-600'}`}>
+                        {TYPE_LABELS[n.type] ?? n.type}
+                      </span>
+                      {!n.is_read && (
+                        <span className="w-2 h-2 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: 'var(--crimson)' }} />
+                      )}
+                    </div>
+                    <p className="text-sm font-medium" style={{ color: 'var(--deep)' }}>
+                      {n.title}
+                    </p>
+                    <p className="text-sm mt-0.5" style={{ color: 'var(--stone)' }}>
+                      {n.message}
+                    </p>
+                  </div>
+                  <span className="text-xs flex-shrink-0 mt-0.5" style={{ color: 'var(--stone)' }}>
+                    {timeAgo(n.created_at)}
+                  </span>
+                </div>
+                {n.action_url && (
+                  
+                    href={n.action_url}
+                    onClick={e => e.stopPropagation()}
+                    className="text-xs font-medium mt-2 inline-block hover:underline"
+                    style={{ color: 'var(--crimson)' }}
+                  >
+                    View →
+                  </a>
+                )}
+              </div>
+            ))}
+          </div>
         )}
       </div>
-
-      {isLoading ? (
-        <div className="space-y-3">
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-16 bg-gray-100 rounded-xl animate-pulse" />
-          ))}
-        </div>
-      ) : notifications.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
-          <p className="text-lg">No notifications yet</p>
-          <p className="text-sm mt-1">You&apos;re all caught up.</p>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {notifications.map(n => (
-            <div
-              key={n.id}
-              onClick={() => { if (!n.is_read) markRead.mutate(n.id) }}
-              className={`
-                rounded-xl p-4 border transition-colors cursor-pointer
-                ${n.is_read
-                  ? 'bg-white border-gray-100'
-                  : 'bg-[#f4f1de] border-[#e07a5f]/20 hover:border-[#e07a5f]/40'}
-              `}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${TYPE_COLORS[n.type] ?? 'bg-gray-100 text-gray-600'}`}>
-                      {TYPE_LABELS[n.type] ?? n.type}
-                    </span>
-                    {!n.is_read && (
-                      <span className="w-2 h-2 rounded-full bg-[#bc4749] flex-shrink-0" />
-                    )}
-                  </div>
-                  <p className="text-sm font-medium text-gray-900">{n.title}</p>
-                  <p className="text-sm text-gray-500 mt-0.5">{n.message}</p>
-                </div>
-                <span className="text-xs text-gray-400 flex-shrink-0 mt-0.5">
-                  {timeAgo(n.created_at)}
-                </span>
-              </div>
-              {n.action_url && (
-                    <a href={n.action_url}
-                    onClick={e => e.stopPropagation()}
-                    className="text-xs text-[#bc4749] hover:underline mt-2 inline-block"
-                >
-                  View →
-                </a>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+    </PageContainer>
   )
 }

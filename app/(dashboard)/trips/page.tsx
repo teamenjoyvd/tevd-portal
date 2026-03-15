@@ -382,15 +382,9 @@ export default function TripsPage() {
     registrations.find(r => r.trip_id === tripId)
 
   return (
-    <div className="max-w-xl mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="font-serif text-3xl font-semibold" style={{ color: 'var(--deep)' }}>
-          Trips
-        </h1>
-        <p className="text-sm mt-1" style={{ color: 'var(--stone)' }}>
-          Team travel — register and track your payments.
-        </p>
-      </div>
+    <PageContainer>
+    <div className="max-w-xl py-2">
+      <PageHeading title="Team Trips" subtitle="Register and track your payments" />
 
       {error && (
         <div className="mb-4 px-4 py-3 rounded-xl text-sm"
