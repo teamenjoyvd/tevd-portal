@@ -11,7 +11,6 @@ export default function Header() {
   const { data } = useUnreadCount()
   const unread = data?.count ?? 0
 
-  // Don't show on auth pages or admin
   if (pathname?.startsWith('/sign-') || pathname?.startsWith('/admin')) return null
 
   return (
@@ -23,7 +22,6 @@ export default function Header() {
       <div className="flex items-center gap-3">
         {isSignedIn ? (
           <>
-            {/* Bell */}
             <Link href="/notifications" className="relative p-1">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
                 fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
@@ -37,7 +35,7 @@ export default function Header() {
                 </span>
               )}
             </Link>
-            <UserButton afterSignOutUrl="/" />
+            <UserButton />
           </>
         ) : (
           <Link href="/sign-in"

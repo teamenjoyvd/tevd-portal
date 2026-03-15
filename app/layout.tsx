@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <ClerkProvider>
+    <ClerkProvider afterSignOutUrl="/">
       <html lang="en" className={`${playfair.variable} ${montserrat.variable}`}>
         <body className="font-sans bg-[#f4f1de] text-[#3d405b]">
           <Providers>
