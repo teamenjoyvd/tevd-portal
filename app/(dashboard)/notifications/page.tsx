@@ -123,7 +123,7 @@ export default function NotificationsPage() {
                   </span>
                 </div>
                 {n.action_url && (
-                  
+                  <a
                     href={n.action_url}
                     onClick={e => e.stopPropagation()}
                     className="text-xs font-medium mt-2 inline-block hover:underline"
