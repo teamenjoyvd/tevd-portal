@@ -9,9 +9,9 @@ type ImportResult = {
 
 // Expected CSV headers mapped to DB columns
 const HEADER_MAP: Record<string, string> = {
-  'ABO Number': 'abo_number',
-  'Sponsor ABO': 'sponsor_abo_number',
   'ABO Level': 'abo_level',
+  'Sponsor ABO Number': 'sponsor_abo_number',
+  'ABO Number': 'abo_number',
   'Country': 'country',
   'Name': 'name',
   'Entry Date': 'entry_date',
@@ -21,33 +21,61 @@ const HEADER_MAP: Record<string, string> = {
   'Renewal Date': 'renewal_date',
   'GPV': 'gpv',
   'PPV': 'ppv',
-  'Bonus %': 'bonus_percent',
+  'Bonus Percent': 'bonus_percent',
   'GBV': 'gbv',
   'Customer PV': 'customer_pv',
   'Ruby PV': 'ruby_pv',
   'Customers': 'customers',
-  'Points to Next Level': 'points_to_next_level',
+  ' Customers': 'customers',
+  'Points to Next level': 'points_to_next_level',
   'Qualified Legs': 'qualified_legs',
   'Group Size': 'group_size',
-  'Personal Orders': 'personal_order_count',
-  'Group Orders': 'group_orders_count',
+  'Personal Order Count': 'personal_order_count',
+  'Group Orders Count': 'group_orders_count',
   'Sponsoring': 'sponsoring',
   'Annual PPV': 'annual_ppv',
 }
 
+// Parse a date like "31 December 2026" -> "2026-12-31"
+function parseDate(val: string): string {
+  if (!val) return ''
+  // Already ISO
+  if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val
+  const d = new Date(val)
+  if (!isNaN(d.getTime())) return d.toISOString().split('T')[0]
+  return ''
+}
+
 function parseCSV(text: string): Record<string, string>[] {
-  const lines = text.trim().split('\n')
-  if (lines.length < 2) return []
-  const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''))
-  return lines.slice(1).map(line => {
-    const values = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''))
-    const row: Record<string, string> = {}
-    headers.forEach((h, i) => {
-      const dbKey = HEADER_MAP[h] ?? h.toLowerCase().replace(/\s+/g, '_')
-      row[dbKey] = values[i] ?? ''
+  const allLines = text.trim().split('\n')
+
+  // Find the header line — it's the first line that contains 'ABO Number'
+  const headerIdx = allLines.findIndex(l => l.includes('ABO Number'))
+  if (headerIdx === -1) return []
+
+  const dataLines = allLines.slice(headerIdx)
+  const headers = dataLines[0]
+    .split(',')
+    .map(h => h.trim().replace(/^"|"$/g, ''))
+
+  return dataLines.slice(1)
+    .filter(line => line.trim() !== '')
+    .map(line => {
+      const values = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''))
+      const row: Record<string, string> = {}
+      headers.forEach((h, i) => {
+        const dbKey = HEADER_MAP[h] ?? h.toLowerCase().replace(/\s+/g, '_')
+        let val = values[i] ?? ''
+        // Strip % from bonus_percent
+        if (dbKey === 'bonus_percent') val = val.replace('%', '').trim()
+        // Normalise dates
+        if (dbKey === 'entry_date' || dbKey === 'renewal_date') val = parseDate(val)
+        // Strip "Primary: " prefix from phone
+        if (dbKey === 'phone') val = val.replace(/^Primary:\s*/i, '').trim()
+        row[dbKey] = val
+      })
+      return row
     })
-    return row
-  })
 }
 
 export default function DataCenterPage() {
