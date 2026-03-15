@@ -685,7 +685,7 @@ export default function CalendarPage() {
               category="Personal"
               active={showPersonal}
               onClick={() => setShowPersonal(v => !v)}
-              visible={canSeePersonal}
+              visible={!!canSeePersonal}
             />
           </div>
         </div>
