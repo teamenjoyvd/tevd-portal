@@ -2,11 +2,11 @@ import Link from 'next/link'
 import Image from 'next/image'
 
 const NAV = [
-  { href: '/',         label: 'Home'         },
-  { href: '/about',    label: 'About'        },
-  { href: '/calendar', label: 'Calendar'     },
-  { href: '/trips',    label: 'Trips'        },
-  { href: '/profile',  label: 'Profile'      },
+  { href: '/',          label: 'Home'    },
+  { href: '/about',     label: 'About'   },
+  { href: '/calendar',  label: 'Calendar'},
+  { href: '/trips',     label: 'Trips'   },
+  { href: '/profile',   label: 'Profile' },
 ]
 
 export default function Footer() {
@@ -20,7 +20,7 @@ export default function Footer() {
           <div>
             <div className="flex items-center gap-2.5 mb-4">
               <div
-                className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 border border-white/20"
+                className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 border border-white/20 overflow-hidden"
               >
                 <Image
                   src="/logo.png"
@@ -28,16 +28,6 @@ export default function Footer() {
                   width={28}
                   height={28}
                   className="object-contain"
-                  onError={(e) => {
-                    const el = e.target as HTMLImageElement
-                    el.style.display = 'none'
-                    const span = document.createElement('span')
-                    span.textContent = 'TEVD'
-                    span.style.fontSize = '9px'
-                    span.style.fontWeight = '700'
-                    span.style.color = 'rgba(255,255,255,0.8)'
-                    el.parentElement?.appendChild(span)
-                  }}
                 />
               </div>
               <span className="font-serif text-base font-bold tracking-tight text-white">
