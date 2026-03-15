@@ -98,7 +98,7 @@ export default async function HomePage() {
 
       {/* Content — in 1024px container */}
       <PageContainer>
-        <div className="max-w-2xl py-10 pb-16 space-y-10">
+        <div className="max-w-2xl py-10 space-y-10">
 
           {carets.length > 0 && (
             <section className="space-y-2">
