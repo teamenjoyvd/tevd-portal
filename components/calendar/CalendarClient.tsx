@@ -1,12 +1,8 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import dynamic from 'next/dynamic'
-
-const EventPopup = dynamic(() => import('@/components/events/EventPopup'), {
-  ssr: false,
-})
+import EventPopup from '@/components/events/EventPopup'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -37,13 +33,12 @@ const DAYS   = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const MONTHS = ['January','February','March','April','May','June',
                 'July','August','September','October','November','December']
 const HOURS  = Array.from({ length: 24 }, (_, i) => i)
+const HOUR_HEIGHT = 60
 
 const CATEGORY_COLOR: Record<string, { bg: string; text: string }> = {
   N21:      { bg: 'var(--forest)',  text: 'rgba(255,255,255,0.95)' },
   Personal: { bg: 'var(--sienna)', text: 'rgba(255,255,255,0.95)' },
 }
-
-const HOUR_HEIGHT = 60
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -96,49 +91,23 @@ function eventDurationMinutes(start: string, end: string): number {
   return Math.max(30, (new Date(end).getTime() - new Date(start).getTime()) / 60000)
 }
 
-// ── Category pill ──────────────────────────────────────────────────────────
-
-function CategoryPill({
-  category, active, onClick, visible,
-}: {
-  category: 'N21' | 'Personal'
-  active: boolean
-  onClick: () => void
-  visible: boolean
-}) {
-  if (!visible) return null
-  return (
-    <button
-      onClick={onClick}
-      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all"
-      style={{
-        backgroundColor: active ? CATEGORY_COLOR[category].bg : 'rgba(0,0,0,0.06)',
-        color: active ? CATEGORY_COLOR[category].text : 'var(--stone)',
-      }}
-    >
-      <span
-        className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-        style={{ backgroundColor: active ? 'rgba(255,255,255,0.7)' : CATEGORY_COLOR[category].bg }}
-      />
-      {category}
-    </button>
-  )
-}
-
 // ── Event pill ─────────────────────────────────────────────────────────────
 
 function EventPill({
   event, onClick, compact = false,
 }: {
   event: CalendarEvent
-  onClick: () => void
+  onClick: (rect: DOMRect) => void
   compact?: boolean
 }) {
   const c = CATEGORY_COLOR[event.category]
   return (
     <button
-      onClick={e => { e.stopPropagation(); onClick() }}
-      className="w-full text-left rounded-md px-1.5 truncate transition-opacity hover:opacity-80 active:opacity-60"
+      onClick={e => {
+        e.stopPropagation()
+        onClick(e.currentTarget.getBoundingClientRect())
+      }}
+      className="w-full text-left rounded-md px-1.5 transition-opacity hover:opacity-80 active:opacity-60"
       style={{
         backgroundColor: c.bg,
         color: c.text,
@@ -146,6 +115,11 @@ function EventPill({
         fontWeight: 500,
         lineHeight: compact ? '18px' : '20px',
         minHeight: compact ? '18px' : '20px',
+        overflow: 'hidden',
+        whiteSpace: 'nowrap',
+        textOverflow: 'ellipsis',
+        display: 'block',
+        maxWidth: '100%',
       }}
     >
       {compact ? event.title : `${formatTime(event.start_time)} ${event.title}`}
@@ -160,20 +134,22 @@ function MonthView({
 }: {
   current: Date
   events: CalendarEvent[]
-  onEventClick: (id: string) => void
+  onEventClick: (id: string, rect: DOMRect) => void
   onDayClick: (date: Date) => void
 }) {
   const today = new Date()
   const firstOfMonth = new Date(current.getFullYear(), current.getMonth(), 1)
   const gridStart = startOfWeek(firstOfMonth)
   const cells = Array.from({ length: 42 }, (_, i) => addDays(gridStart, i))
+
   const eventsOnDay = (date: Date) =>
     events.filter(e => sameDay(new Date(e.start_time), date))
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
-      <div className="grid grid-cols-[40px_repeat(7,1fr)] border-b border-black/5">
-        <div className="w-10" />
+      {/* Day headers */}
+      <div className="grid grid-cols-[40px_repeat(7,1fr)] border-b border-black/5 flex-shrink-0">
+        <div />
         {DAYS.map(d => (
           <div key={d} className="py-2 text-center text-xs font-semibold tracking-wide"
             style={{ color: 'var(--stone)' }}>
@@ -181,6 +157,8 @@ function MonthView({
           </div>
         ))}
       </div>
+
+      {/* Grid */}
       <div className="flex-1 overflow-y-auto">
         {Array.from({ length: 6 }, (_, week) => {
           const weekDays = cells.slice(week * 7, week * 7 + 7)
@@ -188,7 +166,7 @@ function MonthView({
             <div key={week}
               className="grid grid-cols-[40px_repeat(7,1fr)] border-b border-black/5"
               style={{ minHeight: 90 }}>
-              <div className="flex items-start justify-center pt-2">
+              <div className="flex items-start justify-center pt-2 flex-shrink-0">
                 <span className="text-[10px] font-semibold" style={{ color: 'var(--stone)' }}>
                   W{isoWeek(weekDays[0])}
                 </span>
@@ -198,13 +176,15 @@ function MonthView({
                 const isCurrentMonth = date.getMonth() === current.getMonth()
                 const dayEvents = eventsOnDay(date)
                 return (
-                  <div key={di}
+                  <div
+                    key={di}
                     onClick={() => onDayClick(date)}
-                    className="border-l border-black/5 p-1 cursor-pointer hover:bg-black/[0.02] transition-colors"
-                    style={{ minHeight: 90 }}>
+                    className="border-l border-black/5 p-1 cursor-pointer hover:bg-black/[0.02] transition-colors overflow-hidden"
+                    style={{ minHeight: 90 }}
+                  >
                     <div className="flex justify-center mb-1">
                       <span
-                        className="w-6 h-6 flex items-center justify-center rounded-full text-xs font-medium"
+                        className="w-6 h-6 flex items-center justify-center rounded-full text-xs font-medium flex-shrink-0"
                         style={{
                           backgroundColor: isToday ? 'var(--crimson)' : 'transparent',
                           color: isToday ? 'white' : isCurrentMonth ? 'var(--deep)' : 'var(--stone)',
@@ -214,12 +194,18 @@ function MonthView({
                         {date.getDate()}
                       </span>
                     </div>
-                    <div className="space-y-0.5">
+                    <div className="space-y-0.5 overflow-hidden">
                       {dayEvents.slice(0, 3).map(ev => (
-                        <EventPill key={ev.id} event={ev} compact onClick={() => onEventClick(ev.id)} />
+                        <EventPill
+                          key={ev.id}
+                          event={ev}
+                          compact
+                          onClick={(rect) => onEventClick(ev.id, rect)}
+                        />
                       ))}
                       {dayEvents.length > 3 && (
-                        <p className="text-[10px] font-medium pl-1" style={{ color: 'var(--stone)' }}>
+                        <p className="text-[10px] font-medium pl-1 truncate"
+                          style={{ color: 'var(--stone)' }}>
                           +{dayEvents.length - 3} more
                         </p>
                       )}
@@ -242,7 +228,7 @@ function WeekView({
 }: {
   current: Date
   events: CalendarEvent[]
-  onEventClick: (id: string) => void
+  onEventClick: (id: string, rect: DOMRect) => void
 }) {
   const today = new Date()
   const weekStart = startOfWeek(current)
@@ -304,15 +290,17 @@ function WeekView({
                     style={{ top: h * HOUR_HEIGHT + HOUR_HEIGHT / 2 }} />
                 ))}
                 {dayEvents.map(ev => {
-                  const top = (eventMinutesFromMidnight(ev.start_time) / 60) * HOUR_HEIGHT
+                  const top    = (eventMinutesFromMidnight(ev.start_time) / 60) * HOUR_HEIGHT
                   const height = Math.max(22,
                     (eventDurationMinutes(ev.start_time, ev.end_time) / 60) * HOUR_HEIGHT)
                   const c = CATEGORY_COLOR[ev.category]
                   return (
-                    <button key={ev.id}
-                      onClick={e => { e.stopPropagation(); onEventClick(ev.id) }}
+                    <button
+                      key={ev.id}
+                      onClick={e => { e.stopPropagation(); onEventClick(ev.id, e.currentTarget.getBoundingClientRect()) }}
                       className="absolute left-0.5 right-0.5 rounded-md px-1.5 text-left overflow-hidden hover:opacity-80 transition-opacity"
-                      style={{ top: top + 1, height: height - 2, backgroundColor: c.bg, color: c.text, zIndex: 1 }}>
+                      style={{ top: top + 1, height: height - 2, backgroundColor: c.bg, color: c.text, zIndex: 1 }}
+                    >
                       <p className="text-[10px] font-semibold truncate leading-tight mt-0.5">
                         {ev.title}
                       </p>
@@ -340,7 +328,7 @@ function DayView({
 }: {
   current: Date
   events: CalendarEvent[]
-  onEventClick: (id: string) => void
+  onEventClick: (id: string, rect: DOMRect) => void
 }) {
   const dayEvents = events.filter(e => sameDay(new Date(e.start_time), current))
 
@@ -380,15 +368,17 @@ function DayView({
                 style={{ top: h * HOUR_HEIGHT + HOUR_HEIGHT / 2 }} />
             ))}
             {dayEvents.map(ev => {
-              const top = (eventMinutesFromMidnight(ev.start_time) / 60) * HOUR_HEIGHT
+              const top    = (eventMinutesFromMidnight(ev.start_time) / 60) * HOUR_HEIGHT
               const height = Math.max(28,
                 (eventDurationMinutes(ev.start_time, ev.end_time) / 60) * HOUR_HEIGHT)
               const c = CATEGORY_COLOR[ev.category]
               return (
-                <button key={ev.id}
-                  onClick={() => onEventClick(ev.id)}
+                <button
+                  key={ev.id}
+                  onClick={e => onEventClick(ev.id, e.currentTarget.getBoundingClientRect())}
                   className="absolute left-1 right-1 rounded-lg px-3 text-left overflow-hidden hover:opacity-80 transition-opacity"
-                  style={{ top: top + 1, height: height - 2, backgroundColor: c.bg, color: c.text }}>
+                  style={{ top: top + 1, height: height - 2, backgroundColor: c.bg, color: c.text }}
+                >
                   <p className="text-xs font-semibold truncate mt-1">{ev.title}</p>
                   {height > 44 && (
                     <p className="text-[10px] opacity-80">
@@ -411,7 +401,7 @@ function AgendaView({
   events, onEventClick,
 }: {
   events: CalendarEvent[]
-  onEventClick: (id: string) => void
+  onEventClick: (id: string, rect: DOMRect) => void
 }) {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
@@ -464,13 +454,15 @@ function AgendaView({
               {grouped[dateKey].map(ev => {
                 const c = CATEGORY_COLOR[ev.category]
                 return (
-                  <button key={ev.id}
-                    onClick={() => onEventClick(ev.id)}
-                    className="w-full text-left rounded-xl border border-black/5 overflow-hidden hover:shadow-sm transition-shadow flex bg-white">
+                  <button
+                    key={ev.id}
+                    onClick={e => onEventClick(ev.id, e.currentTarget.getBoundingClientRect())}
+                    className="w-full text-left rounded-xl border border-black/5 overflow-hidden hover:shadow-sm transition-shadow flex bg-white"
+                  >
                     <div className="w-1 flex-shrink-0" style={{ backgroundColor: c.bg }} />
-                    <div className="flex-1 px-4 py-3">
+                    <div className="flex-1 px-4 py-3 min-w-0">
                       <div className="flex items-start justify-between gap-2">
-                        <p className="text-sm font-semibold" style={{ color: 'var(--deep)' }}>
+                        <p className="text-sm font-semibold truncate" style={{ color: 'var(--deep)' }}>
                           {ev.title}
                         </p>
                         <span className="text-xs flex-shrink-0 font-medium"
@@ -501,7 +493,7 @@ function AgendaView({
   )
 }
 
-// ── Main Client Component ──────────────────────────────────────────────────
+// ── Main ───────────────────────────────────────────────────────────────────
 
 export default function CalendarClient({
   initialEvents,
@@ -515,13 +507,13 @@ export default function CalendarClient({
     const [y, m] = initialMonth.split('-').map(Number)
     return new Date(y, m - 1, 1)
   })
-  const [selectedEventId, setSelectedEventId] = useState<string | null>(null)
-  const [showN21, setShowN21]           = useState(true)
-  const [showPersonal, setShowPersonal] = useState(true)
+  const [selectedEventId, setSelectedEventId]     = useState<string | null>(null)
+  const [anchorRect, setAnchorRect]               = useState<DOMRect | null>(null)
+  const [showN21, setShowN21]                     = useState(true)
+  const [showPersonal, setShowPersonal]           = useState(true)
 
   const canSeePersonal = isAuthenticated && userRole !== 'guest'
-
-  const fetchMonth = view === 'agenda' ? null : toMonthParam(current)
+  const fetchMonth     = view === 'agenda' ? null : toMonthParam(current)
 
   const { data: rawEvents = [] } = useQuery<CalendarEvent[]>({
     queryKey: ['events', fetchMonth],
@@ -533,7 +525,7 @@ export default function CalendarClient({
 
   const events = useMemo(() =>
     rawEvents.filter(e => {
-      if (e.category === 'N21') return showN21
+      if (e.category === 'N21')      return showN21
       if (e.category === 'Personal') return canSeePersonal && showPersonal
       return true
     }),
@@ -553,6 +545,16 @@ export default function CalendarClient({
 
   const goToday = useCallback(() => setCurrent(new Date()), [])
 
+  const handleEventClick = useCallback((id: string, rect: DOMRect) => {
+    setSelectedEventId(id)
+    setAnchorRect(rect)
+  }, [])
+
+  const handleDayClick = (date: Date) => {
+    setCurrent(date)
+    setView('day')
+  }
+
   const periodLabel = useMemo(() => {
     if (view === 'month' || view === 'agenda') {
       return `${MONTHS[current.getMonth()]} ${current.getFullYear()}`
@@ -570,11 +572,6 @@ export default function CalendarClient({
     return ''
   }, [view, current])
 
-  const handleDayClick = (date: Date) => {
-    setCurrent(date)
-    setView('day')
-  }
-
   const views: { key: View; label: string }[] = [
     { key: 'month',  label: 'Month'  },
     { key: 'week',   label: 'Week'   },
@@ -586,31 +583,40 @@ export default function CalendarClient({
     <div
       className="flex flex-col"
       style={{
+        // Mobile: subtract header(56) + heading(72) + bottom nav(64)
+        // Desktop (md+): subtract header(56) + heading(72) only
         height: 'calc(100dvh - 56px - 72px - 64px)',
-        // 56px header, 72px page heading band, 64px mobile bottom nav
       }}
     >
-      {/* ── Toolbar ── */}
-      <div className="flex-shrink-0 border-b border-black/5 bg-white">
-        <div className="max-w-[1024px] mx-auto px-4 md:px-6 lg:px-8 py-2.5">
+      <style>{`
+        @media (min-width: 768px) {
+          .cal-wrapper { height: calc(100dvh - 56px - 72px) !important; }
+        }
+      `}</style>
 
-          {/* Row 1: nav + title + today */}
-          <div className="flex items-center gap-2 mb-2">
-            <button
-              onClick={() => navigate(-1)}
-              className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors"
-              style={{ color: 'var(--deep)' }}
-            >
+      {/* ── Toolbar — single row on desktop, two rows on mobile ── */}
+      <div className="flex-shrink-0 border-b border-black/5 bg-white cal-wrapper"
+        style={{ height: 'auto' }}>
+        <div className="max-w-[1024px] mx-auto px-4 md:px-6 lg:px-8">
+
+          {/* Mobile: two rows */}
+          <div className="flex md:hidden items-center gap-2 py-2.5">
+            <button onClick={() => navigate(-1)}
+              className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5"
+              style={{ color: 'var(--deep)' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="15 18 9 12 15 6"/>
               </svg>
             </button>
-            <button
-              onClick={() => navigate(1)}
-              className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors"
-              style={{ color: 'var(--deep)' }}
-            >
+            <button onClick={goToday}
+              className="px-2.5 py-1 rounded-lg text-xs font-semibold border"
+              style={{ borderColor: 'var(--crimson)', color: 'var(--crimson)' }}>
+              Today
+            </button>
+            <button onClick={() => navigate(1)}
+              className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5"
+              style={{ color: 'var(--deep)' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="9 18 15 12 9 6"/>
@@ -619,59 +625,137 @@ export default function CalendarClient({
             <p className="flex-1 text-sm font-semibold truncate" style={{ color: 'var(--deep)' }}>
               {periodLabel}
             </p>
-            <button
-              onClick={goToday}
-              className="px-3 py-1 rounded-lg text-xs font-semibold border transition-colors"
-              style={{ borderColor: 'var(--crimson)', color: 'var(--crimson)' }}
-            >
-              Today
-            </button>
           </div>
 
-          {/* Row 2: view toggles + category filters */}
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex md:hidden items-center justify-between gap-2 pb-2.5">
             <div className="flex gap-0.5 p-0.5 rounded-lg" style={{ backgroundColor: 'rgba(0,0,0,0.05)' }}>
               {views.map(v => (
-                <button
-                  key={v.key}
-                  onClick={() => setView(v.key)}
+                <button key={v.key} onClick={() => setView(v.key)}
                   className="px-2.5 py-1 rounded-md text-xs font-medium transition-all"
                   style={{
                     backgroundColor: view === v.key ? 'white' : 'transparent',
                     color: view === v.key ? 'var(--deep)' : 'var(--stone)',
                     boxShadow: view === v.key ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
-                  }}
-                >
+                  }}>
                   {v.label}
                 </button>
               ))}
             </div>
             <div className="flex gap-1.5">
-              <CategoryPill
-                category="N21"
-                active={showN21}
-                onClick={() => setShowN21(v => !v)}
-                visible={true}
-              />
-              <CategoryPill
-                category="Personal"
-                active={showPersonal}
-                onClick={() => setShowPersonal(v => !v)}
-                visible={!!canSeePersonal}
-              />
+              {/* N21 pill */}
+              <button onClick={() => setShowN21(v => !v)}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-all"
+                style={{
+                  backgroundColor: showN21 ? 'var(--forest)' : 'rgba(0,0,0,0.06)',
+                  color: showN21 ? 'white' : 'var(--stone)',
+                }}>
+                <span className="w-1.5 h-1.5 rounded-full"
+                  style={{ backgroundColor: showN21 ? 'rgba(255,255,255,0.6)' : 'var(--forest)' }} />
+                N21
+              </button>
+              {/* Personal pill — only for authenticated non-guests */}
+              {canSeePersonal && (
+                <button onClick={() => setShowPersonal(v => !v)}
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-all"
+                  style={{
+                    backgroundColor: showPersonal ? 'var(--sienna)' : 'rgba(0,0,0,0.06)',
+                    color: showPersonal ? 'white' : 'var(--stone)',
+                  }}>
+                  <span className="w-1.5 h-1.5 rounded-full"
+                    style={{ backgroundColor: showPersonal ? 'rgba(255,255,255,0.6)' : 'var(--sienna)' }} />
+                  Personal
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Desktop: single row */}
+          <div className="hidden md:flex items-center gap-3 py-2.5">
+            {/* Left: ← Today → */}
+            <div className="flex items-center gap-1">
+              <button onClick={() => navigate(-1)}
+                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors"
+                style={{ color: 'var(--deep)' }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="15 18 9 12 15 6"/>
+                </svg>
+              </button>
+              <button onClick={goToday}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors hover:bg-black/[0.02]"
+                style={{ borderColor: 'var(--crimson)', color: 'var(--crimson)' }}>
+                Today
+              </button>
+              <button onClick={() => navigate(1)}
+                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors"
+                style={{ color: 'var(--deep)' }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="9 18 15 12 9 6"/>
+                </svg>
+              </button>
+            </div>
+
+            {/* Center: period label */}
+            <p className="flex-1 text-sm font-semibold" style={{ color: 'var(--deep)' }}>
+              {periodLabel}
+            </p>
+
+            {/* Right: view toggle + category pills */}
+            <div className="flex items-center gap-3">
+              {/* Category pills */}
+              <div className="flex gap-1.5">
+                <button onClick={() => setShowN21(v => !v)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
+                  style={{
+                    backgroundColor: showN21 ? 'var(--forest)' : 'rgba(0,0,0,0.06)',
+                    color: showN21 ? 'white' : 'var(--stone)',
+                  }}>
+                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: showN21 ? 'rgba(255,255,255,0.6)' : 'var(--forest)' }} />
+                  N21
+                </button>
+                {canSeePersonal && (
+                  <button onClick={() => setShowPersonal(v => !v)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
+                    style={{
+                      backgroundColor: showPersonal ? 'var(--sienna)' : 'rgba(0,0,0,0.06)',
+                      color: showPersonal ? 'white' : 'var(--stone)',
+                    }}>
+                    <span className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: showPersonal ? 'rgba(255,255,255,0.6)' : 'var(--sienna)' }} />
+                    Personal
+                  </button>
+                )}
+              </div>
+
+              {/* View toggle */}
+              <div className="flex gap-0.5 p-0.5 rounded-lg" style={{ backgroundColor: 'rgba(0,0,0,0.05)' }}>
+                {views.map(v => (
+                  <button key={v.key} onClick={() => setView(v.key)}
+                    className="px-3 py-1 rounded-md text-xs font-medium transition-all"
+                    style={{
+                      backgroundColor: view === v.key ? 'white' : 'transparent',
+                      color: view === v.key ? 'var(--deep)' : 'var(--stone)',
+                      boxShadow: view === v.key ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                    }}>
+                    {v.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* ── Calendar grid — constrained to 1024px ── */}
-      <div className="flex-1 min-h-0 w-full">
+      {/* ── Calendar grid ── */}
+      <div className="flex-1 min-h-0 cal-wrapper" style={{ height: 'auto' }}>
         <div className="max-w-[1024px] mx-auto h-full flex flex-col">
           {view === 'month' && (
             <MonthView
               current={current}
               events={events}
-              onEventClick={setSelectedEventId}
+              onEventClick={handleEventClick}
               onDayClick={handleDayClick}
             />
           )}
@@ -679,30 +763,31 @@ export default function CalendarClient({
             <WeekView
               current={current}
               events={events}
-              onEventClick={setSelectedEventId}
+              onEventClick={handleEventClick}
             />
           )}
           {view === 'day' && (
             <DayView
               current={current}
               events={events}
-              onEventClick={setSelectedEventId}
+              onEventClick={handleEventClick}
             />
           )}
           {view === 'agenda' && (
             <AgendaView
               events={events}
-              onEventClick={setSelectedEventId}
+              onEventClick={handleEventClick}
             />
           )}
         </div>
       </div>
 
-      {/* ── Event popup ── */}
+      {/* ── Floating event popover — no backdrop ── */}
       {selectedEventId && (
         <EventPopup
           eventId={selectedEventId}
-          onClose={() => setSelectedEventId(null)}
+          anchorRect={anchorRect}
+          onClose={() => { setSelectedEventId(null); setAnchorRect(null) }}
           userRole={userRole}
           userProfileId={userProfileId}
         />
