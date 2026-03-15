@@ -50,7 +50,7 @@ export default function Footer() {
             </p>
             {/* Socials */}
             <div className="flex gap-3">
-              
+              <a
                 href="https://facebook.com"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -62,7 +62,7 @@ export default function Footer() {
                   <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
                 </svg>
               </a>
-              
+              <a
                 href="https://instagram.com"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -108,7 +108,7 @@ export default function Footer() {
               Contact
             </p>
             <div className="space-y-3">
-              
+              <a
                 href="mailto:teamenjoyvd@gmail.com"
                 className="flex items-center gap-2.5 text-sm transition-colors hover:text-white"
                 style={{ color: 'rgba(255,255,255,0.6)' }}
