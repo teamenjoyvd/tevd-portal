@@ -580,19 +580,9 @@ export default function CalendarClient({
   ]
 
   return (
-    <div
-        className="flex flex-col"
-        style={{ height: 'var(--cal-height)' }}
-    >
-      <style>{`
-        @media (min-width: 768px) {
-          .cal-wrapper { height: calc(100dvh - 56px - 72px) !important; }
-        }
-      `}</style>
-
+    <div className="flex flex-col h-full w-full bg-white">
       {/* ── Toolbar — single row on desktop, two rows on mobile ── */}
-      <div className="flex-shrink-0 border-b border-black/5 bg-white cal-wrapper"
-        style={{ height: 'auto' }}>
+      <div className="flex-shrink-0 border-b border-black/5 bg-white">
         <div className="max-w-[1024px] mx-auto px-4 md:px-6 lg:px-8">
 
           {/* Mobile: two rows */}
@@ -745,7 +735,7 @@ export default function CalendarClient({
       </div>
 
       {/* ── Calendar grid ── */}
-      <div className="flex-1 min-h-0 cal-wrapper" style={{ height: 'auto' }}>
+      <div className="flex-1 min-h-0 overflow-hidden">
         <div className="max-w-[1024px] mx-auto h-full flex flex-col">
           {view === 'month' && (
             <MonthView
