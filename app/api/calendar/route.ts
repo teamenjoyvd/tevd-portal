@@ -4,9 +4,8 @@ import { auth } from '@clerk/nextjs/server'
 export async function GET(req: Request) {
   const { userId } = await auth()
   const supabase = createServiceClient()
-
   const { searchParams } = new URL(req.url)
-  const month = searchParams.get('month') // e.g. "2026-03"
+  const month = searchParams.get('month')
 
   let query = supabase
     .from('calendar_events')
@@ -21,9 +20,11 @@ export async function GET(req: Request) {
       1
     ).toISOString()
     query = query.gte('start_time', start).lt('start_time', end)
+  } else {
+    // No month param — return all future events (for agenda view)
+    query = query.gte('start_time', new Date().toISOString())
   }
 
-  // Guests and unauthenticated users only see N21 events
   if (!userId) {
     query = query.eq('category', 'N21')
   }
