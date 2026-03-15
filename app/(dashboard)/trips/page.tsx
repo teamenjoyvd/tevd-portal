@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useUser } from '@clerk/nextjs'
+import PageContainer from '@/components/layout/PageContainer'
+import PageHeading from '@/components/layout/PageHeading'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -383,54 +385,55 @@ export default function TripsPage() {
 
   return (
     <PageContainer>
-    <div className="max-w-xl py-2">
-      <PageHeading title="Team Trips" subtitle="Register and track your payments" />
+      <div className="max-w-xl">
+        <PageHeading title="Team Trips" subtitle="Register and track your payments" />
 
-      {error && (
-        <div className="mb-4 px-4 py-3 rounded-xl text-sm"
-          style={{ backgroundColor: '#bc474915', color: 'var(--crimson)' }}>
-          {error}
-        </div>
-      )}
-
-      {isLoading ? (
-        <div className="space-y-4">
-          {[...Array(2)].map((_, i) => (
-            <div key={i} className="h-48 rounded-2xl animate-pulse"
-              style={{ backgroundColor: 'rgba(0,0,0,0.06)' }} />
-          ))}
-        </div>
-      ) : trips.length === 0 ? (
-        <div className="text-center py-20">
-          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
-            style={{ backgroundColor: 'rgba(0,0,0,0.05)' }}>
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
-              stroke="var(--stone)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
-              <circle cx="12" cy="10" r="3"/>
-            </svg>
+        {error && (
+          <div className="mb-4 px-4 py-3 rounded-xl text-sm"
+            style={{ backgroundColor: '#bc474915', color: 'var(--crimson)' }}>
+            {error}
           </div>
-          <p className="font-medium" style={{ color: 'var(--deep)' }}>No trips yet</p>
-          <p className="text-sm mt-1" style={{ color: 'var(--stone)' }}>
-            Check back soon — upcoming trips will appear here.
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-5">
-          {trips.map(trip => (
-            <TripCard
-              key={trip.id}
-              trip={trip}
-              registration={regFor(trip.id)}
-              payments={payments}
-              profileId={profile?.id ?? null}
-              onRegister={(id) => registerMutation.mutate(id)}
-              onCancel={(id) => cancelMutation.mutate(id)}
-              isPending={registerMutation.isPending || cancelMutation.isPending}
-            />
-          ))}
-        </div>
-      )}
-    </div>
+        )}
+
+        {isLoading ? (
+          <div className="space-y-4 pb-12">
+            {[...Array(2)].map((_, i) => (
+              <div key={i} className="h-48 rounded-2xl animate-pulse"
+                style={{ backgroundColor: 'rgba(0,0,0,0.06)' }} />
+            ))}
+          </div>
+        ) : trips.length === 0 ? (
+          <div className="text-center py-20">
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
+              style={{ backgroundColor: 'rgba(0,0,0,0.05)' }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
+                stroke="var(--stone)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+                <circle cx="12" cy="10" r="3"/>
+              </svg>
+            </div>
+            <p className="font-medium" style={{ color: 'var(--deep)' }}>No trips yet</p>
+            <p className="text-sm mt-1" style={{ color: 'var(--stone)' }}>
+              Check back soon — upcoming trips will appear here.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-5 pb-12">
+            {trips.map(trip => (
+              <TripCard
+                key={trip.id}
+                trip={trip}
+                registration={regFor(trip.id)}
+                payments={payments}
+                profileId={profile?.id ?? null}
+                onRegister={(id) => registerMutation.mutate(id)}
+                onCancel={(id) => cancelMutation.mutate(id)}
+                isPending={registerMutation.isPending || cancelMutation.isPending}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </PageContainer>
   )
 }
