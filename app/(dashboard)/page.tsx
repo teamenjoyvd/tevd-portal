@@ -7,9 +7,7 @@ type CalendarEvent = {
   end_time: string; week_number: number; category: string
 }
 type Announcement = {
-  id: string
-  titles: Record<string, string>
-  contents: Record<string, string>
+  id: string; titles: Record<string,string>; contents: Record<string,string>
   is_active: boolean
 }
 type QuickLink = {
@@ -27,7 +25,6 @@ function formatEventDate(iso: string): string {
     weekday: 'short', day: 'numeric', month: 'short',
   })
 }
-
 function formatEventTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('en-GB', {
     hour: '2-digit', minute: '2-digit',
@@ -35,9 +32,15 @@ function formatEventTime(iso: string): string {
 }
 
 export default async function HomePage() {
-  const { userId } = await auth()
-  const supabase = createServiceClient()
+  let userId: string | null = null
+  try {
+    const session = await auth()
+    userId = session.userId
+  } catch {
+    userId = null
+  }
 
+  const supabase = createServiceClient()
   const [settingsRes, announcementsRes, quickLinksRes, eventsRes] = await Promise.all([
     supabase.from('home_settings').select('*').single(),
     supabase.from('announcements').select('*').eq('is_active', true)
@@ -59,58 +62,90 @@ export default async function HomePage() {
   ].filter(c => c.show && c.text)
 
   return (
-    <div className="min-h-screen bg-[#f4f1de]">
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--eggshell)' }}>
 
       {/* Hero */}
-      <div className="bg-[#2d332a] text-white px-6 py-16 text-center">
-        <h1 className="text-4xl font-serif mb-3">teamenjoyVD</h1>
-        <p className="text-white/60 text-sm tracking-widest uppercase">N21 Community Portal</p>
-        {!userId && (
-          <Link href="/sign-in"
-            className="mt-8 inline-block bg-[#bc4749] text-white px-8 py-3 rounded-full text-sm font-medium hover:bg-[#a33d3f] transition-colors">
-            Sign in
-          </Link>
-        )}
+      <div
+        className="relative overflow-hidden px-6 py-14 text-center"
+        style={{ backgroundColor: 'var(--forest)' }}
+      >
+        {/* Subtle texture overlay */}
+        <div className="absolute inset-0 opacity-5"
+          style={{
+            backgroundImage: 'radial-gradient(circle at 20% 50%, #e07a5f 0%, transparent 50%), radial-gradient(circle at 80% 20%, #81b29a 0%, transparent 40%)',
+          }}
+        />
+        <div className="relative">
+          <p className="text-xs tracking-[0.3em] uppercase mb-3"
+            style={{ color: 'var(--sienna)' }}>
+            N21 Community
+          </p>
+          <h1 className="text-5xl font-serif font-bold text-white mb-2">
+            teamenjoyVD
+          </h1>
+          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
+            Members Portal
+          </p>
+          {!userId && (
+            <Link
+              href="/sign-in"
+              className="mt-8 inline-flex items-center gap-2 px-8 py-3 rounded-full text-sm font-medium text-white transition-all hover:opacity-90 active:scale-[0.98]"
+              style={{ backgroundColor: 'var(--crimson)' }}
+            >
+              Sign in to your account
+            </Link>
+          )}
+        </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 py-10 space-y-10">
+      {/* Content */}
+      <div className="max-w-xl mx-auto px-4 py-8 space-y-8">
 
         {/* Focus carets */}
         {carets.length > 0 && (
-          <section className="grid grid-cols-1 gap-3">
+          <section className="space-y-2">
             {carets.map((c, i) => (
-              <div key={i} className="bg-[#e07a5f] text-white rounded-xl px-5 py-4 text-sm font-medium">
+              <div
+                key={i}
+                className="rounded-2xl px-5 py-4 text-sm font-medium text-white"
+                style={{ backgroundColor: 'var(--sienna)' }}
+              >
                 {c.text}
               </div>
             ))}
           </section>
         )}
 
-        {/* Next events */}
+        {/* Upcoming events */}
         {nextEvents.length > 0 && (
           <section>
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-semibold text-[#3d405b] uppercase tracking-wide">
-                Upcoming events
-              </h2>
-              <Link href="/calendar" className="text-xs text-[#bc4749] hover:underline">
+              <p className="section-label">Upcoming events</p>
+              <Link
+                href="/calendar"
+                className="text-xs font-medium"
+                style={{ color: 'var(--crimson)' }}
+              >
                 See all →
               </Link>
             </div>
-            <div className="space-y-2">
+            <div className="card divide-y divide-black/5 overflow-hidden">
               {nextEvents.map(event => (
-                <div key={event.id} className="bg-white rounded-xl p-4 border border-[#8e8b82]/20">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-medium text-[#3d405b]">{event.title}</p>
-                      <p className="text-xs text-[#8e8b82] mt-0.5">
-                        {formatEventDate(event.start_time)} · {formatEventTime(event.start_time)}
-                      </p>
-                    </div>
-                    <span className="text-xs text-[#8e8b82] flex-shrink-0">
-                      W{event.week_number}
-                    </span>
+                <div key={event.id} className="px-5 py-4 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate" style={{ color: 'var(--deep)' }}>
+                      {event.title}
+                    </p>
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--stone)' }}>
+                      {formatEventDate(event.start_time)} · {formatEventTime(event.start_time)}
+                    </p>
                   </div>
+                  <span
+                    className="text-xs font-semibold px-2 py-1 rounded-lg flex-shrink-0"
+                    style={{ backgroundColor: 'var(--forest)', color: 'rgba(255,255,255,0.7)' }}
+                  >
+                    W{event.week_number}
+                  </span>
                 </div>
               ))}
             </div>
@@ -120,16 +155,15 @@ export default async function HomePage() {
         {/* Announcements */}
         {announcements.length > 0 && (
           <section>
-            <h2 className="text-sm font-semibold text-[#3d405b] uppercase tracking-wide mb-3">
-              Announcements
-            </h2>
+            <p className="section-label mb-3">Announcements</p>
             <div className="space-y-3">
               {announcements.map(a => (
-                <div key={a.id} className="bg-white rounded-xl p-5 border border-[#8e8b82]/20">
-                  <h3 className="font-medium text-[#3d405b] mb-1">
+                <div key={a.id} className="card px-5 py-4">
+                  <h3 className="font-serif text-base font-semibold mb-1"
+                    style={{ color: 'var(--deep)' }}>
                     {a.titles?.en ?? a.titles?.bg ?? 'Announcement'}
                   </h3>
-                  <p className="text-sm text-[#8e8b82] leading-relaxed">
+                  <p className="text-sm leading-relaxed" style={{ color: 'var(--stone)' }}>
                     {a.contents?.en ?? a.contents?.bg ?? ''}
                   </p>
                 </div>
@@ -141,15 +175,18 @@ export default async function HomePage() {
         {/* Quick links */}
         {quickLinks.length > 0 && (
           <section>
-            <h2 className="text-sm font-semibold text-[#3d405b] uppercase tracking-wide mb-3">
-              Quick links
-            </h2>
+            <p className="section-label mb-3">Quick links</p>
             <div className="grid grid-cols-2 gap-2">
               {quickLinks.map(link => (
-                <a key={link.id} href={link.url}
-                  target="_blank" rel="noopener noreferrer"
-                  className="bg-white rounded-xl px-4 py-3 border border-[#8e8b82]/20 text-sm font-medium text-[#3d405b] hover:border-[#bc4749]/40 transition-colors flex items-center gap-2">
-                  <span className="text-[#bc4749]">→</span>
+                <a
+                  key={link.id}
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="card px-4 py-3.5 text-sm font-medium flex items-center gap-2 hover:shadow-md transition-shadow"
+                  style={{ color: 'var(--deep)' }}
+                >
+                  <span style={{ color: 'var(--crimson)' }}>→</span>
                   {link.label}
                 </a>
               ))}
@@ -157,9 +194,12 @@ export default async function HomePage() {
           </section>
         )}
 
+        {/* Guest empty state */}
         {!userId && carets.length === 0 && nextEvents.length === 0 && announcements.length === 0 && (
-          <div className="text-center py-10 text-[#8e8b82]">
-            <p className="text-sm">Sign in to access your portal.</p>
+          <div className="text-center py-16">
+            <p className="text-sm" style={{ color: 'var(--stone)' }}>
+              Sign in to access your portal.
+            </p>
           </div>
         )}
 

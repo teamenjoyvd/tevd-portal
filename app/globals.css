@@ -2,34 +2,61 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --font-playfair: 'Playfair Display', serif;
-  --font-montserrat: 'Montserrat', sans-serif;
+@layer base {
+  :root {
+    --eggshell: #f4f1de;
+    --forest:   #2d332a;
+    --deep:     #3d405b;
+    --crimson:  #bc4749;
+    --sienna:   #e07a5f;
+    --stone:    #8e8b82;
+    --sage:     #81b29a;
+    --sandy:    #f2cc8f;
+  }
+
+  html {
+    -webkit-tap-highlight-color: transparent;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--eggshell);
+    color: var(--deep);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3 {
+    font-family: var(--font-playfair), serif;
+  }
+
+  /* Brand focus ring */
+  *:focus-visible {
+    outline: 2px solid var(--crimson);
+    outline-offset: 2px;
+  }
 }
 
-* {
-  box-sizing: border-box;
-}
+@layer components {
+  /* Card — the core surface unit */
+  .card {
+    @apply bg-white rounded-2xl border border-black/5 shadow-sm;
+  }
 
-html {
-  -webkit-tap-highlight-color: transparent;
-}
+  /* Section label */
+  .section-label {
+    @apply text-xs font-semibold tracking-widest uppercase text-stone-500;
+  }
 
-body {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+  /* Primary button */
+  .btn-primary {
+    @apply bg-[#bc4749] text-white rounded-xl px-5 py-2.5 text-sm font-medium
+           hover:bg-[#a33d3f] active:scale-[0.98] transition-all disabled:opacity-40;
+  }
 
-/* Smooth scrolling */
-html {
-  scroll-behavior: smooth;
-}
-
-/* Remove default input/button outlines and replace with brand focus */
-input:focus-visible,
-textarea:focus-visible,
-select:focus-visible,
-button:focus-visible {
-  outline: 2px solid #bc4749;
-  outline-offset: 2px;
+  /* Ghost button */
+  .btn-ghost {
+    @apply bg-black/5 text-[#3d405b] rounded-xl px-5 py-2.5 text-sm font-medium
+           hover:bg-black/10 active:scale-[0.98] transition-all;
+  }
 }
