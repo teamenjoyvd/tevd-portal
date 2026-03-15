@@ -159,11 +159,28 @@ All colors registered in `tailwind.config.ts` as named tokens (e.g. `bg-crimson`
 - **Body & Data:** Montserrat (`font-sans`) — Clean, geometric, mobile-optimized
 - Both loaded with `latin` + `cyrillic` subsets for Bulgarian support
 
-### Mobile UX
-- `BottomNav`: fixed, 4 items (Home, Calendar, Trips, Profile), hidden on `md+`, hidden on auth/admin routes
-- `Header`: sticky, Forest background, bell + unread badge, UserButton
-- `pb-20` on dashboard main content to clear bottom nav
-- High-contrast cards: Eggshell surfaces on Stone borders
+### Mobile-First Design Mandate
+
+This portal is **primarily a mobile experience**. The majority of users are field team members who will access it exclusively on their phones. Every UI decision must be made with the mobile viewport as the baseline — desktop is an enhancement, not the target.
+
+**What this means in practice:**
+- Design for a 390px viewport first. Expand to desktop after.
+- Touch targets minimum 44×44px. No hover-dependent interactions for primary actions.
+- Bottom nav is the primary navigation — not a sidebar, not a top nav.
+- Text must be legible without zooming. Minimum 14px body, 16px for inputs.
+- Forms must be usable with a soft keyboard open — avoid fixed-position elements that fight with it.
+- Cards and list items must be finger-tappable with generous padding.
+- Loading states (skeletons) on every async fetch — no blank screens.
+- No horizontal overflow anywhere. Test every page at 390px width.
+- Spacing: use `p-4` / `p-6` as the standard page padding, never less.
+- The `pb-20` on dashboard main content is mandatory — bottom nav occludes content without it.
+
+**Component behaviour by breakpoint:**
+- Bottom nav: visible on mobile, `hidden md:hidden` (always hidden, nav moves to header on desktop — pending Phase 10 desktop pass)
+- Header: always sticky, always visible
+- Cards: full width on mobile, max-w-2xl centered on desktop
+- Grids: single column on mobile, expand to 2-col on `sm:` or `md:`
+- Admin pages: usable on mobile, optimised for desktop (data tables, CSV import)
 
 ---
 
@@ -489,3 +506,5 @@ Server-side admin gate in `app/admin/layout.tsx` — redirects to `/sign-in` if 
 | Member profile pages | Admin view of individual member profiles + LOS position |
 | Event role requests | UI for members to request Speaker/Host roles on events |
 | About page | `/about` — N21/team philosophy |
+| Desktop nav pass | Bottom nav is hidden on md+, but header has no desktop nav links outside admin — needs a Phase 10 desktop navigation pass |
+| Mobile QA pass | Systematic 390px viewport test of all pages before member rollout |
