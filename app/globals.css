@@ -27,3 +27,7 @@ body {
   outline: 2px solid var(--crimson);
   outline-offset: 2px;
 }
+
+.footer-link:hover {
+  color: var(--crimson) !important;
+}

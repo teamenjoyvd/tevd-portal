@@ -2,12 +2,12 @@ import Link from 'next/link'
 import Image from 'next/image'
 
 const NAV = [
-  { href: '/',              label: 'Home'         },
-  { href: '/about',         label: 'About'        },
-  { href: '/calendar',      label: 'Calendar'     },
-  { href: '/trips',         label: 'Trips'        },
-  { href: '/profile',       label: 'Profile'      },
-  { href: '/notifications', label: 'Notifications'},
+  { href: '/',              label: 'Home'          },
+  { href: '/about',         label: 'About'         },
+  { href: '/calendar',      label: 'Calendar'      },
+  { href: '/trips',         label: 'Trips'         },
+  { href: '/profile',       label: 'Profile'       },
+  { href: '/notifications', label: 'Notifications' },
 ]
 
 export default function Footer() {
@@ -19,8 +19,10 @@ export default function Footer() {
           {/* Col 1 — Brand */}
           <div>
             <div className="flex items-center gap-2.5 mb-4">
-              <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0"
-                style={{ border: '1px solid rgba(255,255,255,0.15)' }}>
+              <div
+                className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0"
+                style={{ border: '1px solid rgba(255,255,255,0.15)' }}
+              >
                 <Image
                   src="/logo.png"
                   alt="TEVD"
@@ -45,7 +47,7 @@ export default function Footer() {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Facebook"
-                className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-white/10"
+                className="footer-link w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-white/10"
                 style={{ border: '1px solid rgba(255,255,255,0.15)' }}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="rgba(255,255,255,0.6)">
@@ -57,7 +59,7 @@ export default function Footer() {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Instagram"
-                className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-white/10"
+                className="footer-link w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-white/10"
                 style={{ border: '1px solid rgba(255,255,255,0.15)' }}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
@@ -84,10 +86,8 @@ export default function Footer() {
                 <Link
                   key={href}
                   href={href}
-                  className="block text-sm transition-colors"
+                  className="footer-link block text-sm transition-colors"
                   style={{ color: 'rgba(255,255,255,0.6)' }}
-                  onMouseOver={e => (e.currentTarget.style.color = 'var(--crimson)')}
-                  onMouseOut={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.6)')}
                 >
                   {label}
                 </Link>
@@ -106,10 +106,8 @@ export default function Footer() {
             <div className="space-y-3">
               <a
                 href="mailto:teamenjoyvd@gmail.com"
-                className="flex items-center gap-2.5 text-sm transition-colors"
+                className="footer-link flex items-center gap-2.5 text-sm transition-colors"
                 style={{ color: 'rgba(255,255,255,0.6)' }}
-                onMouseOver={e => (e.currentTarget.style.color = 'var(--crimson)')}
-                onMouseOut={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.6)')}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                   stroke="currentColor" strokeWidth="1.8"
