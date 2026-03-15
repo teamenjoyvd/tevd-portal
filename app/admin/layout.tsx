@@ -18,10 +18,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <span className="font-semibold text-sm tracking-wide">Admin</span>
         <nav className="flex gap-4 text-sm">
           {[
-            { href: '/admin/approval-hub',  label: 'Approval Hub' },
-            { href: '/admin/operations',    label: 'Operations'   },
-            { href: '/admin/content',       label: 'Content'      },
-            { href: '/admin/data-center',   label: 'Data Center'  },
+            { href: '/admin/approval-hub', label: 'Approval Hub' },
+            { href: '/admin/operations',   label: 'Operations'   },
+            { href: '/admin/members',      label: 'Members'      },
+            { href: '/admin/content',      label: 'Content'      },
+            { href: '/admin/data-center',  label: 'Data Center'  },
           ].map(({ href, label }) => (
             <a key={href} href={href} className="text-white/70 hover:text-white transition-colors">
               {label}
