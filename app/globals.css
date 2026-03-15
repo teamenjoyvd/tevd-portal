@@ -31,3 +31,13 @@ body {
 .footer-link:hover {
   color: var(--crimson) !important;
 }
+
+:root {
+  --cal-height: calc(100dvh - 56px - 72px - 64px);
+}
+
+@media (min-width: 768px) {
+  :root {
+    --cal-height: calc(100dvh - 56px - 72px);
+  }
+}

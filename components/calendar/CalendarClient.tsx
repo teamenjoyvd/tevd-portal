@@ -581,12 +581,8 @@ export default function CalendarClient({
 
   return (
     <div
-      className="flex flex-col"
-      style={{
-        // Mobile: subtract header(56) + heading(72) + bottom nav(64)
-        // Desktop (md+): subtract header(56) + heading(72) only
-        height: 'calc(100dvh - 56px - 72px - 64px)',
-      }}
+        className="flex flex-col"
+        style={{ height: 'var(--cal-height)' }}
     >
       <style>{`
         @media (min-width: 768px) {
