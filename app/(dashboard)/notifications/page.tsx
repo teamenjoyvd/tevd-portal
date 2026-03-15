@@ -98,10 +98,9 @@ export default function NotificationsPage() {
                 </span>
               </div>
               {n.action_url && (
-                
-                  href={n.action_url}
-                  onClick={e => e.stopPropagation()}
-                  className="text-xs text-[#bc4749] hover:underline mt-2 inline-block"
+                    <a href={n.action_url}
+                    onClick={e => e.stopPropagation()}
+                    className="text-xs text-[#bc4749] hover:underline mt-2 inline-block"
                 >
                   View →
                 </a>
