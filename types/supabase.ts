@@ -540,14 +540,25 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      abo_to_ltree_label: { Args: { abo: string }; Returns: string }
       get_my_clerk_id: { Args: never; Returns: string }
       get_my_profile_id: { Args: never; Returns: string }
       get_my_role: {
         Args: never
         Returns: Database["public"]["Enums"]["user_role"]
       }
+      import_los_members: { Args: { rows: Json }; Returns: Json }
       is_admin: { Args: never; Returns: boolean }
+      rebuild_tree_paths: { Args: never; Returns: undefined }
       text2ltree: { Args: { "": string }; Returns: unknown }
+      upsert_tree_node: {
+        Args: {
+          p_abo_number: string
+          p_profile_id: string
+          p_sponsor_abo_number?: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       document_type: "id" | "passport"
