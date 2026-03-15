@@ -3,11 +3,3 @@ import { SignUp } from '@clerk/nextjs'
 export default function SignUpPage() {
   return <SignUp />
 }
-```
-
-Add to your `.env.local`:
-```
-NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
-NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
-NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/
-NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/
