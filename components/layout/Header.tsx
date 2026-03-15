@@ -8,10 +8,10 @@ import { useUnreadCount } from '@/lib/hooks/useNotifications'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 
 const NAV_LINKS = [
-  { href: '/',          label: 'Home'     },
-  { href: '/about',     label: 'About'    },
-  { href: '/calendar',  label: 'Calendar' },
-  { href: '/trips',     label: 'Trips'    },
+  { href: '/',         label: 'Home'     },
+  { href: '/about',    label: 'About'    },
+  { href: '/calendar', label: 'Calendar' },
+  { href: '/trips',    label: 'Trips'    },
 ]
 
 export default function Header() {
@@ -30,31 +30,30 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-40 bg-white border-b border-black/5">
-      <div className="max-w-[1280px] mx-auto px-6 h-14 flex items-center">
+      <div className="max-w-[1024px] mx-auto px-4 md:px-6 lg:px-8 h-14 flex items-center">
 
         {/* Left — Logo + wordmark */}
         <Link href="/" className="flex items-center gap-2.5 flex-shrink-0">
-          <Image
-            src="/logo.png"
-            alt="teamenjoyVD"
-            width={32}
-            height={32}
-            className="object-contain"
-            onError={(e) => {
-              // Fallback if logo not yet uploaded
-              (e.target as HTMLImageElement).style.display = 'none'
-            }}
-          />
+          <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0"
+            style={{ border: '1px solid rgba(0,0,0,0.08)' }}>
+            <Image
+              src="/logo.png"
+              alt="teamenjoyVD"
+              width={32}
+              height={32}
+              className="object-contain"
+            />
+          </div>
           <span
             className="font-serif text-base font-bold tracking-tight hidden sm:block"
-            style={{ color: 'var(--deep)' }}
+            style={{ color: 'var(--forest)' }}
           >
             TEAMENJOYVD
           </span>
         </Link>
 
-        {/* Center — Nav links */}
-        <nav className="hidden md:flex items-center gap-1 absolute left-1/2 -translate-x-1/2">
+        {/* Center — Nav links (absolute centered) */}
+        <nav className="hidden md:flex items-center gap-0.5 absolute left-1/2 -translate-x-1/2">
           {NAV_LINKS.map(({ href, label }) => (
             <Link
               key={href}
@@ -74,7 +73,9 @@ export default function Header() {
               className="px-3.5 py-1.5 rounded-lg text-xs font-semibold tracking-widest uppercase transition-colors"
               style={{
                 color: pathname?.startsWith('/admin') ? 'var(--crimson)' : 'var(--stone)',
-                backgroundColor: pathname?.startsWith('/admin') ? 'rgba(188,71,73,0.06)' : 'transparent',
+                backgroundColor: pathname?.startsWith('/admin')
+                  ? 'rgba(188,71,73,0.06)'
+                  : 'transparent',
               }}
             >
               Admin
@@ -84,7 +85,6 @@ export default function Header() {
 
         {/* Right — Lang + Bell + Avatar */}
         <div className="flex items-center gap-2 ml-auto">
-          {/* Language toggle */}
           <button
             onClick={toggle}
             className="px-2.5 py-1 rounded-lg text-xs font-bold tracking-widest uppercase transition-colors hover:bg-black/5"
@@ -95,7 +95,6 @@ export default function Header() {
 
           {isSignedIn ? (
             <>
-              {/* Bell */}
               <Link
                 href="/notifications"
                 className="relative w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors"

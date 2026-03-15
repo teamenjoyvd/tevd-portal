@@ -615,7 +615,7 @@ export default function CalendarPage() {
 
       {/* ── Toolbar ── */}
       <div className="flex-shrink-0 border-b border-black/5" style={{ backgroundColor: 'white' }}>
-        <div className="max-w-[1280px] mx-auto px-3 py-2.5">
+        <div className="max-w-[1024px] mx-auto px-3 py-2.5">
 
         {/* Row 1: nav + title */}
         <div className="flex items-center gap-2 mb-2">

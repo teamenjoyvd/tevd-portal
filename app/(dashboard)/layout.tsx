@@ -4,9 +4,9 @@ import Footer from '@/components/layout/Footer'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen flex flex-col" style={{ backgroundColor: 'var(--eggshell)' }}>
+    <div className="min-h-screen flex flex-col" style={{ backgroundColor: 'white' }}>
       <Header />
-      <main className="flex-1 pb-20 md:pb-0">
+      <main className="flex-1 pb-20 md:pb-0" style={{ backgroundColor: 'white' }}>
         {children}
       </main>
       <Footer />

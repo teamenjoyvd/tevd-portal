@@ -63,21 +63,22 @@ export default async function HomePage() {
   ].filter(c => c.show && c.text)
 
   return (
-    <div style={{ backgroundColor: 'var(--eggshell)' }}>
+    <div style={{ backgroundColor: 'white' }}>
 
-      {/* Hero — full bleed */}
+      {/* Hero — full bleed, no container */}
       <div
-        className="relative overflow-hidden px-6 py-16 text-center"
+        className="relative overflow-hidden px-6 py-20 text-center"
         style={{ backgroundColor: 'var(--forest)' }}
       >
         <div className="absolute inset-0 opacity-5" style={{
           backgroundImage: 'radial-gradient(circle at 20% 50%, #e07a5f 0%, transparent 50%), radial-gradient(circle at 80% 20%, #81b29a 0%, transparent 40%)',
         }} />
-        <div className="relative max-w-[1280px] mx-auto">
-          <p className="text-xs tracking-[0.3em] uppercase mb-3" style={{ color: 'var(--sienna)' }}>
+        <div className="relative">
+          <p className="text-xs tracking-[0.3em] uppercase mb-3"
+            style={{ color: 'var(--sienna)' }}>
             N21 Community
           </p>
-          <h1 className="text-5xl md:text-6xl font-serif font-bold text-white mb-2">
+          <h1 className="text-5xl md:text-6xl font-serif font-bold text-white mb-3">
             teamenjoyVD
           </h1>
           <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
@@ -95,11 +96,10 @@ export default async function HomePage() {
         </div>
       </div>
 
-      {/* Content — constrained */}
+      {/* Content — in 1024px container */}
       <PageContainer>
-        <div className="max-w-2xl py-10 space-y-10">
+        <div className="max-w-2xl py-10 pb-16 space-y-10">
 
-          {/* Focus carets */}
           {carets.length > 0 && (
             <section className="space-y-2">
               {carets.map((c, i) => (
@@ -114,7 +114,6 @@ export default async function HomePage() {
             </section>
           )}
 
-          {/* Upcoming events */}
           {nextEvents.length > 0 && (
             <section>
               <div className="flex items-center justify-between mb-3">
@@ -150,7 +149,6 @@ export default async function HomePage() {
             </section>
           )}
 
-          {/* Announcements */}
           {announcements.length > 0 && (
             <section>
               <p className="text-xs font-semibold tracking-widest uppercase mb-3"
@@ -159,7 +157,8 @@ export default async function HomePage() {
               </p>
               <div className="space-y-3">
                 {announcements.map(a => (
-                  <div key={a.id} className="bg-white rounded-2xl border border-black/5 shadow-sm px-5 py-4">
+                  <div key={a.id}
+                    className="bg-white rounded-2xl border border-black/5 shadow-sm px-5 py-4">
                     <h3 className="font-serif text-base font-semibold mb-1"
                       style={{ color: 'var(--deep)' }}>
                       {a.titles?.en ?? a.titles?.bg ?? 'Announcement'}
@@ -173,7 +172,6 @@ export default async function HomePage() {
             </section>
           )}
 
-          {/* Quick links */}
           {quickLinks.length > 0 && (
             <section>
               <p className="text-xs font-semibold tracking-widest uppercase mb-3"
@@ -198,7 +196,6 @@ export default async function HomePage() {
             </section>
           )}
 
-          {/* Guest empty state */}
           {!userId && carets.length === 0 && nextEvents.length === 0 && announcements.length === 0 && (
             <div className="text-center py-16">
               <p className="text-sm" style={{ color: 'var(--stone)' }}>

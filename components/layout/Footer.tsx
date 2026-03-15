@@ -2,26 +2,25 @@ import Link from 'next/link'
 import Image from 'next/image'
 
 const NAV = [
-  { href: '/',          label: 'Home'    },
-  { href: '/about',     label: 'About'   },
-  { href: '/calendar',  label: 'Calendar'},
-  { href: '/trips',     label: 'Trips'   },
-  { href: '/profile',   label: 'Profile' },
+  { href: '/',              label: 'Home'         },
+  { href: '/about',         label: 'About'        },
+  { href: '/calendar',      label: 'Calendar'     },
+  { href: '/trips',         label: 'Trips'        },
+  { href: '/profile',       label: 'Profile'      },
+  { href: '/notifications', label: 'Notifications'},
 ]
 
 export default function Footer() {
   return (
     <footer style={{ backgroundColor: 'var(--forest)' }}>
-      {/* Main footer */}
-      <div className="max-w-[1280px] mx-auto px-6 py-12">
+      <div className="max-w-[1024px] mx-auto px-4 md:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
 
           {/* Col 1 — Brand */}
           <div>
             <div className="flex items-center gap-2.5 mb-4">
-              <div
-                className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 border border-white/20 overflow-hidden"
-              >
+              <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0"
+                style={{ border: '1px solid rgba(255,255,255,0.15)' }}>
                 <Image
                   src="/logo.png"
                   alt="TEVD"
@@ -34,31 +33,32 @@ export default function Footer() {
                 TEAMENJOYVD
               </span>
             </div>
-            <p className="text-sm leading-relaxed mb-5"
-              style={{ color: 'rgba(255,255,255,0.45)' }}>
+            <p
+              className="text-sm leading-relaxed mb-5"
+              style={{ color: 'rgba(255,255,255,0.45)' }}
+            >
               Building a culture of growth,<br />leadership, and purpose.
             </p>
-            {/* Socials */}
             <div className="flex gap-3">
-              <a
-                href="https://facebook.com"
+              
+                href="https://www.facebook.com/teamenjoyvd/"
                 target="_blank"
                 rel="noopener noreferrer"
+                aria-label="Facebook"
                 className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-white/10"
                 style={{ border: '1px solid rgba(255,255,255,0.15)' }}
-                aria-label="Facebook"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="rgba(255,255,255,0.6)">
                   <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
                 </svg>
               </a>
-              <a
-                href="https://instagram.com"
+              
+                href="https://www.instagram.com/teamenjoyvd/"
                 target="_blank"
                 rel="noopener noreferrer"
+                aria-label="Instagram"
                 className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-white/10"
                 style={{ border: '1px solid rgba(255,255,255,0.15)' }}
-                aria-label="Instagram"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                   stroke="rgba(255,255,255,0.6)" strokeWidth="2"
@@ -73,8 +73,10 @@ export default function Footer() {
 
           {/* Col 2 — Navigation */}
           <div>
-            <p className="text-xs font-semibold tracking-[0.2em] uppercase mb-5"
-              style={{ color: 'rgba(255,255,255,0.35)' }}>
+            <p
+              className="text-xs font-semibold tracking-[0.2em] uppercase mb-5"
+              style={{ color: 'rgba(255,255,255,0.35)' }}
+            >
               Navigation
             </p>
             <nav className="space-y-3">
@@ -82,8 +84,10 @@ export default function Footer() {
                 <Link
                   key={href}
                   href={href}
-                  className="block text-sm transition-colors hover:text-white"
+                  className="block text-sm transition-colors"
                   style={{ color: 'rgba(255,255,255,0.6)' }}
+                  onMouseOver={e => (e.currentTarget.style.color = 'var(--crimson)')}
+                  onMouseOut={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.6)')}
                 >
                   {label}
                 </Link>
@@ -93,15 +97,19 @@ export default function Footer() {
 
           {/* Col 3 — Contact */}
           <div>
-            <p className="text-xs font-semibold tracking-[0.2em] uppercase mb-5"
-              style={{ color: 'rgba(255,255,255,0.35)' }}>
+            <p
+              className="text-xs font-semibold tracking-[0.2em] uppercase mb-5"
+              style={{ color: 'rgba(255,255,255,0.35)' }}
+            >
               Contact
             </p>
             <div className="space-y-3">
-              <a
+              
                 href="mailto:teamenjoyvd@gmail.com"
-                className="flex items-center gap-2.5 text-sm transition-colors hover:text-white"
+                className="flex items-center gap-2.5 text-sm transition-colors"
                 style={{ color: 'rgba(255,255,255,0.6)' }}
+                onMouseOver={e => (e.currentTarget.style.color = 'var(--crimson)')}
+                onMouseOut={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.6)')}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                   stroke="currentColor" strokeWidth="1.8"
@@ -111,8 +119,10 @@ export default function Footer() {
                 </svg>
                 teamenjoyvd@gmail.com
               </a>
-              <div className="flex items-center gap-2.5 text-sm"
-                style={{ color: 'rgba(255,255,255,0.6)' }}>
+              <div
+                className="flex items-center gap-2.5 text-sm"
+                style={{ color: 'rgba(255,255,255,0.6)' }}
+              >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                   stroke="currentColor" strokeWidth="1.8"
                   strokeLinecap="round" strokeLinejoin="round">
@@ -129,7 +139,7 @@ export default function Footer() {
 
       {/* Bottom bar */}
       <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-        <div className="max-w-[1280px] mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="max-w-[1024px] mx-auto px-4 md:px-6 lg:px-8 py-4 flex items-center justify-between">
           <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
             © 2026 TEAMENJOY VD · ALL RIGHTS RESERVED
           </p>

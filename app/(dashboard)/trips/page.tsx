@@ -3,10 +3,8 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useUser } from '@clerk/nextjs'
-import PageContainer from '@/components/layout/PageContainer'
 import PageHeading from '@/components/layout/PageHeading'
-
-// ── Types ──────────────────────────────────────────────────────────────────
+import PageContainer from '@/components/layout/PageContainer'
 
 type Milestone = { label: string; amount: number; due_date: string }
 
@@ -42,8 +40,6 @@ type Payment = {
 
 type UserProfile = { id: string; role: string }
 
-// ── Helpers ────────────────────────────────────────────────────────────────
-
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-GB', {
     day: 'numeric', month: 'short', year: 'numeric',
@@ -67,16 +63,8 @@ const STATUS_STYLES: Record<string, { bg: string; color: string; label: string }
   denied:   { bg: '#bc474920', color: '#bc4749', label: 'Declined'         },
 }
 
-// ── Trip card ──────────────────────────────────────────────────────────────
-
 function TripCard({
-  trip,
-  registration,
-  payments,
-  profileId,
-  onRegister,
-  onCancel,
-  isPending,
+  trip, registration, payments, profileId, onRegister, onCancel, isPending,
 }: {
   trip: Trip
   registration: Registration | undefined
@@ -91,12 +79,10 @@ function TripCard({
   const totalPaid = myPayments
     .filter(p => p.status === 'completed')
     .reduce((sum, p) => sum + p.amount, 0)
-
   const milestones: Milestone[] = Array.isArray(trip.milestones) ? trip.milestones : []
 
   return (
     <div className="bg-white rounded-2xl border border-black/5 overflow-hidden shadow-sm">
-      {/* Header */}
       <div className="px-5 pt-5 pb-4">
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="flex-1 min-w-0">
@@ -123,8 +109,6 @@ function TripCard({
             <p className="text-xs" style={{ color: 'var(--stone)' }}>total</p>
           </div>
         </div>
-
-        {/* Dates */}
         <div className="flex items-center gap-1.5 text-xs mb-3" style={{ color: 'var(--stone)' }}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -135,8 +119,6 @@ function TripCard({
           </svg>
           {formatDate(trip.start_date)} – {formatDate(trip.end_date)}
         </div>
-
-        {/* Description */}
         {trip.description && (
           <p className="text-sm leading-relaxed" style={{ color: 'var(--stone)' }}>
             {trip.description}
@@ -144,7 +126,6 @@ function TripCard({
         )}
       </div>
 
-      {/* Registration status bar */}
       {registration && (
         <div
           className="mx-5 mb-4 px-4 py-2.5 rounded-xl flex items-center justify-between"
@@ -167,7 +148,6 @@ function TripCard({
         </div>
       )}
 
-      {/* Milestones + payments — collapsible */}
       {(milestones.length > 0 || myPayments.length > 0) && registration?.status === 'approved' && (
         <div className="border-t border-black/5">
           <button
@@ -183,37 +163,29 @@ function TripCard({
                 </span>
               )}
             </span>
-            <svg
-              width="16" height="16" viewBox="0 0 24 24" fill="none"
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-              style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s' }}
-            >
+              style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s' }}>
               <polyline points="6 9 12 15 18 9"/>
             </svg>
           </button>
-
           {expanded && (
             <div className="px-5 pb-5">
-              {/* Payment progress bar */}
               {trip.total_cost > 0 && (
                 <div className="mb-4">
                   <div className="h-1.5 rounded-full overflow-hidden"
                     style={{ backgroundColor: 'rgba(0,0,0,0.06)' }}>
-                    <div
-                      className="h-full rounded-full transition-all"
+                    <div className="h-full rounded-full transition-all"
                       style={{
                         width: `${Math.min(100, (totalPaid / trip.total_cost) * 100)}%`,
                         backgroundColor: 'var(--sage)',
-                      }}
-                    />
+                      }} />
                   </div>
                   <p className="text-xs mt-1.5" style={{ color: 'var(--stone)' }}>
                     {Math.round((totalPaid / trip.total_cost) * 100)}% paid
                   </p>
                 </div>
               )}
-
-              {/* Milestones */}
               {milestones.length > 0 && (
                 <div className="space-y-2 mb-4">
                   <p className="text-xs font-semibold tracking-widest uppercase"
@@ -221,19 +193,15 @@ function TripCard({
                     Milestones
                   </p>
                   {milestones.map((m, i) => {
-                    const paid = myPayments
-                      .filter(p => p.status === 'completed')
+                    const paid = myPayments.filter(p => p.status === 'completed')
                       .reduce((sum, p) => sum + p.amount, 0)
-                    const isCovered = paid >= milestones
-                      .slice(0, i + 1)
+                    const isCovered = paid >= milestones.slice(0, i + 1)
                       .reduce((sum, ms) => sum + ms.amount, 0)
                     return (
                       <div key={i} className="flex items-center justify-between py-2 border-b border-black/5 last:border-0">
                         <div className="flex items-center gap-2.5">
-                          <div
-                            className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0"
-                            style={{ backgroundColor: isCovered ? 'var(--sage)' : 'rgba(0,0,0,0.08)' }}
-                          >
+                          <div className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0"
+                            style={{ backgroundColor: isCovered ? 'var(--sage)' : 'rgba(0,0,0,0.08)' }}>
                             {isCovered && (
                               <svg width="8" height="8" viewBox="0 0 24 24" fill="none"
                                 stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
@@ -242,12 +210,8 @@ function TripCard({
                             )}
                           </div>
                           <div>
-                            <p className="text-sm font-medium" style={{ color: 'var(--deep)' }}>
-                              {m.label}
-                            </p>
-                            <p className="text-xs" style={{ color: 'var(--stone)' }}>
-                              Due {formatDate(m.due_date)}
-                            </p>
+                            <p className="text-sm font-medium" style={{ color: 'var(--deep)' }}>{m.label}</p>
+                            <p className="text-xs" style={{ color: 'var(--stone)' }}>Due {formatDate(m.due_date)}</p>
                           </div>
                         </div>
                         <p className="text-sm font-semibold" style={{ color: 'var(--deep)' }}>
@@ -258,8 +222,6 @@ function TripCard({
                   })}
                 </div>
               )}
-
-              {/* Payment history */}
               {myPayments.length > 0 && (
                 <div className="space-y-2">
                   <p className="text-xs font-semibold tracking-widest uppercase"
@@ -267,8 +229,7 @@ function TripCard({
                     Payment history
                   </p>
                   {myPayments.map(p => (
-                    <div key={p.id}
-                      className="flex items-center justify-between py-2 border-b border-black/5 last:border-0">
+                    <div key={p.id} className="flex items-center justify-between py-2 border-b border-black/5 last:border-0">
                       <div>
                         <p className="text-sm" style={{ color: 'var(--deep)' }}>
                           {formatDate(p.transaction_date)}
@@ -295,13 +256,12 @@ function TripCard({
         </div>
       )}
 
-      {/* CTA */}
       {!registration && (
         <div className="px-5 pb-5">
           <button
             onClick={() => onRegister(trip.id)}
             disabled={isPending || !profileId}
-            className="w-full py-3 rounded-xl text-sm font-semibold text-white transition-opacity disabled:opacity-50 hover:opacity-90 active:opacity-70"
+            className="w-full py-3 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 active:opacity-70 transition-opacity"
             style={{ backgroundColor: 'var(--crimson)' }}
           >
             Register for this trip
@@ -311,8 +271,6 @@ function TripCard({
     </div>
   )
 }
-
-// ── Main Page ──────────────────────────────────────────────────────────────
 
 export default function TripsPage() {
   const { isSignedIn } = useUser()
@@ -380,60 +338,61 @@ export default function TripsPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['registrations'] }),
   })
 
-  const regFor = (tripId: string) =>
-    registrations.find(r => r.trip_id === tripId)
+  const regFor = (tripId: string) => registrations.find(r => r.trip_id === tripId)
 
   return (
-    <PageContainer>
-      <div className="max-w-xl">
-        <PageHeading title="Team Trips" subtitle="Register and track your payments" />
+    <>
+      <PageHeading title="Team Trips" subtitle="Register and track your payments" />
+      <PageContainer>
+        <div className="max-w-xl py-8 pb-16">
 
-        {error && (
-          <div className="mb-4 px-4 py-3 rounded-xl text-sm"
-            style={{ backgroundColor: '#bc474915', color: 'var(--crimson)' }}>
-            {error}
-          </div>
-        )}
-
-        {isLoading ? (
-          <div className="space-y-4 pb-12">
-            {[...Array(2)].map((_, i) => (
-              <div key={i} className="h-48 rounded-2xl animate-pulse"
-                style={{ backgroundColor: 'rgba(0,0,0,0.06)' }} />
-            ))}
-          </div>
-        ) : trips.length === 0 ? (
-          <div className="text-center py-20">
-            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
-              style={{ backgroundColor: 'rgba(0,0,0,0.05)' }}>
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
-                stroke="var(--stone)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
-                <circle cx="12" cy="10" r="3"/>
-              </svg>
+          {error && (
+            <div className="mb-4 px-4 py-3 rounded-xl text-sm"
+              style={{ backgroundColor: '#bc474915', color: 'var(--crimson)' }}>
+              {error}
             </div>
-            <p className="font-medium" style={{ color: 'var(--deep)' }}>No trips yet</p>
-            <p className="text-sm mt-1" style={{ color: 'var(--stone)' }}>
-              Check back soon — upcoming trips will appear here.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-5 pb-12">
-            {trips.map(trip => (
-              <TripCard
-                key={trip.id}
-                trip={trip}
-                registration={regFor(trip.id)}
-                payments={payments}
-                profileId={profile?.id ?? null}
-                onRegister={(id) => registerMutation.mutate(id)}
-                onCancel={(id) => cancelMutation.mutate(id)}
-                isPending={registerMutation.isPending || cancelMutation.isPending}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-    </PageContainer>
+          )}
+
+          {isLoading ? (
+            <div className="space-y-4">
+              {[...Array(2)].map((_, i) => (
+                <div key={i} className="h-48 rounded-2xl animate-pulse"
+                  style={{ backgroundColor: 'rgba(0,0,0,0.06)' }} />
+              ))}
+            </div>
+          ) : trips.length === 0 ? (
+            <div className="text-center py-20">
+              <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
+                style={{ backgroundColor: 'rgba(0,0,0,0.05)' }}>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
+                  stroke="var(--stone)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+                  <circle cx="12" cy="10" r="3"/>
+                </svg>
+              </div>
+              <p className="font-medium" style={{ color: 'var(--deep)' }}>No trips yet</p>
+              <p className="text-sm mt-1" style={{ color: 'var(--stone)' }}>
+                Check back soon — upcoming trips will appear here.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-5">
+              {trips.map(trip => (
+                <TripCard
+                  key={trip.id}
+                  trip={trip}
+                  registration={regFor(trip.id)}
+                  payments={payments}
+                  profileId={profile?.id ?? null}
+                  onRegister={(id) => registerMutation.mutate(id)}
+                  onCancel={(id) => cancelMutation.mutate(id)}
+                  isPending={registerMutation.isPending || cancelMutation.isPending}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </PageContainer>
+    </>
   )
 }
