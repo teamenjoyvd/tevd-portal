@@ -120,7 +120,7 @@ export default async function HomePage() {
         {nextEvents.length > 0 && (
           <section>
             <div className="flex items-center justify-between mb-3">
-              <p className="section-label">Upcoming events</p>
+              <p className="text-xs font-semibold tracking-widest uppercase text-stone-500">Upcoming events</p>
               <Link
                 href="/calendar"
                 className="text-xs font-medium"
@@ -129,7 +129,7 @@ export default async function HomePage() {
                 See all →
               </Link>
             </div>
-            <div className="card divide-y divide-black/5 overflow-hidden">
+            <div className="bg-white rounded-2xl border border-black/5 shadow-sm divide-y divide-black/5 overflow-hidden">
               {nextEvents.map(event => (
                 <div key={event.id} className="px-5 py-4 flex items-center justify-between gap-3">
                   <div className="min-w-0">
@@ -155,10 +155,10 @@ export default async function HomePage() {
         {/* Announcements */}
         {announcements.length > 0 && (
           <section>
-            <p className="section-label mb-3">Announcements</p>
+            <p className="text-xs font-semibold tracking-widest uppercase text-stone-500 mb-3">Announcements</p>
             <div className="space-y-3">
               {announcements.map(a => (
-                <div key={a.id} className="card px-5 py-4">
+                <div key={a.id} className="bg-white rounded-2xl border border-black/5 shadow-sm px-5 py-4">
                   <h3 className="font-serif text-base font-semibold mb-1"
                     style={{ color: 'var(--deep)' }}>
                     {a.titles?.en ?? a.titles?.bg ?? 'Announcement'}
@@ -183,7 +183,7 @@ export default async function HomePage() {
                   href={link.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="card px-4 py-3.5 text-sm font-medium flex items-center gap-2 hover:shadow-md transition-shadow"
+                  className="bg-white rounded-2xl border border-black/5 shadow-sm px-4 py-3.5 text-sm font-medium flex items-center gap-2 hover:shadow-md transition-shadow"
                   style={{ color: 'var(--deep)' }}
                 >
                   <span style={{ color: 'var(--crimson)' }}>→</span>
