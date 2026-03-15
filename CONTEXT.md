@@ -159,28 +159,11 @@ All colors registered in `tailwind.config.ts` as named tokens (e.g. `bg-crimson`
 - **Body & Data:** Montserrat (`font-sans`) — Clean, geometric, mobile-optimized
 - Both loaded with `latin` + `cyrillic` subsets for Bulgarian support
 
-### Mobile-First Design Mandate
-
-This portal is **primarily a mobile experience**. The majority of users are field team members who will access it exclusively on their phones. Every UI decision must be made with the mobile viewport as the baseline — desktop is an enhancement, not the target.
-
-**What this means in practice:**
-- Design for a 390px viewport first. Expand to desktop after.
-- Touch targets minimum 44×44px. No hover-dependent interactions for primary actions.
-- Bottom nav is the primary navigation — not a sidebar, not a top nav.
-- Text must be legible without zooming. Minimum 14px body, 16px for inputs.
-- Forms must be usable with a soft keyboard open — avoid fixed-position elements that fight with it.
-- Cards and list items must be finger-tappable with generous padding.
-- Loading states (skeletons) on every async fetch — no blank screens.
-- No horizontal overflow anywhere. Test every page at 390px width.
-- Spacing: use `p-4` / `p-6` as the standard page padding, never less.
-- The `pb-20` on dashboard main content is mandatory — bottom nav occludes content without it.
-
-**Component behaviour by breakpoint:**
-- Bottom nav: visible on mobile, `hidden md:hidden` (always hidden, nav moves to header on desktop — pending Phase 10 desktop pass)
-- Header: always sticky, always visible
-- Cards: full width on mobile, max-w-2xl centered on desktop
-- Grids: single column on mobile, expand to 2-col on `sm:` or `md:`
-- Admin pages: usable on mobile, optimised for desktop (data tables, CSV import)
+### Mobile UX
+- `BottomNav`: fixed, 4 items (Home, Calendar, Trips, Profile), hidden on `md+`, hidden on auth/admin routes
+- `Header`: sticky, Forest background, bell + unread badge, UserButton
+- `pb-20` on dashboard main content to clear bottom nav
+- High-contrast cards: Eggshell surfaces on Stone borders
 
 ---
 
@@ -506,5 +489,140 @@ Server-side admin gate in `app/admin/layout.tsx` — redirects to `/sign-in` if 
 | Member profile pages | Admin view of individual member profiles + LOS position |
 | Event role requests | UI for members to request Speaker/Host roles on events |
 | About page | `/about` — N21/team philosophy |
-| Desktop nav pass | Bottom nav is hidden on md+, but header has no desktop nav links outside admin — needs a Phase 10 desktop navigation pass |
-| Mobile QA pass | Systematic 390px viewport test of all pages before member rollout |
+- [ ] Upload `public/logo.png` (transparent PNG) — referenced in Header + Footer
+- [ ] Update Footer social links if FB/IG URLs change (currently correct)
+- [ ] Run LOS CSV import at `/admin/data-center`
+- [ ] Update admin profile first/last name + link ABO number
+- [ ] Mobile QA pass (390px systematic review)
+- [ ] About page content is placeholder — update with real team description
+- [ ] Trip booking: create first trip via `/admin/operations`
+- [ ] Calendar height fix confirmed working — `--cal-height` CSS variable approach
+
+####################################
+## Session 2 Summary (2026-03-16) ##
+####################################
+
+### Tagged Releases
+- v1.2.0 — Full feature session: calendar, trips, member profiles, approval hub, desktop layout
+
+### Features Built
+
+#### Calendar (Full Rewrite)
+- **Server/client split**: `app/(dashboard)/calendar/page.tsx` is a Server Component wrapper that prefetches current month events + user profile server-side, eliminating 2-second load delay
+- **Client component**: `components/calendar/CalendarClient.tsx` — receives `initialEvents`, `initialMonth`, `userRole`, `userProfileId` as props
+- **4 views**: Month (grid, W# per row, today highlight, +N more), Week (time-slotted, 60px/hr), Day (single column time-slotted), Agenda (chronological, grouped by date, sticky headers)
+- **Toolbar desktop**: single row — `← Today →` | period label | category pills | view toggle
+- **Toolbar mobile**: two rows
+- **Category pills**: N21 (Forest) and Personal (Sienna), both on by default, Personal hidden from guests
+- **Event popup**: `components/events/EventPopup.tsx` — floating popover anchored to clicked element `DOMRect`, no backdrop, no blur, closes on outside click or Escape, flips above if insufficient space below
+- **Calendar height**: CSS custom property `--cal-height` in `globals.css` — `calc(100dvh - 56px - 72px - 64px)` mobile, `calc(100dvh - 56px - 72px)` desktop (md+)
+- **PageHeading**: "Events Calendar" with subtitle
+
+#### Event Role Requests
+- **Migration**: `event_role_requests_enhancements` — `note` field, `notify_role_request` trigger (notifies admins), `notify_role_request_status_change` trigger (notifies member)
+- **API**: `POST/DELETE /api/events/[id]/request-role`, `GET /api/events/[id]` (returns event + role_requests with profile join)
+- **Admin API**: `PATCH /api/admin/event-role-requests/[id]` — approve/deny
+- **Roles**: Speaker, Host, Moderator, Volunteer, Coordinator
+- **Popup UI**: admin sees all requests with inline approve/deny; member sees own request with cancel; role selector + optional note field
+
+#### Approval Hub (Full Rewrite)
+- Two tabs: **Trip Registrations** and **Event Roles** with crimson badge counts on pending items
+- Filter by trip (registrations tab) and by event (roles tab) — filter only shows entities that have requests
+- Optimistic approve/deny on both tabs
+- Resolved section collapsible per tab with chevron toggle
+
+#### Trips (Member-facing)
+- `app/(dashboard)/trips/page.tsx` — trip cards with destination badge, duration, dates, total cost
+- Register button → pending → approved/denied status bar with cancel option
+- Collapsible payments section (approved registrations only): progress bar, milestone checklist with completion state, payment history
+
+#### Admin Member Profiles
+- `app/api/admin/members/route.ts` — list all profiles with tree depth
+- `app/api/admin/members/[id]/route.ts` — full member detail + PATCH role/abo_number
+- `app/admin/members/page.tsx` — searchable list, name/ABO/role badge/depth/doc expiry dot
+- `app/admin/members/[id]/page.tsx` — identity card, role editor, doc status with expiry warning, LOS stats grid (9 metrics), trip registrations, payment history, event role requests
+
+#### Admin Operations (Payment Entry)
+- `app/admin/operations/page.tsx` — complete rewrite adding payment entry section below trip creation
+- Trip selector → member selector (approved registrations only, shows ABO) → amount/date/status/note
+- `POST /api/admin/payments` — logs payment against member
+- Recent payments list for selected trip, updates on submit
+
+### Layout & Design System (Major Overhaul)
+
+#### Template established — all pages now follow:
+```
+NAVBAR (sticky, white, 1024px centered)
+HEADING BLOCK (full-width white band, title left-aligned to 1024px container edge)
+CONTAINER (1024px centered, px-4 md:px-6 lg:px-8)
+FOOTER (Forest bg, 1024px centered)
+```
+
+#### Components
+- `components/layout/PageContainer.tsx` — `max-w-[1024px]` centered with responsive padding
+- `components/layout/PageHeading.tsx` — full-width white band, serif title, last word Crimson accent, uppercase subtitle, `py-8`, left-aligned to container edge
+- `components/layout/Header.tsx` — white bg, 1024px, logo left (Forest text), nav center (absolute positioned), lang+bell+avatar right. Admin link shown only to admins
+- `components/layout/Footer.tsx` — Forest bg, 1024px, 3-col (brand+socials / navigation / contact), `.footer-link:hover` CSS class for Crimson hover (SSR safe — no event handlers), real FB/IG links, "Built with ♥ by Vera & Deniz"
+- `lib/hooks/useLanguage.ts` — BG/EN toggle via localStorage, shows opposite locale in button
+
+#### Pages updated to use template
+- `app/(dashboard)/about/page.tsx` — team description, PageHeading + PageContainer
+- `app/(dashboard)/notifications/page.tsx` — PageHeading + PageContainer, unread count, mark all read
+- `app/(dashboard)/profile/page.tsx` — PageHeading + PageContainer
+- `app/(dashboard)/trips/page.tsx` — PageHeading + PageContainer
+- **Homepage exception**: full-bleed Forest hero, no heading band, content in PageContainer below
+- **Calendar exception**: PageHeading renders in server wrapper, CalendarClient handles full-height grid
+
+#### Container width decision
+1024px chosen over 1280px — industry standard for content-heavy portals in 2026, optimal on 13" laptops
+
+### Gotchas Discovered This Session
+- Tailwind v4: `@layer components` with `@apply` is unsupported — inline all utility classes in JSX
+- Next.js 16 Server Components: `onMouseOver`/`onMouseOut`/`onError` event handlers cause prerender failure — use CSS classes (`.footer-link:hover`) instead
+- `min-h-screen flex flex-col` + `flex-1 on main` is the correct sticky footer pattern — do NOT remove it to fix scroll issues, fix excessive padding in page content instead
+- Calendar height: use CSS custom property with `@media` query in `globals.css`, not JS resize listeners
+- `Image` `onError` in Server Components causes prerender failure — remove it
+
+### Directory Updates
+```
+app/(dashboard)/
+  about/page.tsx               # Team description
+  calendar/page.tsx            # Server wrapper — prefetch + PageHeading + <CalendarClient>
+  trips/page.tsx               # Member trips + registration + payments
+  notifications/page.tsx       # Updated with PageHeading + PageContainer
+  profile/page.tsx             # Updated with PageHeading + PageContainer
+app/admin/
+  approval-hub/page.tsx        # Full tabbed rewrite (trips + event roles)
+  operations/page.tsx          # Added payment entry UI
+  members/page.tsx             # Searchable member list
+  members/[id]/page.tsx        # Full member detail
+app/api/
+  events/[id]/route.ts         # GET event with role_requests
+  events/[id]/request-role/route.ts   # POST submit, DELETE cancel
+  admin/event-role-requests/[id]/route.ts  # PATCH approve/deny
+  admin/members/route.ts       # GET all members
+  admin/members/[id]/route.ts  # GET full detail, PATCH role/abo
+  admin/payments/route.ts      # POST log payment (was already built)
+components/
+  calendar/CalendarClient.tsx  # Full client calendar (split from page)
+  events/EventPopup.tsx        # Floating popover (replaces full-screen modal)
+  layout/
+    Header.tsx                 # White bg, 1024px, Forest logo text
+    Footer.tsx                 # Forest bg, .footer-link CSS hover
+    PageContainer.tsx          # max-w-[1024px]
+    PageHeading.tsx            # Full-width heading band
+lib/hooks/
+  useLanguage.ts               # BG/EN localStorage toggle
+```
+
+### CSS Variables Added to globals.css
+```css
+--cal-height: calc(100dvh - 56px - 72px - 64px);  /* mobile */
+@media (min-width: 768px) {
+  --cal-height: calc(100dvh - 56px - 72px);        /* desktop */
+}
+
+.footer-link:hover {
+  color: var(--crimson) !important;
+}
+```
