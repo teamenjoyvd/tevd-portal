@@ -10,17 +10,48 @@ export async function GET() {
     .from('profiles').select('role').eq('clerk_id', userId).single()
   if (admin?.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 })
 
-  const { data, error } = await supabase
-    .from('profiles')
+  // LOS map as base, left-join profiles + tree depth
+  const { data: losMembers, error: losErr } = await supabase
+    .from('los_members')
     .select(`
-      id, clerk_id, abo_number, role,
-      first_name, last_name, display_names,
-      document_active_type, valid_through,
-      created_at,
-      tree_nodes (path, depth)
+      abo_number, sponsor_abo_number, abo_level, name, country,
+      gpv, ppv, bonus_percent, group_size, qualified_legs, annual_ppv,
+      renewal_date, last_synced_at
     `)
-    .order('last_name')
+    .order('abo_level')
+    .order('abo_number')
 
-  if (error) return Response.json({ error: error.message }, { status: 500 })
-  return Response.json(data)
+  if (losErr) return Response.json({ error: losErr.message }, { status: 500 })
+
+  // Profiles linked by abo_number
+  const { data: profiles } = await supabase
+    .from('profiles')
+    .select('id, abo_number, first_name, last_name, role, created_at')
+    .not('abo_number', 'is', null)
+
+  // Pending verification requests with profile info
+  const { data: verifications } = await supabase
+    .from('abo_verification_requests')
+    .select('id, profile_id, claimed_abo, claimed_upline_abo, status, created_at, profiles(first_name, last_name)')
+    .eq('status', 'pending')
+
+  // Guests with no abo_number and no pending request (unverified, haven't submitted yet)
+  const { data: guests } = await supabase
+    .from('profiles')
+    .select('id, first_name, last_name, role, created_at')
+    .eq('role', 'guest')
+    .is('abo_number', null)
+
+  const profilesByAbo = Object.fromEntries((profiles ?? []).map(p => [p.abo_number, p]))
+
+  const enrichedLOS = (losMembers ?? []).map(m => ({
+    ...m,
+    profile: profilesByAbo[m.abo_number] ?? null,
+  }))
+
+  return Response.json({
+    los_members: enrichedLOS,
+    pending_verifications: verifications ?? [],
+    unverified_guests: guests ?? [],
+  })
 }

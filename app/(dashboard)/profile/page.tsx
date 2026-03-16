@@ -20,6 +20,15 @@ type Profile = {
   created_at: string
 }
 
+type VerificationRequest = {
+  id: string
+  claimed_abo: string
+  claimed_upline_abo: string
+  status: 'pending' | 'approved' | 'denied'
+  admin_note: string | null
+  created_at: string
+}
+
 function getExpiryState(validThrough: string | null): 'ok' | 'warning' | 'critical' | null {
   if (!validThrough) return null
   const diffDays = (new Date(validThrough).getTime() - Date.now()) / 86400000
@@ -45,14 +54,29 @@ const ROLE_LABELS: Record<string, string> = {
   admin: 'Admin', core: 'Core', member: 'Member', guest: 'Guest',
 }
 
+const ROLE_DESCRIPTIONS: Record<string, string> = {
+  guest:  'Submit your ABO number below to become a verified Member.',
+  member: 'Verified member.',
+  core:   'Core team member.',
+  admin:  'Administrator.',
+}
+
 export default function ProfilePage() {
   const qc = useQueryClient()
   const [form, setForm] = useState<Partial<Profile>>({})
   const [saved, setSaved] = useState(false)
+  const [aboInput, setAboInput] = useState('')
+  const [uplineInput, setUplineInput] = useState('')
 
   const { data: profile, isLoading } = useQuery<Profile>({
     queryKey: ['profile'],
     queryFn: () => fetch('/api/profile').then(r => r.json()),
+  })
+
+  const { data: verRequest } = useQuery<VerificationRequest | null>({
+    queryKey: ['verify-abo'],
+    queryFn: () => fetch('/api/profile/verify-abo').then(r => r.json()),
+    enabled: profile?.role === 'guest' && !profile?.abo_number,
   })
 
   useEffect(() => {
@@ -93,8 +117,32 @@ export default function ProfilePage() {
     },
   })
 
+  const submitVerification = useMutation({
+    mutationFn: () =>
+      fetch('/api/profile/verify-abo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ claimed_abo: aboInput.trim(), claimed_upline_abo: uplineInput.trim() }),
+      }).then(async r => {
+        if (!r.ok) throw new Error((await r.json()).error)
+        return r.json()
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['verify-abo'] })
+      setAboInput('')
+      setUplineInput('')
+    },
+  })
+
+  const cancelVerification = useMutation({
+    mutationFn: () =>
+      fetch('/api/profile/verify-abo', { method: 'DELETE' }).then(r => r.json()),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['verify-abo'] }),
+  })
+
   const activeDocType = form.document_active_type ?? profile?.document_active_type ?? 'id'
   const expiryState   = getExpiryState(form.valid_through ?? profile?.valid_through ?? null)
+  const isGuest       = profile?.role === 'guest' && !profile?.abo_number
 
   return (
     <>
@@ -143,20 +191,123 @@ export default function ProfilePage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-4 text-sm" style={{ color: 'var(--stone)' }}>
-                  <span>
-                    ABO:{' '}
-                    <span className="font-medium" style={{ color: 'var(--deep)' }}>
-                      {profile.abo_number ?? '—'}
+                  {profile.abo_number && (
+                    <span>
+                      ABO:{' '}
+                      <span className="font-medium" style={{ color: 'var(--deep)' }}>
+                        {profile.abo_number}
+                      </span>
                     </span>
-                  </span>
+                  )}
                   <span>
                     Role:{' '}
-                    <span className="font-medium" style={{ color: 'var(--deep)' }}>
+                    <span
+                      className="font-semibold px-2 py-0.5 rounded-full text-xs"
+                      style={{
+                        backgroundColor: profile.role === 'guest' ? 'rgba(0,0,0,0.06)' : '#81b29a33',
+                        color: profile.role === 'guest' ? 'var(--stone)' : '#2d6a4f',
+                      }}
+                    >
                       {ROLE_LABELS[profile.role]}
                     </span>
                   </span>
                 </div>
+                {ROLE_DESCRIPTIONS[profile.role] && (
+                  <p className="text-xs mt-3" style={{ color: 'var(--stone)' }}>
+                    {ROLE_DESCRIPTIONS[profile.role]}
+                  </p>
+                )}
               </div>
+
+              {/* ABO Verification — guests only */}
+              {isGuest && (
+                <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-5">
+                  <p className="text-xs font-semibold tracking-widest uppercase mb-1"
+                    style={{ color: 'var(--stone)' }}>
+                    ABO Verification
+                  </p>
+                  <p className="text-xs mb-4" style={{ color: 'var(--stone)' }}>
+                    Enter your Amway ABO number and your sponsor's ABO number to request verification.
+                  </p>
+
+                  {verRequest?.status === 'pending' ? (
+                    <div className="rounded-xl px-4 py-3"
+                      style={{ backgroundColor: '#f2cc8f33' }}>
+                      <p className="text-sm font-medium" style={{ color: '#7a5c00' }}>
+                        Verification pending
+                      </p>
+                      <p className="text-xs mt-0.5" style={{ color: '#7a5c00' }}>
+                        ABO {verRequest.claimed_abo} · Upline {verRequest.claimed_upline_abo}
+                      </p>
+                      <button
+                        onClick={() => cancelVerification.mutate()}
+                        disabled={cancelVerification.isPending}
+                        className="text-xs mt-2 font-medium hover:underline disabled:opacity-50"
+                        style={{ color: 'var(--crimson)' }}
+                      >
+                        Cancel request
+                      </button>
+                    </div>
+                  ) : verRequest?.status === 'denied' ? (
+                    <div className="rounded-xl px-4 py-3 mb-4"
+                      style={{ backgroundColor: '#bc474915' }}>
+                      <p className="text-sm font-medium" style={{ color: 'var(--crimson)' }}>
+                        Previous request was not approved
+                      </p>
+                      {verRequest.admin_note && (
+                        <p className="text-xs mt-0.5" style={{ color: 'var(--crimson)' }}>
+                          {verRequest.admin_note}
+                        </p>
+                      )}
+                      <p className="text-xs mt-1" style={{ color: 'var(--stone)' }}>
+                        Please check your details and submit again.
+                      </p>
+                    </div>
+                  ) : null}
+
+                  {(!verRequest || verRequest.status === 'denied') && (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-xs mb-1 block" style={{ color: 'var(--stone)' }}>
+                          Your ABO number
+                        </label>
+                        <input
+                          value={aboInput}
+                          onChange={e => setAboInput(e.target.value)}
+                          placeholder="e.g. 7023040472"
+                          className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm font-mono"
+                          style={{ color: 'var(--deep)' }}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs mb-1 block" style={{ color: 'var(--stone)' }}>
+                          Sponsor's ABO number
+                        </label>
+                        <input
+                          value={uplineInput}
+                          onChange={e => setUplineInput(e.target.value)}
+                          placeholder="e.g. 7010970187"
+                          className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm font-mono"
+                          style={{ color: 'var(--deep)' }}
+                        />
+                      </div>
+                      {submitVerification.isError && (
+                        <p className="text-xs" style={{ color: 'var(--crimson)' }}>
+                          {(submitVerification.error as Error).message}
+                        </p>
+                      )}
+                      <button
+                        onClick={() => submitVerification.mutate()}
+                        disabled={submitVerification.isPending || !aboInput || !uplineInput}
+                        className="w-full py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity"
+                        style={{ backgroundColor: 'var(--deep)' }}
+                      >
+                        {submitVerification.isPending ? 'Submitting…' : 'Submit for verification'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Travel document */}
               <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-5">
@@ -171,9 +322,7 @@ export default function ProfilePage() {
                       onClick={() => toggleDoc.mutate(type)}
                       className="px-4 py-2 rounded-xl text-sm font-medium transition-colors"
                       style={{
-                        backgroundColor: activeDocType === type
-                          ? 'var(--deep)'
-                          : 'rgba(0,0,0,0.05)',
+                        backgroundColor: activeDocType === type ? 'var(--deep)' : 'rgba(0,0,0,0.05)',
                         color: activeDocType === type ? 'white' : 'var(--stone)',
                       }}
                     >
@@ -192,9 +341,7 @@ export default function ProfilePage() {
                         : (form.id_number ?? '')}
                       onChange={e => setForm(f => ({
                         ...f,
-                        [activeDocType === 'passport'
-                          ? 'passport_number'
-                          : 'id_number']: e.target.value,
+                        [activeDocType === 'passport' ? 'passport_number' : 'id_number']: e.target.value,
                       }))}
                       className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm font-mono"
                       style={{ color: 'var(--deep)' }}

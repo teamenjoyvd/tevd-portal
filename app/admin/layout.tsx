@@ -17,21 +17,22 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     <div className="min-h-screen" style={{ backgroundColor: 'var(--eggshell)' }}>
       <div style={{ backgroundColor: 'var(--forest)' }}>
         <div className="max-w-[1024px] mx-auto px-4 md:px-6 lg:px-8 h-14 flex items-center gap-6">
-          <span className="font-serif font-bold text-sm tracking-widest uppercase text-white">
+          <span className="font-serif font-bold text-sm tracking-widest uppercase text-white flex-shrink-0">
             Admin
           </span>
-          <nav className="flex items-center gap-1 flex-1">
+          <nav className="flex items-center gap-1 flex-1 overflow-x-auto">
             {[
               { href: '/admin/approval-hub', label: 'Approval Hub' },
               { href: '/admin/operations',   label: 'Operations'   },
               { href: '/admin/members',      label: 'Members'      },
+              { href: '/admin/los-members',  label: 'LOS'          },
               { href: '/admin/content',      label: 'Content'      },
               { href: '/admin/data-center',  label: 'Data Center'  },
             ].map(({ href, label }) => (
               <Link
                 key={href}
                 href={href}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold tracking-widest uppercase transition-colors hover:bg-white/10"
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold tracking-widest uppercase transition-colors hover:bg-white/10 whitespace-nowrap"
                 style={{ color: 'rgba(255,255,255,0.7)' }}
               >
                 {label}
