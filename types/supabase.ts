@@ -7,11 +7,54 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.4"
   }
   public: {
     Tables: {
+      abo_verification_requests: {
+        Row: {
+          admin_note: string | null
+          claimed_abo: string
+          claimed_upline_abo: string
+          created_at: string
+          id: string
+          profile_id: string
+          resolved_at: string | null
+          status: string
+        }
+        Insert: {
+          admin_note?: string | null
+          claimed_abo: string
+          claimed_upline_abo: string
+          created_at?: string
+          id?: string
+          profile_id: string
+          resolved_at?: string | null
+          status?: string
+        }
+        Update: {
+          admin_note?: string | null
+          claimed_abo?: string
+          claimed_upline_abo?: string
+          created_at?: string
+          id?: string
+          profile_id?: string
+          resolved_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "abo_verification_requests_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       announcements: {
         Row: {
           access_level: Database["public"]["Enums"]["user_role"][]
@@ -86,6 +129,7 @@ export type Database = {
           created_at: string
           event_id: string
           id: string
+          note: string | null
           profile_id: string
           role_label: string
           status: Database["public"]["Enums"]["registration_status"]
@@ -94,6 +138,7 @@ export type Database = {
           created_at?: string
           event_id: string
           id?: string
+          note?: string | null
           profile_id: string
           role_label: string
           status?: Database["public"]["Enums"]["registration_status"]
@@ -102,6 +147,7 @@ export type Database = {
           created_at?: string
           event_id?: string
           id?: string
+          note?: string | null
           profile_id?: string
           role_label?: string
           status?: Database["public"]["Enums"]["registration_status"]
@@ -544,6 +590,29 @@ export type Database = {
     }
     Functions: {
       abo_to_ltree_label: { Args: { abo: string }; Returns: string }
+      get_los_members_with_profiles: {
+        Args: never
+        Returns: {
+          abo_level: string
+          abo_number: string
+          annual_ppv: number
+          bonus_percent: number
+          country: string
+          depth: number
+          first_name: string
+          gpv: number
+          group_size: number
+          last_name: string
+          last_synced_at: string
+          name: string
+          ppv: number
+          profile_id: string
+          qualified_legs: number
+          renewal_date: string
+          role: string
+          sponsor_abo_number: string
+        }[]
+      }
       get_my_clerk_id: { Args: never; Returns: string }
       get_my_profile_id: { Args: never; Returns: string }
       get_my_role: {
@@ -561,6 +630,13 @@ export type Database = {
           p_sponsor_abo_number?: string
         }
         Returns: undefined
+      }
+      vault_read_secrets: {
+        Args: never
+        Returns: {
+          name: string
+          secret: string
+        }[]
       }
     }
     Enums: {

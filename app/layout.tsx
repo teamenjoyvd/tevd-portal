@@ -17,8 +17,8 @@ const montserrat = Montserrat({
 })
 
 export const metadata: Metadata = {
-  title: 'teamenjoyVD Portal',
-  description: 'N21 Community Portal',
+  title: 'teamenjoyvd',
+  description: 'Team Portal for teamenjoyVD',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
