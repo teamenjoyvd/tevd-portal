@@ -7,7 +7,6 @@ type ImportResult = {
   errors: { abo_number: string; error: string }[]
 }
 
-// Expected CSV headers mapped to DB columns
 const HEADER_MAP: Record<string, string> = {
   'ABO Level': 'abo_level',
   'Sponsor ABO Number': 'sponsor_abo_number',
@@ -36,41 +35,63 @@ const HEADER_MAP: Record<string, string> = {
   'Annual PPV': 'annual_ppv',
 }
 
-// Parse a date like "31 December 2026" -> "2026-12-31"
+const MONTH_MAP: Record<string, string> = {
+  January: '01', February: '02', March: '03', April: '04',
+  May: '05', June: '06', July: '07', August: '08',
+  September: '09', October: '10', November: '11', December: '12',
+}
+
+// Handles ISO "2026-01-31" and Amway format "31 December 2026"
 function parseDate(val: string): string {
   if (!val) return ''
-  // Already ISO
   if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val
-  const d = new Date(val)
-  if (!isNaN(d.getTime())) return d.toISOString().split('T')[0]
+  const m = val.match(/^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$/)
+  if (m) {
+    const month = MONTH_MAP[m[2]]
+    if (month) return `${m[3]}-${month}-${m[1].padStart(2, '0')}`
+  }
   return ''
+}
+
+// Proper quoted-CSV splitter — handles fields like "123 Main St, Sofia"
+function splitCSVLine(line: string): string[] {
+  const result: string[] = []
+  let current = ''
+  let inQuotes = false
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i]
+    if (ch === '"') {
+      if (inQuotes && line[i + 1] === '"') { current += '"'; i++ }
+      else inQuotes = !inQuotes
+    } else if (ch === ',' && !inQuotes) {
+      result.push(current.trim())
+      current = ''
+    } else {
+      current += ch
+    }
+  }
+  result.push(current.trim())
+  return result
 }
 
 function parseCSV(text: string): Record<string, string>[] {
   const allLines = text.trim().split('\n')
-
-  // Find the header line — it's the first line that contains 'ABO Number'
   const headerIdx = allLines.findIndex(l => l.includes('ABO Number'))
   if (headerIdx === -1) return []
 
   const dataLines = allLines.slice(headerIdx)
-  const headers = dataLines[0]
-    .split(',')
-    .map(h => h.trim().replace(/^"|"$/g, ''))
+  const headers = splitCSVLine(dataLines[0])
 
   return dataLines.slice(1)
     .filter(line => line.trim() !== '')
     .map(line => {
-      const values = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''))
+      const values = splitCSVLine(line)
       const row: Record<string, string> = {}
       headers.forEach((h, i) => {
         const dbKey = HEADER_MAP[h] ?? h.toLowerCase().replace(/\s+/g, '_')
         let val = values[i] ?? ''
-        // Strip % from bonus_percent
         if (dbKey === 'bonus_percent') val = val.replace('%', '').trim()
-        // Normalise dates
         if (dbKey === 'entry_date' || dbKey === 'renewal_date') val = parseDate(val)
-        // Strip "Primary: " prefix from phone
         if (dbKey === 'phone') val = val.replace(/^Primary:\s*/i, '').trim()
         row[dbKey] = val
       })
