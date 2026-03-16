@@ -1,16 +1,10 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { auth } from '@clerk/nextjs/server'
-import Link from 'next/link'
-import Hero from '@/components/layout/Hero'
 import BentoGrid from '@/components/home/BentoGrid'
 import PageContainer from '@/components/layout/PageContainer'
 
-type CalendarEvent = {
-  id: string; title: string; start_time: string
-  end_time: string; week_number: number; category: string
-}
 type Announcement = {
-  id: string; titles: Record<string,string>; contents: Record<string,string>
+  id: string; titles: Record<string, string>; contents: Record<string, string>
   is_active: boolean
 }
 type QuickLink = {
@@ -22,9 +16,8 @@ type HomeSettings = {
   show_caret_3: boolean; caret_3_text: string
   featured_announcement_id: string | null
 }
-type Profile = {
-  id: string; first_name: string; last_name: string
-  role: string; abo_number: string | null
+type Trip = {
+  id: string; title: string; destination: string; start_date: string
 }
 
 export default async function HomePage() {
@@ -37,30 +30,24 @@ export default async function HomePage() {
   }
 
   const supabase = createServiceClient()
-  const [settingsRes, announcementsRes, quickLinksRes, eventsRes] = await Promise.all([
+  const [settingsRes, announcementsRes, quickLinksRes, eventsRes, tripsRes] = await Promise.all([
     supabase.from('home_settings').select('*').single(),
     supabase.from('announcements').select('*').eq('is_active', true)
       .order('created_at', { ascending: false }).limit(5),
     supabase.from('quick_links').select('*').order('sort_order'),
-    supabase.from('calendar_events').select('*').eq('category', 'N21')
-      .gte('start_time', new Date().toISOString()).order('start_time').limit(3),
+    supabase.from('calendar_events').select('id, title, start_time, week_number')
+      .eq('category', 'N21')
+      .gte('start_time', new Date().toISOString())
+      .order('start_time').limit(2),
+    supabase.from('trips').select('id, title, destination, start_date')
+      .order('start_date').limit(3),
   ])
 
   const settings      = settingsRes.data as HomeSettings | null
   const announcements = (announcementsRes.data ?? []) as unknown as Announcement[]
   const quickLinks    = (quickLinksRes.data ?? []) as unknown as QuickLink[]
-  const nextEvents    = (eventsRes.data ?? []) as unknown as CalendarEvent[]
-
-  // Fetch profile for Profile/Rank tile
-  let profile: Profile | null = null
-  if (userId) {
-    const { data } = await supabase
-      .from('profiles')
-      .select('id, first_name, last_name, role, abo_number')
-      .eq('clerk_id', userId)
-      .single()
-    profile = data as Profile | null
-  }
+  const nextEvents    = (eventsRes.data ?? []) as unknown as { id: string; title: string; start_time: string; week_number: number }[]
+  const trips         = (tripsRes.data ?? []) as unknown as Trip[]
 
   // Resolve featured announcement
   const featuredAnnouncement: Announcement | null =
@@ -68,78 +55,19 @@ export default async function HomePage() {
       ? (announcements.find(a => a.id === settings.featured_announcement_id) ?? announcements[0] ?? null)
       : (announcements[0] ?? null)
 
-  const carets = [
-    { show: settings?.show_caret_1, text: settings?.caret_1_text },
-    { show: settings?.show_caret_2, text: settings?.caret_2_text },
-    { show: settings?.show_caret_3, text: settings?.caret_3_text },
-  ].filter(c => c.show && c.text).map(c => ({ text: c.text! }))
-
-  function formatEventDate(iso: string): string {
-    return new Date(iso).toLocaleDateString('en-GB', {
-      weekday: 'short', day: 'numeric', month: 'short',
-    })
-  }
-  function formatEventTime(iso: string): string {
-    return new Date(iso).toLocaleTimeString('en-GB', {
-      hour: '2-digit', minute: '2-digit',
-    })
-  }
-
   return (
     <div style={{ backgroundColor: 'var(--eggshell)' }}>
-
-      {/* Bento pill hero */}
-      <Hero isAuthenticated={!!userId} />
-
-      {/* Bento Grid */}
       <PageContainer>
         <div className="py-4 pb-16">
           <BentoGrid
             announcement={featuredAnnouncement}
-            profile={profile}
             quickLinks={quickLinks as unknown as { id: string; label: string; url: string; icon_name: string }[]}
-            carets={carets}
+            nextEvents={nextEvents}
+            trips={trips}
             isAuthenticated={!!userId}
           />
-
-          {/* Upcoming events — below bento */}
-          {nextEvents.length > 0 && (
-            <section className="mt-6">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-xs font-semibold tracking-widest uppercase"
-                  style={{ color: 'var(--stone)' }}>
-                  Upcoming events
-                </p>
-                <Link href="/calendar" className="text-xs font-medium hover:underline"
-                  style={{ color: 'var(--crimson)' }}>
-                  See all →
-                </Link>
-              </div>
-              <div className="bg-white rounded-2xl border border-black/5 shadow-sm divide-y divide-black/5 overflow-hidden">
-                {nextEvents.map(event => (
-                  <div key={event.id} className="px-5 py-4 flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium truncate" style={{ color: 'var(--deep)' }}>
-                        {event.title}
-                      </p>
-                      <p className="text-xs mt-0.5" style={{ color: 'var(--stone)' }}>
-                        {formatEventDate(event.start_time)} · {formatEventTime(event.start_time)}
-                      </p>
-                    </div>
-                    <span
-                      className="text-xs font-semibold px-2 py-1 rounded-lg flex-shrink-0"
-                      style={{ backgroundColor: 'var(--forest)', color: 'rgba(255,255,255,0.7)' }}
-                    >
-                      W{event.week_number}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
         </div>
       </PageContainer>
-
     </div>
   )
 }
