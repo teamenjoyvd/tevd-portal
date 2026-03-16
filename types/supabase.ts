@@ -45,6 +45,7 @@ export type Database = {
           created_at: string
           description: string | null
           end_time: string
+          event_type: Database["public"]["Enums"]["event_type"] | null
           google_event_id: string | null
           id: string
           start_time: string
@@ -57,6 +58,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           end_time: string
+          event_type?: Database["public"]["Enums"]["event_type"] | null
           google_event_id?: string | null
           id?: string
           start_time: string
@@ -69,6 +71,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           end_time?: string
+          event_type?: Database["public"]["Enums"]["event_type"] | null
           google_event_id?: string | null
           id?: string
           start_time?: string
@@ -563,6 +566,7 @@ export type Database = {
     Enums: {
       document_type: "id" | "passport"
       event_category: "N21" | "Personal"
+      event_type: "in-person" | "online" | "hybrid"
       notification_type:
         | "role_request"
         | "trip_request"
@@ -701,6 +705,7 @@ export const Constants = {
     Enums: {
       document_type: ["id", "passport"],
       event_category: ["N21", "Personal"],
+      event_type: ["in-person", "online", "hybrid"],
       notification_type: [
         "role_request",
         "trip_request",
