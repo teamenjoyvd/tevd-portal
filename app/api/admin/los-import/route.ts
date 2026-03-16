@@ -91,8 +91,11 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  const rpcResult = data as { inserted: number; errors: { abo_number: string; error: string }[] }
+
   return Response.json({
-    ...data,
+    inserted: rpcResult.inserted,
+    errors:   rpcResult.errors,
     diff: { new_members, level_changes, bonus_changes },
   })
 }
