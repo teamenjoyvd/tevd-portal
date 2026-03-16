@@ -124,7 +124,7 @@ export default function BentoGrid({
       {/* Sequence 1: delay 0ms */}
       <div
         className="bento-tile relative md:col-span-2 md:row-span-2 rounded-3xl overflow-hidden"
-        style={{ minHeight: 380, animationDelay: '0ms' }}
+        style={{ height: 380, animationDelay: '0ms' }}
       >
         <Image
           src="/hero.png"
@@ -146,28 +146,14 @@ export default function BentoGrid({
           style={{ backgroundImage: 'radial-gradient(circle at 80% 30%, #e07a5f 0%, transparent 45%)' }}
         />
         {/* Content */}
-        <div className="relative z-10 flex flex-col justify-end h-full px-8 md:px-12 py-10 md:py-14"
-          style={{ minHeight: 380 }}>
-          <p className="text-xs tracking-[0.35em] uppercase font-semibold mb-3"
-            style={{ color: 'var(--sienna)' }}>
-            N21 Community
-          </p>
+        <div className="absolute inset-0 flex flex-col justify-end px-8 md:px-12 py-10 md:py-14 z-10">
           <h1 className="font-serif text-4xl md:text-6xl font-bold text-white leading-tight mb-3">
             TEAMENJOYVD
           </h1>
-          <p className="font-sans text-base md:text-lg mb-8 max-w-md"
+          <p className="font-sans text-base md:text-lg max-w-md"
             style={{ color: 'rgba(255,255,255,0.65)' }}>
             Entrepreneurs, dreamers, enjoying life.
           </p>
-          {!isAuthenticated && (
-            <Link
-              href="/sign-in"
-              className="inline-flex items-center gap-2 px-8 py-3 rounded-full text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-[0.98] self-start"
-              style={{ backgroundColor: 'var(--crimson)' }}
-            >
-              Sign in to your account
-            </Link>
-          )}
         </div>
       </div>
 
