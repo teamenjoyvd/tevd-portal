@@ -112,93 +112,115 @@ export default function ContentPage() {
   })
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-12">
+    <div className="space-y-12">
 
       {/* ── Home Settings ── */}
       <section>
-        <h2 className="text-xl font-semibold mb-4">Home settings</h2>
-        <div className="bg-white border border-gray-200 rounded-xl p-6 space-y-4">
+        <h2 className="font-serif text-xl font-semibold mb-4" style={{ color: 'var(--deep)' }}>
+          Home settings
+        </h2>
+        <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-6 space-y-4">
           {([1,2,3] as const).map(n => (
             <div key={n} className="flex items-center gap-4">
               <input
                 type="checkbox"
                 checked={!!s[`show_caret_${n}` as keyof HomeSettings]}
                 onChange={e => setSForm(f => ({ ...f, [`show_caret_${n}`]: e.target.checked }))}
-                className="w-4 h-4"
+                className="w-4 h-4 accent-[var(--crimson)]"
               />
-              <label className="text-sm text-gray-500 w-16">Caret {n}</label>
+              <label className="text-sm w-16" style={{ color: 'var(--stone)' }}>Caret {n}</label>
               <input
                 value={String(s[`caret_${n}_text` as keyof HomeSettings] ?? '')}
                 onChange={e => setSForm(f => ({ ...f, [`caret_${n}_text`]: e.target.value }))}
                 placeholder={`Caret ${n} text`}
-                className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                className="flex-1 border border-black/10 rounded-xl px-3 py-2 text-sm"
+                style={{ color: 'var(--deep)' }}
               />
             </div>
           ))}
           <button
             onClick={() => saveSettings.mutate(sForm)}
             disabled={saveSettings.isPending || Object.keys(sForm).length === 0}
-            className="bg-[#bc4749] text-white px-5 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
+            className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
+            style={{ backgroundColor: 'var(--crimson)' }}
           >
-            {saveSettings.isPending ? 'Saving...' : 'Save settings'}
+            {saveSettings.isPending ? 'Saving…' : 'Save settings'}
           </button>
         </div>
       </section>
 
       {/* ── Announcements ── */}
       <section>
-        <h2 className="text-xl font-semibold mb-4">Announcements</h2>
+        <h2 className="font-serif text-xl font-semibold mb-4" style={{ color: 'var(--deep)' }}>
+          Announcements
+        </h2>
 
-        {/* Lang tabs */}
         <div className="flex gap-2 mb-4">
           {LANGS.map(l => (
             <button key={l} onClick={() => setALang(l)}
-              className={`px-3 py-1 rounded-lg text-sm font-medium ${aLang === l ? 'bg-[#3d405b] text-white' : 'bg-gray-100 text-gray-600'}`}>
+              className="px-3 py-1 rounded-lg text-sm font-medium transition-colors"
+              style={{
+                backgroundColor: aLang === l ? 'var(--deep)' : 'rgba(0,0,0,0.05)',
+                color: aLang === l ? 'white' : 'var(--stone)',
+              }}>
               {l.toUpperCase()}
             </button>
           ))}
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-xl p-6 mb-4 space-y-3">
+        <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-6 mb-4 space-y-3">
           <input
             value={aForm.titles[aLang] ?? ''}
             onChange={e => setAForm(f => ({ ...f, titles: { ...f.titles, [aLang]: e.target.value } }))}
             placeholder={`Title (${aLang.toUpperCase()})`}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+            className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+            style={{ color: 'var(--deep)' }}
           />
           <textarea
             value={aForm.contents[aLang] ?? ''}
             onChange={e => setAForm(f => ({ ...f, contents: { ...f.contents, [aLang]: e.target.value } }))}
             placeholder={`Content (${aLang.toUpperCase()})`}
             rows={4}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+            className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm resize-none"
+            style={{ color: 'var(--deep)' }}
           />
           <button
             onClick={() => createAnnouncement.mutate(aForm)}
             disabled={createAnnouncement.isPending || !aForm.titles.en}
-            className="bg-[#bc4749] text-white px-5 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
+            className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
+            style={{ backgroundColor: 'var(--crimson)' }}
           >
-            {createAnnouncement.isPending ? 'Publishing...' : 'Publish'}
+            {createAnnouncement.isPending ? 'Publishing…' : 'Publish'}
           </button>
         </div>
 
         <div className="space-y-2">
           {announcements.map(a => (
-            <div key={a.id} className="bg-white border border-gray-200 rounded-xl p-4 flex items-start justify-between gap-4">
+            <div key={a.id}
+              className="bg-white rounded-2xl border border-black/5 shadow-sm p-4 flex items-start justify-between gap-4">
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{a.titles.en ?? a.titles.bg ?? 'Untitled'}</p>
-                <p className="text-xs text-gray-400 mt-0.5">{new Date(a.created_at).toLocaleDateString()}</p>
+                <p className="text-sm font-medium truncate" style={{ color: 'var(--deep)' }}>
+                  {a.titles.en ?? a.titles.bg ?? 'Untitled'}
+                </p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--stone)' }}>
+                  {new Date(a.created_at).toLocaleDateString()}
+                </p>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
                 <button
                   onClick={() => toggleAnnouncement.mutate({ id: a.id, is_active: !a.is_active })}
-                  className={`text-xs px-2.5 py-1 rounded-full font-medium ${a.is_active ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'}`}
+                  className="text-xs px-2.5 py-1 rounded-full font-medium"
+                  style={{
+                    backgroundColor: a.is_active ? '#81b29a33' : 'rgba(0,0,0,0.05)',
+                    color: a.is_active ? '#2d6a4f' : 'var(--stone)',
+                  }}
                 >
                   {a.is_active ? 'Active' : 'Inactive'}
                 </button>
                 <button
                   onClick={() => deleteAnnouncement.mutate(a.id)}
-                  className="text-xs text-red-500 hover:text-red-700"
+                  className="text-xs font-medium hover:opacity-70 transition-opacity"
+                  style={{ color: 'var(--crimson)' }}
                 >
                   Delete
                 </button>
@@ -210,32 +232,49 @@ export default function ContentPage() {
 
       {/* ── Quick Links ── */}
       <section>
-        <h2 className="text-xl font-semibold mb-4">Quick links</h2>
-        <div className="bg-white border border-gray-200 rounded-xl p-6 mb-4">
-          <div className="grid grid-cols-4 gap-3">
-            <input value={lForm.label} onChange={e => setLForm(f => ({ ...f, label: e.target.value }))}
-              placeholder="Label" className="border border-gray-200 rounded-lg px-3 py-2 text-sm" />
-            <input value={lForm.url} onChange={e => setLForm(f => ({ ...f, url: e.target.value }))}
-              placeholder="URL" className="border border-gray-200 rounded-lg px-3 py-2 text-sm col-span-2" />
-            <input value={lForm.icon_name} onChange={e => setLForm(f => ({ ...f, icon_name: e.target.value }))}
-              placeholder="Icon name" className="border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+        <h2 className="font-serif text-xl font-semibold mb-4" style={{ color: 'var(--deep)' }}>
+          Quick links
+        </h2>
+        <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-6 mb-4">
+          <div className="grid grid-cols-4 gap-3 mb-4">
+            <input value={lForm.label}
+              onChange={e => setLForm(f => ({ ...f, label: e.target.value }))}
+              placeholder="Label"
+              className="border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+              style={{ color: 'var(--deep)' }} />
+            <input value={lForm.url}
+              onChange={e => setLForm(f => ({ ...f, url: e.target.value }))}
+              placeholder="URL"
+              className="border border-black/10 rounded-xl px-3 py-2.5 text-sm col-span-2"
+              style={{ color: 'var(--deep)' }} />
+            <input value={lForm.icon_name}
+              onChange={e => setLForm(f => ({ ...f, icon_name: e.target.value }))}
+              placeholder="Icon name"
+              className="border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+              style={{ color: 'var(--deep)' }} />
           </div>
           <button
             onClick={() => createLink.mutate(lForm)}
             disabled={createLink.isPending || !lForm.label || !lForm.url}
-            className="mt-3 bg-[#bc4749] text-white px-5 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
+            className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
+            style={{ backgroundColor: 'var(--crimson)' }}
           >
-            {createLink.isPending ? 'Adding...' : 'Add link'}
+            {createLink.isPending ? 'Adding…' : 'Add link'}
           </button>
         </div>
         <div className="space-y-2">
           {links.map(l => (
-            <div key={l.id} className="bg-white border border-gray-200 rounded-xl p-4 flex items-center justify-between">
+            <div key={l.id}
+              className="bg-white rounded-2xl border border-black/5 shadow-sm p-4 flex items-center justify-between gap-4">
               <div>
-                <p className="text-sm font-medium">{l.label}</p>
-                <p className="text-xs text-gray-400">{l.url}</p>
+                <p className="text-sm font-medium" style={{ color: 'var(--deep)' }}>{l.label}</p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--stone)' }}>{l.url}</p>
               </div>
-              <button onClick={() => deleteLink.mutate(l.id)} className="text-xs text-red-500 hover:text-red-700">
+              <button
+                onClick={() => deleteLink.mutate(l.id)}
+                className="text-xs font-medium hover:opacity-70 transition-opacity flex-shrink-0"
+                style={{ color: 'var(--crimson)' }}
+              >
                 Delete
               </button>
             </div>

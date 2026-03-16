@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const { userId } = await auth()
@@ -13,24 +14,46 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (profile?.role !== 'admin') redirect('/')
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-[#2d332a] text-white px-6 py-3 flex items-center gap-6">
-        <span className="font-semibold text-sm tracking-wide">Admin</span>
-        <nav className="flex gap-4 text-sm">
-          {[
-            { href: '/admin/approval-hub', label: 'Approval Hub' },
-            { href: '/admin/operations',   label: 'Operations'   },
-            { href: '/admin/members',      label: 'Members'      },
-            { href: '/admin/content',      label: 'Content'      },
-            { href: '/admin/data-center',  label: 'Data Center'  },
-          ].map(({ href, label }) => (
-            <a key={href} href={href} className="text-white/70 hover:text-white transition-colors">
-              {label}
-            </a>
-          ))}
-        </nav>
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--eggshell)' }}>
+      <div style={{ backgroundColor: 'var(--forest)' }}>
+        <div className="max-w-[1024px] mx-auto px-4 md:px-6 lg:px-8 h-14 flex items-center gap-6">
+          <span className="font-serif font-bold text-sm tracking-widest uppercase text-white">
+            Admin
+          </span>
+          <nav className="flex items-center gap-1 flex-1">
+            {[
+              { href: '/admin/approval-hub', label: 'Approval Hub' },
+              { href: '/admin/operations',   label: 'Operations'   },
+              { href: '/admin/members',      label: 'Members'      },
+              { href: '/admin/content',      label: 'Content'      },
+              { href: '/admin/data-center',  label: 'Data Center'  },
+            ].map(({ href, label }) => (
+              <Link
+                key={href}
+                href={href}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold tracking-widest uppercase transition-colors hover:bg-white/10"
+                style={{ color: 'rgba(255,255,255,0.7)' }}
+              >
+                {label}
+              </Link>
+            ))}
+          </nav>
+          <Link
+            href="/"
+            className="flex items-center gap-1.5 text-xs font-semibold tracking-widest uppercase transition-colors hover:text-white flex-shrink-0"
+            style={{ color: 'rgba(255,255,255,0.5)' }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+            Portal
+          </Link>
+        </div>
       </div>
-      <main>{children}</main>
+      <main className="max-w-[1024px] mx-auto px-4 md:px-6 lg:px-8 py-8">
+        {children}
+      </main>
     </div>
   )
 }
