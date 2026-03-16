@@ -1,6 +1,7 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { auth } from '@clerk/nextjs/server'
 import Link from 'next/link'
+import Hero from '@/components/layout/Hero'
 import BentoGrid from '@/components/home/BentoGrid'
 import PageContainer from '@/components/layout/PageContainer'
 
@@ -85,42 +86,14 @@ export default async function HomePage() {
   }
 
   return (
-    <div style={{ backgroundColor: 'white' }}>
+    <div style={{ backgroundColor: 'var(--eggshell)' }}>
 
-      {/* Hero — full bleed, no container */}
-      <div
-        className="relative overflow-hidden px-6 py-20 text-center"
-        style={{ backgroundColor: 'var(--forest)' }}
-      >
-        <div className="absolute inset-0 opacity-5" style={{
-          backgroundImage: 'radial-gradient(circle at 20% 50%, #e07a5f 0%, transparent 50%), radial-gradient(circle at 80% 20%, #81b29a 0%, transparent 40%)',
-        }} />
-        <div className="relative">
-          <p className="text-xs tracking-[0.3em] uppercase mb-3"
-            style={{ color: 'var(--sienna)' }}>
-            N21 Community
-          </p>
-          <h1 className="text-5xl md:text-6xl font-serif font-bold text-white mb-3">
-            teamenjoyVD
-          </h1>
-          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
-            Members Portal
-          </p>
-          {!userId && (
-            <Link
-              href="/sign-in"
-              className="mt-8 inline-flex items-center gap-2 px-8 py-3 rounded-full text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-[0.98]"
-              style={{ backgroundColor: 'var(--crimson)' }}
-            >
-              Sign in to your account
-            </Link>
-          )}
-        </div>
-      </div>
+      {/* Bento pill hero */}
+      <Hero isAuthenticated={!!userId} />
 
       {/* Bento Grid */}
       <PageContainer>
-        <div className="py-6 pb-16">
+        <div className="py-4 pb-16">
           <BentoGrid
             announcement={featuredAnnouncement}
             profile={profile}
