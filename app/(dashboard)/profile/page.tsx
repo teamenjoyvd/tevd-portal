@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, useEffect } from 'react'
+import { useLanguage } from '@/lib/hooks/useLanguage'
 import PageHeading from '@/components/layout/PageHeading'
 import PageContainer from '@/components/layout/PageContainer'
 
@@ -44,29 +45,30 @@ const EXPIRY_STYLES = {
   critical: 'bg-[#bc4749]/10 border-[#bc4749]/40 text-[#bc4749]',
 }
 
-const EXPIRY_LABELS = {
-  ok:       'Valid',
-  warning:  'Expiring soon — update within 6 months',
-  critical: 'Expired or expiring very soon — action required',
-}
-
 const ROLE_LABELS: Record<string, string> = {
   admin: 'Admin', core: 'Core', member: 'Member', guest: 'Guest',
 }
 
-const ROLE_DESCRIPTIONS: Record<string, string> = {
-  guest:  'Submit your ABO number below to become a verified Member.',
-  member: 'Verified member.',
-  core:   'Core team member.',
-  admin:  'Administrator.',
-}
-
 export default function ProfilePage() {
   const qc = useQueryClient()
+  const { t } = useLanguage()
   const [form, setForm] = useState<Partial<Profile>>({})
   const [saved, setSaved] = useState(false)
   const [aboInput, setAboInput] = useState('')
   const [uplineInput, setUplineInput] = useState('')
+
+  const EXPIRY_LABELS = {
+    ok:       t('profile.expiry.ok'),
+    warning:  t('profile.expiry.warning'),
+    critical: t('profile.expiry.critical'),
+  }
+
+  const ROLE_DESCRIPTIONS: Record<string, string> = {
+    guest:  t('profile.role.desc.guest'),
+    member: t('profile.role.desc.member'),
+    core:   t('profile.role.desc.core'),
+    admin:  t('profile.role.desc.admin'),
+  }
 
   const { data: profile, isLoading } = useQuery<Profile>({
     queryKey: ['profile'],
@@ -164,12 +166,12 @@ export default function ProfilePage() {
               <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-5">
                 <p className="text-xs font-semibold tracking-widest uppercase mb-4"
                   style={{ color: 'var(--stone)' }}>
-                  Identity
+                  {t('profile.identity')}
                 </p>
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   <div>
                     <label className="text-xs mb-1 block" style={{ color: 'var(--stone)' }}>
-                      First name
+                      {t('profile.firstName')}
                     </label>
                     <input
                       value={form.first_name ?? ''}
@@ -180,7 +182,7 @@ export default function ProfilePage() {
                   </div>
                   <div>
                     <label className="text-xs mb-1 block" style={{ color: 'var(--stone)' }}>
-                      Last name
+                      {t('profile.lastName')}
                     </label>
                     <input
                       value={form.last_name ?? ''}
@@ -200,7 +202,7 @@ export default function ProfilePage() {
                     </span>
                   )}
                   <span>
-                    Role:{' '}
+                    {t('profile.role')}:{' '}
                     <span
                       className="font-semibold px-2 py-0.5 rounded-full text-xs"
                       style={{
@@ -224,17 +226,17 @@ export default function ProfilePage() {
                 <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-5">
                   <p className="text-xs font-semibold tracking-widest uppercase mb-1"
                     style={{ color: 'var(--stone)' }}>
-                    ABO Verification
+                    {t('profile.aboVerification')}
                   </p>
                   <p className="text-xs mb-4" style={{ color: 'var(--stone)' }}>
-                    Enter your Amway ABO number and your sponsor's ABO number to request verification.
+                    {t('profile.aboVerifDesc')}
                   </p>
 
                   {verRequest?.status === 'pending' ? (
                     <div className="rounded-xl px-4 py-3"
                       style={{ backgroundColor: '#f2cc8f33' }}>
                       <p className="text-sm font-medium" style={{ color: '#7a5c00' }}>
-                        Verification pending
+                        {t('profile.verifPending')}
                       </p>
                       <p className="text-xs mt-0.5" style={{ color: '#7a5c00' }}>
                         ABO {verRequest.claimed_abo} · Upline {verRequest.claimed_upline_abo}
@@ -245,14 +247,14 @@ export default function ProfilePage() {
                         className="text-xs mt-2 font-medium hover:underline disabled:opacity-50"
                         style={{ color: 'var(--crimson)' }}
                       >
-                        Cancel request
+                        {t('profile.cancelRequest')}
                       </button>
                     </div>
                   ) : verRequest?.status === 'denied' ? (
                     <div className="rounded-xl px-4 py-3 mb-4"
                       style={{ backgroundColor: '#bc474915' }}>
                       <p className="text-sm font-medium" style={{ color: 'var(--crimson)' }}>
-                        Previous request was not approved
+                        {t('profile.prevDenied')}
                       </p>
                       {verRequest.admin_note && (
                         <p className="text-xs mt-0.5" style={{ color: 'var(--crimson)' }}>
@@ -260,7 +262,7 @@ export default function ProfilePage() {
                         </p>
                       )}
                       <p className="text-xs mt-1" style={{ color: 'var(--stone)' }}>
-                        Please check your details and submit again.
+                        {t('profile.checkDetails')}
                       </p>
                     </div>
                   ) : null}
@@ -269,7 +271,7 @@ export default function ProfilePage() {
                     <div className="space-y-3">
                       <div>
                         <label className="text-xs mb-1 block" style={{ color: 'var(--stone)' }}>
-                          Your ABO number
+                          {t('profile.yourAbo')}
                         </label>
                         <input
                           value={aboInput}
@@ -281,7 +283,7 @@ export default function ProfilePage() {
                       </div>
                       <div>
                         <label className="text-xs mb-1 block" style={{ color: 'var(--stone)' }}>
-                          Sponsor's ABO number
+                          {t('profile.sponsorAbo')}
                         </label>
                         <input
                           value={uplineInput}
@@ -302,7 +304,7 @@ export default function ProfilePage() {
                         className="w-full py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity"
                         style={{ backgroundColor: 'var(--deep)' }}
                       >
-                        {submitVerification.isPending ? 'Submitting…' : 'Submit for verification'}
+                        {submitVerification.isPending ? t('profile.submitting') : t('profile.submitVerif')}
                       </button>
                     </div>
                   )}
@@ -313,7 +315,7 @@ export default function ProfilePage() {
               <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-5">
                 <p className="text-xs font-semibold tracking-widest uppercase mb-4"
                   style={{ color: 'var(--stone)' }}>
-                  Travel document
+                  {t('profile.travelDoc')}
                 </p>
                 <div className="flex gap-2 mb-5">
                   {(['id', 'passport'] as const).map(type => (
@@ -326,14 +328,14 @@ export default function ProfilePage() {
                         color: activeDocType === type ? 'white' : 'var(--stone)',
                       }}
                     >
-                      {type === 'id' ? 'National ID' : 'Passport'}
+                      {type === 'id' ? t('profile.nationalId') : t('profile.passport')}
                     </button>
                   ))}
                 </div>
                 <div className="space-y-4">
                   <div>
                     <label className="text-xs mb-1 block" style={{ color: 'var(--stone)' }}>
-                      {activeDocType === 'passport' ? 'Passport number' : 'ID number'}
+                      {activeDocType === 'passport' ? t('profile.passportNumber') : t('profile.idNumber')}
                     </label>
                     <input
                       value={activeDocType === 'passport'
@@ -349,7 +351,7 @@ export default function ProfilePage() {
                   </div>
                   <div>
                     <label className="text-xs mb-1 block" style={{ color: 'var(--stone)' }}>
-                      Valid through
+                      {t('profile.validThrough')}
                     </label>
                     <input
                       type="date"
@@ -381,7 +383,7 @@ export default function ProfilePage() {
                 className="w-full py-3 rounded-2xl text-sm font-semibold text-white disabled:opacity-50 transition-all hover:opacity-90 active:scale-[0.99]"
                 style={{ backgroundColor: 'var(--crimson)' }}
               >
-                {saveMutation.isPending ? 'Saving…' : saved ? 'Saved ✓' : 'Save changes'}
+                {saveMutation.isPending ? t('profile.saving') : saved ? t('profile.saved') : t('profile.saveChanges')}
               </button>
 
             </div>

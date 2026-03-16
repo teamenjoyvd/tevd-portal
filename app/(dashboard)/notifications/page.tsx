@@ -1,16 +1,9 @@
 'use client'
 
 import { useNotifications, useMarkRead, useMarkAllRead } from '@/lib/hooks/useNotifications'
+import { useLanguage } from '@/lib/hooks/useLanguage'
 import PageHeading from '@/components/layout/PageHeading'
 import PageContainer from '@/components/layout/PageContainer'
-
-const TYPE_LABELS: Record<string, string> = {
-  role_request:  'Role request',
-  trip_request:  'Trip request',
-  trip_created:  'New trip',
-  event_fetched: 'New event',
-  doc_expiry:    'Document expiry',
-}
 
 const TYPE_COLORS: Record<string, string> = {
   role_request:  'bg-blue-50 text-blue-700',
@@ -35,7 +28,16 @@ export default function NotificationsPage() {
   const { data: notifications = [], isLoading } = useNotifications()
   const markRead    = useMarkRead()
   const markAllRead = useMarkAllRead()
+  const { t } = useLanguage()
   const unreadCount = notifications.filter(n => !n.is_read).length
+
+  const TYPE_LABELS: Record<string, string> = {
+    role_request:  t('notif.type.roleRequest'),
+    trip_request:  t('notif.type.tripRequest'),
+    trip_created:  t('notif.type.tripCreated'),
+    event_fetched: t('notif.type.eventFetched'),
+    doc_expiry:    t('notif.type.docExpiry'),
+  }
 
   return (
     <>
@@ -46,7 +48,7 @@ export default function NotificationsPage() {
           {unreadCount > 0 && (
             <div className="flex items-center justify-between mb-6">
               <p className="text-sm" style={{ color: 'var(--stone)' }}>
-                {unreadCount} unread
+                {t('notif.unread').replace('{n}', String(unreadCount))}
               </p>
               <button
                 onClick={() => markAllRead.mutate()}
@@ -54,7 +56,7 @@ export default function NotificationsPage() {
                 className="text-sm font-medium disabled:opacity-50 hover:underline"
                 style={{ color: 'var(--crimson)' }}
               >
-                Mark all as read
+                {t('notif.markAllRead')}
               </button>
             </div>
           )}
@@ -76,9 +78,9 @@ export default function NotificationsPage() {
                   <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                 </svg>
               </div>
-              <p className="font-medium" style={{ color: 'var(--deep)' }}>All caught up</p>
+              <p className="font-medium" style={{ color: 'var(--deep)' }}>{t('notif.allCaughtUp')}</p>
               <p className="text-sm mt-1" style={{ color: 'var(--stone)' }}>
-                No notifications yet.
+                {t('notif.empty')}
               </p>
             </div>
           ) : (
@@ -124,7 +126,7 @@ export default function NotificationsPage() {
                       className="text-xs font-medium mt-2 inline-block hover:underline"
                       style={{ color: 'var(--crimson)' }}
                     >
-                      View →
+                      {t('notif.view')}
                     </a>
                   )}
                 </div>

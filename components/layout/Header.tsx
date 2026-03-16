@@ -7,18 +7,11 @@ import { useUser, UserButton } from '@clerk/nextjs'
 import { useUnreadCount } from '@/lib/hooks/useNotifications'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 
-const NAV_LINKS = [
-  { href: '/',         label: 'Home'     },
-  { href: '/about',    label: 'About'    },
-  { href: '/calendar', label: 'Calendar' },
-  { href: '/trips',    label: 'Trips'    },
-]
-
 export default function Header() {
   const { isSignedIn, user } = useUser()
   const pathname = usePathname()
   const { data: unreadData } = useUnreadCount()
-  const { lang, toggle } = useLanguage()
+  const { lang, toggle, t } = useLanguage()
   const unread = unreadData?.count ?? 0
 
   if (pathname?.startsWith('/sign-') || pathname?.startsWith('/admin')) return null
@@ -27,6 +20,13 @@ export default function Header() {
     href === '/' ? pathname === '/' : pathname?.startsWith(href)
 
   const isAdmin = (user?.publicMetadata?.role as string) === 'admin'
+
+  const NAV_LINKS = [
+    { href: '/',         label: t('nav.home')     },
+    { href: '/about',    label: t('nav.about')    },
+    { href: '/calendar', label: t('nav.calendar') },
+    { href: '/trips',    label: t('nav.trips')    },
+  ]
 
   return (
     <header className="sticky top-0 z-40 bg-white border-b border-black/5">
@@ -78,7 +78,7 @@ export default function Header() {
                   : 'transparent',
               }}
             >
-              Admin
+              {t('nav.admin')}
             </Link>
           )}
         </nav>
@@ -122,7 +122,7 @@ export default function Header() {
               className="px-4 py-1.5 rounded-lg text-xs font-semibold tracking-widest uppercase transition-colors"
               style={{ color: 'var(--deep)', border: '1px solid rgba(0,0,0,0.12)' }}
             >
-              Sign in
+              {t('nav.signIn')}
             </Link>
           )}
         </div>

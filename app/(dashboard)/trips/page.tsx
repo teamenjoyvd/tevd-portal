@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useUser } from '@clerk/nextjs'
+import { useLanguage } from '@/lib/hooks/useLanguage'
 import PageHeading from '@/components/layout/PageHeading'
 import PageContainer from '@/components/layout/PageContainer'
 
@@ -57,14 +58,8 @@ function tripDuration(start: string, end: string) {
   return `${days} day${days !== 1 ? 's' : ''}`
 }
 
-const STATUS_STYLES: Record<string, { bg: string; color: string; label: string }> = {
-  pending:  { bg: '#f2cc8f33', color: '#7a5c00', label: 'Pending approval' },
-  approved: { bg: '#81b29a33', color: '#2d6a4f', label: 'Approved'         },
-  denied:   { bg: '#bc474920', color: '#bc4749', label: 'Declined'         },
-}
-
 function TripCard({
-  trip, registration, payments, profileId, onRegister, onCancel, isPending,
+  trip, registration, payments, profileId, onRegister, onCancel, isPending, t,
 }: {
   trip: Trip
   registration: Registration | undefined
@@ -73,6 +68,7 @@ function TripCard({
   onRegister: (tripId: string) => void
   onCancel: (registrationId: string) => void
   isPending: boolean
+  t: (key: Parameters<ReturnType<typeof useLanguage>['t']>[0]) => string
 }) {
   const [expanded, setExpanded] = useState(false)
   const myPayments = payments.filter(p => p.trip_id === trip.id)
@@ -80,6 +76,12 @@ function TripCard({
     .filter(p => p.status === 'completed')
     .reduce((sum, p) => sum + p.amount, 0)
   const milestones: Milestone[] = Array.isArray(trip.milestones) ? trip.milestones : []
+
+  const STATUS_STYLES: Record<string, { bg: string; color: string; label: string }> = {
+    pending:  { bg: '#f2cc8f33', color: '#7a5c00', label: t('trips.status.pending')  },
+    approved: { bg: '#81b29a33', color: '#2d6a4f', label: t('trips.status.approved') },
+    denied:   { bg: '#bc474920', color: '#bc4749', label: t('trips.status.denied')   },
+  }
 
   return (
     <div className="bg-white rounded-2xl border border-black/5 overflow-hidden shadow-sm">
@@ -106,7 +108,7 @@ function TripCard({
             <p className="text-lg font-semibold" style={{ color: 'var(--deep)' }}>
               {formatEur(trip.total_cost)}
             </p>
-            <p className="text-xs" style={{ color: 'var(--stone)' }}>total</p>
+            <p className="text-xs" style={{ color: 'var(--stone)' }}>{t('trips.total')}</p>
           </div>
         </div>
         <div className="flex items-center gap-1.5 text-xs mb-3" style={{ color: 'var(--stone)' }}>
@@ -142,7 +144,7 @@ function TripCard({
               className="text-xs font-medium disabled:opacity-50"
               style={{ color: STATUS_STYLES[registration.status].color }}
             >
-              Cancel
+              {t('trips.cancel')}
             </button>
           )}
         </div>
@@ -156,10 +158,10 @@ function TripCard({
             style={{ color: 'var(--deep)' }}
           >
             <span>
-              Payments
+              {t('trips.payments')}
               {myPayments.length > 0 && (
                 <span className="ml-2 text-xs font-normal" style={{ color: 'var(--stone)' }}>
-                  {formatEur(totalPaid)} paid of {formatEur(trip.total_cost)}
+                  {formatEur(totalPaid)} {t('trips.paidOf')} {formatEur(trip.total_cost)}
                 </span>
               )}
             </span>
@@ -182,7 +184,7 @@ function TripCard({
                       }} />
                   </div>
                   <p className="text-xs mt-1.5" style={{ color: 'var(--stone)' }}>
-                    {Math.round((totalPaid / trip.total_cost) * 100)}% paid
+                    {Math.round((totalPaid / trip.total_cost) * 100)}{t('trips.paidPercent')}
                   </p>
                 </div>
               )}
@@ -190,7 +192,7 @@ function TripCard({
                 <div className="space-y-2 mb-4">
                   <p className="text-xs font-semibold tracking-widest uppercase"
                     style={{ color: 'var(--stone)' }}>
-                    Milestones
+                    {t('trips.milestones')}
                   </p>
                   {milestones.map((m, i) => {
                     const paid = myPayments.filter(p => p.status === 'completed')
@@ -211,7 +213,7 @@ function TripCard({
                           </div>
                           <div>
                             <p className="text-sm font-medium" style={{ color: 'var(--deep)' }}>{m.label}</p>
-                            <p className="text-xs" style={{ color: 'var(--stone)' }}>Due {formatDate(m.due_date)}</p>
+                            <p className="text-xs" style={{ color: 'var(--stone)' }}>{t('trips.due')} {formatDate(m.due_date)}</p>
                           </div>
                         </div>
                         <p className="text-sm font-semibold" style={{ color: 'var(--deep)' }}>
@@ -226,7 +228,7 @@ function TripCard({
                 <div className="space-y-2">
                   <p className="text-xs font-semibold tracking-widest uppercase"
                     style={{ color: 'var(--stone)' }}>
-                    Payment history
+                    {t('trips.paymentHistory')}
                   </p>
                   {myPayments.map(p => (
                     <div key={p.id} className="flex items-center justify-between py-2 border-b border-black/5 last:border-0">
@@ -264,7 +266,7 @@ function TripCard({
             className="w-full py-3 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 active:opacity-70 transition-opacity"
             style={{ backgroundColor: 'var(--crimson)' }}
           >
-            Register for this trip
+            {t('trips.registerBtn')}
           </button>
         </div>
       )}
@@ -275,6 +277,7 @@ function TripCard({
 export default function TripsPage() {
   const { isSignedIn } = useUser()
   const qc = useQueryClient()
+  const { t } = useLanguage()
   const [error, setError] = useState<string | null>(null)
 
   const { data: profile } = useQuery<UserProfile>({
@@ -291,8 +294,8 @@ export default function TripsPage() {
   const { data: registrations = [] } = useQuery<Registration[]>({
     queryKey: ['registrations', 'user', profile?.id],
     queryFn: () =>
-      Promise.all(trips.map(t =>
-        fetch(`/api/trips/${t.id}/registrations`).then(r => r.json())
+      Promise.all(trips.map(trip =>
+        fetch(`/api/trips/${trip.id}/registrations`).then(r => r.json())
       )).then(results =>
         results.flat().filter((r: Registration) => r.profile_id === profile?.id)
       ),
@@ -370,9 +373,9 @@ export default function TripsPage() {
                   <circle cx="12" cy="10" r="3"/>
                 </svg>
               </div>
-              <p className="font-medium" style={{ color: 'var(--deep)' }}>No trips yet</p>
+              <p className="font-medium" style={{ color: 'var(--deep)' }}>{t('trips.noTrips')}</p>
               <p className="text-sm mt-1" style={{ color: 'var(--stone)' }}>
-                Check back soon — upcoming trips will appear here.
+                {t('trips.noTripsDesc')}
               </p>
             </div>
           ) : (
@@ -387,6 +390,7 @@ export default function TripsPage() {
                   onRegister={(id) => registerMutation.mutate(id)}
                   onCancel={(id) => cancelMutation.mutate(id)}
                   isPending={registerMutation.isPending || cancelMutation.isPending}
+                  t={t}
                 />
               ))}
             </div>

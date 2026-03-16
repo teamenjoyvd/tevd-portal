@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
+import { useLanguage } from '@/lib/hooks/useLanguage'
 
 type RoleRequest = {
   id: string
@@ -59,6 +60,7 @@ export default function EventPopup({
   eventId, anchorRect, onClose, userRole, userProfileId,
 }: Props) {
   const qc = useQueryClient()
+  const { t } = useLanguage()
   const popoverRef = useRef<HTMLDivElement>(null)
   const [selectedRole, setSelectedRole] = useState(AVAILABLE_ROLES[0])
   const [note, setNote] = useState('')
@@ -271,7 +273,7 @@ export default function EventPopup({
             <div className="px-4 py-3">
               <p className="text-[10px] font-semibold tracking-widest uppercase mb-2"
                 style={{ color: 'var(--stone)' }}>
-                Roles
+                {t('event.roles')}
               </p>
 
               {/* Existing requests */}
@@ -334,7 +336,7 @@ export default function EventPopup({
                           className="text-[10px] px-2 py-0.5 rounded-full bg-black/10 disabled:opacity-50"
                           style={{ color: 'var(--stone)' }}
                         >
-                          Cancel
+                          {t('event.cancel')}
                         </button>
                       )}
                     </div>
@@ -345,7 +347,7 @@ export default function EventPopup({
               {/* Empty state for members with no request */}
               {!isAdmin && visibleRoleRequests.length === 0 && !canRequestRole && (
                 <p className="text-xs" style={{ color: 'var(--stone)' }}>
-                  Sign in to request a role.
+                  {t('event.signInForRole')}
                 </p>
               )}
 
@@ -358,7 +360,7 @@ export default function EventPopup({
                       className="w-full py-2 rounded-lg text-xs font-medium border-2 border-dashed transition-colors"
                       style={{ borderColor: 'var(--crimson)', color: 'var(--crimson)' }}
                     >
-                      + Request a role
+                      {t('event.requestRole')}
                     </button>
                   ) : (
                     <div className="rounded-lg border border-black/10 p-3 space-y-2.5">
@@ -382,7 +384,7 @@ export default function EventPopup({
                       <textarea
                         value={note}
                         onChange={e => setNote(e.target.value)}
-                        placeholder="Note (optional)…"
+                        placeholder={t('event.notePlaceholder')}
                         rows={2}
                         className="w-full text-xs rounded-lg px-2.5 py-2 border border-black/10 resize-none"
                         style={{ color: 'var(--deep)' }}
@@ -399,14 +401,14 @@ export default function EventPopup({
                           className="flex-1 py-2 rounded-lg text-xs font-semibold text-white disabled:opacity-50"
                           style={{ backgroundColor: 'var(--crimson)' }}
                         >
-                          {requestMutation.isPending ? 'Submitting…' : 'Submit'}
+                          {requestMutation.isPending ? t('event.submitting') : t('event.submit')}
                         </button>
                         <button
                           onClick={() => { setShowForm(false); setNote('') }}
                           className="px-3 py-2 rounded-lg text-xs font-medium bg-black/5"
                           style={{ color: 'var(--stone)' }}
                         >
-                          Cancel
+                          {t('event.cancel')}
                         </button>
                       </div>
                     </div>

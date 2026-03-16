@@ -3,17 +3,19 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
+import { useLanguage } from '@/lib/hooks/useLanguage'
 
 export default function BottomNav() {
   const { isSignedIn } = useUser()
   const pathname = usePathname()
+  const { t } = useLanguage()
 
   if (!isSignedIn) return null
   if (pathname?.startsWith('/sign-') || pathname?.startsWith('/admin')) return null
 
   const items = [
     {
-      href: '/', label: 'Home',
+      href: '/', label: t('nav.home'),
       icon: (active: boolean) => (
         <svg width="22" height="22" viewBox="0 0 24 24" fill={active ? 'var(--sienna)' : 'none'}
           stroke={active ? 'var(--sienna)' : 'rgba(255,255,255,0.4)'}
@@ -24,7 +26,7 @@ export default function BottomNav() {
       ),
     },
     {
-      href: '/calendar', label: 'Calendar',
+      href: '/calendar', label: t('nav.calendar'),
       icon: (active: boolean) => (
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
           stroke={active ? 'var(--sienna)' : 'rgba(255,255,255,0.4)'}
@@ -35,7 +37,7 @@ export default function BottomNav() {
       ),
     },
     {
-      href: '/trips', label: 'Trips',
+      href: '/trips', label: t('nav.trips'),
       icon: (active: boolean) => (
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
           stroke={active ? 'var(--sienna)' : 'rgba(255,255,255,0.4)'}
@@ -46,7 +48,7 @@ export default function BottomNav() {
       ),
     },
     {
-      href: '/profile', label: 'Profile',
+      href: '/profile', label: t('nav.profile'),
       icon: (active: boolean) => (
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
           stroke={active ? 'var(--sienna)' : 'rgba(255,255,255,0.4)'}

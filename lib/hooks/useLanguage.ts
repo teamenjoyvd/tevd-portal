@@ -1,12 +1,13 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { translate, TranslationKey, Lang } from '@/lib/i18n/translations'
 
 export function useLanguage() {
-  const [lang, setLang] = useState<'en' | 'bg'>('en')
+  const [lang, setLang] = useState<Lang>('en')
 
   useEffect(() => {
-    const stored = localStorage.getItem('tevd_lang') as 'en' | 'bg' | null
+    const stored = localStorage.getItem('tevd_lang') as Lang | null
     if (stored) setLang(stored)
   }, [])
 
@@ -18,5 +19,9 @@ export function useLanguage() {
     })
   }, [])
 
-  return { lang, toggle }
+  const t = useCallback((key: TranslationKey): string => {
+    return translate(key, lang)
+  }, [lang])
+
+  return { lang, toggle, t }
 }

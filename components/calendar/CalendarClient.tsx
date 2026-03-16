@@ -2,6 +2,8 @@
 
 import { useState, useMemo, useCallback, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useLanguage } from '@/lib/hooks/useLanguage'
+import { DAYS_I18N, MONTHS_I18N } from '@/lib/i18n/translations'
 import EventPopup from '@/components/events/EventPopup'
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -30,9 +32,6 @@ type Props = {
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
-const DAYS   = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-const MONTHS = ['January','February','March','April','May','June',
-                'July','August','September','October','November','December']
 const HOURS  = Array.from({ length: 24 }, (_, i) => i)
 const HOUR_HEIGHT = 60
 
@@ -138,6 +137,8 @@ function MonthView({
   onEventClick: (id: string, rect: DOMRect) => void
   onDayClick: (date: Date) => void
 }) {
+  const { lang } = useLanguage()
+  const DAYS = DAYS_I18N[lang]
   const today = new Date()
   const firstOfMonth = new Date(current.getFullYear(), current.getMonth(), 1)
   const gridStart = startOfWeek(firstOfMonth)
@@ -231,6 +232,8 @@ function WeekView({
   events: CalendarEvent[]
   onEventClick: (id: string, rect: DOMRect) => void
 }) {
+  const { lang } = useLanguage()
+  const DAYS = DAYS_I18N[lang]
   const today = new Date()
   const weekStart = startOfWeek(current)
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
@@ -404,6 +407,7 @@ function AgendaView({
   events: CalendarEvent[]
   onEventClick: (id: string, rect: DOMRect) => void
 }) {
+  const { t } = useLanguage()
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
@@ -425,7 +429,7 @@ function AgendaView({
   if (dates.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <p className="text-sm" style={{ color: 'var(--stone)' }}>No upcoming events.</p>
+        <p className="text-sm" style={{ color: 'var(--stone)' }}>{t('cal.noEvents')}</p>
       </div>
     )
   }
@@ -503,6 +507,9 @@ export default function CalendarClient({
   userProfileId,
   isAuthenticated,
 }: Props) {
+  const { lang, t } = useLanguage()
+  const MONTHS = MONTHS_I18N[lang]
+
   const [view, setView]       = useState<View>('month')
   const [current, setCurrent] = useState(() => {
     const [y, m] = initialMonth.split('-').map(Number)
@@ -571,13 +578,13 @@ export default function CalendarClient({
       })
     }
     return ''
-  }, [view, current])
+  }, [view, current, MONTHS])
 
   const views: { key: View; label: string }[] = [
-    { key: 'month',  label: 'Month'  },
-    { key: 'week',   label: 'Week'   },
-    { key: 'day',    label: 'Day'    },
-    { key: 'agenda', label: 'Agenda' },
+    { key: 'month',  label: t('cal.month')  },
+    { key: 'week',   label: t('cal.week')   },
+    { key: 'day',    label: t('cal.day')    },
+    { key: 'agenda', label: t('cal.agenda') },
   ]
 
   return (
@@ -599,7 +606,7 @@ export default function CalendarClient({
             <button onClick={goToday}
               className="px-2.5 py-1 rounded-lg text-xs font-semibold border"
               style={{ borderColor: 'var(--crimson)', color: 'var(--crimson)' }}>
-              Today
+              {t('cal.today')}
             </button>
             <button onClick={() => navigate(1)}
               className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5"
@@ -648,7 +655,7 @@ export default function CalendarClient({
                   }}>
                   <span className="w-1.5 h-1.5 rounded-full"
                     style={{ backgroundColor: showPersonal ? 'rgba(255,255,255,0.6)' : 'var(--sienna)' }} />
-                  Personal
+                  {t('cal.personal')}
                 </button>
               )}
             </div>
@@ -668,7 +675,7 @@ export default function CalendarClient({
               <button onClick={goToday}
                 className="px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors hover:bg-black/[0.02]"
                 style={{ borderColor: 'var(--crimson)', color: 'var(--crimson)' }}>
-                Today
+                {t('cal.today')}
               </button>
               <button onClick={() => navigate(1)}
                 className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors"
@@ -705,7 +712,7 @@ export default function CalendarClient({
                     }}>
                     <span className="w-1.5 h-1.5 rounded-full flex-shrink-0"
                       style={{ backgroundColor: showPersonal ? 'rgba(255,255,255,0.6)' : 'var(--sienna)' }} />
-                    Personal
+                    {t('cal.personal')}
                   </button>
                 )}
               </div>
