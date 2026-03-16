@@ -3,9 +3,10 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
-import { useUser, UserButton } from '@clerk/nextjs'
+import { useUser } from '@clerk/nextjs'
 import { useUnreadCount } from '@/lib/hooks/useNotifications'
 import { useLanguage } from '@/lib/hooks/useLanguage'
+import UserDropdown from '@/components/layout/UserDropdown'
 
 export default function Header() {
   const { isSignedIn, user } = useUser()
@@ -114,7 +115,7 @@ export default function Header() {
                   </span>
                 )}
               </Link>
-              <UserButton appearance={{ elements: { avatarBox: 'w-7 h-7' } }} />
+              <UserDropdown />
             </>
           ) : (
             <Link

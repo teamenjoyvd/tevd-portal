@@ -1,0 +1,155 @@
+'use client'
+
+import { useRef, useState, useEffect } from 'react'
+import { useUser, useClerk } from '@clerk/nextjs'
+import { useQuery } from '@tanstack/react-query'
+import Link from 'next/link'
+import { useLanguage } from '@/lib/hooks/useLanguage'
+
+const ROLE_LABELS: Record<string, string> = {
+  admin:  'Admin',
+  core:   'Core',
+  member: 'Member',
+  guest:  'Guest',
+}
+
+const ROLE_STYLES: Record<string, { bg: string; color: string }> = {
+  admin:  { bg: 'var(--forest)',   color: 'white'           },
+  core:   { bg: 'var(--sienna)',   color: 'white'           },
+  member: { bg: '#81b29a33',       color: '#2d6a4f'         },
+  guest:  { bg: 'rgba(0,0,0,0.06)', color: 'var(--stone)'  },
+}
+
+export default function UserDropdown() {
+  const { user } = useUser()
+  const { signOut } = useClerk()
+  const { t } = useLanguage()
+  const [open, setOpen] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const role = (user?.publicMetadata?.role as string) ?? 'guest'
+  const isAdmin = role === 'admin'
+
+  const firstName  = user?.firstName ?? ''
+  const lastName   = user?.lastName  ?? ''
+  const initials   = `${firstName[0] ?? ''}${lastName[0] ?? ''}`.toUpperCase() || '?'
+  const fullName   = `${firstName} ${lastName}`.trim() || 'Member'
+
+  const { data: uplineData } = useQuery<{ upline_name: string | null }>({
+    queryKey: ['profile-upline'],
+    queryFn: () => fetch('/api/profile/upline').then(r => r.json()),
+    staleTime: 5 * 60 * 1000,
+  })
+
+  // Close on outside click
+  useEffect(() => {
+    function handle(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handle)
+    return () => document.removeEventListener('mousedown', handle)
+  }, [])
+
+  // Close on Escape
+  useEffect(() => {
+    function handle(e: KeyboardEvent) {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('keydown', handle)
+    return () => document.removeEventListener('keydown', handle)
+  }, [])
+
+  const roleStyle = ROLE_STYLES[role] ?? ROLE_STYLES.guest
+
+  return (
+    <div ref={containerRef} className="relative">
+      {/* Avatar button */}
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-white transition-opacity hover:opacity-80 active:opacity-60 flex-shrink-0"
+        style={{ backgroundColor: 'var(--forest)', border: '1.5px solid rgba(0,0,0,0.1)' }}
+        aria-label="Account menu"
+      >
+        {initials}
+      </button>
+
+      {/* Dropdown */}
+      {open && (
+        <div
+          className="absolute right-0 top-full mt-2 rounded-2xl z-50 overflow-hidden"
+          style={{
+            width: 220,
+            backgroundColor: 'white',
+            border: '1px solid rgba(0,0,0,0.08)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)',
+          }}
+        >
+          {/* Identity block */}
+          <div className="px-4 py-4 border-b border-black/5">
+            <div className="flex items-center gap-3">
+              <div
+                className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
+                style={{ backgroundColor: 'var(--forest)' }}
+              >
+                {initials}
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold truncate" style={{ color: 'var(--deep)' }}>
+                  {fullName}
+                </p>
+                <span
+                  className="text-[10px] font-semibold px-2 py-0.5 rounded-full mt-0.5 inline-block"
+                  style={{ backgroundColor: roleStyle.bg, color: roleStyle.color }}
+                >
+                  {ROLE_LABELS[role] ?? role}
+                </span>
+              </div>
+            </div>
+            {uplineData?.upline_name && (
+              <p className="text-xs mt-3" style={{ color: 'var(--stone)' }}>
+                <span className="font-medium">Upline</span>{' '}
+                {uplineData.upline_name}
+              </p>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div className="py-1.5">
+            {isAdmin && (
+              <Link
+                href="/admin"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors hover:bg-black/[0.03]"
+                style={{ color: 'var(--deep)' }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect width="7" height="9" x="3" y="3" rx="1"/>
+                  <rect width="7" height="5" x="14" y="3" rx="1"/>
+                  <rect width="7" height="9" x="14" y="12" rx="1"/>
+                  <rect width="7" height="5" x="3" y="16" rx="1"/>
+                </svg>
+                {t('nav.admin')}
+              </Link>
+            )}
+            <button
+              onClick={() => signOut({ redirectUrl: '/' })}
+              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors hover:bg-black/[0.03]"
+              style={{ color: 'var(--crimson)' }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                <polyline points="16 17 21 12 16 7"/>
+                <line x1="21" x2="9" y1="12" y2="12"/>
+              </svg>
+              Sign out
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
