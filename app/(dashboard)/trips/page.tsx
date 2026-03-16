@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useUser } from '@clerk/nextjs'
 import { useLanguage } from '@/lib/hooks/useLanguage'
+import RegisterButton from '@/components/trips/RegisterButton'
 import PageHeading from '@/components/layout/PageHeading'
 import PageContainer from '@/components/layout/PageContainer'
 
@@ -59,15 +60,14 @@ function tripDuration(start: string, end: string) {
 }
 
 function TripCard({
-  trip, registration, payments, profileId, onRegister, onCancel, isPending, t,
+  trip, registration, payments, profileId, onCancel, isCancelling, t,
 }: {
   trip: Trip
   registration: Registration | undefined
   payments: Payment[]
   profileId: string | null
-  onRegister: (tripId: string) => void
   onCancel: (registrationId: string) => void
-  isPending: boolean
+  isCancelling: boolean
   t: (key: Parameters<ReturnType<typeof useLanguage>['t']>[0]) => string
 }) {
   const [expanded, setExpanded] = useState(false)
@@ -128,7 +128,7 @@ function TripCard({
         )}
       </div>
 
-      {registration && (
+      {registration && registration.status !== 'denied' && (
         <div
           className="mx-5 mb-4 px-4 py-2.5 rounded-xl flex items-center justify-between"
           style={{ backgroundColor: STATUS_STYLES[registration.status].bg }}
@@ -140,7 +140,7 @@ function TripCard({
           {registration.status === 'pending' && (
             <button
               onClick={() => onCancel(registration.id)}
-              disabled={isPending}
+              disabled={isCancelling}
               className="text-xs font-medium disabled:opacity-50"
               style={{ color: STATUS_STYLES[registration.status].color }}
             >
@@ -258,16 +258,10 @@ function TripCard({
         </div>
       )}
 
-      {!registration && (
+      {/* Show RegisterButton when no registration or registration was denied (re-register flow) */}
+      {(!registration || registration.status === 'denied') && (
         <div className="px-5 pb-5">
-          <button
-            onClick={() => onRegister(trip.id)}
-            disabled={isPending || !profileId}
-            className="w-full py-3 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 active:opacity-70 transition-opacity"
-            style={{ backgroundColor: 'var(--crimson)' }}
-          >
-            {t('trips.registerBtn')}
-          </button>
+          <RegisterButton tripId={trip.id} profileId={profileId} />
         </div>
       )}
     </div>
@@ -278,7 +272,6 @@ export default function TripsPage() {
   const { isSignedIn } = useUser()
   const qc = useQueryClient()
   const { t } = useLanguage()
-  const [error, setError] = useState<string | null>(null)
 
   const { data: profile } = useQuery<UserProfile>({
     queryKey: ['profile'],
@@ -313,24 +306,6 @@ export default function TripsPage() {
     enabled: registrations.filter(r => r.status === 'approved').length > 0,
   })
 
-  const registerMutation = useMutation({
-    mutationFn: (tripId: string) =>
-      fetch(`/api/trips/${tripId}/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-      }).then(async r => {
-        if (!r.ok) throw new Error((await r.json()).error)
-        return r.json()
-      }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['registrations'] })
-      qc.invalidateQueries({ queryKey: ['notifications'] })
-      setError(null)
-    },
-    onError: (e: Error) => setError(e.message),
-  })
-
   const cancelMutation = useMutation({
     mutationFn: (registrationId: string) =>
       fetch(`/api/admin/registrations/${registrationId}`, {
@@ -348,14 +323,6 @@ export default function TripsPage() {
       <PageHeading title="Team Trips" subtitle="Register and track your payments" />
       <PageContainer>
         <div className="max-w-xl py-8 pb-16">
-
-          {error && (
-            <div className="mb-4 px-4 py-3 rounded-xl text-sm"
-              style={{ backgroundColor: '#bc474915', color: 'var(--crimson)' }}>
-              {error}
-            </div>
-          )}
-
           {isLoading ? (
             <div className="space-y-4">
               {[...Array(2)].map((_, i) => (
@@ -387,9 +354,8 @@ export default function TripsPage() {
                   registration={regFor(trip.id)}
                   payments={payments}
                   profileId={profile?.id ?? null}
-                  onRegister={(id) => registerMutation.mutate(id)}
                   onCancel={(id) => cancelMutation.mutate(id)}
-                  isPending={registerMutation.isPending || cancelMutation.isPending}
+                  isCancelling={cancelMutation.isPending}
                   t={t}
                 />
               ))}
