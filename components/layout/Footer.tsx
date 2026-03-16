@@ -137,7 +137,7 @@ export default function Footer() {
 
       {/* Bottom bar */}
       <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-        <div className="max-w-[1024px] mx-auto px-4 md:px-6 lg:px-8 py-4 flex items-center justify-between">
+        <div className="max-w-[1024px] mx-auto px-4 md:px-6 lg:px-8 py-4 flex flex-wrap items-center justify-between gap-y-1">
           <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
             © 2026 TEAMENJOY VD · ALL RIGHTS RESERVED
           </p>
