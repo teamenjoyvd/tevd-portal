@@ -1,6 +1,7 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { auth } from '@clerk/nextjs/server'
 import Link from 'next/link'
+import BentoGrid from '@/components/home/BentoGrid'
 import PageContainer from '@/components/layout/PageContainer'
 
 type CalendarEvent = {
@@ -20,16 +21,9 @@ type HomeSettings = {
   show_caret_3: boolean; caret_3_text: string
   featured_announcement_id: string | null
 }
-
-function formatEventDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-GB', {
-    weekday: 'short', day: 'numeric', month: 'short',
-  })
-}
-function formatEventTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString('en-GB', {
-    hour: '2-digit', minute: '2-digit',
-  })
+type Profile = {
+  id: string; first_name: string; last_name: string
+  role: string; abo_number: string | null
 }
 
 export default async function HomePage() {
@@ -56,11 +50,39 @@ export default async function HomePage() {
   const quickLinks    = (quickLinksRes.data ?? []) as unknown as QuickLink[]
   const nextEvents    = (eventsRes.data ?? []) as unknown as CalendarEvent[]
 
+  // Fetch profile for Profile/Rank tile
+  let profile: Profile | null = null
+  if (userId) {
+    const { data } = await supabase
+      .from('profiles')
+      .select('id, first_name, last_name, role, abo_number')
+      .eq('clerk_id', userId)
+      .single()
+    profile = data as Profile | null
+  }
+
+  // Resolve featured announcement
+  const featuredAnnouncement: Announcement | null =
+    settings?.featured_announcement_id
+      ? (announcements.find(a => a.id === settings.featured_announcement_id) ?? announcements[0] ?? null)
+      : (announcements[0] ?? null)
+
   const carets = [
     { show: settings?.show_caret_1, text: settings?.caret_1_text },
     { show: settings?.show_caret_2, text: settings?.caret_2_text },
     { show: settings?.show_caret_3, text: settings?.caret_3_text },
-  ].filter(c => c.show && c.text)
+  ].filter(c => c.show && c.text).map(c => ({ text: c.text! }))
+
+  function formatEventDate(iso: string): string {
+    return new Date(iso).toLocaleDateString('en-GB', {
+      weekday: 'short', day: 'numeric', month: 'short',
+    })
+  }
+  function formatEventTime(iso: string): string {
+    return new Date(iso).toLocaleTimeString('en-GB', {
+      hour: '2-digit', minute: '2-digit',
+    })
+  }
 
   return (
     <div style={{ backgroundColor: 'white' }}>
@@ -96,26 +118,20 @@ export default async function HomePage() {
         </div>
       </div>
 
-      {/* Content — in 1024px container */}
+      {/* Bento Grid */}
       <PageContainer>
-        <div className="max-w-2xl py-10 space-y-10">
+        <div className="py-6 pb-16">
+          <BentoGrid
+            announcement={featuredAnnouncement}
+            profile={profile}
+            quickLinks={quickLinks as unknown as { id: string; label: string; url: string; icon_name: string }[]}
+            carets={carets}
+            isAuthenticated={!!userId}
+          />
 
-          {carets.length > 0 && (
-            <section className="space-y-2">
-              {carets.map((c, i) => (
-                <div
-                  key={i}
-                  className="rounded-2xl px-5 py-4 text-sm font-medium text-white"
-                  style={{ backgroundColor: 'var(--sienna)' }}
-                >
-                  {c.text}
-                </div>
-              ))}
-            </section>
-          )}
-
+          {/* Upcoming events — below bento */}
           {nextEvents.length > 0 && (
-            <section>
+            <section className="mt-6">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-xs font-semibold tracking-widest uppercase"
                   style={{ color: 'var(--stone)' }}>
@@ -148,64 +164,9 @@ export default async function HomePage() {
               </div>
             </section>
           )}
-
-          {announcements.length > 0 && (
-            <section>
-              <p className="text-xs font-semibold tracking-widest uppercase mb-3"
-                style={{ color: 'var(--stone)' }}>
-                Announcements
-              </p>
-              <div className="space-y-3">
-                {announcements.map(a => (
-                  <div key={a.id}
-                    className="bg-white rounded-2xl border border-black/5 shadow-sm px-5 py-4">
-                    <h3 className="font-serif text-base font-semibold mb-1"
-                      style={{ color: 'var(--deep)' }}>
-                      {a.titles?.en ?? a.titles?.bg ?? 'Announcement'}
-                    </h3>
-                    <p className="text-sm leading-relaxed" style={{ color: 'var(--stone)' }}>
-                      {a.contents?.en ?? a.contents?.bg ?? ''}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {quickLinks.length > 0 && (
-            <section>
-              <p className="text-xs font-semibold tracking-widest uppercase mb-3"
-                style={{ color: 'var(--stone)' }}>
-                Quick links
-              </p>
-              <div className="grid grid-cols-2 gap-2">
-                {quickLinks.map(link => (
-                  <a
-                    key={link.id}
-                    href={link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="bg-white rounded-2xl border border-black/5 shadow-sm px-4 py-3.5 text-sm font-medium flex items-center gap-2 hover:shadow-md transition-shadow"
-                    style={{ color: 'var(--deep)' }}
-                  >
-                    <span style={{ color: 'var(--crimson)' }}>→</span>
-                    {link.label}
-                  </a>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {!userId && carets.length === 0 && nextEvents.length === 0 && announcements.length === 0 && (
-            <div className="text-center py-16">
-              <p className="text-sm" style={{ color: 'var(--stone)' }}>
-                Sign in to access your portal.
-              </p>
-            </div>
-          )}
-
         </div>
       </PageContainer>
+
     </div>
   )
 }
