@@ -11,6 +11,30 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     .from('profiles').select('id').eq('clerk_id', userId).single()
   if (!profile) return Response.json({ error: 'Profile not found' }, { status: 404 })
 
+  // Check for an existing registration for this trip/profile
+  const { data: existing } = await supabase
+    .from('trip_registrations')
+    .select('id, status')
+    .eq('trip_id', trip_id)
+    .eq('profile_id', profile.id)
+    .maybeSingle()
+
+  if (existing) {
+    if (existing.status === 'denied') {
+      // Re-registration after denial: update back to pending (preserves audit trail)
+      const { data, error } = await supabase
+        .from('trip_registrations')
+        .update({ status: 'pending' })
+        .eq('id', existing.id)
+        .select()
+        .single()
+      if (error) return Response.json({ error: error.message }, { status: 500 })
+      return Response.json(data, { status: 200 })
+    }
+    // Already pending or approved
+    return Response.json({ error: 'Already registered for this trip' }, { status: 409 })
+  }
+
   const { data, error } = await supabase
     .from('trip_registrations')
     .insert({ trip_id, profile_id: profile.id, status: 'pending' })
