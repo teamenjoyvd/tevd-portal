@@ -250,7 +250,7 @@ export default async function HomePage() {
           {quickLinks.length > 0 ? (
             <div className="grid grid-cols-2 gap-1.5 mt-4 flex-1">
               {quickLinks.slice(0, 4).map(link => (
-                
+                <a
                   key={link.id}
                   href={link.url}
                   target="_blank"
