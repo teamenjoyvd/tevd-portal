@@ -448,7 +448,7 @@ export default function ApprovalHubPage() {
   ]
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
+    <div className="p-6">
       <h1 className="font-display text-2xl font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
         Approval Hub
       </h1>

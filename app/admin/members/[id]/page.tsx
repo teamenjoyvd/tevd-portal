@@ -90,7 +90,7 @@ export default function MemberDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="p-6 max-w-2xl mx-auto space-y-4">
+      <div className="p-6 space-y-4">
         {[...Array(4)].map((_, i) => (
           <div key={i} className="h-24 rounded-2xl animate-pulse"
             style={{ backgroundColor: 'rgba(0,0,0,0.05)' }} />
@@ -112,7 +112,7 @@ export default function MemberDetailPage() {
     .reduce((sum, p) => sum + p.amount, 0)
 
   return (
-    <div className="p-6 max-w-2xl mx-auto">
+    <div className="p-6">
       {/* Back */}
       <button
         onClick={() => router.back()}

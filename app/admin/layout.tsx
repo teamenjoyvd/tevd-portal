@@ -16,7 +16,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-card)' }}>
       <div style={{ backgroundColor: 'var(--brand-forest)' }}>
-        <div className="max-w-[1024px] mx-auto px-4 md:px-6 lg:px-8 h-14 flex items-center gap-6">
+        <div className="max-w-[1440px] mx-auto px-4 md:px-6 lg:px-8 h-14 flex items-center gap-6">
           <span className="font-display font-bold text-sm tracking-widest uppercase text-white flex-shrink-0">
             Admin
           </span>
@@ -25,6 +25,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
               { href: '/admin/approval-hub', label: 'Approval Hub' },
               { href: '/admin/operations',   label: 'Operations'   },
               { href: '/admin/members',      label: 'Members'      },
+              { href: '/admin/los',          label: 'LOS Tree'     },
               { href: '/admin/content',      label: 'Content'      },
               { href: '/admin/howtos',       label: 'Howtos'       },
               { href: '/admin/data-center',  label: 'Data Center'  },
@@ -52,7 +53,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           </Link>
         </div>
       </div>
-      <main className="max-w-[1024px] mx-auto px-4 md:px-6 lg:px-8 py-8">
+      <main className="max-w-[1440px] mx-auto px-4 md:px-6 lg:px-8 py-8">
         {children}
       </main>
     </div>

@@ -52,6 +52,12 @@ export type Database = {
         Update: { abo_level?: string | null; abo_number?: string; address?: string | null; annual_ppv?: number | null; bonus_percent?: number | null; country?: string | null; customer_pv?: number | null; customers?: number | null; email?: string | null; entry_date?: string | null; gbv?: number | null; gpv?: number | null; group_orders_count?: number | null; group_size?: number | null; last_synced_at?: string; name?: string | null; personal_order_count?: number | null; phone?: string | null; points_to_next_level?: number | null; ppv?: number | null; qualified_legs?: number | null; renewal_date?: string | null; ruby_pv?: number | null; sponsor_abo_number?: string | null; sponsoring?: number | null }
         Relationships: []
       }
+      member_vital_signs: {
+        Row: { event_key: string; event_label: string; has_ticket: boolean; id: string; profile_id: string; updated_at: string; updated_by: string | null }
+        Insert: { event_key: string; event_label: string; has_ticket?: boolean; id?: string; profile_id: string; updated_at?: string; updated_by?: string | null }
+        Update: { event_key?: string; event_label?: string; has_ticket?: boolean; id?: string; profile_id?: string; updated_at?: string; updated_by?: string | null }
+        Relationships: [{ foreignKeyName: "member_vital_signs_profile_id_fkey"; columns: ["profile_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] }]
+      }
       notifications: {
         Row: { action_url: string | null; created_at: string; id: string; is_read: boolean; message: string; profile_id: string; title: string; type: Database["public"]["Enums"]["notification_type"] }
         Insert: { action_url?: string | null; created_at?: string; id?: string; is_read?: boolean; message: string; profile_id: string; title: string; type: Database["public"]["Enums"]["notification_type"] }

@@ -60,6 +60,8 @@ export default async function HomePage() {
         {/* ── ROW 1: Hero col-6 | Profile col-2 | Events col-4 ── */}
 
         <BentoCard variant="forest" colSpan={6} rowSpan={2} className="bento-tile relative overflow-hidden" style={{ animationDelay: '0ms', minHeight: 320 }}>
+          {/* Radial glow from center for depth */}
+          <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 40% 50%, rgba(188,71,73,0.18) 0%, transparent 70%)' }} />
           <div className="absolute inset-0 flex flex-col justify-end px-8 py-10 z-10">
             <h1 className="font-display text-4xl md:text-5xl font-semibold leading-tight mb-3" style={{ color: 'var(--brand-parchment)' }}>
               TEAMENJOYVD

@@ -7,6 +7,103 @@ import PageHeading from '@/components/layout/PageHeading'
 import BentoGrid from '@/components/bento/BentoGrid'
 import BentoCard from '@/components/bento/BentoCard'
 
+type LOSNode = {
+  profile_id: string; abo_number: string; name: string | null
+  first_name: string; last_name: string; role: string
+  abo_level: string | null; depth: number; sponsor_abo_number: string | null
+  vital_signs: { event_key: string; event_label: string; has_ticket: boolean }[]
+  children?: LOSNode[]
+}
+
+const ROLE_STYLES: Record<string, { bg: string; color: string }> = {
+  admin:  { bg: '#2d332a', color: '#FAF8F3' },
+  core:   { bg: '#3E7785', color: '#FAF8F3' },
+  member: { bg: 'rgba(62,119,133,0.15)', color: '#3E7785' },
+  guest:  { bg: 'rgba(0,0,0,0.06)', color: '#8A8577' },
+}
+
+function buildSubtree(nodes: LOSNode[], rootProfileId: string): LOSNode | null {
+  const byAbo: Record<string, LOSNode> = {}
+  for (const n of nodes) byAbo[n.abo_number] = { ...n, children: [] }
+  for (const n of Object.values(byAbo)) {
+    if (n.sponsor_abo_number && byAbo[n.sponsor_abo_number]) {
+      byAbo[n.sponsor_abo_number].children!.push(n)
+    }
+  }
+  return Object.values(byAbo).find(n => n.profile_id === rootProfileId) ?? null
+}
+
+function LOSNodeRow({ node, depth = 0 }: { node: LOSNode; depth?: number }) {
+  const rs = ROLE_STYLES[node.role] ?? ROLE_STYLES.guest
+  const displayName = node.first_name ? `${node.first_name} ${node.last_name}` : node.name ?? node.abo_number
+  return (
+    <div>
+      <div className="flex items-center gap-3 py-2.5 px-3 rounded-xl"
+        style={{ backgroundColor: depth === 0 ? 'rgba(188,71,73,0.06)' : 'transparent' }}>
+        {depth > 0 && <div className="flex-shrink-0" style={{ width: depth * 16 }} />}
+        <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
+          <span className="text-sm font-semibold font-body truncate" style={{ color: 'var(--text-primary)' }}>
+            {displayName}
+          </span>
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0"
+            style={{ backgroundColor: rs.bg, color: rs.color }}>{node.role}</span>
+          {node.abo_level && (
+            <span className="text-[10px] font-body flex-shrink-0" style={{ color: 'var(--text-secondary)' }}>
+              {node.abo_level}
+            </span>
+          )}
+        </div>
+        {/* Vital signs pills */}
+        <div className="flex gap-1.5 flex-shrink-0 flex-wrap justify-end">
+          {node.vital_signs.map(vs => (
+            <span key={vs.event_key}
+              className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+              style={{
+                backgroundColor: vs.has_ticket ? 'rgba(188,71,73,0.12)' : 'var(--border-default)',
+                color: vs.has_ticket ? 'var(--brand-crimson)' : 'var(--text-secondary)',
+              }}>
+              {vs.has_ticket ? '✓' : '○'} {vs.event_label}
+            </span>
+          ))}
+        </div>
+      </div>
+      {(node.children ?? []).map(child => (
+        <LOSNodeRow key={child.abo_number} node={child} depth={depth + 1} />
+      ))}
+    </div>
+  )
+}
+
+function LOSSubtree({ profileId }: { profileId: string }) {
+  const { data: flatNodes = [], isLoading } = useQuery<LOSNode[]>({
+    queryKey: ['los-subtree', profileId],
+    queryFn: () => fetch('/api/los/tree').then(r => r.json()),
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const root = buildSubtree(flatNodes, profileId)
+  if (isLoading) return (
+    <BentoCard variant="default" colSpan={12}>
+      <div className="h-20 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--border-default)' }} />
+    </BentoCard>
+  )
+  if (!root && !isLoading) return null
+
+  return (
+    <BentoCard variant="default" colSpan={12}>
+      <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-4" style={{ color: 'var(--brand-crimson)' }}>
+        My Team
+      </p>
+      {root && <LOSNodeRow node={root} depth={0} />}
+      {(!root || (root.children?.length ?? 0) === 0) && (
+        <p className="text-xs mt-2" style={{ color: 'var(--text-secondary)' }}>
+          No downlines in your LOS yet.
+        </p>
+      )}
+    </BentoCard>
+  )
+}
+
 type Profile = {
   id: string
   clerk_id: string
@@ -432,6 +529,9 @@ export default function ProfilePage() {
                   </button>
                 </div>
               </BentoCard>
+
+              {/* LOS subtree — member's own downlines */}
+              <LOSSubtree profileId={profile.id} />
 
               {/* Save */}
               <BentoCard variant="default" colSpan={12}>

@@ -172,7 +172,7 @@ export default function OperationsPage() {
   const selectedTrip = trips.find(t => t.id === selectedTripId)
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-10">
+    <div className="p-6 space-y-10">
 
       {/* ── Trip creation ── */}
       <section>

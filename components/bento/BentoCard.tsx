@@ -31,8 +31,8 @@ export function KpiValue({ children }: { children: React.ReactNode }) {
 export function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
     <p
-      className="text-[11px] font-medium tracking-widest uppercase"
-      style={{ color: 'var(--brand-stone)' }}
+      className="text-[11px] font-semibold tracking-[0.25em] uppercase"
+      style={{ color: 'var(--brand-crimson)' }}
     >
       {children}
     </p>

@@ -5,20 +5,20 @@
   --brand-forest:    #2d332a;
   --brand-crimson:   #bc4749;
   --brand-teal:      #3E7785;
-  --brand-parchment: #F2EFE8;
+  --brand-parchment: #FAF8F3;
   --brand-void:      #1A1F18;
-  --brand-oyster:    #E8E4DC;
+  --brand-oyster:    #F0EDE6;
   --brand-moss:      #252B23;
   --brand-stone:     #8A8577;
 
   /* ── Semantic ── */
-  --bg-global-rgb:     242, 239, 232;
+  --bg-global-rgb:     250, 248, 243;
   --bg-global:         var(--brand-parchment);
   --bg-card:           var(--brand-oyster);
   --text-primary:      var(--brand-void);
   --text-secondary:    var(--brand-stone);
-  --border-default:    rgba(138, 133, 119, 0.20);
-  --border-hover:      rgba(62, 119, 133, 0.50);
+  --border-default:    rgba(45, 51, 42, 0.08);
+  --border-hover:      rgba(188, 71, 73, 0.30);
   --accent-left-info:  var(--brand-teal);
   --accent-left-alert: var(--brand-crimson);
   --accent-left-brand: var(--brand-forest);
@@ -26,8 +26,8 @@
   /* ── Bento tokens ── */
   --bento-gap:          12px;
   --bento-radius:       12px;
-  --bento-border:       rgba(138, 133, 119, 0.20);
-  --bento-border-hover: rgba(62, 119, 133, 0.50);
+  --bento-border:       rgba(45, 51, 42, 0.08);
+  --bento-border-hover: rgba(188, 71, 73, 0.30);
   --bento-accent-edge:  4px;
   --bento-padding:      20px;
 }

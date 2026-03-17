@@ -189,7 +189,7 @@ export default function DataCenterPage() {
   }
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
+    <div className="p-6">
       <h1 className="text-2xl font-semibold mb-1">Data Center</h1>
       <p className="text-sm text-gray-500 mb-6">
         LOS CSV import — upserts on ABO number. Rebuilds LTree paths after every import.
