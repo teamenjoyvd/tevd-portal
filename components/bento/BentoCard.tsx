@@ -47,6 +47,7 @@ export default function BentoCard({
   colSpan,
   rowSpan,
   className = '',
+  style,
 }: BentoCardProps) {
   const variantClass =
     variant === 'default'     ? 'card' :
