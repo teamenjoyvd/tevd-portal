@@ -63,6 +63,7 @@ Internal management portal for **teamenjoyVD (N21 Community)** handling Line of 
 | State | TanStack Query v5 | `QueryClientProvider` in `app/providers.tsx`. 15s polling for notifications. |
 | Styling | Tailwind CSS v4 | Mobile-first. **No `@layer components` with `@apply`** — inline all utility classes. |
 | Fonts | Cormorant Garamond (display) + DM Sans (body) | `--font-cormorant` → `font-display`, `--font-dm-sans` → `font-body`. Playfair Display and Montserrat are still loaded (legacy vars `--font-playfair`, `--font-montserrat` present) but no longer used in any component. |
+| Maps | Mapbox GL JS (CDN, mapbox-gl@2) | `NEXT_PUBLIC_MAPBOX_TOKEN` env var (public `pk.` token). Used in LocationTile. Always load via CDN `<script>` tag — do not import as npm package (SSR incompatible). Fallback to static tile if token missing. |
 | Middleware | `proxy.ts` | Next.js 16 convention. NEVER create `middleware.ts`. |
 | Deployment | Vercel | Team: `teamenjoyvd`. Project: `tevd-portal`. |
 
