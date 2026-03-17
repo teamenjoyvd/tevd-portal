@@ -7,9 +7,9 @@ const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
 const SOFIA = [23.3219, 42.6977] as [number, number]
 
 // Fallback tile shown when token is missing
-function LocationFallback({ colSpan }: { colSpan: number }) {
+function LocationFallback({ colSpan, rowSpan }: { colSpan: number; rowSpan?: number }) {
   return (
-    <BentoCard variant="forest" colSpan={colSpan} className="relative flex items-end">
+    <BentoCard variant="forest" colSpan={colSpan} rowSpan={rowSpan} className="relative flex items-end">
       <div className="absolute inset-0 flex items-center justify-center opacity-10">
         <svg width="120" height="120" viewBox="0 0 24 24" fill="none"
           stroke="var(--brand-parchment)" strokeWidth="0.5">
@@ -31,7 +31,7 @@ function LocationFallback({ colSpan }: { colSpan: number }) {
   )
 }
 
-export default function LocationTile({ colSpan = 6 }: { colSpan?: number }) {
+export default function LocationTile({ colSpan = 6, rowSpan }: { colSpan?: number; rowSpan?: number }) {
   const mapContainer = useRef<HTMLDivElement>(null)
   const [ready, setReady] = useState(false)
 
@@ -74,10 +74,10 @@ export default function LocationTile({ colSpan = 6 }: { colSpan?: number }) {
     }
   }, [])
 
-  if (!TOKEN) return <LocationFallback colSpan={colSpan} />
+  if (!TOKEN) return <LocationFallback colSpan={colSpan} rowSpan={rowSpan} />
 
   return (
-    <BentoCard variant="forest" colSpan={colSpan}
+    <BentoCard variant="forest" colSpan={colSpan} rowSpan={rowSpan}
       className="relative overflow-hidden p-0"
       style={{ minHeight: 240 }}>
       {/* Map fills tile */}

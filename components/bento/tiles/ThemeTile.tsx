@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import BentoCard from '@/components/bento/BentoCard'
 import { Eyebrow } from '@/components/bento/BentoCard'
 
-export default function ThemeTile({ colSpan = 2 }: { colSpan?: number }) {
+export default function ThemeTile({ colSpan = 2, rowSpan }: { colSpan?: number; rowSpan?: number }) {
   const [theme, setTheme] = useState<'light' | 'dark'>('light')
   const [mounted, setMounted] = useState(false)
 
@@ -25,7 +25,7 @@ export default function ThemeTile({ colSpan = 2 }: { colSpan?: number }) {
   }
 
   return (
-    <div style={{ gridColumn: `span ${colSpan}` }}
+    <div style={{ gridColumn: `span ${colSpan}`, ...(rowSpan ? { gridRow: `span ${rowSpan}` } : {}) }}
       className="cursor-pointer select-none hover:brightness-95 active:scale-[0.98] transition-all"
       onClick={toggle}>
       <BentoCard variant="default"

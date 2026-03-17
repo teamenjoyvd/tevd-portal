@@ -81,7 +81,7 @@ export default async function HomePage() {
           </div>
         </BentoCard>
 
-        <ProfileTile colSpan={3} />
+        <ProfileTile colSpan={3} rowSpan={2} />
 
         <BentoCard variant="default" colSpan={3} rowSpan={2} className="bento-tile flex flex-col" style={{ animationDelay: '150ms' }}>
           <div className="flex items-center justify-between mb-4">
@@ -175,13 +175,13 @@ export default async function HomePage() {
           <p className="font-body text-xs mt-3" style={{ color: 'var(--text-secondary)' }}>Social feed coming soon.</p>
         </BentoCard>
 
-        <ThemeTile colSpan={2} />
+        <ThemeTile colSpan={2} rowSpan={2} />
 
-        <LocationTile colSpan={6} />
+        <LocationTile colSpan={6} rowSpan={2} />
 
         {/* ── ROW 4: Howtos col-6 | About Us col-6 ── */}
 
-        <HowtosTile colSpan={6} />
+        <HowtosTile colSpan={6} rowSpan={2} />
 
         <BentoCard variant="default" colSpan={6} rowSpan={2} className="bento-tile flex flex-col justify-between" style={{ animationDelay: '500ms' }}>
           <div>
