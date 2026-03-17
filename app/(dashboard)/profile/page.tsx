@@ -4,7 +4,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, useEffect } from 'react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import PageHeading from '@/components/layout/PageHeading'
-import PageContainer from '@/components/layout/PageContainer'
+import BentoGrid from '@/components/bento/BentoGrid'
+import BentoCard from '@/components/bento/BentoCard'
 
 type Profile = {
   id: string
@@ -162,21 +163,22 @@ export default function ProfilePage() {
   return (
     <>
       <PageHeading title="My Profile" subtitle="Account details and travel documents" />
-      <PageContainer>
-        <div className="max-w-xl py-8 pb-16">
+      <div className="py-8 pb-16">
+        <BentoGrid>
 
           {isLoading ? (
-            <div className="space-y-4">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="h-24 rounded-2xl animate-pulse"
-                  style={{ backgroundColor: 'rgba(0,0,0,0.06)' }} />
-              ))}
-            </div>
+            <BentoCard variant="default" colSpan={12}>
+              <div className="space-y-4">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="h-24 rounded-2xl animate-pulse"
+                    style={{ backgroundColor: 'var(--border-default)' }} />
+                ))}
+              </div>
+            </BentoCard>
           ) : !profile ? null : (
-            <div className="space-y-4">
-
+            <>
               {/* Identity */}
-              <div className="rounded-2xl p-5" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+              <BentoCard variant="default" colSpan={6}>
                 <p className="text-xs font-semibold tracking-widest uppercase mb-4"
                   style={{ color: 'var(--text-secondary)' }}>
                   {t('profile.identity')}
@@ -232,11 +234,11 @@ export default function ProfilePage() {
                     {ROLE_DESCRIPTIONS[profile.role]}
                   </p>
                 )}
-              </div>
+              </BentoCard>
 
               {/* ABO Verification — guests only */}
               {isGuest && (
-                <div className="rounded-2xl p-5" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+                <BentoCard variant="edge-info" colSpan={12}>
                   <p className="text-xs font-semibold tracking-widest uppercase mb-1"
                     style={{ color: 'var(--text-secondary)' }}>
                     {t('profile.aboVerification')}
@@ -321,11 +323,11 @@ export default function ProfilePage() {
                       </button>
                     </div>
                   )}
-                </div>
+                </BentoCard>
               )}
 
               {/* Travel document */}
-              <div className="rounded-2xl p-5" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+              <BentoCard variant="default" colSpan={6}>
                 <p className="text-xs font-semibold tracking-widest uppercase mb-4"
                   style={{ color: 'var(--text-secondary)' }}>
                   {t('profile.travelDoc')}
@@ -387,10 +389,10 @@ export default function ProfilePage() {
                     </div>
                   )}
                 </div>
-              </div>
+              </BentoCard>
 
               {/* Calendar Subscription */}
-              <div className="rounded-2xl p-5" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+              <BentoCard variant="default" colSpan={12}>
                 <p className="text-xs font-semibold tracking-widest uppercase mb-1"
                   style={{ color: 'var(--text-secondary)' }}>
                   {t('profile.calSub')}
@@ -429,22 +431,24 @@ export default function ProfilePage() {
                     {t('profile.calSubRegenerate')}
                   </button>
                 </div>
-              </div>
+              </BentoCard>
 
               {/* Save */}
-              <button
-                onClick={() => saveMutation.mutate(form)}
-                disabled={saveMutation.isPending}
-                className="w-full py-3 rounded-2xl text-sm font-semibold text-white disabled:opacity-50 transition-all hover:opacity-90 active:scale-[0.99]"
-                style={{ backgroundColor: 'var(--brand-crimson)' }}
-              >
-                {saveMutation.isPending ? t('profile.saving') : saved ? t('profile.saved') : t('profile.saveChanges')}
-              </button>
+              <BentoCard variant="default" colSpan={12}>
+                <button
+                  onClick={() => saveMutation.mutate(form)}
+                  disabled={saveMutation.isPending}
+                  className="w-full py-3 rounded-2xl text-sm font-semibold text-white disabled:opacity-50 transition-all hover:opacity-90 active:scale-[0.99]"
+                  style={{ backgroundColor: 'var(--brand-crimson)' }}
+                >
+                  {saveMutation.isPending ? t('profile.saving') : saved ? t('profile.saved') : t('profile.saveChanges')}
+                </button>
+              </BentoCard>
 
-            </div>
+            </>
           )}
-        </div>
-      </PageContainer>
+        </BentoGrid>
+      </div>
     </>
   )
 }

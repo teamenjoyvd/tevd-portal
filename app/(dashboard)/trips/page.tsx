@@ -6,7 +6,8 @@ import { useUser } from '@clerk/nextjs'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import RegisterButton from '@/components/trips/RegisterButton'
 import PageHeading from '@/components/layout/PageHeading'
-import PageContainer from '@/components/layout/PageContainer'
+import BentoGrid from '@/components/bento/BentoGrid'
+import BentoCard from '@/components/bento/BentoCard'
 
 type Milestone = { label: string; amount: number; due_date: string }
 
@@ -366,49 +367,51 @@ export default function TripsPage() {
   return (
     <>
       <PageHeading title="Team Trips" subtitle="Register and track your payments" />
-      <PageContainer>
-        <div className="max-w-xl py-8 pb-16">
+      <div className="py-8 pb-16">
+        <BentoGrid>
           {isLoading ? (
-            <div className="space-y-4">
+            <>
               {[...Array(2)].map((_, i) => (
-                <div key={i} className="h-48 rounded-2xl animate-pulse"
-                  style={{ backgroundColor: 'rgba(0,0,0,0.06)' }} />
+                <BentoCard key={i} variant="default" colSpan={6}>
+                  <div className="h-48 rounded-xl animate-pulse"
+                    style={{ backgroundColor: 'var(--border-default)' }} />
+                </BentoCard>
               ))}
-            </div>
+            </>
           ) : trips.length === 0 ? (
-            <div className="text-center py-20">
-              <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
-                style={{ backgroundColor: 'rgba(0,0,0,0.05)' }}>
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
-                  stroke="var(--text-secondary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
-                  <circle cx="12" cy="10" r="3"/>
-                </svg>
+            <BentoCard variant="default" colSpan={12}>
+              <div className="text-center py-16">
+                <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
+                  style={{ backgroundColor: 'var(--border-default)' }}>
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
+                    stroke="var(--text-secondary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>
+                  </svg>
+                </div>
+                <p className="font-medium" style={{ color: 'var(--text-primary)' }}>{t('trips.noTrips')}</p>
+                <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>{t('trips.noTripsDesc')}</p>
               </div>
-              <p className="font-medium" style={{ color: 'var(--text-primary)' }}>{t('trips.noTrips')}</p>
-              <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
-                {t('trips.noTripsDesc')}
-              </p>
-            </div>
+            </BentoCard>
           ) : (
-            <div className="space-y-5">
+            <>
               {trips.map(trip => (
-                <TripCard
-                  key={trip.id}
-                  trip={trip}
-                  registration={regFor(trip.id)}
-                  payments={payments}
-                  profileId={profile?.id ?? null}
-                  onCancel={(id) => cancelMutation.mutate(id)}
-                  isCancelling={cancelMutation.isPending}
-                  t={t}
-                  userRole={profile?.role ?? 'guest'}
-                />
+                <div key={trip.id} style={{ gridColumn: 'span 6' }} className="max-[768px]:col-span-12">
+                  <TripCard
+                    trip={trip}
+                    registration={regFor(trip.id)}
+                    payments={payments}
+                    profileId={profile?.id ?? null}
+                    onCancel={(id) => cancelMutation.mutate(id)}
+                    isCancelling={cancelMutation.isPending}
+                    t={t}
+                    userRole={profile?.role ?? 'guest'}
+                  />
+                </div>
               ))}
-            </div>
+            </>
           )}
-        </div>
-      </PageContainer>
+        </BentoGrid>
+      </div>
     </>
   )
 }

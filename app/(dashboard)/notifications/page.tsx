@@ -5,12 +5,12 @@ import { useLanguage } from '@/lib/hooks/useLanguage'
 import PageHeading from '@/components/layout/PageHeading'
 import PageContainer from '@/components/layout/PageContainer'
 
-const TYPE_COLORS: Record<string, string> = {
-  role_request:  'bg-blue-50 text-blue-700',
-  trip_request:  'bg-purple-50 text-purple-700',
-  trip_created:  'bg-green-50 text-green-700',
-  event_fetched: 'bg-amber-50 text-amber-700',
-  doc_expiry:    'bg-red-50 text-red-700',
+const TYPE_STYLES: Record<string, { bg: string; color: string }> = {
+  role_request:  { bg: 'rgba(62,119,133,0.12)',  color: 'var(--brand-teal)'    },
+  trip_request:  { bg: 'rgba(188,71,73,0.10)',   color: 'var(--brand-crimson)' },
+  trip_created:  { bg: 'rgba(45,51,42,0.10)',    color: 'var(--brand-forest)'  },
+  event_fetched: { bg: 'rgba(138,133,119,0.15)', color: 'var(--text-secondary)'},
+  doc_expiry:    { bg: 'rgba(188,71,73,0.10)',   color: 'var(--brand-crimson)' },
 }
 
 function timeAgo(dateStr: string): string {
@@ -73,7 +73,7 @@ export default function NotificationsPage() {
               <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
                 style={{ backgroundColor: 'rgba(0,0,0,0.05)' }}>
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
-                  stroke="var(--stone)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  stroke="var(--text-secondary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
                   <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                 </svg>
@@ -100,7 +100,11 @@ export default function NotificationsPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${TYPE_COLORS[n.type] ?? 'bg-gray-100 text-gray-600'}`}>
+                        <span className="text-xs font-medium px-2 py-0.5 rounded-full"
+                          style={{
+                            backgroundColor: (TYPE_STYLES[n.type] ?? TYPE_STYLES.event_fetched).bg,
+                            color: (TYPE_STYLES[n.type] ?? TYPE_STYLES.event_fetched).color,
+                          }}>
                           {TYPE_LABELS[n.type] ?? n.type}
                         </span>
                         {!n.is_read && (
