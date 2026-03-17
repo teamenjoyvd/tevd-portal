@@ -44,7 +44,7 @@ export default function LocationTile({ colSpan = 6, rowSpan }: { colSpan?: numbe
       const mapboxgl = (window as any).mapboxgl
       if (!mapboxgl) return
       mapboxgl.accessToken = TOKEN
-      const map = mapboxgl.Map({
+      const map = new mapboxgl.Map({
         container: mapContainer.current,
         style: 'mapbox://styles/mapbox/dark-v11',
         center: SOFIA,
