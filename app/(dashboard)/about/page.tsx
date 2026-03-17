@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import PageHeading from '@/components/layout/PageHeading'
 import PageContainer from '@/components/layout/PageContainer'
 
@@ -6,6 +7,15 @@ export default function AboutPage() {
     <>
       <PageHeading title="About Us" subtitle="Our story & vision" />
       <PageContainer>
+        <div className="h-80 relative rounded-2xl overflow-hidden mt-8">
+          <Image
+            src="/hero.png"
+            alt="teamenjoyVD"
+            fill
+            className="object-cover"
+            priority
+          />
+        </div>
         <div className="max-w-2xl py-10 pb-16 space-y-6">
           <p className="text-base leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
             Hey there!

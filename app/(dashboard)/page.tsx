@@ -1,6 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { auth } from '@clerk/nextjs/server'
-import Image from 'next/image'
 import Link from 'next/link'
 import BentoGrid from '@/components/bento/BentoGrid'
 import BentoCard, { Eyebrow } from '@/components/bento/BentoCard'
@@ -89,17 +88,6 @@ export default async function HomePage() {
           className="bento-tile relative overflow-hidden"
           style={{ animationDelay: '0ms', minHeight: 380 }}
         >
-          <Image
-            src="/hero.png"
-            alt="teamenjoyVD"
-            fill
-            className="object-cover"
-            priority
-          />
-          <div
-            className="absolute inset-0"
-            style={{ background: 'linear-gradient(120deg, rgba(45,51,42,0.88) 0%, rgba(45,51,42,0.55) 60%, rgba(45,51,42,0.25) 100%)' }}
-          />
           <div className="absolute inset-0 flex flex-col justify-end px-8 md:px-12 py-10 md:py-14 z-10">
             <h1
               className="font-display text-4xl md:text-6xl font-semibold leading-tight mb-3"
