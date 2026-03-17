@@ -337,7 +337,7 @@ export default function EventPopup({
                           }
                         }}
                         disabled={isDisabled || (isActive && myRequest!.status !== 'pending')}
-                        className="flex-1 flex items-center justify-center gap-1 py-2 rounded-xl text-[11px] font-bold tracking-wider uppercase transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="flex-1 flex items-center justify-center gap-1 py-2 rounded-xl text-[11px] font-bold tracking-wider uppercase transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-95 active:scale-[0.97]"
                         style={{
                           backgroundColor: activeStyle ? activeStyle.bg : 'rgba(0,0,0,0.05)',
                           color:           activeStyle ? activeStyle.color : 'var(--text-primary)',
