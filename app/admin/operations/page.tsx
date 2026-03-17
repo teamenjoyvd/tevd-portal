@@ -9,7 +9,10 @@ type Trip = {
   id: string; title: string; destination: string
   start_date: string; end_date: string
   total_cost: number; milestones: Milestone[]
-  currency: string
+  currency: string; description: string
+  location: string | null; accommodation_type: string | null
+  inclusions: string[]; trip_type: string | null
+  visibility_roles: string[]
 }
 
 type Profile = {
@@ -27,10 +30,15 @@ type Payment = {
   profile: { first_name: string; last_name: string }
 }
 
+const ALL_ROLES = ['guest', 'member', 'core', 'admin']
+
 const empty = (): Omit<Trip, 'id' | 'currency'> => ({
   title: '', destination: '', description: '',
   start_date: '', end_date: '', total_cost: 0, milestones: [],
-} as unknown as Omit<Trip, 'id' | 'currency'>)
+  location: null, accommodation_type: null,
+  inclusions: [], trip_type: null,
+  visibility_roles: [...ALL_ROLES],
+})
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-GB', {
@@ -285,6 +293,84 @@ export default function OperationsPage() {
                   style={{ color: 'var(--text-primary)' }}>
                   + Add
                 </button>
+              </div>
+            </div>
+
+            {/* Additional details */}
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
+                  Location
+                </label>
+                <input
+                  value={form.location ?? ''}
+                  onChange={e => setForm(f => ({ ...f, location: e.target.value || null }))}
+                  placeholder="e.g. Oradea, Romania"
+                  className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+                  style={{ color: 'var(--text-primary)' }}
+                />
+              </div>
+              <div>
+                <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
+                  Trip type
+                </label>
+                <input
+                  value={form.trip_type ?? ''}
+                  onChange={e => setForm(f => ({ ...f, trip_type: e.target.value || null }))}
+                  placeholder="e.g. leisure, training, business"
+                  className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+                  style={{ color: 'var(--text-primary)' }}
+                />
+              </div>
+              <div>
+                <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
+                  Accommodation type
+                </label>
+                <input
+                  value={form.accommodation_type ?? ''}
+                  onChange={e => setForm(f => ({ ...f, accommodation_type: e.target.value || null }))}
+                  placeholder="e.g. hotel, hostel, apartment"
+                  className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+                  style={{ color: 'var(--text-primary)' }}
+                />
+              </div>
+              <div>
+                <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
+                  Inclusions (comma-separated)
+                </label>
+                <input
+                  value={form.inclusions.join(', ')}
+                  onChange={e => setForm(f => ({ ...f, inclusions: e.target.value.split(',').map(s => s.trim()).filter(Boolean) }))}
+                  placeholder="e.g. flights, hotel, breakfast"
+                  className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+                  style={{ color: 'var(--text-primary)' }}
+                />
+              </div>
+            </div>
+
+            {/* Visibility roles */}
+            <div className="mb-6">
+              <p className="text-xs font-semibold tracking-widest uppercase mb-2"
+                style={{ color: 'var(--text-secondary)' }}>
+                Visible to
+              </p>
+              <div className="flex gap-2">
+                {ALL_ROLES.map(role => (
+                  <button key={role}
+                    onClick={() => setForm(f => ({
+                      ...f,
+                      visibility_roles: f.visibility_roles.includes(role)
+                        ? f.visibility_roles.filter(r => r !== role)
+                        : [...f.visibility_roles, role],
+                    }))}
+                    className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
+                    style={{
+                      backgroundColor: form.visibility_roles.includes(role) ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)',
+                      color: form.visibility_roles.includes(role) ? 'var(--brand-parchment)' : 'var(--text-secondary)',
+                    }}>
+                    {role}
+                  </button>
+                ))}
               </div>
             </div>
 

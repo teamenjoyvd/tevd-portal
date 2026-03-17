@@ -21,6 +21,11 @@ type Trip = {
   currency: 'EUR'
   total_cost: number
   milestones: Milestone[]
+  visibility_roles: string[]
+  location: string | null
+  accommodation_type: string | null
+  inclusions: string[]
+  trip_type: string | null
 }
 
 type Registration = {
@@ -60,7 +65,7 @@ function tripDuration(start: string, end: string) {
 }
 
 function TripCard({
-  trip, registration, payments, profileId, onCancel, isCancelling, t,
+  trip, registration, payments, profileId, onCancel, isCancelling, t, userRole,
 }: {
   trip: Trip
   registration: Registration | undefined
@@ -69,6 +74,7 @@ function TripCard({
   onCancel: (registrationId: string) => void
   isCancelling: boolean
   t: (key: Parameters<ReturnType<typeof useLanguage>['t']>[0]) => string
+  userRole: string
 }) {
   const [expanded, setExpanded] = useState(false)
   const myPayments = payments.filter(p => p.trip_id === trip.id)
@@ -95,6 +101,12 @@ function TripCard({
               >
                 {trip.destination}
               </span>
+              {trip.trip_type && (
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                  style={{ backgroundColor: 'var(--brand-teal)', color: 'rgba(255,255,255,0.85)' }}>
+                  {trip.trip_type}
+                </span>
+              )}
               <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
                 {tripDuration(trip.start_date, trip.end_date)}
               </span>
@@ -104,12 +116,14 @@ function TripCard({
               {trip.title}
             </h3>
           </div>
-          <div className="text-right flex-shrink-0">
-            <p className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
-              {formatEur(trip.total_cost)}
-            </p>
-            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('trips.total')}</p>
-          </div>
+          {userRole !== 'guest' && (
+            <div className="text-right flex-shrink-0">
+              <p className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
+                {formatEur(trip.total_cost)}
+              </p>
+              <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('trips.total')}</p>
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-1.5 text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
@@ -125,6 +139,30 @@ function TripCard({
           <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
             {trip.description}
           </p>
+        )}
+        {trip.location && (
+          <div className="flex items-center gap-1.5 text-xs mt-2" style={{ color: 'var(--text-secondary)' }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>
+            </svg>
+            {trip.location}
+          </div>
+        )}
+        {trip.accommodation_type && (
+          <p className="text-xs mt-1.5" style={{ color: 'var(--text-secondary)' }}>
+            <span className="font-medium">Accommodation:</span> {trip.accommodation_type}
+          </p>
+        )}
+        {trip.inclusions.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {trip.inclusions.map((inc, i) => (
+              <span key={i} className="text-xs px-2 py-0.5 rounded-full"
+                style={{ backgroundColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
+                {inc}
+              </span>
+            ))}
+          </div>
         )}
       </div>
 
@@ -150,7 +188,7 @@ function TripCard({
         </div>
       )}
 
-      {(milestones.length > 0 || myPayments.length > 0) && registration?.status === 'approved' && (
+      {userRole !== 'guest' && (milestones.length > 0 || myPayments.length > 0) && registration?.status === 'approved' && (
         <div className="border-t border-black/5">
           <button
             onClick={() => setExpanded(e => !e)}
@@ -258,10 +296,17 @@ function TripCard({
         </div>
       )}
 
-      {/* Show RegisterButton when no registration or registration was denied (re-register flow) */}
+      {/* RegisterButton for members+, access note for guests */}
       {(!registration || registration.status === 'denied') && (
         <div className="px-5 pb-5">
-          <RegisterButton tripId={trip.id} profileId={profileId} />
+          {userRole === 'guest' ? (
+            <p className="text-xs text-center py-2 rounded-xl"
+              style={{ color: 'var(--text-secondary)', backgroundColor: 'var(--border-default)' }}>
+              Member access required to register
+            </p>
+          ) : (
+            <RegisterButton tripId={trip.id} profileId={profileId} />
+          )}
         </div>
       )}
     </div>
@@ -357,6 +402,7 @@ export default function TripsPage() {
                   onCancel={(id) => cancelMutation.mutate(id)}
                   isCancelling={cancelMutation.isPending}
                   t={t}
+                  userRole={profile?.role ?? 'guest'}
                 />
               ))}
             </div>

@@ -1,10 +1,4 @@
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[]
+export type Json = | string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
 export type Database = {
   __InternalSupabase: { PostgrestVersion: "14.4" }
@@ -95,9 +89,9 @@ export type Database = {
         Relationships: [{ foreignKeyName: "trip_registrations_profile_id_fkey"; columns: ["profile_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] }, { foreignKeyName: "trip_registrations_trip_id_fkey"; columns: ["trip_id"]; isOneToOne: false; referencedRelation: "trips"; referencedColumns: ["id"] }]
       }
       trips: {
-        Row: { created_at: string; currency: string; description: string; destination: string; end_date: string; id: string; image_url: string | null; milestones: Json; start_date: string; title: string; total_cost: number }
-        Insert: { created_at?: string; currency?: string; description?: string; destination: string; end_date: string; id?: string; image_url?: string | null; milestones?: Json; start_date: string; title: string; total_cost?: number }
-        Update: { created_at?: string; currency?: string; description?: string; destination?: string; end_date?: string; id?: string; image_url?: string | null; milestones?: Json; start_date?: string; title?: string; total_cost?: number }
+        Row: { accommodation_type: string | null; created_at: string; currency: string; description: string; destination: string; end_date: string; id: string; image_url: string | null; inclusions: string[]; location: string | null; milestones: Json; start_date: string; title: string; total_cost: number; trip_type: string | null; visibility_roles: string[] }
+        Insert: { accommodation_type?: string | null; created_at?: string; currency?: string; description?: string; destination: string; end_date: string; id?: string; image_url?: string | null; inclusions?: string[]; location?: string | null; milestones?: Json; start_date: string; title: string; total_cost?: number; trip_type?: string | null; visibility_roles?: string[] }
+        Update: { accommodation_type?: string | null; created_at?: string; currency?: string; description?: string; destination?: string; end_date?: string; id?: string; image_url?: string | null; inclusions?: string[]; location?: string | null; milestones?: Json; start_date?: string; title?: string; total_cost?: number; trip_type?: string | null; visibility_roles?: string[] }
         Relationships: []
       }
     }
