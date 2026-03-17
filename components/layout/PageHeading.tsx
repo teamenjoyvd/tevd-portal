@@ -13,21 +13,21 @@ export default function PageHeading({ title, accent, subtitle }: Props) {
 
   return (
     <div
-      className="w-full border-b border-black/5"
-      style={{ backgroundColor: 'white' }}
+      className="w-full border-b"
+      style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}
     >
       <div className="max-w-[1024px] mx-auto px-4 md:px-6 lg:px-8 py-8">
         <h1
-          className="font-serif text-2xl md:text-3xl font-bold leading-tight tracking-widest uppercase"
-          style={{ color: 'var(--deep)' }}
+          className="font-display text-2xl md:text-3xl font-bold leading-tight tracking-widest uppercase"
+          style={{ color: 'var(--text-primary)' }}
         >
           {baseWords && <>{baseWords} </>}
-          <span style={{ color: 'var(--crimson)' }}>{accentWord}</span>
+          <span style={{ color: 'var(--brand-crimson)' }}>{accentWord}</span>
         </h1>
         {subtitle && (
           <p
             className="mt-2 text-xs font-semibold tracking-[0.2em] uppercase"
-            style={{ color: 'var(--stone)' }}
+            style={{ color: 'var(--text-secondary)' }}
           >
             {subtitle}
           </p>

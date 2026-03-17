@@ -12,6 +12,7 @@
   --brand-stone:     #8A8577;
 
   /* ── Semantic ── */
+  --bg-global-rgb:     242, 239, 232;
   --bg-global:         var(--brand-parchment);
   --bg-card:           var(--brand-oyster);
   --text-primary:      var(--brand-void);

@@ -12,7 +12,7 @@ export default function Header() {
   const { isSignedIn, user } = useUser()
   const pathname = usePathname()
   const { data: unreadData } = useUnreadCount()
-  const { lang, toggle, t } = useLanguage()
+  const { t } = useLanguage()
   const unread = unreadData?.count ?? 0
 
   if (pathname?.startsWith('/sign-') || pathname?.startsWith('/admin')) return null
@@ -30,8 +30,12 @@ export default function Header() {
   ]
 
   return (
-    <header className="sticky top-0 z-40 border-b border-black/5" style={{ backgroundColor: 'var(--bg-global)' }}>
-      <div className="max-w-[1024px] mx-auto px-4 md:px-6 lg:px-8 h-14 flex items-center">
+    <header className="fixed top-4 left-0 right-0 z-50 px-4">
+      <div className="max-w-[1440px] mx-auto h-14 flex items-center px-5 rounded-2xl backdrop-blur-md backdrop-saturate-150"
+        style={{
+          backgroundColor: 'rgba(var(--bg-global-rgb), 0.80)',
+          border: '1px solid var(--border-default)',
+        }}>
 
         {/* Left — Logo + wordmark */}
         <Link href="/" className="flex items-center gap-2.5 flex-shrink-0">
@@ -84,16 +88,8 @@ export default function Header() {
           )}
         </nav>
 
-        {/* Right — Lang + Bell + Avatar */}
+        {/* Right — Bell + Avatar */}
         <div className="flex items-center gap-2 ml-auto">
-          <button
-            onClick={toggle}
-            className="px-2.5 py-1 rounded-lg text-xs font-bold tracking-widest uppercase transition-colors hover:bg-black/5"
-            style={{ color: 'var(--text-secondary)' }}
-          >
-            {lang === 'en' ? 'БГ' : 'EN'}
-          </button>
-
           {isSignedIn ? (
             <>
               <Link
@@ -101,7 +97,7 @@ export default function Header() {
                 className="relative w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors"
               >
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
-                  stroke="var(--stone)" strokeWidth="1.8"
+                  stroke="var(--text-secondary)" strokeWidth="1.8"
                   strokeLinecap="round" strokeLinejoin="round">
                   <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
                   <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
@@ -109,7 +105,7 @@ export default function Header() {
                 {unread > 0 && (
                   <span
                     className="absolute top-0.5 right-0.5 min-w-[15px] h-[15px] text-white text-[9px] font-bold rounded-full flex items-center justify-center px-1"
-                    style={{ backgroundColor: 'var(--crimson)' }}
+                    style={{ backgroundColor: 'var(--brand-crimson)' }}
                   >
                     {unread > 99 ? '99+' : unread}
                   </span>

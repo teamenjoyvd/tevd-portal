@@ -6,7 +6,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: 'var(--bg-global)' }}>
       <Header />
-      <main className="flex-1 pb-20 md:pb-0" style={{ backgroundColor: 'var(--bg-global)' }}>
+      <main className="flex-1 pt-20 pb-20 md:pb-0" style={{ backgroundColor: 'var(--bg-global)' }}>
         {children}
       </main>
       <Footer />

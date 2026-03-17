@@ -84,7 +84,7 @@ function TripCard({
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-black/5 overflow-hidden shadow-sm">
+    <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
       <div className="px-5 pt-5 pb-4">
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="flex-1 min-w-0">
@@ -180,7 +180,7 @@ function TripCard({
                     <div className="h-full rounded-full transition-all"
                       style={{
                         width: `${Math.min(100, (totalPaid / trip.total_cost) * 100)}%`,
-                        backgroundColor: 'var(--sage)',
+                        backgroundColor: 'var(--brand-teal)',
                       }} />
                   </div>
                   <p className="text-xs mt-1.5" style={{ color: 'var(--text-secondary)' }}>
@@ -203,7 +203,7 @@ function TripCard({
                       <div key={i} className="flex items-center justify-between py-2 border-b border-black/5 last:border-0">
                         <div className="flex items-center gap-2.5">
                           <div className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0"
-                            style={{ backgroundColor: isCovered ? 'var(--sage)' : 'rgba(0,0,0,0.08)' }}>
+                            style={{ backgroundColor: isCovered ? 'var(--brand-teal)' : 'rgba(0,0,0,0.08)' }}>
                             {isCovered && (
                               <svg width="8" height="8" viewBox="0 0 24 24" fill="none"
                                 stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
@@ -242,7 +242,7 @@ function TripCard({
                       </div>
                       <div className="text-right">
                         <p className="text-sm font-semibold"
-                          style={{ color: p.status === 'completed' ? 'var(--sage)' : 'var(--stone)' }}>
+                          style={{ color: p.status === 'completed' ? 'var(--brand-teal)' : 'var(--text-secondary)' }}>
                           {formatEur(p.amount)}
                         </p>
                         {p.status !== 'completed' && (
@@ -335,7 +335,7 @@ export default function TripsPage() {
               <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
                 style={{ backgroundColor: 'rgba(0,0,0,0.05)' }}>
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
-                  stroke="var(--stone)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  stroke="var(--text-secondary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
                   <circle cx="12" cy="10" r="3"/>
                 </svg>

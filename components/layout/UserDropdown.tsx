@@ -14,16 +14,16 @@ const ROLE_LABELS: Record<string, string> = {
 }
 
 const ROLE_STYLES: Record<string, { bg: string; color: string }> = {
-  admin:  { bg: 'var(--forest)',   color: 'white'           },
-  core:   { bg: 'var(--sienna)',   color: 'white'           },
-  member: { bg: '#81b29a33',       color: '#2d6a4f'         },
-  guest:  { bg: 'rgba(0,0,0,0.06)', color: 'var(--stone)'  },
+  admin:  { bg: 'var(--brand-forest)',   color: 'var(--brand-parchment)' },
+  core:   { bg: 'var(--brand-teal)',     color: 'var(--brand-parchment)' },
+  member: { bg: '#81b29a33',             color: '#2d6a4f'                },
+  guest:  { bg: 'rgba(0,0,0,0.06)',      color: 'var(--text-secondary)'  },
 }
 
 export default function UserDropdown() {
   const { user } = useUser()
   const { signOut } = useClerk()
-  const { t } = useLanguage()
+  const { t, lang, toggle } = useLanguage()
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -69,7 +69,7 @@ export default function UserDropdown() {
       <button
         onClick={() => setOpen(o => !o)}
         className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-white transition-opacity hover:opacity-80 active:opacity-60 flex-shrink-0"
-        style={{ backgroundColor: 'var(--forest)', border: '1.5px solid rgba(0,0,0,0.1)' }}
+        style={{ backgroundColor: 'var(--brand-forest)', border: '1.5px solid rgba(0,0,0,0.1)' }}
         aria-label="Account menu"
       >
         {initials}
@@ -91,12 +91,12 @@ export default function UserDropdown() {
             <div className="flex items-center gap-3">
               <div
                 className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
-                style={{ backgroundColor: 'var(--forest)' }}
+                style={{ backgroundColor: 'var(--brand-forest)' }}
               >
                 {initials}
               </div>
               <div className="min-w-0">
-                <p className="text-sm font-semibold truncate" style={{ color: 'var(--deep)' }}>
+                <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
                   {fullName}
                 </p>
                 <span
@@ -108,7 +108,7 @@ export default function UserDropdown() {
               </div>
             </div>
             {uplineData?.upline_name && (
-              <p className="text-xs mt-3" style={{ color: 'var(--stone)' }}>
+              <p className="text-xs mt-3" style={{ color: 'var(--text-secondary)' }}>
                 <span className="font-medium">Upline</span>{' '}
                 {uplineData.upline_name}
               </p>
@@ -122,7 +122,7 @@ export default function UserDropdown() {
                 href="/admin"
                 onClick={() => setOpen(false)}
                 className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors hover:bg-black/[0.03]"
-                style={{ color: 'var(--deep)' }}
+                style={{ color: 'var(--text-primary)' }}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                   stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -134,10 +134,23 @@ export default function UserDropdown() {
                 {t('nav.admin')}
               </Link>
             )}
+            <div className="border-t flex items-center justify-between px-4 py-2.5"
+              style={{ borderColor: 'var(--border-default)' }}>
+              <span className="text-sm font-body" style={{ color: 'var(--text-secondary)' }}>
+                {lang === 'en' ? 'Language' : 'Език'}
+              </span>
+              <button
+                onClick={toggle}
+                className="px-2.5 py-1 rounded-lg text-xs font-bold tracking-widest uppercase transition-colors hover:bg-black/5"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                {lang === 'en' ? 'БГ' : 'EN'}
+              </button>
+            </div>
             <button
               onClick={() => signOut({ redirectUrl: '/' })}
               className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors hover:bg-black/[0.03]"
-              style={{ color: 'var(--crimson)' }}
+              style={{ color: 'var(--brand-crimson)' }}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

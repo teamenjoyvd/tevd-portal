@@ -163,7 +163,7 @@ export default function ProfilePage() {
             <div className="space-y-4">
 
               {/* Identity */}
-              <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-5">
+              <div className="rounded-2xl p-5" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
                 <p className="text-xs font-semibold tracking-widest uppercase mb-4"
                   style={{ color: 'var(--text-secondary)' }}>
                   {t('profile.identity')}
@@ -207,7 +207,7 @@ export default function ProfilePage() {
                       className="font-semibold px-2 py-0.5 rounded-full text-xs"
                       style={{
                         backgroundColor: profile.role === 'guest' ? 'rgba(0,0,0,0.06)' : '#81b29a33',
-                        color: profile.role === 'guest' ? 'var(--stone)' : '#2d6a4f',
+                        color: profile.role === 'guest' ? 'var(--text-secondary)' : '#2d6a4f',
                       }}
                     >
                       {ROLE_LABELS[profile.role]}
@@ -223,7 +223,7 @@ export default function ProfilePage() {
 
               {/* ABO Verification — guests only */}
               {isGuest && (
-                <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-5">
+                <div className="rounded-2xl p-5" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
                   <p className="text-xs font-semibold tracking-widest uppercase mb-1"
                     style={{ color: 'var(--text-secondary)' }}>
                     {t('profile.aboVerification')}
@@ -312,7 +312,7 @@ export default function ProfilePage() {
               )}
 
               {/* Travel document */}
-              <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-5">
+              <div className="rounded-2xl p-5" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
                 <p className="text-xs font-semibold tracking-widest uppercase mb-4"
                   style={{ color: 'var(--text-secondary)' }}>
                   {t('profile.travelDoc')}
@@ -324,8 +324,8 @@ export default function ProfilePage() {
                       onClick={() => toggleDoc.mutate(type)}
                       className="px-4 py-2 rounded-xl text-sm font-medium transition-colors"
                       style={{
-                        backgroundColor: activeDocType === type ? 'var(--deep)' : 'rgba(0,0,0,0.05)',
-                        color: activeDocType === type ? 'white' : 'var(--stone)',
+                        backgroundColor: activeDocType === type ? 'var(--brand-forest)' : 'rgba(0,0,0,0.05)',
+                        color: activeDocType === type ? 'var(--brand-parchment)' : 'var(--text-secondary)',
                       }}
                     >
                       {type === 'id' ? t('profile.nationalId') : t('profile.passport')}
