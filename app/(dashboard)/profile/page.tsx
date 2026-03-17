@@ -56,6 +56,7 @@ export default function ProfilePage() {
   const [saved, setSaved] = useState(false)
   const [aboInput, setAboInput] = useState('')
   const [uplineInput, setUplineInput] = useState('')
+  const [calCopied, setCalCopied] = useState(false)
 
   const EXPIRY_LABELS = {
     ok:       t('profile.expiry.ok'),
@@ -79,6 +80,18 @@ export default function ProfilePage() {
     queryKey: ['verify-abo'],
     queryFn: () => fetch('/api/profile/verify-abo').then(r => r.json()),
     enabled: profile?.role === 'guest' && !profile?.abo_number,
+  })
+
+  const { data: calData, refetch: refetchCal } = useQuery<{ url: string }>({
+    queryKey: ['cal-feed-token'],
+    queryFn: () => fetch('/api/calendar/feed-token').then(r => r.json()),
+    enabled: !!profile,
+    staleTime: Infinity,
+  })
+
+  const regenerateCal = useMutation({
+    mutationFn: () => fetch('/api/calendar/feed-token', { method: 'POST' }).then(r => r.json()),
+    onSuccess: () => refetchCal(),
   })
 
   useEffect(() => {
@@ -373,6 +386,48 @@ export default function ProfilePage() {
                       )}
                     </div>
                   )}
+                </div>
+              </div>
+
+              {/* Calendar Subscription */}
+              <div className="rounded-2xl p-5" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+                <p className="text-xs font-semibold tracking-widest uppercase mb-1"
+                  style={{ color: 'var(--text-secondary)' }}>
+                  {t('profile.calSub')}
+                </p>
+                <p className="text-xs mb-3 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                  {t('profile.calSubInstructions')}
+                </p>
+                <div className="flex items-center gap-2">
+                  <input
+                    readOnly
+                    value={calData?.url ?? ''}
+                    placeholder="Generating…"
+                    className="flex-1 border rounded-xl px-3 py-2 text-xs font-mono truncate"
+                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)', backgroundColor: 'var(--bg-global)' }}
+                  />
+                  <button
+                    onClick={() => {
+                      if (calData?.url) {
+                        navigator.clipboard.writeText(calData.url)
+                        setCalCopied(true)
+                        setTimeout(() => setCalCopied(false), 2000)
+                      }
+                    }}
+                    disabled={!calData?.url}
+                    className="px-3 py-2 rounded-xl text-xs font-semibold transition-all disabled:opacity-40 hover:opacity-80 flex-shrink-0"
+                    style={{ backgroundColor: 'var(--brand-forest)', color: 'var(--brand-parchment)' }}
+                  >
+                    {calCopied ? t('profile.calSubCopied') : t('profile.calSubCopy')}
+                  </button>
+                  <button
+                    onClick={() => { if (confirm('Regenerate your calendar link? Your old link will stop working.')) regenerateCal.mutate() }}
+                    disabled={regenerateCal.isPending}
+                    className="px-3 py-2 rounded-xl text-xs font-semibold border transition-colors hover:bg-black/5 disabled:opacity-40 flex-shrink-0"
+                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                  >
+                    {t('profile.calSubRegenerate')}
+                  </button>
                 </div>
               </div>
 

@@ -7,9 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  __InternalSupabase: {
-    PostgrestVersion: "14.4"
-  }
+  __InternalSupabase: { PostgrestVersion: "14.4" }
   public: {
     Tables: {
       abo_verification_requests: {
@@ -67,9 +65,9 @@ export type Database = {
         Relationships: [{ foreignKeyName: "notifications_profile_id_fkey"; columns: ["profile_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] }]
       }
       profiles: {
-        Row: { abo_number: string | null; clerk_id: string; created_at: string; display_names: Json; document_active_type: Database["public"]["Enums"]["document_type"]; first_name: string; id: string; id_number: string | null; last_name: string; passport_number: string | null; role: Database["public"]["Enums"]["user_role"]; valid_through: string | null }
-        Insert: { abo_number?: string | null; clerk_id: string; created_at?: string; display_names?: Json; document_active_type?: Database["public"]["Enums"]["document_type"]; first_name: string; id?: string; id_number?: string | null; last_name: string; passport_number?: string | null; role?: Database["public"]["Enums"]["user_role"]; valid_through?: string | null }
-        Update: { abo_number?: string | null; clerk_id?: string; created_at?: string; display_names?: Json; document_active_type?: Database["public"]["Enums"]["document_type"]; first_name?: string; id?: string; id_number?: string | null; last_name?: string; passport_number?: string | null; role?: Database["public"]["Enums"]["user_role"]; valid_through?: string | null }
+        Row: { abo_number: string | null; clerk_id: string; created_at: string; display_names: Json; document_active_type: Database["public"]["Enums"]["document_type"]; first_name: string; ical_token: string | null; id: string; id_number: string | null; last_name: string; passport_number: string | null; role: Database["public"]["Enums"]["user_role"]; valid_through: string | null }
+        Insert: { abo_number?: string | null; clerk_id: string; created_at?: string; display_names?: Json; document_active_type?: Database["public"]["Enums"]["document_type"]; first_name: string; ical_token?: string | null; id?: string; id_number?: string | null; last_name: string; passport_number?: string | null; role?: Database["public"]["Enums"]["user_role"]; valid_through?: string | null }
+        Update: { abo_number?: string | null; clerk_id?: string; created_at?: string; display_names?: Json; document_active_type?: Database["public"]["Enums"]["document_type"]; first_name?: string; ical_token?: string | null; id?: string; id_number?: string | null; last_name?: string; passport_number?: string | null; role?: Database["public"]["Enums"]["user_role"]; valid_through?: string | null }
         Relationships: []
       }
       quick_links: {
