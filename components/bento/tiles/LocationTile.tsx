@@ -4,14 +4,13 @@ import { useEffect, useRef, useState } from 'react'
 import BentoCard from '@/components/bento/BentoCard'
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
-const SOFIA = [23.3219, 42.6977] as [number, number]
+const SOFIA: [number, number] = [23.3219, 42.6977]
 
-// Fallback tile shown when token is missing
 function LocationFallback({ colSpan, rowSpan }: { colSpan: number; rowSpan?: number }) {
   return (
     <BentoCard variant="forest" colSpan={colSpan} rowSpan={rowSpan} className="relative flex items-end">
       <div className="absolute inset-0 flex items-center justify-center opacity-10">
-        <svg width="120" height="120" viewBox="0 0 24 24" fill="none"
+        <svg width="80" height="80" viewBox="0 0 24 24" fill="none"
           stroke="var(--brand-parchment)" strokeWidth="0.5">
           <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
           <circle cx="12" cy="10" r="3"/>
@@ -33,35 +32,19 @@ function LocationFallback({ colSpan, rowSpan }: { colSpan: number; rowSpan?: num
 
 export default function LocationTile({ colSpan = 6, rowSpan }: { colSpan?: number; rowSpan?: number }) {
   const mapContainer = useRef<HTMLDivElement>(null)
+  const mapRef = useRef<{ remove: () => void } | null>(null)
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
     if (!TOKEN || !mapContainer.current) return
 
-    // Load Mapbox GL JS from CDN
-    if ((window as unknown as Record<string, unknown>).mapboxgl) {
-      initMap()
-      return
-    }
-
-    const script = document.createElement('script')
-    script.src = 'https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js'
-    script.onload = initMap
-    document.head.appendChild(script)
-
-    const link = document.createElement('link')
-    link.rel = 'stylesheet'
-    link.href = 'https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css'
-    document.head.appendChild(link)
-
     function initMap() {
       if (!mapContainer.current) return
-      const mapboxgl = (window as unknown as Record<string, unknown>).mapboxgl as {
-        Map: new (opts: Record<string, unknown>) => { remove: () => void }
-        accessToken: string
-      }
-      mapboxgl.accessToken = TOKEN!
-      const map = new mapboxgl.Map({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const mapboxgl = (window as any).mapboxgl
+      if (!mapboxgl) return
+      mapboxgl.accessToken = TOKEN
+      const map = mapboxgl.Map({
         container: mapContainer.current,
         style: 'mapbox://styles/mapbox/dark-v11',
         center: SOFIA,
@@ -69,9 +52,33 @@ export default function LocationTile({ colSpan = 6, rowSpan }: { colSpan?: numbe
         interactive: false,
         attributionControl: false,
       })
-      setReady(true)
-      return () => map.remove()
+      mapRef.current = map
+      map.on('load', () => setReady(true))
     }
+
+    // Inject CSS first so it's available when map renders
+    if (!document.querySelector('link[href*="mapbox-gl"]')) {
+      const link = document.createElement('link')
+      link.rel = 'stylesheet'
+      link.href = 'https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css'
+      document.head.appendChild(link)
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if ((window as any).mapboxgl) {
+      initMap()
+    } else if (!document.querySelector('script[src*="mapbox-gl"]')) {
+      const script = document.createElement('script')
+      script.src = 'https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js'
+      script.onload = initMap
+      document.head.appendChild(script)
+    } else {
+      // Script tag exists but not yet loaded — wait for it
+      const existing = document.querySelector('script[src*="mapbox-gl"]')!
+      existing.addEventListener('load', initMap, { once: true })
+    }
+
+    return () => { mapRef.current?.remove(); mapRef.current = null }
   }, [])
 
   if (!TOKEN) return <LocationFallback colSpan={colSpan} rowSpan={rowSpan} />
@@ -79,9 +86,9 @@ export default function LocationTile({ colSpan = 6, rowSpan }: { colSpan?: numbe
   return (
     <BentoCard variant="forest" colSpan={colSpan} rowSpan={rowSpan}
       className="relative overflow-hidden p-0"
-      style={{ minHeight: 240 }}>
-      {/* Map fills tile */}
-      <div ref={mapContainer} className="absolute inset-0" />
+      style={{ minHeight: 200 }}>
+      {/* Map container — must have explicit dimensions */}
+      <div ref={mapContainer} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} />
 
       {/* Sofia label overlay */}
       <div className="absolute bottom-4 left-4 z-10 flex items-center gap-2 px-3 py-1.5 rounded-full"
@@ -96,9 +103,9 @@ export default function LocationTile({ colSpan = 6, rowSpan }: { colSpan?: numbe
         </span>
       </div>
 
-      {/* Loading shimmer before map renders */}
+      {/* Shimmer until map tiles load */}
       {!ready && (
-        <div className="absolute inset-0" style={{ backgroundColor: 'var(--brand-forest)' }} />
+        <div className="absolute inset-0 z-[1]" style={{ backgroundColor: 'var(--brand-forest)' }} />
       )}
     </BentoCard>
   )

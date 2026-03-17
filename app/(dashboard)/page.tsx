@@ -13,12 +13,6 @@ type Announcement = {
   is_active: boolean
 }
 type QuickLink = { id: string; label: string; url: string; icon_name: string }
-type HomeSettings = {
-  show_caret_1: boolean; caret_1_text: string
-  show_caret_2: boolean; caret_2_text: string
-  show_caret_3: boolean; caret_3_text: string
-  featured_announcement_id: string | null
-}
 type Trip = { id: string; title: string; destination: string; start_date: string }
 
 function formatEventDate(iso: string): string {
@@ -39,8 +33,7 @@ export default async function HomePage() {
     if (profile?.role) role = profile.role
   }
 
-  const [settingsRes, announcementsRes, quickLinksRes, eventsRes, tripsRes] = await Promise.all([
-    supabase.from('home_settings').select('*').single(),
+  const [announcementsRes, quickLinksRes, eventsRes, tripsRes] = await Promise.all([
     supabase.from('announcements').select('*').eq('is_active', true)
       .contains('access_level', [role]).order('created_at', { ascending: false }).limit(5),
     supabase.from('quick_links').select('*').contains('access_level', [role]).order('sort_order').limit(4),
@@ -50,16 +43,12 @@ export default async function HomePage() {
       .contains('visibility_roles', [role]).order('start_date').limit(3),
   ])
 
-  const settings      = settingsRes.data as HomeSettings | null
   const announcements = (announcementsRes.data ?? []) as unknown as Announcement[]
   const quickLinks    = (quickLinksRes.data ?? []) as unknown as QuickLink[]
   const nextEvents    = (eventsRes.data ?? []) as unknown as { id: string; title: string; start_time: string; week_number: number }[]
   const trips         = (tripsRes.data ?? []) as unknown as Trip[]
 
-  const featuredAnnouncement: Announcement | null = settings?.featured_announcement_id
-    ? (announcements.find(a => a.id === settings.featured_announcement_id) ?? announcements[0] ?? null)
-    : (announcements[0] ?? null)
-
+  const featuredAnnouncement = announcements[0] ?? null
   const announcementTitle   = featuredAnnouncement?.titles?.en ?? featuredAnnouncement?.titles?.bg ?? null
   const announcementContent = featuredAnnouncement?.contents?.en ?? featuredAnnouncement?.contents?.bg ?? null
   const nextTrip = trips[0] ?? null
@@ -68,7 +57,7 @@ export default async function HomePage() {
     <div style={{ backgroundColor: 'var(--bg-global)' }}>
       <BentoGrid className="py-4 pb-16">
 
-        {/* ── ROW 1: Hero col-6 | Profile col-3 | Events col-3 ── */}
+        {/* ── ROW 1: Hero col-6 | Profile col-2 | Events col-4 ── */}
 
         <BentoCard variant="forest" colSpan={6} rowSpan={2} className="bento-tile relative overflow-hidden" style={{ animationDelay: '0ms', minHeight: 320 }}>
           <div className="absolute inset-0 flex flex-col justify-end px-8 py-10 z-10">
@@ -81,9 +70,9 @@ export default async function HomePage() {
           </div>
         </BentoCard>
 
-        <ProfileTile colSpan={3} rowSpan={2} />
+        <ProfileTile colSpan={2} rowSpan={2} />
 
-        <BentoCard variant="default" colSpan={3} rowSpan={2} className="bento-tile flex flex-col" style={{ animationDelay: '150ms' }}>
+        <BentoCard variant="default" colSpan={4} rowSpan={2} className="bento-tile flex flex-col" style={{ animationDelay: '150ms' }}>
           <div className="flex items-center justify-between mb-4">
             <Eyebrow>Events</Eyebrow>
             <Link href="/calendar" className="font-body text-[10px] font-bold tracking-widest uppercase hover:underline" style={{ color: 'var(--brand-crimson)' }}>See all →</Link>
@@ -105,7 +94,7 @@ export default async function HomePage() {
           )}
         </BentoCard>
 
-        {/* ── ROW 2: Trips col-3 | Links col-3 | Announcements col-6 ── */}
+        {/* ── ROW 2: Trips col-3 | Announcements col-6 | Links col-3 ── */}
 
         <BentoCard variant="crimson" colSpan={3} rowSpan={2} className="bento-tile flex flex-col justify-between" style={{ animationDelay: '200ms' }}>
           <div>
@@ -123,28 +112,7 @@ export default async function HomePage() {
           <Link href="/trips" className="font-body text-[10px] font-bold tracking-widest uppercase mt-4 hover:underline self-start opacity-70 hover:opacity-100 transition-opacity" style={{ color: 'var(--brand-parchment)' }}>View trips →</Link>
         </BentoCard>
 
-        <BentoCard variant="teal" colSpan={3} rowSpan={2} className="bento-tile flex flex-col" style={{ animationDelay: '250ms' }}>
-          <div className="flex items-center justify-between mb-4">
-            <Eyebrow>Quick Access</Eyebrow>
-            <Link href="/links" className="font-body text-[10px] font-bold tracking-widest uppercase hover:underline" style={{ color: 'var(--brand-parchment)', opacity: 0.7 }}>All →</Link>
-          </div>
-          {quickLinks.length > 0 ? (
-            <div className="flex flex-col gap-1.5 flex-1">
-              {quickLinks.map(link => (
-                <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer"
-                  className="font-body flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium truncate hover:opacity-80 transition-opacity"
-                  style={{ backgroundColor: 'rgba(255,255,255,0.12)', color: 'var(--brand-parchment)' }}>
-                  <span style={{ flexShrink: 0, opacity: 0.7 }}>→</span>
-                  <span className="truncate">{link.label}</span>
-                </a>
-              ))}
-            </div>
-          ) : (
-            <p className="font-body text-xs mt-4" style={{ color: 'rgba(242,239,232,0.6)' }}>No quick links configured.</p>
-          )}
-        </BentoCard>
-
-        <BentoCard variant="edge-info" colSpan={6} rowSpan={2} className="bento-tile flex flex-col justify-between" style={{ animationDelay: '300ms' }}>
+        <BentoCard variant="edge-info" colSpan={6} rowSpan={2} className="bento-tile card--edge-full flex flex-col justify-between" style={{ animationDelay: '250ms' }}>
           <div>
             <Eyebrow>Latest</Eyebrow>
             <div className="mt-3">
@@ -168,7 +136,28 @@ export default async function HomePage() {
           <Link href="/announcements" className="font-body text-[10px] font-bold tracking-widest uppercase mt-4 hover:underline self-start" style={{ color: 'var(--brand-crimson)' }}>View all →</Link>
         </BentoCard>
 
-        {/* ── ROW 3: Socials col-4 | Theme col-2 | Location col-6 ── */}
+        <BentoCard variant="teal" colSpan={3} rowSpan={2} className="bento-tile flex flex-col" style={{ animationDelay: '300ms' }}>
+          <div className="flex items-center justify-between mb-4">
+            <Eyebrow>Quick Access</Eyebrow>
+            <Link href="/links" className="font-body text-[10px] font-bold tracking-widest uppercase hover:underline" style={{ color: 'var(--brand-parchment)', opacity: 0.7 }}>All →</Link>
+          </div>
+          {quickLinks.length > 0 ? (
+            <div className="flex flex-col gap-1.5 flex-1">
+              {quickLinks.map(link => (
+                <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer"
+                  className="font-body flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium truncate hover:opacity-80 transition-opacity"
+                  style={{ backgroundColor: 'rgba(255,255,255,0.12)', color: 'var(--brand-parchment)' }}>
+                  <span style={{ flexShrink: 0, opacity: 0.7 }}>→</span>
+                  <span className="truncate">{link.label}</span>
+                </a>
+              ))}
+            </div>
+          ) : (
+            <p className="font-body text-xs mt-4" style={{ color: 'rgba(242,239,232,0.6)' }}>No quick links configured.</p>
+          )}
+        </BentoCard>
+
+        {/* ── ROW 3: Socials col-4 | Theme col-2 | Map col-3 | About Us col-3 ── */}
 
         <BentoCard variant="default" colSpan={4} rowSpan={2} className="bento-tile flex flex-col justify-between" style={{ animationDelay: '350ms' }}>
           <Eyebrow>Socials</Eyebrow>
@@ -177,22 +166,22 @@ export default async function HomePage() {
 
         <ThemeTile colSpan={2} rowSpan={2} />
 
-        <LocationTile colSpan={6} rowSpan={2} />
+        <LocationTile colSpan={3} rowSpan={2} />
 
-        {/* ── ROW 4: Howtos col-6 | About Us col-6 ── */}
-
-        <HowtosTile colSpan={6} rowSpan={2} />
-
-        <BentoCard variant="default" colSpan={6} rowSpan={2} className="bento-tile flex flex-col justify-between" style={{ animationDelay: '500ms' }}>
+        <BentoCard variant="default" colSpan={3} rowSpan={2} className="bento-tile flex flex-col justify-between" style={{ animationDelay: '450ms' }}>
           <div>
             <Eyebrow>About Us</Eyebrow>
-            <h2 className="font-display text-2xl font-semibold mt-3 mb-3" style={{ color: 'var(--text-primary)' }}>Hey there!</h2>
+            <h2 className="font-display text-xl font-semibold mt-3 mb-3" style={{ color: 'var(--text-primary)' }}>Hey there!</h2>
             <p className="font-body text-sm leading-relaxed" style={{ color: 'var(--text-secondary)', display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-              We&apos;re Vera &amp; Deniz, two folks living it up in Sofia, Bulgaria. We&apos;re all about good vibes, meaningful connections, and building rock-solid relationships with like-minded individuals who share our passion and vision.
+              We&apos;re Vera &amp; Deniz, two folks living it up in Sofia, Bulgaria. All about good vibes, meaningful connections, and building rock-solid relationships.
             </p>
           </div>
           <Link href="/about" className="font-body text-[10px] font-bold tracking-widest uppercase mt-4 hover:underline self-start" style={{ color: 'var(--brand-crimson)' }}>Our story →</Link>
         </BentoCard>
+
+        {/* ── ROW 4: Howtos col-12 ── */}
+
+        <HowtosTile colSpan={12} rowSpan={2} />
 
       </BentoGrid>
     </div>
