@@ -12,7 +12,7 @@ const NAV = [
 
 export default function Footer() {
   return (
-    <footer style={{ backgroundColor: 'var(--forest)' }}>
+    <footer style={{ backgroundColor: 'var(--brand-forest)' }}>
       <div className="max-w-[1024px] mx-auto px-4 md:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
 
@@ -31,7 +31,7 @@ export default function Footer() {
                   className="object-contain"
                 />
               </div>
-              <span className="font-serif text-base font-bold tracking-tight text-white">
+              <span className="font-display text-base font-bold tracking-tight text-white">
                 TEAMENJOYVD
               </span>
             </div>

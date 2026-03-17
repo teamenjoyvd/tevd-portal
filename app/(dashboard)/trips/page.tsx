@@ -91,27 +91,27 @@ function TripCard({
             <div className="flex items-center gap-2 mb-1">
               <span
                 className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                style={{ backgroundColor: 'var(--forest)', color: 'rgba(255,255,255,0.85)' }}
+                style={{ backgroundColor: 'var(--brand-forest)', color: 'rgba(255,255,255,0.85)' }}
               >
                 {trip.destination}
               </span>
-              <span className="text-xs" style={{ color: 'var(--stone)' }}>
+              <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
                 {tripDuration(trip.start_date, trip.end_date)}
               </span>
             </div>
-            <h3 className="font-serif text-xl font-semibold leading-snug"
-              style={{ color: 'var(--deep)' }}>
+            <h3 className="font-display text-xl font-semibold leading-snug"
+              style={{ color: 'var(--text-primary)' }}>
               {trip.title}
             </h3>
           </div>
           <div className="text-right flex-shrink-0">
-            <p className="text-lg font-semibold" style={{ color: 'var(--deep)' }}>
+            <p className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
               {formatEur(trip.total_cost)}
             </p>
-            <p className="text-xs" style={{ color: 'var(--stone)' }}>{t('trips.total')}</p>
+            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('trips.total')}</p>
           </div>
         </div>
-        <div className="flex items-center gap-1.5 text-xs mb-3" style={{ color: 'var(--stone)' }}>
+        <div className="flex items-center gap-1.5 text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <rect width="18" height="18" x="3" y="4" rx="2"/>
@@ -122,7 +122,7 @@ function TripCard({
           {formatDate(trip.start_date)} – {formatDate(trip.end_date)}
         </div>
         {trip.description && (
-          <p className="text-sm leading-relaxed" style={{ color: 'var(--stone)' }}>
+          <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
             {trip.description}
           </p>
         )}
@@ -155,12 +155,12 @@ function TripCard({
           <button
             onClick={() => setExpanded(e => !e)}
             className="w-full px-5 py-3 flex items-center justify-between text-sm font-medium hover:bg-black/[0.02] transition-colors"
-            style={{ color: 'var(--deep)' }}
+            style={{ color: 'var(--text-primary)' }}
           >
             <span>
               {t('trips.payments')}
               {myPayments.length > 0 && (
-                <span className="ml-2 text-xs font-normal" style={{ color: 'var(--stone)' }}>
+                <span className="ml-2 text-xs font-normal" style={{ color: 'var(--text-secondary)' }}>
                   {formatEur(totalPaid)} {t('trips.paidOf')} {formatEur(trip.total_cost)}
                 </span>
               )}
@@ -183,7 +183,7 @@ function TripCard({
                         backgroundColor: 'var(--sage)',
                       }} />
                   </div>
-                  <p className="text-xs mt-1.5" style={{ color: 'var(--stone)' }}>
+                  <p className="text-xs mt-1.5" style={{ color: 'var(--text-secondary)' }}>
                     {Math.round((totalPaid / trip.total_cost) * 100)}{t('trips.paidPercent')}
                   </p>
                 </div>
@@ -191,7 +191,7 @@ function TripCard({
               {milestones.length > 0 && (
                 <div className="space-y-2 mb-4">
                   <p className="text-xs font-semibold tracking-widest uppercase"
-                    style={{ color: 'var(--stone)' }}>
+                    style={{ color: 'var(--text-secondary)' }}>
                     {t('trips.milestones')}
                   </p>
                   {milestones.map((m, i) => {
@@ -212,11 +212,11 @@ function TripCard({
                             )}
                           </div>
                           <div>
-                            <p className="text-sm font-medium" style={{ color: 'var(--deep)' }}>{m.label}</p>
-                            <p className="text-xs" style={{ color: 'var(--stone)' }}>{t('trips.due')} {formatDate(m.due_date)}</p>
+                            <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{m.label}</p>
+                            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('trips.due')} {formatDate(m.due_date)}</p>
                           </div>
                         </div>
-                        <p className="text-sm font-semibold" style={{ color: 'var(--deep)' }}>
+                        <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
                           {formatEur(m.amount)}
                         </p>
                       </div>
@@ -227,17 +227,17 @@ function TripCard({
               {myPayments.length > 0 && (
                 <div className="space-y-2">
                   <p className="text-xs font-semibold tracking-widest uppercase"
-                    style={{ color: 'var(--stone)' }}>
+                    style={{ color: 'var(--text-secondary)' }}>
                     {t('trips.paymentHistory')}
                   </p>
                   {myPayments.map(p => (
                     <div key={p.id} className="flex items-center justify-between py-2 border-b border-black/5 last:border-0">
                       <div>
-                        <p className="text-sm" style={{ color: 'var(--deep)' }}>
+                        <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
                           {formatDate(p.transaction_date)}
                         </p>
                         {p.note && (
-                          <p className="text-xs mt-0.5" style={{ color: 'var(--stone)' }}>{p.note}</p>
+                          <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>{p.note}</p>
                         )}
                       </div>
                       <div className="text-right">
@@ -246,7 +246,7 @@ function TripCard({
                           {formatEur(p.amount)}
                         </p>
                         {p.status !== 'completed' && (
-                          <p className="text-xs" style={{ color: 'var(--stone)' }}>{p.status}</p>
+                          <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{p.status}</p>
                         )}
                       </div>
                     </div>
@@ -340,8 +340,8 @@ export default function TripsPage() {
                   <circle cx="12" cy="10" r="3"/>
                 </svg>
               </div>
-              <p className="font-medium" style={{ color: 'var(--deep)' }}>{t('trips.noTrips')}</p>
-              <p className="text-sm mt-1" style={{ color: 'var(--stone)' }}>
+              <p className="font-medium" style={{ color: 'var(--text-primary)' }}>{t('trips.noTrips')}</p>
+              <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
                 {t('trips.noTripsDesc')}
               </p>
             </div>

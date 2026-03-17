@@ -42,7 +42,7 @@ function getExpiryState(validThrough: string | null): 'ok' | 'warning' | 'critic
 const EXPIRY_STYLES = {
   ok:       'bg-[#81b29a]/10 border-[#81b29a]/30 text-[#2d6a4f]',
   warning:  'bg-[#f2cc8f]/20 border-[#f2cc8f] text-[#7a5c00]',
-  critical: 'bg-[#bc4749]/10 border-[#bc4749]/40 text-[#bc4749]',
+  critical: 'bg-[#bc4749]/10 border-[#bc4749]/40 text-[var(--brand-crimson)]',
 }
 
 const ROLE_LABELS: Record<string, string> = {
@@ -165,38 +165,38 @@ export default function ProfilePage() {
               {/* Identity */}
               <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-5">
                 <p className="text-xs font-semibold tracking-widest uppercase mb-4"
-                  style={{ color: 'var(--stone)' }}>
+                  style={{ color: 'var(--text-secondary)' }}>
                   {t('profile.identity')}
                 </p>
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   <div>
-                    <label className="text-xs mb-1 block" style={{ color: 'var(--stone)' }}>
+                    <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
                       {t('profile.firstName')}
                     </label>
                     <input
                       value={form.first_name ?? ''}
                       onChange={e => setForm(f => ({ ...f, first_name: e.target.value }))}
                       className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-                      style={{ color: 'var(--deep)' }}
+                      style={{ color: 'var(--text-primary)' }}
                     />
                   </div>
                   <div>
-                    <label className="text-xs mb-1 block" style={{ color: 'var(--stone)' }}>
+                    <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
                       {t('profile.lastName')}
                     </label>
                     <input
                       value={form.last_name ?? ''}
                       onChange={e => setForm(f => ({ ...f, last_name: e.target.value }))}
                       className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-                      style={{ color: 'var(--deep)' }}
+                      style={{ color: 'var(--text-primary)' }}
                     />
                   </div>
                 </div>
-                <div className="flex items-center gap-4 text-sm" style={{ color: 'var(--stone)' }}>
+                <div className="flex items-center gap-4 text-sm" style={{ color: 'var(--text-secondary)' }}>
                   {profile.abo_number && (
                     <span>
                       ABO:{' '}
-                      <span className="font-medium" style={{ color: 'var(--deep)' }}>
+                      <span className="font-medium" style={{ color: 'var(--text-primary)' }}>
                         {profile.abo_number}
                       </span>
                     </span>
@@ -215,7 +215,7 @@ export default function ProfilePage() {
                   </span>
                 </div>
                 {ROLE_DESCRIPTIONS[profile.role] && (
-                  <p className="text-xs mt-3" style={{ color: 'var(--stone)' }}>
+                  <p className="text-xs mt-3" style={{ color: 'var(--text-secondary)' }}>
                     {ROLE_DESCRIPTIONS[profile.role]}
                   </p>
                 )}
@@ -225,10 +225,10 @@ export default function ProfilePage() {
               {isGuest && (
                 <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-5">
                   <p className="text-xs font-semibold tracking-widest uppercase mb-1"
-                    style={{ color: 'var(--stone)' }}>
+                    style={{ color: 'var(--text-secondary)' }}>
                     {t('profile.aboVerification')}
                   </p>
-                  <p className="text-xs mb-4" style={{ color: 'var(--stone)' }}>
+                  <p className="text-xs mb-4" style={{ color: 'var(--text-secondary)' }}>
                     {t('profile.aboVerifDesc')}
                   </p>
 
@@ -245,7 +245,7 @@ export default function ProfilePage() {
                         onClick={() => cancelVerification.mutate()}
                         disabled={cancelVerification.isPending}
                         className="text-xs mt-2 font-medium hover:underline disabled:opacity-50"
-                        style={{ color: 'var(--crimson)' }}
+                        style={{ color: 'var(--brand-crimson)' }}
                       >
                         {t('profile.cancelRequest')}
                       </button>
@@ -253,15 +253,15 @@ export default function ProfilePage() {
                   ) : verRequest?.status === 'denied' ? (
                     <div className="rounded-xl px-4 py-3 mb-4"
                       style={{ backgroundColor: '#bc474915' }}>
-                      <p className="text-sm font-medium" style={{ color: 'var(--crimson)' }}>
+                      <p className="text-sm font-medium" style={{ color: 'var(--brand-crimson)' }}>
                         {t('profile.prevDenied')}
                       </p>
                       {verRequest.admin_note && (
-                        <p className="text-xs mt-0.5" style={{ color: 'var(--crimson)' }}>
+                        <p className="text-xs mt-0.5" style={{ color: 'var(--brand-crimson)' }}>
                           {verRequest.admin_note}
                         </p>
                       )}
-                      <p className="text-xs mt-1" style={{ color: 'var(--stone)' }}>
+                      <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
                         {t('profile.checkDetails')}
                       </p>
                     </div>
@@ -270,7 +270,7 @@ export default function ProfilePage() {
                   {(!verRequest || verRequest.status === 'denied') && (
                     <div className="space-y-3">
                       <div>
-                        <label className="text-xs mb-1 block" style={{ color: 'var(--stone)' }}>
+                        <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
                           {t('profile.yourAbo')}
                         </label>
                         <input
@@ -278,11 +278,11 @@ export default function ProfilePage() {
                           onChange={e => setAboInput(e.target.value)}
                           placeholder="e.g. 7023040472"
                           className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm font-mono"
-                          style={{ color: 'var(--deep)' }}
+                          style={{ color: 'var(--text-primary)' }}
                         />
                       </div>
                       <div>
-                        <label className="text-xs mb-1 block" style={{ color: 'var(--stone)' }}>
+                        <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
                           {t('profile.sponsorAbo')}
                         </label>
                         <input
@@ -290,11 +290,11 @@ export default function ProfilePage() {
                           onChange={e => setUplineInput(e.target.value)}
                           placeholder="e.g. 7010970187"
                           className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm font-mono"
-                          style={{ color: 'var(--deep)' }}
+                          style={{ color: 'var(--text-primary)' }}
                         />
                       </div>
                       {submitVerification.isError && (
-                        <p className="text-xs" style={{ color: 'var(--crimson)' }}>
+                        <p className="text-xs" style={{ color: 'var(--brand-crimson)' }}>
                           {(submitVerification.error as Error).message}
                         </p>
                       )}
@@ -302,7 +302,7 @@ export default function ProfilePage() {
                         onClick={() => submitVerification.mutate()}
                         disabled={submitVerification.isPending || !aboInput || !uplineInput}
                         className="w-full py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity"
-                        style={{ backgroundColor: 'var(--deep)' }}
+                        style={{ backgroundColor: 'var(--text-primary)' }}
                       >
                         {submitVerification.isPending ? t('profile.submitting') : t('profile.submitVerif')}
                       </button>
@@ -314,7 +314,7 @@ export default function ProfilePage() {
               {/* Travel document */}
               <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-5">
                 <p className="text-xs font-semibold tracking-widest uppercase mb-4"
-                  style={{ color: 'var(--stone)' }}>
+                  style={{ color: 'var(--text-secondary)' }}>
                   {t('profile.travelDoc')}
                 </p>
                 <div className="flex gap-2 mb-5">
@@ -334,7 +334,7 @@ export default function ProfilePage() {
                 </div>
                 <div className="space-y-4">
                   <div>
-                    <label className="text-xs mb-1 block" style={{ color: 'var(--stone)' }}>
+                    <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
                       {activeDocType === 'passport' ? t('profile.passportNumber') : t('profile.idNumber')}
                     </label>
                     <input
@@ -346,11 +346,11 @@ export default function ProfilePage() {
                         [activeDocType === 'passport' ? 'passport_number' : 'id_number']: e.target.value,
                       }))}
                       className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm font-mono"
-                      style={{ color: 'var(--deep)' }}
+                      style={{ color: 'var(--text-primary)' }}
                     />
                   </div>
                   <div>
-                    <label className="text-xs mb-1 block" style={{ color: 'var(--stone)' }}>
+                    <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
                       {t('profile.validThrough')}
                     </label>
                     <input
@@ -358,7 +358,7 @@ export default function ProfilePage() {
                       value={form.valid_through ?? ''}
                       onChange={e => setForm(f => ({ ...f, valid_through: e.target.value }))}
                       className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-                      style={{ color: 'var(--deep)' }}
+                      style={{ color: 'var(--text-primary)' }}
                     />
                   </div>
                   {expiryState && (
@@ -381,7 +381,7 @@ export default function ProfilePage() {
                 onClick={() => saveMutation.mutate(form)}
                 disabled={saveMutation.isPending}
                 className="w-full py-3 rounded-2xl text-sm font-semibold text-white disabled:opacity-50 transition-all hover:opacity-90 active:scale-[0.99]"
-                style={{ backgroundColor: 'var(--crimson)' }}
+                style={{ backgroundColor: 'var(--brand-crimson)' }}
               >
                 {saveMutation.isPending ? t('profile.saving') : saved ? t('profile.saved') : t('profile.saveChanges')}
               </button>

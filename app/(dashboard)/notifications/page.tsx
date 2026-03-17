@@ -47,14 +47,14 @@ export default function NotificationsPage() {
 
           {unreadCount > 0 && (
             <div className="flex items-center justify-between mb-6">
-              <p className="text-sm" style={{ color: 'var(--stone)' }}>
+              <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                 {t('notif.unread').replace('{n}', String(unreadCount))}
               </p>
               <button
                 onClick={() => markAllRead.mutate()}
                 disabled={markAllRead.isPending}
                 className="text-sm font-medium disabled:opacity-50 hover:underline"
-                style={{ color: 'var(--crimson)' }}
+                style={{ color: 'var(--brand-crimson)' }}
               >
                 {t('notif.markAllRead')}
               </button>
@@ -78,8 +78,8 @@ export default function NotificationsPage() {
                   <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                 </svg>
               </div>
-              <p className="font-medium" style={{ color: 'var(--deep)' }}>{t('notif.allCaughtUp')}</p>
-              <p className="text-sm mt-1" style={{ color: 'var(--stone)' }}>
+              <p className="font-medium" style={{ color: 'var(--text-primary)' }}>{t('notif.allCaughtUp')}</p>
+              <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
                 {t('notif.empty')}
               </p>
             </div>
@@ -105,17 +105,17 @@ export default function NotificationsPage() {
                         </span>
                         {!n.is_read && (
                           <span className="w-2 h-2 rounded-full flex-shrink-0"
-                            style={{ backgroundColor: 'var(--crimson)' }} />
+                            style={{ backgroundColor: 'var(--brand-crimson)' }} />
                         )}
                       </div>
-                      <p className="text-sm font-medium" style={{ color: 'var(--deep)' }}>
+                      <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
                         {n.title}
                       </p>
-                      <p className="text-sm mt-0.5" style={{ color: 'var(--stone)' }}>
+                      <p className="text-sm mt-0.5" style={{ color: 'var(--text-secondary)' }}>
                         {n.message}
                       </p>
                     </div>
-                    <span className="text-xs flex-shrink-0 mt-0.5" style={{ color: 'var(--stone)' }}>
+                    <span className="text-xs flex-shrink-0 mt-0.5" style={{ color: 'var(--text-secondary)' }}>
                       {timeAgo(n.created_at)}
                     </span>
                   </div>
@@ -124,7 +124,7 @@ export default function NotificationsPage() {
                       href={n.action_url}
                       onClick={e => e.stopPropagation()}
                       className="text-xs font-medium mt-2 inline-block hover:underline"
-                      style={{ color: 'var(--crimson)' }}
+                      style={{ color: 'var(--brand-crimson)' }}
                     >
                       {t('notif.view')}
                     </a>

@@ -30,7 +30,7 @@ export default function Header() {
   ]
 
   return (
-    <header className="sticky top-0 z-40 bg-white border-b border-black/5">
+    <header className="sticky top-0 z-40 border-b border-black/5" style={{ backgroundColor: 'var(--bg-global)' }}>
       <div className="max-w-[1024px] mx-auto px-4 md:px-6 lg:px-8 h-14 flex items-center">
 
         {/* Left — Logo + wordmark */}
@@ -46,8 +46,8 @@ export default function Header() {
             />
           </div>
           <span
-            className="font-serif text-base font-bold tracking-tight hidden sm:block"
-            style={{ color: 'var(--forest)' }}
+            className="font-display text-base font-bold tracking-tight hidden sm:block"
+            style={{ color: 'var(--brand-forest)' }}
           >
             TEAMENJOYVD
           </span>
@@ -61,7 +61,7 @@ export default function Header() {
               href={href}
               className="px-3.5 py-1.5 rounded-lg text-xs font-semibold tracking-widest uppercase transition-colors"
               style={{
-                color: isActive(href) ? 'var(--crimson)' : 'var(--stone)',
+                color: isActive(href) ? 'var(--brand-crimson)' : 'var(--text-secondary)',
                 backgroundColor: isActive(href) ? 'rgba(188,71,73,0.06)' : 'transparent',
               }}
             >
@@ -73,7 +73,7 @@ export default function Header() {
               href="/admin"
               className="px-3.5 py-1.5 rounded-lg text-xs font-semibold tracking-widest uppercase transition-colors"
               style={{
-                color: pathname?.startsWith('/admin') ? 'var(--crimson)' : 'var(--stone)',
+                color: pathname?.startsWith('/admin') ? 'var(--brand-crimson)' : 'var(--text-secondary)',
                 backgroundColor: pathname?.startsWith('/admin')
                   ? 'rgba(188,71,73,0.06)'
                   : 'transparent',
@@ -89,7 +89,7 @@ export default function Header() {
           <button
             onClick={toggle}
             className="px-2.5 py-1 rounded-lg text-xs font-bold tracking-widest uppercase transition-colors hover:bg-black/5"
-            style={{ color: 'var(--stone)' }}
+            style={{ color: 'var(--text-secondary)' }}
           >
             {lang === 'en' ? 'БГ' : 'EN'}
           </button>
@@ -121,7 +121,7 @@ export default function Header() {
             <Link
               href="/sign-in"
               className="px-4 py-1.5 rounded-lg text-xs font-semibold tracking-widest uppercase transition-colors"
-              style={{ color: 'var(--deep)', border: '1px solid rgba(0,0,0,0.12)' }}
+              style={{ color: 'var(--text-primary)', border: '1px solid var(--border-default)' }}
             >
               {t('nav.signIn')}
             </Link>
