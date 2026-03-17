@@ -9,8 +9,9 @@ export default function AboutPage() {
       <PageHeading title="About Us" subtitle="Our story & vision" />
       <div className="py-8 pb-16">
         <BentoGrid>
-          {/* Hero image — full width */}
-          <div className="col-span-12 h-80 relative rounded-2xl overflow-hidden">
+          {/* Square image tile */}
+          <div className="relative rounded-2xl overflow-hidden"
+            style={{ gridColumn: 'span 4', aspectRatio: '1 / 1' }}>
             <Image
               src="/hero.png"
               alt="teamenjoyVD"
@@ -42,20 +43,14 @@ export default function AboutPage() {
             </p>
           </BentoCard>
 
-          {/* Contact / socials tile */}
-          <BentoCard variant="forest" colSpan={4} className="flex flex-col justify-between">
-            <div>
-              <p className="text-xs font-semibold tracking-widest uppercase mb-4"
-                style={{ color: 'rgba(242,239,232,0.5)' }}>
-                Get in touch
-              </p>
-              <p className="text-base leading-relaxed font-body mb-6"
-                style={{ color: 'rgba(242,239,232,0.75)' }}>
-                And if you stumbled upon us all by yourself, kudos! Slide into our DMs and
-                let&apos;s have a chat. We love meeting new folks.
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
+          {/* Contact / socials tile — full width */}
+          <BentoCard variant="forest" colSpan={12} className="flex items-center justify-between gap-8">
+            <p className="text-base leading-relaxed font-body"
+              style={{ color: 'rgba(242,239,232,0.75)' }}>
+              And if you stumbled upon us all by yourself, kudos! Slide into our DMs and
+              let&apos;s have a chat. We love meeting new folks.
+            </p>
+            <div className="flex items-center gap-4 flex-shrink-0">
               <a href="mailto:teamenjoyvd@gmail.com"
                 className="flex items-center gap-2 text-sm font-semibold transition-opacity hover:opacity-70"
                 style={{ color: 'var(--brand-parchment)' }}>
