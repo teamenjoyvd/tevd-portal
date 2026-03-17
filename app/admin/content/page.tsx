@@ -122,6 +122,7 @@ export default function ContentPage() {
     titles: { en: '', bg: '', sk: '' } as Record<string,string>,
     contents: { en: '', bg: '', sk: '' } as Record<string,string>,
     is_active: true,
+    access_level: ['guest', 'member', 'core', 'admin'] as string[],
   })
   const [aLang, setALang] = useState('en')
 
@@ -133,7 +134,7 @@ export default function ContentPage() {
       }).then(r => r.json()),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['announcements'] })
-      setAForm({ titles: { en:'',bg:'',sk:'' }, contents: { en:'',bg:'',sk:'' }, is_active: true })
+      setAForm({ titles: { en:'',bg:'',sk:'' }, contents: { en:'',bg:'',sk:'' }, is_active: true, access_level: ['guest','member','core','admin'] })
     },
   })
 
@@ -158,7 +159,7 @@ export default function ContentPage() {
     queryFn: () => fetch('/api/admin/quick-links').then(r => r.json()),
   })
 
-  const [lForm, setLForm] = useState({ label: '', url: '', icon_name: 'link', sort_order: 0 })
+  const [lForm, setLForm] = useState({ label: '', url: '', icon_name: 'link', sort_order: 0, access_level: ['guest','member','core','admin'] as string[] })
 
   const createLink = useMutation({
     mutationFn: (body: typeof lForm) =>
@@ -168,7 +169,7 @@ export default function ContentPage() {
       }).then(r => r.json()),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['quick-links'] })
-      setLForm({ label: '', url: '', icon_name: 'link', sort_order: 0 })
+      setLForm({ label: '', url: '', icon_name: 'link', sort_order: 0, access_level: ['guest','member','core','admin'] })
     },
   })
 
@@ -272,8 +273,25 @@ export default function ContentPage() {
             className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm resize-none"
             style={{ color: 'var(--text-primary)' }}
           />
+          <div className="flex gap-2 flex-wrap">
+            {['guest','member','core','admin'].map(role => (
+              <button key={role}
+                onClick={() => setAForm(f => ({
+                  ...f,
+                  access_level: f.access_level.includes(role)
+                    ? f.access_level.filter(r => r !== role)
+                    : [...f.access_level, role],
+                }))}
+                className="px-3 py-1 rounded-full text-xs font-semibold transition-all"
+                style={{
+                  backgroundColor: aForm.access_level.includes(role) ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)',
+                  color: aForm.access_level.includes(role) ? 'var(--brand-parchment)' : 'var(--text-secondary)',
+                }}>
+                {role}
+              </button>
+            ))}
+          </div>
           <button
-            onClick={() => createAnnouncement.mutate(aForm)}
             disabled={createAnnouncement.isPending || !aForm.titles.en}
             className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
             style={{ backgroundColor: 'var(--brand-crimson)' }}
@@ -341,8 +359,25 @@ export default function ContentPage() {
               className="border border-black/10 rounded-xl px-3 py-2.5 text-sm"
               style={{ color: 'var(--text-primary)' }} />
           </div>
+          <div className="flex gap-2 flex-wrap mb-4">
+            {['guest','member','core','admin'].map(role => (
+              <button key={role}
+                onClick={() => setLForm(f => ({
+                  ...f,
+                  access_level: f.access_level.includes(role)
+                    ? f.access_level.filter(r => r !== role)
+                    : [...f.access_level, role],
+                }))}
+                className="px-3 py-1 rounded-full text-xs font-semibold transition-all"
+                style={{
+                  backgroundColor: lForm.access_level.includes(role) ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)',
+                  color: lForm.access_level.includes(role) ? 'var(--brand-parchment)' : 'var(--text-secondary)',
+                }}>
+                {role}
+              </button>
+            ))}
+          </div>
           <button
-            onClick={() => createLink.mutate(lForm)}
             disabled={createLink.isPending || !lForm.label || !lForm.url}
             className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
             style={{ backgroundColor: 'var(--brand-crimson)' }}

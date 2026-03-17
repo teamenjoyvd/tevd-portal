@@ -2,14 +2,25 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { auth } from '@clerk/nextjs/server'
 
 export async function GET(req: Request) {
-  const { userId } = await auth()
   const supabase = createServiceClient()
   const { searchParams } = new URL(req.url)
   const month = searchParams.get('month')
 
+  // Resolve role for filtering
+  let role = 'guest'
+  try {
+    const { userId } = await auth()
+    if (userId) {
+      const { data: profile } = await supabase
+        .from('profiles').select('role').eq('clerk_id', userId).single()
+      if (profile?.role) role = profile.role
+    }
+  } catch { /* unauthenticated */ }
+
   let query = supabase
     .from('calendar_events')
     .select('*')
+    .contains('visibility_roles', [role])
     .order('start_time')
 
   if (month) {
@@ -21,12 +32,7 @@ export async function GET(req: Request) {
     ).toISOString()
     query = query.gte('start_time', start).lt('start_time', end)
   } else {
-    // No month param — return all future events (for agenda view)
     query = query.gte('start_time', new Date().toISOString())
-  }
-
-  if (!userId) {
-    query = query.eq('category', 'N21')
   }
 
   const { data, error } = await query

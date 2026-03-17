@@ -48,16 +48,29 @@ export default async function HomePage() {
   }
 
   const supabase = createServiceClient()
+
+  // Resolve role for access filtering
+  let role = 'guest'
+  if (userId) {
+    const { data: profile } = await supabase
+      .from('profiles').select('role').eq('clerk_id', userId).single()
+    if (profile?.role) role = profile.role
+  }
+
   const [settingsRes, announcementsRes, quickLinksRes, eventsRes, tripsRes] = await Promise.all([
     supabase.from('home_settings').select('*').single(),
     supabase.from('announcements').select('*').eq('is_active', true)
+      .contains('access_level', [role])
       .order('created_at', { ascending: false }).limit(5),
-    supabase.from('quick_links').select('*').order('sort_order'),
+    supabase.from('quick_links').select('*')
+      .contains('access_level', [role])
+      .order('sort_order'),
     supabase.from('calendar_events').select('id, title, start_time, week_number')
-      .eq('category', 'N21')
+      .contains('visibility_roles', [role])
       .gte('start_time', new Date().toISOString())
       .order('start_time').limit(2),
     supabase.from('trips').select('id, title, destination, start_date')
+      .contains('visibility_roles', [role])
       .order('start_date').limit(3),
   ])
 
