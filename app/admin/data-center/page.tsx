@@ -125,10 +125,10 @@ function DiffSection({
         >
           {count}
         </span>
-        <span className="text-sm font-semibold" style={{ color: 'var(--deep)' }}>{title}</span>
+        <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{title}</span>
         <svg
           width="14" height="14" viewBox="0 0 24 24" fill="none"
-          stroke="var(--stone)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+          stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
           className="ml-auto"
           style={{ transform: open ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s' }}
         >
@@ -260,7 +260,7 @@ export default function DataCenterPage() {
         <div className="mt-6 p-5 rounded-2xl border" style={{ borderColor: 'rgba(0,0,0,0.07)', backgroundColor: 'white' }}>
           {/* Summary row */}
           <div className="flex items-center gap-3 flex-wrap mb-2">
-            <p className="text-sm font-semibold" style={{ color: 'var(--deep)' }}>
+            <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
               Import complete — {result.inserted} rows upserted
             </p>
             <span className="text-xs font-bold px-2 py-0.5 rounded-full"
@@ -282,8 +282,8 @@ export default function DataCenterPage() {
             {result.diff.new_members.map(m => (
               <div key={m.abo_number} className="flex items-center gap-2 text-xs px-2 py-1.5 rounded-lg"
                 style={{ backgroundColor: '#81b29a10' }}>
-                <span className="font-mono font-medium" style={{ color: 'var(--deep)' }}>{m.abo_number}</span>
-                <span style={{ color: 'var(--stone)' }}>{m.name}</span>
+                <span className="font-mono font-medium" style={{ color: 'var(--text-primary)' }}>{m.abo_number}</span>
+                <span style={{ color: 'var(--text-secondary)' }}>{m.name}</span>
                 <span className="ml-auto font-semibold" style={{ color: '#2d6a4f' }}>
                   Level {m.abo_level}
                 </span>
@@ -296,9 +296,9 @@ export default function DataCenterPage() {
             {result.diff.level_changes.map(m => (
               <div key={m.abo_number} className="flex items-center gap-2 text-xs px-2 py-1.5 rounded-lg"
                 style={{ backgroundColor: '#3d405b10' }}>
-                <span className="font-mono font-medium" style={{ color: 'var(--deep)' }}>{m.abo_number}</span>
-                <span style={{ color: 'var(--stone)' }}>{m.name}</span>
-                <span className="ml-auto font-semibold" style={{ color: 'var(--deep)' }}>
+                <span className="font-mono font-medium" style={{ color: 'var(--text-primary)' }}>{m.abo_number}</span>
+                <span style={{ color: 'var(--text-secondary)' }}>{m.name}</span>
+                <span className="ml-auto font-semibold" style={{ color: 'var(--text-primary)' }}>
                   {m.prev_level} → {m.new_level}
                 </span>
               </div>
@@ -310,8 +310,8 @@ export default function DataCenterPage() {
             {result.diff.bonus_changes.map(m => (
               <div key={m.abo_number} className="flex items-center gap-2 text-xs px-2 py-1.5 rounded-lg"
                 style={{ backgroundColor: '#e07a5f10' }}>
-                <span className="font-mono font-medium" style={{ color: 'var(--deep)' }}>{m.abo_number}</span>
-                <span style={{ color: 'var(--stone)' }}>{m.name}</span>
+                <span className="font-mono font-medium" style={{ color: 'var(--text-primary)' }}>{m.abo_number}</span>
+                <span style={{ color: 'var(--text-secondary)' }}>{m.name}</span>
                 <span className="ml-auto font-semibold"
                   style={{ color: m.new_bonus > m.prev_bonus ? '#2d6a4f' : '#bc4749' }}>
                   {m.prev_bonus}% → {m.new_bonus}%

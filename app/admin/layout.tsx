@@ -14,10 +14,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (profile?.role !== 'admin') redirect('/')
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: 'var(--eggshell)' }}>
-      <div style={{ backgroundColor: 'var(--forest)' }}>
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-card)' }}>
+      <div style={{ backgroundColor: 'var(--brand-forest)' }}>
         <div className="max-w-[1024px] mx-auto px-4 md:px-6 lg:px-8 h-14 flex items-center gap-6">
-          <span className="font-serif font-bold text-sm tracking-widest uppercase text-white flex-shrink-0">
+          <span className="font-display font-bold text-sm tracking-widest uppercase text-white flex-shrink-0">
             Admin
           </span>
           <nav className="flex items-center gap-1 flex-1 overflow-x-auto">

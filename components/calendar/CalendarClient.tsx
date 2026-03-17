@@ -154,7 +154,7 @@ function MonthView({
         <div />
         {DAYS.map(d => (
           <div key={d} className="py-2 text-center text-xs font-semibold tracking-wide"
-            style={{ color: 'var(--stone)' }}>
+            style={{ color: 'var(--text-secondary)' }}>
             {d}
           </div>
         ))}
@@ -169,7 +169,7 @@ function MonthView({
               className="grid grid-cols-[40px_repeat(7,1fr)] border-b border-black/5"
               style={{ minHeight: 90 }}>
               <div className="flex items-start justify-center pt-2 flex-shrink-0">
-                <span className="text-[10px] font-semibold" style={{ color: 'var(--stone)' }}>
+                <span className="text-[10px] font-semibold" style={{ color: 'var(--text-secondary)' }}>
                   W{isoWeek(weekDays[0])}
                 </span>
               </div>
@@ -189,7 +189,7 @@ function MonthView({
                         className="w-6 h-6 flex items-center justify-center rounded-full text-xs font-medium flex-shrink-0"
                         style={{
                           backgroundColor: isToday ? 'var(--crimson)' : 'transparent',
-                          color: isToday ? 'white' : isCurrentMonth ? 'var(--deep)' : 'var(--stone)',
+                          color: isToday ? 'white' : isCurrentMonth ? 'var(--text-primary)' : 'var(--text-secondary)',
                           opacity: isCurrentMonth ? 1 : 0.4,
                         }}
                       >
@@ -207,7 +207,7 @@ function MonthView({
                       ))}
                       {dayEvents.length > 3 && (
                         <p className="text-[10px] font-medium pl-1 truncate"
-                          style={{ color: 'var(--stone)' }}>
+                          style={{ color: 'var(--text-secondary)' }}>
                           +{dayEvents.length - 3} more
                         </p>
                       )}
@@ -257,14 +257,14 @@ function WeekView({
           return (
             <div key={i} className="py-2 text-center border-l border-black/5">
               <p className="text-[10px] font-semibold tracking-wide uppercase"
-                style={{ color: 'var(--stone)' }}>
+                style={{ color: 'var(--text-secondary)' }}>
                 {DAYS[i]}
               </p>
               <span
                 className="w-7 h-7 flex items-center justify-center rounded-full text-sm font-medium mx-auto mt-0.5"
                 style={{
                   backgroundColor: isToday ? 'var(--crimson)' : 'transparent',
-                  color: isToday ? 'white' : 'var(--deep)',
+                  color: isToday ? 'white' : 'var(--text-primary)',
                 }}
               >
                 {d.getDate()}
@@ -281,7 +281,7 @@ function WeekView({
               <div key={h} style={{ height: HOUR_HEIGHT }}
                 className="flex items-start justify-end pr-2 pt-1">
                 {h > 0 && (
-                  <span className="text-[10px] font-medium" style={{ color: 'var(--stone)' }}>
+                  <span className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>
                     {String(h).padStart(2, '0')}:00
                   </span>
                 )}
@@ -355,12 +355,12 @@ function DayView({
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <div className="px-4 py-3 border-b border-black/5 flex-shrink-0">
-        <p className="font-serif text-lg font-semibold" style={{ color: 'var(--deep)' }}>
+        <p className="font-display text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
           {current.toLocaleDateString('en-GB', {
             weekday: 'long', day: 'numeric', month: 'long',
           })}
         </p>
-        <p className="text-xs mt-0.5" style={{ color: 'var(--stone)' }}>
+        <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
           W{isoWeek(current)}
         </p>
       </div>
@@ -371,7 +371,7 @@ function DayView({
               <div key={h} style={{ height: HOUR_HEIGHT }}
                 className="flex items-start justify-end pr-2 pt-1">
                 {h > 0 && (
-                  <span className="text-[10px] font-medium" style={{ color: 'var(--stone)' }}>
+                  <span className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>
                     {String(h).padStart(2, '0')}:00
                   </span>
                 )}
@@ -445,7 +445,7 @@ function AgendaView({
   if (dates.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <p className="text-sm" style={{ color: 'var(--stone)' }}>{t('cal.noEvents')}</p>
+        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t('cal.noEvents')}</p>
       </div>
     )
   }
@@ -457,17 +457,17 @@ function AgendaView({
         const isToday = sameDay(date, new Date())
         return (
           <div key={dateKey} className="mb-6">
-            <div className="flex items-center gap-3 mb-2 sticky top-0 py-2 bg-white">
+            <div className="flex items-center gap-3 mb-2 sticky top-0 py-2" style={{ backgroundColor: 'var(--bg-global)' }}>
               <div
                 className="flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold"
                 style={{
                   backgroundColor: isToday ? 'var(--crimson)' : 'rgba(0,0,0,0.06)',
-                  color: isToday ? 'white' : 'var(--deep)',
+                  color: isToday ? 'white' : 'var(--text-primary)',
                 }}
               >
                 {formatShortDate(date)}
               </div>
-              <span className="text-[10px] font-semibold" style={{ color: 'var(--stone)' }}>
+              <span className="text-[10px] font-semibold" style={{ color: 'var(--text-secondary)' }}>
                 W{isoWeek(date)}
               </span>
             </div>
@@ -478,27 +478,28 @@ function AgendaView({
                   <button
                     key={ev.id}
                     onClick={e => onEventClick(ev.id, e.currentTarget.getBoundingClientRect())}
-                    className="w-full text-left rounded-xl border border-black/5 overflow-hidden hover:shadow-sm transition-shadow flex bg-white"
+                    className="w-full text-left rounded-xl border border-black/5 overflow-hidden hover:shadow-sm transition-shadow flex"
+                    style={{ backgroundColor: 'var(--bg-card)' }}
                   >
                     <div className="w-1 flex-shrink-0" style={{ backgroundColor: c.bg }} />
                     <div className="flex-1 px-4 py-3 min-w-0">
                       <div className="flex items-start justify-between gap-2">
-                        <p className="text-sm font-semibold truncate" style={{ color: 'var(--deep)' }}>
+                        <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
                           {ev.title}
                         </p>
                         <span className="text-xs flex-shrink-0 font-medium"
-                          style={{ color: 'var(--stone)' }}>
+                          style={{ color: 'var(--text-secondary)' }}>
                           {formatTime(ev.start_time)}
                         </span>
                       </div>
-                      <p className="text-xs mt-0.5" style={{ color: 'var(--stone)' }}>
+                      <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
                         {formatTime(ev.start_time)} – {formatTime(ev.end_time)}
                         {' · '}
                         <span style={{ color: c.bg }}>{ev.category}</span>
                       </p>
                       {ev.description && (
                         <p className="text-xs mt-1.5 line-clamp-2 leading-relaxed"
-                          style={{ color: 'var(--stone)' }}>
+                          style={{ color: 'var(--text-secondary)' }}>
                           {ev.description}
                         </p>
                       )}
@@ -604,16 +605,16 @@ export default function CalendarClient({
   ]
 
   return (
-    <div className="flex flex-col h-full w-full bg-white">
+    <div className="flex flex-col h-full w-full" style={{ backgroundColor: "var(--bg-global)" }}>
       {/* ── Toolbar — single row on desktop, two rows on mobile ── */}
-      <div className="flex-shrink-0 border-b border-black/5 bg-white">
+      <div className="flex-shrink-0 border-b" style={{ backgroundColor: 'var(--bg-global)', borderColor: 'var(--border-default)' }}>
         <div className="max-w-[1024px] mx-auto px-4 md:px-6 lg:px-8">
 
           {/* Mobile: two rows */}
           <div className="flex md:hidden items-center gap-2 py-2.5">
             <button onClick={() => navigate(-1)}
               className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5"
-              style={{ color: 'var(--deep)' }}>
+              style={{ color: 'var(--text-primary)' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="15 18 9 12 15 6"/>
@@ -626,13 +627,13 @@ export default function CalendarClient({
             </button>
             <button onClick={() => navigate(1)}
               className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5"
-              style={{ color: 'var(--deep)' }}>
+              style={{ color: 'var(--text-primary)' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="9 18 15 12 9 6"/>
               </svg>
             </button>
-            <p className="flex-1 text-sm font-semibold truncate" style={{ color: 'var(--deep)' }}>
+            <p className="flex-1 text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
               {periodLabel}
             </p>
           </div>
@@ -644,7 +645,7 @@ export default function CalendarClient({
                   className="px-2.5 py-1 rounded-md text-xs font-medium transition-all"
                   style={{
                     backgroundColor: view === v.key ? 'white' : 'transparent',
-                    color: view === v.key ? 'var(--deep)' : 'var(--stone)',
+                    color: view === v.key ? 'var(--text-primary)' : 'var(--text-secondary)',
                     boxShadow: view === v.key ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
                   }}>
                   {v.label}
@@ -656,7 +657,7 @@ export default function CalendarClient({
                 className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-all"
                 style={{
                   backgroundColor: showN21 ? 'var(--forest)' : 'rgba(0,0,0,0.06)',
-                  color: showN21 ? 'white' : 'var(--stone)',
+                  color: showN21 ? 'white' : 'var(--text-secondary)',
                 }}>
                 <span className="w-1.5 h-1.5 rounded-full"
                   style={{ backgroundColor: showN21 ? 'rgba(255,255,255,0.6)' : 'var(--forest)' }} />
@@ -667,7 +668,7 @@ export default function CalendarClient({
                   className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-all"
                   style={{
                     backgroundColor: showPersonal ? 'var(--sienna)' : 'rgba(0,0,0,0.06)',
-                    color: showPersonal ? 'white' : 'var(--stone)',
+                    color: showPersonal ? 'white' : 'var(--text-secondary)',
                   }}>
                   <span className="w-1.5 h-1.5 rounded-full"
                     style={{ backgroundColor: showPersonal ? 'rgba(255,255,255,0.6)' : 'var(--sienna)' }} />
@@ -682,7 +683,7 @@ export default function CalendarClient({
             <div className="flex items-center gap-1">
               <button onClick={() => navigate(-1)}
                 className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors"
-                style={{ color: 'var(--deep)' }}>
+                style={{ color: 'var(--text-primary)' }}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
                   stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="15 18 9 12 15 6"/>
@@ -695,7 +696,7 @@ export default function CalendarClient({
               </button>
               <button onClick={() => navigate(1)}
                 className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors"
-                style={{ color: 'var(--deep)' }}>
+                style={{ color: 'var(--text-primary)' }}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
                   stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="9 18 15 12 9 6"/>
@@ -703,7 +704,7 @@ export default function CalendarClient({
               </button>
             </div>
 
-            <p className="flex-1 text-sm font-semibold" style={{ color: 'var(--deep)' }}>
+            <p className="flex-1 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
               {periodLabel}
             </p>
 
@@ -713,7 +714,7 @@ export default function CalendarClient({
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
                   style={{
                     backgroundColor: showN21 ? 'var(--forest)' : 'rgba(0,0,0,0.06)',
-                    color: showN21 ? 'white' : 'var(--stone)',
+                    color: showN21 ? 'white' : 'var(--text-secondary)',
                   }}>
                   <span className="w-1.5 h-1.5 rounded-full flex-shrink-0"
                     style={{ backgroundColor: showN21 ? 'rgba(255,255,255,0.6)' : 'var(--forest)' }} />
@@ -724,7 +725,7 @@ export default function CalendarClient({
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
                     style={{
                       backgroundColor: showPersonal ? 'var(--sienna)' : 'rgba(0,0,0,0.06)',
-                      color: showPersonal ? 'white' : 'var(--stone)',
+                      color: showPersonal ? 'white' : 'var(--text-secondary)',
                     }}>
                     <span className="w-1.5 h-1.5 rounded-full flex-shrink-0"
                       style={{ backgroundColor: showPersonal ? 'rgba(255,255,255,0.6)' : 'var(--sienna)' }} />
@@ -739,7 +740,7 @@ export default function CalendarClient({
                     className="px-3 py-1 rounded-md text-xs font-medium transition-all"
                     style={{
                       backgroundColor: view === v.key ? 'white' : 'transparent',
-                      color: view === v.key ? 'var(--deep)' : 'var(--stone)',
+                      color: view === v.key ? 'var(--text-primary)' : 'var(--text-secondary)',
                       boxShadow: view === v.key ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
                     }}>
                     {v.label}

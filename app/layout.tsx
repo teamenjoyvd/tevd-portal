@@ -39,7 +39,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <ClerkProvider afterSignOutUrl="/">
       <html lang="en" className={`${playfair.variable} ${montserrat.variable} ${cormorant.variable} ${dmSans.variable}`}>
-        <body className="font-sans bg-[#f4f1de] text-[#3d405b]">
+        <body className="font-body" style={{ backgroundColor: 'var(--bg-global)', color: 'var(--text-primary)' }}>
           <Providers>
             {children}
           </Providers>

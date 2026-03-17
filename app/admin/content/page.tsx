@@ -116,7 +116,7 @@ export default function ContentPage() {
 
       {/* ── Home Settings ── */}
       <section>
-        <h2 className="font-serif text-xl font-semibold mb-4" style={{ color: 'var(--deep)' }}>
+        <h2 className="font-display text-xl font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
           Home settings
         </h2>
         <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-6 space-y-4">
@@ -126,15 +126,15 @@ export default function ContentPage() {
                 type="checkbox"
                 checked={!!s[`show_caret_${n}` as keyof HomeSettings]}
                 onChange={e => setSForm(f => ({ ...f, [`show_caret_${n}`]: e.target.checked }))}
-                className="w-4 h-4 accent-[var(--crimson)]"
+                className="w-4 h-4 accent-[var(--brand-crimson)]"
               />
-              <label className="text-sm w-16" style={{ color: 'var(--stone)' }}>Caret {n}</label>
+              <label className="text-sm w-16" style={{ color: 'var(--text-secondary)' }}>Caret {n}</label>
               <input
                 value={String(s[`caret_${n}_text` as keyof HomeSettings] ?? '')}
                 onChange={e => setSForm(f => ({ ...f, [`caret_${n}_text`]: e.target.value }))}
                 placeholder={`Caret ${n} text`}
                 className="flex-1 border border-black/10 rounded-xl px-3 py-2 text-sm"
-                style={{ color: 'var(--deep)' }}
+                style={{ color: 'var(--text-primary)' }}
               />
             </div>
           ))}
@@ -142,7 +142,7 @@ export default function ContentPage() {
             onClick={() => saveSettings.mutate(sForm)}
             disabled={saveSettings.isPending || Object.keys(sForm).length === 0}
             className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
-            style={{ backgroundColor: 'var(--crimson)' }}
+            style={{ backgroundColor: 'var(--brand-crimson)' }}
           >
             {saveSettings.isPending ? 'Saving…' : 'Save settings'}
           </button>
@@ -151,7 +151,7 @@ export default function ContentPage() {
 
       {/* ── Announcements ── */}
       <section>
-        <h2 className="font-serif text-xl font-semibold mb-4" style={{ color: 'var(--deep)' }}>
+        <h2 className="font-display text-xl font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
           Announcements
         </h2>
 
@@ -160,8 +160,8 @@ export default function ContentPage() {
             <button key={l} onClick={() => setALang(l)}
               className="px-3 py-1 rounded-lg text-sm font-medium transition-colors"
               style={{
-                backgroundColor: aLang === l ? 'var(--deep)' : 'rgba(0,0,0,0.05)',
-                color: aLang === l ? 'white' : 'var(--stone)',
+                backgroundColor: aLang === l ? 'var(--text-primary)' : 'rgba(0,0,0,0.05)',
+                color: aLang === l ? 'white' : 'var(--text-secondary)',
               }}>
               {l.toUpperCase()}
             </button>
@@ -174,7 +174,7 @@ export default function ContentPage() {
             onChange={e => setAForm(f => ({ ...f, titles: { ...f.titles, [aLang]: e.target.value } }))}
             placeholder={`Title (${aLang.toUpperCase()})`}
             className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-            style={{ color: 'var(--deep)' }}
+            style={{ color: 'var(--text-primary)' }}
           />
           <textarea
             value={aForm.contents[aLang] ?? ''}
@@ -182,13 +182,13 @@ export default function ContentPage() {
             placeholder={`Content (${aLang.toUpperCase()})`}
             rows={4}
             className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm resize-none"
-            style={{ color: 'var(--deep)' }}
+            style={{ color: 'var(--text-primary)' }}
           />
           <button
             onClick={() => createAnnouncement.mutate(aForm)}
             disabled={createAnnouncement.isPending || !aForm.titles.en}
             className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
-            style={{ backgroundColor: 'var(--crimson)' }}
+            style={{ backgroundColor: 'var(--brand-crimson)' }}
           >
             {createAnnouncement.isPending ? 'Publishing…' : 'Publish'}
           </button>
@@ -199,10 +199,10 @@ export default function ContentPage() {
             <div key={a.id}
               className="bg-white rounded-2xl border border-black/5 shadow-sm p-4 flex items-start justify-between gap-4">
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate" style={{ color: 'var(--deep)' }}>
+                <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
                   {a.titles.en ?? a.titles.bg ?? 'Untitled'}
                 </p>
-                <p className="text-xs mt-0.5" style={{ color: 'var(--stone)' }}>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
                   {new Date(a.created_at).toLocaleDateString()}
                 </p>
               </div>
@@ -212,7 +212,7 @@ export default function ContentPage() {
                   className="text-xs px-2.5 py-1 rounded-full font-medium"
                   style={{
                     backgroundColor: a.is_active ? '#81b29a33' : 'rgba(0,0,0,0.05)',
-                    color: a.is_active ? '#2d6a4f' : 'var(--stone)',
+                    color: a.is_active ? '#2d6a4f' : 'var(--text-secondary)',
                   }}
                 >
                   {a.is_active ? 'Active' : 'Inactive'}
@@ -220,7 +220,7 @@ export default function ContentPage() {
                 <button
                   onClick={() => deleteAnnouncement.mutate(a.id)}
                   className="text-xs font-medium hover:opacity-70 transition-opacity"
-                  style={{ color: 'var(--crimson)' }}
+                  style={{ color: 'var(--brand-crimson)' }}
                 >
                   Delete
                 </button>
@@ -232,7 +232,7 @@ export default function ContentPage() {
 
       {/* ── Quick Links ── */}
       <section>
-        <h2 className="font-serif text-xl font-semibold mb-4" style={{ color: 'var(--deep)' }}>
+        <h2 className="font-display text-xl font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
           Quick links
         </h2>
         <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-6 mb-4">
@@ -241,23 +241,23 @@ export default function ContentPage() {
               onChange={e => setLForm(f => ({ ...f, label: e.target.value }))}
               placeholder="Label"
               className="border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-              style={{ color: 'var(--deep)' }} />
+              style={{ color: 'var(--text-primary)' }} />
             <input value={lForm.url}
               onChange={e => setLForm(f => ({ ...f, url: e.target.value }))}
               placeholder="URL"
               className="border border-black/10 rounded-xl px-3 py-2.5 text-sm col-span-2"
-              style={{ color: 'var(--deep)' }} />
+              style={{ color: 'var(--text-primary)' }} />
             <input value={lForm.icon_name}
               onChange={e => setLForm(f => ({ ...f, icon_name: e.target.value }))}
               placeholder="Icon name"
               className="border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-              style={{ color: 'var(--deep)' }} />
+              style={{ color: 'var(--text-primary)' }} />
           </div>
           <button
             onClick={() => createLink.mutate(lForm)}
             disabled={createLink.isPending || !lForm.label || !lForm.url}
             className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
-            style={{ backgroundColor: 'var(--crimson)' }}
+            style={{ backgroundColor: 'var(--brand-crimson)' }}
           >
             {createLink.isPending ? 'Adding…' : 'Add link'}
           </button>
@@ -267,13 +267,13 @@ export default function ContentPage() {
             <div key={l.id}
               className="bg-white rounded-2xl border border-black/5 shadow-sm p-4 flex items-center justify-between gap-4">
               <div>
-                <p className="text-sm font-medium" style={{ color: 'var(--deep)' }}>{l.label}</p>
-                <p className="text-xs mt-0.5" style={{ color: 'var(--stone)' }}>{l.url}</p>
+                <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{l.label}</p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>{l.url}</p>
               </div>
               <button
                 onClick={() => deleteLink.mutate(l.id)}
                 className="text-xs font-medium hover:opacity-70 transition-opacity flex-shrink-0"
-                style={{ color: 'var(--crimson)' }}
+                style={{ color: 'var(--brand-crimson)' }}
               >
                 Delete
               </button>

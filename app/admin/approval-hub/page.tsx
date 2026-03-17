@@ -49,7 +49,7 @@ function CollapsibleResolved({ children, count }: { children: React.ReactNode; c
       <button
         onClick={() => setOpen(o => !o)}
         className="flex items-center gap-2 text-xs font-semibold tracking-widest uppercase mb-3 hover:opacity-70 transition-opacity"
-        style={{ color: 'var(--stone)' }}
+        style={{ color: 'var(--text-secondary)' }}
       >
         <span>Resolved — {count}</span>
         <svg
@@ -128,8 +128,8 @@ function TripRegistrationsTab() {
             onClick={() => setFilterTripId('all')}
             className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
             style={{
-              backgroundColor: filterTripId === 'all' ? 'var(--deep)' : 'rgba(0,0,0,0.05)',
-              color: filterTripId === 'all' ? 'white' : 'var(--stone)',
+              backgroundColor: filterTripId === 'all' ? 'var(--text-primary)' : 'rgba(0,0,0,0.05)',
+              color: filterTripId === 'all' ? 'white' : 'var(--text-secondary)',
             }}
           >
             All trips
@@ -140,8 +140,8 @@ function TripRegistrationsTab() {
               onClick={() => setFilterTripId(t.id)}
               className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
               style={{
-                backgroundColor: filterTripId === t.id ? 'var(--deep)' : 'rgba(0,0,0,0.05)',
-                color: filterTripId === t.id ? 'white' : 'var(--stone)',
+                backgroundColor: filterTripId === t.id ? 'var(--text-primary)' : 'rgba(0,0,0,0.05)',
+                color: filterTripId === t.id ? 'white' : 'var(--text-secondary)',
               }}
             >
               {t.title}
@@ -151,7 +151,7 @@ function TripRegistrationsTab() {
       )}
 
       {/* Pending */}
-      <p className="text-xs font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--stone)' }}>
+      <p className="text-xs font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
         Pending — {pending.length}
       </p>
 
@@ -161,22 +161,22 @@ function TripRegistrationsTab() {
         </div>
       ) : pending.length === 0 ? (
         <div className="rounded-xl border border-black/5 bg-white px-5 py-8 text-center">
-          <p className="text-sm" style={{ color: 'var(--stone)' }}>No pending registrations.</p>
+          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No pending registrations.</p>
         </div>
       ) : (
         <div className="space-y-2">
           {pending.map(r => (
             <div key={r.id} className="bg-white rounded-xl border border-black/5 px-4 py-3.5 flex items-center gap-3">
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium" style={{ color: 'var(--deep)' }}>
+                <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
                   {r.profile.first_name} {r.profile.last_name}
                   {r.profile.abo_number && (
-                    <span className="font-normal text-xs ml-1.5" style={{ color: 'var(--stone)' }}>
+                    <span className="font-normal text-xs ml-1.5" style={{ color: 'var(--text-secondary)' }}>
                       {r.profile.abo_number}
                     </span>
                   )}
                 </p>
-                <p className="text-xs mt-0.5" style={{ color: 'var(--stone)' }}>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
                   {tripTitle(r.trip_id)} · {formatDate(r.created_at)}
                 </p>
               </div>
@@ -185,7 +185,7 @@ function TripRegistrationsTab() {
                   onClick={() => updateMutation.mutate({ id: r.id, status: 'approved' })}
                   disabled={updateMutation.isPending}
                   className="px-4 py-1.5 rounded-lg text-sm font-medium text-white disabled:opacity-50 transition-opacity"
-                  style={{ backgroundColor: 'var(--sage)' }}
+                  style={{ backgroundColor: 'var(--brand-teal)' }}
                 >
                   Approve
                 </button>
@@ -193,7 +193,7 @@ function TripRegistrationsTab() {
                   onClick={() => updateMutation.mutate({ id: r.id, status: 'denied' })}
                   disabled={updateMutation.isPending}
                   className="px-4 py-1.5 rounded-lg text-sm font-medium disabled:opacity-50 transition-opacity"
-                  style={{ backgroundColor: 'rgba(0,0,0,0.06)', color: 'var(--deep)' }}
+                  style={{ backgroundColor: 'rgba(0,0,0,0.06)', color: 'var(--text-primary)' }}
                 >
                   Deny
                 </button>
@@ -208,10 +208,10 @@ function TripRegistrationsTab() {
         {resolved.map(r => (
           <div key={r.id} className="bg-white rounded-xl border border-black/5 px-4 py-3 flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-sm" style={{ color: 'var(--deep)' }}>
+              <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
                 {r.profile.first_name} {r.profile.last_name}
               </p>
-              <p className="text-xs mt-0.5" style={{ color: 'var(--stone)' }}>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
                 {tripTitle(r.trip_id)}
               </p>
             </div>
@@ -295,8 +295,8 @@ function EventRolesTab() {
             onClick={() => setFilterEventId('all')}
             className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
             style={{
-              backgroundColor: filterEventId === 'all' ? 'var(--deep)' : 'rgba(0,0,0,0.05)',
-              color: filterEventId === 'all' ? 'white' : 'var(--stone)',
+              backgroundColor: filterEventId === 'all' ? 'var(--text-primary)' : 'rgba(0,0,0,0.05)',
+              color: filterEventId === 'all' ? 'white' : 'var(--text-secondary)',
             }}
           >
             All events
@@ -307,8 +307,8 @@ function EventRolesTab() {
               onClick={() => setFilterEventId(e.id)}
               className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors max-w-[160px] truncate"
               style={{
-                backgroundColor: filterEventId === e.id ? 'var(--deep)' : 'rgba(0,0,0,0.05)',
-                color: filterEventId === e.id ? 'white' : 'var(--stone)',
+                backgroundColor: filterEventId === e.id ? 'var(--text-primary)' : 'rgba(0,0,0,0.05)',
+                color: filterEventId === e.id ? 'white' : 'var(--text-secondary)',
               }}
             >
               {e.title}
@@ -318,7 +318,7 @@ function EventRolesTab() {
       )}
 
       {/* Pending */}
-      <p className="text-xs font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--stone)' }}>
+      <p className="text-xs font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
         Pending — {pending.length}
       </p>
 
@@ -328,7 +328,7 @@ function EventRolesTab() {
         </div>
       ) : pending.length === 0 ? (
         <div className="rounded-xl border border-black/5 bg-white px-5 py-8 text-center">
-          <p className="text-sm" style={{ color: 'var(--stone)' }}>No pending role requests.</p>
+          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No pending role requests.</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -336,20 +336,20 @@ function EventRolesTab() {
             <div key={r.id} className="bg-white rounded-xl border border-black/5 px-4 py-3.5">
               <div className="flex items-start gap-3">
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium" style={{ color: 'var(--deep)' }}>
+                  <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
                     {r.profile.first_name} {r.profile.last_name}
                     {r.profile.abo_number && (
-                      <span className="font-normal text-xs ml-1.5" style={{ color: 'var(--stone)' }}>
+                      <span className="font-normal text-xs ml-1.5" style={{ color: 'var(--text-secondary)' }}>
                         {r.profile.abo_number}
                       </span>
                     )}
                   </p>
-                  <p className="text-xs mt-0.5" style={{ color: 'var(--stone)' }}>
-                    <span className="font-medium" style={{ color: 'var(--deep)' }}>{r.role_label}</span>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                    <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{r.role_label}</span>
                     {' · '}{eventTitle(r.event_id)}
                   </p>
                   {r.note && (
-                    <p className="text-xs mt-1 italic" style={{ color: 'var(--stone)' }}>
+                    <p className="text-xs mt-1 italic" style={{ color: 'var(--text-secondary)' }}>
                       "{r.note}"
                     </p>
                   )}
@@ -359,7 +359,7 @@ function EventRolesTab() {
                     onClick={() => updateMutation.mutate({ id: r.id, status: 'approved' })}
                     disabled={updateMutation.isPending}
                     className="px-4 py-1.5 rounded-lg text-sm font-medium text-white disabled:opacity-50"
-                    style={{ backgroundColor: 'var(--sage)' }}
+                    style={{ backgroundColor: 'var(--brand-teal)' }}
                   >
                     Approve
                   </button>
@@ -367,7 +367,7 @@ function EventRolesTab() {
                     onClick={() => updateMutation.mutate({ id: r.id, status: 'denied' })}
                     disabled={updateMutation.isPending}
                     className="px-4 py-1.5 rounded-lg text-sm font-medium disabled:opacity-50"
-                    style={{ backgroundColor: 'rgba(0,0,0,0.06)', color: 'var(--deep)' }}
+                    style={{ backgroundColor: 'rgba(0,0,0,0.06)', color: 'var(--text-primary)' }}
                   >
                     Deny
                   </button>
@@ -383,12 +383,12 @@ function EventRolesTab() {
         {resolved.map(r => (
           <div key={r.id} className="bg-white rounded-xl border border-black/5 px-4 py-3 flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-sm" style={{ color: 'var(--deep)' }}>
+              <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
                 {r.profile.first_name} {r.profile.last_name}
                 {' · '}
                 <span className="font-medium">{r.role_label}</span>
               </p>
-              <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--stone)' }}>
+              <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--text-secondary)' }}>
                 {eventTitle(r.event_id)}
               </p>
             </div>
@@ -449,10 +449,10 @@ export default function ApprovalHubPage() {
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
-      <h1 className="font-serif text-2xl font-semibold mb-1" style={{ color: 'var(--deep)' }}>
+      <h1 className="font-display text-2xl font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
         Approval Hub
       </h1>
-      <p className="text-sm mb-6" style={{ color: 'var(--stone)' }}>
+      <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>
         Review and action pending requests from members.
       </p>
 
@@ -465,7 +465,7 @@ export default function ApprovalHubPage() {
             className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all"
             style={{
               backgroundColor: activeTab === tab.key ? 'white' : 'transparent',
-              color: activeTab === tab.key ? 'var(--deep)' : 'var(--stone)',
+              color: activeTab === tab.key ? 'var(--text-primary)' : 'var(--text-secondary)',
               boxShadow: activeTab === tab.key ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
             }}
           >
@@ -473,7 +473,7 @@ export default function ApprovalHubPage() {
             {tab.count > 0 && (
               <span
                 className="text-[11px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center"
-                style={{ backgroundColor: 'var(--crimson)', color: 'white' }}
+                style={{ backgroundColor: 'var(--brand-crimson)', color: 'white' }}
               >
                 {tab.count}
               </span>

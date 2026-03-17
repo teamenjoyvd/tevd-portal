@@ -62,7 +62,7 @@ Internal management portal for **teamenjoyVD (N21 Community)** handling Line of 
 | Database | Supabase (PostgreSQL 17) | DB only. RLS enabled. LTree + pg_cron + pg_net. |
 | State | TanStack Query v5 | `QueryClientProvider` in `app/providers.tsx`. 15s polling for notifications. |
 | Styling | Tailwind CSS v4 | Mobile-first. **No `@layer components` with `@apply`** — inline all utility classes. |
-| Fonts | Playfair Display (serif) + Montserrat (sans) | `--font-playfair`, `--font-montserrat` CSS vars. |
+| Fonts | Cormorant Garamond (display) + DM Sans (body) | `--font-cormorant` → `font-display`, `--font-dm-sans` → `font-body`. Playfair Display and Montserrat are still loaded (legacy vars `--font-playfair`, `--font-montserrat` present) but no longer used in any component. |
 | Middleware | `proxy.ts` | Next.js 16 convention. NEVER create `middleware.ts`. |
 | Deployment | Vercel | Team: `teamenjoyvd`. Project: `tevd-portal`. |
 

@@ -61,16 +61,16 @@ function timeAgo(iso: string) {
 }
 
 const LEVEL_BG: Record<string, { bg: string; color: string }> = {
-  '1': { bg: 'var(--forest)', color: 'white' },
-  '2': { bg: 'var(--sienna)', color: 'white' },
-  '3': { bg: 'rgba(0,0,0,0.08)', color: 'var(--deep)' },
+  '1': { bg: 'var(--brand-forest)', color: 'white' },
+  '2': { bg: 'var(--brand-crimson)', color: 'white' },
+  '3': { bg: 'rgba(0,0,0,0.08)', color: 'var(--text-primary)' },
 }
 
 const ROLE_BADGE: Record<string, { bg: string; color: string }> = {
   member: { bg: '#81b29a33', color: '#2d6a4f' },
-  core:   { bg: 'var(--sienna)', color: 'white' },
-  admin:  { bg: 'var(--deep)', color: 'white' },
-  guest:  { bg: 'rgba(0,0,0,0.06)', color: 'var(--stone)' },
+  core:   { bg: 'var(--brand-crimson)', color: 'white' },
+  admin:  { bg: 'var(--text-primary)', color: 'white' },
+  guest:  { bg: 'rgba(0,0,0,0.06)', color: 'var(--text-secondary)' },
 }
 
 export default function AdminMembersPage() {
@@ -113,10 +113,10 @@ export default function AdminMembersPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="font-serif text-2xl font-semibold" style={{ color: 'var(--deep)' }}>
+        <h1 className="font-display text-2xl font-semibold" style={{ color: 'var(--text-primary)' }}>
           Members
         </h1>
-        <p className="text-sm mt-1" style={{ color: 'var(--stone)' }}>
+        <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
           {losMembers.length} in LOS · {losMembers.filter(m => m.profile).length} linked to portal accounts
         </p>
       </div>
@@ -125,10 +125,10 @@ export default function AdminMembersPage() {
       {pendingVerifications.length > 0 && (
         <section>
           <p className="text-xs font-semibold tracking-widest uppercase mb-3 flex items-center gap-2"
-            style={{ color: 'var(--stone)' }}>
+            style={{ color: 'var(--text-secondary)' }}>
             Pending verification
             <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-full text-white"
-              style={{ backgroundColor: 'var(--crimson)' }}>
+              style={{ backgroundColor: 'var(--brand-crimson)' }}>
               {pendingVerifications.length}
             </span>
           </p>
@@ -144,7 +144,7 @@ export default function AdminMembersPage() {
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <p className="text-sm font-semibold" style={{ color: 'var(--deep)' }}>
+                        <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
                           {v.profiles?.first_name} {v.profiles?.last_name}
                         </p>
                         <span
@@ -156,19 +156,19 @@ export default function AdminMembersPage() {
                           {fullMatch ? '✓ LOS match' : losMatch ? '⚠ upline mismatch' : '✗ ABO not in LOS'}
                         </span>
                       </div>
-                      <p className="text-xs mt-1" style={{ color: 'var(--stone)' }}>
-                        Claims ABO <span className="font-mono font-medium" style={{ color: 'var(--deep)' }}>{v.claimed_abo}</span>
-                        {' · '}upline <span className="font-mono font-medium" style={{ color: 'var(--deep)' }}>{v.claimed_upline_abo}</span>
+                      <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
+                        Claims ABO <span className="font-mono font-medium" style={{ color: 'var(--text-primary)' }}>{v.claimed_abo}</span>
+                        {' · '}upline <span className="font-mono font-medium" style={{ color: 'var(--text-primary)' }}>{v.claimed_upline_abo}</span>
                       </p>
                       {losMatch && (
-                        <p className="text-xs mt-0.5" style={{ color: 'var(--stone)' }}>
-                          LOS: <span style={{ color: 'var(--deep)' }}>{losMatch.name}</span>
-                          {' · '}sponsor in LOS: <span style={{ color: uplineMatch ? '#2d6a4f' : 'var(--crimson)' }}>
+                        <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                          LOS: <span style={{ color: 'var(--text-primary)' }}>{losMatch.name}</span>
+                          {' · '}sponsor in LOS: <span style={{ color: uplineMatch ? '#2d6a4f' : 'var(--brand-crimson)' }}>
                             {losMatch.sponsor_abo_number ?? '—'}
                           </span>
                         </p>
                       )}
-                      <p className="text-xs mt-0.5" style={{ color: 'var(--stone)' }}>
+                      <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
                         {timeAgo(v.created_at)}
                       </p>
                     </div>
@@ -177,7 +177,7 @@ export default function AdminMembersPage() {
                         onClick={() => verifyMutation.mutate({ id: v.id, action: 'approve' })}
                         disabled={verifyMutation.isPending}
                         className="px-4 py-1.5 rounded-lg text-sm font-medium text-white disabled:opacity-50"
-                        style={{ backgroundColor: 'var(--sage)' }}
+                        style={{ backgroundColor: 'var(--brand-teal)' }}
                       >
                         Approve
                       </button>
@@ -185,7 +185,7 @@ export default function AdminMembersPage() {
                         <button
                           onClick={() => setShowDenyInput(s => ({ ...s, [v.id]: true }))}
                           className="px-4 py-1.5 rounded-lg text-sm font-medium disabled:opacity-50"
-                          style={{ backgroundColor: 'rgba(0,0,0,0.06)', color: 'var(--deep)' }}
+                          style={{ backgroundColor: 'rgba(0,0,0,0.06)', color: 'var(--text-primary)' }}
                         >
                           Deny
                         </button>
@@ -196,13 +196,13 @@ export default function AdminMembersPage() {
                             onChange={e => setDenyNote(s => ({ ...s, [v.id]: e.target.value }))}
                             placeholder="Reason (optional)"
                             className="border border-black/10 rounded-lg px-2 py-1 text-xs w-36"
-                            style={{ color: 'var(--deep)' }}
+                            style={{ color: 'var(--text-primary)' }}
                           />
                           <button
                             onClick={() => verifyMutation.mutate({ id: v.id, action: 'deny', admin_note: denyNote[v.id] })}
                             disabled={verifyMutation.isPending}
                             className="px-3 py-1.5 rounded-lg text-xs font-medium text-white disabled:opacity-50"
-                            style={{ backgroundColor: 'var(--crimson)' }}
+                            style={{ backgroundColor: 'var(--brand-crimson)' }}
                           >
                             Confirm
                           </button>
@@ -221,22 +221,22 @@ export default function AdminMembersPage() {
       {unverifiedGuests.length > 0 && (
         <section>
           <p className="text-xs font-semibold tracking-widest uppercase mb-3"
-            style={{ color: 'var(--stone)' }}>
+            style={{ color: 'var(--text-secondary)' }}>
             Guests — no ABO submitted ({unverifiedGuests.length})
           </p>
           <div className="bg-white rounded-2xl border border-black/5 shadow-sm divide-y divide-black/5">
             {unverifiedGuests.map(g => (
               <div key={g.id} className="px-5 py-3 flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-sm font-medium" style={{ color: 'var(--deep)' }}>
+                  <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
                     {g.first_name} {g.last_name}
                   </p>
-                  <p className="text-xs mt-0.5" style={{ color: 'var(--stone)' }}>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
                     Joined {timeAgo(g.created_at)}
                   </p>
                 </div>
                 <span className="text-xs font-semibold px-2.5 py-1 rounded-full"
-                  style={{ backgroundColor: 'rgba(0,0,0,0.06)', color: 'var(--stone)' }}>
+                  style={{ backgroundColor: 'rgba(0,0,0,0.06)', color: 'var(--text-secondary)' }}>
                   guest
                 </span>
               </div>
@@ -248,7 +248,7 @@ export default function AdminMembersPage() {
       {/* ── LOS map ── */}
       <section>
         <p className="text-xs font-semibold tracking-widest uppercase mb-3"
-          style={{ color: 'var(--stone)' }}>
+          style={{ color: 'var(--text-secondary)' }}>
           LOS map — {losMembers.length} members
         </p>
 
@@ -261,7 +261,7 @@ export default function AdminMembersPage() {
           </div>
         ) : losMembers.length === 0 ? (
           <div className="text-center py-16 bg-white rounded-2xl border border-black/5">
-            <p className="text-sm" style={{ color: 'var(--stone)' }}>
+            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
               No LOS data. Import a CSV in Data Center.
             </p>
           </div>
@@ -284,7 +284,7 @@ export default function AdminMembersPage() {
                   {/* Name + ABO */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium truncate" style={{ color: 'var(--deep)' }}>
+                      <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
                         {m.name ?? '—'}
                       </p>
                       {m.profile && (
@@ -294,7 +294,7 @@ export default function AdminMembersPage() {
                         </span>
                       )}
                     </div>
-                    <p className="text-xs mt-0.5" style={{ color: 'var(--stone)' }}>
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
                       {m.abo_number}
                       {m.sponsor_abo_number && ` · ↑ ${m.sponsor_abo_number}`}
                     </p>
@@ -302,19 +302,19 @@ export default function AdminMembersPage() {
 
                   {/* Stats */}
                   <div className="hidden md:flex items-center gap-6 text-xs tabular-nums flex-shrink-0"
-                    style={{ color: 'var(--stone)' }}>
+                    style={{ color: 'var(--text-secondary)' }}>
                     <div className="text-right">
-                      <p className="font-semibold" style={{ color: 'var(--deep)' }}>{formatNum(m.gpv)}</p>
+                      <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>{formatNum(m.gpv)}</p>
                       <p>GPV</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold" style={{ color: Number(m.bonus_percent) > 0 ? 'var(--sage)' : 'var(--stone)' }}>
+                      <p className="font-semibold" style={{ color: Number(m.bonus_percent) > 0 ? 'var(--brand-teal)' : 'var(--text-secondary)' }}>
                         {m.bonus_percent}%
                       </p>
                       <p>Bonus</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold" style={{ color: 'var(--deep)' }}>{m.group_size}</p>
+                      <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>{m.group_size}</p>
                       <p>Group</p>
                     </div>
                   </div>
@@ -327,7 +327,7 @@ export default function AdminMembersPage() {
                           onClick={() => promoteMutation.mutate({ profileId: m.profile!.id, role: 'core' })}
                           disabled={promoteMutation.isPending}
                           className="px-3 py-1 rounded-lg text-xs font-semibold disabled:opacity-40 hover:opacity-80 transition-opacity"
-                          style={{ backgroundColor: 'var(--sienna)', color: 'white' }}
+                          style={{ backgroundColor: 'var(--brand-crimson)', color: 'white' }}
                         >
                           → Core
                         </button>
@@ -337,7 +337,7 @@ export default function AdminMembersPage() {
                           onClick={() => promoteMutation.mutate({ profileId: m.profile!.id, role: 'member' })}
                           disabled={promoteMutation.isPending}
                           className="px-3 py-1 rounded-lg text-xs font-semibold disabled:opacity-40 hover:opacity-80 transition-opacity"
-                          style={{ backgroundColor: 'rgba(0,0,0,0.06)', color: 'var(--stone)' }}
+                          style={{ backgroundColor: 'rgba(0,0,0,0.06)', color: 'var(--text-secondary)' }}
                         >
                           → Member
                         </button>

@@ -117,7 +117,7 @@ export default function MemberDetailPage() {
       <button
         onClick={() => router.back()}
         className="flex items-center gap-1.5 text-sm mb-6 hover:opacity-70 transition-opacity"
-        style={{ color: 'var(--stone)' }}
+        style={{ color: 'var(--text-secondary)' }}
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
           stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -131,23 +131,23 @@ export default function MemberDetailPage() {
         <div className="flex items-start gap-4">
           <div
             className="w-14 h-14 rounded-2xl flex items-center justify-center text-xl font-bold flex-shrink-0"
-            style={{ backgroundColor: 'var(--eggshell)', color: 'var(--deep)' }}
+            style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)' }}
           >
             {profile.first_name[0]}{profile.last_name[0]}
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="font-serif text-2xl font-semibold" style={{ color: 'var(--deep)' }}>
+            <h1 className="font-display text-2xl font-semibold" style={{ color: 'var(--text-primary)' }}>
               {profile.first_name} {profile.last_name}
             </h1>
-            <p className="text-sm" style={{ color: 'var(--stone)' }}>
-              ABO: <span className="font-medium" style={{ color: 'var(--deep)' }}>
+            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+              ABO: <span className="font-medium" style={{ color: 'var(--text-primary)' }}>
                 {profile.abo_number ?? '—'}
               </span>
               {profile.tree_nodes?.[0] && (
                 <> · Depth {profile.tree_nodes[0].depth}</>
               )}
             </p>
-            <p className="text-xs mt-0.5" style={{ color: 'var(--stone)' }}>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
               Member since {formatDate(profile.created_at)}
             </p>
           </div>
@@ -157,21 +157,21 @@ export default function MemberDetailPage() {
         <div className="mt-4 pt-4 border-t border-black/5">
           <div className="flex items-center justify-between mb-2">
             <p className="text-xs font-semibold tracking-widest uppercase"
-              style={{ color: 'var(--stone)' }}>
+              style={{ color: 'var(--text-secondary)' }}>
               Role
             </p>
             {!editRole ? (
               <button
                 onClick={() => { setEditRole(true); setSelectedRole(profile.role) }}
                 className="text-xs font-medium"
-                style={{ color: 'var(--crimson)' }}
+                style={{ color: 'var(--brand-crimson)' }}
               >
                 Edit
               </button>
             ) : (
               <button
                 onClick={() => setEditRole(false)}
-                className="text-xs" style={{ color: 'var(--stone)' }}
+                className="text-xs" style={{ color: 'var(--text-secondary)' }}
               >
                 Cancel
               </button>
@@ -185,8 +185,8 @@ export default function MemberDetailPage() {
                   onClick={() => setSelectedRole(r)}
                   className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
                   style={{
-                    backgroundColor: selectedRole === r ? 'var(--deep)' : 'rgba(0,0,0,0.05)',
-                    color: selectedRole === r ? 'white' : 'var(--stone)',
+                    backgroundColor: selectedRole === r ? 'var(--text-primary)' : 'rgba(0,0,0,0.05)',
+                    color: selectedRole === r ? 'white' : 'var(--text-secondary)',
                   }}
                 >
                   {r}
@@ -196,13 +196,13 @@ export default function MemberDetailPage() {
                 onClick={() => updateMutation.mutate({ role: selectedRole })}
                 disabled={updateMutation.isPending || selectedRole === profile.role}
                 className="px-3 py-1.5 rounded-lg text-xs font-medium text-white disabled:opacity-40"
-                style={{ backgroundColor: 'var(--crimson)' }}
+                style={{ backgroundColor: 'var(--brand-crimson)' }}
               >
                 Save
               </button>
             </div>
           ) : (
-            <span className="text-sm font-medium" style={{ color: 'var(--deep)' }}>
+            <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
               {profile.role}
             </span>
           )}
@@ -212,22 +212,22 @@ export default function MemberDetailPage() {
       {/* Document */}
       <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-5 mb-4">
         <p className="text-xs font-semibold tracking-widest uppercase mb-3"
-          style={{ color: 'var(--stone)' }}>
+          style={{ color: 'var(--text-secondary)' }}>
           Travel document
         </p>
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium" style={{ color: 'var(--deep)' }}>
+            <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
               {profile.document_active_type === 'passport' ? 'Passport' : 'National ID'}
               {docNumber && (
                 <span className="ml-2 font-mono text-xs font-normal"
-                  style={{ color: 'var(--stone)' }}>
+                  style={{ color: 'var(--text-secondary)' }}>
                   {docNumber}
                 </span>
               )}
             </p>
             {profile.valid_through && (
-              <p className="text-xs mt-0.5" style={{ color: 'var(--stone)' }}>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
                 Valid through {formatDate(profile.valid_through)}
               </p>
             )}
@@ -237,7 +237,7 @@ export default function MemberDetailPage() {
               className="text-xs font-semibold px-2.5 py-1 rounded-full"
               style={{
                 backgroundColor: expiry === 'critical' ? '#bc474920' : '#f2cc8f33',
-                color: expiry === 'critical' ? 'var(--crimson)' : '#7a5c00',
+                color: expiry === 'critical' ? 'var(--brand-crimson)' : '#7a5c00',
               }}
             >
               {expiry === 'critical' ? 'Expiring soon' : 'Check needed'}
@@ -250,14 +250,14 @@ export default function MemberDetailPage() {
       {los && (
         <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-5 mb-4">
           <p className="text-xs font-semibold tracking-widest uppercase mb-3"
-            style={{ color: 'var(--stone)' }}>
+            style={{ color: 'var(--text-secondary)' }}>
             LOS data
           </p>
           <div className="grid grid-cols-3 gap-3">
             {LOS_KEYS.map(([key, label]) => (
               <div key={key}>
-                <p className="text-xs" style={{ color: 'var(--stone)' }}>{label}</p>
-                <p className="text-sm font-semibold mt-0.5" style={{ color: 'var(--deep)' }}>
+                <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{label}</p>
+                <p className="text-sm font-semibold mt-0.5" style={{ color: 'var(--text-primary)' }}>
                   {String(los[key] ?? '—')}
                 </p>
               </div>
@@ -271,11 +271,11 @@ export default function MemberDetailPage() {
         <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-5 mb-4">
           <div className="flex items-center justify-between mb-3">
             <p className="text-xs font-semibold tracking-widest uppercase"
-              style={{ color: 'var(--stone)' }}>
+              style={{ color: 'var(--text-secondary)' }}>
               Trips
             </p>
             {totalPaid > 0 && (
-              <p className="text-xs font-medium" style={{ color: 'var(--sage)' }}>
+              <p className="text-xs font-medium" style={{ color: 'var(--brand-teal)' }}>
                 {formatEur(totalPaid)} total paid
               </p>
             )}
@@ -284,10 +284,10 @@ export default function MemberDetailPage() {
             {registrations.map(r => (
               <div key={r.id} className="flex items-center justify-between py-2 border-b border-black/5 last:border-0">
                 <div>
-                  <p className="text-sm font-medium" style={{ color: 'var(--deep)' }}>
+                  <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
                     {r.trip.title}
                   </p>
-                  <p className="text-xs mt-0.5" style={{ color: 'var(--stone)' }}>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
                     {r.trip.destination} · {formatDate(r.trip.start_date)}
                   </p>
                 </div>
@@ -304,23 +304,23 @@ export default function MemberDetailPage() {
       {payments.length > 0 && (
         <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-5 mb-4">
           <p className="text-xs font-semibold tracking-widest uppercase mb-3"
-            style={{ color: 'var(--stone)' }}>
+            style={{ color: 'var(--text-secondary)' }}>
             Payment history
           </p>
           <div className="space-y-2">
             {payments.map(p => (
               <div key={p.id} className="flex items-center justify-between py-2 border-b border-black/5 last:border-0">
                 <div>
-                  <p className="text-sm font-medium" style={{ color: 'var(--deep)' }}>
+                  <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
                     {p.trip.title}
                   </p>
-                  <p className="text-xs mt-0.5" style={{ color: 'var(--stone)' }}>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
                     {formatDate(p.transaction_date)}
                     {p.note && ` · ${p.note}`}
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-semibold" style={{ color: 'var(--deep)' }}>
+                  <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
                     {formatEur(p.amount)}
                   </p>
                   <span className={`text-xs px-2 py-0.5 rounded-full ${STATUS_PILL[p.status] ?? ''}`}>
@@ -337,17 +337,17 @@ export default function MemberDetailPage() {
       {roleRequests.length > 0 && (
         <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-5 mb-4">
           <p className="text-xs font-semibold tracking-widest uppercase mb-3"
-            style={{ color: 'var(--stone)' }}>
+            style={{ color: 'var(--text-secondary)' }}>
             Event role requests
           </p>
           <div className="space-y-2">
             {roleRequests.map(r => (
               <div key={r.id} className="flex items-center justify-between py-2 border-b border-black/5 last:border-0">
                 <div>
-                  <p className="text-sm font-medium" style={{ color: 'var(--deep)' }}>
+                  <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
                     {r.role_label} · {r.event.title}
                   </p>
-                  <p className="text-xs mt-0.5" style={{ color: 'var(--stone)' }}>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
                     {formatDate(r.event.start_time)}
                   </p>
                 </div>

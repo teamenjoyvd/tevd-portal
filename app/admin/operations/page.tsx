@@ -170,17 +170,17 @@ export default function OperationsPage() {
       <section>
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="font-serif text-2xl font-semibold" style={{ color: 'var(--deep)' }}>
+            <h1 className="font-display text-2xl font-semibold" style={{ color: 'var(--text-primary)' }}>
               Operations
             </h1>
-            <p className="text-sm mt-0.5" style={{ color: 'var(--stone)' }}>
+            <p className="text-sm mt-0.5" style={{ color: 'var(--text-secondary)' }}>
               Manage trips, milestones, and member payments.
             </p>
           </div>
           <button
             onClick={() => setCreating(c => !c)}
             className="px-4 py-2 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90"
-            style={{ backgroundColor: 'var(--crimson)' }}
+            style={{ backgroundColor: 'var(--brand-crimson)' }}
           >
             {creating ? 'Cancel' : '+ New trip'}
           </button>
@@ -190,26 +190,26 @@ export default function OperationsPage() {
         {creating && (
           <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-6 mb-6">
             <p className="text-xs font-semibold tracking-widest uppercase mb-4"
-              style={{ color: 'var(--stone)' }}>
+              style={{ color: 'var(--text-secondary)' }}>
               New trip
             </p>
             <div className="grid grid-cols-2 gap-4 mb-4">
               {(['title', 'destination'] as const).map(k => (
                 <div key={k}>
-                  <label className="text-xs mb-1 block capitalize" style={{ color: 'var(--stone)' }}>
+                  <label className="text-xs mb-1 block capitalize" style={{ color: 'var(--text-secondary)' }}>
                     {k}
                   </label>
                   <input
                     value={(form as Record<string, unknown>)[k] as string}
                     onChange={e => setForm(f => ({ ...f, [k]: e.target.value }))}
                     className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-                    style={{ color: 'var(--deep)' }}
+                    style={{ color: 'var(--text-primary)' }}
                   />
                 </div>
               ))}
             </div>
             <div className="mb-4">
-              <label className="text-xs mb-1 block" style={{ color: 'var(--stone)' }}>
+              <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
                 Description
               </label>
               <textarea
@@ -217,52 +217,52 @@ export default function OperationsPage() {
                 onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                 rows={3}
                 className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm resize-none"
-                style={{ color: 'var(--deep)' }}
+                style={{ color: 'var(--text-primary)' }}
               />
             </div>
             <div className="grid grid-cols-3 gap-4 mb-6">
               <div>
-                <label className="text-xs mb-1 block" style={{ color: 'var(--stone)' }}>
+                <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
                   Start date
                 </label>
                 <input type="date" value={form.start_date}
                   onChange={e => setForm(f => ({ ...f, start_date: e.target.value }))}
                   className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-                  style={{ color: 'var(--deep)' }} />
+                  style={{ color: 'var(--text-primary)' }} />
               </div>
               <div>
-                <label className="text-xs mb-1 block" style={{ color: 'var(--stone)' }}>
+                <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
                   End date
                 </label>
                 <input type="date" value={form.end_date}
                   onChange={e => setForm(f => ({ ...f, end_date: e.target.value }))}
                   className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-                  style={{ color: 'var(--deep)' }} />
+                  style={{ color: 'var(--text-primary)' }} />
               </div>
               <div>
-                <label className="text-xs mb-1 block" style={{ color: 'var(--stone)' }}>
+                <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
                   Total cost (EUR)
                 </label>
                 <input type="number" value={form.total_cost}
                   onChange={e => setForm(f => ({ ...f, total_cost: Number(e.target.value) }))}
                   className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-                  style={{ color: 'var(--deep)' }} />
+                  style={{ color: 'var(--text-primary)' }} />
               </div>
             </div>
 
             {/* Milestones */}
             <div className="mb-6">
               <p className="text-xs font-semibold tracking-widest uppercase mb-3"
-                style={{ color: 'var(--stone)' }}>
+                style={{ color: 'var(--text-secondary)' }}>
                 Payment milestones
               </p>
               {form.milestones.map((m, i) => (
                 <div key={i} className="flex items-center gap-3 text-sm mb-2 py-2 border-b border-black/5">
-                  <span className="flex-1 font-medium" style={{ color: 'var(--deep)' }}>{m.label}</span>
-                  <span style={{ color: 'var(--stone)' }}>{formatEur(m.amount)}</span>
-                  <span style={{ color: 'var(--stone)' }}>{m.due_date}</span>
+                  <span className="flex-1 font-medium" style={{ color: 'var(--text-primary)' }}>{m.label}</span>
+                  <span style={{ color: 'var(--text-secondary)' }}>{formatEur(m.amount)}</span>
+                  <span style={{ color: 'var(--text-secondary)' }}>{m.due_date}</span>
                   <button onClick={() => removeMilestone(i)}
-                    className="text-xs" style={{ color: 'var(--crimson)' }}>
+                    className="text-xs" style={{ color: 'var(--brand-crimson)' }}>
                     Remove
                   </button>
                 </div>
@@ -271,32 +271,32 @@ export default function OperationsPage() {
                 <input placeholder="Label" value={milestoneInput.label}
                   onChange={e => setMilestoneInput(m => ({ ...m, label: e.target.value }))}
                   className="border border-black/10 rounded-xl px-3 py-2 text-sm col-span-1"
-                  style={{ color: 'var(--deep)' }} />
+                  style={{ color: 'var(--text-primary)' }} />
                 <input placeholder="Amount" type="number" value={milestoneInput.amount}
                   onChange={e => setMilestoneInput(m => ({ ...m, amount: e.target.value }))}
                   className="border border-black/10 rounded-xl px-3 py-2 text-sm"
-                  style={{ color: 'var(--deep)' }} />
+                  style={{ color: 'var(--text-primary)' }} />
                 <input type="date" value={milestoneInput.due_date}
                   onChange={e => setMilestoneInput(m => ({ ...m, due_date: e.target.value }))}
                   className="border border-black/10 rounded-xl px-3 py-2 text-sm"
-                  style={{ color: 'var(--deep)' }} />
+                  style={{ color: 'var(--text-primary)' }} />
                 <button onClick={addMilestone}
                   className="border border-black/10 rounded-xl text-sm hover:bg-black/[0.02] transition-colors"
-                  style={{ color: 'var(--deep)' }}>
+                  style={{ color: 'var(--text-primary)' }}>
                   + Add
                 </button>
               </div>
             </div>
 
             {createError && (
-              <p className="text-sm mb-3" style={{ color: 'var(--crimson)' }}>{createError}</p>
+              <p className="text-sm mb-3" style={{ color: 'var(--brand-crimson)' }}>{createError}</p>
             )}
 
             <button
               onClick={() => createMutation.mutate(form)}
               disabled={createMutation.isPending || !form.title || !form.destination || !form.start_date || !form.end_date}
               className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity"
-              style={{ backgroundColor: 'var(--crimson)' }}
+              style={{ backgroundColor: 'var(--brand-crimson)' }}
             >
               {createMutation.isPending ? 'Creating…' : 'Create trip'}
             </button>
@@ -312,7 +312,7 @@ export default function OperationsPage() {
             ))}
           </div>
         ) : trips.length === 0 ? (
-          <p className="text-sm" style={{ color: 'var(--stone)' }}>No trips yet.</p>
+          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No trips yet.</p>
         ) : (
           <div className="bg-white rounded-2xl border border-black/5 shadow-sm overflow-hidden">
             {trips.map((trip, i) => (
@@ -320,10 +320,10 @@ export default function OperationsPage() {
                 className="px-5 py-4 flex items-center justify-between gap-4"
                 style={{ borderTop: i > 0 ? '1px solid rgba(0,0,0,0.05)' : 'none' }}>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold" style={{ color: 'var(--deep)' }}>
+                  <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
                     {trip.title}
                   </p>
-                  <p className="text-xs mt-0.5" style={{ color: 'var(--stone)' }}>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
                     {trip.destination} · {formatDate(trip.start_date)} → {formatDate(trip.end_date)}
                     {' · '}{formatEur(trip.total_cost)}
                     {' · '}{trip.milestones?.length ?? 0} milestones
@@ -332,7 +332,7 @@ export default function OperationsPage() {
                 <button
                   onClick={() => deleteMutation.mutate(trip.id)}
                   className="text-xs hover:opacity-70 transition-opacity"
-                  style={{ color: 'var(--crimson)' }}
+                  style={{ color: 'var(--brand-crimson)' }}
                 >
                   Delete
                 </button>
@@ -345,10 +345,10 @@ export default function OperationsPage() {
       {/* ── Payment entry ── */}
       <section>
         <div className="mb-4">
-          <h2 className="font-serif text-xl font-semibold" style={{ color: 'var(--deep)' }}>
+          <h2 className="font-display text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>
             Log a payment
           </h2>
-          <p className="text-sm mt-0.5" style={{ color: 'var(--stone)' }}>
+          <p className="text-sm mt-0.5" style={{ color: 'var(--text-secondary)' }}>
             Record a payment against an approved member registration.
           </p>
         </div>
@@ -357,7 +357,7 @@ export default function OperationsPage() {
           <div className="grid grid-cols-2 gap-4 mb-4">
             {/* Trip selector */}
             <div>
-              <label className="text-xs mb-1 block" style={{ color: 'var(--stone)' }}>
+              <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
                 Trip
               </label>
               <select
@@ -367,7 +367,7 @@ export default function OperationsPage() {
                   setSelectedProfileId('')
                 }}
                 className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm bg-white"
-                style={{ color: 'var(--deep)' }}
+                style={{ color: 'var(--text-primary)' }}
               >
                 <option value="">Select trip…</option>
                 {trips.map(t => (
@@ -378,7 +378,7 @@ export default function OperationsPage() {
 
             {/* Member selector — only approved registrations */}
             <div>
-              <label className="text-xs mb-1 block" style={{ color: 'var(--stone)' }}>
+              <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
                 Member
               </label>
               <select
@@ -386,7 +386,7 @@ export default function OperationsPage() {
                 onChange={e => setSelectedProfileId(e.target.value)}
                 disabled={!selectedTripId || approvedRegistrations.length === 0}
                 className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm bg-white disabled:opacity-50"
-                style={{ color: 'var(--deep)' }}
+                style={{ color: 'var(--text-primary)' }}
               >
                 <option value="">
                   {!selectedTripId
@@ -408,7 +408,7 @@ export default function OperationsPage() {
           <div className="grid grid-cols-3 gap-4 mb-4">
             {/* Amount */}
             <div>
-              <label className="text-xs mb-1 block" style={{ color: 'var(--stone)' }}>
+              <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
                 Amount (EUR)
               </label>
               <input
@@ -419,13 +419,13 @@ export default function OperationsPage() {
                 onChange={e => setPaymentAmount(e.target.value)}
                 placeholder="0.00"
                 className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-                style={{ color: 'var(--deep)' }}
+                style={{ color: 'var(--text-primary)' }}
               />
             </div>
 
             {/* Date */}
             <div>
-              <label className="text-xs mb-1 block" style={{ color: 'var(--stone)' }}>
+              <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
                 Date
               </label>
               <input
@@ -433,20 +433,20 @@ export default function OperationsPage() {
                 value={paymentDate}
                 onChange={e => setPaymentDate(e.target.value)}
                 className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-                style={{ color: 'var(--deep)' }}
+                style={{ color: 'var(--text-primary)' }}
               />
             </div>
 
             {/* Status */}
             <div>
-              <label className="text-xs mb-1 block" style={{ color: 'var(--stone)' }}>
+              <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
                 Status
               </label>
               <select
                 value={paymentStatus}
                 onChange={e => setPaymentStatus(e.target.value as 'completed' | 'pending' | 'failed')}
                 className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm bg-white"
-                style={{ color: 'var(--deep)' }}
+                style={{ color: 'var(--text-primary)' }}
               >
                 <option value="completed">Completed</option>
                 <option value="pending">Pending</option>
@@ -457,7 +457,7 @@ export default function OperationsPage() {
 
           {/* Note */}
           <div className="mb-5">
-            <label className="text-xs mb-1 block" style={{ color: 'var(--stone)' }}>
+            <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
               Note <span className="font-normal opacity-60">(optional)</span>
             </label>
             <input
@@ -465,12 +465,12 @@ export default function OperationsPage() {
               onChange={e => setPaymentNote(e.target.value)}
               placeholder="e.g. Cash payment, bank transfer ref…"
               className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-              style={{ color: 'var(--deep)' }}
+              style={{ color: 'var(--text-primary)' }}
             />
           </div>
 
           {paymentError && (
-            <p className="text-sm mb-3" style={{ color: 'var(--crimson)' }}>{paymentError}</p>
+            <p className="text-sm mb-3" style={{ color: 'var(--brand-crimson)' }}>{paymentError}</p>
           )}
 
           <button
@@ -483,7 +483,7 @@ export default function OperationsPage() {
               Number(paymentAmount) <= 0
             }
             className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity"
-            style={{ backgroundColor: 'var(--sage)' }}
+            style={{ backgroundColor: 'var(--brand-teal)' }}
           >
             {paymentMutation.isPending ? 'Saving…' : 'Log payment'}
           </button>
@@ -494,7 +494,7 @@ export default function OperationsPage() {
           <div className="mt-4 bg-white rounded-2xl border border-black/5 shadow-sm overflow-hidden">
             <div className="px-5 py-3 border-b border-black/5">
               <p className="text-xs font-semibold tracking-widest uppercase"
-                style={{ color: 'var(--stone)' }}>
+                style={{ color: 'var(--text-secondary)' }}>
                 Recent payments — {selectedTrip?.title}
               </p>
             </div>
@@ -503,10 +503,10 @@ export default function OperationsPage() {
                 className="px-5 py-3 flex items-center justify-between gap-4"
                 style={{ borderTop: i > 0 ? '1px solid rgba(0,0,0,0.05)' : 'none' }}>
                 <div>
-                  <p className="text-sm font-medium" style={{ color: 'var(--deep)' }}>
+                  <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
                     {formatEur(p.amount)}
                   </p>
-                  <p className="text-xs mt-0.5" style={{ color: 'var(--stone)' }}>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
                     {formatDate(p.transaction_date)}
                     {p.note && ` · ${p.note}`}
                   </p>
