@@ -1,0 +1,96 @@
+/* ── ISS-0027 · 2026 Bento Design System — Brand Tokens ── */
+
+:root {
+  /* ── Palette ── */
+  --brand-forest:    #2d332a;
+  --brand-crimson:   #bc4749;
+  --brand-teal:      #3E7785;
+  --brand-parchment: #F2EFE8;
+  --brand-void:      #1A1F18;
+  --brand-oyster:    #E8E4DC;
+  --brand-moss:      #252B23;
+  --brand-stone:     #8A8577;
+
+  /* ── Semantic ── */
+  --bg-global:         var(--brand-parchment);
+  --bg-card:           var(--brand-oyster);
+  --text-primary:      var(--brand-void);
+  --text-secondary:    var(--brand-stone);
+  --border-default:    rgba(138, 133, 119, 0.20);
+  --border-hover:      rgba(62, 119, 133, 0.50);
+  --accent-left-info:  var(--brand-teal);
+  --accent-left-alert: var(--brand-crimson);
+  --accent-left-brand: var(--brand-forest);
+
+  /* ── Bento tokens ── */
+  --bento-gap:          12px;
+  --bento-radius:       12px;
+  --bento-border:       rgba(138, 133, 119, 0.20);
+  --bento-border-hover: rgba(62, 119, 133, 0.50);
+  --bento-accent-edge:  4px;
+  --bento-padding:      20px;
+}
+
+[data-theme="dark"] {
+  --bg-global:      var(--brand-void);
+  --bg-card:        var(--brand-moss);
+  --text-primary:   var(--brand-parchment);
+  --text-secondary: var(--brand-stone);
+}
+
+/* ── Utility classes ── */
+
+.bento-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: var(--bento-gap);
+  grid-auto-rows: minmax(120px, auto);
+}
+
+.card {
+  border-radius: var(--bento-radius);
+  padding: var(--bento-padding);
+  border: 1px solid var(--bento-border);
+  background-color: var(--bg-card);
+  transition: border-color 200ms;
+}
+
+.card:hover {
+  border-color: var(--bento-border-hover);
+}
+
+/* Accent fill variants — bg-[#2d332a] border-transparent text-[#F2EFE8] */
+.card--forest {
+  background-color: var(--brand-forest);
+  border-color: transparent;
+  color: var(--brand-parchment);
+}
+
+.card--crimson {
+  background-color: var(--brand-crimson);
+  border-color: transparent;
+  color: var(--brand-parchment);
+}
+
+.card--teal {
+  background-color: var(--brand-teal);
+  border-color: transparent;
+  color: var(--brand-parchment);
+}
+
+/* Left-edge variants — border-l-4 border-y-0 border-r-0 rounded-r-xl */
+.card--edge-info {
+  border-left: var(--bento-accent-edge) solid var(--accent-left-info);
+  border-top: 0;
+  border-right: 0;
+  border-bottom: 0;
+  border-radius: 0 var(--bento-radius) var(--bento-radius) 0;
+}
+
+.card--edge-alert {
+  border-left: var(--bento-accent-edge) solid var(--accent-left-alert);
+  border-top: 0;
+  border-right: 0;
+  border-bottom: 0;
+  border-radius: 0 var(--bento-radius) var(--bento-radius) 0;
+}

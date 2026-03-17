@@ -1,8 +1,9 @@
 import type { Metadata } from 'next'
-import { Playfair_Display, Montserrat } from 'next/font/google'
+import { Playfair_Display, Montserrat, Cormorant_Garamond, DM_Sans } from 'next/font/google'
 import { ClerkProvider } from '@clerk/nextjs'
 import Providers from './providers'
 import './globals.css'
+import '../styles/brand-tokens.css'
 
 const playfair = Playfair_Display({
   subsets: ['latin', 'cyrillic'],
@@ -16,6 +17,19 @@ const montserrat = Montserrat({
   display: 'swap',
 })
 
+const cormorant = Cormorant_Garamond({
+  subsets: ['latin'],
+  weight: ['300', '600'],
+  variable: '--font-cormorant',
+  display: 'swap',
+})
+
+const dmSans = DM_Sans({
+  subsets: ['latin'],
+  variable: '--font-dm-sans',
+  display: 'swap',
+})
+
 export const metadata: Metadata = {
   title: 'teamenjoyvd',
   description: 'Team Portal for teamenjoyVD',
@@ -24,7 +38,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <ClerkProvider afterSignOutUrl="/">
-      <html lang="en" className={`${playfair.variable} ${montserrat.variable}`}>
+      <html lang="en" className={`${playfair.variable} ${montserrat.variable} ${cormorant.variable} ${dmSans.variable}`}>
         <body className="font-sans bg-[#f4f1de] text-[#3d405b]">
           <Providers>
             {children}
