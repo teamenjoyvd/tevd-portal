@@ -10,6 +10,7 @@ type BentoCardProps = {
   colSpan?: number
   rowSpan?: number
   className?: string
+  style?: React.CSSProperties
 }
 
 // ── KPI sub-component ──────────────────────────────────────────────────────
@@ -61,7 +62,7 @@ export default function BentoCard({
   if (rowSpan)  spanStyle.gridRow    = `span ${rowSpan}`
 
   return (
-    <div className={`${variantClass} ${className}`} style={spanStyle}>
+  <div className={`${variantClass} ${className}`} style={{ ...spanStyle, ...style }}>
       {children}
     </div>
   )
