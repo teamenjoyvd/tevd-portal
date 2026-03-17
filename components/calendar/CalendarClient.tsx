@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useCallback, useRef } from 'react'
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { DAYS_I18N, MONTHS_I18N } from '@/lib/i18n/translations'
@@ -240,6 +240,14 @@ function WeekView({
   const eventsOnDay = (date: Date) =>
     events.filter(e => sameDay(new Date(e.start_time), date))
 
+  const scrollRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (scrollRef.current) {
+      const hour = new Date().getHours()
+      scrollRef.current.scrollTop = Math.max(0, (hour - 1) * HOUR_HEIGHT)
+    }
+  }, [])
+
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <div className="grid grid-cols-[48px_repeat(7,1fr)] border-b border-black/5 flex-shrink-0">
@@ -265,7 +273,7 @@ function WeekView({
           )
         })}
       </div>
-      <div className="flex-1 overflow-y-auto">
+      <div ref={scrollRef} className="overflow-y-auto" style={{ height: 'calc(100vh - 320px)', minHeight: 300 }}>
         <div className="grid grid-cols-[48px_repeat(7,1fr)]"
           style={{ height: HOUR_HEIGHT * 24 }}>
           <div>
@@ -336,6 +344,14 @@ function DayView({
 }) {
   const dayEvents = events.filter(e => sameDay(new Date(e.start_time), current))
 
+  const scrollRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (scrollRef.current) {
+      const hour = new Date().getHours()
+      scrollRef.current.scrollTop = Math.max(0, (hour - 1) * HOUR_HEIGHT)
+    }
+  }, [])
+
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <div className="px-4 py-3 border-b border-black/5 flex-shrink-0">
@@ -348,7 +364,7 @@ function DayView({
           W{isoWeek(current)}
         </p>
       </div>
-      <div className="flex-1 overflow-y-auto">
+      <div ref={scrollRef} className="overflow-y-auto" style={{ height: 'calc(100vh - 320px)', minHeight: 300 }}>
         <div className="grid grid-cols-[48px_1fr]" style={{ height: HOUR_HEIGHT * 24 }}>
           <div>
             {HOURS.map(h => (
