@@ -143,7 +143,7 @@ function TripCard({
         )}
         {trip.accommodation_type && (
           <p className="text-xs mt-1.5" style={{ color: 'var(--text-secondary)' }}>
-            <span className="font-medium">Accommodation:</span> {trip.accommodation_type}
+            <span className="font-medium">{t('trips.accommodation')}</span> {trip.accommodation_type}
           </p>
         )}
         {trip.inclusions.length > 0 && (
@@ -293,7 +293,7 @@ function TripCard({
           {userRole === 'guest' ? (
             <p className="text-xs text-center py-2 rounded-xl"
               style={{ color: 'var(--text-secondary)', backgroundColor: 'var(--border-default)' }}>
-              Member access required to register
+              {t('trips.memberOnly')}
             </p>
           ) : (
             <RegisterButton tripId={trip.id} profileId={profileId} />
@@ -357,7 +357,7 @@ export default function TripsPage() {
 
   return (
     <>
-      <PageHeading title="Team Trips" subtitle="Register and track your payments" />
+      <PageHeading title={t('trips.pageTitle')} subtitle={t('trips.pageSubtitle')} />
       <div className="py-8 pb-16">
         <BentoGrid>
           {isLoading || !isLoaded ? (
