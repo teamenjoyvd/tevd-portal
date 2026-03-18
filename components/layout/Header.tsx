@@ -35,12 +35,14 @@ export default function Header() {
     href === '/' ? pathname === '/' : pathname?.startsWith(href)
 
   const isAdmin = (user?.publicMetadata?.role as string) === 'admin'
+  const isNonGuest = !!user && (user?.publicMetadata?.role as string) !== 'guest'
 
   const NAV_LINKS = [
     { href: '/',         label: t('nav.home')     },
     { href: '/about',    label: t('nav.about')    },
     { href: '/calendar', label: t('nav.calendar') },
     { href: '/trips',    label: t('nav.trips')    },
+    ...(isNonGuest ? [{ href: '/los', label: t('nav.network') }] : []),
   ]
 
   return (
