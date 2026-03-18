@@ -12,7 +12,13 @@ export async function GET() {
     .eq('clerk_id', userId)
     .single()
 
-  if (error) return Response.json({ error: error.message }, { status: 500 })
+  if (error) {
+    // PGRST116 = no rows returned — user has no profile yet (webhook not fired)
+    if (error.code === 'PGRST116') {
+      return Response.json({ error: 'Profile not found' }, { status: 404 })
+    }
+    return Response.json({ error: error.message }, { status: 500 })
+  }
   return Response.json(data)
 }
 

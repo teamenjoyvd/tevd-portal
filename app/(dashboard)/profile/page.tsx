@@ -73,12 +73,14 @@ function LOSNodeRow({ node, depth = 0 }: { node: LOSNode; depth?: number }) {
 }
 
 function LOSBox({ profileId }: { profileId: string }) {
-  const { data: flatNodes = [], isLoading } = useQuery<LOSNode[]>({
+  const { data: rawNodes, isLoading } = useQuery<LOSNode[]>({
     queryKey: ['los-subtree', profileId],
     queryFn: () => fetch('/api/los/tree').then(r => r.json()),
     staleTime: 5 * 60 * 1000,
   })
 
+  // Guard: API may return an error object instead of an array
+  const flatNodes: LOSNode[] = Array.isArray(rawNodes) ? rawNodes : []
   const root = buildSubtree(flatNodes, profileId)
 
   if (isLoading) return (
@@ -181,16 +183,19 @@ export default function ProfilePage() {
     queryFn: () => fetch('/api/profile').then(r => r.json()),
   })
 
+  // Guard: treat missing/error API responses as no profile
+  const validProfile = profile?.id ? profile : null
+
   const { data: verRequest } = useQuery<VerificationRequest | null>({
     queryKey: ['verify-abo'],
     queryFn: () => fetch('/api/profile/verify-abo').then(r => r.json()),
-    enabled: profile?.role === 'guest' && !profile?.abo_number,
+    enabled: validProfile?.role === 'guest' && !validProfile?.abo_number,
   })
 
   const { data: calData, refetch: refetchCal } = useQuery<{ url: string }>({
     queryKey: ['cal-feed-token'],
     queryFn: () => fetch('/api/calendar/feed-token').then(r => r.json()),
-    enabled: !!profile,
+    enabled: !!validProfile,
     staleTime: Infinity,
   })
 
@@ -200,15 +205,15 @@ export default function ProfilePage() {
   })
 
   useEffect(() => {
-    if (profile) setForm({
-      first_name:           profile.first_name,
-      last_name:            profile.last_name,
-      document_active_type: profile.document_active_type,
-      id_number:            profile.id_number ?? '',
-      passport_number:      profile.passport_number ?? '',
-      valid_through:        profile.valid_through ?? '',
+    if (validProfile) setForm({
+      first_name:           validProfile.first_name,
+      last_name:            validProfile.last_name,
+      document_active_type: validProfile.document_active_type,
+      id_number:            validProfile.id_number ?? '',
+      passport_number:      validProfile.passport_number ?? '',
+      valid_through:        validProfile.valid_through ?? '',
     })
-  }, [profile])
+  }, [validProfile])
 
   const saveMutation = useMutation({
     mutationFn: (body: Partial<Profile>) =>
@@ -260,12 +265,12 @@ export default function ProfilePage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['verify-abo'] }),
   })
 
-  const activeDocType = form.document_active_type ?? profile?.document_active_type ?? 'id'
-  const expiryState   = getExpiryState(form.valid_through ?? profile?.valid_through ?? null)
-  const isGuest       = profile?.role === 'guest' && !profile?.abo_number
-  const isUnverified  = profile?.role === 'guest' &&
+  const activeDocType = form.document_active_type ?? validProfile?.document_active_type ?? 'id'
+  const expiryState   = getExpiryState(form.valid_through ?? validProfile?.valid_through ?? null)
+  const isGuest       = validProfile?.role === 'guest' && !validProfile?.abo_number
+  const isUnverified  = validProfile?.role === 'guest' &&
     !!verRequest && (verRequest.status === 'pending' || verRequest.status === 'denied')
-  const isCore        = profile?.role === 'core' || profile?.role === 'admin'
+  const isCore        = validProfile?.role === 'core' || validProfile?.role === 'admin'
 
   return (
     <div className="py-8 pb-16">
@@ -286,7 +291,18 @@ export default function ProfilePage() {
                 ))}
               </div>
             </div>
-          ) : !profile ? null : (
+          ) : !validProfile ? (
+            <div style={{ gridColumn: 'span 8' }}>
+              <div className="rounded-2xl p-8 text-center" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+                <p className="text-sm font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
+                  Profile not set up yet
+                </p>
+                <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                  Your account is being configured. Please try again shortly or contact an admin.
+                </p>
+              </div>
+            </div>
+          ) : (
             <>
               {/* ── Box 1: Personal data ──────────────────────────────────── */}
               <div style={{ gridColumn: 'span 8' }}>
@@ -329,11 +345,11 @@ export default function ProfilePage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-4 text-sm" style={{ color: 'var(--text-secondary)' }}>
-                        {profile.abo_number && (
+                        {validProfile.abo_number && (
                           <span>
                             ABO:{' '}
                             <span className="font-medium" style={{ color: 'var(--text-primary)' }}>
-                              {profile.abo_number}
+                              {validProfile.abo_number}
                             </span>
                           </span>
                         )}
@@ -342,17 +358,17 @@ export default function ProfilePage() {
                           <span
                             className="font-semibold px-2 py-0.5 rounded-full text-xs"
                             style={{
-                              backgroundColor: profile.role === 'guest' ? 'rgba(0,0,0,0.06)' : '#81b29a33',
-                              color: profile.role === 'guest' ? 'var(--text-secondary)' : '#2d6a4f',
+                              backgroundColor: validProfile.role === 'guest' ? 'rgba(0,0,0,0.06)' : '#81b29a33',
+                              color: validProfile.role === 'guest' ? 'var(--text-secondary)' : '#2d6a4f',
                             }}
                           >
-                            {isUnverified ? 'Unverified Member' : ROLE_LABELS[profile.role]}
+                            {isUnverified ? 'Unverified Member' : ROLE_LABELS[validProfile.role]}
                           </span>
                         </span>
                       </div>
-                      {ROLE_DESCRIPTIONS[profile.role] && (
+                      {ROLE_DESCRIPTIONS[validProfile.role] && (
                         <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                          {ROLE_DESCRIPTIONS[profile.role]}
+                          {ROLE_DESCRIPTIONS[validProfile.role]}
                         </p>
                       )}
                     </div>
@@ -568,7 +584,7 @@ export default function ProfilePage() {
               )}
 
               {/* ── Box 2: LOS subtree ───────────────────────────────────── */}
-              <LOSBox profileId={profile.id} />
+              <LOSBox profileId={validProfile.id} />
 
               {/* ── Box 3: Core-only apps (core + admin only) ────────────── */}
               {isCore && (
