@@ -149,7 +149,7 @@ Pure CSS in `app/globals.css` — `@keyframes bento-enter` + `.bento-tile` class
 
 ```
 ROW 1: Hero(col-6,forest) | Profile(col-2,default) | Events(col-4,default)
-ROW 2: Trips(col-3,crimson) | Announcements(col-6,edge-info+edge-full) | Links(col-3,teal)
+ROW 2: Trips(col-3,crimson) | Announcements(col-6,default) | Links(col-3,teal)
 ROW 3: Socials(col-4,default,placeholder) | Theme(col-2,default) | Map(col-3,forest) | About Us(col-3,default)
 ROW 4: Howtos(col-12,default)
 ```

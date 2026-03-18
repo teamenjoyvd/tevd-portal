@@ -115,7 +115,7 @@ export default async function HomePage() {
           <Link href="/trips" className="font-body text-[10px] font-bold tracking-widest uppercase mt-4 hover:underline self-start opacity-70 hover:opacity-100 transition-opacity" style={{ color: 'var(--brand-parchment)' }}>View trips →</Link>
         </BentoCard>
 
-        <BentoCard variant="edge-info" colSpan={6} rowSpan={2} className="bento-tile card--edge-full flex flex-col justify-between" style={{ animationDelay: '250ms' }}>
+        <BentoCard variant="default" colSpan={6} rowSpan={2} className="bento-tile flex flex-col justify-between" style={{ animationDelay: '250ms' }}>
           <div>
             <Eyebrow>Latest</Eyebrow>
             <div className="mt-3">
