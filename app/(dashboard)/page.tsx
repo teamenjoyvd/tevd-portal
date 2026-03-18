@@ -79,16 +79,16 @@ export default async function HomePage() {
         <BentoCard variant="default" colSpan={4} rowSpan={2} className="bento-tile flex flex-col" style={{ animationDelay: '150ms' }}>
           <div className="flex items-center justify-between mb-4">
             <Eyebrow>Events</Eyebrow>
-            <Link href="/calendar" className="font-body text-[10px] font-bold tracking-widest uppercase hover:underline" style={{ color: 'var(--brand-crimson)' }}>See all →</Link>
+            <Link href="/calendar" className="font-body text-[11px] font-bold tracking-widest uppercase hover:underline" style={{ color: 'var(--brand-crimson)' }}>See all →</Link>
           </div>
           <div className="space-y-2 flex-1">
             {nextEvents.slice(0, 3).map(event => (
               <div key={event.id} className="flex items-center justify-between gap-2 py-2 border-b last:border-0" style={{ borderColor: 'var(--border-default)' }}>
                 <div className="min-w-0">
                   <p className="font-body text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{event.title}</p>
-                  <p className="font-body text-[10px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>{formatEventDate(event.start_time)}</p>
+                  <p className="font-body text-[11px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>{formatEventDate(event.start_time)}</p>
                 </div>
-                <span className="font-body text-[10px] font-bold px-2 py-0.5 rounded-lg flex-shrink-0" style={{ backgroundColor: 'var(--brand-forest)', color: 'rgba(242,239,232,0.7)' }}>W{event.week_number}</span>
+                <span className="font-body text-[11px] font-bold px-2 py-0.5 rounded-lg flex-shrink-0" style={{ backgroundColor: 'var(--brand-forest)', color: 'rgba(242,239,232,0.7)' }}>W{event.week_number}</span>
               </div>
             ))}
           </div>
@@ -114,12 +114,12 @@ export default async function HomePage() {
           <div>
             <Eyebrow>Trips</Eyebrow>
             <div className="mt-3">
-              <span className="font-body text-[10px] font-bold px-2 py-0.5 rounded-full mb-2 inline-block" style={{ backgroundColor: 'rgba(255,255,255,0.18)', color: 'var(--brand-parchment)' }}>{nextTrip.destination}</span>
+              <span className="font-body text-[11px] font-bold px-2 py-0.5 rounded-full mb-2 inline-block" style={{ backgroundColor: 'rgba(255,255,255,0.18)', color: 'var(--brand-parchment)' }}>{nextTrip.destination}</span>
               <h3 className="font-display text-base font-semibold leading-snug" style={{ color: 'var(--brand-parchment)' }}>{nextTrip.title}</h3>
-              <p className="font-body text-[10px] mt-1" style={{ color: 'rgba(242,239,232,0.6)' }}>{formatTripDate(nextTrip.start_date)}</p>
+              <p className="font-body text-[11px] mt-1" style={{ color: 'rgba(242,239,232,0.6)' }}>{formatTripDate(nextTrip.start_date)}</p>
             </div>
           </div>
-          <Link href="/trips" className="font-body text-[10px] font-bold tracking-widest uppercase mt-4 hover:underline self-start opacity-70 hover:opacity-100 transition-opacity" style={{ color: 'var(--brand-parchment)' }}>View trips →</Link>
+          <Link href="/trips" className="font-body text-[11px] font-bold tracking-widest uppercase mt-4 hover:underline self-start opacity-70 hover:opacity-100 transition-opacity" style={{ color: 'var(--brand-parchment)' }}>View trips →</Link>
         </BentoCard>
         )}
 
@@ -139,7 +139,7 @@ export default async function HomePage() {
               )}
             </div>
           </div>
-          <Link href="/announcements" className="font-body text-[10px] font-bold tracking-widest uppercase mt-4 hover:underline self-start" style={{ color: 'var(--brand-crimson)' }}>View all →</Link>
+          <Link href="/announcements" className="font-body text-[11px] font-bold tracking-widest uppercase mt-4 hover:underline self-start" style={{ color: 'var(--brand-crimson)' }}>View all →</Link>
         </BentoCard>
         )}
 
@@ -147,7 +147,7 @@ export default async function HomePage() {
         <BentoCard variant="teal" colSpan={3} rowSpan={2} className="bento-tile flex flex-col" style={{ animationDelay: '300ms' }}>
           <div className="flex items-center justify-between mb-4">
             <Eyebrow style={{ color: 'var(--brand-parchment)' }}>Quick Access</Eyebrow>
-            <Link href="/links" className="font-body text-[10px] font-bold tracking-widest uppercase hover:underline" style={{ color: 'var(--brand-parchment)', opacity: 0.7 }}>All →</Link>
+            <Link href="/links" className="font-body text-[11px] font-bold tracking-widest uppercase hover:underline" style={{ color: 'var(--brand-parchment)', opacity: 0.7 }}>All →</Link>
           </div>
           <div className="flex flex-col gap-1.5 flex-1">
             {quickLinks.map(link => (
@@ -178,7 +178,7 @@ export default async function HomePage() {
               We&apos;re Vera &amp; Deniz, two folks living it up in Sofia, Bulgaria. All about good vibes, meaningful connections, and building rock-solid relationships.
             </p>
           </div>
-          <Link href="/about" className="font-body text-[10px] font-bold tracking-widest uppercase mt-4 hover:underline self-start" style={{ color: 'var(--brand-crimson)' }}>Our story →</Link>
+          <Link href="/about" className="font-body text-[11px] font-bold tracking-widest uppercase mt-4 hover:underline self-start" style={{ color: 'var(--brand-crimson)' }}>Our story →</Link>
         </BentoCard>
 
         {/* ── ROW 4: Howtos col-12 ── */}
