@@ -105,12 +105,18 @@
 }
 
 @media (max-width: 767px) {
+  /* ISS-0105: keep 12-col grid on mobile so span-6 = half-width */
   .bento-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
   }
 
   /* ISS-0104: force full-width on designated primary tiles */
   .bento-mobile-full {
     grid-column: 1 / -1 !important;
+  }
+
+  /* ISS-0105: force half-width (2-col) on designated utility tiles */
+  .bento-mobile-half {
+    grid-column: span 6 !important;
   }
 }

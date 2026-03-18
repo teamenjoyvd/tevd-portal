@@ -15,7 +15,7 @@ type Howto = {
   emoji: string | null
 }
 
-export default function HowtosTile({ colSpan = 6, rowSpan }: { colSpan?: number; rowSpan?: number }) {
+export default function HowtosTile({ colSpan = 6, rowSpan, halfWidthMobile }: { colSpan?: number; rowSpan?: number; halfWidthMobile?: boolean }) {
   const { isLoaded } = useUser()
   const { lang } = useLanguage()
   const maxItems = useTileMaxItems('howtos', 4)
@@ -31,7 +31,7 @@ export default function HowtosTile({ colSpan = 6, rowSpan }: { colSpan?: number;
   if (!isLoading && howtos.length === 0) return null
 
   return (
-    <BentoCard variant="default" colSpan={colSpan} rowSpan={rowSpan} className="flex flex-col">
+    <BentoCard variant="default" colSpan={colSpan} rowSpan={rowSpan} halfWidthMobile={halfWidthMobile} className="flex flex-col">
       <div className="flex items-center justify-between mb-4">
         <Eyebrow>How-tos</Eyebrow>
         <Link

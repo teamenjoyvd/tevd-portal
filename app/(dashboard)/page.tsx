@@ -73,7 +73,7 @@ export default async function HomePage() {
           </div>
         </BentoCard>
 
-        <ProfileTile colSpan={2} rowSpan={2} />
+        <ProfileTile colSpan={2} rowSpan={2} halfWidthMobile />
 
         {nextEvents.length > 0 && (
         <BentoCard variant="default" colSpan={4} rowSpan={2} fullWidthMobile className="bento-tile flex flex-col" style={{ animationDelay: '150ms' }}>
@@ -98,7 +98,7 @@ export default async function HomePage() {
         {/* ── ROW 2: Trips col-3 | Announcements col-6 | Links col-3 ── */}
 
         {nextTrip && (
-        <BentoCard variant="crimson" colSpan={3} rowSpan={2} className="bento-tile flex flex-col justify-between relative overflow-hidden" style={{ animationDelay: '200ms' }}>
+        <BentoCard variant="crimson" colSpan={3} rowSpan={2} halfWidthMobile className="bento-tile flex flex-col justify-between relative overflow-hidden" style={{ animationDelay: '200ms' }}>
           {nextTrip.image_url && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -144,7 +144,7 @@ export default async function HomePage() {
         )}
 
         {quickLinks.length > 0 && (
-        <BentoCard variant="teal" colSpan={3} rowSpan={2} className="bento-tile flex flex-col" style={{ animationDelay: '300ms' }}>
+        <BentoCard variant="teal" colSpan={3} rowSpan={2} halfWidthMobile className="bento-tile flex flex-col" style={{ animationDelay: '300ms' }}>
           <div className="flex items-center justify-between mb-4">
             <Eyebrow style={{ color: 'var(--brand-parchment)' }}>Quick Access</Eyebrow>
             <Link href="/links" className="font-body text-[11px] font-bold tracking-widest uppercase hover:underline" style={{ color: 'var(--brand-parchment)', opacity: 0.7 }}>All →</Link>
@@ -164,13 +164,13 @@ export default async function HomePage() {
 
         {/* ── ROW 3: Socials col-4 | Theme col-2 | Map col-3 | About Us col-3 ── */}
 
-        <SocialsTile colSpan={4} rowSpan={2} />
+        <SocialsTile colSpan={4} rowSpan={2} halfWidthMobile />
 
-        <ThemeTile colSpan={2} rowSpan={2} />
+        <ThemeTile colSpan={2} rowSpan={2} halfWidthMobile />
 
-        <LocationTile colSpan={3} rowSpan={2} />
+        <LocationTile colSpan={3} rowSpan={2} halfWidthMobile />
 
-        <BentoCard variant="default" colSpan={3} rowSpan={2} className="bento-tile flex flex-col justify-between" style={{ animationDelay: '450ms' }}>
+        <BentoCard variant="default" colSpan={3} rowSpan={2} halfWidthMobile className="bento-tile flex flex-col justify-between" style={{ animationDelay: '450ms' }}>
           <div>
             <Eyebrow>About Us</Eyebrow>
             <h2 className="font-display text-xl font-semibold mt-3 mb-3" style={{ color: 'var(--text-primary)' }}>Hey there!</h2>
@@ -183,7 +183,7 @@ export default async function HomePage() {
 
         {/* ── ROW 4: Howtos col-12 ── */}
 
-        <HowtosTile colSpan={12} rowSpan={2} />
+        <HowtosTile colSpan={12} rowSpan={2} halfWidthMobile />
 
       </BentoGrid>
     </div>

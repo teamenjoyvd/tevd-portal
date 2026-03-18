@@ -10,6 +10,7 @@ type BentoCardProps = {
   colSpan?: number
   rowSpan?: number
   fullWidthMobile?: boolean
+  halfWidthMobile?: boolean
   className?: string
   style?: React.CSSProperties
 }
@@ -48,6 +49,7 @@ export default function BentoCard({
   colSpan,
   rowSpan,
   fullWidthMobile = false,
+  halfWidthMobile = false,
   className = '',
   style,
 }: BentoCardProps) {
@@ -64,7 +66,7 @@ export default function BentoCard({
   if (colSpan) spanStyle.gridColumn = `span ${colSpan}`
   if (rowSpan)  spanStyle.gridRow    = `span ${rowSpan}`
 
-  const mobileClass = fullWidthMobile ? ' bento-mobile-full' : ''
+  const mobileClass = fullWidthMobile ? ' bento-mobile-full' : halfWidthMobile ? ' bento-mobile-half' : ''
 
   return (
   <div className={`${variantClass}${mobileClass} ${className}`} style={{ ...spanStyle, ...style }}>

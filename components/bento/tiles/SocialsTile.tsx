@@ -118,7 +118,7 @@ function PostCard({
   )
 }
 
-export default function SocialsTile({ colSpan = 4, rowSpan }: { colSpan?: number; rowSpan?: number }) {
+export default function SocialsTile({ colSpan = 4, rowSpan, halfWidthMobile }: { colSpan?: number; rowSpan?: number; halfWidthMobile?: boolean }) {
   const { data, isLoading } = useQuery<SocialsData>({
     queryKey: ['socials'],
     queryFn: () => fetch('/api/socials').then(r => r.json()),
@@ -132,6 +132,7 @@ export default function SocialsTile({ colSpan = 4, rowSpan }: { colSpan?: number
       variant="default"
       colSpan={colSpan}
       rowSpan={rowSpan}
+      halfWidthMobile={halfWidthMobile}
       className="bento-tile flex flex-col"
       style={{ animationDelay: '350ms' }}
     >

@@ -6,9 +6,9 @@ import BentoCard from '@/components/bento/BentoCard'
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
 const SOFIA: [number, number] = [23.3219, 42.6977]
 
-function LocationFallback({ colSpan, rowSpan }: { colSpan: number; rowSpan?: number }) {
+function LocationFallback({ colSpan, rowSpan, halfWidthMobile }: { colSpan: number; rowSpan?: number; halfWidthMobile?: boolean }) {
   return (
-    <BentoCard variant="forest" colSpan={colSpan} rowSpan={rowSpan} className="relative flex items-end">
+    <BentoCard variant="forest" colSpan={colSpan} rowSpan={rowSpan} halfWidthMobile={halfWidthMobile} className="relative flex items-end">
       <div className="absolute inset-0 flex items-center justify-center opacity-10">
         <svg width="80" height="80" viewBox="0 0 24 24" fill="none"
           stroke="var(--brand-parchment)" strokeWidth="0.5">
@@ -30,7 +30,7 @@ function LocationFallback({ colSpan, rowSpan }: { colSpan: number; rowSpan?: num
   )
 }
 
-export default function LocationTile({ colSpan = 6, rowSpan }: { colSpan?: number; rowSpan?: number }) {
+export default function LocationTile({ colSpan = 6, rowSpan, halfWidthMobile }: { colSpan?: number; rowSpan?: number; halfWidthMobile?: boolean }) {
   const mapContainer = useRef<HTMLDivElement>(null)
   const mapRef = useRef<{ remove: () => void } | null>(null)
   const [ready, setReady] = useState(false)
@@ -81,10 +81,10 @@ export default function LocationTile({ colSpan = 6, rowSpan }: { colSpan?: numbe
     return () => { mapRef.current?.remove(); mapRef.current = null }
   }, [])
 
-  if (!TOKEN) return <LocationFallback colSpan={colSpan} rowSpan={rowSpan} />
+  if (!TOKEN) return <LocationFallback colSpan={colSpan} rowSpan={rowSpan} halfWidthMobile={halfWidthMobile} />
 
   return (
-    <BentoCard variant="forest" colSpan={colSpan} rowSpan={rowSpan}
+    <BentoCard variant="forest" colSpan={colSpan} rowSpan={rowSpan} halfWidthMobile={halfWidthMobile}
       className="relative overflow-hidden p-0"
       style={{ minHeight: 200 }}>
       {/* Map container — must have explicit dimensions */}
