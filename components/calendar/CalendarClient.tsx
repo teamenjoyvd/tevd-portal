@@ -536,6 +536,7 @@ export default function CalendarClient({
   const [anchorRect, setAnchorRect]               = useState<DOMRect | null>(null)
   const [showN21, setShowN21]                     = useState(true)
   const [showPersonal, setShowPersonal]           = useState(true)
+  const [filterType, setFilterType]               = useState<'in-person' | 'online' | 'hybrid' | null>(null)
 
   const canSeePersonal = isAuthenticated && userRole !== 'guest'
   const fetchMonth     = view === 'agenda' ? null : toMonthParam(current)
@@ -553,8 +554,10 @@ export default function CalendarClient({
       if (e.category === 'N21')      return showN21
       if (e.category === 'Personal') return canSeePersonal && showPersonal
       return true
-    }),
-    [rawEvents, showN21, showPersonal, canSeePersonal]
+    }).filter(e =>
+      filterType === null || e.event_type === filterType
+    ),
+    [rawEvents, showN21, showPersonal, canSeePersonal, filterType]
   )
 
   const navigate = useCallback((dir: 1 | -1) => {
@@ -676,6 +679,18 @@ export default function CalendarClient({
                 </button>
               )}
             </div>
+            <div className="flex gap-1.5">
+              {([null, 'in-person', 'online', 'hybrid'] as const).map(type => (
+                <button key={type ?? 'all'} onClick={() => setFilterType(type)}
+                  className="px-2.5 py-1 rounded-full text-xs font-semibold transition-all"
+                  style={{
+                    backgroundColor: filterType === type ? 'var(--brand-teal)' : 'rgba(0,0,0,0.06)',
+                    color: filterType === type ? 'white' : 'var(--text-secondary)',
+                  }}>
+                  {type === null ? 'All' : type === 'in-person' ? t('cal.inPerson') : type === 'online' ? t('cal.online') : t('cal.hybrid')}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Desktop: single row */}
@@ -732,6 +747,18 @@ export default function CalendarClient({
                     {t('cal.personal')}
                   </button>
                 )}
+              </div>
+              <div className="flex gap-1.5">
+                {([null, 'in-person', 'online', 'hybrid'] as const).map(type => (
+                  <button key={type ?? 'all'} onClick={() => setFilterType(type)}
+                    className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
+                    style={{
+                      backgroundColor: filterType === type ? 'var(--brand-teal)' : 'rgba(0,0,0,0.06)',
+                      color: filterType === type ? 'white' : 'var(--text-secondary)',
+                    }}>
+                    {type === null ? 'All' : type === 'in-person' ? t('cal.inPerson') : type === 'online' ? t('cal.online') : t('cal.hybrid')}
+                  </button>
+                ))}
               </div>
 
               <div className="flex gap-0.5 p-0.5 rounded-lg" style={{ backgroundColor: 'rgba(0,0,0,0.05)' }}>

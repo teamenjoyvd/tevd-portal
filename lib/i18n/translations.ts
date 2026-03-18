@@ -93,6 +93,9 @@ export const translations = {
   'cal.agenda':    { en: 'Agenda',  bg: 'Програма'  },
   'cal.personal':  { en: 'Personal', bg: 'Лично'    },
   'cal.noEvents':  { en: 'No upcoming events.', bg: 'Няма предстоящи събития.' },
+  'cal.inPerson':  { en: 'In-person',  bg: 'На живо'    },
+  'cal.online':    { en: 'Online',     bg: 'Онлайн'     },
+  'cal.hybrid':    { en: 'Hybrid',     bg: 'Хибридно'   },
 
   // Event popup
   'event.roles':           { en: 'Roles',             bg: 'Роли'                           },
