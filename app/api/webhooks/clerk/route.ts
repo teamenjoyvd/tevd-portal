@@ -39,7 +39,8 @@ export async function POST(req: Request) {
   if (evt.type === 'user.created' || evt.type === 'user.updated') {
     const { id, first_name, last_name, email_addresses, public_metadata } = evt.data
 
-    const role = (public_metadata?.role as string) ?? 'member'
+    // New registrations start as 'guest' — promoted to 'member' after ABO verification
+    const role = (public_metadata?.role as string) ?? 'guest'
     const abo_number = (public_metadata?.abo_number as string) ?? null
     const email = email_addresses?.[0]?.email_address ?? ''
 
