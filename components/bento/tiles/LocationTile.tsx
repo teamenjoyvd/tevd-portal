@@ -5,6 +5,8 @@ import BentoCard from '@/components/bento/BentoCard'
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
 const SOFIA: [number, number] = [23.3219, 42.6977]
+// #8A8577 = brand-stone, used as the light-mode shimmer placeholder
+const LIGHT_SHIMMER = '#8A8577'
 
 function getMapStyle(): string {
   const theme = document.documentElement.getAttribute('data-theme')
@@ -39,11 +41,15 @@ function LocationFallback({ colSpan, rowSpan, halfWidthMobile }: { colSpan: numb
 
 export default function LocationTile({ colSpan = 6, rowSpan, halfWidthMobile }: { colSpan?: number; rowSpan?: number; halfWidthMobile?: boolean }) {
   const mapContainer = useRef<HTMLDivElement>(null)
-  const mapRef = useRef<{ remove: () => void; setStyle: (s: string) => void } | null>(null)
+  const mapRef = useRef<{ remove: () => void; setStyle: (s: string) => void; once: (e: string, cb: () => void) => void } | null>(null)
   const [ready, setReady] = useState(false)
+  const [isDark, setIsDark] = useState(false)
 
   useEffect(() => {
     if (!TOKEN || !mapContainer.current) return
+
+    // Read initial theme
+    setIsDark(document.documentElement.getAttribute('data-theme') === 'dark')
 
     function initMap() {
       if (!mapContainer.current) return
@@ -80,19 +86,18 @@ export default function LocationTile({ colSpan = 6, rowSpan, halfWidthMobile }: 
       script.onload = initMap
       document.head.appendChild(script)
     } else {
-      // Script tag exists but not yet loaded — wait for it
       const existing = document.querySelector('script[src*="mapbox-gl"]')!
       existing.addEventListener('load', initMap, { once: true })
     }
 
-    // Watch for theme changes and swap map style accordingly
+    // Watch for theme changes and swap map style + shimmer colour
     const observer = new MutationObserver(() => {
+      const dark = document.documentElement.getAttribute('data-theme') === 'dark'
+      setIsDark(dark)
       if (mapRef.current) {
         setReady(false)
         mapRef.current.setStyle(getMapStyle())
-        // Re-set ready after style loads
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ;(mapRef.current as any).once('styledata', () => setReady(true))
+        mapRef.current.once('styledata', () => setReady(true))
       }
     })
     observer.observe(document.documentElement, {
@@ -129,9 +134,10 @@ export default function LocationTile({ colSpan = 6, rowSpan, halfWidthMobile }: 
         </span>
       </div>
 
-      {/* Shimmer until map tiles load */}
+      {/* Shimmer until map tiles load — dark-forest for dark, brand-stone (#8A8577) for light */}
       {!ready && (
-        <div className="absolute inset-0 z-[1]" style={{ backgroundColor: 'var(--brand-forest)' }} />
+        <div className="absolute inset-0 z-[1]"
+          style={{ backgroundColor: isDark ? 'var(--brand-forest)' : LIGHT_SHIMMER }} />
       )}
     </BentoCard>
   )

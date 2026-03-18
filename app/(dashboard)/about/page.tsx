@@ -1,4 +1,3 @@
-import Image from 'next/image'
 import PageHeading from '@/components/layout/PageHeading'
 import BentoGrid from '@/components/bento/BentoGrid'
 import BentoCard from '@/components/bento/BentoCard'
@@ -9,20 +8,9 @@ export default function AboutPage() {
       <PageHeading title="About Us" subtitle="Our story & vision" />
       <div className="py-8 pb-16">
         <BentoGrid>
-          {/* Square image tile */}
-          <div className="relative rounded-2xl overflow-hidden"
-            style={{ gridColumn: 'span 4', aspectRatio: '1 / 1' }}>
-            <Image
-              src="/hero.png"
-              alt="teamenjoyVD"
-              fill
-              className="object-cover"
-              priority
-            />
-          </div>
 
-          {/* Intro text tile */}
-          <BentoCard variant="default" colSpan={8} className="space-y-4">
+          {/* col-4: heading + body copy */}
+          <BentoCard variant="default" colSpan={4} className="flex flex-col gap-4">
             <h2 className="font-display text-2xl font-semibold" style={{ color: 'var(--text-primary)' }}>
               Hey there!
             </h2>
@@ -43,37 +31,47 @@ export default function AboutPage() {
             </p>
           </BentoCard>
 
-          {/* Contact / socials tile — full width */}
-          <BentoCard variant="forest" colSpan={12} className="flex items-center justify-between gap-8">
-            <p className="text-base leading-relaxed font-body"
-              style={{ color: 'rgba(242,239,232,0.75)' }}>
-              And if you stumbled upon us all by yourself, kudos! Slide into our DMs and
-              let&apos;s have a chat. We love meeting new folks.
-            </p>
-            <div className="flex items-center gap-4 flex-shrink-0">
-              <a href="mailto:teamenjoyvd@gmail.com"
-                className="flex items-center gap-2 text-sm font-semibold transition-opacity hover:opacity-70"
-                style={{ color: 'var(--brand-parchment)' }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-                  stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect width="20" height="16" x="2" y="4" rx="2"/>
-                  <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
-                </svg>
+          {/* col-2: email icon tile */}
+          <BentoCard variant="forest" colSpan={2} className="flex flex-col items-center justify-center gap-3">
+            <a
+              href="mailto:teamenjoyvd@gmail.com"
+              aria-label="Email us"
+              className="flex flex-col items-center gap-3 hover:opacity-80 transition-opacity"
+            >
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none"
+                stroke="var(--brand-parchment)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect width="20" height="16" x="2" y="4" rx="2"/>
+                <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+              </svg>
+              <span className="text-xs font-semibold tracking-widest uppercase"
+                style={{ color: 'var(--brand-parchment)', opacity: 0.7 }}>
                 Email
-              </a>
-              <a href="https://instagram.com/teamenjoyvd" target="_blank" rel="noreferrer"
-                className="flex items-center gap-2 text-sm font-semibold transition-opacity hover:opacity-70"
-                style={{ color: 'var(--brand-parchment)' }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-                  stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect width="20" height="20" x="2" y="2" rx="5" ry="5"/>
-                  <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
-                  <line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/>
-                </svg>
-                Instagram
-              </a>
-            </div>
+              </span>
+            </a>
           </BentoCard>
+
+          {/* col-2: instagram icon tile */}
+          <BentoCard variant="teal" colSpan={2} className="flex flex-col items-center justify-center gap-3">
+            <a
+              href="https://instagram.com/teamenjoyvd"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Instagram"
+              className="flex flex-col items-center gap-3 hover:opacity-80 transition-opacity"
+            >
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none"
+                stroke="var(--brand-parchment)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect width="20" height="20" x="2" y="2" rx="5" ry="5"/>
+                <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
+                <line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/>
+              </svg>
+              <span className="text-xs font-semibold tracking-widest uppercase"
+                style={{ color: 'var(--brand-parchment)', opacity: 0.7 }}>
+                Instagram
+              </span>
+            </a>
+          </BentoCard>
+
         </BentoGrid>
       </div>
     </>
