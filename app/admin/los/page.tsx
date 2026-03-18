@@ -111,14 +111,16 @@ function NodeCard({
               {events.map(ev => {
                 const vs = node.vital_signs.find(v => v.event_key === ev.event_key)
                 const checked = vs?.has_ticket ?? false
+                const noProfile = !node.profile_id
                 return (
                   <label key={ev.event_key}
-                    className="flex items-center gap-1.5 cursor-pointer group">
+                    className={`flex items-center gap-1.5 ${noProfile ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer group'}`}
+                    title={noProfile ? 'No portal account — cannot track vital signs' : undefined}>
                     <input
                       type="checkbox"
                       checked={checked}
-                      disabled={isPending}
-                      onChange={() => onToggle(node.profile_id, ev.event_key, ev.event_label, !checked)}
+                      disabled={isPending || noProfile}
+                      onChange={() => onToggle(node.profile_id!, ev.event_key, ev.event_label, !checked)}
                       className="w-3.5 h-3.5 rounded accent-[var(--brand-crimson)]"
                     />
                     <span className="text-[11px] font-body transition-colors"
@@ -171,6 +173,7 @@ export default function AdminLOSPage() {
         body: JSON.stringify({ event_key, event_label, has_ticket }),
       }).then(r => r.json()),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['los-tree'] }),
+    onError: (err) => console.error('[vital-signs] toggle failed:', err),
   })
 
   const treeRoots = buildTree(flatNodes)
