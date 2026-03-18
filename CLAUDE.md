@@ -1,5 +1,5 @@
 # CLAUDE.md — teamenjoyVD Portal
-> Last updated: 2026-03-18 — Session 6 handover. Current stable: v1.3.0 (ISS-0057, tag a6eff42). Session 6 completed ISS-0081 through ISS-0096, ISS-0099.
+> Last updated: 2026-03-18 — Session 7 handover. Latest commit: 30a90aa. Session 7 completed ISS-0103 through ISS-0124 (QA batch, About page, EET formatting, mobile polish).
 
 ---
 
@@ -117,9 +117,9 @@ All tokens defined in `styles/brand-tokens.css`.
 | `--brand-parchment` | `#FAF8F3` | Warm cream — page bg |
 | `--brand-void` | `#1A1F18` | Near-black — primary text |
 | `--brand-oyster` | `#F0EDE6` | Light warm — card surfaces |
-| `--brand-stone` | `#8A8577` | Mid-grey — secondary text, timestamps |
+| `--brand-stone` | `#8A8577` | Mid-grey — secondary text, timestamps. Also used as LocationTile light-mode shimmer. |
 
-### Semantic Tokens (post ISS-0081/0082)
+### Semantic Tokens
 | Token | Light | Dark |
 |---|---|---|
 | `--text-primary` | `#1A1F18` (brand-void) | `#FAF8F3` (brand-parchment) |
@@ -137,7 +137,7 @@ All tokens defined in `styles/brand-tokens.css`.
 | `forest` | `.card.card--forest` | Dark green — hero, map, forest accent tiles |
 | `crimson` | `.card.card--crimson` | Red — trips tile |
 | `teal` | `.card.card--teal` | Teal — quick links tile |
-| `edge-info` | `.card.card--edge-info` | Left-edge accent (teal border-l-4). Adds `.card--edge-full` to restore all-corners radius when used as standalone bento tile. |
+| `edge-info` | `.card.card--edge-info` | Left-edge accent (teal border-l-4) |
 | `edge-alert` | `.card.card--edge-alert` | Left-edge accent (crimson border-l-4) |
 
 ### Eyebrow Component
@@ -147,18 +147,20 @@ All tokens defined in `styles/brand-tokens.css`.
 
 ### BentoGrid
 - `grid-template-columns: repeat(12, 1fr)` + `gap: 12px` + `auto-rows: minmax(120px, auto)`
-- Outer wrapper: `max-w-[1440px] mx-auto px-8 xl:px-12 2xl:px-16`
-- Mobile: collapses to `grid-template-columns: 1fr`
+- Outer wrapper: `max-w-[1440px] mx-auto px-4 sm:px-8 xl:px-12 2xl:px-16` (px-4 on mobile — ISS-0106)
+- Mobile: 12-col stays, `bento-mobile-full` = `grid-column: 1/-1 !important`, `bento-mobile-half` = `span 6 !important`
 - **Client tile gotcha:** Tile components MUST accept `rowSpan` prop and apply it — otherwise the CSS grid collapses.
 
-### Bento Enter Animation
-Pure CSS in `app/globals.css` — `@keyframes bento-enter` + `.bento-tile` class.
+### Bento Mobile Classes (brand-tokens.css)
+- `.bento-mobile-full` — full width on mobile (Hero, Events, Announcements)
+- `.bento-mobile-half` — half width / 2-col on mobile (Profile, Theme, Trips, Links, Socials, Map, About, Howtos)
+- Applied via `fullWidthMobile` / `halfWidthMobile` props on BentoCard
 
 ---
 
-## 6. Homepage Layout (post v1.3.0)
+## 6. Homepage Layout (current)
 
-12-col, 4-row bento grid. All rows are `rowSpan={2}`.
+12-col, 4-row bento grid. All tiles `rowSpan={2}`.
 
 ```
 ROW 1: Hero(col-6,forest) | Profile(col-2,default) | Events(col-4,default)*
@@ -167,152 +169,119 @@ ROW 3: Socials(col-4,default) | Theme(col-2,default) | Map(col-3,forest) | About
 ROW 4: Howtos(col-12,default)
 ```
 
-**\* = tiles marked with asterisk are conditionally rendered — they return null when data is empty for the current role. The grid auto-fills.**
+**Events tile (ISS-0119):** Each event row = left (name + event_type pill) + right (iOS date square crimson + 24h time). No week number badge.
 
-Notes:
-- Announcements: `variant="default"` (NOT edge-info — confirmed by owner, 2026-03-18)
-- Trips tile: shows `image_url` as 22% opacity overlay when set
-- Socials tile: placeholder until Meta tokens set in Vercel env
+**\* = conditionally rendered — return null when empty. Grid auto-fills.**
 
 ---
 
 ## 7. Navigation
 
 ### Header (components/layout/Header.tsx)
-- Public routes (no auth redirect): `/`, `/about`, `/calendar`, `/trips`
-- Authenticated-only routes: `/profile`, `/notifications`, `/los`, `/howtos`, `/admin`
-- Nav links: Home, About, Calendar, Trips, Guides (/howtos — non-guests only), My Network (/los — non-guests only)
-- **Nav casing:** All nav items use `tracking-widest uppercase` unconditionally — applies to all language variants including BG (ISS-0090, owner override confirmed 2026-03-18).
-- **Guest header:** SIGN IN button replaced by user icon → popup (sign-in + language toggle). Authenticated path unchanged.
+- Public routes: `/`, `/about`, `/calendar`, `/trips`
+- Auth-only: `/profile`, `/notifications`, `/los`, `/howtos`, `/admin`
+- Mobile hamburger: `md:hidden` button, slide-down drawer, outside-click + Escape dismissal
+- Nav casing: `tracking-widest uppercase` unconditionally for all languages
 
 ### Footer (components/layout/Footer.tsx)
-- `'use client'` — uses `useLanguage` for translated nav links
-- Forest bg, parchment text, 3-col layout (brand | nav | socials+email icon)
-- `max-w-[1440px]`, ~100px desktop height
-- Nav links use `tracking-widest uppercase` unconditionally (matches header rule)
-
-### UserPopup (components/layout/UserPopup.tsx)
-- New component (ISS-0092): dialog with Sign In link + language toggle
-- Keyboard dismissible (Escape), outside-click dismissible, focus-trap on mount
+- Logo: `filter: brightness(0) invert(1)` — white on forest bg
+- Nav: `flex-nowrap`, `flex-shrink-0` per link, `overflow-x-auto` — single row always
+- Nav order: Home → About → Calendar → Trips → Guides → My Network
+- 3-col: brand | nav | socials (IG, FB, email icons)
 
 ---
 
-## 8. Directory Structure
+## 8. Key Files & Patterns
+
+### lib/format.ts (NEW — ISS-0124)
+EET/EEST regional formatting helpers. **Always import from here — never inline toLocaleDateString.**
+```ts
+formatDate(iso)       // 18.03.2026
+formatShortDate(iso)  // 18.03.
+formatLongDate(iso)   // Сряда, 18.03.2026  (weekday + date, bg-BG)
+formatTime(iso)       // 14:30  (24h)
+formatDateTime(iso)   // 18.03.2026, 14:30
+formatCurrency(n)     // 1.234,00 €
+calDay(iso)           // 18  (for iOS date square)
+calMonth(iso)         // MAR  (for iOS date square)
+```
+
+### components/about/AboutMapTile.tsx
+Client Mapbox tile for About page. Accepts `gridColumn`, `className`, `style` props. Theme-aware (light-v11/dark-v11), `#8A8577` light shimmer, MutationObserver for theme swap.
+
+### components/events/EventPopup.tsx
+- **Mobile (`<768px`):** Fixed bottom sheet — backdrop + `rounded-t-2xl` panel, `85dvh` max, drag handle
+- **Desktop:** Anchor-relative popover, clamped to viewport on all sides
+
+### components/bento/tiles/LocationTile.tsx
+- Theme-aware via MutationObserver: `light-v11` / `dark-v11`
+- Light shimmer: `#8A8577`, dark shimmer: `var(--brand-forest)`
+- `border: none` override on BentoCard (ISS-0121)
+
+### About Page (app/(dashboard)/about/page.tsx)
+Option B dual layout — `hidden md:block` desktop grid + `md:hidden` mobile stack.
+Desktop: `max-w-[960px]` pure 8-col CSS grid (no BentoGrid). No gutters.
+```
+Row 1+2+3: [col-2 hero rowSpan-3] [col-6 heading row1 + body rowSpan-2]
+Row 2:                              [email col-1] [ig col-1] [map col-2] — fills right cols
+Row 3: (hero + body continue)
+Row 4: [col-8 CTA]
+```
+Mobile: flex-col — heading → hero → body → ig+email 2-col → map → CTA.
+
+---
+
+## 9. Directory Structure
 
 ```
 /app
-  /layout.tsx                    # Root layout, QueryClientProvider, fonts
-  /providers.tsx                 # TanStack Query + Clerk
-  /globals.css                   # bento-enter keyframes, .bento-tile, --cal-height
-  /(auth)
-    /sign-in/[[...sign-in]]/page.tsx  # Branded Clerk appearance (crimson primary)
-    /sign-up/[[...sign-up]]/page.tsx  # Branded Clerk appearance
   /(dashboard)
-    /layout.tsx                  # pt-20 on main (frosted navbar clearance)
-    /page.tsx                    # Homepage — full 12-col BentoGrid server component
-    /about/page.tsx
-    /announcements/page.tsx
-    /calendar/page.tsx
-    /howtos/page.tsx
-    /howtos/[slug]/page.tsx
-    /links/page.tsx
-    /los/page.tsx                # Member LOS view — upline + downlines by level
-    /notifications/page.tsx      # Soft-delete, per-item + bulk clear
-    /profile/page.tsx
-    /trips/page.tsx
+    /page.tsx                    # Homepage — 12-col BentoGrid server component
+    /about/page.tsx              # Option B dual layout (desktop grid + mobile stack)
+    /trips/page.tsx              # 'use client', formatDate + formatCurrency from lib/format
   /admin
-    /layout.tsx                  # forest nav bar — primary nav + People group (Members, LOS Tree, Data Center)
-    /approval-hub/page.tsx
-    /calendar/page.tsx           # Full CRUD for calendar_events
-    /content/page.tsx            # Announcements + Links (both with edit forms) + BentoSettings
-    /data-center/page.tsx
-    /howtos/page.tsx             # Howtos CMS — crash-fixed, publish/draft badge, slug copy button
-    /los/page.tsx
-    /members/page.tsx
-    /members/[id]/page.tsx
-    /notifications/page.tsx      # Audit log — all notifications incl. soft-deleted
-    /operations/page.tsx         # Trips + edit form + milestones + payments
-  /api
-    /admin
-      /announcements/route.ts    # POST, GET
-      /announcements/[id]/route.ts  # PATCH (full body), DELETE
-      /calendar/route.ts         # GET all (admin), POST (sets created_by)
-      /calendar/[id]/route.ts    # PATCH, DELETE
-      /quick-links/route.ts      # POST, GET
-      /quick-links/[id]/route.ts # PATCH (full body), DELETE
-      /vital-signs/[profileId]/route.ts  # PATCH upsert
-      ... (other admin routes)
-    /calendar/route.ts           # Role-filtered, guest-accessible
-    /los/route.ts                # Member LOS — upline + downlines (sponsor chain BFS)
-    /los/tree/route.ts           # Admin/core full tree
-    /notifications/route.ts      # GET (deleted_at IS NULL filter), DELETE (bulk soft-delete)
-    /notifications/[id]/route.ts # PATCH (is_read, deleted_at)
-    /socials/route.ts            # Meta Graph API, revalidate=3600, graceful null
-    /trips/route.ts              # Guest-accessible GET
-    ... (other routes)
+    /calendar/page.tsx           # ascending: true (soonest first) — ISS-0123
+    /notifications/page.tsx      # formatDateTime from lib/format
+  /api/admin/calendar/route.ts   # GET: ascending: true
 /components
+  /about
+    /AboutMapTile.tsx            # Client Mapbox, accepts gridColumn/className/style props
   /bento
-    /BentoCard.tsx               # Eyebrow now accepts optional style prop
-    /BentoGrid.tsx
+    /BentoCard.tsx
+    /BentoGrid.tsx               # px-4 sm:px-8 xl:px-12 2xl:px-16
     /tiles
-      /HowtosTile.tsx
-      /LocationTile.tsx
-      /ProfileTile.tsx           # isAdmin guard (not isAdminOrCore) for Admin link
-      /SocialsTile.tsx           # Meta Graph API tile, graceful fallback
-      /ThemeTile.tsx
-  /calendar
-    /CalendarClient.tsx          # Period selector: AGENDA/DAY/WEEK/MONTH. No 'All' type filter.
+      /LocationTile.tsx          # theme-aware, border:none, #8A8577 shimmer
+  /events
+    /EventPopup.tsx              # mobile bottom sheet / desktop clamped popover
   /layout
-    /Footer.tsx                  # 'use client', useLanguage, forest bg, 3-col, email icon
-    /Header.tsx                  # uppercase all langs, isNonGuest guard, UserPopup for guests
-    /UserDropdown.tsx            # isUnverified label override
-    /UserPopup.tsx               # Guest sign-in + language toggle popup
+    /Footer.tsx                  # logo white filter, flex-nowrap nav, My Network
 /lib
-  /hooks
-    /useLanguage.ts              # Dispatches + listens to 'language-changed' custom event
-    /useNotifications.ts         # + useDeleteNotification, useClearAllNotifications
-  /i18n
-    /translations.ts             # role.admin/core/member/guest keys added; los.upline BG = 'Горна Линия'
+  /format.ts                     # EET formatting helpers (NEW — always use this)
+  /i18n/translations.ts
 /styles
-  /brand-tokens.css              # --text-secondary #5C5950 light / #B5B0A8 dark; --text-tertiary #8A8577
-/supabase
-  /migrations/supabase/migrations/
-    /20260318000001_notifications_soft_delete.sql
-    /20260318000002_core_los_notifications_digest.sql
-    /20260318000003_calendar_event_notifications_core_fanout.sql
-/types
-  /supabase.ts                   # Regenerate after every migration
-/proxy.ts                        # Auth proxy — public: /, /about, /calendar, /trips, /sign-in, /sign-up
+  /brand-tokens.css              # bento-mobile-full, bento-mobile-half, 12-col on mobile
 ```
 
 ---
 
-## 9. Database Schema (key tables — post v1.3.0)
+## 10. Database Schema (key tables)
 
 ### notifications
 `id, profile_id, is_read, type (enum), title, message, action_url, created_at, deleted_at`
-- Soft-delete: `deleted_at timestamptz DEFAULT NULL`. Never hard-deleted.
-- User queries filter `deleted_at IS NULL`. Admin audit log sees all.
-
-### notification_type enum
-`role_request | trip_request | trip_created | event_fetched | doc_expiry | los_digest`
+- Soft-delete: `deleted_at IS NULL` on user queries. Admin audit log sees all.
 
 ### calendar_events
 `id, google_event_id, title, description, start_time, end_time, category, visibility_roles, week_number, event_type, created_at, created_by`
-- `created_by uuid → profiles(id)`: NULL = Google sync / legacy. Non-null = portal-created.
-- Trigger `on_calendar_event_created` fires fan-down + fan-up for Core creators only.
 
 ### profiles
 `id, clerk_id, first_name, last_name, display_names, role, abo_number, document_active_type, id_number, passport_number, valid_through, ical_token, created_at`
 
 ### tree_nodes
 `id, profile_id, parent_id, path (ltree), depth, created_at`
-- **Sparse** — only portal users have entries. `rebuild_tree_paths` must be run after LOS import.
-- `get_core_ancestors(profile_id)` — returns Core profile UUIDs above a given profile.
 
 ---
 
-## 10. Access Control Pattern
+## 11. Access Control
 
 Role hierarchy: `admin > core > member > guest`
 
@@ -321,89 +290,47 @@ Auth required: all other routes
 
 ---
 
-## 11. LOS Tree & Notifications (post v1.3.0)
+## 12. LOS Tree & Notifications
 
-### LOS Notifications
-- **notify_role_request**: notifies admins + Core ancestors of requester (ISS-0044)
-- **notify_trip_created**: notifies all member/core/admin (existing — Core already included)
-- **notify_calendar_event_created**: Core-created events fan-down to ltree descendants + fan-up to Core ancestors (ISS-0057)
-- **run_los_digest**: pg_cron daily at 06:00 UTC, trip_request + doc_expiry digest for Core members (ISS-0044)
-- **get_core_ancestors(uuid)**: ltree ancestor query on tree_nodes → Core profile UUIDs
-
-### Member LOS View (/los)
-- Uses `get_los_members_with_profiles()` RPC — all members flat
-- Upline: walk `sponsor_abo_number` chain to root (ltree NOT used — tree_nodes too sparse)
-- Downlines: BFS from children index, grouped by relative_level
-- Access: member/core/admin only, guests redirect to /
-
----
-
-## 12. iCal Feed
-
-- `GET /api/calendar/feed-token` — generate/return JWT
-- `POST /api/calendar/feed-token` — regenerate (revokes old URL)
-- `GET /api/calendar/feed.ics?token=<jwt>` — no Clerk session needed
-- Permanent subscription URL by design
+- **notify_role_request**: admins + Core ancestors of requester
+- **notify_trip_created**: all member/core/admin
+- **notify_calendar_event_created**: Core-created → fan-down descendants + fan-up Core ancestors
+- **run_los_digest**: pg_cron daily 06:00 UTC
+- **get_core_ancestors(uuid)**: ltree query on tree_nodes → Core profile UUIDs
 
 ---
 
 ## 13. Calendar
 
-### --cal-height CSS var (app/globals.css)
+### --cal-height CSS var
 ```css
-:root { --cal-height: calc(100dvh - 244px); }  /* mobile */
-@media (min-width: 768px) {
-  :root { --cal-height: calc(100dvh - 196px); } /* desktop */
-}
+:root { --cal-height: calc(100dvh - 244px); }
+@media (min-width: 768px) { :root { --cal-height: calc(100dvh - 196px); } }
 ```
-Accounts for: `pt-20` (80px) + `PageHeading py-8` (64px) + toolbar height.
-If PageHeading or toolbar height changes, update this var.
-
-### Event type filter
-CalendarClient has `filterType` state (`null | 'in-person' | 'online' | 'hybrid'`).
-'All' button removed — clicking an active filter deactivates it. Combinable with N21/Personal category filter. Client-side, no re-fetch.
 
 ### Period selector order
-AGENDA → DAY → WEEK → MONTH (left to right).
+AGENDA → DAY → WEEK → MONTH
+
+### Event type filter
+Client-side `filterType` state. Clicking active filter deactivates it. Combinable with N21/Personal.
 
 ---
 
 ## 14. Admin
 
-### Content Page (admin/content)
-- Announcements: create + toggle + delete + **edit** (inline form, all langs)
-- Quick Links: create + delete + **edit** (inline form)
-- Bento Settings: tile max_items config
+### Calendar (admin/calendar)
+- Events ordered ascending by `start_time` (soonest first) — ISS-0123
+- Full CRUD, week_number auto-computed
 
-### Operations Page (admin/operations)
-- Trips: create + delete + **edit** (full form with milestones + visibility)
-- Payments: log payments against approved registrations
+### Operations (admin/operations)
+Trips CRUD + milestones + payments. formatCurrency from lib/format.
 
-### Calendar Page (admin/calendar)
-- Full CRUD — title, description, start/end, category, event_type, visibility_roles
-- week_number auto-computed from start_time if omitted
-- Google-synced events visible and editable (no double-fire risk — sync deduplicates on google_event_id)
-
-### Howtos CMS (admin/howtos)
-- Block editor: heading / paragraph / callout blocks, EN+BG+SK
-- Published/Draft: state badge (green/grey) + separate action button (Publish/Unpublish)
-- Slug field: auto-generates from EN title, manual override, **Copy URL button** (copies full `/howtos/{slug}` URL)
-- Edit crash fixed: body/access_roles normalised to arrays on load
-
-### LOS Tree (admin/los)
-- Vital sign checkboxes: disabled for members without portal profile_id (profile_id=null → no-op, now guarded)
-
-### Notifications Audit Log (admin/notifications)
-- All notifications ever fired, including soft-deleted
-- Paginated 50/page, read-only
-
-### Admin Nav (admin/layout.tsx)
-- Primary: Approval Hub, Operations, Calendar, Content, Howtos, Notifications
-- People group (separated by | divider + label): Members, LOS Tree, Data Center
+### Notifications Audit Log
+All-time, including soft-deleted. Paginated 50/page. formatDateTime from lib/format.
 
 ---
 
-## 15. Key Gotchas & Decisions (updated 2026-03-18, Session 6)
+## 15. Key Gotchas & Decisions (updated 2026-03-18, Session 7)
 
 | Topic | Rule |
 |---|---|
@@ -411,21 +338,23 @@ AGENDA → DAY → WEEK → MONTH (left to right).
 | `cookies()` | Must be `await`ed in Next.js 16 |
 | Tailwind v4 | No `@layer components` + `@apply`. Inline utilities only. |
 | Mapbox GL JS | CDN only. Dupe guard on script load. Logo/attrib hidden via globals.css. |
+| Mapbox theme swap | `map.setStyle()` + listen for `styledata` event to re-set ready flag. MutationObserver on `data-theme`. |
 | Client tiles + rowSpan | Must apply `gridRow: span N` to outermost element or grid collapses. |
-| Nav casing | `tracking-widest uppercase` for ALL languages including BG. Owner overrode previous Cyrillic exception (ISS-0090, 2026-03-18). |
+| Nav casing | `tracking-widest uppercase` for ALL languages including BG. |
 | Eyebrow on teal/forest | Pass `style={{ color: 'var(--brand-parchment)' }}` to override default crimson. |
 | Soft-delete notifications | `deleted_at IS NULL` filter on all user-facing queries. Admin sees all. |
-| tree_nodes sparsity | Only portal users have entries. `rebuild_tree_paths` must run after LOS import. All ltree-based features self-heal on first real import. |
 | Clerk appearance | CSS vars NOT available in Clerk shadow DOM. Use hardcoded hex (#bc4749 for crimson). |
-| useLanguage | Dispatches `window.dispatchEvent(new Event('language-changed'))` on toggle. All mounted instances subscribe and re-render. |
-| Homepage empty tiles | Events/Trips/Announcements/Links render null when empty — no placeholder text. Grid auto-fills. |
-| Announcements tile | `variant="default"` (NOT edge-info). Owner confirmed 2026-03-18. |
-| `types/supabase.ts` | Regenerate after EVERY migration using Supabase MCP `generate_typescript_types`. |
-| `.env.example` | Force-commit with `git add -f .env.example`. |
-| `<img>` vs `next/image` | Use `<img>` for user-uploaded images (trip image_url, Meta CDN thumbnails) — domains unpredictable. |
-| timeAgo() | Duplicated in notifications/page.tsx, SocialsTile.tsx. Acceptable until 4th duplicate. |
-| Admin link in ProfileTile | Render-guarded to `role === 'admin'` only (not isAdminOrCore). |
-| ProfileTile ROLE_LABELS | Still uses hardcoded map — not yet wired to `t('role.X')` keys. Follow-up needed. |
+| useLanguage | Dispatches `window.dispatchEvent(new Event('language-changed'))` on toggle. |
+| Homepage empty tiles | Events/Trips/Announcements/Links render null when empty. Grid auto-fills. |
+| Date/time formatting | ALWAYS use `lib/format.ts`. Never inline toLocaleDateString. EET = bg-BG locale, 24h, DD.MM.YYYY. |
+| Currency formatting | `formatCurrency()` from lib/format.ts → `1.234,00 €` (de-DE Intl). |
+| LocationTile border | Overridden with `style={{ border: 'none' }}` on BentoCard — forest variant still shows .card border otherwise. |
+| EventPopup mobile | Bottom sheet pattern (`fixed bottom-0`, `85dvh`, backdrop). NOT anchor-relative on mobile. |
+| About page layout | Option B: `hidden md:block` desktop grid + `md:hidden` mobile stack. Do NOT merge into one responsive grid. |
+| Admin calendar order | `ascending: true` in `/api/admin/calendar` GET. Soonest first. |
+| `types/supabase.ts` | Regenerate after EVERY migration. |
+| `<img>` vs `next/image` | Use `<img>` for user-uploaded images (trip image_url, Meta CDN) — domains unpredictable. |
+| Admin link in ProfileTile | `role === 'admin'` only. |
 
 ---
 
@@ -435,20 +364,27 @@ AGENDA → DAY → WEEK → MONTH (left to right).
 |---|---|---|---|
 | v1.0.0 | 2026-03-01 | Shipped | Core Auth & LOS |
 | v1.2.0 | 2026-03-16 | Shipped | Calendar rewrite, approval hub, member profiles |
-| v1.3.0 | 2026-03-18 | **Shipped** | Admin CRUD, QA fixes, LOS views, Core notifications, bento polish |
+| v1.3.0 | 2026-03-18 | Shipped | Admin CRUD, QA fixes, LOS views, Core notifications, bento polish |
+| v1.4.0 | 2026-03-18 | **Shipped** | Session 7: About page, mobile overhaul, QA batch, EET formatting, lib/format.ts |
 
-Git tag: `v1.3.0 → a6eff42`
+Latest commit: `30a90aa`
 
 ---
 
-## 17. Pending Issues (backlog as of 2026-03-18, post Session 6)
+## 17. Pending Issues (backlog as of 2026-03-18, post Session 7)
 
-| ID | Name | Priority | Notes |
-|---|---|---|---|
-| ISS-0056 | Meta token expiry alert + refresh flow | Low | Follow-up from ISS-0038. Needs FB_APP_ID + FB_APP_SECRET. |
-| ISS-0082 (done) | Dark mode --text-secondary | — | Done. #B5B0A8 in [data-theme=dark]. |
-
-All other tickets are Done or Not relevant.
+| ID | Name | Priority | Status | Notes |
+|---|---|---|---|---|
+| ISS-0056 | Meta token expiry alert + refresh flow | Low | Blocked | Needs FB_APP_ID + FB_APP_SECRET in Vercel |
+| ISS-0100 | Admin Guides: access level setting | P2 | Blocked | Blocked on ISS-0094 |
+| ISS-0103 | EPIC: Two-column inner page layout | P2 | Needs Design | Design spec required before implementation |
+| ISS-0104 | SPIKE: Animations micro-interactions | P3 | Needs Design | — |
+| ISS-0105 | Calendar redesign (Dribbble ref) | P2 | Needs Design | — |
+| ISS-0107 | Howtos bento internals overhaul | P2 | Needs Design | — |
+| ISS-0108 | Howtos inner page two-col layout | P2 | To Do | Blocked on ISS-0103 design |
+| ISS-0109 | Trips inner page two-col layout | P2 | To Do | Blocked on ISS-0098 + ISS-0103 |
+| ISS-0110 | Site-wide translation audit | P2 | To Do | Partially done (ISS-0113). Full completion = ISS-0115 shipped |
+| ISS-0115 | i18n: missing keys trips + ProfileTile | P3 | To Do | trips.memberOnly, trips.accommodation, profile.signIn, profile.profileLink, profile.adminLink, profile.unverified |
 
 ---
 
@@ -457,8 +393,8 @@ All other tickets are Done or Not relevant.
 1. Read existing function/table first with `execute_sql`
 2. DDL changes → `apply_migration` (never raw `execute_sql` for DDL)
 3. Verify with `execute_sql` after
-4. Save SQL file to `supabase/migrations/supabase/migrations/YYYYMMDDNNNNNN_name.sql`
-5. Run `generate_typescript_types` → write output to `types/supabase.ts`
+4. Save SQL to `supabase/migrations/supabase/migrations/YYYYMMDDNNNNNN_name.sql`
+5. Run `generate_typescript_types` → write to `types/supabase.ts`
 6. `npx tsc --noEmit` → zero errors → commit
 
 ### RLS Pattern
