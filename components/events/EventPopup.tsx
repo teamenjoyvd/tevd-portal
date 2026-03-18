@@ -62,7 +62,7 @@ export default function EventPopup({
   const qc = useQueryClient()
   const { t } = useLanguage()
   const popoverRef = useRef<HTMLDivElement>(null)
-  const [position, setPosition] = useState<{ top: number; left: number } | null>(null)
+  const [position, setPosition] = useState<{ top: number; left: number; isBottomSheet: boolean } | null>(null)
 
   const { data: event, isLoading } = useQuery<EventDetail>({
     queryKey: ['event', eventId],
@@ -70,23 +70,36 @@ export default function EventPopup({
   })
 
   useEffect(() => {
-    if (!anchorRect || !popoverRef.current) return
-    const popW = 320
-    const popH = popoverRef.current.offsetHeight || 420
+    if (!anchorRect) return
     const vw = window.innerWidth
     const vh = window.innerHeight
-    const scroll = window.scrollY
 
-    let left = anchorRect.left + anchorRect.width / 2 - popW / 2
-    let top  = anchorRect.bottom + scroll + 8
-
-    left = Math.max(8, Math.min(left, vw - popW - 8))
-
-    if (anchorRect.bottom + popH + 8 > vh) {
-      top = anchorRect.top + scroll - popH - 8
+    // On mobile: use bottom sheet instead of anchor-relative popup
+    if (vw < 768) {
+      setPosition({ top: 0, left: 0, isBottomSheet: true })
+      return
     }
 
-    setPosition({ top, left })
+    const popW = 320
+    const popH = popoverRef.current?.offsetHeight || 420
+    const scroll = window.scrollY
+    const MARGIN = 8
+
+    let left = anchorRect.left + anchorRect.width / 2 - popW / 2
+    let top  = anchorRect.bottom + scroll + MARGIN
+
+    // Clamp horizontal
+    left = Math.max(MARGIN, Math.min(left, vw - popW - MARGIN))
+
+    // Flip above anchor if not enough room below
+    if (anchorRect.bottom + popH + MARGIN > vh) {
+      top = anchorRect.top + scroll - popH - MARGIN
+    }
+
+    // Clamp vertical: never above viewport top
+    top = Math.max(scroll + MARGIN, top)
+
+    setPosition({ top, left, isBottomSheet: false })
   }, [anchorRect, event])
 
   useEffect(() => {
@@ -150,22 +163,8 @@ export default function EventPopup({
 
   const isMutating = requestMutation.isPending || cancelMutation.isPending
 
-  return (
-    <div
-      ref={popoverRef}
-      className="fixed z-50 rounded-2xl overflow-hidden"
-      style={{
-        top: position?.top ?? 0,
-        left: position?.left ?? 0,
-        width: 320,
-        backgroundColor: 'var(--bg-global)',
-        border: '1px solid var(--border-default)',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)',
-        opacity: position ? 1 : 0,
-        pointerEvents: position ? 'auto' : 'none',
-        transition: 'opacity 0.1s ease',
-      }}
-    >
+  const popupContent = (
+    <>
       {/* Header */}
       <div className="px-4 pt-4 pb-3 border-b border-black/5">
         <div className="flex items-start justify-between gap-2">
@@ -260,7 +259,6 @@ export default function EventPopup({
                 {t('event.roles')}
               </p>
 
-              {/* Admin view: list all requests with approve/deny */}
               {isAdmin && (
                 <>
                   {visibleRoleRequests.length > 0 ? (
@@ -318,7 +316,6 @@ export default function EventPopup({
                 </>
               )}
 
-              {/* Member view: 3-pill role selection */}
               {!isAdmin && canRequestRole && (
                 <div className="flex gap-2">
                   {ROLE_PILLS.map(role => {
@@ -353,7 +350,6 @@ export default function EventPopup({
                 </div>
               )}
 
-              {/* Guest / unauthenticated */}
               {!isAdmin && !canRequestRole && (
                 <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
                   {t('event.signInForRole')}
@@ -363,6 +359,59 @@ export default function EventPopup({
           </>
         ) : null}
       </div>
+    </>
+  )
+
+  // ── Mobile bottom sheet ────────────────────────────────────────────────────
+  if (position?.isBottomSheet) {
+    return (
+      <>
+        {/* Backdrop */}
+        <div
+          className="fixed inset-0 z-40"
+          style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}
+          onClick={onClose}
+        />
+        {/* Sheet */}
+        <div
+          ref={popoverRef}
+          className="fixed bottom-0 left-0 right-0 z-50 rounded-t-2xl overflow-hidden"
+          style={{
+            backgroundColor: 'var(--bg-global)',
+            boxShadow: '0 -4px 32px rgba(0,0,0,0.18)',
+            maxHeight: '85dvh',
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          {/* Drag handle */}
+          <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
+            <div className="w-8 h-1 rounded-full" style={{ backgroundColor: 'rgba(0,0,0,0.15)' }} />
+          </div>
+          {popupContent}
+        </div>
+      </>
+    )
+  }
+
+  // ── Desktop popover ────────────────────────────────────────────────────
+  return (
+    <div
+      ref={popoverRef}
+      className="fixed z-50 rounded-2xl overflow-hidden"
+      style={{
+        top: position?.top ?? 0,
+        left: position?.left ?? 0,
+        width: 320,
+        backgroundColor: 'var(--bg-global)',
+        border: '1px solid var(--border-default)',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)',
+        opacity: position ? 1 : 0,
+        pointerEvents: position ? 'auto' : 'none',
+        transition: 'opacity 0.1s ease',
+      }}
+    >
+      {popupContent}
     </div>
   )
 }

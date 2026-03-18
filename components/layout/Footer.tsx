@@ -10,6 +10,7 @@ const NAV = [
   { href: '/calendar', labelKey: 'nav.calendar' },
   { href: '/trips',    labelKey: 'nav.trips'    },
   { href: '/howtos',   labelKey: 'nav.howtos'   },
+  { href: '/los',      labelKey: 'nav.network'  },
 ]
 
 export default function Footer() {
@@ -25,7 +26,14 @@ export default function Footer() {
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0"
                 style={{ border: '1px solid rgba(255,255,255,0.15)' }}>
-                <Image src="/logo.png" alt="teamenjoyVD" width={32} height={32} className="object-contain" />
+                <Image
+                  src="/logo.png"
+                  alt="teamenjoyVD"
+                  width={32}
+                  height={32}
+                  className="object-contain"
+                  style={{ filter: 'brightness(0) invert(1)' }}
+                />
               </div>
               <span className="font-display text-sm font-bold tracking-tight" style={{ color: 'var(--brand-parchment)' }}>
                 TEAMENJOY<span style={{ color: 'var(--brand-crimson)' }}>VD</span>
@@ -36,13 +44,13 @@ export default function Footer() {
             </p>
           </div>
 
-          {/* Col 2 — Nav */}
-          <nav className="flex flex-wrap gap-x-5 gap-y-2 justify-start md:justify-center">
+          {/* Col 2 — Nav: nowrap, single row on all sizes */}
+          <nav className="flex flex-nowrap items-center gap-x-4 justify-start md:justify-center overflow-x-auto">
             {NAV.map(({ href, labelKey }) => (
               <Link
                 key={href}
                 href={href}
-                className="text-xs font-medium tracking-widest uppercase transition-opacity hover:opacity-100"
+                className="text-xs font-medium tracking-widest uppercase transition-opacity hover:opacity-100 flex-shrink-0"
                 style={{ color: 'rgba(242,239,232,0.55)', opacity: 0.8 }}
               >
                 {t(labelKey as Parameters<typeof t>[0])}

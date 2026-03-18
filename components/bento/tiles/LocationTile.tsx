@@ -5,7 +5,6 @@ import BentoCard from '@/components/bento/BentoCard'
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
 const SOFIA: [number, number] = [23.3219, 42.6977]
-// #8A8577 = brand-stone, used as the light-mode shimmer placeholder
 const LIGHT_SHIMMER = '#8A8577'
 
 function getMapStyle(): string {
@@ -17,7 +16,9 @@ function getMapStyle(): string {
 
 function LocationFallback({ colSpan, rowSpan, halfWidthMobile }: { colSpan: number; rowSpan?: number; halfWidthMobile?: boolean }) {
   return (
-    <BentoCard variant="forest" colSpan={colSpan} rowSpan={rowSpan} halfWidthMobile={halfWidthMobile} className="relative flex items-end">
+    <BentoCard variant="forest" colSpan={colSpan} rowSpan={rowSpan} halfWidthMobile={halfWidthMobile}
+      className="relative flex items-end"
+      style={{ border: 'none' }}>
       <div className="absolute inset-0 flex items-center justify-center opacity-10">
         <svg width="80" height="80" viewBox="0 0 24 24" fill="none"
           stroke="var(--brand-parchment)" strokeWidth="0.5">
@@ -48,7 +49,6 @@ export default function LocationTile({ colSpan = 6, rowSpan, halfWidthMobile }: 
   useEffect(() => {
     if (!TOKEN || !mapContainer.current) return
 
-    // Read initial theme
     setIsDark(document.documentElement.getAttribute('data-theme') === 'dark')
 
     function initMap() {
@@ -69,7 +69,6 @@ export default function LocationTile({ colSpan = 6, rowSpan, halfWidthMobile }: 
       map.on('load', () => setReady(true))
     }
 
-    // Inject CSS first so it's available when map renders
     if (!document.querySelector('link[href*="mapbox-gl"]')) {
       const link = document.createElement('link')
       link.rel = 'stylesheet'
@@ -90,7 +89,6 @@ export default function LocationTile({ colSpan = 6, rowSpan, halfWidthMobile }: 
       existing.addEventListener('load', initMap, { once: true })
     }
 
-    // Watch for theme changes and swap map style + shimmer colour
     const observer = new MutationObserver(() => {
       const dark = document.documentElement.getAttribute('data-theme') === 'dark'
       setIsDark(dark)
@@ -117,8 +115,7 @@ export default function LocationTile({ colSpan = 6, rowSpan, halfWidthMobile }: 
   return (
     <BentoCard variant="forest" colSpan={colSpan} rowSpan={rowSpan} halfWidthMobile={halfWidthMobile}
       className="relative overflow-hidden p-0"
-      style={{ minHeight: 200 }}>
-      {/* Map container — must have explicit dimensions */}
+      style={{ minHeight: 200, border: 'none' }}>
       <div ref={mapContainer} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} />
 
       {/* Sofia label overlay */}
@@ -134,7 +131,6 @@ export default function LocationTile({ colSpan = 6, rowSpan, halfWidthMobile }: 
         </span>
       </div>
 
-      {/* Shimmer until map tiles load — dark-forest for dark, brand-stone (#8A8577) for light */}
       {!ready && (
         <div className="absolute inset-0 z-[1]"
           style={{ backgroundColor: isDark ? 'var(--brand-forest)' : LIGHT_SHIMMER }} />

@@ -11,7 +11,7 @@ export async function GET() {
   const { data, error } = await supabase
     .from('calendar_events')
     .select('*')
-    .order('start_time', { ascending: false })
+    .order('start_time', { ascending: true })
   if (error) return Response.json({ error: error.message }, { status: 500 })
   return Response.json(data)
 }
@@ -30,9 +30,6 @@ export async function POST(req: Request) {
     const startOfYear = new Date(d.getFullYear(), 0, 1)
     body.week_number = Math.ceil(((d.getTime() - startOfYear.getTime()) / 86400000 + startOfYear.getDay() + 1) / 7)
   }
-  // Set created_by so the notification trigger can identify the creator
-  // Admin-created events intentionally leave created_by as the admin's profile ID —
-  // the trigger checks role='core' and exits immediately for admin creators.
   body.created_by = caller.id
 
   const { data, error } = await supabase.from('calendar_events').insert(body).select().single()
