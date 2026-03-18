@@ -77,21 +77,18 @@ export default function AboutPage() {
             display: 'grid',
             gridTemplateColumns: 'repeat(8, minmax(0, 1fr))',
             gap: '12px',
-            gridAutoRows: 'minmax(100px, auto)',
+            gridAutoRows: 'auto',
           }}
         >
-          {/* Row 1 col 1-2: heading */}
-          <div
-            style={{ gridColumn: 'span 2' }}
-            className="flex items-start pt-1"
-          >
+          {/* Row 1 col 1-2: heading — top-aligned, flush with text */}
+          <div style={{ gridColumn: 'span 2' }} className="flex items-start">
             {HEADING}
           </div>
 
-          {/* Row 1-3 col 3-8: body text, rowSpan 3 */}
+          {/* Row 1-3 col 3-8: body text, rowSpan 3, starts at top */}
           <div
             style={{ gridColumn: 'span 6', gridRow: 'span 3' }}
-            className="flex flex-col justify-center"
+            className="flex flex-col justify-start"
           >
             {BODY}
           </div>
@@ -124,12 +121,12 @@ export default function AboutPage() {
           <div style={{ gridColumn: 'span 2' }} />
 
           {/* Row 4 col 5-6: email — crimson */}
-          <div style={{ gridColumn: 'span 2', minHeight: 80 }}>
+          <div style={{ gridColumn: 'span 2', minHeight: 120 }}>
             {EMAIL_TILE}
           </div>
 
           {/* Row 4 col 7-8: CTA — forest */}
-          <div style={{ gridColumn: 'span 2', minHeight: 80 }}>
+          <div style={{ gridColumn: 'span 2', minHeight: 120 }}>
             {CTA_TILE}
           </div>
 
