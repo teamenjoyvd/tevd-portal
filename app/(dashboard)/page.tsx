@@ -8,6 +8,7 @@ import HowtosTile from '@/components/bento/tiles/HowtosTile'
 import LocationTile from '@/components/bento/tiles/LocationTile'
 import ThemeTile from '@/components/bento/tiles/ThemeTile'
 import SocialsTile from '@/components/bento/tiles/SocialsTile'
+import { formatDate, formatTime, calDay, calMonth } from '@/lib/format'
 
 type Announcement = {
   id: string; titles: Record<string, string>; contents: Record<string, string>
@@ -15,21 +16,6 @@ type Announcement = {
 }
 type QuickLink = { id: string; label: string; url: string; icon_name: string }
 type Trip = { id: string; title: string; destination: string; start_date: string; image_url: string | null }
-
-function formatTripDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-}
-
-// iOS-style calendar date square helpers
-function calDay(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric' })
-}
-function calMonth(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-GB', { month: 'short' }).toUpperCase()
-}
-function calTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })
-}
 
 const EVENT_TYPE_LABELS: Record<string, string> = {
   'in-person': 'In-Person',
@@ -122,7 +108,7 @@ export default async function HomePage() {
                     </div>
                   </div>
                   <span className="font-body text-[9px] font-medium mt-1" style={{ color: 'var(--text-secondary)' }}>
-                    {calTime(event.start_time)}
+                    {formatTime(event.start_time)}
                   </span>
                 </div>
               </div>
@@ -152,7 +138,7 @@ export default async function HomePage() {
             <div className="mt-3">
               <span className="font-body text-[11px] font-bold px-2 py-0.5 rounded-full mb-2 inline-block" style={{ backgroundColor: 'rgba(255,255,255,0.18)', color: 'var(--brand-parchment)' }}>{nextTrip.destination}</span>
               <h3 className="font-display text-base font-semibold leading-snug" style={{ color: 'var(--brand-parchment)' }}>{nextTrip.title}</h3>
-              <p className="font-body text-[11px] mt-1" style={{ color: 'rgba(242,239,232,0.6)' }}>{formatTripDate(nextTrip.start_date)}</p>
+              <p className="font-body text-[11px] mt-1" style={{ color: 'rgba(242,239,232,0.6)' }}>{formatDate(nextTrip.start_date)}</p>
             </div>
           </div>
           <Link href="/trips" className="font-body text-[11px] font-bold tracking-widest uppercase mt-4 hover:underline self-start opacity-70 hover:opacity-100 transition-opacity" style={{ color: 'var(--brand-parchment)' }}>View trips →</Link>

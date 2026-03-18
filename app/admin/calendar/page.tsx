@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { formatDateTime } from '@/lib/format'
 
 type CalEvent = {
   id: string
@@ -33,13 +34,6 @@ function emptyForm() {
   }
 }
 
-function formatDT(iso: string) {
-  return new Date(iso).toLocaleString('en-GB', {
-    day: 'numeric', month: 'short', year: 'numeric',
-    hour: '2-digit', minute: '2-digit',
-  })
-}
-
 export default function AdminCalendarPage() {
   const qc = useQueryClient()
   const [creating, setCreating] = useState(false)
@@ -59,12 +53,7 @@ export default function AdminCalendarPage() {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       }).then(async r => { if (!r.ok) throw new Error((await r.json()).error); return r.json() }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['admin-calendar'] })
-      setCreating(false)
-      setForm(emptyForm())
-      setFormError(null)
-    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-calendar'] }); setCreating(false); setForm(emptyForm()); setFormError(null) },
     onError: (e: Error) => setFormError(e.message),
   })
 
@@ -74,11 +63,7 @@ export default function AdminCalendarPage() {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       }).then(async r => { if (!r.ok) throw new Error((await r.json()).error); return r.json() }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['admin-calendar'] })
-      setEditing(null)
-      setFormError(null)
-    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-calendar'] }); setEditing(null); setFormError(null) },
     onError: (e: Error) => setFormError(e.message),
   })
 
@@ -89,12 +74,8 @@ export default function AdminCalendarPage() {
 
   function startEditing(ev: CalEvent) {
     setEditForm({
-      title: ev.title,
-      description: ev.description ?? '',
-      start_time: ev.start_time.slice(0, 16),
-      end_time: ev.end_time.slice(0, 16),
-      week_number: ev.week_number,
-      category: ev.category,
+      title: ev.title, description: ev.description ?? '', start_time: ev.start_time.slice(0, 16),
+      end_time: ev.end_time.slice(0, 16), week_number: ev.week_number, category: ev.category,
       event_type: ev.event_type,
       visibility_roles: Array.isArray(ev.visibility_roles) ? ev.visibility_roles : [...ALL_ROLES],
     })
@@ -147,10 +128,7 @@ export default function AdminCalendarPage() {
               {CATEGORIES.map(c => (
                 <button key={c} onClick={() => setF(p => ({ ...p, category: c }))}
                   className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
-                  style={{
-                    backgroundColor: f.category === c ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)',
-                    color: f.category === c ? 'var(--brand-parchment)' : 'var(--text-secondary)',
-                  }}>
+                  style={{ backgroundColor: f.category === c ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)', color: f.category === c ? 'var(--brand-parchment)' : 'var(--text-secondary)' }}>
                   {c}
                 </button>
               ))}
@@ -162,10 +140,7 @@ export default function AdminCalendarPage() {
               {EVENT_TYPES.map(t => (
                 <button key={t} onClick={() => setF(p => ({ ...p, event_type: f.event_type === t ? null : t }))}
                   className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
-                  style={{
-                    backgroundColor: f.event_type === t ? 'var(--brand-teal)' : 'rgba(0,0,0,0.06)',
-                    color: f.event_type === t ? 'white' : 'var(--text-secondary)',
-                  }}>
+                  style={{ backgroundColor: f.event_type === t ? 'var(--brand-teal)' : 'rgba(0,0,0,0.06)', color: f.event_type === t ? 'white' : 'var(--text-secondary)' }}>
                   {t}
                 </button>
               ))}
@@ -182,10 +157,7 @@ export default function AdminCalendarPage() {
                     : [...p.visibility_roles, role],
                 }))}
                   className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
-                  style={{
-                    backgroundColor: f.visibility_roles.includes(role) ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)',
-                    color: f.visibility_roles.includes(role) ? 'var(--brand-parchment)' : 'var(--text-secondary)',
-                  }}>
+                  style={{ backgroundColor: f.visibility_roles.includes(role) ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)', color: f.visibility_roles.includes(role) ? 'var(--brand-parchment)' : 'var(--text-secondary)' }}>
                   {role}
                 </button>
               ))}
@@ -228,23 +200,17 @@ export default function AdminCalendarPage() {
       </div>
 
       {creating && (
-        <EventForm
-          f={form} setF={setForm as never}
+        <EventForm f={form} setF={setForm as never}
           onSave={() => createMutation.mutate(form)}
           onCancel={() => { setCreating(false); setForm(emptyForm()); setFormError(null) }}
-          isPending={createMutation.isPending}
-          label="Create event"
-        />
+          isPending={createMutation.isPending} label="Create event" />
       )}
 
       {editing && (
-        <EventForm
-          f={editForm} setF={setEditForm as never}
+        <EventForm f={editForm} setF={setEditForm as never}
           onSave={() => updateMutation.mutate({ id: editing.id, ...editForm })}
           onCancel={() => { setEditing(null); setFormError(null) }}
-          isPending={updateMutation.isPending}
-          label="Save changes"
-        />
+          isPending={updateMutation.isPending} label="Save changes" />
       )}
 
       {isLoading ? (
@@ -258,8 +224,7 @@ export default function AdminCalendarPage() {
       ) : (
         <div className="rounded-2xl border overflow-hidden" style={{ borderColor: 'var(--border-default)' }}>
           {events.map((ev, i) => (
-            <div key={ev.id}
-              className="px-5 py-4 flex items-center gap-4"
+            <div key={ev.id} className="px-5 py-4 flex items-center gap-4"
               style={{ borderTop: i > 0 ? '1px solid var(--border-default)' : 'none', backgroundColor: i % 2 === 0 ? 'white' : 'var(--bg-global)' }}>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap mb-0.5">
@@ -276,26 +241,20 @@ export default function AdminCalendarPage() {
                   )}
                   {ev.google_event_id && (
                     <span className="text-[10px] px-2 py-0.5 rounded-full"
-                      style={{ backgroundColor: 'rgba(0,0,0,0.05)', color: 'var(--text-secondary)' }}>
-                      Google
-                    </span>
+                      style={{ backgroundColor: 'rgba(0,0,0,0.05)', color: 'var(--text-secondary)' }}>Google</span>
                   )}
                 </div>
                 <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                  {formatDT(ev.start_time)} → {formatDT(ev.end_time)} · W{ev.week_number}
+                  {formatDateTime(ev.start_time)} → {formatDateTime(ev.end_time)} · W{ev.week_number}
                   {' · '}{ev.visibility_roles.join(', ')}
                 </p>
               </div>
               <div className="flex items-center gap-3 flex-shrink-0">
                 <button onClick={() => startEditing(ev)}
-                  className="text-xs hover:opacity-70 transition-opacity" style={{ color: 'var(--text-secondary)' }}>
-                  Edit
-                </button>
+                  className="text-xs hover:opacity-70 transition-opacity" style={{ color: 'var(--text-secondary)' }}>Edit</button>
                 <button onClick={() => { if (confirm(`Delete "${ev.title}"?`)) deleteMutation.mutate(ev.id) }}
                   disabled={deleteMutation.isPending}
-                  className="text-xs hover:opacity-70 transition-opacity disabled:opacity-30" style={{ color: 'var(--brand-crimson)' }}>
-                  Delete
-                </button>
+                  className="text-xs hover:opacity-70 transition-opacity disabled:opacity-30" style={{ color: 'var(--brand-crimson)' }}>Delete</button>
               </div>
             </div>
           ))}

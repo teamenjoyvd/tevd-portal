@@ -8,6 +8,7 @@ import RegisterButton from '@/components/trips/RegisterButton'
 import PageHeading from '@/components/layout/PageHeading'
 import BentoGrid from '@/components/bento/BentoGrid'
 import BentoCard from '@/components/bento/BentoCard'
+import { formatDate, formatCurrency } from '@/lib/format'
 
 type Milestone = { label: string; amount: number; due_date: string }
 
@@ -47,16 +48,6 @@ type Payment = {
 }
 
 type UserProfile = { id: string; role: string }
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-GB', {
-    day: 'numeric', month: 'short', year: 'numeric',
-  })
-}
-
-function formatEur(amount: number) {
-  return new Intl.NumberFormat('en-DE', { style: 'currency', currency: 'EUR' }).format(amount)
-}
 
 function tripDuration(start: string, end: string) {
   const days = Math.round(
@@ -120,7 +111,7 @@ function TripCard({
           {userRole !== 'guest' && (
             <div className="text-right flex-shrink-0">
               <p className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
-                {formatEur(trip.total_cost)}
+                {formatCurrency(trip.total_cost)}
               </p>
               <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('trips.total')}</p>
             </div>
@@ -200,7 +191,7 @@ function TripCard({
               {t('trips.payments')}
               {myPayments.length > 0 && (
                 <span className="ml-2 text-xs font-normal" style={{ color: 'var(--text-secondary)' }}>
-                  {formatEur(totalPaid)} {t('trips.paidOf')} {formatEur(trip.total_cost)}
+                  {formatCurrency(totalPaid)} {t('trips.paidOf')} {formatCurrency(trip.total_cost)}
                 </span>
               )}
             </span>
@@ -256,7 +247,7 @@ function TripCard({
                           </div>
                         </div>
                         <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                          {formatEur(m.amount)}
+                          {formatCurrency(m.amount)}
                         </p>
                       </div>
                     )
@@ -282,7 +273,7 @@ function TripCard({
                       <div className="text-right">
                         <p className="text-sm font-semibold"
                           style={{ color: p.status === 'completed' ? 'var(--brand-teal)' : 'var(--text-secondary)' }}>
-                          {formatEur(p.amount)}
+                          {formatCurrency(p.amount)}
                         </p>
                         {p.status !== 'completed' && (
                           <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{p.status}</p>
@@ -297,7 +288,6 @@ function TripCard({
         </div>
       )}
 
-      {/* RegisterButton for members+, access note for guests */}
       {(!registration || registration.status === 'denied') && (
         <div className="px-5 pb-5">
           {userRole === 'guest' ? (
@@ -328,8 +318,6 @@ export default function TripsPage() {
   const { data: trips = [], isLoading } = useQuery<Trip[]>({
     queryKey: ['trips'],
     queryFn: () => fetch('/api/trips').then(r => r.json()),
-    // Wait for Clerk to resolve before fetching — ensures the session cookie is
-    // attached so the API returns trips for the correct role, not 'guest'.
     enabled: isLoaded,
   })
 
