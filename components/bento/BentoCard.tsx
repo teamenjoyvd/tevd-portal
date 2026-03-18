@@ -28,11 +28,11 @@ export function KpiValue({ children }: { children: React.ReactNode }) {
 
 // ── Eyebrow sub-component ──────────────────────────────────────────────────
 
-export function Eyebrow({ children }: { children: React.ReactNode }) {
+export function Eyebrow({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
   return (
     <p
       className="text-[11px] font-semibold tracking-[0.25em] uppercase"
-      style={{ color: 'var(--brand-crimson)' }}
+      style={{ color: 'var(--brand-crimson)', ...style }}
     >
       {children}
     </p>
