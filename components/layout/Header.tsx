@@ -15,7 +15,7 @@ export default function Header() {
   const { isSignedIn, user } = useUser()
   const pathname = usePathname()
   const { data: unreadData } = useUnreadCount()
-  const { t, lang } = useLanguage()
+  const { t } = useLanguage()
   const unread = unreadData?.count ?? 0
   const [bellOpen, setBellOpen] = useState(false)
   const [guestPopupOpen, setGuestPopupOpen] = useState(false)
@@ -83,7 +83,7 @@ export default function Header() {
             <Link
               key={href}
               href={href}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${lang === 'en' ? 'tracking-widest uppercase' : 'tracking-normal'}`}
+              className="px-3.5 py-1.5 rounded-lg text-xs font-semibold tracking-widest uppercase transition-colors"
               style={{
                 color: isActive(href) ? 'var(--brand-crimson)' : 'var(--text-secondary)',
                 backgroundColor: isActive(href) ? 'rgba(188,71,73,0.06)' : 'transparent',
@@ -95,7 +95,7 @@ export default function Header() {
           {isAdmin && (
             <Link
               href="/admin"
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${lang === 'en' ? 'tracking-widest uppercase' : 'tracking-normal'}`}
+              className="px-3.5 py-1.5 rounded-lg text-xs font-semibold tracking-widest uppercase transition-colors"
               style={{
                 color: pathname?.startsWith('/admin') ? 'var(--brand-crimson)' : 'var(--text-secondary)',
                 backgroundColor: pathname?.startsWith('/admin')

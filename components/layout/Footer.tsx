@@ -13,7 +13,7 @@ const NAV = [
 ]
 
 export default function Footer() {
-  const { t, lang } = useLanguage()
+  const { t } = useLanguage()
 
   return (
     <footer style={{ backgroundColor: 'var(--brand-forest)' }}>
@@ -42,7 +42,7 @@ export default function Footer() {
               <Link
                 key={href}
                 href={href}
-                className={`text-xs font-medium transition-opacity hover:opacity-100 ${lang === 'en' ? 'uppercase tracking-widest' : 'tracking-normal'}`}
+                className="text-xs font-medium tracking-widest uppercase transition-opacity hover:opacity-100"
                 style={{ color: 'rgba(242,239,232,0.55)', opacity: 0.8 }}
               >
                 {t(labelKey as Parameters<typeof t>[0])}

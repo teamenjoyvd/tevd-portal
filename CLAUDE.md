@@ -1,5 +1,5 @@
 # CLAUDE.md — teamenjoyVD Portal
-> Last updated: 2026-03-18 — Session 5 handover. Current stable: v1.3.0 (ISS-0057, tag a6eff42).
+> Last updated: 2026-03-18 — Session 6 handover. Current stable: v1.3.0 (ISS-0057, tag a6eff42). Session 6 completed ISS-0081 through ISS-0096, ISS-0099.
 
 ---
 
@@ -119,16 +119,16 @@ All tokens defined in `styles/brand-tokens.css`.
 | `--brand-oyster` | `#F0EDE6` | Light warm — card surfaces |
 | `--brand-stone` | `#8A8577` | Mid-grey — secondary text, timestamps |
 
-### Semantic Tokens
-| Token | Value |
-|---|---|
-| `--bg-global` | `var(--brand-parchment)` (#FAF8F3) |
-| `--bg-global-rgb` | `250, 248, 243` (for rgba() use in frosted navbar) |
-| `--bg-card` | `var(--brand-oyster)` (#F0EDE6) |
-| `--text-primary` | `var(--brand-void)` (#1A1F18) |
-| `--text-secondary` | `var(--brand-stone)` (#8A8577) |
-| `--border-default` | `rgba(45, 51, 42, 0.08)` |
-| `--border-hover` | `rgba(188, 71, 73, 0.30)` (crimson tint on hover) |
+### Semantic Tokens (post ISS-0081/0082)
+| Token | Light | Dark |
+|---|---|---|
+| `--text-primary` | `#1A1F18` (brand-void) | `#FAF8F3` (brand-parchment) |
+| `--text-secondary` | `#5C5950` | `#B5B0A8` |
+| `--text-tertiary` | `#8A8577` | (inherits light) |
+| `--bg-global` | `#FAF8F3` | `#1A1F18` |
+| `--bg-card` | `#F0EDE6` | `#252B23` (brand-moss) |
+| `--border-default` | `rgba(45, 51, 42, 0.08)` | — |
+| `--border-hover` | `rgba(188, 71, 73, 0.30)` | — |
 
 ### BentoCard Variants
 | Variant | Class | Use |
@@ -181,15 +181,19 @@ Notes:
 ### Header (components/layout/Header.tsx)
 - Public routes (no auth redirect): `/`, `/about`, `/calendar`, `/trips`
 - Authenticated-only routes: `/profile`, `/notifications`, `/los`, `/howtos`, `/admin`
-- Nav links: Home, About, Calendar, Trips, Guides (/howtos), My Network (/los — non-guests only)
-- **i18n gotcha:** When `lang === 'bg'`, nav uses `tracking-normal` (no uppercase). When `lang === 'en'`, uses `tracking-widest uppercase`. Cyrillic all-caps is illegible.
-- Sign-in button: `var(--brand-teal)` background, white text
+- Nav links: Home, About, Calendar, Trips, Guides (/howtos — non-guests only), My Network (/los — non-guests only)
+- **Nav casing:** All nav items use `tracking-widest uppercase` unconditionally — applies to all language variants including BG (ISS-0090, owner override confirmed 2026-03-18).
+- **Guest header:** SIGN IN button replaced by user icon → popup (sign-in + language toggle). Authenticated path unchanged.
 
 ### Footer (components/layout/Footer.tsx)
 - `'use client'` — uses `useLanguage` for translated nav links
-- Forest bg, parchment text, 3-col layout (brand | nav | socials+email)
+- Forest bg, parchment text, 3-col layout (brand | nav | socials+email icon)
 - `max-w-[1440px]`, ~100px desktop height
-- Nav links also respect BG casing rule
+- Nav links use `tracking-widest uppercase` unconditionally (matches header rule)
+
+### UserPopup (components/layout/UserPopup.tsx)
+- New component (ISS-0092): dialog with Sign In link + language toggle
+- Keyboard dismissible (Escape), outside-click dismissible, focus-trap on mount
 
 ---
 
@@ -217,7 +221,7 @@ Notes:
     /profile/page.tsx
     /trips/page.tsx
   /admin
-    /layout.tsx                  # forest nav bar — Approval Hub, Operations, Members, LOS Tree, Calendar, Content, Howtos, Data Center, Notifications
+    /layout.tsx                  # forest nav bar — primary nav + People group (Members, LOS Tree, Data Center)
     /approval-hub/page.tsx
     /calendar/page.tsx           # Full CRUD for calendar_events
     /content/page.tsx            # Announcements + Links (both with edit forms) + BentoSettings
@@ -253,21 +257,24 @@ Notes:
     /tiles
       /HowtosTile.tsx
       /LocationTile.tsx
-      /ProfileTile.tsx           # isUnverified state (role=guest + verRequest pending/denied)
+      /ProfileTile.tsx           # isAdmin guard (not isAdminOrCore) for Admin link
       /SocialsTile.tsx           # Meta Graph API tile, graceful fallback
       /ThemeTile.tsx
   /calendar
-    /CalendarClient.tsx          # Week/day/agenda: height=var(--cal-height), internal scroll
+    /CalendarClient.tsx          # Period selector: AGENDA/DAY/WEEK/MONTH. No 'All' type filter.
   /layout
-    /Footer.tsx                  # 'use client', useLanguage, forest bg, 3-col
-    /Header.tsx                  # lang-aware nav casing, isNonGuest guard for /los
+    /Footer.tsx                  # 'use client', useLanguage, forest bg, 3-col, email icon
+    /Header.tsx                  # uppercase all langs, isNonGuest guard, UserPopup for guests
     /UserDropdown.tsx            # isUnverified label override
+    /UserPopup.tsx               # Guest sign-in + language toggle popup
 /lib
   /hooks
     /useLanguage.ts              # Dispatches + listens to 'language-changed' custom event
     /useNotifications.ts         # + useDeleteNotification, useClearAllNotifications
+  /i18n
+    /translations.ts             # role.admin/core/member/guest keys added; los.upline BG = 'Горна Линия'
 /styles
-  /brand-tokens.css
+  /brand-tokens.css              # --text-secondary #5C5950 light / #B5B0A8 dark; --text-tertiary #8A8577
 /supabase
   /migrations/supabase/migrations/
     /20260318000001_notifications_soft_delete.sql
@@ -354,7 +361,10 @@ If PageHeading or toolbar height changes, update this var.
 
 ### Event type filter
 CalendarClient has `filterType` state (`null | 'in-person' | 'online' | 'hybrid'`).
-Combinable with N21/Personal category filter. Client-side, no re-fetch.
+'All' button removed — clicking an active filter deactivates it. Combinable with N21/Personal category filter. Client-side, no re-fetch.
+
+### Period selector order
+AGENDA → DAY → WEEK → MONTH (left to right).
 
 ---
 
@@ -387,9 +397,13 @@ Combinable with N21/Personal category filter. Client-side, no re-fetch.
 - All notifications ever fired, including soft-deleted
 - Paginated 50/page, read-only
 
+### Admin Nav (admin/layout.tsx)
+- Primary: Approval Hub, Operations, Calendar, Content, Howtos, Notifications
+- People group (separated by | divider + label): Members, LOS Tree, Data Center
+
 ---
 
-## 15. Key Gotchas & Decisions (updated 2026-03-18)
+## 15. Key Gotchas & Decisions (updated 2026-03-18, Session 6)
 
 | Topic | Rule |
 |---|---|
@@ -398,7 +412,7 @@ Combinable with N21/Personal category filter. Client-side, no re-fetch.
 | Tailwind v4 | No `@layer components` + `@apply`. Inline utilities only. |
 | Mapbox GL JS | CDN only. Dupe guard on script load. Logo/attrib hidden via globals.css. |
 | Client tiles + rowSpan | Must apply `gridRow: span N` to outermost element or grid collapses. |
-| Nav i18n casing | EN: `uppercase tracking-widest`. BG: `tracking-normal` (no uppercase). Cyrillic all-caps = illegible. |
+| Nav casing | `tracking-widest uppercase` for ALL languages including BG. Owner overrode previous Cyrillic exception (ISS-0090, 2026-03-18). |
 | Eyebrow on teal/forest | Pass `style={{ color: 'var(--brand-parchment)' }}` to override default crimson. |
 | Soft-delete notifications | `deleted_at IS NULL` filter on all user-facing queries. Admin sees all. |
 | tree_nodes sparsity | Only portal users have entries. `rebuild_tree_paths` must run after LOS import. All ltree-based features self-heal on first real import. |
@@ -410,6 +424,8 @@ Combinable with N21/Personal category filter. Client-side, no re-fetch.
 | `.env.example` | Force-commit with `git add -f .env.example`. |
 | `<img>` vs `next/image` | Use `<img>` for user-uploaded images (trip image_url, Meta CDN thumbnails) — domains unpredictable. |
 | timeAgo() | Duplicated in notifications/page.tsx, SocialsTile.tsx. Acceptable until 4th duplicate. |
+| Admin link in ProfileTile | Render-guarded to `role === 'admin'` only (not isAdminOrCore). |
+| ProfileTile ROLE_LABELS | Still uses hardcoded map — not yet wired to `t('role.X')` keys. Follow-up needed. |
 
 ---
 
@@ -425,13 +441,14 @@ Git tag: `v1.3.0 → a6eff42`
 
 ---
 
-## 17. Pending Issues (backlog as of 2026-03-18)
+## 17. Pending Issues (backlog as of 2026-03-18, post Session 6)
 
 | ID | Name | Priority | Notes |
 |---|---|---|---|
 | ISS-0056 | Meta token expiry alert + refresh flow | Low | Follow-up from ISS-0038. Needs FB_APP_ID + FB_APP_SECRET. |
+| ISS-0082 (done) | Dark mode --text-secondary | — | Done. #B5B0A8 in [data-theme=dark]. |
 
-All other tickets are Done or Not relevant. Queue is clear.
+All other tickets are Done or Not relevant.
 
 ---
 
