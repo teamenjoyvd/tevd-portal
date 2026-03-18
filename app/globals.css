@@ -33,12 +33,14 @@ body {
 }
 
 :root {
-  --cal-height: calc(100dvh - 56px - 72px - 64px);
+  /* mobile: pt-20 (80) + PageHeading (64) + toolbar two-rows (~100) */
+  --cal-height: calc(100dvh - 244px);
 }
 
 @media (min-width: 768px) {
   :root {
-    --cal-height: calc(100dvh - 56px - 72px);
+    /* desktop: pt-20 (80) + PageHeading (64) + toolbar single-row (~52) */
+    --cal-height: calc(100dvh - 196px);
   }
 }
 

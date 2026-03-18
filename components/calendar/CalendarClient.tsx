@@ -273,7 +273,7 @@ function WeekView({
           )
         })}
       </div>
-      <div ref={scrollRef} className="overflow-y-auto" style={{ height: 'calc(100vh - 320px)', minHeight: 300 }}>
+      <div ref={scrollRef} className="overflow-y-auto" style={{ height: 'var(--cal-height)', minHeight: 300 }}>
         <div className="grid grid-cols-[48px_repeat(7,1fr)]"
           style={{ height: HOUR_HEIGHT * 24 }}>
           <div>
@@ -364,7 +364,7 @@ function DayView({
           W{isoWeek(current)}
         </p>
       </div>
-      <div ref={scrollRef} className="overflow-y-auto" style={{ height: 'calc(100vh - 320px)', minHeight: 300 }}>
+      <div ref={scrollRef} className="overflow-y-auto" style={{ height: 'var(--cal-height)', minHeight: 300 }}>
         <div className="grid grid-cols-[48px_1fr]" style={{ height: HOUR_HEIGHT * 24 }}>
           <div>
             {HOURS.map(h => (
@@ -451,7 +451,7 @@ function AgendaView({
   }
 
   return (
-    <div className="flex-1 overflow-y-auto px-4 py-2">
+    <div className="overflow-y-auto px-4 py-2" style={{ height: 'var(--cal-height)', minHeight: 300 }}>
       {dates.map(dateKey => {
         const date = new Date(dateKey)
         const isToday = sameDay(date, new Date())
