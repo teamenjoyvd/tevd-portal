@@ -350,6 +350,7 @@ export default function ContentPage() {
             ))}
           </div>
           <button
+            onClick={() => createAnnouncement.mutate(aForm)}
             disabled={createAnnouncement.isPending || !aForm.titles.en}
             className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
             style={{ backgroundColor: 'var(--brand-crimson)' }}
@@ -516,6 +517,7 @@ export default function ContentPage() {
             ))}
           </div>
           <button
+            onClick={() => createLink.mutate(lForm)}
             disabled={createLink.isPending || !lForm.label || !lForm.url}
             className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
             style={{ backgroundColor: 'var(--brand-crimson)' }}
