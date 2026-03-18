@@ -37,7 +37,7 @@
   --bg-global:      var(--brand-void);
   --bg-card:        var(--brand-moss);
   --text-primary:   var(--brand-parchment);
-  --text-secondary: var(--brand-stone);
+  --text-secondary: #B5B0A8;
 }
 
 /* ── Utility classes ── */

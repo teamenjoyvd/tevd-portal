@@ -51,7 +51,7 @@ export default function ProfileTile({ colSpan = 3, rowSpan }: { colSpan?: number
 
   const role = profile?.role ?? 'guest'
   const roleStyle = ROLE_STYLES[role] ?? ROLE_STYLES.guest
-  const isAdminOrCore = role === 'admin' || role === 'core'
+  const isAdmin = role === 'admin'
 
   const firstName = user?.firstName
     ?? profile?.first_name
@@ -152,7 +152,7 @@ export default function ProfileTile({ colSpan = 3, rowSpan }: { colSpan?: number
         >
           Profile →
         </Link>
-        {isAdminOrCore && (
+        {isAdmin && (
           <Link
             href="/admin"
             className="text-xs font-semibold tracking-widest uppercase transition-opacity hover:opacity-70"
