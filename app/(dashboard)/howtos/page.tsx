@@ -3,9 +3,6 @@
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { useLanguage } from '@/lib/hooks/useLanguage'
-import PageHeading from '@/components/layout/PageHeading'
-import BentoGrid from '@/components/bento/BentoGrid'
-import BentoCard from '@/components/bento/BentoCard'
 
 type Howto = {
   id: string
@@ -25,58 +22,74 @@ export default function HowtosPage() {
   })
 
   return (
-    <>
-      <PageHeading title="How-tos" subtitle="Guides and resources" />
-      <div className="py-8 pb-16">
-        <BentoGrid>
+    <div className="py-8 pb-16">
+      <div className="max-w-[960px] mx-auto px-4">
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(8, minmax(0, 1fr))',
+            gap: '12px',
+            gridAutoRows: 'minmax(120px, auto)',
+          }}
+        >
           {isLoading ? (
-            <>
-              {[...Array(4)].map((_, i) => (
-                <BentoCard key={i} variant="default" colSpan={6}>
-                  <div className="h-16 rounded-xl animate-pulse"
-                    style={{ backgroundColor: 'var(--border-default)' }} />
-                </BentoCard>
-              ))}
-            </>
+            [...Array(4)].map((_, i) => (
+              <div
+                key={i}
+                className="rounded-2xl animate-pulse"
+                style={{
+                  gridColumn: 'span 4',
+                  gridRow: 'span 2',
+                  backgroundColor: 'var(--border-default)',
+                  minHeight: 240,
+                }}
+              />
+            ))
           ) : howtos.length === 0 ? (
-            <BentoCard variant="default" colSpan={12}>
-              <div className="text-center py-12">
-                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                  No guides available yet.
-                </p>
-              </div>
-            </BentoCard>
+            <div
+              style={{ gridColumn: 'span 8' }}
+              className="rounded-2xl flex items-center justify-center py-16"
+              style2={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}
+            >
+              <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                No guides available yet.
+              </p>
+            </div>
           ) : (
-            <>
-              {howtos.map(h => {
-                const title = (h.title as Record<string, string>)[lang]
-                  ?? (h.title as Record<string, string>).en ?? ''
-                return (
-                  <Link key={h.id} href={`/howtos/${h.slug}`}
-                    style={{ gridColumn: 'span 6', display: 'block' }}
-                    className="group">
-                    <BentoCard variant="default" className="h-full flex items-center gap-4 transition-colors group-hover:border-[var(--border-hover)]">
-                      <span className="text-3xl flex-shrink-0">{h.emoji ?? '📄'}</span>
-                      <div className="min-w-0 flex-1">
-                        <p className="font-display text-lg font-semibold truncate"
-                          style={{ color: 'var(--text-primary)' }}>
-                          {title}
-                        </p>
-                      </div>
+            howtos.map(h => {
+              const title = (h.title as Record<string, string>)[lang]
+                ?? (h.title as Record<string, string>).en ?? ''
+              return (
+                <Link
+                  key={h.id}
+                  href={`/howtos/${h.slug}`}
+                  style={{ gridColumn: 'span 4', gridRow: 'span 2', display: 'block', minHeight: 240 }}
+                  className="group"
+                >
+                  <div
+                    className="h-full rounded-2xl p-6 flex flex-col justify-between transition-colors group-hover:border-[var(--border-hover)]"
+                    style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}
+                  >
+                    <span className="text-4xl">{h.emoji ?? '📄'}</span>
+                    <div className="flex items-end justify-between gap-3">
+                      <p className="font-display text-xl font-semibold leading-snug"
+                        style={{ color: 'var(--text-primary)' }}>
+                        {title}
+                      </p>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
                         stroke="var(--text-secondary)" strokeWidth="2"
                         strokeLinecap="round" strokeLinejoin="round"
                         className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                         <polyline points="9 18 15 12 9 6"/>
                       </svg>
-                    </BentoCard>
-                  </Link>
-                )
-              })}
-            </>
+                    </div>
+                  </div>
+                </Link>
+              )
+            })
           )}
-        </BentoGrid>
+        </div>
       </div>
-    </>
+    </div>
   )
 }

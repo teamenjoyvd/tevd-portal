@@ -5,9 +5,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useUser } from '@clerk/nextjs'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import RegisterButton from '@/components/trips/RegisterButton'
-import PageHeading from '@/components/layout/PageHeading'
-import BentoGrid from '@/components/bento/BentoGrid'
-import BentoCard from '@/components/bento/BentoCard'
 import { formatDate, formatCurrency } from '@/lib/format'
 
 type Milestone = { label: string; amount: number; due_date: string }
@@ -82,8 +79,18 @@ function TripCard({
   }
 
   return (
-    <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-      <div className="px-5 pt-5 pb-4">
+    <div className="h-full rounded-2xl overflow-hidden flex flex-col" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+      {trip.image_url && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={trip.image_url}
+          alt=""
+          aria-hidden="true"
+          className="w-full object-cover flex-shrink-0"
+          style={{ height: 160 }}
+        />
+      )}
+      <div className="px-5 pt-5 pb-4 flex flex-col flex-1">
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
@@ -128,7 +135,7 @@ function TripCard({
           {formatDate(trip.start_date)} – {formatDate(trip.end_date)}
         </div>
         {trip.description && (
-          <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+          <p className="text-sm leading-relaxed mb-3" style={{ color: 'var(--text-secondary)' }}>
             {trip.description}
           </p>
         )}
@@ -156,150 +163,150 @@ function TripCard({
             ))}
           </div>
         )}
-      </div>
 
-      {registration && registration.status !== 'denied' && (
-        <div
-          className="mx-5 mb-4 px-4 py-2.5 rounded-xl flex items-center justify-between"
-          style={{ backgroundColor: STATUS_STYLES[registration.status].bg }}
-        >
-          <p className="text-sm font-medium"
-            style={{ color: STATUS_STYLES[registration.status].color }}>
-            {STATUS_STYLES[registration.status].label}
-          </p>
-          {registration.status === 'pending' && (
-            <button
-              onClick={() => onCancel(registration.id)}
-              disabled={isCancelling}
-              className="text-xs font-medium disabled:opacity-50"
-              style={{ color: STATUS_STYLES[registration.status].color }}
+        <div className="mt-auto pt-4">
+          {registration && registration.status !== 'denied' && (
+            <div
+              className="mb-3 px-4 py-2.5 rounded-xl flex items-center justify-between"
+              style={{ backgroundColor: STATUS_STYLES[registration.status].bg }}
             >
-              {t('trips.cancel')}
-            </button>
+              <p className="text-sm font-medium"
+                style={{ color: STATUS_STYLES[registration.status].color }}>
+                {STATUS_STYLES[registration.status].label}
+              </p>
+              {registration.status === 'pending' && (
+                <button
+                  onClick={() => onCancel(registration.id)}
+                  disabled={isCancelling}
+                  className="text-xs font-medium disabled:opacity-50"
+                  style={{ color: STATUS_STYLES[registration.status].color }}
+                >
+                  {t('trips.cancel')}
+                </button>
+              )}
+            </div>
           )}
-        </div>
-      )}
 
-      {userRole !== 'guest' && (milestones.length > 0 || myPayments.length > 0) && registration?.status === 'approved' && (
-        <div className="border-t border-black/5">
-          <button
-            onClick={() => setExpanded(e => !e)}
-            className="w-full px-5 py-3 flex items-center justify-between text-sm font-medium hover:bg-black/[0.02] transition-colors"
-            style={{ color: 'var(--text-primary)' }}
-          >
-            <span>
-              {t('trips.payments')}
-              {myPayments.length > 0 && (
-                <span className="ml-2 text-xs font-normal" style={{ color: 'var(--text-secondary)' }}>
-                  {formatCurrency(totalPaid)} {t('trips.paidOf')} {formatCurrency(trip.total_cost)}
+          {userRole !== 'guest' && (milestones.length > 0 || myPayments.length > 0) && registration?.status === 'approved' && (
+            <div className="border-t border-black/5">
+              <button
+                onClick={() => setExpanded(e => !e)}
+                className="w-full py-3 flex items-center justify-between text-sm font-medium hover:bg-black/[0.02] transition-colors"
+                style={{ color: 'var(--text-primary)' }}
+              >
+                <span>
+                  {t('trips.payments')}
+                  {myPayments.length > 0 && (
+                    <span className="ml-2 text-xs font-normal" style={{ color: 'var(--text-secondary)' }}>
+                      {formatCurrency(totalPaid)} {t('trips.paidOf')} {formatCurrency(trip.total_cost)}
+                    </span>
+                  )}
                 </span>
-              )}
-            </span>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-              style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s' }}>
-              <polyline points="6 9 12 15 18 9"/>
-            </svg>
-          </button>
-          {expanded && (
-            <div className="px-5 pb-5">
-              {trip.total_cost > 0 && (
-                <div className="mb-4">
-                  <div className="h-1.5 rounded-full overflow-hidden"
-                    style={{ backgroundColor: 'rgba(0,0,0,0.06)' }}>
-                    <div className="h-full rounded-full transition-all"
-                      style={{
-                        width: `${Math.min(100, (totalPaid / trip.total_cost) * 100)}%`,
-                        backgroundColor: 'var(--brand-teal)',
-                      }} />
-                  </div>
-                  <p className="text-xs mt-1.5" style={{ color: 'var(--text-secondary)' }}>
-                    {Math.round((totalPaid / trip.total_cost) * 100)}{t('trips.paidPercent')}
-                  </p>
-                </div>
-              )}
-              {milestones.length > 0 && (
-                <div className="space-y-2 mb-4">
-                  <p className="text-xs font-semibold tracking-widest uppercase"
-                    style={{ color: 'var(--text-secondary)' }}>
-                    {t('trips.milestones')}
-                  </p>
-                  {milestones.map((m, i) => {
-                    const paid = myPayments.filter(p => p.status === 'completed')
-                      .reduce((sum, p) => sum + p.amount, 0)
-                    const isCovered = paid >= milestones.slice(0, i + 1)
-                      .reduce((sum, ms) => sum + ms.amount, 0)
-                    return (
-                      <div key={i} className="flex items-center justify-between py-2 border-b border-black/5 last:border-0">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0"
-                            style={{ backgroundColor: isCovered ? 'var(--brand-teal)' : 'rgba(0,0,0,0.08)' }}>
-                            {isCovered && (
-                              <svg width="8" height="8" viewBox="0 0 24 24" fill="none"
-                                stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                <polyline points="20 6 9 17 4 12"/>
-                              </svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                  style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s' }}>
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </button>
+              {expanded && (
+                <div className="pb-4">
+                  {trip.total_cost > 0 && (
+                    <div className="mb-4">
+                      <div className="h-1.5 rounded-full overflow-hidden"
+                        style={{ backgroundColor: 'rgba(0,0,0,0.06)' }}>
+                        <div className="h-full rounded-full transition-all"
+                          style={{
+                            width: `${Math.min(100, (totalPaid / trip.total_cost) * 100)}%`,
+                            backgroundColor: 'var(--brand-teal)',
+                          }} />
+                      </div>
+                      <p className="text-xs mt-1.5" style={{ color: 'var(--text-secondary)' }}>
+                        {Math.round((totalPaid / trip.total_cost) * 100)}{t('trips.paidPercent')}
+                      </p>
+                    </div>
+                  )}
+                  {milestones.length > 0 && (
+                    <div className="space-y-2 mb-4">
+                      <p className="text-xs font-semibold tracking-widest uppercase"
+                        style={{ color: 'var(--text-secondary)' }}>
+                        {t('trips.milestones')}
+                      </p>
+                      {milestones.map((m, i) => {
+                        const paid = myPayments.filter(p => p.status === 'completed')
+                          .reduce((sum, p) => sum + p.amount, 0)
+                        const isCovered = paid >= milestones.slice(0, i + 1)
+                          .reduce((sum, ms) => sum + ms.amount, 0)
+                        return (
+                          <div key={i} className="flex items-center justify-between py-2 border-b border-black/5 last:border-0">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0"
+                                style={{ backgroundColor: isCovered ? 'var(--brand-teal)' : 'rgba(0,0,0,0.08)' }}>
+                                {isCovered && (
+                                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none"
+                                    stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                  </svg>
+                                )}
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{m.label}</p>
+                                <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('trips.due')} {formatDate(m.due_date)}</p>
+                              </div>
+                            </div>
+                            <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                              {formatCurrency(m.amount)}
+                            </p>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                  {myPayments.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-xs font-semibold tracking-widest uppercase"
+                        style={{ color: 'var(--text-secondary)' }}>
+                        {t('trips.paymentHistory')}
+                      </p>
+                      {myPayments.map(p => (
+                        <div key={p.id} className="flex items-center justify-between py-2 border-b border-black/5 last:border-0">
+                          <div>
+                            <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
+                              {formatDate(p.transaction_date)}
+                            </p>
+                            {p.note && (
+                              <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>{p.note}</p>
                             )}
                           </div>
-                          <div>
-                            <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{m.label}</p>
-                            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('trips.due')} {formatDate(m.due_date)}</p>
+                          <div className="text-right">
+                            <p className="text-sm font-semibold"
+                              style={{ color: p.status === 'completed' ? 'var(--brand-teal)' : 'var(--text-secondary)' }}>
+                              {formatCurrency(p.amount)}
+                            </p>
+                            {p.status !== 'completed' && (
+                              <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{p.status}</p>
+                            )}
                           </div>
                         </div>
-                        <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                          {formatCurrency(m.amount)}
-                        </p>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-              {myPayments.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-xs font-semibold tracking-widest uppercase"
-                    style={{ color: 'var(--text-secondary)' }}>
-                    {t('trips.paymentHistory')}
-                  </p>
-                  {myPayments.map(p => (
-                    <div key={p.id} className="flex items-center justify-between py-2 border-b border-black/5 last:border-0">
-                      <div>
-                        <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
-                          {formatDate(p.transaction_date)}
-                        </p>
-                        {p.note && (
-                          <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>{p.note}</p>
-                        )}
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-semibold"
-                          style={{ color: p.status === 'completed' ? 'var(--brand-teal)' : 'var(--text-secondary)' }}>
-                          {formatCurrency(p.amount)}
-                        </p>
-                        {p.status !== 'completed' && (
-                          <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{p.status}</p>
-                        )}
-                      </div>
+                      ))}
                     </div>
-                  ))}
+                  )}
                 </div>
               )}
             </div>
           )}
-        </div>
-      )}
 
-      {(!registration || registration.status === 'denied') && (
-        <div className="px-5 pb-5">
-          {userRole === 'guest' ? (
-            <p className="text-xs text-center py-2 rounded-xl"
-              style={{ color: 'var(--text-secondary)', backgroundColor: 'var(--border-default)' }}>
-              {t('trips.memberOnly')}
-            </p>
-          ) : (
-            <RegisterButton tripId={trip.id} profileId={profileId} />
+          {(!registration || registration.status === 'denied') && (
+            userRole === 'guest' ? (
+              <p className="text-xs text-center py-2 rounded-xl"
+                style={{ color: 'var(--text-secondary)', backgroundColor: 'var(--border-default)' }}>
+                {t('trips.memberOnly')}
+              </p>
+            ) : (
+              <RegisterButton tripId={trip.id} profileId={profileId} />
+            )
           )}
         </div>
-      )}
+      </div>
     </div>
   )
 }
@@ -356,53 +363,64 @@ export default function TripsPage() {
   const regFor = (tripId: string) => registrations.find(r => r.trip_id === tripId)
 
   return (
-    <>
-      <PageHeading title={t('trips.pageTitle')} subtitle={t('trips.pageSubtitle')} />
-      <div className="py-8 pb-16">
-        <BentoGrid>
+    <div className="py-8 pb-16">
+      <div className="max-w-[960px] mx-auto px-4">
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(8, minmax(0, 1fr))',
+            gap: '12px',
+            gridAutoRows: 'minmax(120px, auto)',
+          }}
+        >
           {isLoading || !isLoaded ? (
-            <>
-              {[...Array(2)].map((_, i) => (
-                <BentoCard key={i} variant="default" colSpan={6}>
-                  <div className="h-48 rounded-xl animate-pulse"
-                    style={{ backgroundColor: 'var(--border-default)' }} />
-                </BentoCard>
-              ))}
-            </>
+            [...Array(2)].map((_, i) => (
+              <div
+                key={i}
+                className="rounded-2xl animate-pulse"
+                style={{
+                  gridColumn: 'span 4',
+                  gridRow: 'span 2',
+                  backgroundColor: 'var(--border-default)',
+                  minHeight: 240,
+                }}
+              />
+            ))
           ) : trips.length === 0 ? (
-            <BentoCard variant="default" colSpan={12}>
-              <div className="text-center py-16">
-                <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
-                  style={{ backgroundColor: 'var(--border-default)' }}>
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
-                    stroke="var(--text-secondary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>
-                  </svg>
-                </div>
-                <p className="font-medium" style={{ color: 'var(--text-primary)' }}>{t('trips.noTrips')}</p>
-                <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>{t('trips.noTripsDesc')}</p>
-              </div>
-            </BentoCard>
+            <div
+              style={{ gridColumn: 'span 8' }}
+              className="rounded-2xl flex flex-col items-center justify-center py-16"
+              style2={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}
+            >
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
+                stroke="var(--text-secondary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+                className="mb-4">
+                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>
+              </svg>
+              <p className="font-medium" style={{ color: 'var(--text-primary)' }}>{t('trips.noTrips')}</p>
+              <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>{t('trips.noTripsDesc')}</p>
+            </div>
           ) : (
-            <>
-              {trips.map(trip => (
-                <div key={trip.id} style={{ gridColumn: 'span 6' }} className="max-[768px]:col-span-12">
-                  <TripCard
-                    trip={trip}
-                    registration={regFor(trip.id)}
-                    payments={payments}
-                    profileId={profile?.id ?? null}
-                    onCancel={(id) => cancelMutation.mutate(id)}
-                    isCancelling={cancelMutation.isPending}
-                    t={t}
-                    userRole={profile?.role ?? 'guest'}
-                  />
-                </div>
-              ))}
-            </>
+            trips.map(trip => (
+              <div
+                key={trip.id}
+                style={{ gridColumn: 'span 4', gridRow: 'span 2', minHeight: 240 }}
+              >
+                <TripCard
+                  trip={trip}
+                  registration={regFor(trip.id)}
+                  payments={payments}
+                  profileId={profile?.id ?? null}
+                  onCancel={(id) => cancelMutation.mutate(id)}
+                  isCancelling={cancelMutation.isPending}
+                  t={t}
+                  userRole={profile?.role ?? 'guest'}
+                />
+              </div>
+            ))
           )}
-        </BentoGrid>
+        </div>
       </div>
-    </>
+    </div>
   )
 }
