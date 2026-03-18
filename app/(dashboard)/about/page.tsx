@@ -1,28 +1,27 @@
 import Image from 'next/image'
 import BentoCard from '@/components/bento/BentoCard'
-import AboutMapTile from '@/components/about/AboutMapTile'
 
-// ── Shared content blocks (reused across both layouts) ────────────────────
+// ── Shared content blocks ─────────────────────────────────────────────────
 
 const HEADING = (
-  <h1 className="font-display text-3xl font-semibold" style={{ color: 'var(--brand-crimson)' }}>
+  <h1 className="font-display text-3xl font-semibold" style={{ color: 'var(--brand-stone)' }}>
     About Us
   </h1>
 )
 
 const BODY = (
   <div className="flex flex-col gap-4">
-    <p className="text-base leading-relaxed font-body" style={{ color: 'var(--text-secondary)' }}>
+    <p className="text-base leading-relaxed font-body" style={{ color: 'var(--brand-stone)' }}>
       We&apos;re Vera &amp; Deniz, two folks living it up in the vibrant city of Sofia, Bulgaria.
       We&apos;re all about good vibes, delicious grub, and that perfect cup of coffee ☕️
     </p>
-    <p className="text-base leading-relaxed font-body" style={{ color: 'var(--text-secondary)' }}>
+    <p className="text-base leading-relaxed font-body" style={{ color: 'var(--brand-stone)' }}>
       But hey, there&apos;s more to us than just our love for the simple pleasures. We&apos;re all
       about forging meaningful connections that stand the test of time. We&apos;re on a mission
       to build rock-solid relationships with like-minded individuals who share our passion
       and vision.
     </p>
-    <p className="text-base leading-relaxed font-body" style={{ color: 'var(--text-secondary)' }}>
+    <p className="text-base leading-relaxed font-body" style={{ color: 'var(--brand-stone)' }}>
       So, if you&apos;ve made it to our corner of the web, you must be on the hunt for
       something special. Reach out to the person who directed you here to dig deeper into
       what we&apos;re all about.
@@ -30,40 +29,8 @@ const BODY = (
   </div>
 )
 
-const CTA = (
-  <BentoCard variant="default" className="flex items-center h-full">
-    <p className="text-base leading-relaxed font-body" style={{ color: 'var(--text-secondary)' }}>
-      And if you stumbled upon us all by yourself, kudos! Slide into our DMs and
-      let&apos;s have a chat. We love meeting new folks.
-    </p>
-  </BentoCard>
-)
-
-const IG_TILE = (
-  <BentoCard variant="teal" className="flex flex-col items-center justify-center gap-2 h-full">
-    <a
-      href="https://instagram.com/teamenjoyvd"
-      target="_blank"
-      rel="noopener noreferrer"
-      aria-label="Instagram"
-      className="flex flex-col items-center gap-2 hover:opacity-80 transition-opacity"
-    >
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none"
-        stroke="var(--brand-parchment)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <rect width="20" height="20" x="2" y="2" rx="5" ry="5"/>
-        <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
-        <line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/>
-      </svg>
-      <span className="text-[10px] font-semibold tracking-widest uppercase"
-        style={{ color: 'var(--brand-parchment)', opacity: 0.7 }}>
-        Instagram
-      </span>
-    </a>
-  </BentoCard>
-)
-
 const EMAIL_TILE = (
-  <BentoCard variant="forest" className="flex flex-col items-center justify-center gap-2 h-full">
+  <BentoCard variant="crimson" className="flex flex-col items-center justify-center gap-2 h-full">
     <a
       href="mailto:teamenjoyvd@gmail.com"
       aria-label="Email us"
@@ -82,6 +49,14 @@ const EMAIL_TILE = (
   </BentoCard>
 )
 
+const CTA_TILE = (
+  <BentoCard variant="forest" className="flex items-center justify-center h-full">
+    <p className="text-sm leading-relaxed font-body text-center" style={{ color: 'rgba(242,239,232,0.75)' }}>
+      Slide into our DMs and let&apos;s have a chat.
+    </p>
+  </BentoCard>
+)
+
 // ── Page ──────────────────────────────────────────────────────────────────
 
 export default function AboutPage() {
@@ -90,7 +65,11 @@ export default function AboutPage() {
 
       {/* ════════════════════════════════════════════════════════════════════
           DESKTOP layout (md+)
-          max-w-[960px] centered, 8-col CSS grid, no BentoGrid wrapper
+          max-w-[960px] centered, 8-col CSS grid
+          Row 1: [col-2 heading][col-6 text rowSpan-3]
+          Row 2: [col-2 empty  ][col-2 empty          ]
+          Row 3: [col-2 empty  ][col-2 empty          ]
+          Row 4: [col-2 hero   ][col-2 empty][col-2 email][col-2 cta]
           ════════════════════════════════════════════════════════════════════ */}
       <div className="hidden md:block max-w-[960px] mx-auto px-4">
         <div
@@ -101,66 +80,57 @@ export default function AboutPage() {
             gridAutoRows: 'minmax(100px, auto)',
           }}
         >
-          {/* Row 1+2+3 col 1-2: hero image, rowSpan 3 */}
+          {/* Row 1 col 1-2: heading */}
           <div
-            className="rounded-2xl overflow-hidden relative"
-            style={{
-              gridColumn: 'span 2',
-              gridRow: 'span 3',
-              backgroundColor: 'var(--bg-global)',
-              minHeight: 280,
-            }}
-          >
-            <Image
-              src="/hero.png"
-              alt="Vera & Deniz"
-              fill
-              className="object-contain"
-              style={{
-                mixBlendMode: 'multiply',
-                // grow 25% and shift toward bottom-left
-                transform: 'scale(1.25) translate(-10%, 10%)',
-                transformOrigin: 'center center',
-              }}
-              priority
-            />
-          </div>
-
-          {/* Row 1 col 3-8: heading (transparent, crimson) */}
-          <div
-            style={{ gridColumn: 'span 6' }}
+            style={{ gridColumn: 'span 2' }}
             className="flex items-start pt-1"
           >
             {HEADING}
           </div>
 
-          {/* Row 2 col 3-8: body text (transparent), rowSpan 2 so it fills rows 2+3 */}
+          {/* Row 1-3 col 3-8: body text, rowSpan 3 */}
           <div
-            style={{ gridColumn: 'span 6', gridRow: 'span 2' }}
+            style={{ gridColumn: 'span 6', gridRow: 'span 3' }}
             className="flex flex-col justify-center"
           >
             {BODY}
           </div>
 
-          {/* Row 4 col 1-2: instagram — half height */}
-          <div style={{ gridColumn: 'span 2', minHeight: 80, maxHeight: 80 }}>
-            {IG_TILE}
+          {/* Row 2 col 1-2: empty */}
+          <div style={{ gridColumn: 'span 2' }} />
+
+          {/* Row 3 col 1-2: empty */}
+          <div style={{ gridColumn: 'span 2' }} />
+
+          {/* Row 4 col 1-2: square hero image */}
+          <div
+            className="rounded-2xl overflow-hidden relative"
+            style={{
+              gridColumn: 'span 2',
+              aspectRatio: '1 / 1',
+              minHeight: 80,
+            }}
+          >
+            <Image
+              src="/about-hero.png"
+              alt="Vera & Deniz"
+              fill
+              className="object-cover"
+              priority
+            />
           </div>
 
-          {/* Row 4 col 3-4: email — half height */}
-          <div style={{ gridColumn: 'span 2', minHeight: 80, maxHeight: 80 }}>
+          {/* Row 4 col 3-4: empty */}
+          <div style={{ gridColumn: 'span 2' }} />
+
+          {/* Row 4 col 5-6: email — crimson */}
+          <div style={{ gridColumn: 'span 2', minHeight: 80 }}>
             {EMAIL_TILE}
           </div>
 
-          {/* Row 4 col 5-6: map */}
-          <AboutMapTile
-            gridColumn="span 2"
-            style={{ minHeight: 80, maxHeight: 80 }}
-          />
-
-          {/* Row 4 col 7-8: CTA */}
+          {/* Row 4 col 7-8: CTA — forest */}
           <div style={{ gridColumn: 'span 2', minHeight: 80 }}>
-            {CTA}
+            {CTA_TILE}
           </div>
 
         </div>
@@ -168,24 +138,23 @@ export default function AboutPage() {
 
       {/* ════════════════════════════════════════════════════════════════════
           MOBILE layout (< md)
-          Simple vertical stack, full-width, no grid
+          Simple vertical stack
           ════════════════════════════════════════════════════════════════════ */}
       <div className="md:hidden flex flex-col gap-3 px-4">
 
         {/* Heading */}
         <div>{HEADING}</div>
 
-        {/* Hero image */}
+        {/* Hero image — square */}
         <div
           className="rounded-2xl overflow-hidden relative"
-          style={{ backgroundColor: 'var(--bg-global)', height: 260 }}
+          style={{ aspectRatio: '1 / 1', width: '100%' }}
         >
           <Image
-            src="/hero.png"
+            src="/about-hero.png"
             alt="Vera & Deniz"
             fill
-            className="object-contain"
-            style={{ mixBlendMode: 'multiply' }}
+            className="object-cover"
             priority
           />
         </div>
@@ -193,17 +162,11 @@ export default function AboutPage() {
         {/* Body text */}
         <div>{BODY}</div>
 
-        {/* Instagram + Email side by side */}
+        {/* Email + CTA side by side */}
         <div className="grid grid-cols-2 gap-3">
-          <div style={{ minHeight: 96 }}>{IG_TILE}</div>
           <div style={{ minHeight: 96 }}>{EMAIL_TILE}</div>
+          <div style={{ minHeight: 96 }}>{CTA_TILE}</div>
         </div>
-
-        {/* Map */}
-        <AboutMapTile style={{ minHeight: 160 }} />
-
-        {/* CTA */}
-        <div>{CTA}</div>
 
       </div>
 
