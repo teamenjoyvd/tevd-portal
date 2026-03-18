@@ -6,7 +6,7 @@ import { useLanguage } from '@/lib/hooks/useLanguage'
 import { DAYS_I18N, MONTHS_I18N } from '@/lib/i18n/translations'
 import EventPopup from '@/components/events/EventPopup'
 
-// ── Types ──────────────────────────────────────────────────────────────────
+// ── Types ──────────────────────────────────────────────────────────────────────────
 
 type CalendarEvent = {
   id: string
@@ -30,7 +30,7 @@ type Props = {
   isAuthenticated: boolean
 }
 
-// ── Constants ──────────────────────────────────────────────────────────────
+// ── Constants ──────────────────────────────────────────────────────────────────────
 
 const HOURS  = Array.from({ length: 24 }, (_, i) => i)
 const HOUR_HEIGHT = 60
@@ -40,7 +40,7 @@ const CATEGORY_COLOR: Record<string, { bg: string; text: string }> = {
   Personal: { bg: 'var(--sienna)', text: 'rgba(255,255,255,0.95)' },
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────
+// ── Helpers ──────────────────────────────────────────────────────────────────────────
 
 function isoWeek(date: Date): number {
   const d = new Date(date)
@@ -91,7 +91,7 @@ function eventDurationMinutes(start: string, end: string): number {
   return Math.max(30, (new Date(end).getTime() - new Date(start).getTime()) / 60000)
 }
 
-// ── Event pill ─────────────────────────────────────────────────────────────
+// ── Event pill ───────────────────────────────────────────────────────────────────────
 
 function EventPill({
   event, onClick, compact = false,
@@ -127,7 +127,7 @@ function EventPill({
   )
 }
 
-// ── Month View ─────────────────────────────────────────────────────────────
+// ── Month View ───────────────────────────────────────────────────────────────────────
 
 function MonthView({
   current, events, onEventClick, onDayClick,
@@ -223,7 +223,7 @@ function MonthView({
   )
 }
 
-// ── Week View ──────────────────────────────────────────────────────────────
+// ── Week View ────────────────────────────────────────────────────────────────────────
 
 function WeekView({
   current, events, onEventClick,
@@ -333,7 +333,7 @@ function WeekView({
   )
 }
 
-// ── Day View ───────────────────────────────────────────────────────────────
+// ── Day View ─────────────────────────────────────────────────────────────────────────
 
 function DayView({
   current, events, onEventClick,
@@ -415,7 +415,7 @@ function DayView({
   )
 }
 
-// ── Agenda View ────────────────────────────────────────────────────────────
+// ── Agenda View ────────────────────────────────────────────────────────────────────────
 
 function AgendaView({
   events, onEventClick,
@@ -515,7 +515,7 @@ function AgendaView({
   )
 }
 
-// ── Main ───────────────────────────────────────────────────────────────────
+// ── Main ─────────────────────────────────────────────────────────────────────────────
 
 export default function CalendarClient({
   initialEvents,
@@ -601,11 +601,13 @@ export default function CalendarClient({
   }, [view, current, MONTHS])
 
   const views: { key: View; label: string }[] = [
-    { key: 'month',  label: t('cal.month')  },
-    { key: 'week',   label: t('cal.week')   },
-    { key: 'day',    label: t('cal.day')    },
     { key: 'agenda', label: t('cal.agenda') },
+    { key: 'day',    label: t('cal.day')    },
+    { key: 'week',   label: t('cal.week')   },
+    { key: 'month',  label: t('cal.month')  },
   ]
+
+  const TYPE_FILTERS = (['in-person', 'online', 'hybrid'] as const)
 
   return (
     <div className="flex flex-col h-full w-full" style={{ backgroundColor: "var(--bg-global)" }}>
@@ -680,14 +682,14 @@ export default function CalendarClient({
               )}
             </div>
             <div className="flex gap-1.5">
-              {([null, 'in-person', 'online', 'hybrid'] as const).map(type => (
-                <button key={type ?? 'all'} onClick={() => setFilterType(type)}
+              {TYPE_FILTERS.map(type => (
+                <button key={type} onClick={() => setFilterType(filterType === type ? null : type)}
                   className="px-2.5 py-1 rounded-full text-xs font-semibold transition-all"
                   style={{
                     backgroundColor: filterType === type ? 'var(--brand-teal)' : 'rgba(0,0,0,0.06)',
                     color: filterType === type ? 'white' : 'var(--text-secondary)',
                   }}>
-                  {type === null ? 'All' : type === 'in-person' ? t('cal.inPerson') : type === 'online' ? t('cal.online') : t('cal.hybrid')}
+                  {type === 'in-person' ? t('cal.inPerson') : type === 'online' ? t('cal.online') : t('cal.hybrid')}
                 </button>
               ))}
             </div>
@@ -749,14 +751,14 @@ export default function CalendarClient({
                 )}
               </div>
               <div className="flex gap-1.5">
-                {([null, 'in-person', 'online', 'hybrid'] as const).map(type => (
-                  <button key={type ?? 'all'} onClick={() => setFilterType(type)}
+                {TYPE_FILTERS.map(type => (
+                  <button key={type} onClick={() => setFilterType(filterType === type ? null : type)}
                     className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
                     style={{
                       backgroundColor: filterType === type ? 'var(--brand-teal)' : 'rgba(0,0,0,0.06)',
                       color: filterType === type ? 'white' : 'var(--text-secondary)',
                     }}>
-                    {type === null ? 'All' : type === 'in-person' ? t('cal.inPerson') : type === 'online' ? t('cal.online') : t('cal.hybrid')}
+                    {type === 'in-person' ? t('cal.inPerson') : type === 'online' ? t('cal.online') : t('cal.hybrid')}
                   </button>
                 ))}
               </div>
