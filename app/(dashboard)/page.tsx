@@ -14,7 +14,7 @@ type Announcement = {
   is_active: boolean
 }
 type QuickLink = { id: string; label: string; url: string; icon_name: string }
-type Trip = { id: string; title: string; destination: string; start_date: string }
+type Trip = { id: string; title: string; destination: string; start_date: string; image_url: string | null }
 
 function formatEventDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
@@ -40,7 +40,7 @@ export default async function HomePage() {
     supabase.from('quick_links').select('*').contains('access_level', [role]).order('sort_order').limit(4),
     supabase.from('calendar_events').select('id, title, start_time, week_number')
       .contains('visibility_roles', [role]).gte('start_time', new Date().toISOString()).order('start_time').limit(3),
-    supabase.from('trips').select('id, title, destination, start_date')
+    supabase.from('trips').select('id, title, destination, start_date, image_url')
       .contains('visibility_roles', [role]).order('start_date').limit(3),
   ])
 
@@ -75,90 +75,92 @@ export default async function HomePage() {
 
         <ProfileTile colSpan={2} rowSpan={2} />
 
+        {nextEvents.length > 0 && (
         <BentoCard variant="default" colSpan={4} rowSpan={2} className="bento-tile flex flex-col" style={{ animationDelay: '150ms' }}>
           <div className="flex items-center justify-between mb-4">
             <Eyebrow>Events</Eyebrow>
             <Link href="/calendar" className="font-body text-[10px] font-bold tracking-widest uppercase hover:underline" style={{ color: 'var(--brand-crimson)' }}>See all →</Link>
           </div>
-          {nextEvents.length > 0 ? (
-            <div className="space-y-2 flex-1">
-              {nextEvents.slice(0, 3).map(event => (
-                <div key={event.id} className="flex items-center justify-between gap-2 py-2 border-b last:border-0" style={{ borderColor: 'var(--border-default)' }}>
-                  <div className="min-w-0">
-                    <p className="font-body text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{event.title}</p>
-                    <p className="font-body text-[10px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>{formatEventDate(event.start_time)}</p>
-                  </div>
-                  <span className="font-body text-[10px] font-bold px-2 py-0.5 rounded-lg flex-shrink-0" style={{ backgroundColor: 'var(--brand-forest)', color: 'rgba(242,239,232,0.7)' }}>W{event.week_number}</span>
+          <div className="space-y-2 flex-1">
+            {nextEvents.slice(0, 3).map(event => (
+              <div key={event.id} className="flex items-center justify-between gap-2 py-2 border-b last:border-0" style={{ borderColor: 'var(--border-default)' }}>
+                <div className="min-w-0">
+                  <p className="font-body text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{event.title}</p>
+                  <p className="font-body text-[10px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>{formatEventDate(event.start_time)}</p>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <p className="font-body text-xs flex-1 flex items-center" style={{ color: 'var(--text-secondary)' }}>No upcoming events.</p>
-          )}
+                <span className="font-body text-[10px] font-bold px-2 py-0.5 rounded-lg flex-shrink-0" style={{ backgroundColor: 'var(--brand-forest)', color: 'rgba(242,239,232,0.7)' }}>W{event.week_number}</span>
+              </div>
+            ))}
+          </div>
         </BentoCard>
+        )}
 
         {/* ── ROW 2: Trips col-3 | Announcements col-6 | Links col-3 ── */}
 
-        <BentoCard variant="crimson" colSpan={3} rowSpan={2} className="bento-tile flex flex-col justify-between" style={{ animationDelay: '200ms' }}>
+        {nextTrip && (
+        <BentoCard variant="crimson" colSpan={3} rowSpan={2} className="bento-tile flex flex-col justify-between relative overflow-hidden" style={{ animationDelay: '200ms' }}>
+          {nextTrip.image_url && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={nextTrip.image_url}
+              alt=""
+              aria-hidden="true"
+              style={{
+                position: 'absolute', inset: 0, width: '100%', height: '100%',
+                objectFit: 'cover', opacity: 0.22, pointerEvents: 'none',
+              }}
+            />
+          )}
           <div>
             <Eyebrow>Trips</Eyebrow>
-            {nextTrip ? (
-              <div className="mt-3">
-                <span className="font-body text-[10px] font-bold px-2 py-0.5 rounded-full mb-2 inline-block" style={{ backgroundColor: 'rgba(255,255,255,0.18)', color: 'var(--brand-parchment)' }}>{nextTrip.destination}</span>
-                <h3 className="font-display text-base font-semibold leading-snug" style={{ color: 'var(--brand-parchment)' }}>{nextTrip.title}</h3>
-                <p className="font-body text-[10px] mt-1" style={{ color: 'rgba(242,239,232,0.6)' }}>{formatTripDate(nextTrip.start_date)}</p>
-              </div>
-            ) : (
-              <p className="font-body text-sm font-medium mt-3" style={{ color: 'rgba(242,239,232,0.7)' }}>No upcoming trips.</p>
-            )}
+            <div className="mt-3">
+              <span className="font-body text-[10px] font-bold px-2 py-0.5 rounded-full mb-2 inline-block" style={{ backgroundColor: 'rgba(255,255,255,0.18)', color: 'var(--brand-parchment)' }}>{nextTrip.destination}</span>
+              <h3 className="font-display text-base font-semibold leading-snug" style={{ color: 'var(--brand-parchment)' }}>{nextTrip.title}</h3>
+              <p className="font-body text-[10px] mt-1" style={{ color: 'rgba(242,239,232,0.6)' }}>{formatTripDate(nextTrip.start_date)}</p>
+            </div>
           </div>
           <Link href="/trips" className="font-body text-[10px] font-bold tracking-widest uppercase mt-4 hover:underline self-start opacity-70 hover:opacity-100 transition-opacity" style={{ color: 'var(--brand-parchment)' }}>View trips →</Link>
         </BentoCard>
+        )}
 
+        {featuredAnnouncement && (
         <BentoCard variant="default" colSpan={6} rowSpan={2} className="bento-tile flex flex-col justify-between" style={{ animationDelay: '250ms' }}>
           <div>
             <Eyebrow>Latest</Eyebrow>
             <div className="mt-3">
-              {announcementTitle ? (
-                <>
-                  <h2 className="font-display text-xl font-semibold leading-snug mb-2" style={{ color: 'var(--text-primary)' }}>
-                    {announcementTitle.split(' ').slice(0, -1).join(' ')}{' '}
-                    <span style={{ color: 'var(--brand-crimson)' }}>{announcementTitle.split(' ').slice(-1)[0]}</span>
-                  </h2>
-                  {announcementContent && (
-                    <p className="font-body text-sm leading-relaxed" style={{ color: 'var(--text-secondary)', display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                      {announcementContent}
-                    </p>
-                  )}
-                </>
-              ) : (
-                <p className="font-body text-sm" style={{ color: 'var(--text-secondary)' }}>No announcements yet.</p>
+              <h2 className="font-display text-xl font-semibold leading-snug mb-2" style={{ color: 'var(--text-primary)' }}>
+                {announcementTitle!.split(' ').slice(0, -1).join(' ')}{' '}
+                <span style={{ color: 'var(--brand-crimson)' }}>{announcementTitle!.split(' ').slice(-1)[0]}</span>
+              </h2>
+              {announcementContent && (
+                <p className="font-body text-sm leading-relaxed" style={{ color: 'var(--text-secondary)', display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                  {announcementContent}
+                </p>
               )}
             </div>
           </div>
           <Link href="/announcements" className="font-body text-[10px] font-bold tracking-widest uppercase mt-4 hover:underline self-start" style={{ color: 'var(--brand-crimson)' }}>View all →</Link>
         </BentoCard>
+        )}
 
+        {quickLinks.length > 0 && (
         <BentoCard variant="teal" colSpan={3} rowSpan={2} className="bento-tile flex flex-col" style={{ animationDelay: '300ms' }}>
           <div className="flex items-center justify-between mb-4">
-            <Eyebrow>Quick Access</Eyebrow>
+            <Eyebrow style={{ color: 'var(--brand-parchment)' }}>Quick Access</Eyebrow>
             <Link href="/links" className="font-body text-[10px] font-bold tracking-widest uppercase hover:underline" style={{ color: 'var(--brand-parchment)', opacity: 0.7 }}>All →</Link>
           </div>
-          {quickLinks.length > 0 ? (
-            <div className="flex flex-col gap-1.5 flex-1">
-              {quickLinks.map(link => (
-                <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer"
-                  className="font-body flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium truncate hover:opacity-80 transition-opacity"
-                  style={{ backgroundColor: 'rgba(255,255,255,0.12)', color: 'var(--brand-parchment)' }}>
-                  <span style={{ flexShrink: 0, opacity: 0.7 }}>→</span>
-                  <span className="truncate">{link.label}</span>
-                </a>
-              ))}
-            </div>
-          ) : (
-            <p className="font-body text-xs mt-4" style={{ color: 'rgba(242,239,232,0.6)' }}>No quick links configured.</p>
-          )}
+          <div className="flex flex-col gap-1.5 flex-1">
+            {quickLinks.map(link => (
+              <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer"
+                className="font-body flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium truncate hover:opacity-80 transition-opacity"
+                style={{ backgroundColor: 'rgba(255,255,255,0.12)', color: 'var(--brand-parchment)' }}>
+                <span style={{ flexShrink: 0, opacity: 0.7 }}>→</span>
+                <span className="truncate">{link.label}</span>
+              </a>
+            ))}
+          </div>
         </BentoCard>
+        )}
 
         {/* ── ROW 3: Socials col-4 | Theme col-2 | Map col-3 | About Us col-3 ── */}
 
