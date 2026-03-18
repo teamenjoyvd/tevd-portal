@@ -56,7 +56,7 @@ export default function Header() {
     { href: '/calendar', label: t('nav.calendar') },
     { href: '/trips',    label: t('nav.trips')    },
     ...(isNonGuest ? [{ href: '/howtos', label: t('nav.howtos') }] : []),
-    ...(isNonGuest ? [{ href: '/los', label: t('nav.network') }] : []),
+    ...(isNonGuest ? [{ href: '/profile', label: t('nav.profile') }] : []),
   ]
 
   return (
