@@ -1,10 +1,8 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { auth } from '@clerk/nextjs/server'
-import PageHeading from '@/components/layout/PageHeading'
 import CalendarClient from '@/components/calendar/CalendarClient'
 
 export default async function CalendarPage() {
-  // Fetch current month events server-side
   const now = new Date()
   const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
   const start = new Date(`${month}-01`).toISOString()
@@ -33,7 +31,6 @@ export default async function CalendarPage() {
 
   const { data: initialEvents } = await query
 
-  // Also fetch user profile server-side for role
   let userRole: 'admin' | 'core' | 'member' | 'guest' | null = null
   let userProfileId: string | null = null
 
@@ -49,15 +46,12 @@ export default async function CalendarPage() {
   }
 
   return (
-    <>
-      <PageHeading title="Events Calendar" subtitle="N21 community events and team schedule" />
-      <CalendarClient
-        initialEvents={initialEvents ?? []}
-        initialMonth={month}
-        userRole={userRole}
-        userProfileId={userProfileId}
-        isAuthenticated={!!userId}
-      />
-    </>
+    <CalendarClient
+      initialEvents={initialEvents ?? []}
+      initialMonth={month}
+      userRole={userRole}
+      userProfileId={userProfileId}
+      isAuthenticated={!!userId}
+    />
   )
 }

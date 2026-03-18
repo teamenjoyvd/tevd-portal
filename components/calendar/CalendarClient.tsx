@@ -6,7 +6,7 @@ import { useLanguage } from '@/lib/hooks/useLanguage'
 import { DAYS_I18N, MONTHS_I18N } from '@/lib/i18n/translations'
 import EventPopup from '@/components/events/EventPopup'
 
-// ── Types ────────────────────────────────────────────────────────────────────────
+// ── Types ──────────────────────────────────────────────────────────────────
 
 type CalendarEvent = {
   id: string
@@ -30,7 +30,7 @@ type Props = {
   isAuthenticated: boolean
 }
 
-// ── Constants ────────────────────────────────────────────────────────
+// ── Constants ──────────────────────────────────────────────────────────
 
 const HOURS  = Array.from({ length: 24 }, (_, i) => i)
 const HOUR_HEIGHT = 60
@@ -40,7 +40,7 @@ const CATEGORY_COLOR: Record<string, { bg: string; text: string }> = {
   Personal: { bg: 'var(--sienna)', text: 'rgba(255,255,255,0.95)' },
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// ── Helpers ────────────────────────────────────────────────────────────────
 
 function isoWeek(date: Date): number {
   const d = new Date(date)
@@ -91,7 +91,7 @@ function eventDurationMinutes(start: string, end: string): number {
   return Math.max(30, (new Date(end).getTime() - new Date(start).getTime()) / 60000)
 }
 
-// ── Event pill ──────────────────────────────────────────────────────────────────────
+// ── Event pill ────────────────────────────────────────────────────────────────────
 
 function EventPill({
   event, onClick, compact = false,
@@ -127,7 +127,7 @@ function EventPill({
   )
 }
 
-// ── Month View ───────────────────────────────────────────────────────────────────
+// ── Month View ─────────────────────────────────────────────────────────────────────
 
 function MonthView({
   current, events, onEventClick, onDayClick,
@@ -149,7 +149,6 @@ function MonthView({
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
-      {/* Day headers */}
       <div className="grid grid-cols-[40px_repeat(7,1fr)] border-b border-black/5 flex-shrink-0">
         <div />
         {DAYS.map(d => (
@@ -159,8 +158,6 @@ function MonthView({
           </div>
         ))}
       </div>
-
-      {/* Grid */}
       <div className="flex-1 overflow-y-auto">
         {Array.from({ length: 6 }, (_, week) => {
           const weekDays = cells.slice(week * 7, week * 7 + 7)
@@ -223,199 +220,7 @@ function MonthView({
   )
 }
 
-// ── Week View ────────────────────────────────────────────────────────────────────
-
-function WeekView({
-  current, events, onEventClick,
-}: {
-  current: Date
-  events: CalendarEvent[]
-  onEventClick: (id: string, rect: DOMRect) => void
-}) {
-  const { lang } = useLanguage()
-  const DAYS = DAYS_I18N[lang]
-  const today = new Date()
-  const weekStart = startOfWeek(current)
-  const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
-  const eventsOnDay = (date: Date) =>
-    events.filter(e => sameDay(new Date(e.start_time), date))
-
-  const scrollRef = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    if (scrollRef.current) {
-      const hour = new Date().getHours()
-      scrollRef.current.scrollTop = Math.max(0, (hour - 1) * HOUR_HEIGHT)
-    }
-  }, [])
-
-  return (
-    <div className="flex flex-col flex-1 min-h-0">
-      <div className="grid grid-cols-[48px_repeat(7,1fr)] border-b border-black/5 flex-shrink-0">
-        <div />
-        {days.map((d, i) => {
-          const isToday = sameDay(d, today)
-          return (
-            <div key={i} className="py-2 text-center border-l border-black/5">
-              <p className="text-[10px] font-semibold tracking-wide uppercase"
-                style={{ color: 'var(--text-secondary)' }}>
-                {DAYS[i]}
-              </p>
-              <span
-                className="w-7 h-7 flex items-center justify-center rounded-full text-sm font-medium mx-auto mt-0.5"
-                style={{
-                  backgroundColor: isToday ? 'var(--crimson)' : 'transparent',
-                  color: isToday ? 'white' : 'var(--text-primary)',
-                }}
-              >
-                {d.getDate()}
-              </span>
-            </div>
-          )
-        })}
-      </div>
-      <div ref={scrollRef} className="overflow-y-auto" style={{ height: 'var(--cal-height)', minHeight: 300 }}>
-        <div className="grid grid-cols-[48px_repeat(7,1fr)]"
-          style={{ height: HOUR_HEIGHT * 24 }}>
-          <div>
-            {HOURS.map(h => (
-              <div key={h} style={{ height: HOUR_HEIGHT }}
-                className="flex items-start justify-end pr-2 pt-1">
-                {h > 0 && (
-                  <span className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>
-                    {String(h).padStart(2, '0')}:00
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-          {days.map((date, di) => {
-            const dayEvents = eventsOnDay(date)
-            return (
-              <div key={di} className="relative border-l border-black/5"
-                style={{ height: HOUR_HEIGHT * 24 }}>
-                {HOURS.map(h => (
-                  <div key={h} className="absolute w-full border-t border-black/[0.04]"
-                    style={{ top: h * HOUR_HEIGHT }} />
-                ))}
-                {HOURS.map(h => (
-                  <div key={`h-${h}`} className="absolute w-full border-t border-black/[0.02]"
-                    style={{ top: h * HOUR_HEIGHT + HOUR_HEIGHT / 2 }} />
-                ))}
-                {dayEvents.map(ev => {
-                  const top    = (eventMinutesFromMidnight(ev.start_time) / 60) * HOUR_HEIGHT
-                  const height = Math.max(22,
-                    (eventDurationMinutes(ev.start_time, ev.end_time) / 60) * HOUR_HEIGHT)
-                  const c = CATEGORY_COLOR[ev.category]
-                  return (
-                    <button
-                      key={ev.id}
-                      onClick={e => { e.stopPropagation(); onEventClick(ev.id, e.currentTarget.getBoundingClientRect()) }}
-                      className="absolute left-0.5 right-0.5 rounded-md px-1.5 text-left overflow-hidden hover:opacity-80 transition-opacity"
-                      style={{ top: top + 1, height: height - 2, backgroundColor: c.bg, color: c.text, zIndex: 1 }}
-                    >
-                      <p className="text-[10px] font-semibold truncate leading-tight mt-0.5">
-                        {ev.title}
-                      </p>
-                      {height > 36 && (
-                        <p className="text-[9px] opacity-80 leading-tight">
-                          {formatTime(ev.start_time)}
-                        </p>
-                      )}
-                    </button>
-                  )
-                })}
-              </div>
-            )
-          })}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ── Day View ─────────────────────────────────────────────────────────────────────
-
-function DayView({
-  current, events, onEventClick,
-}: {
-  current: Date
-  events: CalendarEvent[]
-  onEventClick: (id: string, rect: DOMRect) => void
-}) {
-  const dayEvents = events.filter(e => sameDay(new Date(e.start_time), current))
-
-  const scrollRef = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    if (scrollRef.current) {
-      const hour = new Date().getHours()
-      scrollRef.current.scrollTop = Math.max(0, (hour - 1) * HOUR_HEIGHT)
-    }
-  }, [])
-
-  return (
-    <div className="flex flex-col flex-1 min-h-0">
-      <div className="px-4 py-3 border-b border-black/5 flex-shrink-0">
-        <p className="font-display text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
-          {current.toLocaleDateString('en-GB', {
-            weekday: 'long', day: 'numeric', month: 'long',
-          })}
-        </p>
-        <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-          W{isoWeek(current)}
-        </p>
-      </div>
-      <div ref={scrollRef} className="overflow-y-auto" style={{ height: 'var(--cal-height)', minHeight: 300 }}>
-        <div className="grid grid-cols-[48px_1fr]" style={{ height: HOUR_HEIGHT * 24 }}>
-          <div>
-            {HOURS.map(h => (
-              <div key={h} style={{ height: HOUR_HEIGHT }}
-                className="flex items-start justify-end pr-2 pt-1">
-                {h > 0 && (
-                  <span className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>
-                    {String(h).padStart(2, '0')}:00
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-          <div className="relative border-l border-black/5" style={{ height: HOUR_HEIGHT * 24 }}>
-            {HOURS.map(h => (
-              <div key={h} className="absolute w-full border-t border-black/[0.04]"
-                style={{ top: h * HOUR_HEIGHT }} />
-            ))}
-            {HOURS.map(h => (
-              <div key={`h-${h}`} className="absolute w-full border-t border-black/[0.02]"
-                style={{ top: h * HOUR_HEIGHT + HOUR_HEIGHT / 2 }} />
-            ))}
-            {dayEvents.map(ev => {
-              const top    = (eventMinutesFromMidnight(ev.start_time) / 60) * HOUR_HEIGHT
-              const height = Math.max(28,
-                (eventDurationMinutes(ev.start_time, ev.end_time) / 60) * HOUR_HEIGHT)
-              const c = CATEGORY_COLOR[ev.category]
-              return (
-                <button
-                  key={ev.id}
-                  onClick={e => onEventClick(ev.id, e.currentTarget.getBoundingClientRect())}
-                  className="absolute left-1 right-1 rounded-lg px-3 text-left overflow-hidden hover:opacity-80 transition-opacity"
-                  style={{ top: top + 1, height: height - 2, backgroundColor: c.bg, color: c.text }}
-                >
-                  <p className="text-xs font-semibold truncate mt-1">{ev.title}</p>
-                  {height > 44 && (
-                    <p className="text-[10px] opacity-80">
-                      {formatTime(ev.start_time)} – {formatTime(ev.end_time)}
-                    </p>
-                  )}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ── Agenda View ───────────────────────────────────────────────────────────────────────
+// ── Agenda View ─────────────────────────────────────────────────────────────────────────
 
 function AgendaView({
   events, onEventClick, isLoading,
@@ -443,7 +248,6 @@ function AgendaView({
 
   const dates = Object.keys(grouped)
 
-  // Show skeleton while agenda events are being fetched
   if (isLoading) {
     return (
       <div className="overflow-y-auto px-4 py-4 space-y-4" style={{ height: 'var(--cal-height)', minHeight: 300 }}>
@@ -530,7 +334,7 @@ function AgendaView({
   )
 }
 
-// ── Main ─────────────────────────────────────────────────────────────────────────
+// ── Main ───────────────────────────────────────────────────────────────────────────
 
 export default function CalendarClient({
   initialEvents,
@@ -578,11 +382,10 @@ export default function CalendarClient({
   const navigate = useCallback((dir: 1 | -1) => {
     setCurrent(prev => {
       const d = new Date(prev)
-      if (view === 'month')  d.setMonth(d.getMonth() + dir)
-      if (view === 'agenda') d.setMonth(d.getMonth() + dir)
+      d.setMonth(d.getMonth() + dir)
       return d
     })
-  }, [view])
+  }, [])
 
   const goToday = useCallback(() => setCurrent(new Date()), [])
 
@@ -607,163 +410,43 @@ export default function CalendarClient({
   const TYPE_FILTERS = (['in-person', 'online', 'hybrid'] as const)
 
   return (
-    <div className="flex flex-col h-full w-full" style={{ backgroundColor: "var(--bg-global)" }}>
-      {/* ── Toolbar — single row on desktop, two rows on mobile ── */}
-      <div className="flex-shrink-0 border-b" style={{ backgroundColor: 'var(--bg-global)', borderColor: 'var(--border-default)' }}>
-        <div className="max-w-[1024px] mx-auto px-4 md:px-6 lg:px-8">
+    <div className="w-full" style={{ backgroundColor: 'var(--bg-global)' }}>
 
-          {/* Mobile: two rows */}
-          <div className="flex md:hidden items-center gap-2 py-2.5">
-            <button onClick={() => navigate(-1)}
-              className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5"
-              style={{ color: 'var(--text-primary)' }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="15 18 9 12 15 6"/>
-              </svg>
-            </button>
-            <button onClick={goToday}
-              className="px-2.5 py-1 rounded-lg text-xs font-semibold border"
-              style={{ borderColor: 'var(--crimson)', color: 'var(--crimson)' }}>
-              {t('cal.today')}
-            </button>
-            <button onClick={() => navigate(1)}
-              className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5"
-              style={{ color: 'var(--text-primary)' }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="9 18 15 12 9 6"/>
-              </svg>
-            </button>
-            <p className="flex-1 text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
-              {periodLabel}
-            </p>
-          </div>
-
-          <div className="flex md:hidden items-center justify-between gap-2 pb-2.5">
-            <div className="flex gap-0.5 p-0.5 rounded-lg" style={{ backgroundColor: 'rgba(0,0,0,0.05)' }}>
-              {views.map(v => (
-                <button key={v.key} onClick={() => setView(v.key)}
-                  className="px-2.5 py-1 rounded-md text-xs font-medium transition-all"
-                  style={{
-                    backgroundColor: view === v.key ? 'white' : 'transparent',
-                    color: view === v.key ? 'var(--text-primary)' : 'var(--text-secondary)',
-                    boxShadow: view === v.key ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
-                  }}>
-                  {v.label}
-                </button>
-              ))}
-            </div>
-            <div className="flex gap-1.5">
-              <button onClick={() => setShowN21(v => !v)}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-all"
-                style={{
-                  backgroundColor: showN21 ? 'var(--forest)' : 'rgba(0,0,0,0.06)',
-                  color: showN21 ? 'white' : 'var(--text-secondary)',
-                }}>
-                <span className="w-1.5 h-1.5 rounded-full"
-                  style={{ backgroundColor: showN21 ? 'rgba(255,255,255,0.6)' : 'var(--forest)' }} />
-                N21
-              </button>
-              {canSeePersonal && (
-                <button onClick={() => setShowPersonal(v => !v)}
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-all"
-                  style={{
-                    backgroundColor: showPersonal ? 'var(--sienna)' : 'rgba(0,0,0,0.06)',
-                    color: showPersonal ? 'white' : 'var(--text-secondary)',
-                  }}>
-                  <span className="w-1.5 h-1.5 rounded-full"
-                    style={{ backgroundColor: showPersonal ? 'rgba(255,255,255,0.6)' : 'var(--sienna)' }} />
-                  {t('cal.personal')}
-                </button>
-              )}
-            </div>
-            <div className="flex gap-1.5">
-              {TYPE_FILTERS.map(type => (
-                <button key={type} onClick={() => setFilterType(filterType === type ? null : type)}
-                  className="px-2.5 py-1 rounded-full text-xs font-semibold transition-all"
-                  style={{
-                    backgroundColor: filterType === type ? 'var(--brand-teal)' : 'rgba(0,0,0,0.06)',
-                    color: filterType === type ? 'white' : 'var(--text-secondary)',
-                  }}>
-                  {type === 'in-person' ? t('cal.inPerson') : type === 'online' ? t('cal.online') : t('cal.hybrid')}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Desktop: single row */}
-          <div className="hidden md:flex items-center gap-3 py-2.5">
-            <div className="flex items-center gap-1">
+      {/* Mobile: original top-toolbar layout (unchanged) */}
+      <div className="md:hidden">
+        <div className="flex-shrink-0 border-b" style={{ backgroundColor: 'var(--bg-global)', borderColor: 'var(--border-default)' }}>
+          <div className="max-w-[1024px] mx-auto px-4">
+            <div className="flex items-center gap-2 py-2.5">
               <button onClick={() => navigate(-1)}
-                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors"
+                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5"
                 style={{ color: 'var(--text-primary)' }}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
                   stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="15 18 9 12 15 6"/>
                 </svg>
               </button>
               <button onClick={goToday}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors hover:bg-black/[0.02]"
+                className="px-2.5 py-1 rounded-lg text-xs font-semibold border"
                 style={{ borderColor: 'var(--crimson)', color: 'var(--crimson)' }}>
                 {t('cal.today')}
               </button>
               <button onClick={() => navigate(1)}
-                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors"
+                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5"
                 style={{ color: 'var(--text-primary)' }}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
                   stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="9 18 15 12 9 6"/>
                 </svg>
               </button>
+              <p className="flex-1 text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                {periodLabel}
+              </p>
             </div>
-
-            <p className="flex-1 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-              {periodLabel}
-            </p>
-
-            <div className="flex items-center gap-3">
-              <div className="flex gap-1.5">
-                <button onClick={() => setShowN21(v => !v)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
-                  style={{
-                    backgroundColor: showN21 ? 'var(--forest)' : 'rgba(0,0,0,0.06)',
-                    color: showN21 ? 'white' : 'var(--text-secondary)',
-                  }}>
-                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: showN21 ? 'rgba(255,255,255,0.6)' : 'var(--forest)' }} />
-                  N21
-                </button>
-                {canSeePersonal && (
-                  <button onClick={() => setShowPersonal(v => !v)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
-                    style={{
-                      backgroundColor: showPersonal ? 'var(--sienna)' : 'rgba(0,0,0,0.06)',
-                      color: showPersonal ? 'white' : 'var(--text-secondary)',
-                    }}>
-                    <span className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: showPersonal ? 'rgba(255,255,255,0.6)' : 'var(--sienna)' }} />
-                    {t('cal.personal')}
-                  </button>
-                )}
-              </div>
-              <div className="flex gap-1.5">
-                {TYPE_FILTERS.map(type => (
-                  <button key={type} onClick={() => setFilterType(filterType === type ? null : type)}
-                    className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
-                    style={{
-                      backgroundColor: filterType === type ? 'var(--brand-teal)' : 'rgba(0,0,0,0.06)',
-                      color: filterType === type ? 'white' : 'var(--text-secondary)',
-                    }}>
-                    {type === 'in-person' ? t('cal.inPerson') : type === 'online' ? t('cal.online') : t('cal.hybrid')}
-                  </button>
-                ))}
-              </div>
-
+            <div className="flex items-center justify-between gap-2 pb-2.5">
               <div className="flex gap-0.5 p-0.5 rounded-lg" style={{ backgroundColor: 'rgba(0,0,0,0.05)' }}>
                 {views.map(v => (
                   <button key={v.key} onClick={() => setView(v.key)}
-                    className="px-3 py-1 rounded-md text-xs font-medium transition-all"
+                    className="px-2.5 py-1 rounded-md text-xs font-medium transition-all"
                     style={{
                       backgroundColor: view === v.key ? 'white' : 'transparent',
                       color: view === v.key ? 'var(--text-primary)' : 'var(--text-secondary)',
@@ -776,30 +459,155 @@ export default function CalendarClient({
             </div>
           </div>
         </div>
-      </div>
-
-      {/* ── Calendar grid ── */}
-      <div className="flex-1 min-h-0 overflow-hidden">
-        <div className="max-w-[1024px] mx-auto h-full flex flex-col">
+        <div className="max-w-[1024px] mx-auto">
           {view === 'month' && (
-            <MonthView
-              current={current}
-              events={events}
-              onEventClick={handleEventClick}
-              onDayClick={handleDayClick}
-            />
+            <MonthView current={current} events={events} onEventClick={handleEventClick} onDayClick={handleDayClick} />
           )}
           {view === 'agenda' && (
-            <AgendaView
-              events={events}
-              onEventClick={handleEventClick}
-              isLoading={isPending}
-            />
+            <AgendaView events={events} onEventClick={handleEventClick} isLoading={isPending} />
           )}
         </div>
       </div>
 
-      {/* ── Floating event popover — no backdrop ── */}
+      {/* Desktop: col-2 nav sidebar + col-10 calendar */}
+      <div className="hidden md:block py-8 pb-16">
+        <div className="max-w-[1440px] mx-auto px-4 md:px-8 xl:px-12">
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
+              gap: '12px',
+              alignItems: 'start',
+            }}
+          >
+            {/* col-2: left nav sidebar */}
+            <div
+              style={{ gridColumn: 'span 2' }}
+              className="rounded-2xl p-4 flex flex-col gap-4 sticky top-24"
+              style2={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}
+            >
+              {/* Period nav */}
+              <div>
+                <p className="font-display text-base font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
+                  {periodLabel}
+                </p>
+                <div className="flex gap-1 mt-2">
+                  <button onClick={() => navigate(-1)}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors flex-shrink-0"
+                    style={{ color: 'var(--text-primary)' }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="15 18 9 12 15 6"/>
+                    </svg>
+                  </button>
+                  <button onClick={() => navigate(1)}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors flex-shrink-0"
+                    style={{ color: 'var(--text-primary)' }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="9 18 15 12 9 6"/>
+                    </svg>
+                  </button>
+                </div>
+                <button onClick={goToday}
+                  className="mt-2 w-full px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors hover:bg-black/[0.02]"
+                  style={{ borderColor: 'var(--crimson)', color: 'var(--crimson)' }}>
+                  {t('cal.today')}
+                </button>
+              </div>
+
+              {/* View switcher */}
+              <div>
+                <p className="text-[10px] font-semibold tracking-widest uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>View</p>
+                <div className="flex flex-col gap-0.5">
+                  {views.map(v => (
+                    <button key={v.key} onClick={() => setView(v.key)}
+                      className="w-full text-left px-3 py-2 rounded-lg text-xs font-medium transition-all"
+                      style={{
+                        backgroundColor: view === v.key ? 'rgba(188,71,73,0.08)' : 'transparent',
+                        color: view === v.key ? 'var(--brand-crimson)' : 'var(--text-secondary)',
+                        fontWeight: view === v.key ? 600 : 400,
+                      }}>
+                      {v.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Category filters */}
+              <div>
+                <p className="text-[10px] font-semibold tracking-widest uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>Category</p>
+                <div className="flex flex-col gap-1.5">
+                  <button onClick={() => setShowN21(v => !v)}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all"
+                    style={{
+                      backgroundColor: showN21 ? 'var(--forest)' : 'rgba(0,0,0,0.04)',
+                      color: showN21 ? 'white' : 'var(--text-secondary)',
+                    }}>
+                    <span className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: showN21 ? 'rgba(255,255,255,0.6)' : 'var(--forest)' }} />
+                    N21
+                  </button>
+                  {canSeePersonal && (
+                    <button onClick={() => setShowPersonal(v => !v)}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all"
+                      style={{
+                        backgroundColor: showPersonal ? 'var(--sienna)' : 'rgba(0,0,0,0.04)',
+                        color: showPersonal ? 'white' : 'var(--text-secondary)',
+                      }}>
+                      <span className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: showPersonal ? 'rgba(255,255,255,0.6)' : 'var(--sienna)' }} />
+                      {t('cal.personal')}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Event type filters */}
+              <div>
+                <p className="text-[10px] font-semibold tracking-widest uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>Format</p>
+                <div className="flex flex-col gap-1">
+                  {TYPE_FILTERS.map(type => (
+                    <button key={type} onClick={() => setFilterType(filterType === type ? null : type)}
+                      className="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold transition-all"
+                      style={{
+                        backgroundColor: filterType === type ? 'var(--brand-teal)' : 'rgba(0,0,0,0.04)',
+                        color: filterType === type ? 'white' : 'var(--text-secondary)',
+                      }}>
+                      {type === 'in-person' ? t('cal.inPerson') : type === 'online' ? t('cal.online') : t('cal.hybrid')}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* col-10: calendar */}
+            <div
+              style={{ gridColumn: 'span 10' }}
+              className="rounded-2xl overflow-hidden"
+              style2={{ border: '1px solid var(--border-default)', backgroundColor: 'var(--bg-global)' }}
+            >
+              {view === 'month' && (
+                <MonthView
+                  current={current}
+                  events={events}
+                  onEventClick={handleEventClick}
+                  onDayClick={handleDayClick}
+                />
+              )}
+              {view === 'agenda' && (
+                <AgendaView
+                  events={events}
+                  onEventClick={handleEventClick}
+                  isLoading={isPending}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Floating event popover */}
       {selectedEventId && (
         <EventPopup
           eventId={selectedEventId}
