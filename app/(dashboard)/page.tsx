@@ -7,6 +7,7 @@ import ProfileTile from '@/components/bento/tiles/ProfileTile'
 import HowtosTile from '@/components/bento/tiles/HowtosTile'
 import LocationTile from '@/components/bento/tiles/LocationTile'
 import ThemeTile from '@/components/bento/tiles/ThemeTile'
+import SocialsTile from '@/components/bento/tiles/SocialsTile'
 
 type Announcement = {
   id: string; titles: Record<string, string>; contents: Record<string, string>
@@ -161,10 +162,7 @@ export default async function HomePage() {
 
         {/* ── ROW 3: Socials col-4 | Theme col-2 | Map col-3 | About Us col-3 ── */}
 
-        <BentoCard variant="default" colSpan={4} rowSpan={2} className="bento-tile flex flex-col justify-between" style={{ animationDelay: '350ms' }}>
-          <Eyebrow>Socials</Eyebrow>
-          <p className="font-body text-xs mt-3" style={{ color: 'var(--text-secondary)' }}>Social feed coming soon.</p>
-        </BentoCard>
+        <SocialsTile colSpan={4} rowSpan={2} />
 
         <ThemeTile colSpan={2} rowSpan={2} />
 
