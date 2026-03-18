@@ -27,8 +27,10 @@ export default function HowtosTile({ colSpan = 6, rowSpan, halfWidthMobile }: { 
     staleTime: 5 * 60 * 1000,
   })
 
-  // Hide tile entirely if no howtos visible for this user
-  if (!isLoading && howtos.length === 0) return null
+  // Hide tile entirely if no howtos are available for this user.
+  // Also suppress while Clerk is resolving or the query is in-flight with no
+  // prior data — prevents the skeleton-flash-then-disappear for low-access users.
+  if (howtos.length === 0) return null
 
   return (
     <BentoCard variant="default" colSpan={colSpan} rowSpan={rowSpan} halfWidthMobile={halfWidthMobile} className="flex flex-col">
