@@ -102,6 +102,7 @@ export type Database = {
         Row: {
           category: Database["public"]["Enums"]["event_category"]
           created_at: string
+          created_by: string | null
           description: string | null
           end_time: string
           event_type: Database["public"]["Enums"]["event_type"] | null
@@ -115,6 +116,7 @@ export type Database = {
         Insert: {
           category?: Database["public"]["Enums"]["event_category"]
           created_at?: string
+          created_by?: string | null
           description?: string | null
           end_time: string
           event_type?: Database["public"]["Enums"]["event_type"] | null
@@ -128,6 +130,7 @@ export type Database = {
         Update: {
           category?: Database["public"]["Enums"]["event_category"]
           created_at?: string
+          created_by?: string | null
           description?: string | null
           end_time?: string
           event_type?: Database["public"]["Enums"]["event_type"] | null
@@ -138,7 +141,15 @@ export type Database = {
           visibility_roles?: Database["public"]["Enums"]["user_role"][]
           week_number?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "calendar_events_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       event_role_requests: {
         Row: {
