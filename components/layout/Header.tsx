@@ -42,7 +42,7 @@ export default function Header() {
     { href: '/about',    label: t('nav.about')    },
     { href: '/calendar', label: t('nav.calendar') },
     { href: '/trips',    label: t('nav.trips')    },
-    { href: '/howtos',   label: t('nav.howtos')   },
+    ...(isNonGuest ? [{ href: '/howtos', label: t('nav.howtos') }] : []),
     ...(isNonGuest ? [{ href: '/los', label: t('nav.network') }] : []),
   ]
 
