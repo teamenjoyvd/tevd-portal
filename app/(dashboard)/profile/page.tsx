@@ -256,6 +256,8 @@ export default function ProfilePage() {
   const activeDocType = form.document_active_type ?? profile?.document_active_type ?? 'id'
   const expiryState   = getExpiryState(form.valid_through ?? profile?.valid_through ?? null)
   const isGuest       = profile?.role === 'guest' && !profile?.abo_number
+  const isUnverified  = profile?.role === 'guest' &&
+    !!verRequest && (verRequest.status === 'pending' || verRequest.status === 'denied')
 
   return (
     <>
@@ -322,7 +324,7 @@ export default function ProfilePage() {
                         color: profile.role === 'guest' ? 'var(--text-secondary)' : '#2d6a4f',
                       }}
                     >
-                      {ROLE_LABELS[profile.role]}
+                      {isUnverified ? 'Unverified Member' : ROLE_LABELS[profile.role]}
                     </span>
                   </span>
                 </div>

@@ -41,6 +41,17 @@ export default function UserDropdown() {
     staleTime: 5 * 60 * 1000,
   })
 
+  const { data: verRequest } = useQuery<{ status: string } | null>({
+    queryKey: ['verify-abo'],
+    queryFn: () => fetch('/api/profile/verify-abo').then(r => r.json()),
+    enabled: role === 'guest',
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const isUnverified = role === 'guest' &&
+    !!verRequest &&
+    (verRequest.status === 'pending' || verRequest.status === 'denied')
+
   // Close on outside click
   useEffect(() => {
     function handle(e: MouseEvent) {
@@ -103,7 +114,7 @@ export default function UserDropdown() {
                   className="text-[10px] font-semibold px-2 py-0.5 rounded-full mt-0.5 inline-block"
                   style={{ backgroundColor: roleStyle.bg, color: roleStyle.color }}
                 >
-                  {ROLE_LABELS[role] ?? role}
+                  {isUnverified ? 'Unverified Member' : (ROLE_LABELS[role] ?? role)}
                 </span>
               </div>
             </div>
