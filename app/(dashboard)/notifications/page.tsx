@@ -11,6 +11,7 @@ const TYPE_STYLES: Record<string, { bg: string; color: string }> = {
   trip_created:  { bg: 'rgba(45,51,42,0.10)',    color: 'var(--brand-forest)'  },
   event_fetched: { bg: 'rgba(138,133,119,0.15)', color: 'var(--text-secondary)'},
   doc_expiry:    { bg: 'rgba(188,71,73,0.10)',   color: 'var(--brand-crimson)' },
+  los_digest:    { bg: 'rgba(62,119,133,0.10)',  color: 'var(--brand-teal)'   },
 }
 
 function timeAgo(dateStr: string): string {
@@ -39,6 +40,7 @@ export default function NotificationsPage() {
     trip_created:  t('notif.type.tripCreated'),
     event_fetched: t('notif.type.eventFetched'),
     doc_expiry:    t('notif.type.docExpiry'),
+    los_digest:    t('notif.type.losDigest'),
   }
 
   return (

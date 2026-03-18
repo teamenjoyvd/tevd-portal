@@ -25,6 +25,7 @@ export const translations = {
   'notif.type.tripCreated':   { en: 'New trip',             bg: 'Ново пътуване'                   },
   'notif.type.eventFetched':  { en: 'New event',            bg: 'Ново събитие'                    },
   'notif.type.docExpiry':     { en: 'Document expiry',      bg: 'Изтичане на документ'            },
+  'notif.type.losDigest':     { en: 'LOS digest',           bg: 'Обобщение на мрежата'            },
 
   // Profile page
   'profile.identity':          { en: 'Identity',                bg: 'Самоличност'              },

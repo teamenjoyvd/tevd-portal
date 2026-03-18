@@ -7,8 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.4"
   }
@@ -706,6 +704,7 @@ export type Database = {
     }
     Functions: {
       abo_to_ltree_label: { Args: { abo: string }; Returns: string }
+      get_core_ancestors: { Args: { p_profile_id: string }; Returns: string[] }
       get_los_members_with_profiles: {
         Args: never
         Returns: {
@@ -738,6 +737,7 @@ export type Database = {
       import_los_members: { Args: { rows: Json }; Returns: Json }
       is_admin: { Args: never; Returns: boolean }
       rebuild_tree_paths: { Args: never; Returns: undefined }
+      run_los_digest: { Args: never; Returns: undefined }
       text2ltree: { Args: { "": string }; Returns: unknown }
       upsert_tree_node: {
         Args: {
@@ -765,6 +765,7 @@ export type Database = {
         | "trip_created"
         | "event_fetched"
         | "doc_expiry"
+        | "los_digest"
       payment_status: "completed" | "pending" | "failed"
       registration_status: "pending" | "approved" | "denied"
       user_role: "admin" | "core" | "member" | "guest"
@@ -776,7 +777,6 @@ export type Database = {
 }
 
 type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
-
 type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
@@ -904,6 +904,7 @@ export const Constants = {
         "trip_created",
         "event_fetched",
         "doc_expiry",
+        "los_digest",
       ],
       payment_status: ["completed", "pending", "failed"],
       registration_status: ["pending", "approved", "denied"],

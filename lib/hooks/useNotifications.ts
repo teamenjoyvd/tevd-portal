@@ -4,7 +4,7 @@ export type Notification = {
   id: string
   profile_id: string
   is_read: boolean
-  type: 'role_request' | 'trip_request' | 'trip_created' | 'event_fetched' | 'doc_expiry'
+  type: 'role_request' | 'trip_request' | 'trip_created' | 'event_fetched' | 'doc_expiry' | 'los_digest'
   title: string
   message: string
   action_url: string | null
