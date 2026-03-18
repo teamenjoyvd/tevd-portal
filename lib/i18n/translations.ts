@@ -10,6 +10,7 @@ export const translations = {
   'nav.notifications': { en: 'Notifications', bg: 'Известия'     },
   'nav.admin':         { en: 'Admin',         bg: 'Админ'        },
   'nav.network':       { en: 'My Network',    bg: 'Моята мрежа'  },
+  'nav.howtos':        { en: 'Guides',        bg: 'Ръководства'  },
   'nav.signIn':        { en: 'Sign in',       bg: 'Вход'         },
 
   // Notifications page

@@ -42,6 +42,7 @@ export default function Header() {
     { href: '/about',    label: t('nav.about')    },
     { href: '/calendar', label: t('nav.calendar') },
     { href: '/trips',    label: t('nav.trips')    },
+    { href: '/howtos',   label: t('nav.howtos')   },
     ...(isNonGuest ? [{ href: '/los', label: t('nav.network') }] : []),
   ]
 
@@ -69,7 +70,7 @@ export default function Header() {
             className="font-display text-base font-bold tracking-tight hidden sm:block"
             style={{ color: 'var(--brand-forest)' }}
           >
-            TEAMENJOYVD
+            TEAMENJOY<span style={{ color: 'var(--brand-crimson)' }}>VD</span>
           </span>
         </Link>
 
