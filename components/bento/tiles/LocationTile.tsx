@@ -6,6 +6,13 @@ import BentoCard from '@/components/bento/BentoCard'
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
 const SOFIA: [number, number] = [23.3219, 42.6977]
 
+function getMapStyle(): string {
+  const theme = document.documentElement.getAttribute('data-theme')
+  return theme === 'dark'
+    ? 'mapbox://styles/mapbox/dark-v11'
+    : 'mapbox://styles/mapbox/light-v11'
+}
+
 function LocationFallback({ colSpan, rowSpan, halfWidthMobile }: { colSpan: number; rowSpan?: number; halfWidthMobile?: boolean }) {
   return (
     <BentoCard variant="forest" colSpan={colSpan} rowSpan={rowSpan} halfWidthMobile={halfWidthMobile} className="relative flex items-end">
@@ -32,7 +39,7 @@ function LocationFallback({ colSpan, rowSpan, halfWidthMobile }: { colSpan: numb
 
 export default function LocationTile({ colSpan = 6, rowSpan, halfWidthMobile }: { colSpan?: number; rowSpan?: number; halfWidthMobile?: boolean }) {
   const mapContainer = useRef<HTMLDivElement>(null)
-  const mapRef = useRef<{ remove: () => void } | null>(null)
+  const mapRef = useRef<{ remove: () => void; setStyle: (s: string) => void } | null>(null)
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
@@ -46,7 +53,7 @@ export default function LocationTile({ colSpan = 6, rowSpan, halfWidthMobile }: 
       mapboxgl.accessToken = TOKEN
       const map = new mapboxgl.Map({
         container: mapContainer.current,
-        style: 'mapbox://styles/mapbox/dark-v11',
+        style: getMapStyle(),
         center: SOFIA,
         zoom: 12,
         interactive: false,
@@ -78,7 +85,26 @@ export default function LocationTile({ colSpan = 6, rowSpan, halfWidthMobile }: 
       existing.addEventListener('load', initMap, { once: true })
     }
 
-    return () => { mapRef.current?.remove(); mapRef.current = null }
+    // Watch for theme changes and swap map style accordingly
+    const observer = new MutationObserver(() => {
+      if (mapRef.current) {
+        setReady(false)
+        mapRef.current.setStyle(getMapStyle())
+        // Re-set ready after style loads
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ;(mapRef.current as any).once('styledata', () => setReady(true))
+      }
+    })
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme'],
+    })
+
+    return () => {
+      observer.disconnect()
+      mapRef.current?.remove()
+      mapRef.current = null
+    }
   }, [])
 
   if (!TOKEN) return <LocationFallback colSpan={colSpan} rowSpan={rowSpan} halfWidthMobile={halfWidthMobile} />
