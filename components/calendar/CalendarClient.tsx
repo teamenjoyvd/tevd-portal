@@ -6,7 +6,7 @@ import { useLanguage } from '@/lib/hooks/useLanguage'
 import { DAYS_I18N, MONTHS_I18N } from '@/lib/i18n/translations'
 import EventPopup from '@/components/events/EventPopup'
 
-// ── Types ──────────────────────────────────────────────────────────────────────────
+// ── Types ────────────────────────────────────────────────────────────────────────
 
 type CalendarEvent = {
   id: string
@@ -30,7 +30,7 @@ type Props = {
   isAuthenticated: boolean
 }
 
-// ── Constants ──────────────────────────────────────────────────────────────────────
+// ── Constants ────────────────────────────────────────────────────────
 
 const HOURS  = Array.from({ length: 24 }, (_, i) => i)
 const HOUR_HEIGHT = 60
@@ -40,7 +40,7 @@ const CATEGORY_COLOR: Record<string, { bg: string; text: string }> = {
   Personal: { bg: 'var(--sienna)', text: 'rgba(255,255,255,0.95)' },
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────────────
+// ── Helpers ──────────────────────────────────────────────────────────────────
 
 function isoWeek(date: Date): number {
   const d = new Date(date)
@@ -91,7 +91,7 @@ function eventDurationMinutes(start: string, end: string): number {
   return Math.max(30, (new Date(end).getTime() - new Date(start).getTime()) / 60000)
 }
 
-// ── Event pill ───────────────────────────────────────────────────────────────────────
+// ── Event pill ──────────────────────────────────────────────────────────────────────
 
 function EventPill({
   event, onClick, compact = false,
@@ -127,7 +127,7 @@ function EventPill({
   )
 }
 
-// ── Month View ───────────────────────────────────────────────────────────────────────
+// ── Month View ───────────────────────────────────────────────────────────────────
 
 function MonthView({
   current, events, onEventClick, onDayClick,
@@ -223,7 +223,7 @@ function MonthView({
   )
 }
 
-// ── Week View ────────────────────────────────────────────────────────────────────────
+// ── Week View ────────────────────────────────────────────────────────────────────
 
 function WeekView({
   current, events, onEventClick,
@@ -333,7 +333,7 @@ function WeekView({
   )
 }
 
-// ── Day View ─────────────────────────────────────────────────────────────────────────
+// ── Day View ─────────────────────────────────────────────────────────────────────
 
 function DayView({
   current, events, onEventClick,
@@ -415,13 +415,14 @@ function DayView({
   )
 }
 
-// ── Agenda View ────────────────────────────────────────────────────────────────────────
+// ── Agenda View ───────────────────────────────────────────────────────────────────────
 
 function AgendaView({
-  events, onEventClick,
+  events, onEventClick, isLoading,
 }: {
   events: CalendarEvent[]
   onEventClick: (id: string, rect: DOMRect) => void
+  isLoading: boolean
 }) {
   const { t } = useLanguage()
   const today = new Date()
@@ -441,6 +442,20 @@ function AgendaView({
   }, [events])
 
   const dates = Object.keys(grouped)
+
+  // Show skeleton while agenda events are being fetched
+  if (isLoading) {
+    return (
+      <div className="overflow-y-auto px-4 py-4 space-y-4" style={{ height: 'var(--cal-height)', minHeight: 300 }}>
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="space-y-2">
+            <div className="h-6 w-32 rounded-full animate-pulse" style={{ backgroundColor: 'rgba(0,0,0,0.06)' }} />
+            <div className="h-16 rounded-xl animate-pulse" style={{ backgroundColor: 'rgba(0,0,0,0.04)' }} />
+          </div>
+        ))}
+      </div>
+    )
+  }
 
   if (dates.length === 0) {
     return (
@@ -515,7 +530,7 @@ function AgendaView({
   )
 }
 
-// ── Main ─────────────────────────────────────────────────────────────────────────────
+// ── Main ─────────────────────────────────────────────────────────────────────────
 
 export default function CalendarClient({
   initialEvents,
@@ -541,7 +556,7 @@ export default function CalendarClient({
   const canSeePersonal = isAuthenticated && userRole !== 'guest'
   const fetchMonth     = view === 'agenda' ? null : toMonthParam(current)
 
-  const { data: rawEvents = [] } = useQuery<CalendarEvent[]>({
+  const { data: rawEvents = [], isPending } = useQuery<CalendarEvent[]>({
     queryKey: ['events', fetchMonth],
     queryFn: () =>
       fetch(`/api/calendar${fetchMonth ? `?month=${fetchMonth}` : ''}`).then(r => r.json()),
@@ -778,6 +793,7 @@ export default function CalendarClient({
             <AgendaView
               events={events}
               onEventClick={handleEventClick}
+              isLoading={isPending}
             />
           )}
         </div>

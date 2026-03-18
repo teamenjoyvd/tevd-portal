@@ -32,7 +32,10 @@ export async function GET(req: Request) {
     ).toISOString()
     query = query.gte('start_time', start).lt('start_time', end)
   } else {
-    query = query.gte('start_time', new Date().toISOString())
+    // Agenda: fetch from start of today so events earlier in the day are included
+    const todayStart = new Date()
+    todayStart.setHours(0, 0, 0, 0)
+    query = query.gte('start_time', todayStart.toISOString())
   }
 
   const { data, error } = await query
