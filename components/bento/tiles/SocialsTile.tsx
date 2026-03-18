@@ -94,7 +94,7 @@ function PostCard({
         <div className="flex items-center gap-1.5 mb-1" style={{ color: 'var(--text-secondary)' }}>
           {icon}
           <span className="text-xs font-medium">{platform}</span>
-          <span className="text-xs" style={{ color: 'var(--brand-stone)' }}>· {timeAgo(timestamp)}</span>
+          <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>· {timeAgo(timestamp)}</span>
         </div>
         {caption && (
           <p
