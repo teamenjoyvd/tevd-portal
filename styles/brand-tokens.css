@@ -16,7 +16,8 @@
   --bg-global:         var(--brand-parchment);
   --bg-card:           var(--brand-oyster);
   --text-primary:      var(--brand-void);
-  --text-secondary:    var(--brand-stone);
+  --text-secondary:    #5C5950;
+  --text-tertiary:     #8A8577;
   --border-default:    rgba(45, 51, 42, 0.08);
   --border-hover:      rgba(188, 71, 73, 0.30);
   --accent-left-info:  var(--brand-teal);
