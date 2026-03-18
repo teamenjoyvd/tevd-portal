@@ -482,9 +482,8 @@ export default function CalendarClient({
           >
             {/* col-2: left nav sidebar */}
             <div
-              style={{ gridColumn: 'span 2' }}
+              style={{ gridColumn: 'span 2', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}
               className="rounded-2xl p-4 flex flex-col gap-4 sticky top-24"
-              style2={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}
             >
               {/* Period nav */}
               <div>
@@ -583,9 +582,8 @@ export default function CalendarClient({
 
             {/* col-10: calendar */}
             <div
-              style={{ gridColumn: 'span 10' }}
+              style={{ gridColumn: 'span 10', border: '1px solid var(--border-default)', backgroundColor: 'var(--bg-global)' }}
               className="rounded-2xl overflow-hidden"
-              style2={{ border: '1px solid var(--border-default)', backgroundColor: 'var(--bg-global)' }}
             >
               {view === 'month' && (
                 <MonthView
