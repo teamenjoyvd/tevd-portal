@@ -1,5 +1,6 @@
 import Image from 'next/image'
 import BentoCard from '@/components/bento/BentoCard'
+import AboutMapTile from '@/components/about/AboutMapTile'
 
 // ── Shared content blocks ─────────────────────────────────────────────────
 
@@ -24,7 +25,8 @@ const BODY = (
     <p className="text-base leading-relaxed font-body" style={{ color: 'var(--brand-stone)' }}>
       So, if you&apos;ve made it to our corner of the web, you must be on the hunt for
       something special. Reach out to the person who directed you here to dig deeper into
-      what we&apos;re all about.
+      what we&apos;re all about. If you stumbled upon us all by yourself, kudos! Slide into
+      our DMs and let&apos;s have a chat. We love meeting new folks.
     </p>
   </div>
 )
@@ -49,14 +51,6 @@ const EMAIL_TILE = (
   </BentoCard>
 )
 
-const CTA_TILE = (
-  <BentoCard variant="forest" className="flex items-center justify-center h-full">
-    <p className="text-sm leading-relaxed font-body text-center" style={{ color: 'rgba(242,239,232,0.75)' }}>
-      Slide into our DMs and let&apos;s have a chat.
-    </p>
-  </BentoCard>
-)
-
 // ── Page ──────────────────────────────────────────────────────────────────
 
 export default function AboutPage() {
@@ -69,7 +63,7 @@ export default function AboutPage() {
           Row 1: [col-2 heading][col-6 text rowSpan-3]
           Row 2: [col-2 empty  ][col-2 empty          ]
           Row 3: [col-2 empty  ][col-2 empty          ]
-          Row 4: [col-2 hero   ][col-2 empty][col-2 email][col-2 cta]
+          Row 4: [col-2 hero   ][col-2 empty][col-2 email][col-2 map teal]
           ════════════════════════════════════════════════════════════════════ */}
       <div className="hidden md:block max-w-[960px] mx-auto px-4">
         <div
@@ -125,10 +119,11 @@ export default function AboutPage() {
             {EMAIL_TILE}
           </div>
 
-          {/* Row 4 col 7-8: CTA — forest */}
-          <div style={{ gridColumn: 'span 2', minHeight: 120 }}>
-            {CTA_TILE}
-          </div>
+          {/* Row 4 col 7-8: map — teal */}
+          <AboutMapTile
+            gridColumn="span 2"
+            style={{ minHeight: 120, backgroundColor: 'var(--brand-teal)' }}
+          />
 
         </div>
       </div>
@@ -159,10 +154,10 @@ export default function AboutPage() {
         {/* Body text */}
         <div>{BODY}</div>
 
-        {/* Email + CTA side by side */}
+        {/* Email + Map side by side */}
         <div className="grid grid-cols-2 gap-3">
           <div style={{ minHeight: 96 }}>{EMAIL_TILE}</div>
-          <div style={{ minHeight: 96 }}>{CTA_TILE}</div>
+          <AboutMapTile style={{ minHeight: 96, backgroundColor: 'var(--brand-teal)' }} />
         </div>
 
       </div>
