@@ -8,6 +8,7 @@ import { useUser } from '@clerk/nextjs'
 import { useUnreadCount } from '@/lib/hooks/useNotifications'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import UserDropdown from '@/components/layout/UserDropdown'
+import UserPopup from '@/components/layout/UserPopup'
 import NotificationPopup from '@/components/notifications/NotificationPopup'
 
 export default function Header() {
@@ -17,7 +18,9 @@ export default function Header() {
   const { t, lang } = useLanguage()
   const unread = unreadData?.count ?? 0
   const [bellOpen, setBellOpen] = useState(false)
+  const [guestPopupOpen, setGuestPopupOpen] = useState(false)
   const bellRef = useRef<HTMLDivElement>(null)
+  const guestRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     function handle(e: MouseEvent) {
@@ -105,7 +108,7 @@ export default function Header() {
           )}
         </nav>
 
-        {/* Right — Bell + Avatar */}
+        {/* Right — Bell + Avatar / Guest icon */}
         <div className="flex items-center gap-2 ml-auto">
           {isSignedIn ? (
             <>
@@ -134,13 +137,23 @@ export default function Header() {
               <UserDropdown />
             </>
           ) : (
-            <Link
-              href="/sign-in"
-              className="px-4 py-1.5 rounded-lg text-xs font-semibold tracking-widest uppercase transition-colors hover:opacity-90"
-              style={{ backgroundColor: 'var(--brand-teal)', color: 'white' }}
-            >
-              {t('nav.signIn')}
-            </Link>
+            <div ref={guestRef} className="relative">
+              <button
+                onClick={() => setGuestPopupOpen(o => !o)}
+                aria-label="Sign in or change language"
+                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                  stroke="var(--text-secondary)" strokeWidth="1.8"
+                  strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="8" r="4"/>
+                  <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+                </svg>
+              </button>
+              {guestPopupOpen && (
+                <UserPopup onClose={() => setGuestPopupOpen(false)} />
+              )}
+            </div>
           )}
         </div>
 
