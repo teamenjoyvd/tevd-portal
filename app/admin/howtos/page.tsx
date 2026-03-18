@@ -265,14 +265,22 @@ function HowtoForm({
 
       {/* Published */}
       <div className="flex items-center gap-3">
+        <span
+          className="px-2.5 py-0.5 rounded-full text-xs font-semibold"
+          style={{
+            backgroundColor: form.is_published ? 'rgba(34,197,94,0.12)' : 'rgba(0,0,0,0.06)',
+            color: form.is_published ? '#15803d' : 'var(--text-secondary)',
+          }}>
+          {form.is_published ? 'Published' : 'Draft'}
+        </span>
         <button
           onClick={() => setForm(f => ({ ...f, is_published: !f.is_published }))}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all"
+          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border transition-all hover:bg-black/5"
           style={{
-            backgroundColor: form.is_published ? 'var(--brand-teal)' : 'rgba(0,0,0,0.06)',
-            color: form.is_published ? 'var(--brand-parchment)' : 'var(--text-secondary)',
+            borderColor: 'var(--border-default)',
+            color: 'var(--text-secondary)',
           }}>
-          {form.is_published ? '✓ Published' : 'Draft'}
+          {form.is_published ? 'Unpublish' : 'Publish'}
         </button>
       </div>
 
@@ -423,15 +431,23 @@ export default function HowtosAdminPage() {
                 </p>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
+                <span
+                  className="px-2.5 py-0.5 rounded-full text-xs font-semibold"
+                  style={{
+                    backgroundColor: howto.is_published ? 'rgba(34,197,94,0.12)' : 'rgba(0,0,0,0.06)',
+                    color: howto.is_published ? '#15803d' : 'var(--text-secondary)',
+                  }}>
+                  {howto.is_published ? 'Published' : 'Draft'}
+                </span>
                 <button
                   onClick={() => togglePublish(howto)}
                   disabled={updateMutation.isPending}
-                  className="px-3 py-1 rounded-full text-xs font-semibold transition-all disabled:opacity-50"
+                  className="px-3 py-1 rounded-full text-xs font-semibold border transition-all disabled:opacity-50 hover:bg-black/5"
                   style={{
-                    backgroundColor: howto.is_published ? 'var(--brand-teal)' : 'rgba(0,0,0,0.06)',
-                    color: howto.is_published ? 'var(--brand-parchment)' : 'var(--text-secondary)',
+                    borderColor: 'var(--border-default)',
+                    color: 'var(--text-secondary)',
                   }}>
-                  {howto.is_published ? 'Published' : 'Draft'}
+                  {howto.is_published ? 'Unpublish' : 'Publish'}
                 </button>
                 <button
                   onClick={() => { setEditing(howto); setMutError(null) }}
