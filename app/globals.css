@@ -57,3 +57,7 @@ body {
 .bento-tile {
   animation: bento-enter 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
+
+/* ── Mapbox UI suppression ── */
+.mapboxgl-ctrl-logo { display: none !important; }
+.mapboxgl-ctrl-attrib { display: none !important; }
