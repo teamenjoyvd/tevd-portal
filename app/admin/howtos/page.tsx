@@ -164,6 +164,14 @@ function HowtoForm({
     access_roles: Array.isArray(initial.access_roles) ? initial.access_roles : [...ALL_ROLES],
   })
   const [slugManual, setSlugManual] = useState(!!initial.slug)
+  const [copied, setCopied] = useState(false)
+
+  function copySlugUrl() {
+    const base = process.env.NEXT_PUBLIC_APP_URL ?? window.location.origin
+    navigator.clipboard.writeText(`${base}/howtos/${form.slug}`)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }
 
   function handleTitleEnChange(val: string) {
     setForm(f => ({
@@ -204,12 +212,43 @@ function HowtoForm({
       <div>
         <label className="text-xs font-semibold uppercase tracking-widest mb-1 block"
           style={{ color: 'var(--text-secondary)' }}>Slug</label>
-        <input
-          value={form.slug}
-          onChange={e => { setSlugManual(true); setForm(f => ({ ...f, slug: e.target.value })) }}
-          className="w-full border rounded-xl px-3 py-2 text-sm font-mono"
-          style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
-        />
+        <div className="flex items-center gap-2">
+          <input
+            value={form.slug}
+            onChange={e => { setSlugManual(true); setForm(f => ({ ...f, slug: e.target.value })) }}
+            className="flex-1 border rounded-xl px-3 py-2 text-sm font-mono"
+            style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
+          />
+          <button
+            type="button"
+            onClick={copySlugUrl}
+            disabled={!form.slug}
+            title={copied ? 'Copied!' : 'Copy full URL'}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border transition-all disabled:opacity-30 hover:bg-black/5 flex-shrink-0"
+            style={{
+              borderColor: copied ? 'rgba(34,197,94,0.4)' : 'var(--border-default)',
+              color: copied ? '#15803d' : 'var(--text-secondary)',
+              backgroundColor: copied ? 'rgba(34,197,94,0.08)' : 'transparent',
+            }}
+          >
+            {copied ? (
+              <>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                Copied!
+              </>
+            ) : (
+              <>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                </svg>
+                Copy URL
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Emoji + Cover image */}
