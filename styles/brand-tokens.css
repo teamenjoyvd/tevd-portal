@@ -55,6 +55,8 @@
   border: 1px solid var(--bento-border);
   background-color: var(--bg-card);
   transition: border-color 200ms;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .card:hover {
@@ -105,5 +107,10 @@
 @media (max-width: 767px) {
   .bento-grid {
     grid-template-columns: 1fr;
+  }
+
+  /* ISS-0104: force full-width on designated primary tiles */
+  .bento-mobile-full {
+    grid-column: 1 / -1 !important;
   }
 }
