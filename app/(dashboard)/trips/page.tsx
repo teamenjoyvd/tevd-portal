@@ -388,9 +388,12 @@ export default function TripsPage() {
             ))
           ) : trips.length === 0 ? (
             <div
-              style={{ gridColumn: 'span 8' }}
+              style={{
+                gridColumn: 'span 8',
+                backgroundColor: 'var(--bg-card)',
+                border: '1px solid var(--border-default)',
+              }}
               className="rounded-2xl flex flex-col items-center justify-center py-16"
-              style2={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}
             >
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
                 stroke="var(--text-secondary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"

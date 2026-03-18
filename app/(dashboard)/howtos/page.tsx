@@ -47,9 +47,12 @@ export default function HowtosPage() {
             ))
           ) : howtos.length === 0 ? (
             <div
-              style={{ gridColumn: 'span 8' }}
+              style={{
+                gridColumn: 'span 8',
+                backgroundColor: 'var(--bg-card)',
+                border: '1px solid var(--border-default)',
+              }}
               className="rounded-2xl flex items-center justify-center py-16"
-              style2={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}
             >
               <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                 No guides available yet.

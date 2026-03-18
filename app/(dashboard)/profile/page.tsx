@@ -3,7 +3,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, useEffect } from 'react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
-import BentoCard from '@/components/bento/BentoCard'
 
 // ── LOS subtree types + components ───────────────────────────────────────────
 
@@ -422,7 +421,9 @@ export default function ProfilePage() {
                     </div>
 
                     {/* Calendar subscription — col-8 */}
-                    <div style={{ gridColumn: 'span 8' }} className="border-t pt-5" style2={{ borderColor: 'var(--border-default)' }}>
+                    <div
+                      style={{ gridColumn: 'span 8', borderTop: '1px solid var(--border-default)', paddingTop: '20px' }}
+                    >
                       <p className="text-xs font-semibold tracking-widest uppercase mb-1"
                         style={{ color: 'var(--text-secondary)' }}>
                         {t('profile.calSub')}
@@ -585,9 +586,12 @@ export default function ProfilePage() {
                     >
                       <a
                         href="/admin"
-                        style={{ gridColumn: 'span 2' }}
+                        style={{
+                          gridColumn: 'span 2',
+                          backgroundColor: 'var(--brand-forest)',
+                          color: 'var(--brand-parchment)',
+                        }}
                         className="rounded-xl px-4 py-3 flex flex-col gap-1 hover:opacity-80 transition-opacity"
-                        style2={{ backgroundColor: 'var(--brand-forest)', color: 'var(--brand-parchment)' }}
                       >
                         <span className="text-xs font-bold tracking-widest uppercase" style={{ color: 'var(--brand-parchment)' }}>Admin</span>
                         <span className="text-[10px] opacity-60" style={{ color: 'var(--brand-parchment)' }}>Portal management</span>
