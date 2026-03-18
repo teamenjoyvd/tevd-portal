@@ -48,7 +48,7 @@ export default function NotificationPopup({ onClose }: Props) {
       <div className="flex items-center justify-between px-4 py-3 border-b flex-shrink-0"
         style={{ borderColor: 'var(--border-default)' }}>
         <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-          {t('nav.notifications') || 'Notifications'}
+          {t('nav.notifications')}
         </p>
         {unreadCount > 0 && (
           <span
@@ -72,7 +72,7 @@ export default function NotificationPopup({ onClose }: Props) {
         ) : recent.length === 0 ? (
           <div className="px-4 py-8 text-center">
             <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-              No notifications yet
+              {t('notif.empty')}
             </p>
           </div>
         ) : (
@@ -121,7 +121,7 @@ export default function NotificationPopup({ onClose }: Props) {
           className="flex items-center justify-center px-4 py-3 text-xs font-semibold tracking-wide transition-colors hover:bg-black/[0.03]"
           style={{ color: 'var(--brand-crimson)' }}
         >
-          View all notifications →
+          {t('notif.view')}
         </Link>
       </div>
     </div>
