@@ -12,7 +12,14 @@ function getMapStyle(): string {
     : 'mapbox://styles/mapbox/light-v11'
 }
 
-export default function AboutMapTile() {
+type Props = {
+  // inline grid placement for desktop — omit on mobile
+  gridColumn?: string
+  className?: string
+  style?: React.CSSProperties
+}
+
+export default function AboutMapTile({ gridColumn, className = '', style }: Props) {
   const mapContainer = useRef<HTMLDivElement>(null)
   const mapRef = useRef<{ remove: () => void; setStyle: (s: string) => void; once: (e: string, cb: () => void) => void } | null>(null)
   const [ready, setReady] = useState(false)
@@ -82,35 +89,36 @@ export default function AboutMapTile() {
     }
   }, [])
 
+  const baseStyle: React.CSSProperties = {
+    ...(gridColumn ? { gridColumn } : {}),
+    backgroundColor: 'var(--brand-forest)',
+    ...style,
+  }
+
+  const fallbackContent = (
+    <span className="text-xs font-semibold font-body" style={{ color: 'var(--brand-parchment)' }}>
+      Sofia, Bulgaria
+    </span>
+  )
+
   if (!TOKEN) {
     return (
       <div
-        className="rounded-2xl flex items-end p-4"
-        style={{
-          gridColumn: 'span 2',
-          backgroundColor: 'var(--brand-forest)',
-          minHeight: 120,
-        }}
+        className={`rounded-2xl flex items-end p-4 ${className}`}
+        style={{ minHeight: 120, ...baseStyle }}
       >
-        <span className="text-xs font-semibold font-body" style={{ color: 'var(--brand-parchment)' }}>
-          Sofia, Bulgaria
-        </span>
+        {fallbackContent}
       </div>
     )
   }
 
   return (
     <div
-      className="rounded-2xl overflow-hidden relative"
-      style={{
-        gridColumn: 'span 2',
-        minHeight: 120,
-        backgroundColor: 'var(--brand-forest)',
-      }}
+      className={`rounded-2xl overflow-hidden relative ${className}`}
+      style={{ minHeight: 120, ...baseStyle }}
     >
       <div ref={mapContainer} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} />
 
-      {/* Sofia label */}
       <div
         className="absolute bottom-3 left-3 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full"
         style={{ backgroundColor: 'rgba(26,31,24,0.75)', backdropFilter: 'blur(4px)' }}
@@ -125,7 +133,6 @@ export default function AboutMapTile() {
         </span>
       </div>
 
-      {/* Shimmer */}
       {!ready && (
         <div
           className="absolute inset-0 z-[1]"
