@@ -136,8 +136,8 @@ export default function Header() {
           ) : (
             <Link
               href="/sign-in"
-              className="px-4 py-1.5 rounded-lg text-xs font-semibold tracking-widest uppercase transition-colors"
-              style={{ color: 'var(--text-primary)', border: '1px solid var(--border-default)' }}
+              className="px-4 py-1.5 rounded-lg text-xs font-semibold tracking-widest uppercase transition-colors hover:opacity-90"
+              style={{ backgroundColor: 'var(--brand-teal)', color: 'white' }}
             >
               {t('nav.signIn')}
             </Link>
