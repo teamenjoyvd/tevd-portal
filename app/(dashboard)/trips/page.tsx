@@ -315,7 +315,7 @@ function TripCard({
 }
 
 export default function TripsPage() {
-  const { isSignedIn } = useUser()
+  const { isSignedIn, isLoaded } = useUser()
   const qc = useQueryClient()
   const { t } = useLanguage()
 
@@ -328,6 +328,9 @@ export default function TripsPage() {
   const { data: trips = [], isLoading } = useQuery<Trip[]>({
     queryKey: ['trips'],
     queryFn: () => fetch('/api/trips').then(r => r.json()),
+    // Wait for Clerk to resolve before fetching — ensures the session cookie is
+    // attached so the API returns trips for the correct role, not 'guest'.
+    enabled: isLoaded,
   })
 
   const { data: registrations = [] } = useQuery<Registration[]>({
@@ -369,7 +372,7 @@ export default function TripsPage() {
       <PageHeading title="Team Trips" subtitle="Register and track your payments" />
       <div className="py-8 pb-16">
         <BentoGrid>
-          {isLoading ? (
+          {isLoading || !isLoaded ? (
             <>
               {[...Array(2)].map((_, i) => (
                 <BentoCard key={i} variant="default" colSpan={6}>
