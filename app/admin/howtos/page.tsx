@@ -46,29 +46,31 @@ function emptyHowto(): Omit<Howto, 'id' | 'created_at' | 'updated_at'> {
 
 function BlockEditor({ blocks, onChange }: { blocks: Block[]; onChange: (b: Block[]) => void }) {
   function addBlock(type: Block['type']) {
-    onChange([...blocks, { type, content: { en: '', bg: '' }, emoji: type === 'callout' ? '💡' : undefined }])
+    onChange([...safeBlocks, { type, content: { en: '', bg: '' }, emoji: type === 'callout' ? '💡' : undefined }])
   }
   function updateBlock(i: number, partial: Partial<Block>) {
-    const next = blocks.map((b, idx) => idx === i ? { ...b, ...partial } : b)
+    const next = safeBlocks.map((b, idx) => idx === i ? { ...b, ...partial } : b)
     onChange(next)
   }
   function updateContent(i: number, lang: 'en' | 'bg', value: string) {
-    updateBlock(i, { content: { ...blocks[i].content, [lang]: value } })
+    updateBlock(i, { content: { ...safeBlocks[i].content, [lang]: value } })
   }
   function moveBlock(i: number, dir: -1 | 1) {
-    const next = [...blocks]
+    const next = [...safeBlocks]
     const j = i + dir
     if (j < 0 || j >= next.length) return
     ;[next[i], next[j]] = [next[j], next[i]]
     onChange(next)
   }
   function removeBlock(i: number) {
-    onChange(blocks.filter((_, idx) => idx !== i))
+    onChange(safeBlocks.filter((_, idx) => idx !== i))
   }
+
+  const safeBlocks = Array.isArray(blocks) ? blocks : []
 
   return (
     <div className="space-y-3">
-      {blocks.map((block, i) => (
+      {safeBlocks.map((block, i) => (
         <div key={i} className="rounded-xl border p-4 space-y-3"
           style={{ backgroundColor: 'var(--bg-global)', borderColor: 'var(--border-default)' }}>
           <div className="flex items-center justify-between gap-2">
@@ -94,7 +96,7 @@ function BlockEditor({ blocks, onChange }: { blocks: Block[]; onChange: (b: Bloc
               <button onClick={() => moveBlock(i, -1)} disabled={i === 0}
                 className="w-6 h-6 flex items-center justify-center rounded hover:bg-black/5 disabled:opacity-30 text-xs"
                 style={{ color: 'var(--text-secondary)' }}>↑</button>
-              <button onClick={() => moveBlock(i, 1)} disabled={i === blocks.length - 1}
+              <button onClick={() => moveBlock(i, 1)} disabled={i === safeBlocks.length - 1}
                 className="w-6 h-6 flex items-center justify-center rounded hover:bg-black/5 disabled:opacity-30 text-xs"
                 style={{ color: 'var(--text-secondary)' }}>↓</button>
               <button onClick={() => removeBlock(i)}
@@ -156,7 +158,11 @@ function HowtoForm({
   isPending: boolean
   error: string | null
 }) {
-  const [form, setForm] = useState(initial)
+  const [form, setForm] = useState({
+    ...initial,
+    body: Array.isArray(initial.body) ? initial.body : [],
+    access_roles: Array.isArray(initial.access_roles) ? initial.access_roles : [...ALL_ROLES],
+  })
   const [slugManual, setSlugManual] = useState(!!initial.slug)
 
   function handleTitleEnChange(val: string) {
