@@ -72,14 +72,14 @@ export default function Footer() {
               </svg>
             </a>
             <a href="mailto:teamenjoyvd@gmail.com"
-              className="flex items-center gap-1.5 text-xs transition-opacity hover:opacity-100"
-              style={{ color: 'rgba(242,239,232,0.45)', opacity: 0.8 }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              aria-label="Email"
+              className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-white/10"
+              style={{ border: '1px solid rgba(255,255,255,0.15)' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                stroke="rgba(242,239,232,0.6)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <rect width="20" height="16" x="2" y="4" rx="2"/>
                 <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
               </svg>
-              teamenjoyvd@gmail.com
             </a>
           </div>
 

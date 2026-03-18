@@ -13,6 +13,12 @@ export const translations = {
   'nav.howtos':        { en: 'Guides',        bg: 'Ръководства'  },
   'nav.signIn':        { en: 'Sign in',       bg: 'Вход'         },
 
+  // Role labels (ISS-0095)
+  'role.admin':  { en: 'Admin',  bg: 'АДМИН' },
+  'role.core':   { en: 'Core',   bg: 'АКС'   },
+  'role.member': { en: 'Member', bg: 'ЧЛЕН+' },
+  'role.guest':  { en: 'Guest',  bg: 'ГОСТ'  },
+
   // Notifications page
   'notif.unread':             { en: '{n} unread',           bg: '{n} непрочетени'                  },
   'notif.markAllRead':        { en: 'Mark all as read',     bg: 'Маркирай всички като прочетени'   },
@@ -107,7 +113,7 @@ export const translations = {
   'event.notePlaceholder': { en: 'Note (optional)…',   bg: 'Бележка (по желание)…'          },
   'los.title':             { en: 'My Network',          bg: 'Моята мрежа'                    },
   'los.subtitle':          { en: 'Your position in the line of sponsorship', bg: 'Вашата позиция в линията на спонсорство' },
-  'los.upline':            { en: 'Upline',              bg: 'Спонсори'                        },
+  'los.upline':            { en: 'Upline',              bg: 'Горна Линия'                     },
   'los.you':               { en: 'You',                 bg: 'Вие'                             },
   'los.downlines':         { en: 'Downlines',           bg: 'Низходяща линия'                 },
   'los.level':             { en: 'Level',               bg: 'Ниво'                            },

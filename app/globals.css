@@ -18,7 +18,6 @@ html {
 
 body {
   background-color: var(--eggshell);
-  color: var(--deep);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
