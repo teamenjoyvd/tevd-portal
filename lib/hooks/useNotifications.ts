@@ -9,6 +9,7 @@ export type Notification = {
   message: string
   action_url: string | null
   created_at: string
+  deleted_at: string | null
 }
 
 export function useNotifications() {
@@ -31,7 +32,11 @@ export function useMarkRead() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (id: string) =>
-      fetch(`/api/notifications/${id}`, { method: 'PATCH' }).then(r => r.json()),
+      fetch(`/api/notifications/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_read: true }),
+      }).then(r => r.json()),
     onMutate: async (id) => {
       await qc.cancelQueries({ queryKey: ['notifications'] })
       const prev = qc.getQueryData<Notification[]>(['notifications'])
@@ -62,6 +67,63 @@ export function useMarkAllRead() {
       qc.setQueryData<Notification[]>(['notifications'], old =>
         old?.map(n => ({ ...n, is_read: true }))
       )
+      qc.setQueryData<{ count: number }>(['notifications', 'unread-count'], { count: 0 })
+      return { prev }
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) qc.setQueryData(['notifications'], ctx.prev)
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['notifications'] })
+    },
+  })
+}
+
+export function useDeleteNotification() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) =>
+      fetch(`/api/notifications/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deleted_at: new Date().toISOString() }),
+      }).then(r => r.json()),
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: ['notifications'] })
+      const prev = qc.getQueryData<Notification[]>(['notifications'])
+      const deleted = prev?.find(n => n.id === id)
+      qc.setQueryData<Notification[]>(['notifications'], old =>
+        old?.filter(n => n.id !== id)
+      )
+      if (deleted && !deleted.is_read) {
+        qc.setQueryData<{ count: number }>(['notifications', 'unread-count'], old =>
+          old ? { count: Math.max(0, old.count - 1) } : { count: 0 }
+        )
+      }
+      return { prev }
+    },
+    onError: (_err, _id, ctx) => {
+      if (ctx?.prev) qc.setQueryData(['notifications'], ctx.prev)
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['notifications'] })
+    },
+  })
+}
+
+export function useClearAllNotifications() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () =>
+      fetch('/api/notifications', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ all: true }),
+      }).then(r => r.json()),
+    onMutate: async () => {
+      await qc.cancelQueries({ queryKey: ['notifications'] })
+      const prev = qc.getQueryData<Notification[]>(['notifications'])
+      qc.setQueryData<Notification[]>(['notifications'], [])
       qc.setQueryData<{ count: number }>(['notifications', 'unread-count'], { count: 0 })
       return { prev }
     },

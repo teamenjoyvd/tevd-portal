@@ -17,6 +17,8 @@ export const translations = {
   'notif.allCaughtUp':        { en: 'All caught up',        bg: 'Всичко е прочетено'               },
   'notif.empty':              { en: 'No notifications yet.', bg: 'Все още няма известия.'          },
   'notif.view':               { en: 'View →',               bg: 'Виж →'                           },
+  'notif.delete':             { en: 'Delete notification',  bg: 'Изтрий известие'                 },
+  'notif.clearAll':           { en: 'Clear all',            bg: 'Изчисти всички'                  },
   'notif.type.roleRequest':   { en: 'Role request',         bg: 'Заявка за роля'                  },
   'notif.type.tripRequest':   { en: 'Trip request',         bg: 'Заявка за пътуване'              },
   'notif.type.tripCreated':   { en: 'New trip',             bg: 'Ново пътуване'                   },

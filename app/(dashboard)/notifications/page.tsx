@@ -1,6 +1,6 @@
 'use client'
 
-import { useNotifications, useMarkRead, useMarkAllRead } from '@/lib/hooks/useNotifications'
+import { useNotifications, useMarkRead, useMarkAllRead, useDeleteNotification, useClearAllNotifications } from '@/lib/hooks/useNotifications'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import PageHeading from '@/components/layout/PageHeading'
 import PageContainer from '@/components/layout/PageContainer'
@@ -26,8 +26,10 @@ function timeAgo(dateStr: string): string {
 
 export default function NotificationsPage() {
   const { data: notifications = [], isLoading } = useNotifications()
-  const markRead    = useMarkRead()
-  const markAllRead = useMarkAllRead()
+  const markRead      = useMarkRead()
+  const markAllRead   = useMarkAllRead()
+  const deleteOne     = useDeleteNotification()
+  const clearAll      = useClearAllNotifications()
   const { t } = useLanguage()
   const unreadCount = notifications.filter(n => !n.is_read).length
 
@@ -45,19 +47,33 @@ export default function NotificationsPage() {
       <PageContainer>
         <div className="max-w-2xl py-8 pb-16">
 
-          {unreadCount > 0 && (
+          {(unreadCount > 0 || notifications.length > 0) && (
             <div className="flex items-center justify-between mb-6">
               <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                {t('notif.unread').replace('{n}', String(unreadCount))}
+                {unreadCount > 0 ? t('notif.unread').replace('{n}', String(unreadCount)) : ''}
               </p>
-              <button
-                onClick={() => markAllRead.mutate()}
-                disabled={markAllRead.isPending}
-                className="text-sm font-medium disabled:opacity-50 hover:underline"
-                style={{ color: 'var(--brand-crimson)' }}
-              >
-                {t('notif.markAllRead')}
-              </button>
+              <div className="flex items-center gap-4">
+                {unreadCount > 0 && (
+                  <button
+                    onClick={() => markAllRead.mutate()}
+                    disabled={markAllRead.isPending}
+                    className="text-sm font-medium disabled:opacity-50 hover:underline"
+                    style={{ color: 'var(--brand-crimson)' }}
+                  >
+                    {t('notif.markAllRead')}
+                  </button>
+                )}
+                {notifications.length > 0 && (
+                  <button
+                    onClick={() => clearAll.mutate()}
+                    disabled={clearAll.isPending}
+                    className="text-sm font-medium disabled:opacity-50 hover:underline"
+                    style={{ color: 'var(--text-secondary)' }}
+                  >
+                    {t('notif.clearAll')}
+                  </button>
+                )}
+              </div>
             </div>
           )}
 
@@ -119,9 +135,30 @@ export default function NotificationsPage() {
                         {n.message}
                       </p>
                     </div>
-                    <span className="text-xs flex-shrink-0 mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                      {timeAgo(n.created_at)}
-                    </span>
+                    <div className="flex items-center gap-2 flex-shrink-0 mt-0.5">
+                      <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                        {timeAgo(n.created_at)}
+                      </span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          deleteOne.mutate(n.id)
+                        }}
+                        disabled={deleteOne.isPending}
+                        aria-label={t('notif.delete')}
+                        className="p-1 rounded-lg opacity-40 hover:opacity-100 transition-opacity disabled:opacity-20"
+                        style={{ color: 'var(--text-secondary)' }}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                          stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="3 6 5 6 21 6"/>
+                          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                          <path d="M10 11v6"/>
+                          <path d="M14 11v6"/>
+                          <path d="M9 6V4h6v2"/>
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                   {n.action_url && (
                     <a
