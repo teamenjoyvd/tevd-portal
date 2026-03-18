@@ -5,14 +5,12 @@ import { useUser } from '@clerk/nextjs'
 import { useQuery } from '@tanstack/react-query'
 import BentoCard from '@/components/bento/BentoCard'
 import { Eyebrow } from '@/components/bento/BentoCard'
+import { useLanguage } from '@/lib/hooks/useLanguage'
+import type { TranslationKey } from '@/lib/i18n/translations'
 
 type VerifRequest = { status: 'pending' | 'approved' | 'denied' } | null
 type Profile = { role: string; first_name: string; abo_number: string | null }
 type Upline = { upline_name: string | null }
-
-const ROLE_LABELS: Record<string, string> = {
-  admin: 'Admin', core: 'Core', member: 'Member', guest: 'Guest',
-}
 
 const ROLE_STYLES: Record<string, { bg: string; color: string }> = {
   admin:  { bg: 'var(--brand-forest)',  color: 'var(--brand-parchment)' },
@@ -45,6 +43,8 @@ export default function ProfileTile({ colSpan = 3, rowSpan, halfWidthMobile }: {
     staleTime: 5 * 60 * 1000,
   })
 
+  const { t } = useLanguage()
+
   const isUnverified = profile?.role === 'guest' &&
     !!verRequest && verRequest !== null &&
     (verRequest.status === 'pending' || verRequest.status === 'denied')
@@ -72,13 +72,13 @@ export default function ProfileTile({ colSpan = 3, rowSpan, halfWidthMobile }: {
     return (
       <BentoCard variant="default" colSpan={colSpan} rowSpan={rowSpan} halfWidthMobile={halfWidthMobile} className="flex flex-col justify-between">
         <div>
-          <Eyebrow>Profile</Eyebrow>
+          <Eyebrow>{t('profile.eyebrow')}</Eyebrow>
           <h2 className="font-display text-2xl font-semibold mt-3"
             style={{ color: 'var(--text-primary)' }}>
-            Hey, Guest.
+            {t('profile.heyGuest')}
           </h2>
           <p className="text-sm mt-2 font-body" style={{ color: 'var(--text-secondary)' }}>
-            Sign in to access your profile and personalised content.
+            {t('profile.signInDesc')}
           </p>
         </div>
         <Link
@@ -86,7 +86,7 @@ export default function ProfileTile({ colSpan = 3, rowSpan, halfWidthMobile }: {
           className="mt-4 inline-flex items-center justify-center px-4 py-2 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80"
           style={{ backgroundColor: 'var(--brand-crimson)', color: 'var(--brand-parchment)' }}
         >
-          Sign in →
+          {t('profile.signIn')}
         </Link>
       </BentoCard>
     )
@@ -97,19 +97,19 @@ export default function ProfileTile({ colSpan = 3, rowSpan, halfWidthMobile }: {
     return (
       <BentoCard variant="default" colSpan={colSpan} rowSpan={rowSpan} halfWidthMobile={halfWidthMobile} className="flex flex-col justify-between">
         <div>
-          <Eyebrow>Profile</Eyebrow>
+          <Eyebrow>{t('profile.eyebrow')}</Eyebrow>
           <h2 className="font-display text-2xl font-semibold mt-3"
             style={{ color: 'var(--text-primary)' }}>
             Hey, {firstName ?? 'there'}.
           </h2>
           <span className="inline-block mt-2 text-xs font-semibold px-2.5 py-1 rounded-full"
             style={{ backgroundColor: 'rgba(138,133,119,0.15)', color: 'var(--text-secondary)' }}>
-            Unverified Member
+            {t('profile.unverified')}
           </span>
           <p className="text-xs mt-2 font-body" style={{ color: 'var(--text-secondary)' }}>
             {verRequest?.status === 'pending'
-              ? 'Verification pending admin review.'
-              : 'Verification was denied. Update your details and resubmit.'}
+              ? t('profile.verifPendingDesc')
+              : t('profile.verifDeniedDesc')}
           </p>
         </div>
         <Link
@@ -117,7 +117,7 @@ export default function ProfileTile({ colSpan = 3, rowSpan, halfWidthMobile }: {
           className="mt-4 text-xs font-semibold tracking-widest uppercase transition-opacity hover:opacity-70"
           style={{ color: 'var(--brand-crimson)' }}
         >
-          View profile →
+          {t('profile.profileLink')}
         </Link>
       </BentoCard>
     )
@@ -127,7 +127,7 @@ export default function ProfileTile({ colSpan = 3, rowSpan, halfWidthMobile }: {
   return (
     <BentoCard variant="default" colSpan={colSpan} rowSpan={rowSpan} halfWidthMobile={halfWidthMobile} className="flex flex-col justify-between">
       <div>
-        <Eyebrow>Profile</Eyebrow>
+        <Eyebrow>{t('profile.eyebrow')}</Eyebrow>
         <h2 className="font-display text-2xl font-semibold mt-3"
           style={{ color: 'var(--text-primary)' }}>
           Hey, {firstName ?? 'there'}.
@@ -135,7 +135,7 @@ export default function ProfileTile({ colSpan = 3, rowSpan, halfWidthMobile }: {
         <div className="flex items-center gap-2 mt-2 flex-wrap">
           <span className="text-xs font-semibold px-2.5 py-1 rounded-full"
             style={{ backgroundColor: roleStyle.bg, color: roleStyle.color }}>
-            {ROLE_LABELS[role] ?? role}
+            {t(('role.' + role) as TranslationKey)}
           </span>
           {uplineData?.upline_name && (
             <span className="text-xs font-body" style={{ color: 'var(--text-secondary)' }}>
@@ -150,7 +150,7 @@ export default function ProfileTile({ colSpan = 3, rowSpan, halfWidthMobile }: {
           className="text-xs font-semibold tracking-widest uppercase transition-opacity hover:opacity-70"
           style={{ color: 'var(--brand-crimson)' }}
         >
-          Profile →
+          {t('profile.profileLink')}
         </Link>
         {isAdmin && (
           <Link
@@ -158,7 +158,7 @@ export default function ProfileTile({ colSpan = 3, rowSpan, halfWidthMobile }: {
             className="text-xs font-semibold tracking-widest uppercase transition-opacity hover:opacity-70"
             style={{ color: 'var(--text-secondary)' }}
           >
-            Admin →
+            {t('profile.adminLink')}
           </Link>
         )}
       </div>
