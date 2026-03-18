@@ -75,6 +75,17 @@ export const translations = {
   'profile.role.desc.core':    { en: 'Core team member.',       bg: 'Член на основния екип.'   },
   'profile.role.desc.admin':   { en: 'Administrator.',          bg: 'Администратор.'           },
 
+  // ProfileTile (ISS-0110)
+  'profile.eyebrow':          { en: 'Profile',                                                  bg: 'Профил'                                                        },
+  'profile.heyGuest':         { en: 'Hey, Guest.',                                              bg: 'Здравей, Гост.'                                                },
+  'profile.signInDesc':       { en: 'Sign in to access your profile and personalised content.', bg: 'Влезте, за да достъпите профила и персонализираното съдържание.' },
+  'profile.signIn':           { en: 'Sign in →',                                               bg: 'Вход →'                                                        },
+  'profile.unverified':       { en: 'Unverified Member',                                       bg: 'Неверифициран Член'                                            },
+  'profile.verifPendingDesc': { en: 'Verification pending admin review.',                      bg: 'Верификацията очаква преглед от администратор.'                },
+  'profile.verifDeniedDesc':  { en: 'Verification was denied. Update your details and resubmit.', bg: 'Верификацията беше отказана. Обновете данните и опитайте отново.' },
+  'profile.profileLink':      { en: 'Profile →',                                               bg: 'Профил →'                                                      },
+  'profile.adminLink':        { en: 'Admin →',                                                 bg: 'Админ →'                                                       },
+
   // Trips page
   'trips.registerBtn':       { en: 'Register for this trip',  bg: 'Регистрирай се за пътуването'      },
   'trips.noTrips':           { en: 'No trips yet',            bg: 'Все още няма пътувания'             },
@@ -90,6 +101,10 @@ export const translations = {
   'trips.status.pending':    { en: 'Pending approval',        bg: 'Изчаква одобрение'                  },
   'trips.status.approved':   { en: 'Approved',                bg: 'Одобрено'                           },
   'trips.status.denied':     { en: 'Declined',                bg: 'Отказано'                           },
+  'trips.pageTitle':         { en: 'Team Trips',              bg: 'Пътувания на отбора'                },
+  'trips.pageSubtitle':      { en: 'Register and track your payments', bg: 'Регистрирайте се и следете плащанията' },
+  'trips.memberOnly':        { en: 'Member access required to register', bg: 'Необходим е достъп на член за регистрация' },
+  'trips.accommodation':     { en: 'Accommodation:',          bg: 'Настаняване:'                       },
 
   // Calendar
   'cal.today':     { en: 'Today',   bg: 'Днес'      },
