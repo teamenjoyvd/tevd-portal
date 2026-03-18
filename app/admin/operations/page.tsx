@@ -59,6 +59,12 @@ export default function OperationsPage() {
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
 
+  // ── Trip editing state ──
+  const [editing, setEditing] = useState<Trip | null>(null)
+  const [editForm, setEditForm] = useState<Omit<Trip, 'id' | 'currency'>>(empty())
+  const [editMilestoneInput, setEditMilestoneInput] = useState({ label: '', amount: '', due_date: '' })
+  const [editError, setEditError] = useState<string | null>(null)
+
   // ── Payment entry state ──
   const [selectedTripId, setSelectedTripId] = useState<string>('')
   const [selectedProfileId, setSelectedProfileId] = useState<string>('')
@@ -116,6 +122,24 @@ export default function OperationsPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['trips'] }),
   })
 
+  const updateMutation = useMutation({
+    mutationFn: ({ id, ...body }: Omit<Trip, 'currency'>) =>
+      fetch(`/api/trips/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      }).then(async r => {
+        if (!r.ok) throw new Error((await r.json()).error)
+        return r.json()
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['trips'] })
+      setEditing(null)
+      setEditError(null)
+    },
+    onError: (e: Error) => setEditError(e.message),
+  })
+
   const paymentMutation = useMutation({
     mutationFn: (body: {
       trip_id: string; profile_id: string; amount: number
@@ -154,6 +178,43 @@ export default function OperationsPage() {
 
   function removeMilestone(i: number) {
     setForm(f => ({ ...f, milestones: f.milestones.filter((_, idx) => idx !== i) }))
+  }
+
+  function addEditMilestone() {
+    if (!editMilestoneInput.label || !editMilestoneInput.amount || !editMilestoneInput.due_date) return
+    setEditForm(f => ({
+      ...f,
+      milestones: [...f.milestones, {
+        label: editMilestoneInput.label,
+        amount: Number(editMilestoneInput.amount),
+        due_date: editMilestoneInput.due_date,
+      }],
+    }))
+    setEditMilestoneInput({ label: '', amount: '', due_date: '' })
+  }
+
+  function removeEditMilestone(i: number) {
+    setEditForm(f => ({ ...f, milestones: f.milestones.filter((_, idx) => idx !== i) }))
+  }
+
+  function startEditing(trip: Trip) {
+    setEditForm({
+      title: trip.title,
+      destination: trip.destination,
+      description: trip.description,
+      start_date: trip.start_date,
+      end_date: trip.end_date,
+      total_cost: trip.total_cost,
+      milestones: Array.isArray(trip.milestones) ? trip.milestones : [],
+      location: trip.location,
+      accommodation_type: trip.accommodation_type,
+      inclusions: Array.isArray(trip.inclusions) ? trip.inclusions : [],
+      trip_type: trip.trip_type,
+      visibility_roles: Array.isArray(trip.visibility_roles) ? trip.visibility_roles : [...ALL_ROLES],
+    })
+    setEditMilestoneInput({ label: '', amount: '', due_date: '' })
+    setEditError(null)
+    setEditing(trip)
   }
 
   function submitPayment() {
@@ -415,18 +476,199 @@ export default function OperationsPage() {
                     {' · '}{trip.milestones?.length ?? 0} milestones
                   </p>
                 </div>
-                <button
-                  onClick={() => deleteMutation.mutate(trip.id)}
-                  className="text-xs hover:opacity-70 transition-opacity"
-                  style={{ color: 'var(--brand-crimson)' }}
-                >
-                  Delete
-                </button>
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  <button
+                    onClick={() => startEditing(trip)}
+                    className="text-xs hover:opacity-70 transition-opacity"
+                    style={{ color: 'var(--text-secondary)' }}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => deleteMutation.mutate(trip.id)}
+                    className="text-xs hover:opacity-70 transition-opacity"
+                    style={{ color: 'var(--brand-crimson)' }}
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
             ))}
           </div>
         )}
       </section>
+
+      {/* ── Edit trip ── */}
+      {editing && (
+        <section>
+          <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-6 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-xs font-semibold tracking-widest uppercase"
+                style={{ color: 'var(--text-secondary)' }}>
+                Edit: {editing.title}
+              </p>
+              <button onClick={() => setEditing(null)}
+                className="text-xs hover:opacity-70 transition-opacity"
+                style={{ color: 'var(--text-secondary)' }}>
+                Cancel
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              {(['title', 'destination'] as const).map(k => (
+                <div key={k}>
+                  <label className="text-xs mb-1 block capitalize" style={{ color: 'var(--text-secondary)' }}>{k}</label>
+                  <input
+                    value={(editForm as Record<string, unknown>)[k] as string}
+                    onChange={e => setEditForm(f => ({ ...f, [k]: e.target.value }))}
+                    className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+                    style={{ color: 'var(--text-primary)' }}
+                  />
+                </div>
+              ))}
+            </div>
+            <div className="mb-4">
+              <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Description</label>
+              <textarea
+                value={(editForm as Record<string, unknown>).description as string}
+                onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
+                rows={3}
+                className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm resize-none"
+                style={{ color: 'var(--text-primary)' }}
+              />
+            </div>
+            <div className="grid grid-cols-3 gap-4 mb-6">
+              <div>
+                <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Start date</label>
+                <input type="date" value={editForm.start_date}
+                  onChange={e => setEditForm(f => ({ ...f, start_date: e.target.value }))}
+                  className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+                  style={{ color: 'var(--text-primary)' }} />
+              </div>
+              <div>
+                <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>End date</label>
+                <input type="date" value={editForm.end_date}
+                  onChange={e => setEditForm(f => ({ ...f, end_date: e.target.value }))}
+                  className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+                  style={{ color: 'var(--text-primary)' }} />
+              </div>
+              <div>
+                <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Total cost (EUR)</label>
+                <input type="number" value={editForm.total_cost}
+                  onChange={e => setEditForm(f => ({ ...f, total_cost: Number(e.target.value) }))}
+                  className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+                  style={{ color: 'var(--text-primary)' }} />
+              </div>
+            </div>
+            {/* Milestones */}
+            <div className="mb-6">
+              <p className="text-xs font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
+                Payment milestones
+              </p>
+              {editForm.milestones.map((m, i) => (
+                <div key={i} className="flex items-center gap-3 text-sm mb-2 py-2 border-b border-black/5">
+                  <span className="flex-1 font-medium" style={{ color: 'var(--text-primary)' }}>{m.label}</span>
+                  <span style={{ color: 'var(--text-secondary)' }}>{formatEur(m.amount)}</span>
+                  <span style={{ color: 'var(--text-secondary)' }}>{m.due_date}</span>
+                  <button onClick={() => removeEditMilestone(i)} className="text-xs" style={{ color: 'var(--brand-crimson)' }}>Remove</button>
+                </div>
+              ))}
+              <div className="grid grid-cols-4 gap-2 mt-3">
+                <input placeholder="Label" value={editMilestoneInput.label}
+                  onChange={e => setEditMilestoneInput(m => ({ ...m, label: e.target.value }))}
+                  className="border border-black/10 rounded-xl px-3 py-2 text-sm col-span-1"
+                  style={{ color: 'var(--text-primary)' }} />
+                <input placeholder="Amount" type="number" value={editMilestoneInput.amount}
+                  onChange={e => setEditMilestoneInput(m => ({ ...m, amount: e.target.value }))}
+                  className="border border-black/10 rounded-xl px-3 py-2 text-sm"
+                  style={{ color: 'var(--text-primary)' }} />
+                <input type="date" value={editMilestoneInput.due_date}
+                  onChange={e => setEditMilestoneInput(m => ({ ...m, due_date: e.target.value }))}
+                  className="border border-black/10 rounded-xl px-3 py-2 text-sm"
+                  style={{ color: 'var(--text-primary)' }} />
+                <button onClick={addEditMilestone}
+                  className="border border-black/10 rounded-xl text-sm hover:bg-black/[0.02] transition-colors"
+                  style={{ color: 'var(--text-primary)' }}>
+                  + Add
+                </button>
+              </div>
+            </div>
+            {/* Additional details */}
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Location</label>
+                <input value={editForm.location ?? ''}
+                  onChange={e => setEditForm(f => ({ ...f, location: e.target.value || null }))}
+                  placeholder="e.g. Oradea, Romania"
+                  className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+                  style={{ color: 'var(--text-primary)' }} />
+              </div>
+              <div>
+                <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Trip type</label>
+                <input value={editForm.trip_type ?? ''}
+                  onChange={e => setEditForm(f => ({ ...f, trip_type: e.target.value || null }))}
+                  placeholder="e.g. leisure, training, business"
+                  className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+                  style={{ color: 'var(--text-primary)' }} />
+              </div>
+              <div>
+                <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Accommodation type</label>
+                <input value={editForm.accommodation_type ?? ''}
+                  onChange={e => setEditForm(f => ({ ...f, accommodation_type: e.target.value || null }))}
+                  placeholder="e.g. hotel, hostel, apartment"
+                  className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+                  style={{ color: 'var(--text-primary)' }} />
+              </div>
+              <div>
+                <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Inclusions (comma-separated)</label>
+                <input value={editForm.inclusions.join(', ')}
+                  onChange={e => setEditForm(f => ({ ...f, inclusions: e.target.value.split(',').map(s => s.trim()).filter(Boolean) }))}
+                  placeholder="e.g. flights, hotel, breakfast"
+                  className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+                  style={{ color: 'var(--text-primary)' }} />
+              </div>
+            </div>
+            {/* Visibility roles */}
+            <div className="mb-6">
+              <p className="text-xs font-semibold tracking-widest uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>
+                Visible to
+              </p>
+              <div className="flex gap-2">
+                {ALL_ROLES.map(role => (
+                  <button key={role}
+                    onClick={() => setEditForm(f => ({
+                      ...f,
+                      visibility_roles: f.visibility_roles.includes(role)
+                        ? f.visibility_roles.filter(r => r !== role)
+                        : [...f.visibility_roles, role],
+                    }))}
+                    className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
+                    style={{
+                      backgroundColor: editForm.visibility_roles.includes(role) ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)',
+                      color: editForm.visibility_roles.includes(role) ? 'var(--brand-parchment)' : 'var(--text-secondary)',
+                    }}>
+                    {role}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {editError && <p className="text-sm mb-3" style={{ color: 'var(--brand-crimson)' }}>{editError}</p>}
+            <div className="flex gap-3">
+              <button
+                onClick={() => updateMutation.mutate({ id: editing.id, ...editForm })}
+                disabled={updateMutation.isPending || !editForm.title || !editForm.destination || !editForm.start_date || !editForm.end_date}
+                className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity"
+                style={{ backgroundColor: 'var(--brand-crimson)' }}>
+                {updateMutation.isPending ? 'Saving…' : 'Save changes'}
+              </button>
+              <button onClick={() => setEditing(null)}
+                className="px-6 py-2.5 rounded-xl text-sm font-semibold border transition-colors hover:bg-black/5"
+                style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ── Payment entry ── */}
       <section>
