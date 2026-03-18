@@ -20,7 +20,7 @@ type CalendarEvent = {
   visibility_roles: string[]
 }
 
-type View = 'month' | 'week' | 'day' | 'agenda'
+type View = 'month' | 'agenda'
 
 type Props = {
   initialEvents: CalendarEvent[]
@@ -564,8 +564,6 @@ export default function CalendarClient({
     setCurrent(prev => {
       const d = new Date(prev)
       if (view === 'month')  d.setMonth(d.getMonth() + dir)
-      if (view === 'week')   d.setDate(d.getDate() + dir * 7)
-      if (view === 'day')    d.setDate(d.getDate() + dir)
       if (view === 'agenda') d.setMonth(d.getMonth() + dir)
       return d
     })
@@ -580,30 +578,14 @@ export default function CalendarClient({
 
   const handleDayClick = (date: Date) => {
     setCurrent(date)
-    setView('day')
   }
 
   const periodLabel = useMemo(() => {
-    if (view === 'month' || view === 'agenda') {
-      return `${MONTHS[current.getMonth()]} ${current.getFullYear()}`
-    }
-    if (view === 'week') {
-      const ws = startOfWeek(current)
-      const we = addDays(ws, 6)
-      return `W${isoWeek(ws)} · ${ws.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} – ${we.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
-    }
-    if (view === 'day') {
-      return current.toLocaleDateString('en-GB', {
-        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
-      })
-    }
-    return ''
+    return `${MONTHS[current.getMonth()]} ${current.getFullYear()}`
   }, [view, current, MONTHS])
 
   const views: { key: View; label: string }[] = [
     { key: 'agenda', label: t('cal.agenda') },
-    { key: 'day',    label: t('cal.day')    },
-    { key: 'week',   label: t('cal.week')   },
     { key: 'month',  label: t('cal.month')  },
   ]
 
@@ -790,20 +772,6 @@ export default function CalendarClient({
               events={events}
               onEventClick={handleEventClick}
               onDayClick={handleDayClick}
-            />
-          )}
-          {view === 'week' && (
-            <WeekView
-              current={current}
-              events={events}
-              onEventClick={handleEventClick}
-            />
-          )}
-          {view === 'day' && (
-            <DayView
-              current={current}
-              events={events}
-              onEventClick={handleEventClick}
             />
           )}
           {view === 'agenda' && (
