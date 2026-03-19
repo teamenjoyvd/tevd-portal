@@ -7,6 +7,8 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.4"
   }
@@ -449,6 +451,7 @@ export type Database = {
         Row: {
           abo_number: string | null
           clerk_id: string
+          contact_email: string | null
           created_at: string
           display_names: Json
           document_active_type: Database["public"]["Enums"]["document_type"]
@@ -458,12 +461,14 @@ export type Database = {
           id_number: string | null
           last_name: string
           passport_number: string | null
+          phone: string | null
           role: Database["public"]["Enums"]["user_role"]
           valid_through: string | null
         }
         Insert: {
           abo_number?: string | null
           clerk_id: string
+          contact_email?: string | null
           created_at?: string
           display_names?: Json
           document_active_type?: Database["public"]["Enums"]["document_type"]
@@ -473,12 +478,14 @@ export type Database = {
           id_number?: string | null
           last_name: string
           passport_number?: string | null
+          phone?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           valid_through?: string | null
         }
         Update: {
           abo_number?: string | null
           clerk_id?: string
+          contact_email?: string | null
           created_at?: string
           display_names?: Json
           document_active_type?: Database["public"]["Enums"]["document_type"]
@@ -488,6 +495,7 @@ export type Database = {
           id_number?: string | null
           last_name?: string
           passport_number?: string | null
+          phone?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           valid_through?: string | null
         }
@@ -571,8 +579,11 @@ export type Database = {
           created_at: string
           id: string
           note: string | null
+          payment_method: string | null
           profile_id: string
+          proof_url: string | null
           status: Database["public"]["Enums"]["payment_status"]
+          submitted_by_member: boolean
           transaction_date: string
           trip_id: string
         }
@@ -581,8 +592,11 @@ export type Database = {
           created_at?: string
           id?: string
           note?: string | null
+          payment_method?: string | null
           profile_id: string
+          proof_url?: string | null
           status?: Database["public"]["Enums"]["payment_status"]
+          submitted_by_member?: boolean
           transaction_date?: string
           trip_id: string
         }
@@ -591,8 +605,11 @@ export type Database = {
           created_at?: string
           id?: string
           note?: string | null
+          payment_method?: string | null
           profile_id?: string
+          proof_url?: string | null
           status?: Database["public"]["Enums"]["payment_status"]
+          submitted_by_member?: boolean
           transaction_date?: string
           trip_id?: string
         }
@@ -788,6 +805,7 @@ export type Database = {
 }
 
 type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
 type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
