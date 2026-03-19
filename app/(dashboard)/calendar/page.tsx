@@ -2,6 +2,8 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { auth } from '@clerk/nextjs/server'
 import CalendarClient from '@/components/calendar/CalendarClient'
 
+export const dynamic = 'force-dynamic'
+
 export default async function CalendarPage() {
   const now = new Date()
   const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
