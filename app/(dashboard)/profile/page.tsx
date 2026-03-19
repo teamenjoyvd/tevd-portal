@@ -272,6 +272,52 @@ export default function ProfilePage() {
     !!verRequest && (verRequest.status === 'pending' || verRequest.status === 'denied')
   const isCore        = validProfile?.role === 'core' || validProfile?.role === 'admin'
 
+  // ── Calendar subscription markup (shared between guest + member layouts) ──
+  const calSubscriptionBlock = (
+    <div style={{ gridColumn: 'span 8' }}>
+      <div className="rounded-2xl p-6" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+        <p className="text-xs font-semibold tracking-widest uppercase mb-1"
+          style={{ color: 'var(--text-secondary)' }}>
+          {t('profile.calSub')}
+        </p>
+        <p className="text-xs mb-3 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+          {t('profile.calSubInstructions')}
+        </p>
+        <div className="flex items-center gap-2">
+          <input
+            readOnly
+            value={calData?.url ?? ''}
+            placeholder="Generating…"
+            className="flex-1 border rounded-xl px-3 py-2 text-xs font-mono truncate"
+            style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)', backgroundColor: 'var(--bg-global)' }}
+          />
+          <button
+            onClick={() => {
+              if (calData?.url) {
+                navigator.clipboard.writeText(calData.url)
+                setCalCopied(true)
+                setTimeout(() => setCalCopied(false), 2000)
+              }
+            }}
+            disabled={!calData?.url}
+            className="px-3 py-2 rounded-xl text-xs font-semibold transition-all disabled:opacity-40 hover:opacity-80 flex-shrink-0"
+            style={{ backgroundColor: 'var(--brand-forest)', color: 'var(--brand-parchment)' }}
+          >
+            {calCopied ? t('profile.calSubCopied') : t('profile.calSubCopy')}
+          </button>
+          <button
+            onClick={() => { if (confirm('Regenerate your calendar link? Your old link will stop working.')) regenerateCal.mutate() }}
+            disabled={regenerateCal.isPending}
+            className="px-3 py-2 rounded-xl text-xs font-semibold border transition-colors hover:bg-black/5 disabled:opacity-40 flex-shrink-0"
+            style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+          >
+            {t('profile.calSubRegenerate')}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+
   return (
     <div className="py-8 pb-16">
       <div className="max-w-[960px] mx-auto px-4">
@@ -302,7 +348,143 @@ export default function ProfilePage() {
                 </p>
               </div>
             </div>
+          ) : isGuest ? (
+            // ── GUEST LAYOUT ────────────────────────────────────────────────
+            <>
+              {/* col-4: Name fields */}
+              <div style={{ gridColumn: 'span 4' }}>
+                <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+                  <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-6" style={{ color: 'var(--brand-crimson)' }}>
+                    {t('profile.identity')}
+                  </p>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
+                          {t('profile.firstName')}
+                        </label>
+                        <input
+                          value={form.first_name ?? ''}
+                          onChange={e => setForm(f => ({ ...f, first_name: e.target.value }))}
+                          className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+                          style={{ color: 'var(--text-primary)' }}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
+                          {t('profile.lastName')}
+                        </label>
+                        <input
+                          value={form.last_name ?? ''}
+                          onChange={e => setForm(f => ({ ...f, last_name: e.target.value }))}
+                          className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+                          style={{ color: 'var(--text-primary)' }}
+                        />
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => saveMutation.mutate({ first_name: form.first_name, last_name: form.last_name })}
+                      disabled={saveMutation.isPending}
+                      className="w-full py-3 rounded-2xl text-sm font-semibold text-white disabled:opacity-50 transition-all hover:opacity-90 active:scale-[0.99]"
+                      style={{ backgroundColor: 'var(--brand-crimson)' }}
+                    >
+                      {saveMutation.isPending ? t('profile.saving') : saved ? t('profile.saved') : t('profile.saveChanges')}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* col-4: ABO verification */}
+              <div style={{ gridColumn: 'span 4' }}>
+                <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', borderLeft: '4px solid var(--brand-teal)', border: '1px solid var(--border-default)' }}>
+                  <p className="text-xs font-semibold tracking-widest uppercase mb-1"
+                    style={{ color: 'var(--text-secondary)' }}>
+                    {t('profile.aboVerification')}
+                  </p>
+                  <p className="text-xs mb-4" style={{ color: 'var(--text-secondary)' }}>
+                    {t('profile.aboVerifDesc')}
+                  </p>
+                  {verRequest?.status === 'pending' ? (
+                    <div className="rounded-xl px-4 py-3" style={{ backgroundColor: '#f2cc8f33' }}>
+                      <p className="text-sm font-medium" style={{ color: '#7a5c00' }}>
+                        {t('profile.verifPending')}
+                      </p>
+                      <p className="text-xs mt-0.5" style={{ color: '#7a5c00' }}>
+                        ABO {verRequest.claimed_abo} · Upline {verRequest.claimed_upline_abo}
+                      </p>
+                      <button
+                        onClick={() => cancelVerification.mutate()}
+                        disabled={cancelVerification.isPending}
+                        className="text-xs mt-2 font-medium hover:underline disabled:opacity-50"
+                        style={{ color: 'var(--brand-crimson)' }}
+                      >
+                        {t('profile.cancelRequest')}
+                      </button>
+                    </div>
+                  ) : verRequest?.status === 'denied' ? (
+                    <div className="rounded-xl px-4 py-3 mb-4" style={{ backgroundColor: '#bc474915' }}>
+                      <p className="text-sm font-medium" style={{ color: 'var(--brand-crimson)' }}>
+                        {t('profile.prevDenied')}
+                      </p>
+                      {verRequest.admin_note && (
+                        <p className="text-xs mt-0.5" style={{ color: 'var(--brand-crimson)' }}>
+                          {verRequest.admin_note}
+                        </p>
+                      )}
+                      <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
+                        {t('profile.checkDetails')}
+                      </p>
+                    </div>
+                  ) : null}
+                  {(!verRequest || verRequest.status === 'denied') && (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
+                          {t('profile.yourAbo')}
+                        </label>
+                        <input
+                          value={aboInput}
+                          onChange={e => setAboInput(e.target.value)}
+                          placeholder="e.g. 7023040472"
+                          className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm font-mono"
+                          style={{ color: 'var(--text-primary)' }}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
+                          {t('profile.sponsorAbo')}
+                        </label>
+                        <input
+                          value={uplineInput}
+                          onChange={e => setUplineInput(e.target.value)}
+                          placeholder="e.g. 7010970187"
+                          className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm font-mono"
+                          style={{ color: 'var(--text-primary)' }}
+                        />
+                      </div>
+                      {submitVerification.isError && (
+                        <p className="text-xs" style={{ color: 'var(--brand-crimson)' }}>
+                          {(submitVerification.error as Error).message}
+                        </p>
+                      )}
+                      <button
+                        onClick={() => submitVerification.mutate()}
+                        disabled={submitVerification.isPending || !aboInput || !uplineInput}
+                        className="w-full py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity"
+                        style={{ backgroundColor: 'var(--text-primary)' }}
+                      >
+                        {submitVerification.isPending ? t('profile.submitting') : t('profile.submitVerif')}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* col-8: Calendar subscription */}
+              {calSubscriptionBlock}
+            </>
           ) : (
+            // ── MEMBER / CORE / ADMIN LAYOUT (existing — untouched for this ticket) ──
             <>
               {/* ── Box 1: Personal data ──────────────────────────────────── */}
               <div style={{ gridColumn: 'span 8' }}>
@@ -494,94 +676,6 @@ export default function ProfilePage() {
                   </div>
                 </div>
               </div>
-
-              {/* ── ABO Verification — guests only ───────────────────────── */}
-              {isGuest && (
-                <div style={{ gridColumn: 'span 8' }}>
-                  <div className="rounded-2xl p-6" style={{ backgroundColor: 'var(--bg-card)', borderLeft: '4px solid var(--brand-teal)', border: '1px solid var(--border-default)' }}>
-                    <p className="text-xs font-semibold tracking-widest uppercase mb-1"
-                      style={{ color: 'var(--text-secondary)' }}>
-                      {t('profile.aboVerification')}
-                    </p>
-                    <p className="text-xs mb-4" style={{ color: 'var(--text-secondary)' }}>
-                      {t('profile.aboVerifDesc')}
-                    </p>
-                    {verRequest?.status === 'pending' ? (
-                      <div className="rounded-xl px-4 py-3" style={{ backgroundColor: '#f2cc8f33' }}>
-                        <p className="text-sm font-medium" style={{ color: '#7a5c00' }}>
-                          {t('profile.verifPending')}
-                        </p>
-                        <p className="text-xs mt-0.5" style={{ color: '#7a5c00' }}>
-                          ABO {verRequest.claimed_abo} · Upline {verRequest.claimed_upline_abo}
-                        </p>
-                        <button
-                          onClick={() => cancelVerification.mutate()}
-                          disabled={cancelVerification.isPending}
-                          className="text-xs mt-2 font-medium hover:underline disabled:opacity-50"
-                          style={{ color: 'var(--brand-crimson)' }}
-                        >
-                          {t('profile.cancelRequest')}
-                        </button>
-                      </div>
-                    ) : verRequest?.status === 'denied' ? (
-                      <div className="rounded-xl px-4 py-3 mb-4" style={{ backgroundColor: '#bc474915' }}>
-                        <p className="text-sm font-medium" style={{ color: 'var(--brand-crimson)' }}>
-                          {t('profile.prevDenied')}
-                        </p>
-                        {verRequest.admin_note && (
-                          <p className="text-xs mt-0.5" style={{ color: 'var(--brand-crimson)' }}>
-                            {verRequest.admin_note}
-                          </p>
-                        )}
-                        <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
-                          {t('profile.checkDetails')}
-                        </p>
-                      </div>
-                    ) : null}
-                    {(!verRequest || verRequest.status === 'denied') && (
-                      <div className="space-y-3">
-                        <div>
-                          <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
-                            {t('profile.yourAbo')}
-                          </label>
-                          <input
-                            value={aboInput}
-                            onChange={e => setAboInput(e.target.value)}
-                            placeholder="e.g. 7023040472"
-                            className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm font-mono"
-                            style={{ color: 'var(--text-primary)' }}
-                          />
-                        </div>
-                        <div>
-                          <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
-                            {t('profile.sponsorAbo')}
-                          </label>
-                          <input
-                            value={uplineInput}
-                            onChange={e => setUplineInput(e.target.value)}
-                            placeholder="e.g. 7010970187"
-                            className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm font-mono"
-                            style={{ color: 'var(--text-primary)' }}
-                          />
-                        </div>
-                        {submitVerification.isError && (
-                          <p className="text-xs" style={{ color: 'var(--brand-crimson)' }}>
-                            {(submitVerification.error as Error).message}
-                          </p>
-                        )}
-                        <button
-                          onClick={() => submitVerification.mutate()}
-                          disabled={submitVerification.isPending || !aboInput || !uplineInput}
-                          className="w-full py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity"
-                          style={{ backgroundColor: 'var(--text-primary)' }}
-                        >
-                          {submitVerification.isPending ? t('profile.submitting') : t('profile.submitVerif')}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
 
               {/* ── Box 2: LOS subtree ───────────────────────────────────── */}
               <LOSBox profileId={validProfile.id} />
