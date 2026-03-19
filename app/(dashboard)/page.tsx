@@ -120,7 +120,7 @@ export default async function HomePage() {
         {/* ── ROW 2: Trips col-3 | Announcements col-6 | Links col-3 ── */}
 
         {nextTrip && (
-        <BentoCard variant="crimson" colSpan={3} rowSpan={2} halfWidthMobile className="bento-tile flex flex-col justify-between relative overflow-hidden" style={{ animationDelay: '200ms' }}>
+        <BentoCard variant="crimson" colSpan={3} rowSpan={2} halfWidthMobile className="bento-tile flex flex-col relative overflow-hidden" style={{ animationDelay: '200ms' }}>
           {nextTrip.image_url && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -133,35 +133,35 @@ export default async function HomePage() {
               }}
             />
           )}
-          <div>
+          <div className="flex items-center justify-between mb-3">
             <Eyebrow>Trips</Eyebrow>
-            <div className="mt-3">
-              <span className="font-body text-[11px] font-bold px-2 py-0.5 rounded-full mb-2 inline-block" style={{ backgroundColor: 'rgba(255,255,255,0.18)', color: 'var(--brand-parchment)' }}>{nextTrip.destination}</span>
-              <h3 className="font-display text-base font-semibold leading-snug" style={{ color: 'var(--brand-parchment)' }}>{nextTrip.title}</h3>
-              <p className="font-body text-[11px] mt-1" style={{ color: 'rgba(242,239,232,0.6)' }}>{formatDate(nextTrip.start_date)}</p>
-            </div>
+            <Link href="/trips" className="font-body text-[11px] font-bold tracking-widest uppercase hover:underline opacity-70 hover:opacity-100 transition-opacity" style={{ color: 'var(--brand-parchment)' }}>View trips →</Link>
           </div>
-          <Link href="/trips" className="font-body text-[11px] font-bold tracking-widest uppercase mt-4 hover:underline self-start opacity-70 hover:opacity-100 transition-opacity" style={{ color: 'var(--brand-parchment)' }}>View trips →</Link>
+          <div className="mt-1">
+            <span className="font-body text-[11px] font-bold px-2 py-0.5 rounded-full mb-2 inline-block" style={{ backgroundColor: 'rgba(255,255,255,0.18)', color: 'var(--brand-parchment)' }}>{nextTrip.destination}</span>
+            <h3 className="font-display text-base font-semibold leading-snug" style={{ color: 'var(--brand-parchment)' }}>{nextTrip.title}</h3>
+            <p className="font-body text-[11px] mt-1" style={{ color: 'rgba(242,239,232,0.6)' }}>{formatDate(nextTrip.start_date)}</p>
+          </div>
         </BentoCard>
         )}
 
         {featuredAnnouncement && (
-        <BentoCard variant="default" colSpan={6} rowSpan={2} fullWidthMobile className="bento-tile flex flex-col justify-between" style={{ animationDelay: '250ms' }}>
-          <div>
+        <BentoCard variant="default" colSpan={6} rowSpan={2} fullWidthMobile className="bento-tile flex flex-col" style={{ animationDelay: '250ms' }}>
+          <div className="flex items-center justify-between mb-4">
             <Eyebrow>Latest</Eyebrow>
-            <div className="mt-3">
-              <h2 className="font-display text-xl font-semibold leading-snug mb-2" style={{ color: 'var(--text-primary)' }}>
-                {announcementTitle!.split(' ').slice(0, -1).join(' ')}{' '}
-                <span style={{ color: 'var(--brand-crimson)' }}>{announcementTitle!.split(' ').slice(-1)[0]}</span>
-              </h2>
-              {announcementContent && (
-                <p className="font-body text-sm leading-relaxed" style={{ color: 'var(--text-secondary)', display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                  {announcementContent}
-                </p>
-              )}
-            </div>
+            <Link href="/announcements" className="font-body text-[11px] font-bold tracking-widest uppercase hover:underline" style={{ color: 'var(--brand-crimson)' }}>View all →</Link>
           </div>
-          <Link href="/announcements" className="font-body text-[11px] font-bold tracking-widest uppercase mt-4 hover:underline self-start" style={{ color: 'var(--brand-crimson)' }}>View all →</Link>
+          <div className="flex-1">
+            <h2 className="font-display text-xl font-semibold leading-snug mb-2" style={{ color: 'var(--text-primary)' }}>
+              {announcementTitle!.split(' ').slice(0, -1).join(' ')}{' '}
+              <span style={{ color: 'var(--brand-crimson)' }}>{announcementTitle!.split(' ').slice(-1)[0]}</span>
+            </h2>
+            {announcementContent && (
+              <p className="font-body text-sm leading-relaxed" style={{ color: 'var(--text-secondary)', display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                {announcementContent}
+              </p>
+            )}
+          </div>
         </BentoCard>
         )}
 
@@ -192,20 +192,22 @@ export default async function HomePage() {
 
         <LocationTile colSpan={3} rowSpan={2} halfWidthMobile />
 
-        <BentoCard variant="default" colSpan={3} rowSpan={2} halfWidthMobile className="bento-tile flex flex-col justify-between" style={{ animationDelay: '450ms' }}>
-          <div>
+        <BentoCard variant="default" colSpan={3} rowSpan={2} halfWidthMobile className="bento-tile flex flex-col" style={{ animationDelay: '450ms' }}>
+          <div className="flex items-center justify-between mb-4">
             <Eyebrow>About Us</Eyebrow>
-            <h2 className="font-display text-xl font-semibold mt-3 mb-3" style={{ color: 'var(--text-primary)' }}>Hey there!</h2>
+            <Link href="/about" className="font-body text-[11px] font-bold tracking-widest uppercase hover:underline" style={{ color: 'var(--brand-crimson)' }}>Our story →</Link>
+          </div>
+          <div className="flex-1">
+            <h2 className="font-display text-xl font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>Hey there!</h2>
             <p className="font-body text-sm leading-relaxed" style={{ color: 'var(--text-secondary)', display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
               We&apos;re Vera &amp; Deniz, two folks living it up in Sofia, Bulgaria. All about good vibes, meaningful connections, and building rock-solid relationships.
             </p>
           </div>
-          <Link href="/about" className="font-body text-[11px] font-bold tracking-widest uppercase mt-4 hover:underline self-start" style={{ color: 'var(--brand-crimson)' }}>Our story →</Link>
         </BentoCard>
 
-        {/* ── ROW 4: Guides col-12 ── */}
+        {/* ── ROW 4: Guides col-3 ── */}
 
-        <GuidesTile colSpan={12} rowSpan={2} halfWidthMobile />
+        <GuidesTile colSpan={3} rowSpan={2} halfWidthMobile />
 
       </BentoGrid>
     </div>
