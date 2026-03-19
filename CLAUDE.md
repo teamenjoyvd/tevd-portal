@@ -1,5 +1,5 @@
 # CLAUDE.md — teamenjoyVD Portal
-> Last updated: 2026-03-19 — Session 9. Latest commit: 5cd22a7. Session 9: profile overhaul (ISS-0128–0136), footer scrollbar hotfix (ISS-0137), BottomNav removal, CLAUDE.md updated with desktop/mobile law.
+> Last updated: 2026-03-19 — Session 9 PIU. Latest commit: c75518d. Session 9: profile overhaul (ISS-0128–0138), footer/BottomNav hotfix, desktop/mobile law, verification paths designed (ISS-0139–0143 ticketed, not yet implemented).
 
 ---
 
@@ -83,10 +83,10 @@ The pattern is always:
 **The About page (`app/(dashboard)/about/page.tsx`) is the canonical reference** for the correct dual-layout pattern. Read it before implementing any new page.
 
 ### PIU Command
-When the user types **PIU** (\"Pack It Up\"), execute this sequence:
+When the user types **PIU** ("Pack It Up"), execute this sequence:
 1. Update CLAUDE.md with current session state (new stable commit, pending issues, gotchas).
 2. Verify `git status` is clean and latest commit is pushed.
-3. Confirm new session can start with just: repo URL + PAT + \"start work\".
+3. Confirm new session can start with just: repo URL + PAT + "start work".
 
 ---
 
@@ -309,13 +309,17 @@ Mobile: flex-col — heading → hero → body → ig+email 2-col → map → CT
     /trips/page.tsx              # 'use client', formatDate + formatCurrency from lib/format
     /profile/page.tsx            # Member profile — multi-bento layout (ISS-0128–0135)
   /admin
+    /approval-hub/page.tsx       # ABO + manual verification review (ISS-0142 pending)
     /calendar/page.tsx           # ascending: true (soonest first) — ISS-0123
+    /data-center/page.tsx        # LOS import + reconciliation panel (ISS-0143 pending)
     /notifications/page.tsx      # formatDateTime from lib/format
     /operations/page.tsx         # Trips CRUD + payment log + member submission review (ISS-0136)
   /api/admin/calendar/route.ts   # GET: ascending: true
   /api/admin/payments/route.ts   # GET (pending submissions) + POST (admin log)
   /api/admin/payments/[id]/route.ts  # PATCH (approve/deny submission)
+  /api/admin/verify/route.ts     # POST Path C admin-initiated manual verification (ISS-0140 pending)
   /api/profile/payments/route.ts # GET + POST (member payment submissions)
+  /api/profile/verify-abo/route.ts   # POST — standard + manual request_type (ISS-0140 pending)
   /api/profile/vitals/route.ts   # GET member_vital_signs
   /api/profile/event-roles/route.ts  # GET event_role_requests + calendar_events join
   /api/profile/los-summary/route.ts  # GET depth + direct_downline_count
@@ -333,9 +337,9 @@ Mobile: flex-col — heading → hero → body → ig+email 2-col → map → CT
   /layout
     /Footer.tsx                  # logo white filter, hidden md:flex nav, My Network
     /Header.tsx                  # hamburger mobile nav, desktop nav
-    /BottomNav.tsx               # DEAD FILE — not imported anywhere, pending deletion (ISS-0138)
+    /BottomNav.tsx               # DEAD FILE — stub only, do not import (ISS-0138 done)
 /lib
-  /format.ts                     # EET formatting helpers (NEW — always use this)
+  /format.ts                     # EET formatting helpers (always use this)
   /i18n/translations.ts
 /styles
   /brand-tokens.css              # bento-mobile-full, bento-mobile-half, 12-col on mobile
@@ -353,19 +357,25 @@ Mobile: flex-col — heading → hero → body → ig+email 2-col → map → CT
 `id, google_event_id, title, description, start_time, end_time, category, visibility_roles, week_number, event_type, created_at, created_by`
 
 ### profiles
-`id, clerk_id, first_name, last_name, display_names, role, abo_number, document_active_type, id_number, passport_number, valid_through, ical_token, phone, contact_email, created_at`
-- `role` DB default: `'guest'` (changed 2026-03-19 — new registrations start as guest)
+`id, clerk_id, first_name, last_name, display_names, role, abo_number, upline_abo_number, document_active_type, id_number, passport_number, valid_through, ical_token, phone, contact_email, created_at`
+- `role` DB default: `'guest'`
 - `phone`, `contact_email` added ISS-0128
+- `upline_abo_number` — **PENDING ISS-0139** — stores soft upline ref for manually-verified no-ABO members
 - Profile row created by Clerk webhook (`user.created`) → `api/webhooks/clerk/route.ts`
+
+### abo_verification_requests
+`id, profile_id, claimed_abo, claimed_upline_abo, request_type, status, admin_note, created_at, resolved_at`
+- `request_type` — **PENDING ISS-0139** — `'standard'` | `'manual'`
 
 ### trip_payments
 `id, trip_id, profile_id, amount, transaction_date, status, note, proof_url, payment_method, submitted_by_member, created_at`
-- `proof_url`, `payment_method`, `submitted_by_member` added ISS-0128
-- Members can INSERT with `submitted_by_member=true, status='pending'` only (RLS)
+- Members INSERT with `submitted_by_member=true, status='pending'` only (RLS)
 - Admin/Core approve/deny via PATCH `/api/admin/payments/[id]`
 
 ### tree_nodes
 `id, profile_id, parent_id, path (ltree), depth, created_at`
+- No-ABO members placed as `p_<uuid_no_hyphens>` label, direct child of upline — **PENDING ISS-0139**
+- On ABO assignment, node label renamed to `abo_to_ltree_label(abo_number)`, rebuild_tree_paths called
 
 ---
 
@@ -376,11 +386,22 @@ Role hierarchy: `admin > core > member > guest`
 Public (no auth): `/`, `/about`, `/calendar`, `/trips`
 Auth required: all other routes
 
-### Registration Flow (2026-03-19)
-1. User registers via Clerk → `user.created` webhook fires
-2. Profile row created with `role: 'guest'`
-3. Guest visits `/profile` → fills in details, submits ABO + upline for verification
-4. Admin approves in admin panel → role promoted to `member`
+### Registration & Verification Flows
+
+**Path A — Standard ABO (existing):**
+Guest submits `claimed_abo` + `claimed_upline_abo` → admin approves → `role='member'`, `abo_number` set, normal tree placement.
+
+**Path B — Manual (no ABO, user-initiated) — PENDING ISS-0140/0141:**
+Guest submits only `claimed_upline_abo` + selects "I don't have an ABO number" → `request_type='manual'` → admin approves → `role='member'`, `abo_number=NULL`, `upline_abo_number` set, placed in tree as direct child of upline with `p_<uuid>` label.
+
+**Path C — Admin-initiated manual — PENDING ISS-0140/0142:**
+Admin picks guest, provides upline ABO → directly promotes to member without any user submission.
+
+**No-ABO member constraints:**
+- Cannot have downlines (LOS import is source of truth for that)
+- Full portal access: trips, events, calendar, etc.
+- When ABO acquired: re-verify via Path A or admin links via LOS reconciliation panel (ISS-0143)
+- LOS import is always the authoritative source of truth for tree positioning
 
 ---
 
@@ -419,12 +440,18 @@ Client-side `filterType` state. Clicking active filter deactivates it. Combinabl
 ### Operations (admin/operations)
 Trips CRUD + milestones + admin payment log + member payment submission review. formatCurrency + formatDate from lib/format.
 
+### Approval Hub (admin/approval-hub)
+Standard ABO requests + manual requests (separate section) + Path C direct-verify form. ISS-0142 pending.
+
+### Data Center (admin/data-center)
+LOS import + post-import reconciliation panel for matching unrecognized LOS members to no-ABO portal profiles. ISS-0143 pending.
+
 ### Notifications Audit Log
 All-time, including soft-deleted. Paginated 50/page. formatDateTime from lib/format.
 
 ---
 
-## 15. Key Gotchas & Decisions (updated 2026-03-19, Session 9)
+## 15. Key Gotchas & Decisions (updated 2026-03-19, Session 9 PIU)
 
 | Topic | Rule |
 |---|---|
@@ -454,10 +481,12 @@ All-time, including soft-deleted. Paginated 50/page. formatDateTime from lib/for
 | LOSBox array guard | Always `Array.isArray()` before passing API response to `buildSubtree`. |
 | Supabase service client | Singleton in `lib/supabase/service.ts` — do not create new client per request. |
 | New user role | Clerk webhook defaults to `role: 'guest'`. DB column default also `'guest'`. Never change to member without explicit admin approval. |
-| BottomNav | REMOVED (ISS-0137). `components/layout/BottomNav.tsx` is a dead file pending deletion (ISS-0138). Do NOT re-add or re-import. |
+| BottomNav | REMOVED (ISS-0137). `BottomNav.tsx` is a dead stub. Do NOT re-add or re-import. |
 | Footer nav mobile | `hidden md:flex` — nav is hidden on mobile. Header hamburger is the only mobile nav. No exceptions. |
 | Mobile nav chrome | NO bottom nav bars, NO tab bars, NO floating nav buttons unless explicitly in the ticket DoD with sign-off. |
 | overflow-x-auto on nav | NEVER. If nav content overflows, the layout is wrong. Fix the layout. |
+| No-ABO tree node label | `p_<profile_uuid_no_hyphens>` — profile UUID as stable ltree label for no-ABO members. Renamed to real ABO label on assignment. See ISS-0139. |
+| LOS import is source of truth | LOS company import always wins for tree positioning. Never contradict it with local data. |
 
 ---
 
@@ -470,20 +499,24 @@ All-time, including soft-deleted. Paginated 50/page. formatDateTime from lib/for
 | v1.3.0 | 2026-03-18 | Shipped | Admin CRUD, QA fixes, LOS views, Core notifications, bento polish |
 | v1.4.0 | 2026-03-18 | Shipped | Session 7: About page, mobile overhaul, QA batch, EET formatting, lib/format.ts |
 | v1.4.1 | 2026-03-19 | Shipped | Session 8: CalendarClient style2 fix, profile crash guard, webhook guest default, service client singleton, SSU command |
-| v1.5.0 | 2026-03-19 | **Shipped** | Session 9: Profile overhaul (ISS-0128–0136), footer scrollbar hotfix, BottomNav removal, desktop/mobile law |
+| v1.5.0 | 2026-03-19 | **Shipped** | Session 9: Profile overhaul (ISS-0128–0138), footer/BottomNav fixes, desktop/mobile law, verification paths designed |
 
-Latest stable commit: `5cd22a7`
+Latest stable commit: `c75518d`
 
 ---
 
-## 17. Pending Issues (backlog as of 2026-03-19, post Session 9)
+## 17. Pending Issues (backlog as of 2026-03-19, post Session 9 PIU)
 
 | ID | Name | Priority | Status | Notes |
 |---|---|---|---|---|
 | ISS-0056 | Meta token expiry alert + refresh flow | Low | Blocked | Needs FB_APP_ID + FB_APP_SECRET in Vercel |
-| ISS-0109 | Trips inner page two-col layout | P2 | To Do | Blocked by ISS-0098 + ISS-0103 per DoD — verify those are actually done |
-| ISS-0125 | Design revisit: inner pages mobile layout | P2 | Needs Design | /calendar, /trips, /howtos, /profile — design spec required before coding |
-| ISS-0138 | Housekeeping: delete BottomNav.tsx + consolidate formatDate/formatEur in operations | P3 | To Do | Low urgency, clean debt |
+| ISS-0109 | Trips inner page two-col layout | P2 | To Do | Verify ISS-0098 + ISS-0103 are done before starting |
+| ISS-0125 | Design revisit: inner pages mobile layout | P2 | Needs Design | /calendar, /trips, /howtos, /profile — spec required |
+| ISS-0139 | DB migration: verification paths + upsert_tree_node NULL-ABO | P1 | To Do | Foundation for ISS-0140–0143 |
+| ISS-0140 | API: verify-abo Path B + Path C routes | P1 | To Do | Blocked by ISS-0139 |
+| ISS-0141 | Profile page: Path B manual verification UI | P2 | To Do | Blocked by ISS-0140 |
+| ISS-0142 | Admin approval hub: manual queue + Path C direct-verify | P2 | To Do | Blocked by ISS-0140 |
+| ISS-0143 | LOS import: reconciliation panel for no-ABO profiles | P2 | To Do | Blocked by ISS-0139 |
 
 ---
 
