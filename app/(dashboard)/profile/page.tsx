@@ -94,11 +94,12 @@ type Profile = {
 
 type VerificationRequest = {
   id: string
-  claimed_abo: string
+  claimed_abo: string | null
   claimed_upline_abo: string
   status: 'pending' | 'approved' | 'denied'
   admin_note: string | null
   created_at: string
+  request_type: string
 }
 
 type UplineData = {
@@ -200,6 +201,7 @@ export default function ProfilePage() {
   const [saved, setSaved] = useState(false)
   const [aboInput, setAboInput] = useState('')
   const [uplineInput, setUplineInput] = useState('')
+  const [verificationMode, setVerificationMode] = useState<'standard' | 'manual'>('standard')
   const [calCopied, setCalCopied] = useState(false)
   const [payForm, setPayForm] = useState<Record<string, { amount: string; transaction_date: string; payment_method: string; proof_url: string; note: string }>>({})
   const [paySubmitted, setPaySubmitted] = useState<Record<string, boolean>>({})
@@ -310,7 +312,11 @@ export default function ProfilePage() {
       fetch('/api/profile/verify-abo', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ claimed_abo: aboInput.trim(), claimed_upline_abo: uplineInput.trim() }),
+        body: JSON.stringify(
+          verificationMode === 'manual'
+            ? { request_type: 'manual', claimed_upline_abo: uplineInput.trim() }
+            : { claimed_abo: aboInput.trim(), claimed_upline_abo: uplineInput.trim() }
+        ),
       }).then(async r => {
         if (!r.ok) throw new Error((await r.json()).error)
         return r.json()
@@ -500,10 +506,12 @@ export default function ProfilePage() {
                   {verRequest?.status === 'pending' ? (
                     <div className="rounded-xl px-4 py-3" style={{ backgroundColor: '#f2cc8f33' }}>
                       <p className="text-sm font-medium" style={{ color: '#7a5c00' }}>
-                        {t('profile.verifPending')}
+                        {verRequest.request_type === 'manual' ? 'Manual verification pending' : t('profile.verifPending')}
                       </p>
                       <p className="text-xs mt-0.5" style={{ color: '#7a5c00' }}>
-                        ABO {verRequest.claimed_abo} · Upline {verRequest.claimed_upline_abo}
+                        {verRequest.request_type === 'manual'
+                          ? `Upline ${verRequest.claimed_upline_abo}`
+                          : `ABO ${verRequest.claimed_abo} · Upline ${verRequest.claimed_upline_abo}`}
                       </p>
                       <button
                         onClick={() => cancelVerification.mutate()}
@@ -531,18 +539,45 @@ export default function ProfilePage() {
                   ) : null}
                   {(!verRequest || verRequest.status === 'denied') && (
                     <div className="space-y-3">
-                      <div>
-                        <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
-                          {t('profile.yourAbo')}
-                        </label>
-                        <input
-                          value={aboInput}
-                          onChange={e => setAboInput(e.target.value)}
-                          placeholder="e.g. 7023040472"
-                          className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm font-mono"
-                          style={{ color: 'var(--text-primary)' }}
-                        />
+                      {/* Path toggle */}
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setVerificationMode('standard')}
+                          className="flex-1 py-2 rounded-xl text-xs font-semibold transition-colors"
+                          style={{
+                            backgroundColor: verificationMode === 'standard' ? 'var(--text-primary)' : 'transparent',
+                            color: verificationMode === 'standard' ? 'var(--bg-card)' : 'var(--text-secondary)',
+                            border: '1px solid var(--border-default)',
+                          }}
+                        >
+                          I have an ABO number
+                        </button>
+                        <button
+                          onClick={() => setVerificationMode('manual')}
+                          className="flex-1 py-2 rounded-xl text-xs font-semibold transition-colors"
+                          style={{
+                            backgroundColor: verificationMode === 'manual' ? 'var(--text-primary)' : 'transparent',
+                            color: verificationMode === 'manual' ? 'var(--bg-card)' : 'var(--text-secondary)',
+                            border: '1px solid var(--border-default)',
+                          }}
+                        >
+                          I don&apos;t have an ABO yet
+                        </button>
                       </div>
+                      {verificationMode === 'standard' && (
+                        <div>
+                          <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
+                            {t('profile.yourAbo')}
+                          </label>
+                          <input
+                            value={aboInput}
+                            onChange={e => setAboInput(e.target.value)}
+                            placeholder="e.g. 7023040472"
+                            className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm font-mono"
+                            style={{ color: 'var(--text-primary)' }}
+                          />
+                        </div>
+                      )}
                       <div>
                         <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
                           {t('profile.sponsorAbo')}
@@ -562,7 +597,7 @@ export default function ProfilePage() {
                       )}
                       <button
                         onClick={() => submitVerification.mutate()}
-                        disabled={submitVerification.isPending || !aboInput || !uplineInput}
+                        disabled={submitVerification.isPending || (verificationMode === 'standard' ? (!aboInput || !uplineInput) : !uplineInput)}
                         className="w-full py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity"
                         style={{ backgroundColor: 'var(--text-primary)' }}
                       >
