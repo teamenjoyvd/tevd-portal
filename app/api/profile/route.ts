@@ -34,6 +34,7 @@ export async function PATCH(req: Request) {
     'first_name', 'last_name', 'display_names',
     'document_active_type',
     'id_number', 'passport_number', 'valid_through',
+    'phone', 'contact_email',
   ]
   const patch = Object.fromEntries(
     Object.entries(body).filter(([k]) => allowed.includes(k))

@@ -14,7 +14,7 @@ export async function GET() {
     .single()
 
   if (!profile?.abo_number) {
-    return Response.json({ upline_name: null })
+    return Response.json({ upline_name: null, upline_abo_number: null })
   }
 
   const { data: losMember } = await supabase
@@ -24,14 +24,17 @@ export async function GET() {
     .single()
 
   if (!losMember?.sponsor_abo_number) {
-    return Response.json({ upline_name: null })
+    return Response.json({ upline_name: null, upline_abo_number: null })
   }
 
   const { data: upline } = await supabase
     .from('los_members')
-    .select('name')
+    .select('name, abo_number')
     .eq('abo_number', losMember.sponsor_abo_number)
     .single()
 
-  return Response.json({ upline_name: upline?.name ?? null })
+  return Response.json({
+    upline_name: upline?.name ?? null,
+    upline_abo_number: upline?.abo_number ?? null,
+  })
 }
