@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { useNotifications, useMarkRead, useMarkAllRead, useDeleteNotification, useClearAllNotifications } from '@/lib/hooks/useNotifications'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import PageHeading from '@/components/layout/PageHeading'
@@ -13,6 +14,8 @@ const TYPE_STYLES: Record<string, { bg: string; color: string }> = {
   doc_expiry:    { bg: 'rgba(188,71,73,0.10)',   color: 'var(--brand-crimson)' },
   los_digest:    { bg: 'rgba(62,119,133,0.10)',  color: 'var(--brand-teal)'   },
 }
+
+const ALL_TYPES = ['role_request', 'trip_request', 'trip_created', 'event_fetched', 'doc_expiry', 'los_digest']
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime()
@@ -32,7 +35,10 @@ export default function NotificationsPage() {
   const deleteOne     = useDeleteNotification()
   const clearAll      = useClearAllNotifications()
   const { t } = useLanguage()
-  const unreadCount = notifications.filter(n => !n.is_read).length
+
+  const [search, setSearch]       = useState('')
+  const [typeFilter, setTypeFilter] = useState<string>('all')
+  const [readFilter, setReadFilter] = useState<'all' | 'unread' | 'read'>('all')
 
   const TYPE_LABELS: Record<string, string> = {
     role_request:  t('notif.type.roleRequest'),
@@ -43,6 +49,21 @@ export default function NotificationsPage() {
     los_digest:    t('notif.type.losDigest'),
   }
 
+  const unreadCount = notifications.filter(n => !n.is_read).length
+
+  const filtered = notifications.filter(n => {
+    if (typeFilter !== 'all' && n.type !== typeFilter) return false
+    if (readFilter === 'unread' && n.is_read) return false
+    if (readFilter === 'read' && !n.is_read) return false
+    if (search.trim()) {
+      const q = search.trim().toLowerCase()
+      if (!n.title.toLowerCase().includes(q) && !n.message.toLowerCase().includes(q)) return false
+    }
+    return true
+  })
+
+  const filtersActive = typeFilter !== 'all' || readFilter !== 'all' || search.trim() !== ''
+
   return (
     <>
       <PageHeading title="Notifications" subtitle="Your activity and alerts" />
@@ -50,7 +71,7 @@ export default function NotificationsPage() {
         <div className="max-w-2xl py-8 pb-16">
 
           {(unreadCount > 0 || notifications.length > 0) && (
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-5">
               <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                 {unreadCount > 0 ? t('notif.unread').replace('{n}', String(unreadCount)) : ''}
               </p>
@@ -79,6 +100,85 @@ export default function NotificationsPage() {
             </div>
           )}
 
+          {/* ── Filter bar ── */}
+          {notifications.length > 0 && (
+            <div className="space-y-3 mb-6">
+              {/* Search */}
+              <div className="relative">
+                <svg
+                  width="15" height="15" viewBox="0 0 24 24" fill="none"
+                  stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                >
+                  <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <input
+                  type="text"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Search notifications…"
+                  className="w-full pl-9 pr-3 py-2 rounded-xl text-sm border transition-colors"
+                  style={{
+                    borderColor: 'var(--border-default)',
+                    backgroundColor: 'white',
+                    color: 'var(--text-primary)',
+                  }}
+                />
+              </div>
+
+              {/* Read state + Type filters */}
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Read state */}
+                <div className="flex gap-1 p-0.5 rounded-lg" style={{ backgroundColor: 'rgba(0,0,0,0.05)' }}>
+                  {(['all', 'unread', 'read'] as const).map(opt => (
+                    <button
+                      key={opt}
+                      onClick={() => setReadFilter(opt)}
+                      className="px-3 py-1 rounded-md text-xs font-medium capitalize transition-all"
+                      style={{
+                        backgroundColor: readFilter === opt ? 'white' : 'transparent',
+                        color: readFilter === opt ? 'var(--text-primary)' : 'var(--text-secondary)',
+                        boxShadow: readFilter === opt ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                      }}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Type pills */}
+                <button
+                  onClick={() => setTypeFilter('all')}
+                  className="px-3 py-1 rounded-full text-xs font-medium transition-all"
+                  style={{
+                    backgroundColor: typeFilter === 'all' ? 'var(--text-primary)' : 'rgba(0,0,0,0.06)',
+                    color: typeFilter === 'all' ? 'white' : 'var(--text-secondary)',
+                  }}
+                >
+                  All types
+                </button>
+                {ALL_TYPES.map(type => (
+                  <button
+                    key={type}
+                    onClick={() => setTypeFilter(t => t === type ? 'all' : type)}
+                    className="px-3 py-1 rounded-full text-xs font-medium transition-all"
+                    style={{
+                      backgroundColor: typeFilter === type
+                        ? (TYPE_STYLES[type]?.bg ?? 'rgba(0,0,0,0.06)')
+                        : 'rgba(0,0,0,0.06)',
+                      color: typeFilter === type
+                        ? (TYPE_STYLES[type]?.color ?? 'var(--text-secondary)')
+                        : 'var(--text-secondary)',
+                      outline: typeFilter === type ? `1.5px solid ${TYPE_STYLES[type]?.color ?? 'transparent'}` : 'none',
+                    }}
+                  >
+                    {TYPE_LABELS[type] ?? type}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {isLoading ? (
             <div className="space-y-3">
               {[...Array(5)].map((_, i) => (
@@ -101,9 +201,24 @@ export default function NotificationsPage() {
                 {t('notif.empty')}
               </p>
             </div>
+          ) : filtered.length === 0 ? (
+            <div className="text-center py-16">
+              <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                No notifications match your filters
+              </p>
+              {filtersActive && (
+                <button
+                  onClick={() => { setSearch(''); setTypeFilter('all'); setReadFilter('all') }}
+                  className="text-xs mt-2 hover:underline"
+                  style={{ color: 'var(--brand-crimson)' }}
+                >
+                  Clear filters
+                </button>
+              )}
+            </div>
           ) : (
             <div className="space-y-2">
-              {notifications.map(n => (
+              {filtered.map(n => (
                 <div
                   key={n.id}
                   onClick={() => { if (!n.is_read) markRead.mutate(n.id) }}
