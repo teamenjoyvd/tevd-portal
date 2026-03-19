@@ -171,6 +171,27 @@ type TripEntry = {
   payments: TripPayment[]
 }
 
+type VitalSign = {
+  id: string
+  event_key: string
+  event_label: string
+  has_ticket: boolean
+  updated_at: string
+}
+
+type EventRoleRequest = {
+  id: string
+  role_label: string
+  status: 'pending' | 'approved' | 'denied'
+  note: string | null
+  created_at: string
+  calendar_events: {
+    id: string
+    title: string
+    start_time: string
+  } | null
+}
+
 const PAYMENT_STATUS_STYLES: Record<string, { bg: string; color: string }> = {
   pending:   { bg: '#f2cc8f33', color: '#7a5c00' },
   completed: { bg: 'rgba(129,178,154,0.15)', color: '#2d6a4f' },
@@ -254,6 +275,20 @@ export default function ProfilePage() {
     queryFn: () => fetch('/api/profile/payments').then(r => r.json()),
     enabled: !!validProfile?.id && validProfile?.role !== 'guest',
     staleTime: 2 * 60 * 1000,
+  })
+
+  const { data: vitalsData } = useQuery<VitalSign[]>({
+    queryKey: ['profile-vitals'],
+    queryFn: () => fetch('/api/profile/vitals').then(r => r.json()),
+    enabled: !!validProfile?.id && validProfile?.role !== 'guest',
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const { data: eventRolesData } = useQuery<EventRoleRequest[]>({
+    queryKey: ['profile-event-roles'],
+    queryFn: () => fetch('/api/profile/event-roles').then(r => r.json()),
+    enabled: !!validProfile?.id && validProfile?.role !== 'guest',
+    staleTime: 5 * 60 * 1000,
   })
 
   const { data: calData, refetch: refetchCal } = useQuery<{ url: string }>({
@@ -351,6 +386,9 @@ export default function ProfilePage() {
   const isCore        = validProfile?.role === 'core' || validProfile?.role === 'admin'
 
   const hasTrips = Array.isArray(tripsData) && tripsData.length > 0
+  const hasVitals = Array.isArray(vitalsData) && vitalsData.length > 0
+  const hasEventRoles = Array.isArray(eventRolesData) && eventRolesData.length > 0
+  const hasEventActivity = hasVitals || hasEventRoles
 
   // ── Calendar subscription markup (shared) ───────────────────────────
   const calSubscriptionBlock = (
@@ -931,6 +969,75 @@ export default function ProfilePage() {
                           </div>
                         )
                       })}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ── BENTO D: Event Activity (renders only if data exists) ──── */}
+              {hasEventActivity && (
+                <div style={{ gridColumn: 'span 8' }}>
+                  <div className="rounded-2xl p-6" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+                    <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-6" style={{ color: 'var(--brand-crimson)' }}>
+                      Event Activity
+                    </p>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, minmax(0, 1fr))', gap: '12px' }}>
+
+                      {/* col-4: Vital Signs */}
+                      {hasVitals && (
+                        <div style={{ gridColumn: 'span 4' }}>
+                          <p className="text-xs font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
+                            Vital Signs
+                          </p>
+                          <div className="space-y-2">
+                            {vitalsData!.map(vs => (
+                              <div key={vs.id} className="flex items-center justify-between gap-3 text-xs py-1.5">
+                                <span style={{ color: 'var(--text-primary)' }}>{vs.event_label}</span>
+                                <span
+                                  className="font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
+                                  style={{
+                                    backgroundColor: vs.has_ticket ? 'rgba(188,71,73,0.12)' : 'var(--border-default)',
+                                    color: vs.has_ticket ? 'var(--brand-crimson)' : 'var(--text-secondary)',
+                                  }}
+                                >
+                                  {vs.has_ticket ? '✓ Ticketed' : '○ No ticket'}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* col-4: Event Role Requests */}
+                      {hasEventRoles && (
+                        <div style={{ gridColumn: hasVitals ? 'span 4' : 'span 8' }}>
+                          <p className="text-xs font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
+                            Role Requests
+                          </p>
+                          <div className="space-y-2">
+                            {eventRolesData!.map(er => {
+                              const rs = REG_STATUS_STYLES[er.status.toLowerCase()] ?? REG_STATUS_STYLES.pending
+                              return (
+                                <div key={er.id} className="flex items-start justify-between gap-3 text-xs py-1.5">
+                                  <div className="min-w-0">
+                                    <p className="font-medium truncate" style={{ color: 'var(--text-primary)' }}>
+                                      {er.calendar_events?.title ?? '—'}
+                                    </p>
+                                    <p style={{ color: 'var(--text-secondary)' }}>{er.role_label}</p>
+                                  </div>
+                                  <span
+                                    className="font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
+                                    style={{ backgroundColor: rs.bg, color: rs.color }}
+                                  >
+                                    {er.status}
+                                  </span>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )}
+
                     </div>
                   </div>
                 </div>
