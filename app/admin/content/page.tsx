@@ -259,182 +259,90 @@ export default function ContentPage() {
   })
 
   return (
-    <div className="space-y-12">
+    <div className="space-y-6">
+      <div>
+        <h1 className="font-display text-2xl font-semibold" style={{ color: 'var(--text-primary)' }}>
+          Content
+        </h1>
+      </div>
 
-      {/* ── Home Settings ── */}
-      <section>
-        <h2 className="font-display text-xl font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
-          Home settings
-        </h2>
-        <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-6 space-y-4">
-          {([1,2,3] as const).map(n => (
-            <div key={n} className="flex items-center gap-4">
-              <input
-                type="checkbox"
-                checked={!!s[`show_caret_${n}` as keyof HomeSettings]}
-                onChange={e => setSForm(f => ({ ...f, [`show_caret_${n}`]: e.target.checked }))}
-                className="w-4 h-4 accent-[var(--brand-crimson)]"
-              />
-              <label className="text-sm w-16" style={{ color: 'var(--text-secondary)' }}>Caret {n}</label>
-              <input
-                value={String(s[`caret_${n}_text` as keyof HomeSettings] ?? '')}
-                onChange={e => setSForm(f => ({ ...f, [`caret_${n}_text`]: e.target.value }))}
-                placeholder={`Caret ${n} text`}
-                className="flex-1 border border-black/10 rounded-xl px-3 py-2 text-sm"
-                style={{ color: 'var(--text-primary)' }}
-              />
-            </div>
-          ))}
-          <button
-            onClick={() => saveSettings.mutate(sForm)}
-            disabled={saveSettings.isPending || Object.keys(sForm).length === 0}
-            className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
-            style={{ backgroundColor: 'var(--brand-crimson)' }}
-          >
-            {saveSettings.isPending ? 'Saving…' : 'Save settings'}
-          </button>
-        </div>
-      </section>
+      {/* ── Row 1: Config — Home Settings | Bento Settings ── */}
+      <div className="grid grid-cols-2 gap-6">
 
-      {/* ── Announcements ── */}
-      <section>
-        <h2 className="font-display text-xl font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
-          Announcements
-        </h2>
-
-        <div className="flex gap-2 mb-4">
-          {LANGS.map(l => (
-            <button key={l} onClick={() => setALang(l)}
-              className="px-3 py-1 rounded-lg text-sm font-medium transition-colors"
-              style={{
-                backgroundColor: aLang === l ? 'var(--text-primary)' : 'rgba(0,0,0,0.05)',
-                color: aLang === l ? 'white' : 'var(--text-secondary)',
-              }}>
-              {l.toUpperCase()}
+        {/* Home Settings */}
+        <section>
+          <h2 className="font-display text-xl font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
+            Home settings
+          </h2>
+          <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-6 space-y-4">
+            {([1,2,3] as const).map(n => (
+              <div key={n} className="flex items-center gap-4">
+                <input
+                  type="checkbox"
+                  checked={!!s[`show_caret_${n}` as keyof HomeSettings]}
+                  onChange={e => setSForm(f => ({ ...f, [`show_caret_${n}`]: e.target.checked }))}
+                  className="w-4 h-4 accent-[var(--brand-crimson)]"
+                />
+                <label className="text-sm w-16" style={{ color: 'var(--text-secondary)' }}>Caret {n}</label>
+                <input
+                  value={String(s[`caret_${n}_text` as keyof HomeSettings] ?? '')}
+                  onChange={e => setSForm(f => ({ ...f, [`caret_${n}_text`]: e.target.value }))}
+                  placeholder={`Caret ${n} text`}
+                  className="flex-1 border border-black/10 rounded-xl px-3 py-2 text-sm"
+                  style={{ color: 'var(--text-primary)' }}
+                />
+              </div>
+            ))}
+            <button
+              onClick={() => saveSettings.mutate(sForm)}
+              disabled={saveSettings.isPending || Object.keys(sForm).length === 0}
+              className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
+              style={{ backgroundColor: 'var(--brand-crimson)' }}
+            >
+              {saveSettings.isPending ? 'Saving…' : 'Save settings'}
             </button>
-          ))}
-        </div>
+          </div>
+        </section>
 
-        <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-6 mb-4 space-y-3">
-          <input
-            value={aForm.titles[aLang] ?? ''}
-            onChange={e => setAForm(f => ({ ...f, titles: { ...f.titles, [aLang]: e.target.value } }))}
-            placeholder={`Title (${aLang.toUpperCase()})`}
-            className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-            style={{ color: 'var(--text-primary)' }}
-          />
-          <textarea
-            value={aForm.contents[aLang] ?? ''}
-            onChange={e => setAForm(f => ({ ...f, contents: { ...f.contents, [aLang]: e.target.value } }))}
-            placeholder={`Content (${aLang.toUpperCase()})`}
-            rows={4}
-            className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm resize-none"
-            style={{ color: 'var(--text-primary)' }}
-          />
-          <div className="flex gap-2 flex-wrap">
-            {['guest','member','core','admin'].map(role => (
-              <button key={role}
-                onClick={() => setAForm(f => ({
-                  ...f,
-                  access_level: f.access_level.includes(role)
-                    ? f.access_level.filter(r => r !== role)
-                    : [...f.access_level, role],
-                }))}
-                className="px-3 py-1 rounded-full text-xs font-semibold transition-all"
+        {/* Bento Settings */}
+        <BentoSettings />
+
+      </div>
+
+      {/* ── Row 2: Content — Announcements | Quick Links ── */}
+      <div className="grid grid-cols-2 gap-6">
+
+        {/* Announcements */}
+        <section>
+          <h2 className="font-display text-xl font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
+            Announcements
+          </h2>
+
+          <div className="flex gap-2 mb-4">
+            {LANGS.map(l => (
+              <button key={l} onClick={() => setALang(l)}
+                className="px-3 py-1 rounded-lg text-sm font-medium transition-colors"
                 style={{
-                  backgroundColor: aForm.access_level.includes(role) ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)',
-                  color: aForm.access_level.includes(role) ? 'var(--brand-parchment)' : 'var(--text-secondary)',
+                  backgroundColor: aLang === l ? 'var(--text-primary)' : 'rgba(0,0,0,0.05)',
+                  color: aLang === l ? 'white' : 'var(--text-secondary)',
                 }}>
-                {role}
+                {l.toUpperCase()}
               </button>
             ))}
           </div>
-          <button
-            onClick={() => createAnnouncement.mutate(aForm)}
-            disabled={createAnnouncement.isPending || !aForm.titles.en}
-            className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
-            style={{ backgroundColor: 'var(--brand-crimson)' }}
-          >
-            {createAnnouncement.isPending ? 'Publishing…' : 'Publish'}
-          </button>
-        </div>
 
-        <div className="space-y-2">
-          {announcements.map(a => (
-            <div key={a.id}
-              className="bg-white rounded-2xl border border-black/5 shadow-sm p-4 flex items-start justify-between gap-4">
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
-                  {a.titles.en ?? a.titles.bg ?? 'Untitled'}
-                </p>
-                <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                  {new Date(a.created_at).toLocaleDateString()}
-                </p>
-              </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <button
-                  onClick={() => startEditingAnnouncement(a)}
-                  className="text-xs px-2.5 py-1 rounded-full font-medium border hover:bg-black/5 transition-colors"
-                  style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => toggleAnnouncement.mutate({ id: a.id, is_active: !a.is_active })}
-                  className="text-xs px-2.5 py-1 rounded-full font-medium"
-                  style={{
-                    backgroundColor: a.is_active ? '#81b29a33' : 'rgba(0,0,0,0.05)',
-                    color: a.is_active ? '#2d6a4f' : 'var(--text-secondary)',
-                  }}
-                >
-                  {a.is_active ? 'Active' : 'Inactive'}
-                </button>
-                <button
-                  onClick={() => deleteAnnouncement.mutate(a.id)}
-                  className="text-xs font-medium hover:opacity-70 transition-opacity"
-                  style={{ color: 'var(--brand-crimson)' }}
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {editingAnnouncement && (
-          <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-6 mt-4 space-y-3">
-            <div className="flex items-center justify-between mb-1">
-              <p className="text-xs font-semibold tracking-widest uppercase" style={{ color: 'var(--text-secondary)' }}>
-                Edit announcement
-              </p>
-              <button onClick={() => setEditingAnnouncement(null)}
-                className="text-xs hover:opacity-70 transition-opacity" style={{ color: 'var(--text-secondary)' }}>
-                Cancel
-              </button>
-            </div>
-            <div className="flex gap-2 mb-2">
-              {LANGS.map(l => (
-                <button key={l} onClick={() => setEditALang(l)}
-                  className="px-3 py-1 rounded-lg text-sm font-medium transition-colors"
-                  style={{
-                    backgroundColor: editALang === l ? 'var(--text-primary)' : 'rgba(0,0,0,0.05)',
-                    color: editALang === l ? 'white' : 'var(--text-secondary)',
-                  }}>
-                  {l.toUpperCase()}
-                </button>
-              ))}
-            </div>
+          <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-6 mb-4 space-y-3">
             <input
-              value={editAForm.titles[editALang] ?? ''}
-              onChange={e => setEditAForm(f => ({ ...f, titles: { ...f.titles, [editALang]: e.target.value } }))}
-              placeholder={`Title (${editALang.toUpperCase()})`}
+              value={aForm.titles[aLang] ?? ''}
+              onChange={e => setAForm(f => ({ ...f, titles: { ...f.titles, [aLang]: e.target.value } }))}
+              placeholder={`Title (${aLang.toUpperCase()})`}
               className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
               style={{ color: 'var(--text-primary)' }}
             />
             <textarea
-              value={editAForm.contents[editALang] ?? ''}
-              onChange={e => setEditAForm(f => ({ ...f, contents: { ...f.contents, [editALang]: e.target.value } }))}
-              placeholder={`Content (${editALang.toUpperCase()})`}
+              value={aForm.contents[aLang] ?? ''}
+              onChange={e => setAForm(f => ({ ...f, contents: { ...f.contents, [aLang]: e.target.value } }))}
+              placeholder={`Content (${aLang.toUpperCase()})`}
               rows={4}
               className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm resize-none"
               style={{ color: 'var(--text-primary)' }}
@@ -442,7 +350,7 @@ export default function ContentPage() {
             <div className="flex gap-2 flex-wrap">
               {['guest','member','core','admin'].map(role => (
                 <button key={role}
-                  onClick={() => setEditAForm(f => ({
+                  onClick={() => setAForm(f => ({
                     ...f,
                     access_level: f.access_level.includes(role)
                       ? f.access_level.filter(r => r !== role)
@@ -450,133 +358,158 @@ export default function ContentPage() {
                   }))}
                   className="px-3 py-1 rounded-full text-xs font-semibold transition-all"
                   style={{
-                    backgroundColor: editAForm.access_level.includes(role) ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)',
-                    color: editAForm.access_level.includes(role) ? 'var(--brand-parchment)' : 'var(--text-secondary)',
+                    backgroundColor: aForm.access_level.includes(role) ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)',
+                    color: aForm.access_level.includes(role) ? 'var(--brand-parchment)' : 'var(--text-secondary)',
                   }}>
                   {role}
                 </button>
               ))}
             </div>
-            <div className="flex gap-3 pt-1">
-              <button
-                onClick={() => updateAnnouncement.mutate({ id: editingAnnouncement.id, ...editAForm })}
-                disabled={updateAnnouncement.isPending || !editAForm.titles.en}
-                className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
-                style={{ backgroundColor: 'var(--brand-crimson)' }}>
-                {updateAnnouncement.isPending ? 'Saving…' : 'Save changes'}
-              </button>
-              <button onClick={() => setEditingAnnouncement(null)}
-                className="px-5 py-2 rounded-xl text-sm font-semibold border transition-colors hover:bg-black/5"
-                style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
-                Cancel
-              </button>
-            </div>
+            <button
+              onClick={() => createAnnouncement.mutate(aForm)}
+              disabled={createAnnouncement.isPending || !aForm.titles.en}
+              className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
+              style={{ backgroundColor: 'var(--brand-crimson)' }}
+            >
+              {createAnnouncement.isPending ? 'Publishing…' : 'Publish'}
+            </button>
           </div>
-        )}
-      </section>
 
-      {/* ── Quick Links ── */}
-      <section>
-        <h2 className="font-display text-xl font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
-          Quick links
-        </h2>
-        <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-6 mb-4">
-          <div className="grid grid-cols-4 gap-3 mb-4">
-            <input value={lForm.label}
-              onChange={e => setLForm(f => ({ ...f, label: e.target.value }))}
-              placeholder="Label"
-              className="border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-              style={{ color: 'var(--text-primary)' }} />
-            <input value={lForm.url}
-              onChange={e => setLForm(f => ({ ...f, url: e.target.value }))}
-              placeholder="URL"
-              className="border border-black/10 rounded-xl px-3 py-2.5 text-sm col-span-2"
-              style={{ color: 'var(--text-primary)' }} />
-            <input value={lForm.icon_name}
-              onChange={e => setLForm(f => ({ ...f, icon_name: e.target.value }))}
-              placeholder="Icon name"
-              className="border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-              style={{ color: 'var(--text-primary)' }} />
-          </div>
-          <div className="flex gap-2 flex-wrap mb-4">
-            {['guest','member','core','admin'].map(role => (
-              <button key={role}
-                onClick={() => setLForm(f => ({
-                  ...f,
-                  access_level: f.access_level.includes(role)
-                    ? f.access_level.filter(r => r !== role)
-                    : [...f.access_level, role],
-                }))}
-                className="px-3 py-1 rounded-full text-xs font-semibold transition-all"
-                style={{
-                  backgroundColor: lForm.access_level.includes(role) ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)',
-                  color: lForm.access_level.includes(role) ? 'var(--brand-parchment)' : 'var(--text-secondary)',
-                }}>
-                {role}
-              </button>
+          <div className="space-y-2">
+            {announcements.map(a => (
+              <div key={a.id}
+                className="bg-white rounded-2xl border border-black/5 shadow-sm p-4 flex items-start justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
+                    {a.titles.en ?? a.titles.bg ?? 'Untitled'}
+                  </p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                    {new Date(a.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <button
+                    onClick={() => startEditingAnnouncement(a)}
+                    className="text-xs px-2.5 py-1 rounded-full font-medium border hover:bg-black/5 transition-colors"
+                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => toggleAnnouncement.mutate({ id: a.id, is_active: !a.is_active })}
+                    className="text-xs px-2.5 py-1 rounded-full font-medium"
+                    style={{
+                      backgroundColor: a.is_active ? '#81b29a33' : 'rgba(0,0,0,0.05)',
+                      color: a.is_active ? '#2d6a4f' : 'var(--text-secondary)',
+                    }}
+                  >
+                    {a.is_active ? 'Active' : 'Inactive'}
+                  </button>
+                  <button
+                    onClick={() => deleteAnnouncement.mutate(a.id)}
+                    className="text-xs font-medium hover:opacity-70 transition-opacity"
+                    style={{ color: 'var(--brand-crimson)' }}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
             ))}
           </div>
-          <button
-            onClick={() => createLink.mutate(lForm)}
-            disabled={createLink.isPending || !lForm.label || !lForm.url}
-            className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
-            style={{ backgroundColor: 'var(--brand-crimson)' }}
-          >
-            {createLink.isPending ? 'Adding…' : 'Add link'}
-          </button>
-        </div>
-        <div className="space-y-2">
-          {links.map(l => (
-            <div key={l.id}
-              className="bg-white rounded-2xl border border-black/5 shadow-sm p-4 flex items-center justify-between gap-4">
-              <div>
-                <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{l.label}</p>
-                <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>{l.url}</p>
-              </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <button
-                  onClick={() => startEditingLink(l)}
-                  className="text-xs font-medium border px-2.5 py-1 rounded-full hover:bg-black/5 transition-colors"
-                  style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => deleteLink.mutate(l.id)}
-                  className="text-xs font-medium hover:opacity-70 transition-opacity"
-                  style={{ color: 'var(--brand-crimson)' }}
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
 
-        {editingLink && (
-          <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-6 mt-4">
-            <div className="flex items-center justify-between mb-4">
-              <p className="text-xs font-semibold tracking-widest uppercase" style={{ color: 'var(--text-secondary)' }}>
-                Edit link
-              </p>
-              <button onClick={() => setEditingLink(null)}
-                className="text-xs hover:opacity-70 transition-opacity" style={{ color: 'var(--text-secondary)' }}>
-                Cancel
-              </button>
+          {editingAnnouncement && (
+            <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-6 mt-4 space-y-3">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-xs font-semibold tracking-widest uppercase" style={{ color: 'var(--text-secondary)' }}>
+                  Edit announcement
+                </p>
+                <button onClick={() => setEditingAnnouncement(null)}
+                  className="text-xs hover:opacity-70 transition-opacity" style={{ color: 'var(--text-secondary)' }}>
+                  Cancel
+                </button>
+              </div>
+              <div className="flex gap-2 mb-2">
+                {LANGS.map(l => (
+                  <button key={l} onClick={() => setEditALang(l)}
+                    className="px-3 py-1 rounded-lg text-sm font-medium transition-colors"
+                    style={{
+                      backgroundColor: editALang === l ? 'var(--text-primary)' : 'rgba(0,0,0,0.05)',
+                      color: editALang === l ? 'white' : 'var(--text-secondary)',
+                    }}>
+                    {l.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+              <input
+                value={editAForm.titles[editALang] ?? ''}
+                onChange={e => setEditAForm(f => ({ ...f, titles: { ...f.titles, [editALang]: e.target.value } }))}
+                placeholder={`Title (${editALang.toUpperCase()})`}
+                className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+                style={{ color: 'var(--text-primary)' }}
+              />
+              <textarea
+                value={editAForm.contents[editALang] ?? ''}
+                onChange={e => setEditAForm(f => ({ ...f, contents: { ...f.contents, [editALang]: e.target.value } }))}
+                placeholder={`Content (${editALang.toUpperCase()})`}
+                rows={4}
+                className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm resize-none"
+                style={{ color: 'var(--text-primary)' }}
+              />
+              <div className="flex gap-2 flex-wrap">
+                {['guest','member','core','admin'].map(role => (
+                  <button key={role}
+                    onClick={() => setEditAForm(f => ({
+                      ...f,
+                      access_level: f.access_level.includes(role)
+                        ? f.access_level.filter(r => r !== role)
+                        : [...f.access_level, role],
+                    }))}
+                    className="px-3 py-1 rounded-full text-xs font-semibold transition-all"
+                    style={{
+                      backgroundColor: editAForm.access_level.includes(role) ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)',
+                      color: editAForm.access_level.includes(role) ? 'var(--brand-parchment)' : 'var(--text-secondary)',
+                    }}>
+                    {role}
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-3 pt-1">
+                <button
+                  onClick={() => updateAnnouncement.mutate({ id: editingAnnouncement.id, ...editAForm })}
+                  disabled={updateAnnouncement.isPending || !editAForm.titles.en}
+                  className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
+                  style={{ backgroundColor: 'var(--brand-crimson)' }}>
+                  {updateAnnouncement.isPending ? 'Saving…' : 'Save changes'}
+                </button>
+                <button onClick={() => setEditingAnnouncement(null)}
+                  className="px-5 py-2 rounded-xl text-sm font-semibold border transition-colors hover:bg-black/5"
+                  style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
+                  Cancel
+                </button>
+              </div>
             </div>
+          )}
+        </section>
+
+        {/* Quick Links */}
+        <section>
+          <h2 className="font-display text-xl font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
+            Quick links
+          </h2>
+          <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-6 mb-4">
             <div className="grid grid-cols-4 gap-3 mb-4">
-              <input value={editLForm.label}
-                onChange={e => setEditLForm(f => ({ ...f, label: e.target.value }))}
+              <input value={lForm.label}
+                onChange={e => setLForm(f => ({ ...f, label: e.target.value }))}
                 placeholder="Label"
                 className="border border-black/10 rounded-xl px-3 py-2.5 text-sm"
                 style={{ color: 'var(--text-primary)' }} />
-              <input value={editLForm.url}
-                onChange={e => setEditLForm(f => ({ ...f, url: e.target.value }))}
+              <input value={lForm.url}
+                onChange={e => setLForm(f => ({ ...f, url: e.target.value }))}
                 placeholder="URL"
                 className="border border-black/10 rounded-xl px-3 py-2.5 text-sm col-span-2"
                 style={{ color: 'var(--text-primary)' }} />
-              <input value={editLForm.icon_name}
-                onChange={e => setEditLForm(f => ({ ...f, icon_name: e.target.value }))}
+              <input value={lForm.icon_name}
+                onChange={e => setLForm(f => ({ ...f, icon_name: e.target.value }))}
                 placeholder="Icon name"
                 className="border border-black/10 rounded-xl px-3 py-2.5 text-sm"
                 style={{ color: 'var(--text-primary)' }} />
@@ -584,7 +517,7 @@ export default function ContentPage() {
             <div className="flex gap-2 flex-wrap mb-4">
               {['guest','member','core','admin'].map(role => (
                 <button key={role}
-                  onClick={() => setEditLForm(f => ({
+                  onClick={() => setLForm(f => ({
                     ...f,
                     access_level: f.access_level.includes(role)
                       ? f.access_level.filter(r => r !== role)
@@ -592,34 +525,115 @@ export default function ContentPage() {
                   }))}
                   className="px-3 py-1 rounded-full text-xs font-semibold transition-all"
                   style={{
-                    backgroundColor: editLForm.access_level.includes(role) ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)',
-                    color: editLForm.access_level.includes(role) ? 'var(--brand-parchment)' : 'var(--text-secondary)',
+                    backgroundColor: lForm.access_level.includes(role) ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)',
+                    color: lForm.access_level.includes(role) ? 'var(--brand-parchment)' : 'var(--text-secondary)',
                   }}>
                   {role}
                 </button>
               ))}
             </div>
-            <div className="flex gap-3">
-              <button
-                onClick={() => updateLink.mutate({ id: editingLink.id, ...editLForm })}
-                disabled={updateLink.isPending || !editLForm.label || !editLForm.url}
-                className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
-                style={{ backgroundColor: 'var(--brand-crimson)' }}>
-                {updateLink.isPending ? 'Saving…' : 'Save changes'}
-              </button>
-              <button onClick={() => setEditingLink(null)}
-                className="px-5 py-2 rounded-xl text-sm font-semibold border transition-colors hover:bg-black/5"
-                style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
-                Cancel
-              </button>
-            </div>
+            <button
+              onClick={() => createLink.mutate(lForm)}
+              disabled={createLink.isPending || !lForm.label || !lForm.url}
+              className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
+              style={{ backgroundColor: 'var(--brand-crimson)' }}
+            >
+              {createLink.isPending ? 'Adding…' : 'Add link'}
+            </button>
           </div>
-        )}
-      </section>
+          <div className="space-y-2">
+            {links.map(l => (
+              <div key={l.id}
+                className="bg-white rounded-2xl border border-black/5 shadow-sm p-4 flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{l.label}</p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>{l.url}</p>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <button
+                    onClick={() => startEditingLink(l)}
+                    className="text-xs font-medium border px-2.5 py-1 rounded-full hover:bg-black/5 transition-colors"
+                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => deleteLink.mutate(l.id)}
+                    className="text-xs font-medium hover:opacity-70 transition-opacity"
+                    style={{ color: 'var(--brand-crimson)' }}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
 
-      {/* ── Bento Settings ── */}
-      <BentoSettings />
+          {editingLink && (
+            <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-6 mt-4">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-xs font-semibold tracking-widest uppercase" style={{ color: 'var(--text-secondary)' }}>
+                  Edit link
+                </p>
+                <button onClick={() => setEditingLink(null)}
+                  className="text-xs hover:opacity-70 transition-opacity" style={{ color: 'var(--text-secondary)' }}>
+                  Cancel
+                </button>
+              </div>
+              <div className="grid grid-cols-4 gap-3 mb-4">
+                <input value={editLForm.label}
+                  onChange={e => setEditLForm(f => ({ ...f, label: e.target.value }))}
+                  placeholder="Label"
+                  className="border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+                  style={{ color: 'var(--text-primary)' }} />
+                <input value={editLForm.url}
+                  onChange={e => setEditLForm(f => ({ ...f, url: e.target.value }))}
+                  placeholder="URL"
+                  className="border border-black/10 rounded-xl px-3 py-2.5 text-sm col-span-2"
+                  style={{ color: 'var(--text-primary)' }} />
+                <input value={editLForm.icon_name}
+                  onChange={e => setEditLForm(f => ({ ...f, icon_name: e.target.value }))}
+                  placeholder="Icon name"
+                  className="border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+                  style={{ color: 'var(--text-primary)' }} />
+              </div>
+              <div className="flex gap-2 flex-wrap mb-4">
+                {['guest','member','core','admin'].map(role => (
+                  <button key={role}
+                    onClick={() => setEditLForm(f => ({
+                      ...f,
+                      access_level: f.access_level.includes(role)
+                        ? f.access_level.filter(r => r !== role)
+                        : [...f.access_level, role],
+                    }))}
+                    className="px-3 py-1 rounded-full text-xs font-semibold transition-all"
+                    style={{
+                      backgroundColor: editLForm.access_level.includes(role) ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)',
+                      color: editLForm.access_level.includes(role) ? 'var(--brand-parchment)' : 'var(--text-secondary)',
+                    }}>
+                    {role}
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => updateLink.mutate({ id: editingLink.id, ...editLForm })}
+                  disabled={updateLink.isPending || !editLForm.label || !editLForm.url}
+                  className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
+                  style={{ backgroundColor: 'var(--brand-crimson)' }}>
+                  {updateLink.isPending ? 'Saving…' : 'Save changes'}
+                </button>
+                <button onClick={() => setEditingLink(null)}
+                  className="px-5 py-2 rounded-xl text-sm font-semibold border transition-colors hover:bg-black/5"
+                  style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </section>
 
+      </div>
     </div>
   )
 }
