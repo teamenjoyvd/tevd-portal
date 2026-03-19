@@ -124,6 +124,8 @@ type Profile = {
   valid_through: string | null
   display_names: Record<string, string>
   created_at: string
+  phone: string | null
+  contact_email: string | null
 }
 
 type VerificationRequest = {
@@ -133,6 +135,11 @@ type VerificationRequest = {
   status: 'pending' | 'approved' | 'denied'
   admin_note: string | null
   created_at: string
+}
+
+type UplineData = {
+  upline_name: string | null
+  upline_abo_number: string | null
 }
 
 function getExpiryState(validThrough: string | null): 'ok' | 'warning' | 'critical' | null {
@@ -192,6 +199,13 @@ export default function ProfilePage() {
     enabled: validProfile?.role === 'guest' && !validProfile?.abo_number,
   })
 
+  const { data: uplineData } = useQuery<UplineData>({
+    queryKey: ['profile-upline'],
+    queryFn: () => fetch('/api/profile/upline').then(r => r.json()),
+    enabled: !!validProfile?.abo_number,
+    staleTime: 10 * 60 * 1000,
+  })
+
   const { data: calData, refetch: refetchCal } = useQuery<{ url: string }>({
     queryKey: ['cal-feed-token'],
     queryFn: () => fetch('/api/calendar/feed-token').then(r => r.json()),
@@ -212,6 +226,8 @@ export default function ProfilePage() {
       id_number:            validProfile.id_number ?? '',
       passport_number:      validProfile.passport_number ?? '',
       valid_through:        validProfile.valid_through ?? '',
+      phone:                validProfile.phone ?? '',
+      contact_email:        validProfile.contact_email ?? '',
     })
   }, [validProfile])
 
@@ -226,19 +242,6 @@ export default function ProfilePage() {
       qc.setQueryData(['profile'], data)
       setSaved(true)
       setTimeout(() => setSaved(false), 2500)
-    },
-  })
-
-  const toggleDoc = useMutation({
-    mutationFn: (type: 'id' | 'passport') =>
-      fetch('/api/profile', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ document_active_type: type }),
-      }).then(r => r.json()),
-    onSuccess: (data) => {
-      qc.setQueryData(['profile'], data)
-      setForm(f => ({ ...f, document_active_type: data.document_active_type }))
     },
   })
 
@@ -272,7 +275,7 @@ export default function ProfilePage() {
     !!verRequest && (verRequest.status === 'pending' || verRequest.status === 'denied')
   const isCore        = validProfile?.role === 'core' || validProfile?.role === 'admin'
 
-  // ── Calendar subscription markup (shared between guest + member layouts) ──
+  // ── Calendar subscription markup (used in guest layout) ───────────────
   const calSubscriptionBlock = (
     <div style={{ gridColumn: 'span 8' }}>
       <div className="rounded-2xl p-6" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
@@ -484,203 +487,237 @@ export default function ProfilePage() {
               {calSubscriptionBlock}
             </>
           ) : (
-            // ── MEMBER / CORE / ADMIN LAYOUT (existing — untouched for this ticket) ──
+            // ── MEMBER / CORE / ADMIN LAYOUT ─────────────────────────────────
             <>
-              {/* ── Box 1: Personal data ──────────────────────────────────── */}
-              <div style={{ gridColumn: 'span 8' }}>
-                <div className="rounded-2xl p-6" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+              {/* ── BENTO A: Identity ──────────────────────────────────────── */}
+
+              {/* col-4: Names + ABO + Upline */}
+              <div style={{ gridColumn: 'span 4' }}>
+                <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
                   <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-6" style={{ color: 'var(--brand-crimson)' }}>
                     {t('profile.identity')}
                   </p>
-
-                  <div
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(8, minmax(0, 1fr))',
-                      gap: '12px',
-                    }}
-                  >
-                    {/* Identity fields — col-4 */}
-                    <div style={{ gridColumn: 'span 4' }} className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
-                            {t('profile.firstName')}
-                          </label>
-                          <input
-                            value={form.first_name ?? ''}
-                            onChange={e => setForm(f => ({ ...f, first_name: e.target.value }))}
-                            className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-                            style={{ color: 'var(--text-primary)' }}
-                          />
-                        </div>
-                        <div>
-                          <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
-                            {t('profile.lastName')}
-                          </label>
-                          <input
-                            value={form.last_name ?? ''}
-                            onChange={e => setForm(f => ({ ...f, last_name: e.target.value }))}
-                            className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-                            style={{ color: 'var(--text-primary)' }}
-                          />
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-4 text-sm" style={{ color: 'var(--text-secondary)' }}>
-                        {validProfile.abo_number && (
-                          <span>
-                            ABO:{' '}
-                            <span className="font-medium" style={{ color: 'var(--text-primary)' }}>
-                              {validProfile.abo_number}
-                            </span>
-                          </span>
-                        )}
-                        <span>
-                          {t('profile.role')}:{' '}
-                          <span
-                            className="font-semibold px-2 py-0.5 rounded-full text-xs"
-                            style={{
-                              backgroundColor: validProfile.role === 'guest' ? 'rgba(0,0,0,0.06)' : '#81b29a33',
-                              color: validProfile.role === 'guest' ? 'var(--text-secondary)' : '#2d6a4f',
-                            }}
-                          >
-                            {isUnverified ? 'Unverified Member' : ROLE_LABELS[validProfile.role]}
-                          </span>
-                        </span>
-                      </div>
-                      {ROLE_DESCRIPTIONS[validProfile.role] && (
-                        <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                          {ROLE_DESCRIPTIONS[validProfile.role]}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Travel doc — col-4 */}
-                    <div style={{ gridColumn: 'span 4' }} className="space-y-4">
-                      <p className="text-xs font-semibold tracking-widest uppercase"
-                        style={{ color: 'var(--text-secondary)' }}>
-                        {t('profile.travelDoc')}
-                      </p>
-                      <div className="flex gap-2">
-                        {(['id', 'passport'] as const).map(type => (
-                          <button
-                            key={type}
-                            onClick={() => toggleDoc.mutate(type)}
-                            className="px-4 py-2 rounded-xl text-sm font-medium transition-colors"
-                            style={{
-                              backgroundColor: activeDocType === type ? 'var(--brand-forest)' : 'rgba(0,0,0,0.05)',
-                              color: activeDocType === type ? 'var(--brand-parchment)' : 'var(--text-secondary)',
-                            }}
-                          >
-                            {type === 'id' ? t('profile.nationalId') : t('profile.passport')}
-                          </button>
-                        ))}
-                      </div>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
-                          {activeDocType === 'passport' ? t('profile.passportNumber') : t('profile.idNumber')}
+                          {t('profile.firstName')}
                         </label>
                         <input
-                          value={activeDocType === 'passport'
-                            ? (form.passport_number ?? '')
-                            : (form.id_number ?? '')}
-                          onChange={e => setForm(f => ({
-                            ...f,
-                            [activeDocType === 'passport' ? 'passport_number' : 'id_number']: e.target.value,
-                          }))}
-                          className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm font-mono"
-                          style={{ color: 'var(--text-primary)' }}
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
-                          {t('profile.validThrough')}
-                        </label>
-                        <input
-                          type="date"
-                          value={form.valid_through ?? ''}
-                          onChange={e => setForm(f => ({ ...f, valid_through: e.target.value }))}
+                          value={form.first_name ?? ''}
+                          onChange={e => setForm(f => ({ ...f, first_name: e.target.value }))}
                           className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
                           style={{ color: 'var(--text-primary)' }}
                         />
                       </div>
-                      {expiryState && (
-                        <div className={`rounded-xl border px-4 py-3 text-sm font-medium ${EXPIRY_STYLES[expiryState]}`}>
-                          {EXPIRY_LABELS[expiryState]}
-                          {form.valid_through && (
-                            <span className="font-normal ml-1 opacity-70">
-                              · {new Date(form.valid_through).toLocaleDateString('en-GB', {
-                                day: 'numeric', month: 'long', year: 'numeric',
-                              })}
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Calendar subscription — col-8 */}
-                    <div
-                      style={{ gridColumn: 'span 8', borderTop: '1px solid var(--border-default)', paddingTop: '20px' }}
-                    >
-                      <p className="text-xs font-semibold tracking-widest uppercase mb-1"
-                        style={{ color: 'var(--text-secondary)' }}>
-                        {t('profile.calSub')}
-                      </p>
-                      <p className="text-xs mb-3 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                        {t('profile.calSubInstructions')}
-                      </p>
-                      <div className="flex items-center gap-2">
+                      <div>
+                        <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
+                          {t('profile.lastName')}
+                        </label>
                         <input
-                          readOnly
-                          value={calData?.url ?? ''}
-                          placeholder="Generating…"
-                          className="flex-1 border rounded-xl px-3 py-2 text-xs font-mono truncate"
-                          style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)', backgroundColor: 'var(--bg-global)' }}
+                          value={form.last_name ?? ''}
+                          onChange={e => setForm(f => ({ ...f, last_name: e.target.value }))}
+                          className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+                          style={{ color: 'var(--text-primary)' }}
                         />
-                        <button
-                          onClick={() => {
-                            if (calData?.url) {
-                              navigator.clipboard.writeText(calData.url)
-                              setCalCopied(true)
-                              setTimeout(() => setCalCopied(false), 2000)
-                            }
-                          }}
-                          disabled={!calData?.url}
-                          className="px-3 py-2 rounded-xl text-xs font-semibold transition-all disabled:opacity-40 hover:opacity-80 flex-shrink-0"
-                          style={{ backgroundColor: 'var(--brand-forest)', color: 'var(--brand-parchment)' }}
-                        >
-                          {calCopied ? t('profile.calSubCopied') : t('profile.calSubCopy')}
-                        </button>
-                        <button
-                          onClick={() => { if (confirm('Regenerate your calendar link? Your old link will stop working.')) regenerateCal.mutate() }}
-                          disabled={regenerateCal.isPending}
-                          className="px-3 py-2 rounded-xl text-xs font-semibold border transition-colors hover:bg-black/5 disabled:opacity-40 flex-shrink-0"
-                          style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
-                        >
-                          {t('profile.calSubRegenerate')}
-                        </button>
                       </div>
                     </div>
+                    {validProfile.abo_number && (
+                      <div className="space-y-1">
+                        <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                          ABO —{' '}
+                          <span className="font-medium font-mono" style={{ color: 'var(--text-primary)' }}>
+                            {validProfile.abo_number}
+                          </span>
+                        </p>
+                        {uplineData?.upline_abo_number && (
+                          <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                            Upline —{' '}
+                            <span className="font-medium" style={{ color: 'var(--text-primary)' }}>
+                              {uplineData.upline_name ?? uplineData.upline_abo_number}
+                            </span>
+                            {uplineData.upline_name && (
+                              <span className="font-mono ml-1 opacity-60">{uplineData.upline_abo_number}</span>
+                            )}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
 
-                    {/* Save button — col-8 */}
-                    <div style={{ gridColumn: 'span 8' }}>
-                      <button
-                        onClick={() => saveMutation.mutate(form)}
-                        disabled={saveMutation.isPending}
-                        className="w-full py-3 rounded-2xl text-sm font-semibold text-white disabled:opacity-50 transition-all hover:opacity-90 active:scale-[0.99]"
-                        style={{ backgroundColor: 'var(--brand-crimson)' }}
+              {/* col-4: ABO status card */}
+              <div style={{ gridColumn: 'span 4' }}>
+                <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+                  <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-6" style={{ color: 'var(--brand-crimson)' }}>
+                    {t('profile.aboVerification')}
+                  </p>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="text-xs font-semibold px-2.5 py-1 rounded-full"
+                        style={{
+                          backgroundColor: validProfile.role === 'admin' ? '#2d332a'
+                            : validProfile.role === 'core' ? '#3E7785'
+                            : 'rgba(62,119,133,0.15)',
+                          color: validProfile.role === 'admin' ? '#FAF8F3'
+                            : validProfile.role === 'core' ? '#FAF8F3'
+                            : '#3E7785',
+                        }}
                       >
-                        {saveMutation.isPending ? t('profile.saving') : saved ? t('profile.saved') : t('profile.saveChanges')}
-                      </button>
+                        {isUnverified ? 'Unverified' : ROLE_LABELS[validProfile.role]}
+                      </span>
+                    </div>
+                    {validProfile.abo_number && (
+                      <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                        ABO —{' '}
+                        <span className="font-medium font-mono" style={{ color: 'var(--text-primary)' }}>
+                          {validProfile.abo_number}
+                        </span>
+                      </p>
+                    )}
+                    {uplineData?.upline_abo_number && (
+                      <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                        Upline —{' '}
+                        <span className="font-medium" style={{ color: 'var(--text-primary)' }}>
+                          {uplineData.upline_name ?? uplineData.upline_abo_number}
+                        </span>
+                        {uplineData.upline_name && (
+                          <span className="font-mono ml-1 opacity-60">{uplineData.upline_abo_number}</span>
+                        )}
+                      </p>
+                    )}
+                    {ROLE_DESCRIPTIONS[validProfile.role] && (
+                      <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                        {ROLE_DESCRIPTIONS[validProfile.role]}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* ── BENTO B: Documents + Contact ────────────────────────────── */}
+
+              {/* col-4: Identification */}
+              <div style={{ gridColumn: 'span 4' }}>
+                <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+                  <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-6" style={{ color: 'var(--brand-crimson)' }}>
+                    {t('profile.travelDoc')}
+                  </p>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
+                        Document type
+                      </label>
+                      <select
+                        value={form.document_active_type ?? activeDocType}
+                        onChange={e => setForm(f => ({ ...f, document_active_type: e.target.value as 'id' | 'passport' }))}
+                        className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+                        style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
+                      >
+                        <option value="id">{t('profile.nationalId')}</option>
+                        <option value="passport">{t('profile.passport')}</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
+                        {activeDocType === 'passport' ? t('profile.passportNumber') : t('profile.idNumber')}
+                      </label>
+                      <input
+                        value={activeDocType === 'passport'
+                          ? (form.passport_number ?? '')
+                          : (form.id_number ?? '')}
+                        onChange={e => setForm(f => ({
+                          ...f,
+                          [activeDocType === 'passport' ? 'passport_number' : 'id_number']: e.target.value,
+                        }))}
+                        className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm font-mono"
+                        style={{ color: 'var(--text-primary)' }}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
+                        {t('profile.validThrough')}
+                      </label>
+                      <input
+                        type="date"
+                        value={form.valid_through ?? ''}
+                        onChange={e => setForm(f => ({ ...f, valid_through: e.target.value }))}
+                        className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+                        style={{ color: 'var(--text-primary)' }}
+                      />
+                    </div>
+                    {expiryState && (
+                      <div className={`rounded-xl border px-4 py-3 text-sm font-medium ${EXPIRY_STYLES[expiryState]}`}>
+                        {EXPIRY_LABELS[expiryState]}
+                        {form.valid_through && (
+                          <span className="font-normal ml-1 opacity-70">
+                            · {new Date(form.valid_through).toLocaleDateString('en-GB', {
+                              day: 'numeric', month: 'long', year: 'numeric',
+                            })}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* col-4: Contact details */}
+              <div style={{ gridColumn: 'span 4' }}>
+                <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+                  <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-6" style={{ color: 'var(--brand-crimson)' }}>
+                    Contact
+                  </p>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
+                        Phone
+                      </label>
+                      <input
+                        value={form.phone ?? ''}
+                        onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
+                        placeholder="+359 88 000 0000"
+                        className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+                        style={{ color: 'var(--text-primary)' }}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
+                        Contact email
+                      </label>
+                      <input
+                        value={form.contact_email ?? ''}
+                        onChange={e => setForm(f => ({ ...f, contact_email: e.target.value }))}
+                        placeholder="your@email.com"
+                        className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+                        style={{ color: 'var(--text-primary)' }}
+                      />
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* ── Box 2: LOS subtree ───────────────────────────────────── */}
+              {/* col-8: Save button */}
+              <div style={{ gridColumn: 'span 8' }}>
+                <button
+                  onClick={() => saveMutation.mutate(form)}
+                  disabled={saveMutation.isPending}
+                  className="w-full py-3 rounded-2xl text-sm font-semibold text-white disabled:opacity-50 transition-all hover:opacity-90 active:scale-[0.99]"
+                  style={{ backgroundColor: 'var(--brand-crimson)' }}
+                >
+                  {saveMutation.isPending ? t('profile.saving') : saved ? t('profile.saved') : t('profile.saveChanges')}
+                </button>
+              </div>
+
+              {/* ── Calendar subscription ───────────────────────────────────── */}
+              {calSubscriptionBlock}
+
+              {/* ── LOS subtree ────────────────────────────────────────────── */}
               <LOSBox profileId={validProfile.id} />
 
-              {/* ── Box 3: Core-only apps (core + admin only) ────────────── */}
+              {/* ── Core Tools (core + admin only) ──────────────────────────── */}
               {isCore && (
                 <div style={{ gridColumn: 'span 8' }}>
                   <div className="rounded-2xl p-6" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
