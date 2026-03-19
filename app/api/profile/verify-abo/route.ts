@@ -11,15 +11,34 @@ export async function POST(req: Request) {
   if (!profile) return Response.json({ error: 'Profile not found' }, { status: 404 })
   if (profile.abo_number) return Response.json({ error: 'ABO already verified' }, { status: 409 })
 
-  const { claimed_abo, claimed_upline_abo } = await req.json()
-  if (!claimed_abo || !claimed_upline_abo) {
-    return Response.json({ error: 'claimed_abo and claimed_upline_abo are required' }, { status: 400 })
+  const body = await req.json()
+  const request_type: 'standard' | 'manual' = body.request_type === 'manual' ? 'manual' : 'standard'
+  const { claimed_abo, claimed_upline_abo } = body
+
+  if (request_type === 'standard') {
+    if (!claimed_abo || !claimed_upline_abo) {
+      return Response.json({ error: 'claimed_abo and claimed_upline_abo are required' }, { status: 400 })
+    }
+  } else {
+    if (!claimed_upline_abo) {
+      return Response.json({ error: 'claimed_upline_abo is required' }, { status: 400 })
+    }
   }
 
   // Upsert — replace any existing pending request
   const { data, error } = await supabase
     .from('abo_verification_requests')
-    .upsert({ profile_id: profile.id, claimed_abo, claimed_upline_abo, status: 'pending', resolved_at: null }, { onConflict: 'profile_id' })
+    .upsert(
+      {
+        profile_id: profile.id,
+        claimed_abo: request_type === 'manual' ? null : claimed_abo,
+        claimed_upline_abo,
+        request_type,
+        status: 'pending',
+        resolved_at: null,
+      },
+      { onConflict: 'profile_id' }
+    )
     .select().single()
 
   if (error) return Response.json({ error: error.message }, { status: 500 })

@@ -29,23 +29,46 @@ export async function PATCH(
   if (!verReq) return Response.json({ error: 'Request not found' }, { status: 404 })
 
   if (action === 'approve') {
-    // Set abo_number + promote to member on the profile
-    const { error: profileErr } = await supabase
-      .from('profiles')
-      .update({ abo_number: verReq.claimed_abo, role: 'member' })
-      .eq('id', verReq.profile_id)
+    if (verReq.request_type === 'manual') {
+      // Manual path: member has no ABO — store upline, place placeholder tree node
+      const { error: profileErr } = await supabase
+        .from('profiles')
+        .update({ role: 'member', upline_abo_number: verReq.claimed_upline_abo })
+        .eq('id', verReq.profile_id)
 
-    if (profileErr) return Response.json({ error: profileErr.message }, { status: 500 })
+      if (profileErr) return Response.json({ error: profileErr.message }, { status: 500 })
+
+      const { error: treeErr } = await supabase
+        .rpc('upsert_tree_node', {
+          p_profile_id: verReq.profile_id,
+          p_abo_number: null,
+          p_sponsor_abo_number: verReq.claimed_upline_abo,
+        })
+
+      if (treeErr) return Response.json({ error: treeErr.message }, { status: 500 })
+    } else {
+      // Standard path: set abo_number + promote to member
+      const { error: profileErr } = await supabase
+        .from('profiles')
+        .update({ abo_number: verReq.claimed_abo, role: 'member' })
+        .eq('id', verReq.profile_id)
+
+      if (profileErr) return Response.json({ error: profileErr.message }, { status: 500 })
+    }
 
     // Notify the user
     const { data: profile } = await supabase
       .from('profiles').select('first_name').eq('id', verReq.profile_id).single()
 
+    const notifMessage = verReq.request_type === 'manual'
+      ? `Welcome ${profile?.first_name ?? ''}! Your manual verification has been approved. You are now a Member.`
+      : `Welcome ${profile?.first_name ?? ''}! Your ABO number ${verReq.claimed_abo} has been verified. You are now a Member.`
+
     await supabase.from('notifications').insert({
       profile_id: verReq.profile_id,
       type: 'role_request',
-      title: 'ABO verification approved',
-      message: `Welcome ${profile?.first_name ?? ''}! Your ABO number ${verReq.claimed_abo} has been verified. You are now a Member.`,
+      title: 'Verification approved',
+      message: notifMessage,
       action_url: '/profile',
     })
   } else {
