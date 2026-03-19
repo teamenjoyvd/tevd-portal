@@ -47,7 +47,6 @@ export default function Header() {
   const isActive = (href: string) =>
     href === '/' ? pathname === '/' : pathname?.startsWith(href)
 
-  const isAdmin = (user?.publicMetadata?.role as string) === 'admin'
   const isNonGuest = !!user && (user?.publicMetadata?.role as string) !== 'guest'
 
   const NAV_LINKS = [
@@ -113,20 +112,6 @@ export default function Header() {
                 {label}
               </Link>
             ))}
-            {isAdmin && (
-              <Link
-                href="/admin"
-                className="px-3.5 py-1.5 rounded-lg text-xs font-semibold tracking-widest uppercase transition-colors"
-                style={{
-                  color: pathname?.startsWith('/admin') ? 'var(--brand-crimson)' : 'var(--text-secondary)',
-                  backgroundColor: pathname?.startsWith('/admin')
-                    ? 'rgba(188,71,73,0.06)'
-                    : 'transparent',
-                }}
-              >
-                {t('nav.admin')}
-              </Link>
-            )}
           </nav>
 
           {/* Right — Hamburger (mobile) + Bell + Avatar / Guest icon */}
@@ -230,19 +215,6 @@ export default function Header() {
                 {label}
               </Link>
             ))}
-            {isAdmin && (
-              <Link
-                href="/admin"
-                onClick={() => setMobileNavOpen(false)}
-                className="flex items-center px-3 py-2.5 rounded-xl text-xs font-semibold tracking-widest uppercase transition-colors"
-                style={{
-                  color: pathname?.startsWith('/admin') ? 'var(--brand-crimson)' : 'var(--text-secondary)',
-                  backgroundColor: pathname?.startsWith('/admin') ? 'rgba(188,71,73,0.06)' : 'transparent',
-                }}
-              >
-                {t('nav.admin')}
-              </Link>
-            )}
           </div>
         )}
       </div>
