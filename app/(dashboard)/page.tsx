@@ -10,6 +10,8 @@ import ThemeTile from '@/components/bento/tiles/ThemeTile'
 import SocialsTile from '@/components/bento/tiles/SocialsTile'
 import { formatDate, formatTime, calDay, calMonth } from '@/lib/format'
 
+export const dynamic = 'force-dynamic'
+
 type Announcement = {
   id: string; titles: Record<string, string>; contents: Record<string, string>
   is_active: boolean
