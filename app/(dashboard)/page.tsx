@@ -4,7 +4,7 @@ import Link from 'next/link'
 import BentoGrid from '@/components/bento/BentoGrid'
 import BentoCard, { Eyebrow } from '@/components/bento/BentoCard'
 import ProfileTile from '@/components/bento/tiles/ProfileTile'
-import HowtosTile from '@/components/bento/tiles/HowtosTile'
+import GuidesTile from '@/components/bento/tiles/GuidesTile'
 import LocationTile from '@/components/bento/tiles/LocationTile'
 import ThemeTile from '@/components/bento/tiles/ThemeTile'
 import SocialsTile from '@/components/bento/tiles/SocialsTile'
@@ -85,7 +85,6 @@ export default async function HomePage() {
           <div className="flex flex-col gap-3 flex-1">
             {nextEvents.slice(0, 3).map(event => (
               <div key={event.id} className="flex items-center justify-between gap-3 py-2 border-b last:border-0" style={{ borderColor: 'var(--border-default)' }}>
-                {/* Left: name + type */}
                 <div className="flex-1 min-w-0">
                   <p className="font-body text-xs font-semibold leading-snug" style={{ color: 'var(--text-primary)' }}>{event.title}</p>
                   {event.event_type && (
@@ -95,7 +94,6 @@ export default async function HomePage() {
                     </span>
                   )}
                 </div>
-                {/* Right: iOS date square + time */}
                 <div className="flex flex-col items-center flex-shrink-0" style={{ minWidth: 40 }}>
                   <div className="rounded-lg overflow-hidden flex flex-col items-center" style={{ width: 40, backgroundColor: 'var(--brand-crimson)' }}>
                     <div className="w-full text-center py-0.5" style={{ backgroundColor: 'var(--brand-crimson)', opacity: 0.85 }}>
@@ -205,9 +203,9 @@ export default async function HomePage() {
           <Link href="/about" className="font-body text-[11px] font-bold tracking-widest uppercase mt-4 hover:underline self-start" style={{ color: 'var(--brand-crimson)' }}>Our story →</Link>
         </BentoCard>
 
-        {/* ── ROW 4: Howtos col-12 ── */}
+        {/* ── ROW 4: Guides col-12 ── */}
 
-        <HowtosTile colSpan={12} rowSpan={2} halfWidthMobile />
+        <GuidesTile colSpan={12} rowSpan={2} halfWidthMobile />
 
       </BentoGrid>
     </div>
