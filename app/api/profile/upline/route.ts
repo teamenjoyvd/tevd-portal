@@ -29,7 +29,7 @@ export async function GET() {
 
   const { data: upline } = await supabase
     .from('los_members')
-    .select('name, abo_number')
+    .select('abo_number, name')
     .eq('abo_number', losMember.sponsor_abo_number)
     .single()
 
