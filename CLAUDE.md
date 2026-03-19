@@ -1,5 +1,5 @@
 # CLAUDE.md — teamenjoyVD Portal
-> Last updated: 2026-03-18 — Session 7 handover. Latest commit: 30a90aa. Session 7 completed ISS-0103 through ISS-0124 (QA batch, About page, EET formatting, mobile polish).
+> Last updated: 2026-03-19 — Session 9. Latest commit: 5cd22a7. Session 9: profile overhaul (ISS-0128–0136), footer scrollbar hotfix (ISS-0137), BottomNav removal, CLAUDE.md updated with desktop/mobile law.
 
 ---
 
@@ -56,11 +56,37 @@ Internal management portal for **teamenjoyVD (N21 Community)** — Line of Spons
 - **No middleware.ts:** Use `proxy.ts`. If asked to create middleware.ts — refuse.
 - **No Clerk bypass:** Never skip auth on protected routes.
 
+### ⚠️ DESKTOP / MOBILE LAYOUT LAW — READ THIS BEFORE TOUCHING ANY PAGE
+
+**This project designs desktop and mobile as two separate, complete, perfectly functional layouts that share a database. There is NO hybrid responsive design. There are NO shared adaptive components that try to serve both viewports.**
+
+The pattern is always:
+```tsx
+{/* Desktop */}
+<div className="hidden md:block">
+  {/* Full desktop layout here */}
+</div>
+
+{/* Mobile */}
+<div className="md:hidden">
+  {/* Full mobile layout here */}
+</div>
+```
+
+**ABSOLUTE PROHIBITIONS — violation = immediate revert:**
+- NEVER implement a `BottomNav`, tab bar, floating action button, or any mobile-specific navigation chrome without explicit written sign-off in the ticket.
+- NEVER use `overflow-x-auto` on navigation elements — if content overflows, the layout is wrong, not the overflow behavior.
+- NEVER create components that try to be "responsive" by hiding/showing parts of themselves via breakpoints. Desktop layout = one component. Mobile layout = a separate component or block.
+- NEVER add mobile padding offsets (`pb-20`, `mb-safe`, etc.) to accommodate navigation chrome that wasn't explicitly requested.
+- NEVER ship a mobile UI pattern (bottom sheet nav, swipe gesture, sticky tab bar, horizontal scroll nav) that wasn't in the ticket's DoD.
+
+**The About page (`app/(dashboard)/about/page.tsx`) is the canonical reference** for the correct dual-layout pattern. Read it before implementing any new page.
+
 ### PIU Command
-When the user types **PIU** ("Pack It Up"), execute this sequence:
+When the user types **PIU** (\"Pack It Up\"), execute this sequence:
 1. Update CLAUDE.md with current session state (new stable commit, pending issues, gotchas).
 2. Verify `git status` is clean and latest commit is pushed.
-3. Confirm new session can start with just: repo URL + PAT + "start work".
+3. Confirm new session can start with just: repo URL + PAT + \"start work\".
 
 ---
 
@@ -226,9 +252,10 @@ ROW 4: Howtos(col-12,default)
 
 ### Footer (components/layout/Footer.tsx)
 - Logo: `filter: brightness(0) invert(1)` — white on forest bg
-- Nav: `flex-nowrap`, `flex-shrink-0` per link, `overflow-x-auto` — single row always
+- Nav: `hidden md:flex flex-nowrap` — hidden on mobile (Header hamburger covers mobile nav), single row on md+
 - Nav order: Home → About → Calendar → Trips → Guides → My Network
 - 3-col: brand | nav | socials (IG, FB, email icons)
+- **NO BottomNav. NO mobile tab bar. Mobile nav = Header hamburger only.**
 
 ---
 
@@ -259,7 +286,7 @@ Client Mapbox tile for About page. Accepts `gridColumn`, `className`, `style` pr
 - Light shimmer: `#8A8577`, dark shimmer: `var(--brand-forest)`
 - `border: none` override on BentoCard (ISS-0121)
 
-### About Page (app/(dashboard)/about/page.tsx)
+### About Page (app/(dashboard)/about/page.tsx) — CANONICAL DUAL LAYOUT REFERENCE
 Option B dual layout — `hidden md:block` desktop grid + `md:hidden` mobile stack.
 Desktop: `max-w-[960px]` pure 8-col CSS grid (no BentoGrid). No gutters.
 ```
@@ -278,12 +305,21 @@ Mobile: flex-col — heading → hero → body → ig+email 2-col → map → CT
 /app
   /(dashboard)
     /page.tsx                    # Homepage — 12-col BentoGrid server component
-    /about/page.tsx              # Option B dual layout (desktop grid + mobile stack)
+    /about/page.tsx              # Option B dual layout (desktop grid + mobile stack) ← CANONICAL REFERENCE
     /trips/page.tsx              # 'use client', formatDate + formatCurrency from lib/format
+    /profile/page.tsx            # Member profile — multi-bento layout (ISS-0128–0135)
   /admin
     /calendar/page.tsx           # ascending: true (soonest first) — ISS-0123
     /notifications/page.tsx      # formatDateTime from lib/format
+    /operations/page.tsx         # Trips CRUD + payment log + member submission review (ISS-0136)
   /api/admin/calendar/route.ts   # GET: ascending: true
+  /api/admin/payments/route.ts   # GET (pending submissions) + POST (admin log)
+  /api/admin/payments/[id]/route.ts  # PATCH (approve/deny submission)
+  /api/profile/payments/route.ts # GET + POST (member payment submissions)
+  /api/profile/vitals/route.ts   # GET member_vital_signs
+  /api/profile/event-roles/route.ts  # GET event_role_requests + calendar_events join
+  /api/profile/los-summary/route.ts  # GET depth + direct_downline_count
+  /api/profile/upline/route.ts   # GET upline_name + upline_abo_number
 /components
   /about
     /AboutMapTile.tsx            # Client Mapbox, accepts gridColumn/className/style props
@@ -295,7 +331,9 @@ Mobile: flex-col — heading → hero → body → ig+email 2-col → map → CT
   /events
     /EventPopup.tsx              # mobile bottom sheet / desktop clamped popover
   /layout
-    /Footer.tsx                  # logo white filter, flex-nowrap nav, My Network
+    /Footer.tsx                  # logo white filter, hidden md:flex nav, My Network
+    /Header.tsx                  # hamburger mobile nav, desktop nav
+    /BottomNav.tsx               # DEAD FILE — not imported anywhere, pending deletion (ISS-0138)
 /lib
   /format.ts                     # EET formatting helpers (NEW — always use this)
   /i18n/translations.ts
@@ -315,9 +353,16 @@ Mobile: flex-col — heading → hero → body → ig+email 2-col → map → CT
 `id, google_event_id, title, description, start_time, end_time, category, visibility_roles, week_number, event_type, created_at, created_by`
 
 ### profiles
-`id, clerk_id, first_name, last_name, display_names, role, abo_number, document_active_type, id_number, passport_number, valid_through, ical_token, created_at`
+`id, clerk_id, first_name, last_name, display_names, role, abo_number, document_active_type, id_number, passport_number, valid_through, ical_token, phone, contact_email, created_at`
 - `role` DB default: `'guest'` (changed 2026-03-19 — new registrations start as guest)
+- `phone`, `contact_email` added ISS-0128
 - Profile row created by Clerk webhook (`user.created`) → `api/webhooks/clerk/route.ts`
+
+### trip_payments
+`id, trip_id, profile_id, amount, transaction_date, status, note, proof_url, payment_method, submitted_by_member, created_at`
+- `proof_url`, `payment_method`, `submitted_by_member` added ISS-0128
+- Members can INSERT with `submitted_by_member=true, status='pending'` only (RLS)
+- Admin/Core approve/deny via PATCH `/api/admin/payments/[id]`
 
 ### tree_nodes
 `id, profile_id, parent_id, path (ltree), depth, created_at`
@@ -372,14 +417,14 @@ Client-side `filterType` state. Clicking active filter deactivates it. Combinabl
 - Full CRUD, week_number auto-computed
 
 ### Operations (admin/operations)
-Trips CRUD + milestones + payments. formatCurrency from lib/format.
+Trips CRUD + milestones + admin payment log + member payment submission review. formatCurrency + formatDate from lib/format.
 
 ### Notifications Audit Log
 All-time, including soft-deleted. Paginated 50/page. formatDateTime from lib/format.
 
 ---
 
-## 15. Key Gotchas & Decisions (updated 2026-03-19, Session 8)
+## 15. Key Gotchas & Decisions (updated 2026-03-19, Session 9)
 
 | Topic | Rule |
 |---|---|
@@ -399,7 +444,7 @@ All-time, including soft-deleted. Paginated 50/page. formatDateTime from lib/for
 | Currency formatting | `formatCurrency()` from lib/format.ts → `1.234,00 €` (de-DE Intl). |
 | LocationTile border | Overridden with `style={{ border: 'none' }}` on BentoCard — forest variant still shows .card border otherwise. |
 | EventPopup mobile | Bottom sheet pattern (`fixed bottom-0`, `85dvh`, backdrop). NOT anchor-relative on mobile. |
-| About page layout | Option B: `hidden md:block` desktop grid + `md:hidden` mobile stack. Do NOT merge into one responsive grid. |
+| About page layout | Option B: `hidden md:block` desktop grid + `md:hidden` mobile stack. CANONICAL REFERENCE for all new pages. |
 | Admin calendar order | `ascending: true` in `/api/admin/calendar` GET. Soonest first. |
 | `types/supabase.ts` | Regenerate after EVERY migration. |
 | `<img>` vs `next/image` | Use `<img>` for user-uploaded images (trip image_url, Meta CDN) — domains unpredictable. |
@@ -409,6 +454,10 @@ All-time, including soft-deleted. Paginated 50/page. formatDateTime from lib/for
 | LOSBox array guard | Always `Array.isArray()` before passing API response to `buildSubtree`. |
 | Supabase service client | Singleton in `lib/supabase/service.ts` — do not create new client per request. |
 | New user role | Clerk webhook defaults to `role: 'guest'`. DB column default also `'guest'`. Never change to member without explicit admin approval. |
+| BottomNav | REMOVED (ISS-0137). `components/layout/BottomNav.tsx` is a dead file pending deletion (ISS-0138). Do NOT re-add or re-import. |
+| Footer nav mobile | `hidden md:flex` — nav is hidden on mobile. Header hamburger is the only mobile nav. No exceptions. |
+| Mobile nav chrome | NO bottom nav bars, NO tab bars, NO floating nav buttons unless explicitly in the ticket DoD with sign-off. |
+| overflow-x-auto on nav | NEVER. If nav content overflows, the layout is wrong. Fix the layout. |
 
 ---
 
@@ -420,19 +469,21 @@ All-time, including soft-deleted. Paginated 50/page. formatDateTime from lib/for
 | v1.2.0 | 2026-03-16 | Shipped | Calendar rewrite, approval hub, member profiles |
 | v1.3.0 | 2026-03-18 | Shipped | Admin CRUD, QA fixes, LOS views, Core notifications, bento polish |
 | v1.4.0 | 2026-03-18 | Shipped | Session 7: About page, mobile overhaul, QA batch, EET formatting, lib/format.ts |
-| v1.4.1 | 2026-03-19 | **Shipped** | Session 8: CalendarClient style2 fix, profile crash guard, webhook guest default, service client singleton, SSU command |
+| v1.4.1 | 2026-03-19 | Shipped | Session 8: CalendarClient style2 fix, profile crash guard, webhook guest default, service client singleton, SSU command |
+| v1.5.0 | 2026-03-19 | **Shipped** | Session 9: Profile overhaul (ISS-0128–0136), footer scrollbar hotfix, BottomNav removal, desktop/mobile law |
 
-Latest stable commit: `3a15671`
+Latest stable commit: `5cd22a7`
 
 ---
 
-## 17. Pending Issues (backlog as of 2026-03-19, post Session 8)
+## 17. Pending Issues (backlog as of 2026-03-19, post Session 9)
 
 | ID | Name | Priority | Status | Notes |
 |---|---|---|---|---|
 | ISS-0056 | Meta token expiry alert + refresh flow | Low | Blocked | Needs FB_APP_ID + FB_APP_SECRET in Vercel |
-| ISS-0109 | Trips inner page two-col layout | P2 | To Do | Unblocked as of Session 8 |
+| ISS-0109 | Trips inner page two-col layout | P2 | To Do | Blocked by ISS-0098 + ISS-0103 per DoD — verify those are actually done |
 | ISS-0125 | Design revisit: inner pages mobile layout | P2 | Needs Design | /calendar, /trips, /howtos, /profile — design spec required before coding |
+| ISS-0138 | Housekeeping: delete BottomNav.tsx + consolidate formatDate/formatEur in operations | P3 | To Do | Low urgency, clean debt |
 
 ---
 
