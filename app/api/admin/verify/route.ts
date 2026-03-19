@@ -25,13 +25,15 @@ export async function POST(req: Request) {
 
   if (profileErr) return Response.json({ error: profileErr.message }, { status: 500 })
 
-  // Place placeholder tree node (p_abo_number=null → p_<uuid> label)
+  // Place placeholder tree node (p_abo_number=null → p_<uuid> label).
+  // Cast to any: generated types declare p_abo_number as string but the
+  // function accepts NULL to trigger the no-ABO placeholder path.
   const { error: treeErr } = await supabase
     .rpc('upsert_tree_node', {
       p_profile_id: profile_id,
       p_abo_number: null,
       p_sponsor_abo_number: upline_abo_number,
-    })
+    } as any)
 
   if (treeErr) return Response.json({ error: treeErr.message }, { status: 500 })
 
