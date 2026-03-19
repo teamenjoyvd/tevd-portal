@@ -17,31 +17,34 @@ export type Database = {
       abo_verification_requests: {
         Row: {
           admin_note: string | null
-          claimed_abo: string
+          claimed_abo: string | null
           claimed_upline_abo: string
           created_at: string
           id: string
           profile_id: string
+          request_type: string
           resolved_at: string | null
           status: string
         }
         Insert: {
           admin_note?: string | null
-          claimed_abo: string
+          claimed_abo?: string | null
           claimed_upline_abo: string
           created_at?: string
           id?: string
           profile_id: string
+          request_type?: string
           resolved_at?: string | null
           status?: string
         }
         Update: {
           admin_note?: string | null
-          claimed_abo?: string
+          claimed_abo?: string | null
           claimed_upline_abo?: string
           created_at?: string
           id?: string
           profile_id?: string
+          request_type?: string
           resolved_at?: string | null
           status?: string
         }
@@ -463,6 +466,7 @@ export type Database = {
           passport_number: string | null
           phone: string | null
           role: Database["public"]["Enums"]["user_role"]
+          upline_abo_number: string | null
           valid_through: string | null
         }
         Insert: {
@@ -480,6 +484,7 @@ export type Database = {
           passport_number?: string | null
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          upline_abo_number?: string | null
           valid_through?: string | null
         }
         Update: {
@@ -497,6 +502,7 @@ export type Database = {
           passport_number?: string | null
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          upline_abo_number?: string | null
           valid_through?: string | null
         }
         Relationships: []
