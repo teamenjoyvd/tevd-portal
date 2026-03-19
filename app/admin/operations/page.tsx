@@ -55,10 +55,6 @@ const empty = (): Omit<Trip, 'id' | 'currency'> => ({
   visibility_roles: [...ALL_ROLES],
 })
 
-function formatEur(n: number) {
-  return new Intl.NumberFormat('en-DE', { style: 'currency', currency: 'EUR' }).format(n)
-}
-
 export default function OperationsPage() {
   const qc = useQueryClient()
 
@@ -360,7 +356,7 @@ export default function OperationsPage() {
               {form.milestones.map((m, i) => (
                 <div key={i} className="flex items-center gap-3 text-sm mb-2 py-2 border-b border-black/5">
                   <span className="flex-1 font-medium" style={{ color: 'var(--text-primary)' }}>{m.label}</span>
-                  <span style={{ color: 'var(--text-secondary)' }}>{formatEur(m.amount)}</span>
+                  <span style={{ color: 'var(--text-secondary)' }}>{formatCurrency(m.amount, 'EUR')}</span>
                   <span style={{ color: 'var(--text-secondary)' }}>{m.due_date}</span>
                   <button onClick={() => removeMilestone(i)}
                     className="text-xs" style={{ color: 'var(--brand-crimson)' }}>
@@ -504,7 +500,7 @@ export default function OperationsPage() {
                   </p>
                   <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
                     {trip.destination} · {formatDate(trip.start_date)} → {formatDate(trip.end_date)}
-                    {' · '}{formatEur(trip.total_cost)}
+                    {' · '}{formatCurrency(trip.total_cost, 'EUR')}
                     {' · '}{trip.milestones?.length ?? 0} milestones
                   </p>
                 </div>
@@ -599,7 +595,7 @@ export default function OperationsPage() {
               {editForm.milestones.map((m, i) => (
                 <div key={i} className="flex items-center gap-3 text-sm mb-2 py-2 border-b border-black/5">
                   <span className="flex-1 font-medium" style={{ color: 'var(--text-primary)' }}>{m.label}</span>
-                  <span style={{ color: 'var(--text-secondary)' }}>{formatEur(m.amount)}</span>
+                  <span style={{ color: 'var(--text-secondary)' }}>{formatCurrency(m.amount, 'EUR')}</span>
                   <span style={{ color: 'var(--text-secondary)' }}>{m.due_date}</span>
                   <button onClick={() => removeEditMilestone(i)} className="text-xs" style={{ color: 'var(--brand-crimson)' }}>Remove</button>
                 </div>
@@ -855,7 +851,7 @@ export default function OperationsPage() {
                 style={{ borderTop: i > 0 ? '1px solid rgba(0,0,0,0.05)' : 'none' }}>
                 <div>
                   <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                    {formatEur(p.amount)}
+                    {formatCurrency(p.amount, 'EUR')}
                   </p>
                   <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
                     {formatDate(p.transaction_date)}
@@ -895,7 +891,6 @@ export default function OperationsPage() {
                 className="px-5 py-4 space-y-3"
                 style={{ borderTop: i > 0 ? '1px solid rgba(0,0,0,0.05)' : 'none' }}
               >
-                {/* Header row */}
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
@@ -934,8 +929,6 @@ export default function OperationsPage() {
                     pending
                   </span>
                 </div>
-
-                {/* Review note + action buttons */}
                 <div className="flex items-center gap-3">
                   <input
                     value={reviewNotes[sub.id] ?? ''}
