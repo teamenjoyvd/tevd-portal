@@ -29,10 +29,10 @@ export async function GET() {
     .select('id, abo_number, first_name, last_name, role, created_at')
     .not('abo_number', 'is', null)
 
-  // Pending verification requests with profile info
+  // Pending verification requests with profile info and request_type
   const { data: verifications } = await supabase
     .from('abo_verification_requests')
-    .select('id, profile_id, claimed_abo, claimed_upline_abo, status, created_at, profiles(first_name, last_name)')
+    .select('id, profile_id, claimed_abo, claimed_upline_abo, status, request_type, created_at, profiles(first_name, last_name)')
     .eq('status', 'pending')
 
   // Guests with no abo_number and no pending request (unverified, haven't submitted yet)
@@ -40,6 +40,13 @@ export async function GET() {
     .from('profiles')
     .select('id, first_name, last_name, role, created_at')
     .eq('role', 'guest')
+    .is('abo_number', null)
+
+  // Manually verified members awaiting LOS positioning (role=member, no ABO yet)
+  const { data: manualMembersNoAbo } = await supabase
+    .from('profiles')
+    .select('id, first_name, last_name, upline_abo_number, created_at')
+    .eq('role', 'member')
     .is('abo_number', null)
 
   const profilesByAbo = Object.fromEntries((profiles ?? []).map(p => [p.abo_number, p]))
@@ -53,5 +60,6 @@ export async function GET() {
     los_members: enrichedLOS,
     pending_verifications: verifications ?? [],
     unverified_guests: guests ?? [],
+    manual_members_no_abo: manualMembersNoAbo ?? [],
   })
 }
