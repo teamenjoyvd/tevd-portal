@@ -60,7 +60,7 @@ type AdminMembersResponse = {
   manual_members_no_abo: ManualMemberNoAbo[]
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────
+// ── Helpers ──────────────────────────────────────────────────────────────────
 
 const STATUS_BADGE: Record<string, string> = {
   pending:  'bg-[#f2cc8f]/30 text-[#7a5c00] border border-[#f2cc8f]',
@@ -72,7 +72,7 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-// ── Subcomponents ──────────────────────────────────────────────────────────
+// ── Subcomponents ────────────────────────────────────────────────────────────────
 
 function CollapsibleResolved({ children, count }: { children: React.ReactNode; count: number }) {
   const [open, setOpen] = useState(false)
@@ -98,7 +98,7 @@ function CollapsibleResolved({ children, count }: { children: React.ReactNode; c
   )
 }
 
-// ── ABO Verification Tab ───────────────────────────────────────────────────
+// ── ABO Verification Tab ──────────────────────────────────────────────────────────
 
 function AboVerificationTab() {
   const qc = useQueryClient()
@@ -117,7 +117,6 @@ function AboVerificationTab() {
   const manualPending   = pendingVerifications.filter(v => v.request_type === 'manual')
   const pendingProfileIds = new Set(pendingVerifications.map(v => v.profile_id))
 
-  // Direct verify candidates: guests with no pending request
   const directCandidates = (data?.unverified_guests ?? []).filter(
     g => !pendingProfileIds.has(g.id)
   )
@@ -366,7 +365,7 @@ function AboVerificationTab() {
   )
 }
 
-// ── Trip Registrations Tab ─────────────────────────────────────────────────
+// ── Trip Registrations Tab ──────────────────────────────────────────────────────────
 
 function TripRegistrationsTab() {
   const qc = useQueryClient()
@@ -422,7 +421,6 @@ function TripRegistrationsTab() {
 
   return (
     <div>
-      {/* Filter */}
       {trips.length > 1 && (
         <div className="flex gap-2 flex-wrap mb-5">
           <button
@@ -451,7 +449,6 @@ function TripRegistrationsTab() {
         </div>
       )}
 
-      {/* Pending */}
       <p className="text-xs font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
         Pending — {pending.length}
       </p>
@@ -504,7 +501,6 @@ function TripRegistrationsTab() {
         </div>
       )}
 
-      {/* Resolved (collapsible) */}
       <CollapsibleResolved count={resolved.length}>
         {resolved.map(r => (
           <div key={r.id} className="bg-white rounded-xl border border-black/5 px-4 py-3 flex items-center justify-between gap-3">
@@ -526,7 +522,7 @@ function TripRegistrationsTab() {
   )
 }
 
-// ── Event Roles Tab ────────────────────────────────────────────────────────
+// ── Event Roles Tab ──────────────────────────────────────────────────────────────────
 
 function EventRolesTab() {
   const qc = useQueryClient()
@@ -589,7 +585,6 @@ function EventRolesTab() {
 
   return (
     <div>
-      {/* Filter — only events that have requests */}
       {eventsWithRequests.length > 1 && (
         <div className="flex gap-2 flex-wrap mb-5">
           <button
@@ -618,7 +613,6 @@ function EventRolesTab() {
         </div>
       )}
 
-      {/* Pending */}
       <p className="text-xs font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
         Pending — {pending.length}
       </p>
@@ -679,7 +673,6 @@ function EventRolesTab() {
         </div>
       )}
 
-      {/* Resolved (collapsible) */}
       <CollapsibleResolved count={resolved.length}>
         {resolved.map(r => (
           <div key={r.id} className="bg-white rounded-xl border border-black/5 px-4 py-3 flex items-center justify-between gap-3">
@@ -703,7 +696,7 @@ function EventRolesTab() {
   )
 }
 
-// ── Main Page ──────────────────────────────────────────────────────────────
+// ── Main Page ────────────────────────────────────────────────────────────────────
 
 export default function ApprovalHubPage() {
   const [activeTab, setActiveTab] = useState<'trips' | 'roles' | 'abo'>('trips')
@@ -756,7 +749,7 @@ export default function ApprovalHubPage() {
   ]
 
   return (
-    <div className="p-6">
+    <div>
       <h1 className="font-display text-2xl font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
         Approval Hub
       </h1>
