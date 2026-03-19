@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, useEffect } from 'react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
+import { formatDate, formatCurrency } from '@/lib/format'
 
 // ── LOS subtree types + components ───────────────────────────────────────────
 
@@ -142,6 +143,46 @@ type UplineData = {
   upline_abo_number: string | null
 }
 
+type TripPayment = {
+  id: string
+  trip_id: string
+  amount: number
+  transaction_date: string
+  status: 'pending' | 'completed' | 'failed'
+  payment_method: string | null
+  proof_url: string | null
+  note: string | null
+  submitted_by_member: boolean
+  created_at: string
+}
+
+type TripEntry = {
+  registration_id: string
+  registration_status: 'pending' | 'approved' | 'denied'
+  trip: {
+    id: string
+    title: string
+    destination: string
+    start_date: string
+    end_date: string
+    total_cost: number
+    currency: string
+  } | null
+  payments: TripPayment[]
+}
+
+const PAYMENT_STATUS_STYLES: Record<string, { bg: string; color: string }> = {
+  pending:   { bg: '#f2cc8f33', color: '#7a5c00' },
+  completed: { bg: 'rgba(129,178,154,0.15)', color: '#2d6a4f' },
+  failed:    { bg: 'rgba(188,71,73,0.10)', color: '#bc4749' },
+}
+
+const REG_STATUS_STYLES: Record<string, { bg: string; color: string }> = {
+  pending:  { bg: '#f2cc8f33', color: '#7a5c00' },
+  approved: { bg: 'rgba(129,178,154,0.15)', color: '#2d6a4f' },
+  denied:   { bg: 'rgba(188,71,73,0.10)', color: '#bc4749' },
+}
+
 function getExpiryState(validThrough: string | null): 'ok' | 'warning' | 'critical' | null {
   if (!validThrough) return null
   const diffDays = (new Date(validThrough).getTime() - Date.now()) / 86400000
@@ -171,6 +212,8 @@ export default function ProfilePage() {
   const [aboInput, setAboInput] = useState('')
   const [uplineInput, setUplineInput] = useState('')
   const [calCopied, setCalCopied] = useState(false)
+  const [payForm, setPayForm] = useState<Record<string, { amount: string; transaction_date: string; payment_method: string; proof_url: string; note: string }>>({})
+  const [paySubmitted, setPaySubmitted] = useState<Record<string, boolean>>({})
 
   const EXPIRY_LABELS = {
     ok:       t('profile.expiry.ok'),
@@ -204,6 +247,13 @@ export default function ProfilePage() {
     queryFn: () => fetch('/api/profile/upline').then(r => r.json()),
     enabled: !!validProfile?.abo_number,
     staleTime: 10 * 60 * 1000,
+  })
+
+  const { data: tripsData } = useQuery<TripEntry[]>({
+    queryKey: ['profile-payments'],
+    queryFn: () => fetch('/api/profile/payments').then(r => r.json()),
+    enabled: !!validProfile?.id && validProfile?.role !== 'guest',
+    staleTime: 2 * 60 * 1000,
   })
 
   const { data: calData, refetch: refetchCal } = useQuery<{ url: string }>({
@@ -268,6 +318,31 @@ export default function ProfilePage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['verify-abo'] }),
   })
 
+  const submitPayment = useMutation({
+    mutationFn: ({ tripId, ...body }: { tripId: string; amount: string; transaction_date: string; payment_method: string; proof_url: string; note: string }) =>
+      fetch('/api/profile/payments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          trip_id: tripId,
+          amount: parseFloat(body.amount),
+          transaction_date: body.transaction_date,
+          payment_method: body.payment_method || null,
+          proof_url: body.proof_url || null,
+          note: body.note || null,
+        }),
+      }).then(async r => {
+        if (!r.ok) throw new Error((await r.json()).error)
+        return r.json()
+      }),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ['profile-payments'] })
+      setPayForm(f => ({ ...f, [vars.tripId]: { amount: '', transaction_date: '', payment_method: '', proof_url: '', note: '' } }))
+      setPaySubmitted(f => ({ ...f, [vars.tripId]: true }))
+      setTimeout(() => setPaySubmitted(f => ({ ...f, [vars.tripId]: false })), 3000)
+    },
+  })
+
   const activeDocType = form.document_active_type ?? validProfile?.document_active_type ?? 'id'
   const expiryState   = getExpiryState(form.valid_through ?? validProfile?.valid_through ?? null)
   const isGuest       = validProfile?.role === 'guest' && !validProfile?.abo_number
@@ -275,7 +350,9 @@ export default function ProfilePage() {
     !!verRequest && (verRequest.status === 'pending' || verRequest.status === 'denied')
   const isCore        = validProfile?.role === 'core' || validProfile?.role === 'admin'
 
-  // ── Calendar subscription markup (used in guest layout) ───────────────
+  const hasTrips = Array.isArray(tripsData) && tripsData.length > 0
+
+  // ── Calendar subscription markup (shared) ───────────────────────────
   const calSubscriptionBlock = (
     <div style={{ gridColumn: 'span 8' }}>
       <div className="rounded-2xl p-6" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
@@ -710,6 +787,154 @@ export default function ProfilePage() {
                   {saveMutation.isPending ? t('profile.saving') : saved ? t('profile.saved') : t('profile.saveChanges')}
                 </button>
               </div>
+
+              {/* ── BENTO C: My Trips + Payments (renders only if registrations exist) ── */}
+              {hasTrips && (
+                <div style={{ gridColumn: 'span 8' }}>
+                  <div className="rounded-2xl p-6" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+                    <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-6" style={{ color: 'var(--brand-crimson)' }}>
+                      My Trips
+                    </p>
+                    <div className="space-y-6">
+                      {tripsData!.map(entry => {
+                        if (!entry.trip) return null
+                        const regStyle = REG_STATUS_STYLES[entry.registration_status] ?? REG_STATUS_STYLES.pending
+                        const pf = payForm[entry.trip.id] ?? { amount: '', transaction_date: '', payment_method: '', proof_url: '', note: '' }
+                        return (
+                          <div key={entry.registration_id} style={{ borderTop: '1px solid var(--border-default)', paddingTop: '16px' }}>
+                            {/* Trip header */}
+                            <div className="flex items-start justify-between gap-4 mb-3">
+                              <div>
+                                <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                                  {entry.trip.title}
+                                </p>
+                                <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                                  {entry.trip.destination} · {formatDate(entry.trip.start_date)} – {formatDate(entry.trip.end_date)}
+                                </p>
+                              </div>
+                              <span
+                                className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
+                                style={{ backgroundColor: regStyle.bg, color: regStyle.color }}
+                              >
+                                {entry.registration_status}
+                              </span>
+                            </div>
+
+                            {/* Payment history */}
+                            {entry.payments.length > 0 && (
+                              <div className="space-y-2 mb-4">
+                                {entry.payments.map(p => {
+                                  const ps = PAYMENT_STATUS_STYLES[p.status] ?? PAYMENT_STATUS_STYLES.pending
+                                  return (
+                                    <div key={p.id} className="flex items-center gap-3 text-xs rounded-xl px-3 py-2"
+                                      style={{ backgroundColor: 'var(--bg-global)' }}>
+                                      <span className="font-semibold flex-shrink-0" style={{ color: 'var(--text-primary)' }}>
+                                        {formatCurrency(p.amount, entry.trip!.currency)}
+                                      </span>
+                                      <span style={{ color: 'var(--text-secondary)' }}>{formatDate(p.transaction_date)}</span>
+                                      {p.payment_method && (
+                                        <span style={{ color: 'var(--text-secondary)' }}>{p.payment_method}</span>
+                                      )}
+                                      <span
+                                        className="ml-auto font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
+                                        style={{ backgroundColor: ps.bg, color: ps.color }}
+                                      >
+                                        {p.status}
+                                      </span>
+                                      {p.proof_url && (
+                                        <a href={p.proof_url} target="_blank" rel="noopener noreferrer"
+                                          className="flex-shrink-0 hover:underline"
+                                          style={{ color: 'var(--brand-teal)' }}
+                                        >
+                                          proof ↗
+                                        </a>
+                                      )}
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            )}
+
+                            {/* Submit payment form */}
+                            <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: 'var(--bg-global)', border: '1px solid var(--border-default)' }}>
+                              <p className="text-xs font-semibold tracking-widest uppercase" style={{ color: 'var(--text-secondary)' }}>
+                                Submit payment
+                              </p>
+                              <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                  <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Amount ({entry.trip.currency})</label>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={pf.amount}
+                                    onChange={e => setPayForm(f => ({ ...f, [entry.trip!.id]: { ...pf, amount: e.target.value } }))}
+                                    className="w-full border border-black/10 rounded-xl px-3 py-2 text-sm"
+                                    style={{ color: 'var(--text-primary)' }}
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Date</label>
+                                  <input
+                                    type="date"
+                                    value={pf.transaction_date}
+                                    onChange={e => setPayForm(f => ({ ...f, [entry.trip!.id]: { ...pf, transaction_date: e.target.value } }))}
+                                    className="w-full border border-black/10 rounded-xl px-3 py-2 text-sm"
+                                    style={{ color: 'var(--text-primary)' }}
+                                  />
+                                </div>
+                              </div>
+                              <div>
+                                <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Payment method</label>
+                                <input
+                                  value={pf.payment_method}
+                                  onChange={e => setPayForm(f => ({ ...f, [entry.trip!.id]: { ...pf, payment_method: e.target.value } }))}
+                                  placeholder="e.g. bank transfer, cash"
+                                  className="w-full border border-black/10 rounded-xl px-3 py-2 text-sm"
+                                  style={{ color: 'var(--text-primary)' }}
+                                />
+                              </div>
+                              <div>
+                                <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Proof URL (receipt / screenshot link)</label>
+                                <input
+                                  value={pf.proof_url}
+                                  onChange={e => setPayForm(f => ({ ...f, [entry.trip!.id]: { ...pf, proof_url: e.target.value } }))}
+                                  placeholder="https://"
+                                  className="w-full border border-black/10 rounded-xl px-3 py-2 text-sm"
+                                  style={{ color: 'var(--text-primary)' }}
+                                />
+                              </div>
+                              <div>
+                                <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Note</label>
+                                <textarea
+                                  value={pf.note}
+                                  onChange={e => setPayForm(f => ({ ...f, [entry.trip!.id]: { ...pf, note: e.target.value } }))}
+                                  rows={2}
+                                  className="w-full border border-black/10 rounded-xl px-3 py-2 text-sm resize-none"
+                                  style={{ color: 'var(--text-primary)' }}
+                                />
+                              </div>
+                              {submitPayment.isError && submitPayment.variables?.tripId === entry.trip.id && (
+                                <p className="text-xs" style={{ color: 'var(--brand-crimson)' }}>
+                                  {(submitPayment.error as Error).message}
+                                </p>
+                              )}
+                              <button
+                                onClick={() => submitPayment.mutate({ tripId: entry.trip!.id, ...pf })}
+                                disabled={submitPayment.isPending || !pf.amount || !pf.transaction_date}
+                                className="w-full py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity"
+                                style={{ backgroundColor: 'var(--brand-forest)' }}
+                              >
+                                {paySubmitted[entry.trip.id] ? 'Submitted ✓' : submitPayment.isPending && submitPayment.variables?.tripId === entry.trip.id ? 'Submitting…' : 'Submit payment'}
+                              </button>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* ── Calendar subscription ───────────────────────────────────── */}
               {calSubscriptionBlock}
