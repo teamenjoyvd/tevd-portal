@@ -73,43 +73,6 @@ function LOSNodeRow({ node, depth = 0 }: { node: LOSNode; depth?: number }) {
   )
 }
 
-function LOSBox({ profileId }: { profileId: string }) {
-  const { data: rawNodes, isLoading } = useQuery<LOSNode[]>({
-    queryKey: ['los-subtree', profileId],
-    queryFn: () => fetch('/api/los/tree').then(r => r.json()),
-    staleTime: 5 * 60 * 1000,
-  })
-
-  // Guard: API may return an error object instead of an array
-  const flatNodes: LOSNode[] = Array.isArray(rawNodes) ? rawNodes : []
-  const root = buildSubtree(flatNodes, profileId)
-
-  if (isLoading) return (
-    <div style={{ gridColumn: 'span 8' }}>
-      <div className="rounded-2xl p-6" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-        <div className="h-20 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--border-default)' }} />
-      </div>
-    </div>
-  )
-  if (!root && !isLoading) return null
-
-  return (
-    <div style={{ gridColumn: 'span 8' }}>
-      <div className="rounded-2xl p-6" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-        <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-4" style={{ color: 'var(--brand-crimson)' }}>
-          My Team
-        </p>
-        {root && <LOSNodeRow node={root} depth={0} />}
-        {(!root || (root.children?.length ?? 0) === 0) && (
-          <p className="text-xs mt-2" style={{ color: 'var(--text-secondary)' }}>
-            No downlines in your LOS yet.
-          </p>
-        )}
-      </div>
-    </div>
-  )
-}
-
 // ── Profile types ─────────────────────────────────────────────────────────────
 
 type Profile = {
@@ -190,6 +153,11 @@ type EventRoleRequest = {
     title: string
     start_time: string
   } | null
+}
+
+type LosSummaryData = {
+  depth: number | null
+  direct_downline_count: number
 }
 
 const PAYMENT_STATUS_STYLES: Record<string, { bg: string; color: string }> = {
@@ -288,6 +256,13 @@ export default function ProfilePage() {
     queryKey: ['profile-event-roles'],
     queryFn: () => fetch('/api/profile/event-roles').then(r => r.json()),
     enabled: !!validProfile?.id && validProfile?.role !== 'guest',
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const { data: losSummary } = useQuery<LosSummaryData>({
+    queryKey: ['profile-los-summary'],
+    queryFn: () => fetch('/api/profile/los-summary').then(r => r.json()),
+    enabled: !!validProfile?.abo_number,
     staleTime: 5 * 60 * 1000,
   })
 
@@ -840,7 +815,6 @@ export default function ProfilePage() {
                         const pf = payForm[entry.trip.id] ?? { amount: '', transaction_date: '', payment_method: '', proof_url: '', note: '' }
                         return (
                           <div key={entry.registration_id} style={{ borderTop: '1px solid var(--border-default)', paddingTop: '16px' }}>
-                            {/* Trip header */}
                             <div className="flex items-start justify-between gap-4 mb-3">
                               <div>
                                 <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
@@ -857,8 +831,6 @@ export default function ProfilePage() {
                                 {entry.registration_status}
                               </span>
                             </div>
-
-                            {/* Payment history */}
                             {entry.payments.length > 0 && (
                               <div className="space-y-2 mb-4">
                                 {entry.payments.map(p => {
@@ -892,8 +864,6 @@ export default function ProfilePage() {
                                 })}
                               </div>
                             )}
-
-                            {/* Submit payment form */}
                             <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: 'var(--bg-global)', border: '1px solid var(--border-default)' }}>
                               <p className="text-xs font-semibold tracking-widest uppercase" style={{ color: 'var(--text-secondary)' }}>
                                 Submit payment
@@ -982,8 +952,6 @@ export default function ProfilePage() {
                       Event Activity
                     </p>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, minmax(0, 1fr))', gap: '12px' }}>
-
-                      {/* col-4: Vital Signs */}
                       {hasVitals && (
                         <div style={{ gridColumn: 'span 4' }}>
                           <p className="text-xs font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
@@ -1007,8 +975,6 @@ export default function ProfilePage() {
                           </div>
                         </div>
                       )}
-
-                      {/* col-4: Event Role Requests */}
                       {hasEventRoles && (
                         <div style={{ gridColumn: hasVitals ? 'span 4' : 'span 8' }}>
                           <p className="text-xs font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
@@ -1037,19 +1003,55 @@ export default function ProfilePage() {
                           </div>
                         </div>
                       )}
-
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* ── Calendar subscription ───────────────────────────────────── */}
+              {/* ── BENTO E: Calendar subscription ─────────────────────────── */}
               {calSubscriptionBlock}
 
-              {/* ── LOS subtree ────────────────────────────────────────────── */}
-              <LOSBox profileId={validProfile.id} />
+              {/* ── BENTO F: LOS summary card (renders only if abo_number set) ── */}
+              {validProfile.abo_number && (
+                <div style={{ gridColumn: 'span 8' }}>
+                  <div className="rounded-2xl p-6" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+                    <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-4" style={{ color: 'var(--brand-crimson)' }}>
+                      My Network
+                    </p>
+                    <div className="flex items-center gap-6">
+                      <div>
+                        <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Role</p>
+                        <p className="text-sm font-semibold mt-0.5" style={{ color: 'var(--text-primary)' }}>
+                          {ROLE_LABELS[validProfile.role]}
+                        </p>
+                      </div>
+                      {losSummary?.depth !== null && losSummary?.depth !== undefined && (
+                        <div>
+                          <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Depth</p>
+                          <p className="text-sm font-semibold mt-0.5" style={{ color: 'var(--text-primary)' }}>
+                            Level {losSummary.depth}
+                          </p>
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Direct downlines</p>
+                        <p className="text-sm font-semibold mt-0.5" style={{ color: 'var(--text-primary)' }}>
+                          {losSummary?.direct_downline_count ?? 0}
+                        </p>
+                      </div>
+                      <a
+                        href="/los"
+                        className="ml-auto px-4 py-2 rounded-xl text-xs font-semibold hover:opacity-80 transition-opacity flex-shrink-0"
+                        style={{ backgroundColor: 'var(--brand-forest)', color: 'var(--brand-parchment)' }}
+                      >
+                        View full tree →
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              )}
 
-              {/* ── Core Tools (core + admin only) ──────────────────────────── */}
+              {/* ── BENTO G: Core Tools (core + admin only) ─────────────────── */}
               {isCore && (
                 <div style={{ gridColumn: 'span 8' }}>
                   <div className="rounded-2xl p-6" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
