@@ -201,6 +201,45 @@ export type Database = {
           },
         ]
       }
+      guides: {
+        Row: {
+          access_roles: string[]
+          body: Json
+          cover_image_url: string | null
+          created_at: string
+          emoji: string | null
+          id: string
+          is_published: boolean
+          slug: string
+          title: Json
+          updated_at: string
+        }
+        Insert: {
+          access_roles?: string[]
+          body?: Json
+          cover_image_url?: string | null
+          created_at?: string
+          emoji?: string | null
+          id?: string
+          is_published?: boolean
+          slug: string
+          title?: Json
+          updated_at?: string
+        }
+        Update: {
+          access_roles?: string[]
+          body?: Json
+          cover_image_url?: string | null
+          created_at?: string
+          emoji?: string | null
+          id?: string
+          is_published?: boolean
+          slug?: string
+          title?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       home_settings: {
         Row: {
           caret_1_text: string
@@ -244,45 +283,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      howtos: {
-        Row: {
-          access_roles: string[]
-          body: Json
-          cover_image_url: string | null
-          created_at: string
-          emoji: string | null
-          id: string
-          is_published: boolean
-          slug: string
-          title: Json
-          updated_at: string
-        }
-        Insert: {
-          access_roles?: string[]
-          body?: Json
-          cover_image_url?: string | null
-          created_at?: string
-          emoji?: string | null
-          id?: string
-          is_published?: boolean
-          slug: string
-          title?: Json
-          updated_at?: string
-        }
-        Update: {
-          access_roles?: string[]
-          body?: Json
-          cover_image_url?: string | null
-          created_at?: string
-          emoji?: string | null
-          id?: string
-          is_published?: boolean
-          slug?: string
-          title?: Json
-          updated_at?: string
-        }
-        Relationships: []
       }
       los_members: {
         Row: {

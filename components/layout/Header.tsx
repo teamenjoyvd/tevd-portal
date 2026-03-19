@@ -33,7 +33,6 @@ export default function Header() {
     return () => document.removeEventListener('mousedown', handle)
   }, [])
 
-  // Close mobile nav on Escape
   useEffect(() => {
     function handle(e: KeyboardEvent) {
       if (e.key === 'Escape') setMobileNavOpen(false)
@@ -54,13 +53,12 @@ export default function Header() {
     { href: '/about',    label: t('nav.about')    },
     { href: '/calendar', label: t('nav.calendar') },
     { href: '/trips',    label: t('nav.trips')    },
-    ...(isNonGuest ? [{ href: '/howtos', label: t('nav.howtos') }] : []),
+    ...(isNonGuest ? [{ href: '/guides',  label: t('nav.howtos')  }] : []),
     ...(isNonGuest ? [{ href: '/profile', label: t('nav.profile') }] : []),
   ]
 
   return (
     <header className="fixed top-4 left-0 right-0 z-50 px-4">
-      {/* Backdrop overlay — closes mobile nav on outside click */}
       {mobileNavOpen && (
         <div
           className="fixed inset-0 z-40"
@@ -70,14 +68,12 @@ export default function Header() {
       )}
 
       <div className="max-w-[1440px] mx-auto relative z-50">
-        {/* Main nav bar */}
         <div className="h-14 flex items-center px-5 rounded-2xl backdrop-blur-md backdrop-saturate-150"
           style={{
             backgroundColor: 'rgba(var(--bg-global-rgb), 0.80)',
             border: '1px solid var(--border-default)',
           }}>
 
-          {/* Left — Logo + wordmark */}
           <Link href="/" className="flex items-center gap-2.5 flex-shrink-0">
             <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0"
               style={{ border: '1px solid rgba(0,0,0,0.08)' }}>
@@ -97,7 +93,6 @@ export default function Header() {
             </span>
           </Link>
 
-          {/* Center — Nav links (absolute centered, desktop only) */}
           <nav className="hidden md:flex items-center gap-0.5 absolute left-1/2 -translate-x-1/2">
             {NAV_LINKS.map(({ href, label }) => (
               <Link
@@ -114,9 +109,7 @@ export default function Header() {
             ))}
           </nav>
 
-          {/* Right — Hamburger (mobile) + Bell + Avatar / Guest icon */}
           <div className="flex items-center gap-2 ml-auto">
-            {/* Hamburger — mobile only */}
             <button
               className="md:hidden w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors"
               onClick={() => setMobileNavOpen(o => !o)}
@@ -190,7 +183,6 @@ export default function Header() {
 
         </div>
 
-        {/* Mobile nav drawer — shown below header bar, mobile only */}
         {mobileNavOpen && (
           <div
             className="md:hidden mt-2 rounded-2xl py-2 px-3"
