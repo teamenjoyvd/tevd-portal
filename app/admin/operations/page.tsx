@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { formatDate, formatCurrency } from '@/lib/format'
 
 type Milestone = { label: string; amount: number; due_date: string }
 
@@ -30,6 +31,20 @@ type Payment = {
   profile: { first_name: string; last_name: string }
 }
 
+type PendingSubmission = {
+  id: string
+  amount: number
+  transaction_date: string
+  status: string
+  payment_method: string | null
+  proof_url: string | null
+  note: string | null
+  submitted_by_member: boolean
+  created_at: string
+  profiles: { first_name: string; last_name: string; abo_number: string | null } | null
+  trips: { title: string; destination: string } | null
+}
+
 const ALL_ROLES = ['guest', 'member', 'core', 'admin']
 
 const empty = (): Omit<Trip, 'id' | 'currency'> => ({
@@ -39,12 +54,6 @@ const empty = (): Omit<Trip, 'id' | 'currency'> => ({
   inclusions: [], trip_type: null,
   visibility_roles: [...ALL_ROLES],
 })
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-GB', {
-    day: 'numeric', month: 'short', year: 'numeric',
-  })
-}
 
 function formatEur(n: number) {
   return new Intl.NumberFormat('en-DE', { style: 'currency', currency: 'EUR' }).format(n)
@@ -74,6 +83,9 @@ export default function OperationsPage() {
   const [paymentStatus, setPaymentStatus] = useState<'completed' | 'pending' | 'failed'>('completed')
   const [paymentError, setPaymentError] = useState<string | null>(null)
 
+  // ── Submission review state ──
+  const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({})
+
   // ── Queries ──
   const { data: trips = [], isLoading } = useQuery<Trip[]>({
     queryKey: ['trips'],
@@ -91,10 +103,15 @@ export default function OperationsPage() {
     queryFn: async () => {
       const res = await fetch(`/api/trips/${selectedTripId}/payments`)
       const data = await res.json()
-      // Enrich with profile info from registrations
       return data
     },
     enabled: !!selectedTripId,
+  })
+
+  const { data: pendingSubmissions = [] } = useQuery<PendingSubmission[]>({
+    queryKey: ['admin-payment-submissions'],
+    queryFn: () => fetch('/api/admin/payments').then(r => r.json()),
+    staleTime: 30 * 1000,
   })
 
   // ── Mutations ──
@@ -161,6 +178,21 @@ export default function OperationsPage() {
       setPaymentError(null)
     },
     onError: (e: Error) => setPaymentError(e.message),
+  })
+
+  const reviewMutation = useMutation({
+    mutationFn: ({ id, status, note }: { id: string; status: 'completed' | 'failed'; note: string | null }) =>
+      fetch(`/api/admin/payments/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status, note }),
+      }).then(async r => {
+        if (!r.ok) throw new Error((await r.json()).error)
+        return r.json()
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-payment-submissions'] })
+    },
   })
 
   function addMilestone() {
@@ -683,7 +715,6 @@ export default function OperationsPage() {
 
         <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-6">
           <div className="grid grid-cols-2 gap-4 mb-4">
-            {/* Trip selector */}
             <div>
               <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
                 Trip
@@ -703,8 +734,6 @@ export default function OperationsPage() {
                 ))}
               </select>
             </div>
-
-            {/* Member selector — only approved registrations */}
             <div>
               <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
                 Member
@@ -734,7 +763,6 @@ export default function OperationsPage() {
           </div>
 
           <div className="grid grid-cols-3 gap-4 mb-4">
-            {/* Amount */}
             <div>
               <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
                 Amount (EUR)
@@ -750,8 +778,6 @@ export default function OperationsPage() {
                 style={{ color: 'var(--text-primary)' }}
               />
             </div>
-
-            {/* Date */}
             <div>
               <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
                 Date
@@ -764,8 +790,6 @@ export default function OperationsPage() {
                 style={{ color: 'var(--text-primary)' }}
               />
             </div>
-
-            {/* Status */}
             <div>
               <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
                 Status
@@ -783,7 +807,6 @@ export default function OperationsPage() {
             </div>
           </div>
 
-          {/* Note */}
           <div className="mb-5">
             <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
               Note <span className="font-normal opacity-60">(optional)</span>
@@ -853,6 +876,96 @@ export default function OperationsPage() {
           </div>
         )}
       </section>
+
+      {/* ── Payment Submissions (member-submitted, pending review) ── */}
+      {pendingSubmissions.length > 0 && (
+        <section>
+          <div className="mb-4">
+            <h2 className="font-display text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>
+              Payment Submissions
+            </h2>
+            <p className="text-sm mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+              Member-submitted payments awaiting approval.
+            </p>
+          </div>
+          <div className="bg-white rounded-2xl border border-black/5 shadow-sm overflow-hidden">
+            {pendingSubmissions.map((sub, i) => (
+              <div
+                key={sub.id}
+                className="px-5 py-4 space-y-3"
+                style={{ borderTop: i > 0 ? '1px solid rgba(0,0,0,0.05)' : 'none' }}
+              >
+                {/* Header row */}
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                      {sub.profiles?.first_name} {sub.profiles?.last_name}
+                      {sub.profiles?.abo_number && (
+                        <span className="font-mono font-normal ml-2 text-xs opacity-60">
+                          {sub.profiles.abo_number}
+                        </span>
+                      )}
+                    </p>
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                      {sub.trips?.title ?? '—'} · {formatDate(sub.transaction_date)} · {formatCurrency(sub.amount, 'EUR')}
+                      {sub.payment_method && ` · ${sub.payment_method}`}
+                    </p>
+                    {sub.note && (
+                      <p className="text-xs mt-0.5 italic" style={{ color: 'var(--text-secondary)' }}>
+                        {sub.note}
+                      </p>
+                    )}
+                    {sub.proof_url && (
+                      <a
+                        href={sub.proof_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs hover:underline"
+                        style={{ color: 'var(--brand-teal)' }}
+                      >
+                        View proof ↗
+                      </a>
+                    )}
+                  </div>
+                  <span
+                    className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: '#f2cc8f33', color: '#7a5c00' }}
+                  >
+                    pending
+                  </span>
+                </div>
+
+                {/* Review note + action buttons */}
+                <div className="flex items-center gap-3">
+                  <input
+                    value={reviewNotes[sub.id] ?? ''}
+                    onChange={e => setReviewNotes(n => ({ ...n, [sub.id]: e.target.value }))}
+                    placeholder="Admin note (optional)"
+                    className="flex-1 border border-black/10 rounded-xl px-3 py-2 text-xs"
+                    style={{ color: 'var(--text-primary)' }}
+                  />
+                  <button
+                    onClick={() => reviewMutation.mutate({ id: sub.id, status: 'completed', note: reviewNotes[sub.id] || null })}
+                    disabled={reviewMutation.isPending}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity flex-shrink-0"
+                    style={{ backgroundColor: '#2d6a4f' }}
+                  >
+                    Approve
+                  </button>
+                  <button
+                    onClick={() => reviewMutation.mutate({ id: sub.id, status: 'failed', note: reviewNotes[sub.id] || null })}
+                    disabled={reviewMutation.isPending}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity flex-shrink-0"
+                    style={{ backgroundColor: 'var(--brand-crimson)' }}
+                  >
+                    Deny
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
     </div>
   )
