@@ -3,6 +3,46 @@
 
 ---
 
+## 0. Commands
+
+Quick-reference for all named commands. Type the command name to execute.
+
+| Command | What it does |
+|---|---|
+| **SSU** | System Status Update — checks all connections and confirms session is ready |
+| **PIU** | Pack It Up — session handover, updates CLAUDE.md, verifies clean git state |
+
+---
+
+## SSU — System Status Update
+
+When the user types **SSU**, execute this sequence in full, in order:
+
+1. **Airtable** — call `list_bases`. Confirm `app1n7KYX8i8xSiB7` (tevd-portal) is reachable. Report: ✅ or ❌ + error.
+2. **GitHub MCP** — call `tool_search` with query `"github get file contents"`. Confirm tools load. Then call `get_file_contents` on `CLAUDE.md` (owner: `teamenjoyvd`, repo: `tevd-portal`, branch: `main`). Report: ✅ or ❌ + error.
+3. **Vercel** — call `list_teams`. Confirm `teamenjoyvd` team is reachable. Report latest production deployment state for `tevd-portal`. Report: ✅ or ❌ + error.
+4. **Supabase** — call `list_projects`. Confirm `ynykjpnetfwqzdnsgkkg` (tevd-portal, eu-west-2) is `ACTIVE_HEALTHY`. Report: ✅ or ❌ + error.
+5. **Instructions** — confirm `CLAUDE.md` was successfully read in step 2. Report: ✅ loaded or ❌ missing/unreadable.
+6. **Queue** — check Airtable Issues for any `Status = "In Progress"` record. If found, report it. If not, report the highest-priority unblocked `Status = "To Do"` ticket.
+
+Output a clean status table at the end:
+
+```
+## SSU Report
+| Connection     | Status | Notes |
+|----------------|--------|-------|
+| Airtable       | ✅/❌  | ...   |
+| GitHub MCP     | ✅/❌  | ...   |
+| Vercel         | ✅/❌  | ...   |
+| Supabase       | ✅/❌  | ...   |
+| CLAUDE.md      | ✅/❌  | ...   |
+| Queue          | —      | ISS-XXXX: ... / All clear |
+```
+
+If any connection is ❌, do not proceed to any task work — surface the failure and wait for instruction.
+
+---
+
 ## 1. Project Overview & Operational Rules
 
 Internal management portal for **teamenjoyVD (N21 Community)** — Line of Sponsorship tracking, event scheduling, trip logistics, howtos, and team coordination.
@@ -92,6 +132,7 @@ When the user types **PIU** ("Pack It Up"), execute this sequence:
 |---|---|---|
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk | ✅ Set |
 | `CLERK_SECRET_KEY` | Clerk | ✅ Set |
+| `CLERK_WEBHOOK_SECRET` | Clerk webhook signature | ✅ Set (added 2026-03-19) |
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase | ✅ Set |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase | ✅ Set |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase service | ✅ Set |
@@ -275,6 +316,8 @@ Mobile: flex-col — heading → hero → body → ig+email 2-col → map → CT
 
 ### profiles
 `id, clerk_id, first_name, last_name, display_names, role, abo_number, document_active_type, id_number, passport_number, valid_through, ical_token, created_at`
+- `role` DB default: `'guest'` (changed 2026-03-19 — new registrations start as guest)
+- Profile row created by Clerk webhook (`user.created`) → `api/webhooks/clerk/route.ts`
 
 ### tree_nodes
 `id, profile_id, parent_id, path (ltree), depth, created_at`
@@ -287,6 +330,12 @@ Role hierarchy: `admin > core > member > guest`
 
 Public (no auth): `/`, `/about`, `/calendar`, `/trips`
 Auth required: all other routes
+
+### Registration Flow (2026-03-19)
+1. User registers via Clerk → `user.created` webhook fires
+2. Profile row created with `role: 'guest'`
+3. Guest visits `/profile` → fills in details, submits ABO + upline for verification
+4. Admin approves in admin panel → role promoted to `member`
 
 ---
 
@@ -330,7 +379,7 @@ All-time, including soft-deleted. Paginated 50/page. formatDateTime from lib/for
 
 ---
 
-## 15. Key Gotchas & Decisions (updated 2026-03-18, Session 7)
+## 15. Key Gotchas & Decisions (updated 2026-03-19, Session 8)
 
 | Topic | Rule |
 |---|---|
@@ -355,6 +404,11 @@ All-time, including soft-deleted. Paginated 50/page. formatDateTime from lib/for
 | `types/supabase.ts` | Regenerate after EVERY migration. |
 | `<img>` vs `next/image` | Use `<img>` for user-uploaded images (trip image_url, Meta CDN) — domains unpredictable. |
 | Admin link in ProfileTile | `role === 'admin'` only. |
+| `style2` prop | NEVER USE. Always merge multiple style concerns into a single `style` object. |
+| Profile page guard | Use `profile?.id` check, not `!profile` — error responses are truthy objects. |
+| LOSBox array guard | Always `Array.isArray()` before passing API response to `buildSubtree`. |
+| Supabase service client | Singleton in `lib/supabase/service.ts` — do not create new client per request. |
+| New user role | Clerk webhook defaults to `role: 'guest'`. DB column default also `'guest'`. Never change to member without explicit admin approval. |
 
 ---
 
@@ -365,26 +419,20 @@ All-time, including soft-deleted. Paginated 50/page. formatDateTime from lib/for
 | v1.0.0 | 2026-03-01 | Shipped | Core Auth & LOS |
 | v1.2.0 | 2026-03-16 | Shipped | Calendar rewrite, approval hub, member profiles |
 | v1.3.0 | 2026-03-18 | Shipped | Admin CRUD, QA fixes, LOS views, Core notifications, bento polish |
-| v1.4.0 | 2026-03-18 | **Shipped** | Session 7: About page, mobile overhaul, QA batch, EET formatting, lib/format.ts |
+| v1.4.0 | 2026-03-18 | Shipped | Session 7: About page, mobile overhaul, QA batch, EET formatting, lib/format.ts |
+| v1.4.1 | 2026-03-19 | **Shipped** | Session 8: CalendarClient style2 fix, profile crash guard, webhook guest default, service client singleton, SSU command |
 
-Latest commit: `30a90aa`
+Latest stable commit: `3a15671`
 
 ---
 
-## 17. Pending Issues (backlog as of 2026-03-18, post Session 7)
+## 17. Pending Issues (backlog as of 2026-03-19, post Session 8)
 
 | ID | Name | Priority | Status | Notes |
 |---|---|---|---|---|
 | ISS-0056 | Meta token expiry alert + refresh flow | Low | Blocked | Needs FB_APP_ID + FB_APP_SECRET in Vercel |
-| ISS-0100 | Admin Guides: access level setting | P2 | Blocked | Blocked on ISS-0094 |
-| ISS-0103 | EPIC: Two-column inner page layout | P2 | Needs Design | Design spec required before implementation |
-| ISS-0104 | SPIKE: Animations micro-interactions | P3 | Needs Design | — |
-| ISS-0105 | Calendar redesign (Dribbble ref) | P2 | Needs Design | — |
-| ISS-0107 | Howtos bento internals overhaul | P2 | Needs Design | — |
-| ISS-0108 | Howtos inner page two-col layout | P2 | To Do | Blocked on ISS-0103 design |
-| ISS-0109 | Trips inner page two-col layout | P2 | To Do | Blocked on ISS-0098 + ISS-0103 |
-| ISS-0110 | Site-wide translation audit | P2 | To Do | Partially done (ISS-0113). Full completion = ISS-0115 shipped |
-| ISS-0115 | i18n: missing keys trips + ProfileTile | P3 | To Do | trips.memberOnly, trips.accommodation, profile.signIn, profile.profileLink, profile.adminLink, profile.unverified |
+| ISS-0109 | Trips inner page two-col layout | P2 | To Do | Unblocked as of Session 8 |
+| ISS-0125 | Design revisit: inner pages mobile layout | P2 | Needs Design | /calendar, /trips, /howtos, /profile — design spec required before coding |
 
 ---
 
