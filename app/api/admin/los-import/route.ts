@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: 'No rows provided' }, { status: 400 })
   }
 
-  // ── Snapshot current state before import ───────────────────────────────
+  // ── Snapshot current state before import ───────────────────────────────────
   const { data: snapshot } = await supabase
     .from('los_members')
     .select('abo_number, abo_level, bonus_percent')
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     ])
   )
 
-  // ── Run import RPC ─────────────────────────────────────────────────────
+  // ── Run import RPC ───────────────────────────────────────────────────
   const { data, error } = await supabase.rpc('import_los_members', { rows })
 
   if (error) {
@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
   // Rebuild LTree paths after import
   await supabase.rpc('rebuild_tree_paths')
 
-  // ── Compute diff against incoming rows ─────────────────────────────────
+  // ── Compute diff against incoming rows ──────────────────────────────────
   type NewMember      = { abo_number: string; name: string; abo_level: string }
   type LevelChange    = { abo_number: string; name: string; prev_level: string; new_level: string }
   type BonusChange    = { abo_number: string; name: string; prev_bonus: number; new_bonus: number }
@@ -91,11 +91,38 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // ── Reconciliation data ──────────────────────────────────────────────────
+
+  // LOS rows from this import that have no matching portal profile by ABO number
+  const { data: profileAbos } = await supabase
+    .from('profiles')
+    .select('abo_number')
+    .not('abo_number', 'is', null)
+
+  const profileAboSet = new Set((profileAbos ?? []).map(p => p.abo_number as string))
+
+  const unrecognized = (rows as Record<string, string>[])
+    .filter(r => r.abo_number && !profileAboSet.has(r.abo_number))
+    .map(r => ({
+      abo_number: r.abo_number,
+      name: r.name ?? '',
+      sponsor_abo_number: r.sponsor_abo_number ?? null,
+    }))
+
+  // Portal profiles that are manually verified members awaiting LOS positioning
+  const { data: manualMembersNoAbo } = await supabase
+    .from('profiles')
+    .select('id, first_name, last_name, upline_abo_number')
+    .eq('role', 'member')
+    .is('abo_number', null)
+
   const rpcResult = data as { inserted: number; errors: { abo_number: string; error: string }[] }
 
   return Response.json({
     inserted: rpcResult.inserted,
     errors:   rpcResult.errors,
     diff: { new_members, level_changes, bonus_changes },
+    unrecognized,
+    manual_members_no_abo: manualMembersNoAbo ?? [],
   })
 }
