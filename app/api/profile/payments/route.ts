@@ -7,6 +7,7 @@ export async function GET() {
 
   const supabase = createServiceClient()
 
+  // Get profile id
   const { data: profile } = await supabase
     .from('profiles')
     .select('id')
@@ -15,16 +16,16 @@ export async function GET() {
 
   if (!profile?.id) return Response.json({ error: 'Profile not found' }, { status: 404 })
 
-  // Fetch registrations joined with trip details
+  // Get all registrations with trip details
   const { data: registrations, error: regError } = await supabase
     .from('trip_registrations')
-    .select('id, status, trip_id, trips(id, title, destination, start_date, end_date, total_cost, currency)')
+    .select('id, trip_id, status, created_at, trips(id, title, destination, start_date, end_date, total_cost, currency)')
     .eq('profile_id', profile.id)
     .order('created_at', { ascending: false })
 
   if (regError) return Response.json({ error: regError.message }, { status: 500 })
 
-  // Fetch all payments for this profile
+  // Get all payments for this profile
   const { data: payments, error: payError } = await supabase
     .from('trip_payments')
     .select('id, trip_id, amount, transaction_date, status, payment_method, proof_url, note, submitted_by_member, created_at')
@@ -33,18 +34,20 @@ export async function GET() {
 
   if (payError) return Response.json({ error: payError.message }, { status: 500 })
 
-  // Group payments by trip_id for easy client-side consumption
+  // Group payments by trip_id
   const paymentsByTrip: Record<string, typeof payments> = {}
   for (const p of (payments ?? [])) {
     if (!paymentsByTrip[p.trip_id]) paymentsByTrip[p.trip_id] = []
     paymentsByTrip[p.trip_id]!.push(p)
   }
 
-  const result = (registrations ?? []).map(r => ({
-    registration_id: r.id,
-    registration_status: r.status,
-    trip: r.trips,
-    payments: paymentsByTrip[r.trip_id] ?? [],
+  // Merge into registrations
+  const result = (registrations ?? []).map(reg => ({
+    registration_id: reg.id,
+    registration_status: reg.status,
+    registered_at: reg.created_at,
+    trip: reg.trips,
+    payments: paymentsByTrip[reg.trip_id] ?? [],
   }))
 
   return Response.json(result)
@@ -80,14 +83,14 @@ export async function POST(req: Request) {
     .single()
 
   if (!registration) {
-    return Response.json({ error: 'You do not have a registration for this trip' }, { status: 403 })
+    return Response.json({ error: 'No registration found for this trip' }, { status: 403 })
   }
 
   const { data, error } = await supabase
     .from('trip_payments')
     .insert({
-      profile_id: profile.id,
       trip_id,
+      profile_id: profile.id,
       amount,
       transaction_date,
       note: note ?? null,
