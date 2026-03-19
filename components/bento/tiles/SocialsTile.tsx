@@ -133,48 +133,69 @@ export default function SocialsTile({ colSpan = 4, rowSpan, halfWidthMobile }: {
       colSpan={colSpan}
       rowSpan={rowSpan}
       halfWidthMobile={halfWidthMobile}
-      className="bento-tile flex flex-col"
+      className="bento-tile flex flex-col relative overflow-hidden"
       style={{ animationDelay: '350ms' }}
     >
-      <Eyebrow>Socials</Eyebrow>
+      {/* Decorative background image — replace public/socials-image.jpg with your own */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/socials-image.jpg"
+        alt=""
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          opacity: 0.20,
+          pointerEvents: 'none',
+          zIndex: 0,
+        }}
+      />
 
-      {isLoading && (
-        <div className="flex-1 flex flex-col justify-center gap-3 mt-3">
-          <div className="h-14 rounded-lg animate-pulse" style={{ backgroundColor: 'rgba(0,0,0,0.06)' }} />
-          <div className="h-14 rounded-lg animate-pulse" style={{ backgroundColor: 'rgba(0,0,0,0.06)' }} />
-        </div>
-      )}
+      {/* Card content — above the image */}
+      <div className="relative flex flex-col flex-1" style={{ zIndex: 10 }}>
+        <Eyebrow>Socials</Eyebrow>
 
-      {!isLoading && !hasAny && (
-        <p className="font-body text-xs mt-3" style={{ color: 'var(--text-secondary)' }}>
-          Social feed coming soon.
-        </p>
-      )}
+        {isLoading && (
+          <div className="flex-1 flex flex-col justify-center gap-3 mt-3">
+            <div className="h-14 rounded-lg animate-pulse" style={{ backgroundColor: 'rgba(0,0,0,0.06)' }} />
+            <div className="h-14 rounded-lg animate-pulse" style={{ backgroundColor: 'rgba(0,0,0,0.06)' }} />
+          </div>
+        )}
 
-      {!isLoading && hasAny && (
-        <div className="flex flex-col gap-4 mt-4 flex-1">
-          {data.instagram && (
-            <PostCard
-              platform="Instagram"
-              icon={<InstagramIcon />}
-              thumbnail={data.instagram.thumbnail_url ?? data.instagram.media_url}
-              caption={data.instagram.caption}
-              timestamp={data.instagram.timestamp}
-              href={data.instagram.permalink}
-            />
-          )}
-          {data.facebook && (
-            <PostCard
-              platform="Facebook"
-              icon={<FacebookIcon />}
-              thumbnail={data.facebook.full_picture}
-              caption={data.facebook.message}
-              timestamp={data.facebook.created_time}
-              href={data.facebook.permalink_url}
-            />
-          )}
-        </div>
-      )}
+        {!isLoading && !hasAny && (
+          <p className="font-body text-xs mt-3" style={{ color: 'var(--text-secondary)' }}>
+            Social feed coming soon.
+          </p>
+        )}
+
+        {!isLoading && hasAny && (
+          <div className="flex flex-col gap-4 mt-4 flex-1">
+            {data.instagram && (
+              <PostCard
+                platform="Instagram"
+                icon={<InstagramIcon />}
+                thumbnail={data.instagram.thumbnail_url ?? data.instagram.media_url}
+                caption={data.instagram.caption}
+                timestamp={data.instagram.timestamp}
+                href={data.instagram.permalink}
+              />
+            )}
+            {data.facebook && (
+              <PostCard
+                platform="Facebook"
+                icon={<FacebookIcon />}
+                thumbnail={data.facebook.full_picture}
+                caption={data.facebook.message}
+                timestamp={data.facebook.created_time}
+                href={data.facebook.permalink_url}
+              />
+            )}
+          </div>
+        )}
+      </div>
     </BentoCard>
   )
 }
