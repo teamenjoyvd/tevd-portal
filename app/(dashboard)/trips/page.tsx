@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useUser } from '@clerk/nextjs'
 import { useLanguage } from '@/lib/hooks/useLanguage'
@@ -65,6 +66,7 @@ function TripCard({
   t: (key: Parameters<ReturnType<typeof useLanguage>['t']>[0]) => string
   userRole: string
 }) {
+  const router = useRouter()
   const [expanded, setExpanded] = useState(false)
   const myPayments = payments.filter(p => p.trip_id === trip.id)
   const totalPaid = myPayments
@@ -77,6 +79,9 @@ function TripCard({
     approved: { bg: '#81b29a33', color: '#2d6a4f', label: t('trips.status.approved') },
     denied:   { bg: '#bc474920', color: '#bc4749', label: t('trips.status.denied')   },
   }
+
+  // A user is "registered" when they have a non-denied registration row
+  const isRegistered = !!registration && registration.status !== 'denied'
 
   return (
     <div className="h-full rounded-2xl overflow-hidden flex flex-col" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
@@ -165,21 +170,21 @@ function TripCard({
         )}
 
         <div className="mt-auto pt-4">
-          {registration && registration.status !== 'denied' && (
+          {isRegistered && (
             <div
               className="mb-3 px-4 py-2.5 rounded-xl flex items-center justify-between"
-              style={{ backgroundColor: STATUS_STYLES[registration.status].bg }}
+              style={{ backgroundColor: STATUS_STYLES[registration!.status].bg }}
             >
               <p className="text-sm font-medium"
-                style={{ color: STATUS_STYLES[registration.status].color }}>
-                {STATUS_STYLES[registration.status].label}
+                style={{ color: STATUS_STYLES[registration!.status].color }}>
+                {STATUS_STYLES[registration!.status].label}
               </p>
-              {registration.status === 'pending' && (
+              {registration!.status === 'pending' && (
                 <button
-                  onClick={() => onCancel(registration.id)}
+                  onClick={() => onCancel(registration!.id)}
                   disabled={isCancelling}
                   className="text-xs font-medium disabled:opacity-50"
-                  style={{ color: STATUS_STYLES[registration.status].color }}
+                  style={{ color: STATUS_STYLES[registration!.status].color }}
                 >
                   {t('trips.cancel')}
                 </button>
@@ -295,7 +300,15 @@ function TripCard({
             </div>
           )}
 
-          {(!registration || registration.status === 'denied') && (
+          {isRegistered ? (
+            <button
+              onClick={() => router.push(`/trips/${trip.id}`)}
+              className="w-full py-3 rounded-xl text-sm font-semibold text-white hover:opacity-90 active:opacity-70 transition-opacity"
+              style={{ backgroundColor: 'var(--brand-forest)' }}
+            >
+              {t('trips.viewDetails')}
+            </button>
+          ) : (
             userRole === 'guest' ? (
               <p className="text-xs text-center py-2 rounded-xl"
                 style={{ color: 'var(--text-secondary)', backgroundColor: 'var(--border-default)' }}>
