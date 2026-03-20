@@ -23,7 +23,7 @@ const ROLE_STYLES: Record<string, { bg: string; color: string }> = {
 export default function UserDropdown() {
   const { user } = useUser()
   const { signOut } = useClerk()
-  const { t, lang, toggle } = useLanguage()
+  const { lang, toggle } = useLanguage()
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -142,7 +142,7 @@ export default function UserDropdown() {
                   <rect width="7" height="9" x="14" y="12" rx="1"/>
                   <rect width="7" height="5" x="3" y="16" rx="1"/>
                 </svg>
-                {t('nav.admin')}
+                Admin
               </Link>
             )}
             <div className="border-t flex items-center justify-between px-4 py-2.5"
