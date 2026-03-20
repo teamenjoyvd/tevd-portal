@@ -1,11 +1,18 @@
 export type Lang = 'en' | 'bg'
 
 export const translations = {
-  // Navigation
-  // nav.home, nav.about, nav.calendar, nav.trips, nav.profile,
-  // nav.notifications, nav.admin, nav.network, nav.howtos
-  // — removed. Use lib/nav.ts instead.
-  'nav.signIn': { en: 'Sign in', bg: 'Вход' },
+  // Navigation labels — kept here for one-off t() callsites (e.g. NotificationPopup header,
+  // page titles). Nav array structure lives in lib/nav.ts.
+  'nav.home':          { en: 'Home',          bg: 'Начало'       },
+  'nav.about':         { en: 'About',         bg: 'За нас'       },
+  'nav.calendar':      { en: 'Calendar',      bg: 'Календар'     },
+  'nav.trips':         { en: 'Trips',         bg: 'Пътувания'    },
+  'nav.profile':       { en: 'Profile',       bg: 'Профил'       },
+  'nav.notifications': { en: 'Notifications', bg: 'Известия'     },
+  'nav.admin':         { en: 'Admin',         bg: 'Админ'        },
+  'nav.network':       { en: 'My Network',    bg: 'Моята мрежа'  },
+  'nav.howtos':        { en: 'Guides',        bg: 'Ръководства'  },
+  'nav.signIn':        { en: 'Sign in',       bg: 'Вход'         },
 
   // Role labels (ISS-0095)
   'role.admin':  { en: 'Admin',  bg: 'АДМИН' },
