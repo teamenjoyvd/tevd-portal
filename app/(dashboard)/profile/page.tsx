@@ -199,12 +199,17 @@ export default function ProfilePage() {
   const { t } = useLanguage()
   const [form, setForm] = useState<Partial<Profile>>({})
   const [saved, setSaved] = useState(false)
+  const [editMode, setEditMode] = useState(false)
   const [aboInput, setAboInput] = useState('')
   const [uplineInput, setUplineInput] = useState('')
   const [verificationMode, setVerificationMode] = useState<'standard' | 'manual'>('standard')
   const [calCopied, setCalCopied] = useState(false)
-  const [payForm, setPayForm] = useState<Record<string, { amount: string; transaction_date: string; payment_method: string; proof_url: string; note: string }>>({})
+  const [payForm, setPayForm] = useState<Record<string, { amount: string; transaction_date: string; payment_method: string; note: string }>>({})
   const [paySubmitted, setPaySubmitted] = useState<Record<string, boolean>>({})
+  const [selectedPayTrip, setSelectedPayTrip] = useState<string | null>(null)
+  const [openPayForm, setOpenPayForm] = useState(false)
+  const [payFiles, setPayFiles] = useState<Record<string, File | null>>({})
+  const [expandedTrips, setExpandedTrips] = useState<Record<string, boolean>>({})
 
   const EXPIRY_LABELS = {
     ok:       t('profile.expiry.ok'),
@@ -224,7 +229,6 @@ export default function ProfilePage() {
     queryFn: () => fetch('/api/profile').then(r => r.json()),
   })
 
-  // Guard: treat missing/error API responses as no profile
   const validProfile = profile?.id ? profile : null
 
   const { data: verRequest } = useQuery<VerificationRequest | null>({
@@ -280,6 +284,14 @@ export default function ProfilePage() {
     onSuccess: () => refetchCal(),
   })
 
+  // Auto-select first trip when trips load
+  useEffect(() => {
+    if (Array.isArray(tripsData) && tripsData.length > 0 && selectedPayTrip === null) {
+      const first = tripsData.find(e => e.trip)
+      if (first?.trip) setSelectedPayTrip(first.trip.id)
+    }
+  }, [tripsData, selectedPayTrip])
+
   useEffect(() => {
     if (validProfile) setForm({
       first_name:           validProfile.first_name,
@@ -290,6 +302,7 @@ export default function ProfilePage() {
       valid_through:        validProfile.valid_through ?? '',
       phone:                validProfile.phone ?? '',
       contact_email:        validProfile.contact_email ?? '',
+      display_names:        validProfile.display_names ?? {},
     })
   }, [validProfile])
 
@@ -303,6 +316,7 @@ export default function ProfilePage() {
     onSuccess: (data) => {
       qc.setQueryData(['profile'], data)
       setSaved(true)
+      setEditMode(false)
       setTimeout(() => setSaved(false), 2500)
     },
   })
@@ -335,8 +349,17 @@ export default function ProfilePage() {
   })
 
   const submitPayment = useMutation({
-    mutationFn: ({ tripId, ...body }: { tripId: string; amount: string; transaction_date: string; payment_method: string; proof_url: string; note: string }) =>
-      fetch('/api/profile/payments', {
+    mutationFn: async ({ tripId, file, ...body }: { tripId: string; file: File | null; amount: string; transaction_date: string; payment_method: string; note: string }) => {
+      let proofUrl: string | null = null
+      if (file) {
+        const fd = new FormData()
+        fd.append('file', file)
+        const uploadRes = await fetch('/api/profile/payments/upload', { method: 'POST', body: fd })
+        if (!uploadRes.ok) throw new Error('File upload failed')
+        const uploadData = await uploadRes.json()
+        proofUrl = uploadData.url
+      }
+      const res = await fetch('/api/profile/payments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -344,16 +367,18 @@ export default function ProfilePage() {
           amount: parseFloat(body.amount),
           transaction_date: body.transaction_date,
           payment_method: body.payment_method || null,
-          proof_url: body.proof_url || null,
+          proof_url: proofUrl,
           note: body.note || null,
         }),
-      }).then(async r => {
-        if (!r.ok) throw new Error((await r.json()).error)
-        return r.json()
-      }),
+      })
+      if (!res.ok) throw new Error((await res.json()).error)
+      return res.json()
+    },
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: ['profile-payments'] })
-      setPayForm(f => ({ ...f, [vars.tripId]: { amount: '', transaction_date: '', payment_method: '', proof_url: '', note: '' } }))
+      setPayForm(f => ({ ...f, [vars.tripId]: { amount: '', transaction_date: '', payment_method: '', note: '' } }))
+      setPayFiles(f => ({ ...f, [vars.tripId]: null }))
+      setOpenPayForm(false)
       setPaySubmitted(f => ({ ...f, [vars.tripId]: true }))
       setTimeout(() => setPaySubmitted(f => ({ ...f, [vars.tripId]: false })), 3000)
     },
@@ -371,7 +396,20 @@ export default function ProfilePage() {
   const hasEventRoles = Array.isArray(eventRolesData) && eventRolesData.length > 0
   const hasEventActivity = hasVitals || hasEventRoles
 
-  // ── Calendar subscription markup (shared) ───────────────────────────
+  // BG name helpers
+  const dnMap = ((form.display_names ?? {}) as Record<string, string>)
+  const bgFirst = dnMap.bg_first ?? ''
+  const bgLast  = dnMap.bg_last ?? ''
+
+  // Selected trip data for payments column
+  const selectedEntry = Array.isArray(tripsData)
+    ? tripsData.find(e => e.trip?.id === selectedPayTrip) ?? null
+    : null
+  const selectedPf = selectedPayTrip
+    ? (payForm[selectedPayTrip] ?? { amount: '', transaction_date: '', payment_method: '', note: '' })
+    : { amount: '', transaction_date: '', payment_method: '', note: '' }
+
+  // ── Calendar subscription block (shared) ────────────────────────────
   const calSubscriptionBlock = (
     <div style={{ gridColumn: 'span 8' }}>
       <div className="rounded-2xl p-6" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
@@ -481,8 +519,32 @@ export default function ProfilePage() {
                         />
                       </div>
                     </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
+                          {t('profile.firstName')} (БГ)
+                        </label>
+                        <input
+                          value={bgFirst}
+                          onChange={e => setForm(f => ({ ...f, display_names: { ...((f.display_names ?? {}) as Record<string,string>), bg_first: e.target.value } }))}
+                          className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+                          style={{ color: 'var(--text-primary)' }}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
+                          {t('profile.lastName')} (БГ)
+                        </label>
+                        <input
+                          value={bgLast}
+                          onChange={e => setForm(f => ({ ...f, display_names: { ...((f.display_names ?? {}) as Record<string,string>), bg_last: e.target.value } }))}
+                          className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+                          style={{ color: 'var(--text-primary)' }}
+                        />
+                      </div>
+                    </div>
                     <button
-                      onClick={() => saveMutation.mutate({ first_name: form.first_name, last_name: form.last_name })}
+                      onClick={() => saveMutation.mutate({ first_name: form.first_name, last_name: form.last_name, display_names: form.display_names })}
                       disabled={saveMutation.isPending}
                       className="w-full py-3 rounded-2xl text-sm font-semibold text-white disabled:opacity-50 transition-all hover:opacity-90 active:scale-[0.99]"
                       style={{ backgroundColor: 'var(--brand-crimson)' }}
@@ -539,7 +601,6 @@ export default function ProfilePage() {
                   ) : null}
                   {(!verRequest || verRequest.status === 'denied') && (
                     <div className="space-y-3">
-                      {/* Path toggle */}
                       <div className="flex gap-2">
                         <button
                           onClick={() => setVerificationMode('standard')}
@@ -614,43 +675,190 @@ export default function ProfilePage() {
           ) : (
             // ── MEMBER / CORE / ADMIN LAYOUT ─────────────────────────────────
             <>
-              {/* ── BENTO A: Identity ──────────────────────────────────────── */}
+              {/* ── BENTO A: Personal Details (merged) ────────────────────── */}
+              <div style={{ gridColumn: 'span 8' }}>
+                <div className="rounded-2xl p-6" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
 
-              {/* col-4: Names + ABO + Upline */}
-              <div style={{ gridColumn: 'span 4' }}>
-                <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-                  <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-6" style={{ color: 'var(--brand-crimson)' }}>
-                    {t('profile.identity')}
-                  </p>
-                  <div className="space-y-4">
+                  {/* Header row */}
+                  <div className="flex items-center justify-between mb-6">
+                    <p className="text-xs font-semibold tracking-[0.25em] uppercase" style={{ color: 'var(--brand-crimson)' }}>
+                      Personal Details
+                    </p>
+                    {!editMode ? (
+                      <button
+                        onClick={() => setEditMode(true)}
+                        className="text-xs font-semibold hover:opacity-70 transition-opacity px-3 py-1.5 rounded-xl border"
+                        style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                      >
+                        Edit
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setEditMode(false)
+                          if (validProfile) setForm({
+                            first_name: validProfile.first_name,
+                            last_name: validProfile.last_name,
+                            document_active_type: validProfile.document_active_type,
+                            id_number: validProfile.id_number ?? '',
+                            passport_number: validProfile.passport_number ?? '',
+                            valid_through: validProfile.valid_through ?? '',
+                            phone: validProfile.phone ?? '',
+                            contact_email: validProfile.contact_email ?? '',
+                            display_names: validProfile.display_names ?? {},
+                          })
+                        }}
+                        className="text-xs font-semibold hover:opacity-70 transition-opacity"
+                        style={{ color: 'var(--text-secondary)' }}
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
+
+                  {/* ── Personal Details sub-section ── */}
+                  <div className="space-y-4 mb-6">
+                    {/* EN names */}
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
                           {t('profile.firstName')}
                         </label>
-                        <input
-                          value={form.first_name ?? ''}
-                          onChange={e => setForm(f => ({ ...f, first_name: e.target.value }))}
-                          className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-                          style={{ color: 'var(--text-primary)' }}
-                        />
+                        {editMode ? (
+                          <input
+                            value={form.first_name ?? ''}
+                            onChange={e => setForm(f => ({ ...f, first_name: e.target.value }))}
+                            className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+                            style={{ color: 'var(--text-primary)' }}
+                          />
+                        ) : (
+                          <p className="text-sm font-medium py-2.5" style={{ color: 'var(--text-primary)' }}>
+                            {validProfile.first_name || '—'}
+                          </p>
+                        )}
                       </div>
                       <div>
                         <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
                           {t('profile.lastName')}
                         </label>
-                        <input
-                          value={form.last_name ?? ''}
-                          onChange={e => setForm(f => ({ ...f, last_name: e.target.value }))}
-                          className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-                          style={{ color: 'var(--text-primary)' }}
-                        />
+                        {editMode ? (
+                          <input
+                            value={form.last_name ?? ''}
+                            onChange={e => setForm(f => ({ ...f, last_name: e.target.value }))}
+                            className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+                            style={{ color: 'var(--text-primary)' }}
+                          />
+                        ) : (
+                          <p className="text-sm font-medium py-2.5" style={{ color: 'var(--text-primary)' }}>
+                            {validProfile.last_name || '—'}
+                          </p>
+                        )}
                       </div>
                     </div>
-                    {validProfile.abo_number && (
-                      <div className="space-y-1">
+
+                    {/* BG names */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
+                          {t('profile.firstName')} (БГ)
+                        </label>
+                        {editMode ? (
+                          <input
+                            value={bgFirst}
+                            onChange={e => setForm(f => ({ ...f, display_names: { ...((f.display_names ?? {}) as Record<string,string>), bg_first: e.target.value } }))}
+                            className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+                            style={{ color: 'var(--text-primary)' }}
+                          />
+                        ) : (
+                          <p className="text-sm font-medium py-2.5" style={{ color: 'var(--text-primary)' }}>
+                            {bgFirst || '—'}
+                          </p>
+                        )}
+                      </div>
+                      <div>
+                        <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
+                          {t('profile.lastName')} (БГ)
+                        </label>
+                        {editMode ? (
+                          <input
+                            value={bgLast}
+                            onChange={e => setForm(f => ({ ...f, display_names: { ...((f.display_names ?? {}) as Record<string,string>), bg_last: e.target.value } }))}
+                            className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+                            style={{ color: 'var(--text-primary)' }}
+                          />
+                        ) : (
+                          <p className="text-sm font-medium py-2.5" style={{ color: 'var(--text-primary)' }}>
+                            {bgLast || '—'}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Phone + Email */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Phone</label>
+                        {editMode ? (
+                          <input
+                            value={form.phone ?? ''}
+                            onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
+                            placeholder="+359 88 000 0000"
+                            className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+                            style={{ color: 'var(--text-primary)' }}
+                          />
+                        ) : (
+                          <p className="text-sm py-2.5" style={{ color: validProfile.phone ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
+                            {validProfile.phone || '—'}
+                          </p>
+                        )}
+                      </div>
+                      <div>
+                        <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Contact email</label>
+                        {editMode ? (
+                          <input
+                            value={form.contact_email ?? ''}
+                            onChange={e => setForm(f => ({ ...f, contact_email: e.target.value }))}
+                            placeholder="your@email.com"
+                            className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+                            style={{ color: 'var(--text-primary)' }}
+                          />
+                        ) : (
+                          <p className="text-sm py-2.5" style={{ color: validProfile.contact_email ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
+                            {validProfile.contact_email || '—'}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Access level */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Access level</span>
+                      <span
+                        className="text-xs font-semibold px-2.5 py-1 rounded-full"
+                        style={{
+                          backgroundColor: validProfile.role === 'admin' ? '#2d332a'
+                            : validProfile.role === 'core' ? '#3E7785'
+                            : 'rgba(62,119,133,0.15)',
+                          color: validProfile.role === 'admin' ? '#FAF8F3'
+                            : validProfile.role === 'core' ? '#FAF8F3'
+                            : '#3E7785',
+                        }}
+                      >
+                        {isUnverified ? 'Unverified' : ROLE_LABELS[validProfile.role]}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* ── ABO Verification sub-section ── */}
+                  {validProfile.abo_number && (
+                    <>
+                      <div style={{ borderTop: '1px solid var(--border-default)', marginBottom: '16px' }} />
+                      <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
+                        ABO Verification
+                      </p>
+                      <div className="space-y-1.5">
                         <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                          ABO —{' '}
+                          ABO #{' '}
                           <span className="font-medium font-mono" style={{ color: 'var(--text-primary)' }}>
                             {validProfile.abo_number}
                           </span>
@@ -666,225 +874,228 @@ export default function ProfilePage() {
                             )}
                           </p>
                         )}
+                        <p className="text-xs font-medium" style={{ color: '#2d6a4f' }}>✓ Your profile is verified</p>
                       </div>
-                    )}
-                  </div>
-                </div>
-              </div>
+                    </>
+                  )}
 
-              {/* col-4: ABO status card */}
-              <div style={{ gridColumn: 'span 4' }}>
-                <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-                  <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-6" style={{ color: 'var(--brand-crimson)' }}>
-                    {t('profile.aboVerification')}
-                  </p>
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className="text-xs font-semibold px-2.5 py-1 rounded-full"
-                        style={{
-                          backgroundColor: validProfile.role === 'admin' ? '#2d332a'
-                            : validProfile.role === 'core' ? '#3E7785'
-                            : 'rgba(62,119,133,0.15)',
-                          color: validProfile.role === 'admin' ? '#FAF8F3'
-                            : validProfile.role === 'core' ? '#FAF8F3'
-                            : '#3E7785',
-                        }}
-                      >
-                        {isUnverified ? 'Unverified' : ROLE_LABELS[validProfile.role]}
-                      </span>
-                    </div>
-                    {validProfile.abo_number && (
-                      <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                        ABO —{' '}
-                        <span className="font-medium font-mono" style={{ color: 'var(--text-primary)' }}>
-                          {validProfile.abo_number}
-                        </span>
-                      </p>
-                    )}
-                    {uplineData?.upline_abo_number && (
-                      <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                        Upline —{' '}
-                        <span className="font-medium" style={{ color: 'var(--text-primary)' }}>
-                          {uplineData.upline_name ?? uplineData.upline_abo_number}
-                        </span>
-                        {uplineData.upline_name && (
-                          <span className="font-mono ml-1 opacity-60">{uplineData.upline_abo_number}</span>
-                        )}
-                      </p>
-                    )}
-                    {ROLE_DESCRIPTIONS[validProfile.role] && (
-                      <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                        {ROLE_DESCRIPTIONS[validProfile.role]}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* ── BENTO B: Documents + Contact ────────────────────────────── */}
-
-              {/* col-4: Identification */}
-              <div style={{ gridColumn: 'span 4' }}>
-                <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-                  <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-6" style={{ color: 'var(--brand-crimson)' }}>
-                    {t('profile.travelDoc')}
-                  </p>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
-                        Document type
-                      </label>
-                      <select
-                        value={form.document_active_type ?? activeDocType}
-                        onChange={e => setForm(f => ({ ...f, document_active_type: e.target.value as 'id' | 'passport' }))}
-                        className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-                        style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
-                      >
-                        <option value="id">{t('profile.nationalId')}</option>
-                        <option value="passport">{t('profile.passport')}</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
-                        {activeDocType === 'passport' ? t('profile.passportNumber') : t('profile.idNumber')}
-                      </label>
-                      <input
-                        value={activeDocType === 'passport'
-                          ? (form.passport_number ?? '')
-                          : (form.id_number ?? '')}
-                        onChange={e => setForm(f => ({
-                          ...f,
-                          [activeDocType === 'passport' ? 'passport_number' : 'id_number']: e.target.value,
-                        }))}
-                        className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm font-mono"
-                        style={{ color: 'var(--text-primary)' }}
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
-                        {t('profile.validThrough')}
-                      </label>
-                      <input
-                        type="date"
-                        value={form.valid_through ?? ''}
-                        onChange={e => setForm(f => ({ ...f, valid_through: e.target.value }))}
-                        className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-                        style={{ color: 'var(--text-primary)' }}
-                      />
-                    </div>
-                    {expiryState && (
-                      <div className={`rounded-xl border px-4 py-3 text-sm font-medium ${EXPIRY_STYLES[expiryState]}`}>
-                        {EXPIRY_LABELS[expiryState]}
-                        {form.valid_through && (
-                          <span className="font-normal ml-1 opacity-70">
-                            · {new Date(form.valid_through).toLocaleDateString('en-GB', {
-                              day: 'numeric', month: 'long', year: 'numeric',
-                            })}
-                          </span>
-                        )}
+                  {/* ── Travel Document sub-section ── */}
+                  <>
+                    <div style={{ borderTop: '1px solid var(--border-default)', margin: '16px 0' }} />
+                    <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-4" style={{ color: 'var(--text-secondary)' }}>
+                      {t('profile.travelDoc')}
+                    </p>
+                    <div className="space-y-4">
+                      {/* Pillbox document type */}
+                      <div className="flex gap-2">
+                        {(['id', 'passport'] as const).map(dt => (
+                          <button
+                            key={dt}
+                            disabled={!editMode}
+                            onClick={() => editMode && setForm(f => ({ ...f, document_active_type: dt }))}
+                            className="flex-1 py-2 rounded-xl text-xs font-semibold tracking-widest uppercase transition-all"
+                            style={{
+                              backgroundColor: (form.document_active_type ?? activeDocType) === dt
+                                ? 'var(--text-primary)' : 'transparent',
+                              color: (form.document_active_type ?? activeDocType) === dt
+                                ? 'var(--bg-card)' : 'var(--text-secondary)',
+                              border: '1px solid var(--border-default)',
+                              cursor: editMode ? 'pointer' : 'default',
+                              opacity: !editMode && (form.document_active_type ?? activeDocType) !== dt ? 0.4 : 1,
+                            }}
+                          >
+                            {dt === 'id' ? 'PERSONAL ID' : 'PASSPORT'}
+                          </button>
+                        ))}
                       </div>
-                    )}
-                  </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
+                            {activeDocType === 'passport' ? t('profile.passportNumber') : t('profile.idNumber')}
+                          </label>
+                          {editMode ? (
+                            <input
+                              value={activeDocType === 'passport'
+                                ? (form.passport_number ?? '')
+                                : (form.id_number ?? '')}
+                              onChange={e => setForm(f => ({
+                                ...f,
+                                [activeDocType === 'passport' ? 'passport_number' : 'id_number']: e.target.value,
+                              }))}
+                              className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm font-mono"
+                              style={{ color: 'var(--text-primary)' }}
+                            />
+                          ) : (
+                            <p className="text-sm font-mono py-2.5" style={{ color: 'var(--text-primary)' }}>
+                              {(activeDocType === 'passport' ? validProfile.passport_number : validProfile.id_number) || '—'}
+                            </p>
+                          )}
+                        </div>
+                        <div>
+                          <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
+                            {t('profile.validThrough')}
+                          </label>
+                          {editMode ? (
+                            <input
+                              type="date"
+                              value={form.valid_through ?? ''}
+                              onChange={e => setForm(f => ({ ...f, valid_through: e.target.value }))}
+                              className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+                              style={{ color: 'var(--text-primary)' }}
+                            />
+                          ) : (
+                            <p className="text-sm py-2.5" style={{ color: 'var(--text-primary)' }}>
+                              {validProfile.valid_through ? formatDate(validProfile.valid_through) : '—'}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      {expiryState && (
+                        <div className={`rounded-xl border px-4 py-3 text-sm font-medium ${EXPIRY_STYLES[expiryState]}`}>
+                          {EXPIRY_LABELS[expiryState]}
+                          {form.valid_through && (
+                            <span className="font-normal ml-1 opacity-70">
+                              · {new Date(form.valid_through).toLocaleDateString('en-GB', {
+                                day: 'numeric', month: 'long', year: 'numeric',
+                              })}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </>
+
+                  {/* Save button — edit mode only */}
+                  {editMode && (
+                    <button
+                      onClick={() => saveMutation.mutate(form)}
+                      disabled={saveMutation.isPending}
+                      className="w-full mt-6 py-3 rounded-2xl text-sm font-semibold text-white disabled:opacity-50 transition-all hover:opacity-90 active:scale-[0.99]"
+                      style={{ backgroundColor: 'var(--brand-crimson)' }}
+                    >
+                      {saveMutation.isPending ? t('profile.saving') : saved ? t('profile.saved') : t('profile.saveChanges')}
+                    </button>
+                  )}
                 </div>
               </div>
 
-              {/* col-4: Contact details */}
-              <div style={{ gridColumn: 'span 4' }}>
-                <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-                  <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-6" style={{ color: 'var(--brand-crimson)' }}>
-                    Contact
-                  </p>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
-                        Phone
-                      </label>
-                      <input
-                        value={form.phone ?? ''}
-                        onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
-                        placeholder="+359 88 000 0000"
-                        className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-                        style={{ color: 'var(--text-primary)' }}
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
-                        Contact email
-                      </label>
-                      <input
-                        value={form.contact_email ?? ''}
-                        onChange={e => setForm(f => ({ ...f, contact_email: e.target.value }))}
-                        placeholder="your@email.com"
-                        className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-                        style={{ color: 'var(--text-primary)' }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* col-8: Save button */}
-              <div style={{ gridColumn: 'span 8' }}>
-                <button
-                  onClick={() => saveMutation.mutate(form)}
-                  disabled={saveMutation.isPending}
-                  className="w-full py-3 rounded-2xl text-sm font-semibold text-white disabled:opacity-50 transition-all hover:opacity-90 active:scale-[0.99]"
-                  style={{ backgroundColor: 'var(--brand-crimson)' }}
-                >
-                  {saveMutation.isPending ? t('profile.saving') : saved ? t('profile.saved') : t('profile.saveChanges')}
-                </button>
-              </div>
-
-              {/* ── BENTO C: My Trips + Payments (renders only if registrations exist) ── */}
+              {/* ── BENTO B: My Trips + Payments ────────────────────────────── */}
               {hasTrips && (
                 <div style={{ gridColumn: 'span 8' }}>
                   <div className="rounded-2xl p-6" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
                     <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-6" style={{ color: 'var(--brand-crimson)' }}>
                       My Trips
                     </p>
-                    <div className="space-y-6">
-                      {tripsData!.map(entry => {
-                        if (!entry.trip) return null
-                        const regStyle = REG_STATUS_STYLES[entry.registration_status] ?? REG_STATUS_STYLES.pending
-                        const pf = payForm[entry.trip.id] ?? { amount: '', transaction_date: '', payment_method: '', proof_url: '', note: '' }
-                        return (
-                          <div key={entry.registration_id} style={{ borderTop: '1px solid var(--border-default)', paddingTop: '16px' }}>
-                            <div className="flex items-start justify-between gap-4 mb-3">
-                              <div>
-                                <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                                  {entry.trip.title}
-                                </p>
-                                <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                                  {entry.trip.destination} · {formatDate(entry.trip.start_date)} – {formatDate(entry.trip.end_date)}
-                                </p>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+
+                      {/* Left col: trips list */}
+                      <div className="space-y-2">
+                        {tripsData!.map(entry => {
+                          if (!entry.trip) return null
+                          const regStyle = REG_STATUS_STYLES[entry.registration_status] ?? REG_STATUS_STYLES.pending
+                          const isSelected = selectedPayTrip === entry.trip.id
+                          const isExpanded = expandedTrips[entry.trip.id]
+                          return (
+                            <div
+                              key={entry.registration_id}
+                              className="rounded-xl p-4 cursor-pointer transition-all"
+                              onClick={() => {
+                                setSelectedPayTrip(entry.trip!.id)
+                                setOpenPayForm(false)
+                              }}
+                              style={{
+                                backgroundColor: isSelected ? 'rgba(188,71,73,0.06)' : 'var(--bg-global)',
+                                border: isSelected ? '1px solid rgba(188,71,73,0.20)' : '1px solid var(--border-default)',
+                              }}
+                            >
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                                    {entry.trip.title}
+                                  </p>
+                                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                                    {entry.trip.destination}
+                                  </p>
+                                </div>
+                                <span
+                                  className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
+                                  style={{ backgroundColor: regStyle.bg, color: regStyle.color }}
+                                >
+                                  {entry.registration_status}
+                                </span>
                               </div>
-                              <span
-                                className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
-                                style={{ backgroundColor: regStyle.bg, color: regStyle.color }}
+                              {isExpanded && (
+                                <div className="mt-3 pt-3 space-y-1" style={{ borderTop: '1px solid var(--border-default)' }}>
+                                  <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                                    {formatDate(entry.trip.start_date)} – {formatDate(entry.trip.end_date)}
+                                  </p>
+                                  <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                                    Total: <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{formatCurrency(entry.trip.total_cost, entry.trip.currency)}</span>
+                                  </p>
+                                </div>
+                              )}
+                              <button
+                                onClick={e => { e.stopPropagation(); setExpandedTrips(t => ({ ...t, [entry.trip!.id]: !t[entry.trip!.id] })) }}
+                                className="mt-2 text-[11px] font-medium hover:opacity-70 transition-opacity"
+                                style={{ color: 'var(--brand-teal)' }}
                               >
-                                {entry.registration_status}
-                              </span>
+                                {isExpanded ? 'Hide details ↑' : 'View details ↓'}
+                              </button>
                             </div>
-                            {entry.payments.length > 0 && (
+                          )
+                        })}
+                      </div>
+
+                      {/* Right col: payments + submit */}
+                      <div>
+                        {selectedEntry ? (
+                          <>
+                            <div className="flex items-center justify-between mb-3">
+                              <p className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
+                                {selectedEntry.trip?.title}
+                              </p>
+                              {!openPayForm && (
+                                <button
+                                  onClick={() => setOpenPayForm(true)}
+                                  className="px-3 py-1.5 rounded-xl text-xs font-semibold text-white hover:opacity-90 transition-opacity flex-shrink-0"
+                                  style={{ backgroundColor: 'var(--brand-forest)' }}
+                                >
+                                  + Submit payment
+                                </button>
+                              )}
+                            </div>
+
+                            {/* Payment history */}
+                            {selectedEntry.payments.length > 0 ? (
                               <div className="space-y-2 mb-4">
-                                {entry.payments.map(p => {
+                                {selectedEntry.payments.map(p => {
                                   const ps = PAYMENT_STATUS_STYLES[p.status] ?? PAYMENT_STATUS_STYLES.pending
+                                  const label = p.status === 'failed' ? 'Unsuccessful' : p.status
                                   return (
                                     <div key={p.id} className="flex items-center gap-3 text-xs rounded-xl px-3 py-2"
                                       style={{ backgroundColor: 'var(--bg-global)' }}>
                                       <span className="font-semibold flex-shrink-0" style={{ color: 'var(--text-primary)' }}>
-                                        {formatCurrency(p.amount, entry.trip!.currency)}
+                                        {formatCurrency(p.amount, selectedEntry.trip!.currency)}
                                       </span>
                                       <span style={{ color: 'var(--text-secondary)' }}>{formatDate(p.transaction_date)}</span>
                                       {p.payment_method && (
                                         <span style={{ color: 'var(--text-secondary)' }}>{p.payment_method}</span>
                                       )}
                                       <span
-                                        className="ml-auto font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
+                                        className="ml-auto font-semibold px-2 py-0.5 rounded-full flex-shrink-0 flex items-center gap-1"
                                         style={{ backgroundColor: ps.bg, color: ps.color }}
                                       >
-                                        {p.status}
+                                        {label}
+                                        {p.status === 'failed' && p.note && (
+                                          <span
+                                            title={p.note}
+                                            style={{ cursor: 'help', fontSize: 10, lineHeight: 1 }}
+                                          >
+                                            ⓘ
+                                          </span>
+                                        )}
                                       </span>
                                       {p.proof_url && (
                                         <a href={p.proof_url} target="_blank" rel="noopener noreferrer"
@@ -898,99 +1109,121 @@ export default function ProfilePage() {
                                   )
                                 })}
                               </div>
+                            ) : (
+                              <p className="text-xs mb-4" style={{ color: 'var(--text-secondary)' }}>No payments logged yet.</p>
                             )}
-                            <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: 'var(--bg-global)', border: '1px solid var(--border-default)' }}>
-                              <p className="text-xs font-semibold tracking-widest uppercase" style={{ color: 'var(--text-secondary)' }}>
-                                Submit payment
-                              </p>
-                              <div className="grid grid-cols-2 gap-3">
+
+                            {/* Payment submission form — behind button */}
+                            {openPayForm && selectedPayTrip && (
+                              <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: 'var(--bg-global)', border: '1px solid var(--border-default)' }}>
+                                <div className="flex items-center justify-between">
+                                  <p className="text-xs font-semibold tracking-widest uppercase" style={{ color: 'var(--text-secondary)' }}>
+                                    Submit payment
+                                  </p>
+                                  <button
+                                    onClick={() => setOpenPayForm(false)}
+                                    className="text-xs hover:opacity-70 transition-opacity"
+                                    style={{ color: 'var(--text-secondary)' }}
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                  <div>
+                                    <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Amount ({selectedEntry.trip?.currency})</label>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      step="0.01"
+                                      value={selectedPf.amount}
+                                      onChange={e => setPayForm(f => ({ ...f, [selectedPayTrip]: { ...selectedPf, amount: e.target.value } }))}
+                                      className="w-full border border-black/10 rounded-xl px-3 py-2 text-sm"
+                                      style={{ color: 'var(--text-primary)' }}
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Date</label>
+                                    <input
+                                      type="date"
+                                      value={selectedPf.transaction_date}
+                                      onChange={e => setPayForm(f => ({ ...f, [selectedPayTrip]: { ...selectedPf, transaction_date: e.target.value } }))}
+                                      className="w-full border border-black/10 rounded-xl px-3 py-2 text-sm"
+                                      style={{ color: 'var(--text-primary)' }}
+                                    />
+                                  </div>
+                                </div>
                                 <div>
-                                  <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Amount ({entry.trip.currency})</label>
+                                  <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Payment method</label>
                                   <input
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    value={pf.amount}
-                                    onChange={e => setPayForm(f => ({ ...f, [entry.trip!.id]: { ...pf, amount: e.target.value } }))}
+                                    value={selectedPf.payment_method}
+                                    onChange={e => setPayForm(f => ({ ...f, [selectedPayTrip]: { ...selectedPf, payment_method: e.target.value } }))}
+                                    placeholder="e.g. bank transfer, cash"
                                     className="w-full border border-black/10 rounded-xl px-3 py-2 text-sm"
                                     style={{ color: 'var(--text-primary)' }}
                                   />
                                 </div>
                                 <div>
-                                  <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Date</label>
+                                  <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Proof of payment</label>
                                   <input
-                                    type="date"
-                                    value={pf.transaction_date}
-                                    onChange={e => setPayForm(f => ({ ...f, [entry.trip!.id]: { ...pf, transaction_date: e.target.value } }))}
-                                    className="w-full border border-black/10 rounded-xl px-3 py-2 text-sm"
+                                    type="file"
+                                    accept="image/*,.pdf"
+                                    onChange={e => setPayFiles(f => ({ ...f, [selectedPayTrip]: e.target.files?.[0] ?? null }))}
+                                    className="w-full text-xs"
+                                    style={{ color: 'var(--text-secondary)' }}
+                                  />
+                                  {payFiles[selectedPayTrip] && (
+                                    <p className="text-[11px] mt-1" style={{ color: 'var(--brand-teal)' }}>
+                                      {payFiles[selectedPayTrip]!.name}
+                                    </p>
+                                  )}
+                                </div>
+                                <div>
+                                  <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Note</label>
+                                  <textarea
+                                    value={selectedPf.note}
+                                    onChange={e => setPayForm(f => ({ ...f, [selectedPayTrip]: { ...selectedPf, note: e.target.value } }))}
+                                    rows={2}
+                                    className="w-full border border-black/10 rounded-xl px-3 py-2 text-sm resize-none"
                                     style={{ color: 'var(--text-primary)' }}
                                   />
                                 </div>
+                                {submitPayment.isError && (
+                                  <p className="text-xs" style={{ color: 'var(--brand-crimson)' }}>
+                                    {(submitPayment.error as Error).message}
+                                  </p>
+                                )}
+                                <button
+                                  onClick={() => submitPayment.mutate({ tripId: selectedPayTrip, file: payFiles[selectedPayTrip] ?? null, ...selectedPf })}
+                                  disabled={submitPayment.isPending || !selectedPf.amount || !selectedPf.transaction_date}
+                                  className="w-full py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity"
+                                  style={{ backgroundColor: 'var(--brand-forest)' }}
+                                >
+                                  {paySubmitted[selectedPayTrip] ? 'Submitted ✓' : submitPayment.isPending ? 'Submitting…' : 'Submit payment'}
+                                </button>
                               </div>
-                              <div>
-                                <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Payment method</label>
-                                <input
-                                  value={pf.payment_method}
-                                  onChange={e => setPayForm(f => ({ ...f, [entry.trip!.id]: { ...pf, payment_method: e.target.value } }))}
-                                  placeholder="e.g. bank transfer, cash"
-                                  className="w-full border border-black/10 rounded-xl px-3 py-2 text-sm"
-                                  style={{ color: 'var(--text-primary)' }}
-                                />
-                              </div>
-                              <div>
-                                <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Proof URL (receipt / screenshot link)</label>
-                                <input
-                                  value={pf.proof_url}
-                                  onChange={e => setPayForm(f => ({ ...f, [entry.trip!.id]: { ...pf, proof_url: e.target.value } }))}
-                                  placeholder="https://"
-                                  className="w-full border border-black/10 rounded-xl px-3 py-2 text-sm"
-                                  style={{ color: 'var(--text-primary)' }}
-                                />
-                              </div>
-                              <div>
-                                <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Note</label>
-                                <textarea
-                                  value={pf.note}
-                                  onChange={e => setPayForm(f => ({ ...f, [entry.trip!.id]: { ...pf, note: e.target.value } }))}
-                                  rows={2}
-                                  className="w-full border border-black/10 rounded-xl px-3 py-2 text-sm resize-none"
-                                  style={{ color: 'var(--text-primary)' }}
-                                />
-                              </div>
-                              {submitPayment.isError && submitPayment.variables?.tripId === entry.trip.id && (
-                                <p className="text-xs" style={{ color: 'var(--brand-crimson)' }}>
-                                  {(submitPayment.error as Error).message}
-                                </p>
-                              )}
-                              <button
-                                onClick={() => submitPayment.mutate({ tripId: entry.trip!.id, ...pf })}
-                                disabled={submitPayment.isPending || !pf.amount || !pf.transaction_date}
-                                className="w-full py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity"
-                                style={{ backgroundColor: 'var(--brand-forest)' }}
-                              >
-                                {paySubmitted[entry.trip.id] ? 'Submitted ✓' : submitPayment.isPending && submitPayment.variables?.tripId === entry.trip.id ? 'Submitting…' : 'Submit payment'}
-                              </button>
-                            </div>
-                          </div>
-                        )
-                      })}
+                            )}
+                          </>
+                        ) : (
+                          <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Select a trip to view payments.</p>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* ── BENTO D: Event Activity (renders only if data exists) ──── */}
+              {/* ── BENTO C: Activity ───────────────────────────────────────── */}
               {hasEventActivity && (
                 <div style={{ gridColumn: 'span 8' }}>
                   <div className="rounded-2xl p-6" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
                     <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-6" style={{ color: 'var(--brand-crimson)' }}>
-                      Event Activity
+                      Activity
                     </p>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, minmax(0, 1fr))', gap: '12px' }}>
                       {hasVitals && (
                         <div style={{ gridColumn: 'span 4' }}>
                           <p className="text-xs font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
-                            Vital Signs
+                            Tickets
                           </p>
                           <div className="space-y-2">
                             {vitalsData!.map(vs => (
@@ -1013,7 +1246,7 @@ export default function ProfilePage() {
                       {hasEventRoles && (
                         <div style={{ gridColumn: hasVitals ? 'span 4' : 'span 8' }}>
                           <p className="text-xs font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
-                            Role Requests
+                            Participation
                           </p>
                           <div className="space-y-2">
                             {eventRolesData!.map(er => {
@@ -1043,15 +1276,15 @@ export default function ProfilePage() {
                 </div>
               )}
 
-              {/* ── BENTO E: Calendar subscription ─────────────────────────── */}
+              {/* ── BENTO D: Calendar subscription ─────────────────────────── */}
               {calSubscriptionBlock}
 
-              {/* ── BENTO F: LOS summary card (renders only if abo_number set) ── */}
+              {/* ── BENTO E: STATS ──────────────────────────────────────────── */}
               {validProfile.abo_number && (
                 <div style={{ gridColumn: 'span 8' }}>
                   <div className="rounded-2xl p-6" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
                     <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-4" style={{ color: 'var(--brand-crimson)' }}>
-                      My Network
+                      STATS
                     </p>
                     <div className="flex items-center gap-6">
                       <div>
@@ -1079,14 +1312,14 @@ export default function ProfilePage() {
                         className="ml-auto px-4 py-2 rounded-xl text-xs font-semibold hover:opacity-80 transition-opacity flex-shrink-0"
                         style={{ backgroundColor: 'var(--brand-forest)', color: 'var(--brand-parchment)' }}
                       >
-                        View full tree →
+                        VIEW LOS
                       </a>
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* ── BENTO G: Core Tools (core + admin only) ─────────────────── */}
+              {/* ── BENTO F: Core Tools (core + admin) ─────────────────────── */}
               {isCore && (
                 <div style={{ gridColumn: 'span 8' }}>
                   <div className="rounded-2xl p-6" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
@@ -1100,18 +1333,20 @@ export default function ProfilePage() {
                         gap: '12px',
                       }}
                     >
-                      <a
-                        href="/admin"
-                        style={{
-                          gridColumn: 'span 2',
-                          backgroundColor: 'var(--brand-forest)',
-                          color: 'var(--brand-parchment)',
-                        }}
-                        className="rounded-xl px-4 py-3 flex flex-col gap-1 hover:opacity-80 transition-opacity"
-                      >
-                        <span className="text-xs font-bold tracking-widest uppercase" style={{ color: 'var(--brand-parchment)' }}>Admin</span>
-                        <span className="text-[10px] opacity-60" style={{ color: 'var(--brand-parchment)' }}>Portal management</span>
-                      </a>
+                      {validProfile.role === 'admin' && (
+                        <a
+                          href="/admin"
+                          style={{
+                            gridColumn: 'span 2',
+                            backgroundColor: 'var(--brand-forest)',
+                            color: 'var(--brand-parchment)',
+                          }}
+                          className="rounded-xl px-4 py-3 flex flex-col gap-1 hover:opacity-80 transition-opacity"
+                        >
+                          <span className="text-xs font-bold tracking-widest uppercase" style={{ color: 'var(--brand-parchment)' }}>Admin</span>
+                          <span className="text-[10px] opacity-60" style={{ color: 'var(--brand-parchment)' }}>Portal management</span>
+                        </a>
+                      )}
                     </div>
                   </div>
                 </div>
