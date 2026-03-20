@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, useEffect } from 'react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { formatDate, formatCurrency } from '@/lib/format'
+import { getRoleColors } from '@/lib/role-colors'
 
 // ── LOS subtree types + components ───────────────────────────────────────────
 
@@ -13,13 +14,6 @@ type LOSNode = {
   abo_level: string | null; depth: number; sponsor_abo_number: string | null
   vital_signs: { event_key: string; event_label: string; has_ticket: boolean }[]
   children?: LOSNode[]
-}
-
-const ROLE_STYLES: Record<string, { bg: string; color: string }> = {
-  admin:  { bg: '#2d332a', color: '#FAF8F3' },
-  core:   { bg: '#3E7785', color: '#FAF8F3' },
-  member: { bg: 'rgba(62,119,133,0.15)', color: '#3E7785' },
-  guest:  { bg: 'rgba(0,0,0,0.06)', color: '#8A8577' },
 }
 
 function buildSubtree(nodes: LOSNode[], rootProfileId: string): LOSNode | null {
@@ -34,7 +28,7 @@ function buildSubtree(nodes: LOSNode[], rootProfileId: string): LOSNode | null {
 }
 
 function LOSNodeRow({ node, depth = 0 }: { node: LOSNode; depth?: number }) {
-  const rs = ROLE_STYLES[node.role] ?? ROLE_STYLES.guest
+  const rc = getRoleColors(node.role)
   const displayName = node.first_name ? `${node.first_name} ${node.last_name}` : node.name ?? node.abo_number
   return (
     <div>
@@ -46,7 +40,7 @@ function LOSNodeRow({ node, depth = 0 }: { node: LOSNode; depth?: number }) {
             {displayName}
           </span>
           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0"
-            style={{ backgroundColor: rs.bg, color: rs.color }}>{node.role}</span>
+            style={{ backgroundColor: rc.bg, color: rc.font }}>{node.role}</span>
           {node.abo_level && (
             <span className="text-[10px] font-body flex-shrink-0" style={{ color: 'var(--text-secondary)' }}>
               {node.abo_level}
@@ -858,22 +852,20 @@ export default function ProfilePage() {
                     </div>
 
                     {/* Access level */}
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Access level</span>
-                      <span
-                        className="text-xs font-semibold px-2.5 py-1 rounded-full"
-                        style={{
-                          backgroundColor: validProfile.role === 'admin' ? '#2d332a'
-                            : validProfile.role === 'core' ? '#3E7785'
-                            : 'rgba(62,119,133,0.15)',
-                          color: validProfile.role === 'admin' ? '#FAF8F3'
-                            : validProfile.role === 'core' ? '#FAF8F3'
-                            : '#3E7785',
-                        }}
-                      >
-                        {isUnverified ? 'Unverified' : ROLE_LABELS[validProfile.role]}
-                      </span>
-                    </div>
+                    {(() => {
+                      const rc = getRoleColors(validProfile.role)
+                      return (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Access level</span>
+                          <span
+                            className="text-xs font-semibold px-2.5 py-1 rounded-full"
+                            style={{ backgroundColor: rc.bg, color: rc.font }}
+                          >
+                            {isUnverified ? 'Unverified' : ROLE_LABELS[validProfile.role]}
+                          </span>
+                        </div>
+                      )
+                    })()}
                   </div>
 
                   {/* ── ABO Verification sub-section ── */}
