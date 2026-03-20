@@ -23,10 +23,9 @@ type LOSRow = {
 }
 
 type VitalSign = {
-  event_key: string
-  event_label: string
-  has_ticket: boolean
-  updated_at: string
+  definition_id: string
+  recorded_at: string
+  note: string | null
 }
 
 type LOSNodeWithVitals = LOSRow & { vital_signs: VitalSign[] }
@@ -75,13 +74,13 @@ export async function GET() {
 
   const { data: vsRows } = await supabase
     .from('member_vital_signs')
-    .select('profile_id, event_key, event_label, has_ticket, updated_at')
+    .select('profile_id, definition_id, recorded_at, note')
 
   const vsByProfile: Record<string, VitalSign[]> = {}
   for (const vs of vsRows ?? []) {
     const pid = vs.profile_id as string
     if (!vsByProfile[pid]) vsByProfile[pid] = []
-    vsByProfile[pid].push({ event_key: vs.event_key, event_label: vs.event_label, has_ticket: vs.has_ticket, updated_at: vs.updated_at })
+    vsByProfile[pid].push({ definition_id: vs.definition_id, recorded_at: vs.recorded_at, note: vs.note })
   }
 
   const allNodes: LOSNodeWithVitals[] = rows.map(row => ({
@@ -109,12 +108,12 @@ export async function GET() {
 
   const role = caller.role as string
 
-  // ── ADMIN: full tree ─────────────────────────────────────────────────────
+  // ── ADMIN: full tree ───────────────────────────────────────────────
   if (role === 'admin') {
     return Response.json({ scope: 'full', nodes: allNodes, caller_abo: caller.abo_number })
   }
 
-  // ── MEMBER / CORE: subtree rooted at caller ──────────────────────────────
+  // ── MEMBER / CORE: subtree rooted at caller ────────────────────────────
   if (role === 'member' || role === 'core') {
     if (!caller.abo_number) {
       return Response.json({
@@ -145,7 +144,7 @@ export async function GET() {
     return Response.json({ scope: 'subtree', nodes: subtreeNodes, caller_abo: caller.abo_number })
   }
 
-  // ── GUEST: self + direct upline only ────────────────────────────────────
+  // ── GUEST: self + direct upline only ──────────────────────────────────
   const guestNodes: TreeNode[] = []
 
   const selfRow = caller.abo_number

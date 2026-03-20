@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
-// ── Shared types ──────────────────────────────────────────────────────────
+// ── Shared types ────────────────────────────────────────────────
 
 // — Members tab —
 type LOSMember = {
@@ -51,7 +51,15 @@ type MembersData = {
 }
 
 // — LOS tab —
-type VitalSign = { event_key: string; event_label: string; has_ticket: boolean }
+type VitalSign = { definition_id: string; recorded_at: string; note: string | null }
+
+type VitalSignDefinition = {
+  id: string
+  category: string
+  label: string | null
+  is_active: boolean
+  sort_order: number
+}
 
 type TreeNode = {
   profile_id: string
@@ -61,10 +69,16 @@ type TreeNode = {
   last_name: string
   role: string
   abo_level: string | null
-  depth: number
+  depth: number | null
   sponsor_abo_number: string | null
   vital_signs: VitalSign[]
   children?: TreeNode[]
+}
+
+type LosTreeResponse = {
+  scope: string
+  nodes: TreeNode[]
+  caller_abo: string | null
 }
 
 // — Data Center tab —
@@ -97,7 +111,7 @@ type ImportResult = {
   manual_members_no_abo: ManualMemberNoAbo[]
 }
 
-// ── Members tab helpers ────────────────────────────────────────────────
+// ── Members tab helpers ────────────────────────────────────────────
 
 function formatNum(n: number) {
   return new Intl.NumberFormat('en-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)
@@ -125,7 +139,7 @@ const ROLE_BADGE: Record<string, { bg: string; color: string }> = {
   guest:  { bg: 'rgba(0,0,0,0.06)', color: 'var(--text-secondary)' },
 }
 
-// ── LOS tab helpers ───────────────────────────────────────────────────
+// ── LOS tab helpers ───────────────────────────────────────────────
 
 const ROLE_STYLES: Record<string, { bg: string; color: string }> = {
   admin:  { bg: '#2d332a', color: '#FAF8F3' },
@@ -149,20 +163,15 @@ function buildTree(nodes: TreeNode[]): TreeNode[] {
   return roots
 }
 
-const DEMO_EVENTS = [
-  { event_key: 'spring_convention_2026', event_label: 'Spring Convention 2026' },
-  { event_key: 'leadership_summit_2026', event_label: 'Leadership Summit 2026' },
-]
-
 function NodeCard({
-  node, events, onToggle, isPending,
+  node, definitions, onToggle, isPending,
 }: {
   node: TreeNode
-  events: { event_key: string; event_label: string }[]
-  onToggle: (profileId: string, event_key: string, event_label: string, has_ticket: boolean) => void
+  definitions: VitalSignDefinition[]
+  onToggle: (profileId: string, definitionId: string, currentlyRecorded: boolean) => void
   isPending: boolean
 }) {
-  const [expanded, setExpanded] = useState(node.depth < 2)
+  const [expanded, setExpanded] = useState(node.depth !== null ? node.depth < 2 : true)
   const rs = ROLE_STYLES[node.role] ?? ROLE_STYLES.guest
   const hasChildren = (node.children?.length ?? 0) > 0
   const displayName = node.first_name
@@ -197,21 +206,20 @@ function NodeCard({
               <span className="font-body text-[10px]" style={{ color: 'var(--text-secondary)' }}>#{node.abo_number}</span>
             </div>
             <div className="flex flex-wrap gap-3 mt-2">
-              {events.map(ev => {
-                const vs = vitalSigns.find(v => v.event_key === ev.event_key)
-                const checked = vs?.has_ticket ?? false
+              {definitions.map(def => {
+                const checked = vitalSigns.some(v => v.definition_id === def.id)
                 const noProfile = !node.profile_id
                 return (
-                  <label key={ev.event_key}
+                  <label key={def.id}
                     className={`flex items-center gap-1.5 ${noProfile ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer group'}`}
                     title={noProfile ? 'No portal account — cannot track vital signs' : undefined}>
                     <input type="checkbox" checked={checked}
                       disabled={isPending || noProfile}
-                      onChange={() => onToggle(node.profile_id!, ev.event_key, ev.event_label, !checked)}
+                      onChange={() => onToggle(node.profile_id!, def.id, checked)}
                       className="w-3.5 h-3.5 rounded accent-[var(--brand-crimson)]" />
                     <span className="text-[11px] font-body transition-colors"
                       style={{ color: checked ? 'var(--brand-crimson)' : 'var(--text-secondary)' }}>
-                      {ev.event_label}
+                      {def.label ?? def.category}
                     </span>
                   </label>
                 )
@@ -220,14 +228,14 @@ function NodeCard({
           </div>
           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0"
             style={{ backgroundColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
-            D{node.depth}
+            D{node.depth ?? '?'}
           </span>
         </div>
       </div>
       {hasChildren && expanded && (
         <div className="ml-6 pl-4 border-l" style={{ borderColor: 'var(--border-default)' }}>
           {node.children!.map(child => (
-            <NodeCard key={child.abo_number} node={child} events={events}
+            <NodeCard key={child.abo_number} node={child} definitions={definitions}
               onToggle={onToggle} isPending={isPending} />
           ))}
         </div>
@@ -446,7 +454,7 @@ function ReconciliationPanel({
   )
 }
 
-// ── Tab: Members ───────────────────────────────────────────────────────────────
+// ── Tab: Members ────────────────────────────────────────────────────────
 
 function MembersTab() {
   const qc = useQueryClient()
@@ -663,31 +671,54 @@ function MembersTab() {
   )
 }
 
-// ── Tab: LOS Tree ────────────────────────────────────────────────────────────
+// ── Tab: LOS Tree ─────────────────────────────────────────────────────
 
 function LosTab() {
   const qc = useQueryClient()
-  const [events] = useState(DEMO_EVENTS)
 
-  const { data: rawNodes, isLoading } = useQuery<TreeNode[]>({
+  const { data: treeResponse, isLoading: treeLoading } = useQuery<LosTreeResponse>({
     queryKey: ['los-tree'],
     queryFn: () => fetch('/api/los/tree').then(r => r.json()),
   })
 
-  const flatNodes = Array.isArray(rawNodes) ? rawNodes : []
+  const { data: definitionsRaw } = useQuery<VitalSignDefinition[]>({
+    queryKey: ['vital-sign-definitions'],
+    queryFn: () => fetch('/api/admin/vital-sign-definitions').then(r => r.json()),
+    staleTime: 5 * 60 * 1000,
+  })
 
-  const toggleMutation = useMutation({
-    mutationFn: ({ profileId, event_key, event_label, has_ticket }: {
-      profileId: string; event_key: string; event_label: string; has_ticket: boolean
-    }) =>
-      fetch(`/api/admin/vital-signs/${profileId}`, {
-        method: 'PATCH',
+  const flatNodes = Array.isArray(treeResponse?.nodes) ? treeResponse.nodes : []
+  const definitions = (Array.isArray(definitionsRaw) ? definitionsRaw : []).filter(d => d.is_active)
+
+  const checkMutation = useMutation({
+    mutationFn: ({ profileId, definitionId }: { profileId: string; definitionId: string }) =>
+      fetch(`/api/admin/members/${profileId}/vital-signs`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ event_key, event_label, has_ticket }),
+        body: JSON.stringify({ definition_id: definitionId }),
       }).then(r => r.json()),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['los-tree'] }),
-    onError: (err) => console.error('[vital-signs] toggle failed:', err),
+    onError: (err) => console.error('[vital-signs] check failed:', err),
   })
+
+  const uncheckMutation = useMutation({
+    mutationFn: ({ profileId, definitionId }: { profileId: string; definitionId: string }) =>
+      fetch(`/api/admin/members/${profileId}/vital-signs/${definitionId}`, {
+        method: 'DELETE',
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['los-tree'] }),
+    onError: (err) => console.error('[vital-signs] uncheck failed:', err),
+  })
+
+  const isPending = checkMutation.isPending || uncheckMutation.isPending
+
+  function handleToggle(profileId: string, definitionId: string, currentlyRecorded: boolean) {
+    if (currentlyRecorded) {
+      uncheckMutation.mutate({ profileId, definitionId })
+    } else {
+      checkMutation.mutate({ profileId, definitionId })
+    }
+  }
 
   const treeRoots = buildTree(flatNodes)
 
@@ -700,15 +731,17 @@ function LosTab() {
         <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{flatNodes.length} members</span>
       </div>
 
-      <div className="rounded-xl p-4 flex flex-wrap gap-4"
-        style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-        <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--brand-crimson)' }}>Events</span>
-        {events.map(ev => (
-          <span key={ev.event_key} className="text-xs font-body" style={{ color: 'var(--text-secondary)' }}>✓ {ev.event_label}</span>
-        ))}
-      </div>
+      {definitions.length > 0 && (
+        <div className="rounded-xl p-4 flex flex-wrap gap-4"
+          style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+          <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--brand-crimson)' }}>Vital Signs</span>
+          {definitions.map(def => (
+            <span key={def.id} className="text-xs font-body" style={{ color: 'var(--text-secondary)' }}>✓ {def.label ?? def.category}</span>
+          ))}
+        </div>
+      )}
 
-      {isLoading ? (
+      {treeLoading ? (
         <div className="space-y-2">
           {[...Array(5)].map((_, i) => (
             <div key={i} className="h-16 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--border-default)' }} />
@@ -719,11 +752,9 @@ function LosTab() {
       ) : (
         <div className="space-y-1">
           {treeRoots.map(node => (
-            <NodeCard key={node.abo_number} node={node} events={events}
-              onToggle={(profileId, event_key, event_label, has_ticket) =>
-                toggleMutation.mutate({ profileId, event_key, event_label, has_ticket })
-              }
-              isPending={toggleMutation.isPending} />
+            <NodeCard key={node.abo_number} node={node} definitions={definitions}
+              onToggle={handleToggle}
+              isPending={isPending} />
           ))}
         </div>
       )}
@@ -731,7 +762,7 @@ function LosTab() {
   )
 }
 
-// ── Tab: Data Center ─────────────────────────────────────────────────────────
+// ── Tab: Data Center ───────────────────────────────────────────────────
 
 function DataCenterTab() {
   const fileRef = useRef<HTMLInputElement>(null)
@@ -896,7 +927,7 @@ function DataCenterTab() {
   )
 }
 
-// ── Main page shell ───────────────────────────────────────────────────────────
+// ── Main page shell ──────────────────────────────────────────────────────
 
 type TabKey = 'members' | 'los' | 'data-center'
 
