@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { formatDate } from '@/lib/format'
 
@@ -31,7 +32,6 @@ type LOSNode = {
   annual_ppv: number | null
   renewal_date: string | null
   vital_signs: VitalSign[]
-  // computed
   children?: LOSNode[]
 }
 
@@ -48,18 +48,12 @@ function buildTree(nodes: LOSNode[], rootAbo: string | null): LOSNode[] {
   for (const n of nodes) {
     if (n.abo_number) byAbo[n.abo_number] = { ...n, children: [] }
   }
-
   const roots: LOSNode[] = []
   for (const n of Object.values(byAbo)) {
     const parent = n.sponsor_abo_number ? byAbo[n.sponsor_abo_number] : null
-    if (parent) {
-      parent.children!.push(n)
-    } else {
-      roots.push(n)
-    }
+    if (parent) parent.children!.push(n)
+    else roots.push(n)
   }
-
-  // If scoped to a specific root abo, return just that subtree
   if (rootAbo && byAbo[rootAbo]) return [byAbo[rootAbo]]
   return roots
 }
@@ -72,17 +66,28 @@ function displayName(node: LOSNode): string {
 // ── Role color system ─────────────────────────────────────────────────────────
 
 const ROLE_COLORS: Record<string, { border: string; labelBg: string; labelColor: string; opacity: number }> = {
-  admin:  { border: '#2d332a',            labelBg: '#2d332a',              labelColor: '#FAF8F3', opacity: 1    },
-  core:   { border: '#3E7785',            labelBg: '#3E7785',              labelColor: '#FAF8F3', opacity: 1    },
-  member: { border: 'rgba(45,51,42,0.15)', labelBg: 'rgba(62,119,133,0.12)', labelColor: '#3E7785', opacity: 1  },
-  guest:  { border: 'rgba(45,51,42,0.08)', labelBg: 'rgba(0,0,0,0.05)',    labelColor: '#8A8577', opacity: 0.6 },
+  admin:  { border: '#2d332a',             labelBg: '#2d332a',               labelColor: '#FAF8F3', opacity: 1   },
+  core:   { border: '#3E7785',             labelBg: '#3E7785',               labelColor: '#FAF8F3', opacity: 1   },
+  member: { border: 'rgba(45,51,42,0.15)', labelBg: 'rgba(62,119,133,0.12)', labelColor: '#3E7785', opacity: 1   },
+  guest:  { border: 'rgba(45,51,42,0.08)', labelBg: 'rgba(0,0,0,0.05)',      labelColor: '#8A8577', opacity: 0.6 },
 }
 
 function roleColors(role: string | null) {
   return ROLE_COLORS[role ?? 'guest'] ?? ROLE_COLORS.guest
 }
 
-// ── Member info tooltip / expanded card ──────────────────────────────────────
+// ── Stat subcomponent ─────────────────────────────────────────────────────────
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>{label}</p>
+      <p className="text-xs font-medium mt-0.5" style={{ color: 'var(--text-primary)' }}>{value}</p>
+    </div>
+  )
+}
+
+// ── MemberCard ────────────────────────────────────────────────────────────────
 
 function MemberCard({ node, isExpanded, onToggle }: {
   node: LOSNode
@@ -92,48 +97,36 @@ function MemberCard({ node, isExpanded, onToggle }: {
   const rc = roleColors(node.role)
   const name = displayName(node)
   const hasVitals = node.vital_signs.length > 0
-  const hasStats = node.gpv || node.ppv || node.group_size || node.abo_level
+  const hasStats = node.gpv != null || node.ppv != null || node.group_size != null || node.abo_level != null
 
   return (
     <div
-      className="rounded-xl mb-1.5 overflow-hidden transition-all"
-      style={{
-        border: `1px solid ${rc.border}`,
-        opacity: rc.opacity,
-        backgroundColor: 'var(--bg-card)',
-      }}
+      className="rounded-xl mb-1.5 overflow-hidden"
+      style={{ border: `1px solid ${rc.border}`, opacity: rc.opacity, backgroundColor: 'var(--bg-card)' }}
     >
-      {/* Main row */}
       <div
         className="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-black/[0.02] transition-colors"
         onClick={onToggle}
       >
-        {/* Expand chevron */}
         <svg
           width="12" height="12" viewBox="0 0 24 24" fill="none"
           stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
           className="flex-shrink-0 transition-transform"
-          style={{
-            color: 'var(--text-tertiary)',
-            transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
-          }}
+          style={{ color: 'var(--text-tertiary)', transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}
         >
           <polyline points="9 18 15 12 9 6" />
         </svg>
 
-        {/* Name */}
         <span className="text-sm font-semibold flex-1 min-w-0 truncate" style={{ color: 'var(--text-primary)' }}>
           {name}
         </span>
 
-        {/* ABO number */}
         {node.abo_number && (
           <span className="text-xs font-mono flex-shrink-0" style={{ color: 'var(--text-tertiary)' }}>
             {node.abo_number}
           </span>
         )}
 
-        {/* Role pill */}
         <span
           className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 uppercase tracking-wide"
           style={{ backgroundColor: rc.labelBg, color: rc.labelColor }}
@@ -141,14 +134,12 @@ function MemberCard({ node, isExpanded, onToggle }: {
           {node.role ?? 'guest'}
         </span>
 
-        {/* ABO level */}
         {node.abo_level && (
           <span className="text-[10px] flex-shrink-0" style={{ color: 'var(--text-secondary)' }}>
             {node.abo_level}%
           </span>
         )}
 
-        {/* Vital sign dots (collapsed preview) */}
         {!isExpanded && hasVitals && (
           <div className="flex gap-1 flex-shrink-0">
             {node.vital_signs.map(vs => (
@@ -163,54 +154,23 @@ function MemberCard({ node, isExpanded, onToggle }: {
         )}
       </div>
 
-      {/* Expanded detail panel */}
       {isExpanded && (
-        <div
-          className="px-4 pb-4 pt-1 space-y-3"
-          style={{ borderTop: '1px solid var(--border-default)' }}
-        >
-          <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+        <div className="px-4 pb-4 pt-2 space-y-3" style={{ borderTop: '1px solid var(--border-default)' }}>
+          {hasStats && (
+            <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+              {node.abo_level && <Stat label="ABO Level" value={`${node.abo_level}%`} />}
+              {node.gpv != null && <Stat label="GPV" value={node.gpv.toLocaleString('de-DE', { maximumFractionDigits: 0 })} />}
+              {node.ppv != null && <Stat label="PPV" value={node.ppv.toLocaleString('de-DE', { maximumFractionDigits: 0 })} />}
+              {node.bonus_percent != null && <Stat label="Bonus %" value={`${node.bonus_percent}%`} />}
+              {node.group_size != null && <Stat label="Group size" value={String(node.group_size)} />}
+              {node.qualified_legs != null && <Stat label="Qualified legs" value={String(node.qualified_legs)} />}
+              {node.annual_ppv != null && <Stat label="Annual PPV" value={node.annual_ppv.toLocaleString('de-DE', { maximumFractionDigits: 0 })} />}
+              {node.renewal_date && <Stat label="Renewal date" value={formatDate(node.renewal_date)} />}
+              {node.country && <Stat label="Country" value={node.country} />}
+              {node.depth != null && <Stat label="Tree depth" value={String(node.depth)} />}
+            </div>
+          )}
 
-            {/* LOS stats */}
-            {hasStats && (
-              <>
-                {node.abo_level && (
-                  <Stat label="ABO Level" value={`${node.abo_level}%`} />
-                )}
-                {node.gpv != null && (
-                  <Stat label="GPV" value={node.gpv.toLocaleString('de-DE', { maximumFractionDigits: 0 })} />
-                )}
-                {node.ppv != null && (
-                  <Stat label="PPV" value={node.ppv.toLocaleString('de-DE', { maximumFractionDigits: 0 })} />
-                )}
-                {node.bonus_percent != null && (
-                  <Stat label="Bonus %" value={`${node.bonus_percent}%`} />
-                )}
-                {node.group_size != null && (
-                  <Stat label="Group size" value={String(node.group_size)} />
-                )}
-                {node.qualified_legs != null && (
-                  <Stat label="Qualified legs" value={String(node.qualified_legs)} />
-                )}
-                {node.annual_ppv != null && (
-                  <Stat label="Annual PPV" value={node.annual_ppv.toLocaleString('de-DE', { maximumFractionDigits: 0 })} />
-                )}
-                {node.renewal_date && (
-                  <Stat label="Renewal date" value={formatDate(node.renewal_date)} />
-                )}
-                {node.country && (
-                  <Stat label="Country" value={node.country} />
-                )}
-              </>
-            )}
-
-            {/* Profile stats (only if profile is linked) */}
-            {node.profile_id && node.depth != null && (
-              <Stat label="Tree depth" value={String(node.depth)} />
-            )}
-          </div>
-
-          {/* Vital signs */}
           {hasVitals && (
             <div>
               <p className="text-[10px] font-semibold tracking-widest uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>
@@ -242,23 +202,9 @@ function MemberCard({ node, isExpanded, onToggle }: {
   )
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>{label}</p>
-      <p className="text-xs font-medium mt-0.5" style={{ color: 'var(--text-primary)' }}>{value}</p>
-    </div>
-  )
-}
-
 // ── Recursive tree node ───────────────────────────────────────────────────────
 
-function TreeNode({
-  node,
-  depth,
-  expanded,
-  onToggleExpand,
-}: {
+function TreeNode({ node, depth, expanded, onToggleExpand }: {
   node: LOSNode
   depth: number
   expanded: Set<string>
@@ -270,11 +216,7 @@ function TreeNode({
 
   return (
     <div style={{ paddingLeft: depth > 0 ? 20 : 0 }}>
-      <MemberCard
-        node={node}
-        isExpanded={isExpanded}
-        onToggle={() => onToggleExpand(key)}
-      />
+      <MemberCard node={node} isExpanded={isExpanded} onToggle={() => onToggleExpand(key)} />
       {hasChildren && (
         <div style={{ borderLeft: '2px solid var(--border-default)', marginLeft: 10, paddingLeft: 10 }}>
           {node.children!.map(child => (
@@ -298,60 +240,36 @@ function GuestView({ nodes, callerAbo }: { nodes: LOSNode[]; callerAbo: string |
   const self = nodes.find(n => n.abo_number === callerAbo) ?? nodes[0]
   const upline = nodes.find(n => n.abo_number !== callerAbo)
 
+  function SimpleRow({ node, label }: { node: LOSNode; label: string }) {
+    const rc = roleColors(node.role)
+    return (
+      <div>
+        <p className="text-xs font-semibold tracking-widest uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>
+          {label}
+        </p>
+        <div
+          className="rounded-xl px-4 py-3 flex items-center gap-3"
+          style={{ backgroundColor: 'var(--bg-card)', border: `1px solid ${rc.border}` }}
+        >
+          <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{displayName(node)}</span>
+          {node.abo_number && (
+            <span className="text-xs font-mono" style={{ color: 'var(--text-tertiary)' }}>{node.abo_number}</span>
+          )}
+          <span
+            className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ml-auto"
+            style={{ backgroundColor: rc.labelBg, color: rc.labelColor }}
+          >
+            {node.role ?? 'member'}
+          </span>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-4">
-      {upline && (
-        <div>
-          <p className="text-xs font-semibold tracking-widest uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>
-            Your Upline
-          </p>
-          <div
-            className="rounded-xl px-4 py-3 flex items-center gap-3"
-            style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}
-          >
-            <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-              {displayName(upline)}
-            </span>
-            {upline.abo_number && (
-              <span className="text-xs font-mono" style={{ color: 'var(--text-tertiary)' }}>
-                {upline.abo_number}
-              </span>
-            )}
-            <span
-              className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ml-auto"
-              style={{ backgroundColor: roleColors(upline.role).labelBg, color: roleColors(upline.role).labelColor }}
-            >
-              {upline.role ?? 'member'}
-            </span>
-          </div>
-        </div>
-      )}
-      {self && (
-        <div>
-          <p className="text-xs font-semibold tracking-widest uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>
-            You
-          </p>
-          <div
-            className="rounded-xl px-4 py-3 flex items-center gap-3"
-            style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)', opacity: 0.7 }}
-          >
-            <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-              {displayName(self)}
-            </span>
-            {self.abo_number && (
-              <span className="text-xs font-mono" style={{ color: 'var(--text-tertiary)' }}>
-                {self.abo_number}
-              </span>
-            )}
-            <span
-              className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ml-auto"
-              style={{ backgroundColor: roleColors(self.role).labelBg, color: roleColors(self.role).labelColor }}
-            >
-              {self.role ?? 'guest'}
-            </span>
-          </div>
-        </div>
-      )}
+      {upline && <SimpleRow node={upline} label="Your Upline" />}
+      {self && <SimpleRow node={self} label="You" />}
     </div>
   )
 }
@@ -392,17 +310,14 @@ export default function LOSPage() {
     ? buildTree(data.nodes, data.scope === 'subtree' ? data.caller_abo : null)
     : []
 
-  // Search: filter flat nodes by name or ABO, then rebuild — only active when search has value
   const searchLower = search.toLowerCase().trim()
   const filteredTree: LOSNode[] = searchLower
-    ? (() => {
-        const matched = (data?.nodes ?? []).filter(n => {
+    ? (data?.nodes ?? [])
+        .filter(n => {
           const name = displayName(n).toLowerCase()
           return name.includes(searchLower) || (n.abo_number ?? '').includes(searchLower)
         })
-        // Re-run buildTree on all nodes but only render matched as roots (flat list in search mode)
-        return matched.map(n => ({ ...n, children: [] }))
-      })()
+        .map(n => ({ ...n, children: [] }))
     : tree
 
   const scopeLabel = data?.scope === 'full'
@@ -428,15 +343,10 @@ export default function LOSPage() {
             )}
           </div>
 
-          {/* Legend */}
           <div className="flex items-center gap-3 flex-shrink-0">
-            {[
-              { role: 'admin',  label: 'Admin'  },
-              { role: 'core',   label: 'Core'   },
-              { role: 'member', label: 'Member' },
-              { role: 'guest',  label: 'Guest'  },
-            ].map(({ role, label }) => {
+            {(['admin', 'core', 'member', 'guest'] as const).map(role => {
               const rc = roleColors(role)
+              const label = role.charAt(0).toUpperCase() + role.slice(1)
               return (
                 <div key={role} className="flex items-center gap-1.5">
                   <span
@@ -450,7 +360,7 @@ export default function LOSPage() {
           </div>
         </div>
 
-        {/* Search + controls — only for tree views (not guest) */}
+        {/* Search + controls */}
         {data?.scope !== 'guest' && (
           <div className="flex items-center gap-3 mb-5">
             <input
@@ -458,11 +368,7 @@ export default function LOSPage() {
               onChange={e => setSearch(e.target.value)}
               placeholder="Search by name or ABO…"
               className="flex-1 border rounded-xl px-3 py-2 text-sm"
-              style={{
-                borderColor: 'var(--border-default)',
-                color: 'var(--text-primary)',
-                backgroundColor: 'var(--bg-global)',
-              }}
+              style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
             />
             {!searchLower && (
               <>
@@ -485,7 +391,6 @@ export default function LOSPage() {
           </div>
         )}
 
-        {/* States */}
         {isLoading && (
           <div className="space-y-2">
             {[...Array(8)].map((_, i) => (
@@ -500,12 +405,10 @@ export default function LOSPage() {
           </div>
         )}
 
-        {/* Guest view */}
         {!isLoading && !isError && data?.scope === 'guest' && (
           <GuestView nodes={data.nodes} callerAbo={data.caller_abo} />
         )}
 
-        {/* Tree view */}
         {!isLoading && !isError && data?.scope !== 'guest' && (
           <>
             {filteredTree.length === 0 && (
@@ -528,6 +431,3 @@ export default function LOSPage() {
     </div>
   )
 }
-
-// useState import — needs to be at top of file
-import { useState } from 'react'
