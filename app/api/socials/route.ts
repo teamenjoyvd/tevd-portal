@@ -1,8 +1,8 @@
 import { createServiceClient } from '@/lib/supabase/service'
 
-export const revalidate = 300
+export const revalidate = 300 // 5 min
 
-export async function GET(): Promise<Response> {
+export async function GET() {
   const supabase = createServiceClient()
 
   const { data, error } = await supabase
@@ -16,5 +16,5 @@ export async function GET(): Promise<Response> {
     .maybeSingle()
 
   if (error) return Response.json({ post: null })
-  return Response.json({ post: data ?? null })
+  return Response.json({ post: data })
 }

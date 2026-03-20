@@ -185,7 +185,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["registration_status"]
         }
         Relationships: [
-          {
+            {
             foreignKeyName: "event_role_requests_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: false
@@ -806,6 +806,7 @@ export type Database = {
       }
       import_los_members: { Args: { rows: Json }; Returns: Json }
       is_admin: { Args: never; Returns: boolean }
+      pin_social_post: { Args: { p_id: string }; Returns: undefined }
       rebuild_tree_paths: { Args: never; Returns: undefined }
       run_los_digest: { Args: never; Returns: undefined }
       text2ltree: { Args: { "": string }; Returns: unknown }
