@@ -135,6 +135,7 @@ const ROLE_STYLES: Record<string, { bg: string; color: string }> = {
 }
 
 function buildTree(nodes: TreeNode[]): TreeNode[] {
+  if (!Array.isArray(nodes)) return []
   const byAbo: Record<string, TreeNode> = {}
   const roots: TreeNode[] = []
   for (const n of nodes) { byAbo[n.abo_number] = { ...n, children: [] } }
@@ -167,6 +168,7 @@ function NodeCard({
   const displayName = node.first_name
     ? `${node.first_name} ${node.last_name}`
     : node.name ?? node.abo_number
+  const vitalSigns = Array.isArray(node.vital_signs) ? node.vital_signs : []
 
   return (
     <div className="relative">
@@ -196,7 +198,7 @@ function NodeCard({
             </div>
             <div className="flex flex-wrap gap-3 mt-2">
               {events.map(ev => {
-                const vs = node.vital_signs.find(v => v.event_key === ev.event_key)
+                const vs = vitalSigns.find(v => v.event_key === ev.event_key)
                 const checked = vs?.has_ticket ?? false
                 const noProfile = !node.profile_id
                 return (
@@ -667,10 +669,12 @@ function LosTab() {
   const qc = useQueryClient()
   const [events] = useState(DEMO_EVENTS)
 
-  const { data: flatNodes = [], isLoading } = useQuery<TreeNode[]>({
+  const { data: rawNodes, isLoading } = useQuery<TreeNode[]>({
     queryKey: ['los-tree'],
     queryFn: () => fetch('/api/los/tree').then(r => r.json()),
   })
+
+  const flatNodes = Array.isArray(rawNodes) ? rawNodes : []
 
   const toggleMutation = useMutation({
     mutationFn: ({ profileId, event_key, event_label, has_ticket }: {
