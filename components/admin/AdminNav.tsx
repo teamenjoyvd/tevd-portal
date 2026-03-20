@@ -2,15 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-
-const NAV = [
-  { href: '/admin/approval-hub',  label: 'Approval Hub'  },
-  { href: '/admin/operations',    label: 'Operations'    },
-  { href: '/admin/calendar',      label: 'Calendar'      },
-  { href: '/admin/content',       label: 'Content'       },
-  { href: '/admin/notifications', label: 'Notifications' },
-  { href: '/admin/members',       label: 'Members'       },
-]
+import { ADMIN_NAV } from '@/lib/nav'
 
 export default function AdminNav() {
   const pathname = usePathname()
@@ -33,7 +25,7 @@ export default function AdminNav() {
           <span className="text-xs px-1 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.2)' }}>|</span>
 
           {/* Nav items */}
-          {NAV.map(({ href, label }) => (
+          {ADMIN_NAV.map(({ href, labels }) => (
             <Link
               key={href}
               href={href}
@@ -43,7 +35,7 @@ export default function AdminNav() {
                 backgroundColor: isActive(href) ? 'rgba(255,255,255,0.10)' : 'transparent',
               }}
             >
-              {label}
+              {labels.en}
             </Link>
           ))}
 

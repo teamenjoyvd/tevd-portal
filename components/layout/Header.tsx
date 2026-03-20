@@ -10,12 +10,13 @@ import { useLanguage } from '@/lib/hooks/useLanguage'
 import UserDropdown from '@/components/layout/UserDropdown'
 import UserPopup from '@/components/layout/UserPopup'
 import NotificationPopup from '@/components/notifications/NotificationPopup'
+import { PUBLIC_NAV, MEMBER_NAV } from '@/lib/nav'
 
 export default function Header() {
   const { isSignedIn, user } = useUser()
   const pathname = usePathname()
   const { data: unreadData } = useUnreadCount()
-  const { t } = useLanguage()
+  const { lang } = useLanguage()
   const unread = unreadData?.count ?? 0
   const [bellOpen, setBellOpen] = useState(false)
   const [guestPopupOpen, setGuestPopupOpen] = useState(false)
@@ -48,13 +49,12 @@ export default function Header() {
 
   const isNonGuest = !!user && (user?.publicMetadata?.role as string) !== 'guest'
 
+  // Header shows guides + profile for members, but not /los
+  const HEADER_MEMBER_NAV = MEMBER_NAV.filter(item => item.href !== '/los')
+
   const NAV_LINKS = [
-    { href: '/',         label: t('nav.home')     },
-    { href: '/about',    label: t('nav.about')    },
-    { href: '/calendar', label: t('nav.calendar') },
-    { href: '/trips',    label: t('nav.trips')    },
-    ...(isNonGuest ? [{ href: '/guides',  label: t('nav.howtos')  }] : []),
-    ...(isNonGuest ? [{ href: '/profile', label: t('nav.profile') }] : []),
+    ...PUBLIC_NAV,
+    ...(isNonGuest ? HEADER_MEMBER_NAV : []),
   ]
 
   return (
@@ -94,7 +94,7 @@ export default function Header() {
           </Link>
 
           <nav className="hidden md:flex items-center gap-0.5 absolute left-1/2 -translate-x-1/2">
-            {NAV_LINKS.map(({ href, label }) => (
+            {NAV_LINKS.map(({ href, labels }) => (
               <Link
                 key={href}
                 href={href}
@@ -104,7 +104,7 @@ export default function Header() {
                   backgroundColor: isActive(href) ? 'rgba(188,71,73,0.06)' : 'transparent',
                 }}
               >
-                {label}
+                {labels[lang]}
               </Link>
             ))}
           </nav>
@@ -193,7 +193,7 @@ export default function Header() {
               backdropFilter: 'blur(12px)',
             }}
           >
-            {NAV_LINKS.map(({ href, label }) => (
+            {NAV_LINKS.map(({ href, labels }) => (
               <Link
                 key={href}
                 href={href}
@@ -204,7 +204,7 @@ export default function Header() {
                   backgroundColor: isActive(href) ? 'rgba(188,71,73,0.06)' : 'transparent',
                 }}
               >
-                {label}
+                {labels[lang]}
               </Link>
             ))}
           </div>

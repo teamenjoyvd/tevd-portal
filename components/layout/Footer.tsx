@@ -3,18 +3,12 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { useLanguage } from '@/lib/hooks/useLanguage'
+import { PUBLIC_NAV, FOOTER_MEMBER_NAV } from '@/lib/nav'
 
-const NAV = [
-  { href: '/',         labelKey: 'nav.home'     },
-  { href: '/about',    labelKey: 'nav.about'    },
-  { href: '/calendar', labelKey: 'nav.calendar' },
-  { href: '/trips',    labelKey: 'nav.trips'    },
-  { href: '/howtos',   labelKey: 'nav.howtos'   },
-  { href: '/los',      labelKey: 'nav.network'  },
-]
+const FOOTER_NAV = [...PUBLIC_NAV, ...FOOTER_MEMBER_NAV]
 
 export default function Footer() {
-  const { t } = useLanguage()
+  const { lang } = useLanguage()
 
   return (
     <footer style={{ backgroundColor: 'var(--brand-forest)' }}>
@@ -46,14 +40,14 @@ export default function Footer() {
 
           {/* Col 2 — Nav: hidden on mobile (BottomNav handles mobile), single row on md+ */}
           <nav className="hidden md:flex flex-nowrap items-center gap-x-4 justify-center">
-            {NAV.map(({ href, labelKey }) => (
+            {FOOTER_NAV.map(({ href, labels }) => (
               <Link
                 key={href}
                 href={href}
                 className="text-xs font-medium tracking-widest uppercase transition-opacity hover:opacity-100 flex-shrink-0"
                 style={{ color: 'rgba(242,239,232,0.55)', opacity: 0.8 }}
               >
-                {t(labelKey as Parameters<typeof t>[0])}
+                {labels[lang]}
               </Link>
             ))}
           </nav>
