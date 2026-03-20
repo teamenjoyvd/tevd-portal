@@ -49,7 +49,7 @@ export default function UserPopup({ onClose }: { onClose: () => void }) {
       <Link
         href="/sign-in"
         className="flex items-center justify-center px-4 py-2 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80"
-        style={{ backgroundColor: 'var(--brand-teal)', color: 'white' }}
+        style={{ backgroundColor: 'var(--brand-crimson)', color: 'white' }}
         onClick={onClose}
       >
         {t('nav.signIn')}

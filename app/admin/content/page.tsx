@@ -48,9 +48,6 @@ function BentoSettings() {
 
   return (
     <section>
-      <h2 className="font-display text-xl font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
-        Bento settings
-      </h2>
       <div className="rounded-2xl border p-6" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
         <p className="text-xs mb-5" style={{ color: 'var(--text-secondary)' }}>
           Maximum number of items shown per tile on the homepage.
@@ -101,13 +98,6 @@ type Announcement = {
 type QuickLink = {
   id: string; label: string; url: string; icon_name: string
   access_level: string[]; sort_order: number
-}
-type HomeSettings = {
-  id: string
-  show_caret_1: boolean; caret_1_text: string
-  show_caret_2: boolean; caret_2_text: string
-  show_caret_3: boolean; caret_3_text: string
-  featured_announcement_id: string | null
 }
 
 const LANGS = ['en', 'bg', 'sk']
@@ -445,6 +435,7 @@ const TABS = [
   { key: 'links',         label: 'Quick Links'   },
   { key: 'guides',        label: 'Guides'        },
   { key: 'socials',       label: 'Social Posts'  },
+  { key: 'bento',         label: 'Bento'         },
 ] as const
 
 type TabKey = typeof TABS[number]['key']
@@ -582,27 +573,6 @@ function ContentPageInner() {
     setEditingLink(l)
   }
 
-  // ── Home Settings ──────────────────────────────────────────
-  const { data: settings } = useQuery<HomeSettings>({
-    queryKey: ['home-settings'],
-    queryFn: () => fetch('/api/admin/home-settings').then(r => r.json()),
-  })
-
-  const [sForm, setSForm] = useState<Partial<HomeSettings>>({})
-  const s = { ...settings, ...sForm }
-
-  const saveSettings = useMutation({
-    mutationFn: (body: Partial<HomeSettings>) =>
-      fetch('/api/admin/home-settings', {
-        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      }).then(r => r.json()),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['home-settings'] })
-      setSForm({})
-    },
-  })
-
   // ── Guides ─────────────────────────────────────────────────
   const [guidesEditing, setGuidesEditing] = useState<Guide | null>(null)
   const [guidesCreating, setGuidesCreating] = useState(false)
@@ -649,49 +619,6 @@ function ContentPageInner() {
         <h1 className="font-display text-2xl font-semibold" style={{ color: 'var(--text-primary)' }}>
           Content
         </h1>
-      </div>
-
-      {/* ── Row 1: Config — Home Settings | Bento Settings ── */}
-      <div className="grid grid-cols-2 gap-6">
-
-        {/* Home Settings */}
-        <section>
-          <h2 className="font-display text-xl font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
-            Home settings
-          </h2>
-          <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-6 space-y-4">
-            {([1,2,3] as const).map(n => (
-              <div key={n} className="flex items-center gap-4">
-                <input
-                  type="checkbox"
-                  checked={!!s[`show_caret_${n}` as keyof HomeSettings]}
-                  onChange={e => setSForm(f => ({ ...f, [`show_caret_${n}`]: e.target.checked }))}
-                  className="w-4 h-4 accent-[var(--brand-crimson)]"
-                />
-                <label className="text-sm w-16" style={{ color: 'var(--text-secondary)' }}>Caret {n}</label>
-                <input
-                  value={String(s[`caret_${n}_text` as keyof HomeSettings] ?? '')}
-                  onChange={e => setSForm(f => ({ ...f, [`caret_${n}_text`]: e.target.value }))}
-                  placeholder={`Caret ${n} text`}
-                  className="flex-1 border border-black/10 rounded-xl px-3 py-2 text-sm"
-                  style={{ color: 'var(--text-primary)' }}
-                />
-              </div>
-            ))}
-            <button
-              onClick={() => saveSettings.mutate(sForm)}
-              disabled={saveSettings.isPending || Object.keys(sForm).length === 0}
-              className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
-              style={{ backgroundColor: 'var(--brand-crimson)' }}
-            >
-              {saveSettings.isPending ? 'Saving…' : 'Save settings'}
-            </button>
-          </div>
-        </section>
-
-        {/* Bento Settings */}
-        <BentoSettings />
-
       </div>
 
       {/* ── Tabs ── */}
@@ -1155,6 +1082,9 @@ function ContentPageInner() {
             </div>
           </section>
         )}
+
+        {/* ── Bento tab ── */}
+        {tab === 'bento' && <BentoSettings />}
       </div>
     </div>
   )
