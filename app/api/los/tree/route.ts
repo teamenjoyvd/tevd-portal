@@ -31,6 +31,31 @@ type VitalSign = {
 
 type LOSNodeWithVitals = LOSRow & { vital_signs: VitalSign[] }
 
+// Synthetic node shape for users not in los_members (no ABO, or not yet imported)
+type SyntheticNode = {
+  profile_id: string
+  abo_number: string | null
+  sponsor_abo_number: null
+  abo_level: null
+  name: string
+  first_name: string | null
+  last_name: string | null
+  role: string
+  depth: null
+  country: null
+  gpv: null
+  ppv: null
+  bonus_percent: null
+  group_size: null
+  qualified_legs: null
+  annual_ppv: null
+  renewal_date: null
+  last_synced_at: null
+  vital_signs: VitalSign[]
+}
+
+type TreeNode = LOSNodeWithVitals | SyntheticNode
+
 export async function GET() {
   const { userId } = await auth()
   if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
@@ -64,6 +89,24 @@ export async function GET() {
     vital_signs: vsByProfile[row.profile_id ?? ''] ?? [],
   }))
 
+  function syntheticSelf(): SyntheticNode {
+    return {
+      profile_id: caller!.id,
+      abo_number: caller!.abo_number,
+      sponsor_abo_number: null,
+      abo_level: null,
+      name: `${caller!.first_name} ${caller!.last_name}`,
+      first_name: caller!.first_name,
+      last_name: caller!.last_name,
+      role: caller!.role as string,
+      depth: null,
+      country: null, gpv: null, ppv: null, bonus_percent: null,
+      group_size: null, qualified_legs: null, annual_ppv: null,
+      renewal_date: null, last_synced_at: null,
+      vital_signs: vsByProfile[caller!.id] ?? [],
+    }
+  }
+
   const role = caller.role as string
 
   // ── ADMIN: full tree ─────────────────────────────────────────────────────
@@ -76,21 +119,7 @@ export async function GET() {
     if (!caller.abo_number) {
       return Response.json({
         scope: 'subtree',
-        nodes: [{
-          profile_id: caller.id,
-          abo_number: null,
-          sponsor_abo_number: null,
-          abo_level: null,
-          name: `${caller.first_name} ${caller.last_name}`,
-          first_name: caller.first_name,
-          last_name: caller.last_name,
-          role: caller.role,
-          depth: null,
-          country: null, gpv: null, ppv: null, bonus_percent: null,
-          group_size: null, qualified_legs: null, annual_ppv: null,
-          renewal_date: null, last_synced_at: null,
-          vital_signs: vsByProfile[caller.id] ?? [],
-        } satisfies LOSNodeWithVitals],
+        nodes: [syntheticSelf()],
         caller_abo: null,
       })
     }
@@ -117,7 +146,7 @@ export async function GET() {
   }
 
   // ── GUEST: self + direct upline only ────────────────────────────────────
-  const guestNodes: LOSNodeWithVitals[] = []
+  const guestNodes: TreeNode[] = []
 
   const selfRow = caller.abo_number
     ? allNodes.find(r => r.abo_number === caller.abo_number) ?? null
@@ -130,21 +159,7 @@ export async function GET() {
       if (uplineRow) guestNodes.push(uplineRow)
     }
   } else {
-    guestNodes.push({
-      profile_id: caller.id,
-      abo_number: caller.abo_number ?? '',
-      sponsor_abo_number: null,
-      abo_level: null,
-      name: `${caller.first_name} ${caller.last_name}`,
-      first_name: caller.first_name,
-      last_name: caller.last_name,
-      role: caller.role,
-      depth: null,
-      country: null, gpv: null, ppv: null, bonus_percent: null,
-      group_size: null, qualified_legs: null, annual_ppv: null,
-      renewal_date: null, last_synced_at: null,
-      vital_signs: [],
-    })
+    guestNodes.push(syntheticSelf())
   }
 
   return Response.json({ scope: 'guest', nodes: guestNodes, caller_abo: caller.abo_number ?? null })
