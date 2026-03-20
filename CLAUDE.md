@@ -1,5 +1,5 @@
 # CLAUDE.md — teamenjoyVD Portal
-> Last updated: 2026-03-20 — Merged optimal structure. Latest stable commit: c75518d. Clerk audit complete (@7, no JWT template, service role pattern confirmed).
+> Last updated: 2026-03-20 — Session close. Latest stable commit: 352ce11. Build green. Major schema migration + API layer + role color system this session.
 
 ---
 
@@ -80,6 +80,7 @@ These are non-negotiable. Violation = immediate stop.
 - **NEVER expose `SUPABASE_SERVICE_ROLE_KEY` to the client.** Server-only. No exceptions.
 - **NEVER write `Status=Done` to Airtable before the commit link exists.** Finalization is atomic.
 - **NEVER proceed past CLAIM if `Blocked By` is non-empty** without explicit human acknowledgment.
+- **NEVER mark a ticket Done based on static code analysis alone.** Verify the build is green on Vercel AND the fix is confirmed working in production before closing. Check `list_deployments` — if the latest deployment is ERROR, the fix is not live.
 
 ### ⚠️ DESKTOP / MOBILE LAYOUT LAW
 
@@ -133,6 +134,7 @@ The pattern is always:
 - RLS must be enabled on every user-facing table. No exceptions.
 - Never disable RLS to "fix" a permissions issue — fix the policy.
 - Regenerate `types/supabase.ts` after every migration.
+- **Before migrating a table:** search the entire codebase for ALL files referencing that table (not just frontend components — include API routes). Any route using old schema columns will break tsc and block deployment.
 
 ### Routing
 - App Router conventions: `layout.tsx`, `page.tsx`, `loading.tsx`, `error.tsx`.
@@ -207,12 +209,13 @@ Declare current phase at the opening of every work response:
 **PHASE: VERIFY**
 11. Open a thinking block. Go through the DoD point by point and confirm each item is satisfied.
 12. Ask: Does this actually prevent the failure mode we claimed to address? What edge case is still untested? Have we introduced debt not in the ticket?
-13. If any gap remains — iterate. Do not proceed to FINALIZE.
+13. Check Vercel `list_deployments` — confirm the latest deployment is READY before marking Done. If ERROR, read build logs and fix before closing.
+14. If any gap remains — iterate. Do not proceed to FINALIZE.
 
 **PHASE: FINALIZE**
-14. Commit and push. Format: `[ISS-XXXX] Short imperative description`.
-15. Single Airtable write: `Status=Done` + `CommitLink` + `ClaudeNotes`. Do not write `Status=Done` before the commit link exists.
-16. `ClaudeNotes` must include: what was done, assumptions questioned and resolved, remaining risks or debt, honest DoD assessment, open questions for future validation.
+15. Commit and push. Format: `[ISS-XXXX] Short imperative description`.
+16. Single Airtable write: `Status=Done` + `CommitLink` + `ClaudeNotes`. Do not write `Status=Done` before the commit link exists.
+17. `ClaudeNotes` must include: what was done, assumptions questioned and resolved, remaining risks or debt, honest DoD assessment, open questions for future validation.
 
 ### Airtable Reference
 
@@ -277,6 +280,15 @@ All tokens defined in `styles/brand-tokens.css`.
 | `--brand-void` | `#1A1F18` | Near-black — primary text |
 | `--brand-oyster` | `#F0EDE6` | Light warm — card surfaces |
 | `--brand-stone` | `#8A8577` | Mid-grey — secondary text, timestamps |
+
+### Role Color Palette (lib/role-colors.ts)
+Single source of truth. Import `getRoleColors(role)` — never hardcode role colors inline.
+| Role | bg | font |
+|---|---|---|
+| admin | `#DC143C` (crimson) | `#faf8f3` |
+| core | `#008080` (teal) | `#faf8f3` |
+| member | `#1a6b4a` (forest green) | `#faf8f3` |
+| guest | `#e8e4dc` (parchment) | `#2d2d2d` |
 
 ### Semantic Tokens
 | Token | Light | Dark |
@@ -360,6 +372,9 @@ calDay(iso)           // 18
 calMonth(iso)         // MAR
 ```
 
+### `lib/role-colors.ts`
+Role color palette. **Always import `getRoleColors(role)` — never hardcode role colors inline.**
+
 ### `lib/supabase/service.ts`
 Singleton service role client. Do not create a new client per request. All authenticated server queries go through here.
 
@@ -399,13 +414,21 @@ Option B: `hidden md:block` desktop grid + `md:hidden` mobile stack.
     /admin/payments/route.ts
     /admin/payments/[id]/route.ts
     /admin/verify/route.ts
+    /admin/vital-sign-definitions/route.ts
+    /admin/vital-sign-definitions/[id]/route.ts
+    /admin/members/[id]/vital-signs/route.ts
+    /admin/members/[id]/vital-signs/[definitionId]/route.ts
+    /admin/social-posts/route.ts
+    /admin/social-posts/[id]/route.ts
     /profile/payments/route.ts
     /profile/route.ts
     /profile/verify-abo/route.ts
-    /profile/vitals/route.ts
+    /profile/vitals/route.ts     # Deprecated — delegates to new schema
+    /profile/vital-signs/route.ts
     /profile/event-roles/route.ts
     /profile/los-summary/route.ts
     /profile/upline/route.ts
+    /socials/route.ts            # Replaced Meta Graph API with DB-backed social_posts
     /webhooks/clerk/route.ts
 /components
   /about/AboutMapTile.tsx
@@ -420,6 +443,8 @@ Option B: `hidden md:block` desktop grid + `md:hidden` mobile stack.
     /BottomNav.tsx               # DEAD STUB — do not import
 /lib
   /format.ts                     # EET helpers (always use this)
+  /role-colors.ts                # Role color palette (always use getRoleColors)
+  /og-scrape.ts                  # Server-only OG meta tag scraper
   /supabase
     /client.ts                   # Browser client (anon key)
     /server.ts                   # Server client (anon key + cookies)
@@ -462,6 +487,22 @@ Option B: `hidden md:block` desktop grid + `md:hidden` mobile stack.
 - No-ABO members: `p_<uuid_no_hyphens>` label, direct child of upline (ISS-0139)
 - On ABO assignment: label renamed, `rebuild_tree_paths` called
 
+### `social_posts`
+`id, platform, post_url, caption, thumbnail_url, is_visible, is_pinned, sort_order, created_at`
+- Single pinned post enforced via partial unique index `social_posts_single_pinned (WHERE is_pinned=true)`
+- Pin swap via `pin_social_post(p_id uuid)` RPC — atomic, no race condition
+- OG scrape at save-time via `lib/og-scrape.ts` — silently returns nulls for IG/FB (platforms block server fetches)
+
+### `vital_sign_definitions`
+`id, category, label, is_active, sort_order, created_at`
+- 6 categories: N21 CONNECT, N21 CONNECT+, BBS, WES, CEP, CEP+
+- UNIQUE on category
+
+### `member_vital_signs`
+`id, profile_id, definition_id, recorded_at, note, created_at, recorded_by`
+- UNIQUE on (profile_id, definition_id)
+- FK to profiles (x2) + vital_sign_definitions
+
 ---
 
 ## 15. Access Control
@@ -486,6 +527,15 @@ Admin picks guest, provides upline ABO → directly promotes to member.
 - Cannot have downlines (LOS import is source of truth)
 - Full portal access otherwise
 - LOS import always wins for tree positioning
+
+### Role promotion → Clerk metadata sync
+Every route that updates `profiles.role` MUST also call:
+```ts
+const clerk = await clerkClient()
+await clerk.users.updateUserMetadata(clerkId, { publicMetadata: { role: newRole } })
+```
+Routes that do this: `/api/admin/verify`, `/api/admin/members/verify/[id]`, `/api/admin/members/[id]` PATCH.
+**Pre-fix cohort:** users promoted before this fix was deployed (commit 4b2d69c) still have stale Clerk metadata. They must re-login or be manually synced — no backfill was done by design.
 
 ---
 
@@ -564,6 +614,7 @@ All-time, including soft-deleted. Paginated 50/page.
 | `style2` prop | NEVER USE. Merge into a single `style` object. |
 | Profile page guard | Use `profile?.id` check, not `!profile` — error responses are truthy objects. |
 | LOSBox array guard | Always `Array.isArray()` before passing API response to `buildSubtree`. |
+| LOS Tree API response | `/api/los/tree` returns `{ scope, nodes, caller_abo }` — extract `.nodes` before passing to `buildTree`. |
 | Supabase service client | Singleton in `lib/supabase/service.ts` — do not create new client per request. |
 | New user role | Clerk webhook defaults to `role: 'guest'`. Never change to member without admin approval. |
 | BottomNav | REMOVED (ISS-0137). `BottomNav.tsx` is a dead stub. Do NOT re-add or re-import. |
@@ -572,6 +623,11 @@ All-time, including soft-deleted. Paginated 50/page.
 | `overflow-x-auto` on nav | NEVER. Fix the layout. |
 | No-ABO tree node label | `p_<profile_uuid_no_hyphens>` — renamed to real ABO label on assignment. See ISS-0139. |
 | LOS import is source of truth | LOS company import always wins for tree positioning. |
+| Role colors | ALWAYS use `getRoleColors(role)` from `lib/role-colors.ts`. Never hardcode role bg/font inline. |
+| Clerk publicMetadata.role | UserDropdown reads role from here. Must be kept in sync with `profiles.role` via `updateUserMetadata()` on every promotion. |
+| OG scrape for social posts | `lib/og-scrape.ts` will return nulls for IG/FB URLs — platforms block server fetches. Admins must supply thumbnail_url manually. ISS-0172 tracks a preview UI for this. |
+| Ticket Done = deployed + verified | Never mark Done based on static analysis alone. Confirm Vercel deployment is READY and fix is confirmed working in production. |
+| Schema migration sweep | Before rebuilding a table, grep entire codebase (including API routes, not just UI) for all files using old column names. Orphaned routes with old schema will fail tsc and block all deployments. |
 
 ---
 
@@ -585,8 +641,9 @@ All-time, including soft-deleted. Paginated 50/page.
 | v1.4.0 | 2026-03-18 | Shipped | About page, mobile overhaul, QA batch, EET formatting, lib/format.ts |
 | v1.4.1 | 2026-03-19 | Shipped | Profile crash guard, webhook guest default, service client singleton, SSU |
 | v1.5.0 | 2026-03-19 | Shipped | Profile overhaul (ISS-0128–0138), footer/BottomNav fixes, verification paths |
+| v1.6.0 | 2026-03-20 | Shipped | social_posts DB+API, vital_sign_definitions+member_vital_signs, LOS Tree fix, role color system, Clerk metadata sync |
 
-Latest stable commit: `c75518d`
+Latest stable commit: `352ce11`
 
 ---
 
@@ -601,6 +658,14 @@ Latest stable commit: `c75518d`
 | ISS-0141 | Profile page: Path B manual verification UI | P2 | To Do | Blocked by ISS-0140 |
 | ISS-0142 | Admin approval hub: manual queue + Path C direct-verify | P2 | To Do | Blocked by ISS-0140 |
 | ISS-0143 | LOS import: reconciliation panel for no-ABO profiles | P2 | To Do | Blocked by ISS-0139 |
+| ISS-0164 | [BUG] /calendar tooltip — Guest sees Roles + mobile broken | High | To Do | Next priority |
+| ISS-0165 | /about — heading, mail icon, Mapbox color | Medium | To Do | |
+| ISS-0166 | /trips — registered user: View Trip Details | High | To Do | |
+| ISS-0167 | /profile — pillbox + 2-col layout | Medium | To Do | |
+| ISS-0168 | /profile — section renames | Low | To Do | |
+| ISS-0169 | /admin navbar — PORTAL > | Low | To Do | |
+| ISS-0170 | /profile My Trips — payment modal | Medium | To Do | |
+| ISS-0172 | Admin social posts: URL preview / manual override UI | Low | To Do | Blocked by ISS-0157 |
 
 ---
 
