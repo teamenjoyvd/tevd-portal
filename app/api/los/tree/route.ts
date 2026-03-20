@@ -1,6 +1,36 @@
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
 
+type LOSRow = {
+  abo_number: string
+  sponsor_abo_number: string | null
+  abo_level: string | null
+  name: string | null
+  country: string | null
+  gpv: number | null
+  ppv: number | null
+  bonus_percent: number | null
+  group_size: number | null
+  qualified_legs: number | null
+  annual_ppv: number | null
+  renewal_date: string | null
+  last_synced_at: string | null
+  profile_id: string | null
+  first_name: string | null
+  last_name: string | null
+  role: string | null
+  depth: number | null
+}
+
+type VitalSign = {
+  event_key: string
+  event_label: string
+  has_ticket: boolean
+  updated_at: string
+}
+
+type LOSNodeWithVitals = LOSRow & { vital_signs: VitalSign[] }
+
 export async function GET() {
   const { userId } = await auth()
   if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
@@ -16,23 +46,22 @@ export async function GET() {
   if (!caller) return Response.json({ error: 'Profile not found' }, { status: 404 })
 
   const { data: losRows } = await supabase.rpc('get_los_members_with_profiles')
-  const rows = (losRows ?? []) as Record<string, unknown>[]
+  const rows = (losRows ?? []) as LOSRow[]
 
-  // Attach vital signs to each node keyed by profile_id
   const { data: vsRows } = await supabase
     .from('member_vital_signs')
     .select('profile_id, event_key, event_label, has_ticket, updated_at')
 
-  const vsByProfile: Record<string, { event_key: string; event_label: string; has_ticket: boolean; updated_at: string }[]> = {}
+  const vsByProfile: Record<string, VitalSign[]> = {}
   for (const vs of vsRows ?? []) {
     const pid = vs.profile_id as string
     if (!vsByProfile[pid]) vsByProfile[pid] = []
-    vsByProfile[pid].push(vs)
+    vsByProfile[pid].push({ event_key: vs.event_key, event_label: vs.event_label, has_ticket: vs.has_ticket, updated_at: vs.updated_at })
   }
 
-  const allNodes = rows.map(row => ({
+  const allNodes: LOSNodeWithVitals[] = rows.map(row => ({
     ...row,
-    vital_signs: vsByProfile[row.profile_id as string] ?? [],
+    vital_signs: vsByProfile[row.profile_id ?? ''] ?? [],
   }))
 
   const role = caller.role as string
@@ -45,7 +74,6 @@ export async function GET() {
   // ── MEMBER / CORE: subtree rooted at caller ──────────────────────────────
   if (role === 'member' || role === 'core') {
     if (!caller.abo_number) {
-      // No ABO — return just themselves with no children
       return Response.json({
         scope: 'subtree',
         nodes: [{
@@ -58,19 +86,20 @@ export async function GET() {
           last_name: caller.last_name,
           role: caller.role,
           depth: null,
+          country: null, gpv: null, ppv: null, bonus_percent: null,
+          group_size: null, qualified_legs: null, annual_ppv: null,
+          renewal_date: null, last_synced_at: null,
           vital_signs: vsByProfile[caller.id] ?? [],
-        }],
+        } satisfies LOSNodeWithVitals],
         caller_abo: null,
       })
     }
 
-    // Collect caller + all descendants via BFS on sponsor_abo_number
     const childrenOf: Record<string, string[]> = {}
     for (const r of allNodes) {
-      const sponsor = r.sponsor_abo_number as string | null
-      if (sponsor) {
-        if (!childrenOf[sponsor]) childrenOf[sponsor] = []
-        childrenOf[sponsor].push(r.abo_number as string)
+      if (r.sponsor_abo_number) {
+        if (!childrenOf[r.sponsor_abo_number]) childrenOf[r.sponsor_abo_number] = []
+        childrenOf[r.sponsor_abo_number].push(r.abo_number)
       }
     }
 
@@ -83,14 +112,12 @@ export async function GET() {
       for (const child of childrenOf[abo] ?? []) queue.push(child)
     }
 
-    const subtreeNodes = allNodes.filter(r => included.has(r.abo_number as string))
-
+    const subtreeNodes = allNodes.filter(r => included.has(r.abo_number))
     return Response.json({ scope: 'subtree', nodes: subtreeNodes, caller_abo: caller.abo_number })
   }
 
   // ── GUEST: self + direct upline only ────────────────────────────────────
-  // Find their own row (if they have ABO) and their upline
-  const guestNodes: typeof allNodes = []
+  const guestNodes: LOSNodeWithVitals[] = []
 
   const selfRow = caller.abo_number
     ? allNodes.find(r => r.abo_number === caller.abo_number) ?? null
@@ -98,16 +125,14 @@ export async function GET() {
 
   if (selfRow) {
     guestNodes.push(selfRow)
-    const uplineAbo = selfRow.sponsor_abo_number as string | null
-    if (uplineAbo) {
-      const uplineRow = allNodes.find(r => r.abo_number === uplineAbo)
+    if (selfRow.sponsor_abo_number) {
+      const uplineRow = allNodes.find(r => r.abo_number === selfRow.sponsor_abo_number)
       if (uplineRow) guestNodes.push(uplineRow)
     }
   } else {
-    // No LOS row — push a synthetic self node from profile data
     guestNodes.push({
       profile_id: caller.id,
-      abo_number: null,
+      abo_number: caller.abo_number ?? '',
       sponsor_abo_number: null,
       abo_level: null,
       name: `${caller.first_name} ${caller.last_name}`,
@@ -115,6 +140,9 @@ export async function GET() {
       last_name: caller.last_name,
       role: caller.role,
       depth: null,
+      country: null, gpv: null, ppv: null, bonus_percent: null,
+      group_size: null, qualified_legs: null, annual_ppv: null,
+      renewal_date: null, last_synced_at: null,
       vital_signs: [],
     })
   }
