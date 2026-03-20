@@ -192,6 +192,19 @@ const ROLE_LABELS: Record<string, string> = {
   admin: 'Admin', core: 'Core', member: 'Member', guest: 'Guest',
 }
 
+// ── Skeleton helper ───────────────────────────────────────────────────────────
+
+function SectionSkeleton({ height = 120 }: { height?: number }) {
+  return (
+    <div style={{ gridColumn: 'span 8' }}>
+      <div
+        className="rounded-2xl animate-pulse"
+        style={{ height, backgroundColor: 'var(--border-default)' }}
+      />
+    </div>
+  )
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function ProfilePage() {
@@ -244,28 +257,28 @@ export default function ProfilePage() {
     staleTime: 10 * 60 * 1000,
   })
 
-  const { data: tripsData } = useQuery<TripEntry[]>({
+  const { data: tripsData, isLoading: tripsLoading } = useQuery<TripEntry[]>({
     queryKey: ['profile-payments'],
     queryFn: () => fetch('/api/profile/payments').then(r => r.json()),
     enabled: !!validProfile?.id && validProfile?.role !== 'guest',
     staleTime: 2 * 60 * 1000,
   })
 
-  const { data: vitalsData } = useQuery<VitalSign[]>({
+  const { data: vitalsData, isLoading: vitalsLoading } = useQuery<VitalSign[]>({
     queryKey: ['profile-vitals'],
     queryFn: () => fetch('/api/profile/vitals').then(r => r.json()),
     enabled: !!validProfile?.id && validProfile?.role !== 'guest',
     staleTime: 5 * 60 * 1000,
   })
 
-  const { data: eventRolesData } = useQuery<EventRoleRequest[]>({
+  const { data: eventRolesData, isLoading: eventRolesLoading } = useQuery<EventRoleRequest[]>({
     queryKey: ['profile-event-roles'],
     queryFn: () => fetch('/api/profile/event-roles').then(r => r.json()),
     enabled: !!validProfile?.id && validProfile?.role !== 'guest',
     staleTime: 5 * 60 * 1000,
   })
 
-  const { data: losSummary } = useQuery<LosSummaryData>({
+  const { data: losSummary, isLoading: losSummaryLoading } = useQuery<LosSummaryData>({
     queryKey: ['profile-los-summary'],
     queryFn: () => fetch('/api/profile/los-summary').then(r => r.json()),
     enabled: !!validProfile?.abo_number,
@@ -401,12 +414,14 @@ export default function ProfilePage() {
   const isGuest       = validProfile?.role === 'guest' && !validProfile?.abo_number
   const isUnverified  = validProfile?.role === 'guest' &&
     !!verRequest && (verRequest.status === 'pending' || verRequest.status === 'denied')
-  const isCore        = validProfile?.role === 'core' || validProfile?.role === 'admin'
+  // Only admin has content in Core Tools — core role has no tools yet
+  const isAdmin       = validProfile?.role === 'admin'
 
   const hasTrips = Array.isArray(tripsData) && tripsData.length > 0
   const hasVitals = Array.isArray(vitalsData) && vitalsData.length > 0
   const hasEventRoles = Array.isArray(eventRolesData) && eventRolesData.length > 0
   const hasEventActivity = hasVitals || hasEventRoles
+  const activityLoading = vitalsLoading || eventRolesLoading
 
   // BG name helpers
   const dnMap = ((form.display_names ?? {}) as Record<string, string>)
@@ -421,7 +436,7 @@ export default function ProfilePage() {
     ? (payForm[selectedPayTrip] ?? { amount: '', transaction_date: '', payment_method: '', note: '' })
     : { amount: '', transaction_date: '', payment_method: '', note: '' }
 
-  // ── Calendar subscription block (shared) ────────────────────────────
+  // ── Calendar subscription block (shared) ────────────────────────
   const calSubscriptionBlock = (
     <div style={{ gridColumn: 'span 8' }}>
       <div className="rounded-2xl p-6" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
@@ -994,7 +1009,9 @@ export default function ProfilePage() {
               </div>
 
               {/* ── BENTO B: My Trips + Payments ────────────────────────────── */}
-              {hasTrips && (
+              {tripsLoading ? (
+                <SectionSkeleton height={160} />
+              ) : hasTrips ? (
                 <div style={{ gridColumn: 'span 8' }}>
                   <div className="rounded-2xl p-6" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
                     <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-6" style={{ color: 'var(--brand-crimson)' }}>
@@ -1222,10 +1239,12 @@ export default function ProfilePage() {
                     </div>
                   </div>
                 </div>
-              )}
+              ) : null}
 
               {/* ── BENTO C: Activity ───────────────────────────────────────── */}
-              {hasEventActivity && (
+              {activityLoading ? (
+                <SectionSkeleton height={120} />
+              ) : hasEventActivity ? (
                 <div style={{ gridColumn: 'span 8' }}>
                   <div className="rounded-2xl p-6" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
                     <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-6" style={{ color: 'var(--brand-crimson)' }}>
@@ -1286,57 +1305,63 @@ export default function ProfilePage() {
                     </div>
                   </div>
                 </div>
-              )}
+              ) : null}
 
               {/* ── BENTO D: Calendar subscription ─────────────────────────── */}
               {calSubscriptionBlock}
 
               {/* ── BENTO E: STATS ──────────────────────────────────────────── */}
               {validProfile.abo_number && (
-                <div style={{ gridColumn: 'span 8' }}>
-                  <div className="rounded-2xl p-6" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-                    <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-4" style={{ color: 'var(--brand-crimson)' }}>
-                      STATS
-                    </p>
-                    <div className="flex items-center gap-6">
-                      <div>
-                        <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Role</p>
-                        <p className="text-sm font-semibold mt-0.5" style={{ color: 'var(--text-primary)' }}>
-                          {ROLE_LABELS[validProfile.role]}
-                        </p>
-                      </div>
-                      {losSummary?.depth !== null && losSummary?.depth !== undefined && (
+                losSummaryLoading ? (
+                  <SectionSkeleton height={80} />
+                ) : (
+                  <div style={{ gridColumn: 'span 8' }}>
+                    <div className="rounded-2xl p-6" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+                      <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-4" style={{ color: 'var(--brand-crimson)' }}>
+                        STATS
+                      </p>
+                      <div className="flex items-center gap-6">
                         <div>
-                          <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Depth</p>
+                          <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Role</p>
                           <p className="text-sm font-semibold mt-0.5" style={{ color: 'var(--text-primary)' }}>
-                            Level {losSummary.depth}
+                            {ROLE_LABELS[validProfile.role]}
                           </p>
                         </div>
-                      )}
-                      <div>
-                        <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Direct downlines</p>
-                        <p className="text-sm font-semibold mt-0.5" style={{ color: 'var(--text-primary)' }}>
-                          {losSummary?.direct_downline_count ?? 0}
-                        </p>
+                        {losSummary?.depth !== null && losSummary?.depth !== undefined && (
+                          <div>
+                            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Depth</p>
+                            <p className="text-sm font-semibold mt-0.5" style={{ color: 'var(--text-primary)' }}>
+                              Level {losSummary.depth}
+                            </p>
+                          </div>
+                        )}
+                        {losSummary && (
+                          <div>
+                            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Direct downlines</p>
+                            <p className="text-sm font-semibold mt-0.5" style={{ color: 'var(--text-primary)' }}>
+                              {losSummary.direct_downline_count}
+                            </p>
+                          </div>
+                        )}
+                        <a
+                          href="/los"
+                          className="ml-auto px-4 py-2 rounded-xl text-xs font-semibold hover:opacity-80 transition-opacity flex-shrink-0"
+                          style={{ backgroundColor: 'var(--brand-forest)', color: 'var(--brand-parchment)' }}
+                        >
+                          VIEW LOS
+                        </a>
                       </div>
-                      <a
-                        href="/los"
-                        className="ml-auto px-4 py-2 rounded-xl text-xs font-semibold hover:opacity-80 transition-opacity flex-shrink-0"
-                        style={{ backgroundColor: 'var(--brand-forest)', color: 'var(--brand-parchment)' }}
-                      >
-                        VIEW LOS
-                      </a>
                     </div>
                   </div>
-                </div>
+                )
               )}
 
-              {/* ── BENTO F: Core Tools (core + admin) ─────────────────────── */}
-              {isCore && (
+              {/* ── BENTO F: Admin Tools (admin only) ──────────────────────── */}
+              {isAdmin && (
                 <div style={{ gridColumn: 'span 8' }}>
                   <div className="rounded-2xl p-6" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
                     <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-4" style={{ color: 'var(--brand-teal)' }}>
-                      Core Tools
+                      Admin Tools
                     </p>
                     <div
                       style={{
@@ -1345,20 +1370,18 @@ export default function ProfilePage() {
                         gap: '12px',
                       }}
                     >
-                      {validProfile.role === 'admin' && (
-                        <a
-                          href="/admin"
-                          style={{
-                            gridColumn: 'span 2',
-                            backgroundColor: 'var(--brand-forest)',
-                            color: 'var(--brand-parchment)',
-                          }}
-                          className="rounded-xl px-4 py-3 flex flex-col gap-1 hover:opacity-80 transition-opacity"
-                        >
-                          <span className="text-xs font-bold tracking-widest uppercase" style={{ color: 'var(--brand-parchment)' }}>Admin</span>
-                          <span className="text-[10px] opacity-60" style={{ color: 'var(--brand-parchment)' }}>Portal management</span>
-                        </a>
-                      )}
+                      <a
+                        href="/admin"
+                        style={{
+                          gridColumn: 'span 2',
+                          backgroundColor: 'var(--brand-forest)',
+                          color: 'var(--brand-parchment)',
+                        }}
+                        className="rounded-xl px-4 py-3 flex flex-col gap-1 hover:opacity-80 transition-opacity"
+                      >
+                        <span className="text-xs font-bold tracking-widest uppercase" style={{ color: 'var(--brand-parchment)' }}>Admin</span>
+                        <span className="text-[10px] opacity-60" style={{ color: 'var(--brand-parchment)' }}>Portal management</span>
+                      </a>
                     </div>
                   </div>
                 </div>
