@@ -185,7 +185,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["registration_status"]
         }
         Relationships: [
-            {
+          {
             foreignKeyName: "event_role_requests_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: false
@@ -370,36 +370,50 @@ export type Database = {
       }
       member_vital_signs: {
         Row: {
-          event_key: string
-          event_label: string
-          has_ticket: boolean
+          created_at: string
+          definition_id: string
           id: string
+          note: string | null
           profile_id: string
-          updated_at: string
-          updated_by: string | null
+          recorded_at: string
+          recorded_by: string
         }
         Insert: {
-          event_key: string
-          event_label: string
-          has_ticket?: boolean
+          created_at?: string
+          definition_id: string
           id?: string
+          note?: string | null
           profile_id: string
-          updated_at?: string
-          updated_by?: string | null
+          recorded_at?: string
+          recorded_by: string
         }
         Update: {
-          event_key?: string
-          event_label?: string
-          has_ticket?: boolean
+          created_at?: string
+          definition_id?: string
           id?: string
+          note?: string | null
           profile_id?: string
-          updated_at?: string
-          updated_by?: string | null
+          recorded_at?: string
+          recorded_by?: string
         }
         Relationships: [
           {
+            foreignKeyName: "member_vital_signs_definition_id_fkey"
+            columns: ["definition_id"]
+            isOneToOne: false
+            referencedRelation: "vital_sign_definitions"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "member_vital_signs_profile_id_fkey"
             columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_vital_signs_recorded_by_fkey"
+            columns: ["recorded_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -765,6 +779,33 @@ export type Database = {
           total_cost?: number
           trip_type?: string | null
           visibility_roles?: string[]
+        }
+        Relationships: []
+      }
+      vital_sign_definitions: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          is_active: boolean
+          label: string | null
+          sort_order: number
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          sort_order?: number
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          sort_order?: number
         }
         Relationships: []
       }

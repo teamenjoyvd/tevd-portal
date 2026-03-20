@@ -1,5 +1,3 @@
-// Deprecated route — superseded by /api/profile/vital-signs (ISS-0161)
-// Kept to avoid 404s during transition. Delegates to new schema.
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
 
