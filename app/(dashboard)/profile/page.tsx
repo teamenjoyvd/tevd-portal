@@ -307,12 +307,24 @@ export default function ProfilePage() {
   }, [validProfile])
 
   const saveMutation = useMutation({
-    mutationFn: (body: Partial<Profile>) =>
-      fetch('/api/profile', {
+    mutationFn: async (body: Partial<Profile>) => {
+      // Sanitize: empty strings on nullable columns (date, text) cause Postgres errors
+      const payload = {
+        ...body,
+        id_number:       body.id_number       || null,
+        passport_number: body.passport_number || null,
+        valid_through:   body.valid_through   || null,
+        phone:           body.phone           || null,
+        contact_email:   body.contact_email   || null,
+      }
+      const r = await fetch('/api/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      }).then(r => r.json()),
+        body: JSON.stringify(payload),
+      })
+      if (!r.ok) throw new Error((await r.json()).error ?? 'Save failed')
+      return r.json()
+    },
     onSuccess: (data) => {
       qc.setQueryData(['profile'], data)
       setSaved(true)
