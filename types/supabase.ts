@@ -537,6 +537,42 @@ export type Database = {
         }
         Relationships: []
       }
+      social_posts: {
+        Row: {
+          caption: string | null
+          created_at: string
+          id: string
+          is_pinned: boolean
+          is_visible: boolean
+          platform: string
+          post_url: string
+          sort_order: number
+          thumbnail_url: string | null
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          is_pinned?: boolean
+          is_visible?: boolean
+          platform: string
+          post_url: string
+          sort_order?: number
+          thumbnail_url?: string | null
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          is_pinned?: boolean
+          is_visible?: boolean
+          platform?: string
+          post_url?: string
+          sort_order?: number
+          thumbnail_url?: string | null
+        }
+        Relationships: []
+      }
       tree_nodes: {
         Row: {
           created_at: string
