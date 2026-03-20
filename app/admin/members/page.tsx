@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { getRoleColors } from '@/lib/role-colors'
 
 // ── Shared types ────────────────────────────────────────────────
 
@@ -132,21 +133,7 @@ const LEVEL_BG: Record<string, { bg: string; color: string }> = {
   '3': { bg: 'rgba(0,0,0,0.08)', color: 'var(--text-primary)' },
 }
 
-const ROLE_BADGE: Record<string, { bg: string; color: string }> = {
-  member: { bg: '#81b29a33', color: '#2d6a4f' },
-  core:   { bg: 'var(--brand-crimson)', color: 'white' },
-  admin:  { bg: 'var(--text-primary)', color: 'white' },
-  guest:  { bg: 'rgba(0,0,0,0.06)', color: 'var(--text-secondary)' },
-}
-
 // ── LOS tab helpers ───────────────────────────────────────────────
-
-const ROLE_STYLES: Record<string, { bg: string; color: string }> = {
-  admin:  { bg: '#2d332a', color: '#FAF8F3' },
-  core:   { bg: '#3E7785', color: '#FAF8F3' },
-  member: { bg: 'rgba(62,119,133,0.15)', color: '#3E7785' },
-  guest:  { bg: 'rgba(0,0,0,0.06)', color: '#8A8577' },
-}
 
 function buildTree(nodes: TreeNode[]): TreeNode[] {
   if (!Array.isArray(nodes)) return []
@@ -172,7 +159,7 @@ function NodeCard({
   isPending: boolean
 }) {
   const [expanded, setExpanded] = useState(node.depth !== null ? node.depth < 2 : true)
-  const rs = ROLE_STYLES[node.role] ?? ROLE_STYLES.guest
+  const rc = getRoleColors(node.role)
   const hasChildren = (node.children?.length ?? 0) > 0
   const displayName = node.first_name
     ? `${node.first_name} ${node.last_name}`
@@ -199,7 +186,7 @@ function NodeCard({
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-body text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{displayName}</span>
               <span className="font-body text-[10px] font-bold px-2 py-0.5 rounded-full"
-                style={{ backgroundColor: rs.bg, color: rs.color }}>{node.role}</span>
+                style={{ backgroundColor: rc.bg, color: rc.font }}>{node.role}</span>
               {node.abo_level && (
                 <span className="font-body text-[10px]" style={{ color: 'var(--text-secondary)' }}>{node.abo_level}</span>
               )}
@@ -614,6 +601,7 @@ function MembersTab() {
             {losMembers.map((m, i) => {
               const lvl = m.abo_level ?? '?'
               const lc = LEVEL_BG[lvl] ?? LEVEL_BG['3']
+              const profileRc = m.profile ? getRoleColors(m.profile.role) : null
               return (
                 <div key={m.abo_number} className="flex items-center gap-4 px-5 py-3.5"
                   style={{ borderTop: i > 0 ? '1px solid rgba(0,0,0,0.05)' : 'none' }}>
@@ -622,9 +610,9 @@ function MembersTab() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{m.name ?? '—'}</p>
-                      {m.profile && (
+                      {m.profile && profileRc && (
                         <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0"
-                          style={ROLE_BADGE[m.profile.role] ?? ROLE_BADGE.guest}>{m.profile.role}</span>
+                          style={{ backgroundColor: profileRc.bg, color: profileRc.font }}>{m.profile.role}</span>
                       )}
                     </div>
                     <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
