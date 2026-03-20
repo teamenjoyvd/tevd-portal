@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server'
+import { auth, clerkClient } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
 
 export async function GET(
@@ -66,5 +66,14 @@ export async function PATCH(
   const { data, error } = await supabase
     .from('profiles').update(patch).eq('id', id).select().single()
   if (error) return Response.json({ error: error.message }, { status: 500 })
+
+  // If role changed, sync to Clerk publicMetadata so UserDropdown reflects immediately
+  if (patch.role && data?.clerk_id) {
+    const clerk = await clerkClient()
+    await clerk.users.updateUserMetadata(data.clerk_id, {
+      publicMetadata: { role: patch.role },
+    })
+  }
+
   return Response.json(data)
 }

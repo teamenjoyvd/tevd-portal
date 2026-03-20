@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server'
+import { auth, clerkClient } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
 
 export async function PATCH(
@@ -56,6 +56,16 @@ export async function PATCH(
         .eq('id', verReq.profile_id)
 
       if (profileErr) return Response.json({ error: profileErr.message }, { status: 500 })
+    }
+
+    // Sync role to Clerk publicMetadata so UserDropdown reflects immediately
+    const { data: promoted } = await supabase
+      .from('profiles').select('clerk_id').eq('id', verReq.profile_id).single()
+    if (promoted?.clerk_id) {
+      const clerk = await clerkClient()
+      await clerk.users.updateUserMetadata(promoted.clerk_id, {
+        publicMetadata: { role: 'member' },
+      })
     }
 
     // Notify the user

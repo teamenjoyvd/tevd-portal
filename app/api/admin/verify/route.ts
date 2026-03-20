@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server'
+import { auth, clerkClient } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
 
 // Path C: admin directly verifies a guest with no prior submission.
@@ -24,6 +24,16 @@ export async function POST(req: Request) {
     .eq('id', profile_id)
 
   if (profileErr) return Response.json({ error: profileErr.message }, { status: 500 })
+
+  // Sync role to Clerk publicMetadata so UserDropdown reflects immediately
+  const { data: promoted } = await supabase
+    .from('profiles').select('clerk_id').eq('id', profile_id).single()
+  if (promoted?.clerk_id) {
+    const clerk = await clerkClient()
+    await clerk.users.updateUserMetadata(promoted.clerk_id, {
+      publicMetadata: { role: 'member' },
+    })
+  }
 
   // Place placeholder tree node (p_abo_number=null → p_<uuid> label).
   // Cast to any: generated types declare p_abo_number as string but the
