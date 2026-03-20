@@ -5,19 +5,13 @@ import { useUser, useClerk } from '@clerk/nextjs'
 import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
 import { useLanguage } from '@/lib/hooks/useLanguage'
+import { getRoleColors } from '@/lib/role-colors'
 
 const ROLE_LABELS: Record<string, string> = {
   admin:  'Admin',
   core:   'Core',
   member: 'Member',
   guest:  'Guest',
-}
-
-const ROLE_STYLES: Record<string, { bg: string; color: string }> = {
-  admin:  { bg: 'var(--brand-forest)',   color: 'var(--brand-parchment)' },
-  core:   { bg: 'var(--brand-teal)',     color: 'var(--brand-parchment)' },
-  member: { bg: '#81b29a33',             color: '#2d6a4f'                },
-  guest:  { bg: 'rgba(0,0,0,0.06)',      color: 'var(--text-secondary)'  },
 }
 
 export default function UserDropdown() {
@@ -72,7 +66,7 @@ export default function UserDropdown() {
     return () => document.removeEventListener('keydown', handle)
   }, [])
 
-  const roleStyle = ROLE_STYLES[role] ?? ROLE_STYLES.guest
+  const roleColors = getRoleColors(role)
 
   return (
     <div ref={containerRef} className="relative">
@@ -112,7 +106,7 @@ export default function UserDropdown() {
                 </p>
                 <span
                   className="text-[10px] font-semibold px-2 py-0.5 rounded-full mt-0.5 inline-block"
-                  style={{ backgroundColor: roleStyle.bg, color: roleStyle.color }}
+                  style={{ backgroundColor: roleColors.bg, color: roleColors.font }}
                 >
                   {isUnverified ? 'Unverified Member' : (ROLE_LABELS[role] ?? role)}
                 </span>
