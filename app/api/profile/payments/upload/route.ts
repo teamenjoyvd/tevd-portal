@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
-import { serviceClient } from '@/lib/supabase/service'
+import { createServiceClient } from '@/lib/supabase/service'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,13 +18,15 @@ export async function POST(req: NextRequest) {
   const arrayBuffer = await file.arrayBuffer()
   const buffer = Buffer.from(arrayBuffer)
 
-  const { error } = await serviceClient.storage
+  const supabase = createServiceClient()
+
+  const { error } = await supabase.storage
     .from('trip-proofs')
     .upload(fileName, buffer, { contentType: file.type, upsert: true })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  const { data: { publicUrl } } = serviceClient.storage
+  const { data: { publicUrl } } = supabase.storage
     .from('trip-proofs')
     .getPublicUrl(fileName)
 
