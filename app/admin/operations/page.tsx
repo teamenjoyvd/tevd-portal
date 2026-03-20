@@ -260,9 +260,6 @@ export default function OperationsPage() {
   const approvedRegistrations = registrations.filter(r => r.status === 'approved')
   const selectedTrip = trips.find(t => t.id === selectedTripId)
 
-  // suppress unused variable warning
-  void Profile
-
   return (
     <div className="space-y-10">
 
