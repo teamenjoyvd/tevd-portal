@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useBentoConfig, type BentoConfigEntry } from '@/lib/hooks/useBentoConfig'
+import type { Dispatch, SetStateAction } from 'react'
 
 // ── Shared drag handle ───────────────────────────────────────────────
 
@@ -777,11 +778,12 @@ function ContentPageInner() {
   })
 
   // ── Generic drag helpers ───────────────────────────────
+  // setLocal uses React.Dispatch<SetStateAction<T[]>> so the callback form is accepted by tsc
   function makeDragHandlers<T extends { id: string }>(
     dragging: string | null,
     setDragging: (id: string | null) => void,
     local: T[],
-    setLocal: (items: T[]) => void,
+    setLocal: Dispatch<SetStateAction<T[]>>,
     onDrop: (items: { id: string; sort_order: number }[]) => void,
   ) {
     return {
