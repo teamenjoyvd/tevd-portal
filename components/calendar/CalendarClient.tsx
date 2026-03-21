@@ -360,13 +360,26 @@ export default function CalendarClient({
   const canSeePersonal = isAuthenticated && userRole !== 'guest'
   const fetchMonth     = view === 'agenda' ? null : toMonthParam(current)
 
-  const { data: rawEvents = [], isPending } = useQuery<CalendarEvent[]>({
-    queryKey: ['events', fetchMonth],
+  // Month query — seeded from SSR, cached 60s
+  const { data: monthEvents = [] } = useQuery<CalendarEvent[]>({
+    queryKey: ['events-month', toMonthParam(current)],
     queryFn: () =>
-      fetch(`/api/calendar${fetchMonth ? `?month=${fetchMonth}` : ''}`).then(r => r.json()),
-    initialData: fetchMonth === initialMonth ? initialEvents : undefined,
+      fetch(`/api/calendar?month=${toMonthParam(current)}`).then(r => r.json()),
+    initialData: toMonthParam(current) === initialMonth ? initialEvents : undefined,
     staleTime: 60_000,
+    enabled: view === 'month',
   })
+
+  // Agenda query — always fetches fresh, never seeded from month data
+  const { data: agendaEvents = [], isPending: agendaPending } = useQuery<CalendarEvent[]>({
+    queryKey: ['events-agenda'],
+    queryFn: () => fetch('/api/calendar').then(r => r.json()),
+    staleTime: 0,
+    enabled: view === 'agenda',
+  })
+
+  const rawEvents = view === 'agenda' ? agendaEvents : monthEvents
+  const isPending = view === 'agenda' ? agendaPending : false
 
   const events = useMemo(() =>
     rawEvents.filter(e => {
@@ -464,7 +477,7 @@ export default function CalendarClient({
             <MonthView current={current} events={events} onEventClick={handleEventClick} onDayClick={handleDayClick} />
           )}
           {view === 'agenda' && (
-            <AgendaView events={events} onEventClick={handleEventClick} isLoading={isPending} />
+            <AgendaView events={events} onEventClick={handleEventClick} isLoading={agendaPending} />
           )}
         </div>
       </div>
@@ -597,7 +610,7 @@ export default function CalendarClient({
                 <AgendaView
                   events={events}
                   onEventClick={handleEventClick}
-                  isLoading={isPending}
+                  isLoading={agendaPending}
                 />
               )}
             </div>
