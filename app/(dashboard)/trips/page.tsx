@@ -378,9 +378,50 @@ export default function TripsPage() {
   return (
     <div className="py-8 pb-16">
       <div className="max-w-[960px] mx-auto px-4">
+        {/* Mobile: single-column stack */}
+        <div className="md:hidden flex flex-col gap-3">
+          {isLoading || !isLoaded ? (
+            [...Array(2)].map((_, i) => (
+              <div
+                key={i}
+                className="rounded-2xl animate-pulse"
+                style={{ height: 240, backgroundColor: 'var(--border-default)' }}
+              />
+            ))
+          ) : trips.length === 0 ? (
+            <div
+              className="rounded-2xl flex flex-col items-center justify-center py-16"
+              style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}
+            >
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
+                stroke="var(--text-secondary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+                className="mb-4">
+                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>
+              </svg>
+              <p className="font-medium" style={{ color: 'var(--text-primary)' }}>{t('trips.noTrips')}</p>
+              <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>{t('trips.noTripsDesc')}</p>
+            </div>
+          ) : (
+            trips.map(trip => (
+              <TripCard
+                key={trip.id}
+                trip={trip}
+                registration={regFor(trip.id)}
+                payments={payments}
+                profileId={profile?.id ?? null}
+                onCancel={(id) => cancelMutation.mutate(id)}
+                isCancelling={cancelMutation.isPending}
+                t={t}
+                userRole={profile?.role ?? 'guest'}
+              />
+            ))
+          )}
+        </div>
+
+        {/* Desktop: 2-up 8-col grid */}
         <div
+          className="hidden md:grid"
           style={{
-            display: 'grid',
             gridTemplateColumns: 'repeat(8, minmax(0, 1fr))',
             gap: '12px',
             gridAutoRows: 'minmax(120px, auto)',
