@@ -117,6 +117,8 @@ type TripPayment = {
 type TripEntry = {
   registration_id: string
   registration_status: 'pending' | 'approved' | 'denied'
+  registered_at: string
+  cancelled_at?: string | null
   trip: {
     id: string
     title: string
@@ -127,6 +129,33 @@ type TripEntry = {
     currency: string
   } | null
   payments: TripPayment[]
+}
+
+type PayableItem = {
+  id: string
+  title: string
+  description: string | null
+  amount: number
+  currency: string
+  item_type: string
+}
+
+type GenericPayment = {
+  id: string
+  amount: number
+  transaction_date: string
+  status: string
+  payment_method: string | null
+  proof_url: string | null
+  note: string | null
+  admin_note: string | null
+  created_at: string
+  payable_items: {
+    id: string
+    title: string
+    item_type: string
+    currency: string
+  } | null
 }
 
 type VitalSign = {
@@ -158,13 +187,16 @@ type LosSummaryData = {
 const PAYMENT_STATUS_STYLES: Record<string, { bg: string; color: string }> = {
   pending:   { bg: '#f2cc8f33', color: '#7a5c00' },
   completed: { bg: 'rgba(129,178,154,0.15)', color: '#2d6a4f' },
+  approved:  { bg: 'rgba(129,178,154,0.15)', color: '#2d6a4f' },
   failed:    { bg: 'rgba(188,71,73,0.10)', color: '#bc4749' },
+  denied:    { bg: 'rgba(188,71,73,0.10)', color: '#bc4749' },
 }
 
 const REG_STATUS_STYLES: Record<string, { bg: string; color: string }> = {
-  pending:  { bg: '#f2cc8f33', color: '#7a5c00' },
-  approved: { bg: 'rgba(129,178,154,0.15)', color: '#2d6a4f' },
-  denied:   { bg: 'rgba(188,71,73,0.10)', color: '#bc4749' },
+  pending:   { bg: '#f2cc8f33', color: '#7a5c00' },
+  approved:  { bg: 'rgba(129,178,154,0.15)', color: '#2d6a4f' },
+  denied:    { bg: 'rgba(188,71,73,0.10)', color: '#bc4749' },
+  cancelled: { bg: 'rgba(138,133,119,0.15)', color: '#5c5950' },
 }
 
 function getExpiryState(validThrough: string | null): 'ok' | 'warning' | 'critical' | null {
@@ -211,12 +243,14 @@ export default function ProfilePage() {
   const [uplineInput, setUplineInput] = useState('')
   const [verificationMode, setVerificationMode] = useState<'standard' | 'manual'>('standard')
   const [calCopied, setCalCopied] = useState(false)
-  const [payForm, setPayForm] = useState<Record<string, { amount: string; transaction_date: string; payment_method: string; note: string }>>({})
-  const [paySubmitted, setPaySubmitted] = useState<Record<string, boolean>>({})
-  const [selectedPayTrip, setSelectedPayTrip] = useState<string | null>(null)
-  const [openPayForm, setOpenPayForm] = useState(false)
-  const [payFiles, setPayFiles] = useState<Record<string, File | null>>({})
-  const [expandedTrips, setExpandedTrips] = useState<Record<string, boolean>>({})
+  // Generic payment modal state
+  const [payModalOpen, setPayModalOpen] = useState(false)
+  const [payModalItemId, setPayModalItemId] = useState('')
+  const [payModalAmount, setPayModalAmount] = useState('')
+  const [payModalDate, setPayModalDate] = useState('')
+  const [payModalMethod, setPayModalMethod] = useState('')
+  const [payModalNote, setPayModalNote] = useState('')
+  const [payModalFile, setPayModalFile] = useState<File | null>(null)
 
   const EXPIRY_LABELS = {
     ok:       t('profile.expiry.ok'),
@@ -252,10 +286,24 @@ export default function ProfilePage() {
   })
 
   const { data: tripsData, isLoading: tripsLoading } = useQuery<TripEntry[]>({
-    queryKey: ['profile-payments'],
+    queryKey: ['profile-trips'],
     queryFn: () => fetch('/api/profile/payments').then(r => r.json()),
     enabled: !!validProfile?.id && validProfile?.role !== 'guest',
     staleTime: 2 * 60 * 1000,
+  })
+
+  const { data: paymentsData, isLoading: paymentsLoading } = useQuery<GenericPayment[]>({
+    queryKey: ['profile-generic-payments'],
+    queryFn: () => fetch('/api/payments').then(r => r.json()),
+    enabled: !!validProfile?.id && validProfile?.role !== 'guest',
+    staleTime: 2 * 60 * 1000,
+  })
+
+  const { data: payableItems } = useQuery<PayableItem[]>({
+    queryKey: ['payable-items'],
+    queryFn: () => fetch('/api/payable-items').then(r => r.json()),
+    enabled: !!validProfile?.id && validProfile?.role !== 'guest',
+    staleTime: 5 * 60 * 1000,
   })
 
   const { data: vitalsData, isLoading: vitalsLoading } = useQuery<VitalSign[]>({
@@ -291,14 +339,6 @@ export default function ProfilePage() {
     onSuccess: () => refetchCal(),
   })
 
-  // Auto-select first trip when trips load
-  useEffect(() => {
-    if (Array.isArray(tripsData) && tripsData.length > 0 && selectedPayTrip === null) {
-      const first = tripsData.find(e => e.trip)
-      if (first?.trip) setSelectedPayTrip(first.trip.id)
-    }
-  }, [tripsData, selectedPayTrip])
-
   useEffect(() => {
     if (validProfile) setForm({
       first_name:           validProfile.first_name,
@@ -315,7 +355,6 @@ export default function ProfilePage() {
 
   const saveMutation = useMutation({
     mutationFn: async (body: Partial<Profile>) => {
-      // Sanitize: empty strings on nullable columns (date, text) cause Postgres errors
       const payload = {
         ...body,
         id_number:       body.id_number       || null,
@@ -367,39 +406,50 @@ export default function ProfilePage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['verify-abo'] }),
   })
 
-  const submitPayment = useMutation({
-    mutationFn: async ({ tripId, file, ...body }: { tripId: string; file: File | null; amount: string; transaction_date: string; payment_method: string; note: string }) => {
+  const cancelTrip = useMutation({
+    mutationFn: (tripId: string) =>
+      fetch(`/api/profile/trips/${tripId}/cancel`, { method: 'POST' }).then(async r => {
+        if (!r.ok) throw new Error((await r.json()).error)
+        return r.json()
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['profile-trips'] }),
+  })
+
+  const submitGenericPayment = useMutation({
+    mutationFn: async () => {
       let proofUrl: string | null = null
-      if (file) {
+      if (payModalFile) {
         const fd = new FormData()
-        fd.append('file', file)
+        fd.append('file', payModalFile)
         const uploadRes = await fetch('/api/profile/payments/upload', { method: 'POST', body: fd })
         if (!uploadRes.ok) throw new Error('File upload failed')
         const uploadData = await uploadRes.json()
         proofUrl = uploadData.url
       }
-      const res = await fetch('/api/profile/payments', {
+      const res = await fetch('/api/payments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          trip_id: tripId,
-          amount: parseFloat(body.amount),
-          transaction_date: body.transaction_date,
-          payment_method: body.payment_method || null,
-          proof_url: proofUrl,
-          note: body.note || null,
+          payable_item_id:  payModalItemId,
+          amount:           parseFloat(payModalAmount),
+          transaction_date: payModalDate,
+          payment_method:   payModalMethod || null,
+          proof_url:        proofUrl,
+          note:             payModalNote || null,
         }),
       })
       if (!res.ok) throw new Error((await res.json()).error)
       return res.json()
     },
-    onSuccess: (_data, vars) => {
-      qc.invalidateQueries({ queryKey: ['profile-payments'] })
-      setPayForm(f => ({ ...f, [vars.tripId]: { amount: '', transaction_date: '', payment_method: '', note: '' } }))
-      setPayFiles(f => ({ ...f, [vars.tripId]: null }))
-      setOpenPayForm(false)
-      setPaySubmitted(f => ({ ...f, [vars.tripId]: true }))
-      setTimeout(() => setPaySubmitted(f => ({ ...f, [vars.tripId]: false })), 3000)
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['profile-generic-payments'] })
+      setPayModalOpen(false)
+      setPayModalItemId('')
+      setPayModalAmount('')
+      setPayModalDate('')
+      setPayModalMethod('')
+      setPayModalNote('')
+      setPayModalFile(null)
     },
   })
 
@@ -408,27 +458,29 @@ export default function ProfilePage() {
   const isGuest       = validProfile?.role === 'guest' && !validProfile?.abo_number
   const isUnverified  = validProfile?.role === 'guest' &&
     !!verRequest && (verRequest.status === 'pending' || verRequest.status === 'denied')
-  // Only admin has content in Core Tools — core role has no tools yet
   const isAdmin       = validProfile?.role === 'admin'
 
   const hasTrips = Array.isArray(tripsData) && tripsData.length > 0
   const hasVitals = Array.isArray(vitalsData) && vitalsData.length > 0
   const hasEventRoles = Array.isArray(eventRolesData) && eventRolesData.length > 0
-  const hasEventActivity = hasVitals || hasEventRoles
-  const activityLoading = vitalsLoading || eventRolesLoading
 
   // BG name helpers
   const dnMap = ((form.display_names ?? {}) as Record<string, string>)
   const bgFirst = dnMap.bg_first ?? ''
   const bgLast  = dnMap.bg_last ?? ''
 
-  // Selected trip data for payments column
-  const selectedEntry = Array.isArray(tripsData)
-    ? tripsData.find(e => e.trip?.id === selectedPayTrip) ?? null
-    : null
-  const selectedPf = selectedPayTrip
-    ? (payForm[selectedPayTrip] ?? { amount: '', transaction_date: '', payment_method: '', note: '' })
-    : { amount: '', transaction_date: '', payment_method: '', note: '' }
+  // Group generic payments by payable_item title
+  const paymentsByItem: Record<string, GenericPayment[]> = {}
+  for (const p of (paymentsData ?? [])) {
+    const key = p.payable_items?.title ?? 'Unknown'
+    if (!paymentsByItem[key]) paymentsByItem[key] = []
+    paymentsByItem[key].push(p)
+  }
+
+  // Collect cancelled trip IDs for payment flagging
+  const cancelledTripIds = new Set(
+    (tripsData ?? []).filter(e => e.cancelled_at).map(e => e.trip?.id).filter(Boolean) as string[]
+  )
 
   // ── Calendar subscription block (shared) ────────────────────────
   const calSubscriptionBlock = (
@@ -1026,240 +1078,160 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              {/* ── BENTO B: My Trips + Payments ────────────────────────────── */}
+              {/* ── BENTO B: TRIPS [col-4] ────────────────────────────────────── */}
               {tripsLoading ? (
-                <SectionSkeleton height={160} />
+                <div style={{ gridColumn: 'span 4' }}>
+                  <div className="rounded-2xl animate-pulse" style={{ height: 160, backgroundColor: 'var(--border-default)' }} />
+                </div>
               ) : hasTrips ? (
-                <div style={{ gridColumn: 'span 8' }}>
-                  <div className="rounded-2xl p-6" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-                    <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-6" style={{ color: 'var(--brand-crimson)' }}>
-                      My Trips
+                <div style={{ gridColumn: 'span 4' }}>
+                  <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+                    <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-4" style={{ color: 'var(--brand-crimson)' }}>
+                      Trips
                     </p>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-
-                      {/* Left col: trips list */}
-                      <div className="space-y-2">
-                        {tripsData!.map(entry => {
-                          if (!entry.trip) return null
-                          const regStyle = REG_STATUS_STYLES[entry.registration_status] ?? REG_STATUS_STYLES.pending
-                          const isSelected = selectedPayTrip === entry.trip.id
-                          const isExpanded = expandedTrips[entry.trip.id]
-                          return (
-                            <div
-                              key={entry.registration_id}
-                              className="rounded-xl p-4 cursor-pointer transition-all"
-                              onClick={() => {
-                                setSelectedPayTrip(entry.trip!.id)
-                                setOpenPayForm(false)
-                              }}
-                              style={{
-                                backgroundColor: isSelected ? 'rgba(188,71,73,0.06)' : 'var(--bg-global)',
-                                border: isSelected ? '1px solid rgba(188,71,73,0.20)' : '1px solid var(--border-default)',
-                              }}
-                            >
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="min-w-0">
-                                  <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
-                                    {entry.trip.title}
-                                  </p>
-                                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                                    {entry.trip.destination}
-                                  </p>
-                                </div>
-                                <span
-                                  className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
-                                  style={{ backgroundColor: regStyle.bg, color: regStyle.color }}
-                                >
-                                  {entry.registration_status}
-                                </span>
+                    <div className="space-y-2">
+                      {tripsData!.map(entry => {
+                        if (!entry.trip) return null
+                        const isCancelled = !!entry.cancelled_at
+                        const regStyle = isCancelled
+                          ? REG_STATUS_STYLES.cancelled
+                          : (REG_STATUS_STYLES[entry.registration_status] ?? REG_STATUS_STYLES.pending)
+                        return (
+                          <div
+                            key={entry.registration_id}
+                            className="rounded-xl p-3"
+                            style={{
+                              backgroundColor: 'var(--bg-global)',
+                              border: '1px solid var(--border-default)',
+                              opacity: isCancelled ? 0.7 : 1,
+                            }}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                                  {entry.trip.title}
+                                </p>
+                                <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                                  {entry.trip.destination}
+                                </p>
+                                <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                                  {formatDate(entry.trip.start_date)} – {formatDate(entry.trip.end_date)}
+                                </p>
                               </div>
-                              {isExpanded && (
-                                <div className="mt-3 pt-3 space-y-1" style={{ borderTop: '1px solid var(--border-default)' }}>
-                                  <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                                    {formatDate(entry.trip.start_date)} – {formatDate(entry.trip.end_date)}
-                                  </p>
-                                  <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                                    Total: <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{formatCurrency(entry.trip.total_cost, entry.trip.currency)}</span>
-                                  </p>
-                                </div>
-                              )}
-                              <button
-                                onClick={e => { e.stopPropagation(); setExpandedTrips(t => ({ ...t, [entry.trip!.id]: !t[entry.trip!.id] })) }}
-                                className="mt-2 text-[11px] font-medium hover:opacity-70 transition-opacity"
-                                style={{ color: 'var(--brand-teal)' }}
+                              <span
+                                className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
+                                style={{ backgroundColor: regStyle.bg, color: regStyle.color }}
                               >
-                                {isExpanded ? 'Hide details ↑' : 'View details ↓'}
+                                {isCancelled ? 'cancelled' : entry.registration_status}
+                              </span>
+                            </div>
+                            {!isCancelled && (
+                              <button
+                                onClick={() => {
+                                  if (confirm('Cancel your participation in this trip? This cannot be undone.'))
+                                    cancelTrip.mutate(entry.trip!.id)
+                                }}
+                                disabled={cancelTrip.isPending}
+                                className="mt-2 text-[11px] font-medium hover:opacity-70 transition-opacity disabled:opacity-40"
+                                style={{ color: 'var(--brand-crimson)' }}
+                              >
+                                Cancel participation
                               </button>
-                            </div>
-                          )
-                        })}
-                      </div>
-
-                      {/* Right col: payments + submit */}
-                      <div>
-                        {selectedEntry ? (
-                          <>
-                            <div className="flex items-center justify-between mb-3">
-                              <p className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
-                                {selectedEntry.trip?.title}
-                              </p>
-                              {!openPayForm && (
-                                <button
-                                  onClick={() => setOpenPayForm(true)}
-                                  className="px-3 py-1.5 rounded-xl text-xs font-semibold text-white hover:opacity-90 transition-opacity flex-shrink-0"
-                                  style={{ backgroundColor: 'var(--brand-forest)' }}
-                                >
-                                  + Submit payment
-                                </button>
-                              )}
-                            </div>
-
-                            {/* Payment history */}
-                            {selectedEntry.payments.length > 0 ? (
-                              <div className="space-y-2 mb-4">
-                                {selectedEntry.payments.map(p => {
-                                  const ps = PAYMENT_STATUS_STYLES[p.status] ?? PAYMENT_STATUS_STYLES.pending
-                                  const label = p.status === 'failed' ? 'Unsuccessful' : p.status
-                                  return (
-                                    <div key={p.id} className="flex items-center gap-3 text-xs rounded-xl px-3 py-2"
-                                      style={{ backgroundColor: 'var(--bg-global)' }}>
-                                      <span className="font-semibold flex-shrink-0" style={{ color: 'var(--text-primary)' }}>
-                                        {formatCurrency(p.amount, selectedEntry.trip!.currency)}
-                                      </span>
-                                      <span style={{ color: 'var(--text-secondary)' }}>{formatDate(p.transaction_date)}</span>
-                                      {p.payment_method && (
-                                        <span style={{ color: 'var(--text-secondary)' }}>{p.payment_method}</span>
-                                      )}
-                                      <span
-                                        className="ml-auto font-semibold px-2 py-0.5 rounded-full flex-shrink-0 flex items-center gap-1"
-                                        style={{ backgroundColor: ps.bg, color: ps.color }}
-                                      >
-                                        {label}
-                                        {p.status === 'failed' && p.note && (
-                                          <span
-                                            title={p.note}
-                                            style={{ cursor: 'help', fontSize: 10, lineHeight: 1 }}
-                                          >
-                                            ⓘ
-                                          </span>
-                                        )}
-                                      </span>
-                                      {p.proof_url && (
-                                        <a href={p.proof_url} target="_blank" rel="noopener noreferrer"
-                                          className="flex-shrink-0 hover:underline"
-                                          style={{ color: 'var(--brand-teal)' }}
-                                        >
-                                          proof ↗
-                                        </a>
-                                      )}
-                                    </div>
-                                  )
-                                })}
-                              </div>
-                            ) : (
-                              <p className="text-xs mb-4" style={{ color: 'var(--text-secondary)' }}>No payments logged yet.</p>
                             )}
-
-                            {/* Payment submission form — behind button */}
-                            {openPayForm && selectedPayTrip && (
-                              <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: 'var(--bg-global)', border: '1px solid var(--border-default)' }}>
-                                <div className="flex items-center justify-between">
-                                  <p className="text-xs font-semibold tracking-widest uppercase" style={{ color: 'var(--text-secondary)' }}>
-                                    Submit payment
-                                  </p>
-                                  <button
-                                    onClick={() => setOpenPayForm(false)}
-                                    className="text-xs hover:opacity-70 transition-opacity"
-                                    style={{ color: 'var(--text-secondary)' }}
-                                  >
-                                    Cancel
-                                  </button>
-                                </div>
-                                <div className="grid grid-cols-2 gap-3">
-                                  <div>
-                                    <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Amount ({selectedEntry.trip?.currency})</label>
-                                    <input
-                                      type="number"
-                                      min="0"
-                                      step="0.01"
-                                      value={selectedPf.amount}
-                                      onChange={e => setPayForm(f => ({ ...f, [selectedPayTrip]: { ...selectedPf, amount: e.target.value } }))}
-                                      className="w-full border border-black/10 rounded-xl px-3 py-2 text-sm"
-                                      style={{ color: 'var(--text-primary)' }}
-                                    />
-                                  </div>
-                                  <div>
-                                    <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Date</label>
-                                    <input
-                                      type="date"
-                                      value={selectedPf.transaction_date}
-                                      onChange={e => setPayForm(f => ({ ...f, [selectedPayTrip]: { ...selectedPf, transaction_date: e.target.value } }))}
-                                      className="w-full border border-black/10 rounded-xl px-3 py-2 text-sm"
-                                      style={{ color: 'var(--text-primary)' }}
-                                    />
-                                  </div>
-                                </div>
-                                <div>
-                                  <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Payment method</label>
-                                  <input
-                                    value={selectedPf.payment_method}
-                                    onChange={e => setPayForm(f => ({ ...f, [selectedPayTrip]: { ...selectedPf, payment_method: e.target.value } }))}
-                                    placeholder="e.g. bank transfer, cash"
-                                    className="w-full border border-black/10 rounded-xl px-3 py-2 text-sm"
-                                    style={{ color: 'var(--text-primary)' }}
-                                  />
-                                </div>
-                                <div>
-                                  <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Proof of payment</label>
-                                  <input
-                                    type="file"
-                                    accept="image/*,.pdf"
-                                    onChange={e => setPayFiles(f => ({ ...f, [selectedPayTrip]: e.target.files?.[0] ?? null }))}
-                                    className="w-full text-xs"
-                                    style={{ color: 'var(--text-secondary)' }}
-                                  />
-                                  {payFiles[selectedPayTrip] && (
-                                    <p className="text-[11px] mt-1" style={{ color: 'var(--brand-teal)' }}>
-                                      {payFiles[selectedPayTrip]!.name}
-                                    </p>
-                                  )}
-                                </div>
-                                <div>
-                                  <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Note</label>
-                                  <textarea
-                                    value={selectedPf.note}
-                                    onChange={e => setPayForm(f => ({ ...f, [selectedPayTrip]: { ...selectedPf, note: e.target.value } }))}
-                                    rows={2}
-                                    className="w-full border border-black/10 rounded-xl px-3 py-2 text-sm resize-none"
-                                    style={{ color: 'var(--text-primary)' }}
-                                  />
-                                </div>
-                                {submitPayment.isError && (
-                                  <p className="text-xs" style={{ color: 'var(--brand-crimson)' }}>
-                                    {(submitPayment.error as Error).message}
-                                  </p>
-                                )}
-                                <button
-                                  onClick={() => submitPayment.mutate({ tripId: selectedPayTrip, file: payFiles[selectedPayTrip] ?? null, ...selectedPf })}
-                                  disabled={submitPayment.isPending || !selectedPf.amount || !selectedPf.transaction_date}
-                                  className="w-full py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity"
-                                  style={{ backgroundColor: 'var(--brand-forest)' }}
-                                >
-                                  {paySubmitted[selectedPayTrip] ? 'Submitted ✓' : submitPayment.isPending ? 'Submitting…' : 'Submit payment'}
-                                </button>
-                              </div>
-                            )}
-                          </>
-                        ) : (
-                          <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Select a trip to view payments.</p>
-                        )}
-                      </div>
+                          </div>
+                        )
+                      })}
                     </div>
                   </div>
                 </div>
               ) : null}
 
-              {/* ── BENTO C: Vital Signs ────────────────────────────────────── */}
+              {/* ── BENTO C: PAYMENTS [col-4] ────────────────────────────────── */}
+              {paymentsLoading ? (
+                <div style={{ gridColumn: 'span 4' }}>
+                  <div className="rounded-2xl animate-pulse" style={{ height: 160, backgroundColor: 'var(--border-default)' }} />
+                </div>
+              ) : (
+                <div style={{ gridColumn: 'span 4' }}>
+                  <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+                    <div className="flex items-center justify-between mb-4">
+                      <p className="text-xs font-semibold tracking-[0.25em] uppercase" style={{ color: 'var(--brand-crimson)' }}>
+                        Payments
+                      </p>
+                      <button
+                        onClick={() => setPayModalOpen(true)}
+                        className="px-3 py-1.5 rounded-xl text-xs font-semibold text-white hover:opacity-90 transition-opacity flex-shrink-0"
+                        style={{ backgroundColor: 'var(--brand-forest)' }}
+                      >
+                        + Submit payment
+                      </button>
+                    </div>
+                    {Object.keys(paymentsByItem).length === 0 ? (
+                      <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>No payments logged yet.</p>
+                    ) : (
+                      <div className="space-y-4">
+                        {Object.entries(paymentsByItem).map(([itemTitle, itemPayments]) => (
+                          <div key={itemTitle}>
+                            <p className="text-[11px] font-semibold tracking-widest uppercase mb-1.5" style={{ color: 'var(--text-secondary)' }}>
+                              {itemTitle}
+                            </p>
+                            <div className="space-y-1.5">
+                              {itemPayments.map(p => {
+                                const ps = PAYMENT_STATUS_STYLES[p.status] ?? PAYMENT_STATUS_STYLES.pending
+                                // Check if this payment is linked to a cancelled trip via payable_item
+                                const linkedTripCancelled = p.payable_items?.item_type === 'trip' &&
+                                  cancelledTripIds.size > 0
+                                return (
+                                  <div
+                                    key={p.id}
+                                    className="flex items-center gap-2 text-xs rounded-xl px-3 py-2"
+                                    style={{ backgroundColor: 'var(--bg-global)' }}
+                                  >
+                                    <span className="font-semibold flex-shrink-0" style={{ color: 'var(--text-primary)' }}>
+                                      {formatCurrency(p.amount, p.payable_items?.currency ?? 'EUR')}
+                                    </span>
+                                    <span style={{ color: 'var(--text-secondary)' }}>{formatDate(p.transaction_date)}</span>
+                                    {p.payment_method && (
+                                      <span style={{ color: 'var(--text-secondary)' }}>{p.payment_method}</span>
+                                    )}
+                                    <span
+                                      className="ml-auto font-semibold px-2 py-0.5 rounded-full flex-shrink-0 flex items-center gap-1"
+                                      style={{ backgroundColor: ps.bg, color: ps.color }}
+                                    >
+                                      {p.status}
+                                      {(p.admin_note || linkedTripCancelled) && (
+                                        <span
+                                          title={linkedTripCancelled ? 'Trip was cancelled' : (p.admin_note ?? '')}
+                                          style={{ cursor: 'help', fontSize: 10, lineHeight: 1 }}
+                                        >
+                                          ⓘ
+                                        </span>
+                                      )}
+                                    </span>
+                                    {p.proof_url && (
+                                      <a
+                                        href={p.proof_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex-shrink-0 hover:underline"
+                                        style={{ color: 'var(--brand-teal)' }}
+                                      >
+                                        proof ↗
+                                      </a>
+                                    )}
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* ── BENTO D: Vital Signs ────────────────────────────────────── */}
               {vitalsLoading ? (
                 <div style={{ gridColumn: 'span 4' }}>
                   <div className="rounded-2xl animate-pulse" style={{ height: 120, backgroundColor: 'var(--border-default)' }} />
@@ -1290,7 +1262,7 @@ export default function ProfilePage() {
                 </div>
               ) : null}
 
-              {/* ── BENTO D: Participation ───────────────────────────────────── */}
+              {/* ── BENTO E: Participation ───────────────────────────────────── */}
               {eventRolesLoading ? (
                 <div style={{ gridColumn: 'span 4' }}>
                   <div className="rounded-2xl animate-pulse" style={{ height: 120, backgroundColor: 'var(--border-default)' }} />
@@ -1326,10 +1298,10 @@ export default function ProfilePage() {
                 </div>
               ) : null}
 
-              {/* ── BENTO E: Calendar subscription ─────────────────────────── */}
+              {/* ── BENTO F: Calendar subscription ─────────────────────────── */}
               {calSubscriptionBlock}
 
-              {/* ── BENTO F: STATS ──────────────────────────────────────────── */}
+              {/* ── BENTO G: STATS ──────────────────────────────────────────── */}
               {validProfile.abo_number && (
                 losSummaryLoading ? (
                   <SectionSkeleton height={80} />
@@ -1375,7 +1347,7 @@ export default function ProfilePage() {
                 )
               )}
 
-              {/* ── BENTO G: Admin Tools (admin only) ──────────────────────── */}
+              {/* ── BENTO H: Admin Tools (admin only) ──────────────────────── */}
               {isAdmin && (
                 <div style={{ gridColumn: 'span 8' }}>
                   <div className="rounded-2xl p-6" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
@@ -1409,6 +1381,142 @@ export default function ProfilePage() {
           )}
         </div>
       </div>
+
+      {/* ── PAYMENT MODAL (fixed, blocking, non-backdrop-dismissable) ─────── */}
+      {payModalOpen && (
+        <>
+          {/* Backdrop — intentionally no onClick: user must Cancel or Submit */}
+          <div
+            className="fixed inset-0 z-50"
+            style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+          />
+          {/* Modal */}
+          <div
+            className="fixed z-[51] rounded-2xl shadow-xl p-6"
+            style={{
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: '100%',
+              maxWidth: '28rem',
+              backgroundColor: 'var(--bg-card)',
+              border: '1px solid var(--border-default)',
+            }}
+          >
+            <p className="text-sm font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
+              Submit Payment
+            </p>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Item</label>
+                <select
+                  value={payModalItemId}
+                  onChange={e => setPayModalItemId(e.target.value)}
+                  className="w-full border border-black/10 rounded-xl px-3 py-2 text-sm"
+                  style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
+                >
+                  <option value="">Select an item…</option>
+                  {(payableItems ?? []).map(item => (
+                    <option key={item.id} value={item.id}>
+                      {item.title} — {formatCurrency(item.amount, item.currency)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Amount</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={payModalAmount}
+                    onChange={e => setPayModalAmount(e.target.value)}
+                    className="w-full border border-black/10 rounded-xl px-3 py-2 text-sm"
+                    style={{ color: 'var(--text-primary)' }}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Date</label>
+                  <input
+                    type="date"
+                    value={payModalDate}
+                    onChange={e => setPayModalDate(e.target.value)}
+                    className="w-full border border-black/10 rounded-xl px-3 py-2 text-sm"
+                    style={{ color: 'var(--text-primary)' }}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Payment method</label>
+                <input
+                  value={payModalMethod}
+                  onChange={e => setPayModalMethod(e.target.value)}
+                  placeholder="e.g. bank transfer, cash"
+                  className="w-full border border-black/10 rounded-xl px-3 py-2 text-sm"
+                  style={{ color: 'var(--text-primary)' }}
+                />
+              </div>
+              <div>
+                <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Proof of payment (optional)</label>
+                <input
+                  type="file"
+                  accept="image/*,.pdf"
+                  onChange={e => setPayModalFile(e.target.files?.[0] ?? null)}
+                  className="w-full text-xs"
+                  style={{ color: 'var(--text-secondary)' }}
+                />
+                {payModalFile && (
+                  <p className="text-[11px] mt-1" style={{ color: 'var(--brand-teal)' }}>
+                    {payModalFile.name}
+                  </p>
+                )}
+              </div>
+              <div>
+                <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Note</label>
+                <textarea
+                  value={payModalNote}
+                  onChange={e => setPayModalNote(e.target.value)}
+                  rows={2}
+                  className="w-full border border-black/10 rounded-xl px-3 py-2 text-sm resize-none"
+                  style={{ color: 'var(--text-primary)' }}
+                />
+              </div>
+              {submitGenericPayment.isError && (
+                <p className="text-xs" style={{ color: 'var(--brand-crimson)' }}>
+                  {(submitGenericPayment.error as Error).message}
+                </p>
+              )}
+              <div className="flex gap-3 pt-1">
+                <button
+                  onClick={() => {
+                    setPayModalOpen(false)
+                    setPayModalItemId('')
+                    setPayModalAmount('')
+                    setPayModalDate('')
+                    setPayModalMethod('')
+                    setPayModalNote('')
+                    setPayModalFile(null)
+                    submitGenericPayment.reset()
+                  }}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold border hover:bg-black/5 transition-colors"
+                  style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => submitGenericPayment.mutate()}
+                  disabled={submitGenericPayment.isPending || !payModalItemId || !payModalAmount || !payModalDate}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity"
+                  style={{ backgroundColor: 'var(--brand-forest)' }}
+                >
+                  {submitGenericPayment.isPending ? 'Submitting…' : 'Submit'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }
