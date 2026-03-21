@@ -231,6 +231,18 @@ function SectionSkeleton({ height = 120 }: { height?: number }) {
   )
 }
 
+// ── Mobile-aware col-4 bento wrapper ─────────────────────────────────────────
+// On mobile: full width (bento-mobile-full overrides to 1/-1).
+// On md+: span 4 via inline style (matches existing desktop layout).
+
+function Col4Bento({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="bento-mobile-full" style={{ gridColumn: 'span 4' }}>
+      {children}
+    </div>
+  )
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function ProfilePage() {
@@ -1078,13 +1090,13 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              {/* ── BENTO B: TRIPS [col-4] ────────────────────────────────────── */}
+              {/* ── BENTO B: TRIPS [col-4 desktop, full mobile] ──────────────── */}
               {tripsLoading ? (
-                <div style={{ gridColumn: 'span 4' }}>
+                <Col4Bento>
                   <div className="rounded-2xl animate-pulse" style={{ height: 160, backgroundColor: 'var(--border-default)' }} />
-                </div>
+                </Col4Bento>
               ) : hasTrips ? (
-                <div style={{ gridColumn: 'span 4' }}>
+                <Col4Bento>
                   <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
                     <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-4" style={{ color: 'var(--brand-crimson)' }}>
                       Trips
@@ -1143,16 +1155,16 @@ export default function ProfilePage() {
                       })}
                     </div>
                   </div>
-                </div>
+                </Col4Bento>
               ) : null}
 
-              {/* ── BENTO C: PAYMENTS [col-4] ────────────────────────────────── */}
+              {/* ── BENTO C: PAYMENTS [col-4 desktop, full mobile] ───────────── */}
               {paymentsLoading ? (
-                <div style={{ gridColumn: 'span 4' }}>
+                <Col4Bento>
                   <div className="rounded-2xl animate-pulse" style={{ height: 160, backgroundColor: 'var(--border-default)' }} />
-                </div>
+                </Col4Bento>
               ) : (
-                <div style={{ gridColumn: 'span 4' }}>
+                <Col4Bento>
                   <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
                     <div className="flex items-center justify-between mb-4">
                       <p className="text-xs font-semibold tracking-[0.25em] uppercase" style={{ color: 'var(--brand-crimson)' }}>
@@ -1228,16 +1240,16 @@ export default function ProfilePage() {
                       </div>
                     )}
                   </div>
-                </div>
+                </Col4Bento>
               )}
 
-              {/* ── BENTO D: Vital Signs ────────────────────────────────────── */}
+              {/* ── BENTO D: Vital Signs [col-4 desktop, full mobile] ────────── */}
               {vitalsLoading ? (
-                <div style={{ gridColumn: 'span 4' }}>
+                <Col4Bento>
                   <div className="rounded-2xl animate-pulse" style={{ height: 120, backgroundColor: 'var(--border-default)' }} />
-                </div>
+                </Col4Bento>
               ) : hasVitals ? (
-                <div style={{ gridColumn: 'span 4' }}>
+                <Col4Bento>
                   <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
                     <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-6" style={{ color: 'var(--brand-crimson)' }}>
                       Vital Signs
@@ -1259,16 +1271,16 @@ export default function ProfilePage() {
                       ))}
                     </div>
                   </div>
-                </div>
+                </Col4Bento>
               ) : null}
 
-              {/* ── BENTO E: Participation ───────────────────────────────────── */}
+              {/* ── BENTO E: Participation [col-4 desktop, full mobile] ──────── */}
               {eventRolesLoading ? (
-                <div style={{ gridColumn: 'span 4' }}>
+                <Col4Bento>
                   <div className="rounded-2xl animate-pulse" style={{ height: 120, backgroundColor: 'var(--border-default)' }} />
-                </div>
+                </Col4Bento>
               ) : hasEventRoles ? (
-                <div style={{ gridColumn: 'span 4' }}>
+                <Col4Bento>
                   <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
                     <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-6" style={{ color: 'var(--brand-crimson)' }}>
                       Participation
@@ -1295,7 +1307,7 @@ export default function ProfilePage() {
                       })}
                     </div>
                   </div>
-                </div>
+                </Col4Bento>
               ) : null}
 
               {/* ── BENTO F: Calendar subscription ─────────────────────────── */}
@@ -1390,7 +1402,7 @@ export default function ProfilePage() {
             className="fixed inset-0 z-50"
             style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
           />
-          {/* Modal */}
+          {/* Modal — viewport-safe on all screen sizes */}
           <div
             className="fixed z-[51] rounded-2xl shadow-xl p-6"
             style={{
@@ -1398,7 +1410,7 @@ export default function ProfilePage() {
               left: '50%',
               transform: 'translate(-50%, -50%)',
               width: '100%',
-              maxWidth: '28rem',
+              maxWidth: 'min(28rem, calc(100vw - 2rem))',
               backgroundColor: 'var(--bg-card)',
               border: '1px solid var(--border-default)',
             }}
