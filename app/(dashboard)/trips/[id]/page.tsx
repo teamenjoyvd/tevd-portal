@@ -36,7 +36,8 @@ function tripDuration(start: string, end: string) {
 }
 
 export default function TripDetailPage() {
-  const { id } = useParams<{ id: string }>()
+  const params = useParams()
+  const id = params.id as string
   const router = useRouter()
   const { isSignedIn, isLoaded } = useUser()
   const { t } = useLanguage()
