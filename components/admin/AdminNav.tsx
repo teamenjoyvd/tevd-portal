@@ -48,11 +48,11 @@ export default function AdminNav() {
             className="flex items-center gap-1.5 px-2 text-xs font-semibold tracking-widest uppercase transition-colors hover:text-white flex-shrink-0"
             style={{ color: 'rgba(255,255,255,0.7)' }}
           >
+            Portal
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="15 18 9 12 15 6"/>
+              <polyline points="9 18 15 12 9 6"/>
             </svg>
-            Portal
           </Link>
         </div>
       </div>

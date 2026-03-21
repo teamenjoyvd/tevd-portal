@@ -5,7 +5,7 @@ import AboutMapTile from '@/components/about/AboutMapTile'
 // ── Shared content blocks ─────────────────────────────────────────────────
 
 const HEADING = (
-  <h1 className="font-display text-3xl font-semibold" style={{ color: 'var(--brand-stone)' }}>
+  <h1 className="font-display text-3xl font-semibold text-right" style={{ color: 'var(--brand-stone)' }}>
     About Us
   </h1>
 )
@@ -38,7 +38,7 @@ const EMAIL_TILE = (
       aria-label="Email us"
       className="flex flex-col items-center gap-2 hover:opacity-80 transition-opacity"
     >
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none"
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none"
         stroke="var(--brand-parchment)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <rect width="20" height="16" x="2" y="4" rx="2"/>
         <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>

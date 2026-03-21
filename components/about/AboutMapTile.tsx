@@ -9,7 +9,7 @@ function getMapStyle(): string {
   const theme = document.documentElement.getAttribute('data-theme')
   return theme === 'dark'
     ? 'mapbox://styles/mapbox/dark-v11'
-    : 'mapbox://styles/mapbox/light-v11'
+    : 'mapbox://styles/mapbox/outdoors-v12'
 }
 
 type Props = {
