@@ -1,5 +1,5 @@
 # CLAUDE.md — teamenjoyVD Portal
-> Last updated: 2026-03-21 — Duplicate audit complete. 22 ghost records flagged. Seq autonumber field added to Issues table. READ protocol updated to filter duplicates. Latest stable commit: e5283e8.
+> Last updated: 2026-03-21 — CI type-check workflow added (Section 24). Supabase types regenerated (announcements + guides sort_order). Latest stable commit: f6dce70.
 
 ---
 
@@ -133,7 +133,7 @@ The pattern is always:
 - Never run raw `ALTER TABLE` in application code.
 - RLS must be enabled on every user-facing table. No exceptions.
 - Never disable RLS to "fix" a permissions issue — fix the policy.
-- Regenerate `types/supabase.ts` after every migration.
+- **Regenerate `types/supabase.ts` after every migration. This is mandatory — see Section 24.**
 - **Before migrating a table:** search the entire codebase for ALL files referencing that table (not just frontend components — include API routes). Any route using old schema columns will break tsc and block deployment.
 
 ### Routing
@@ -464,6 +464,9 @@ Option B: `hidden md:block` desktop grid + `md:hidden` mobile stack.
   /i18n/translations.ts          # Translation source of truth — add keys here before using t()
 /styles
   /brand-tokens.css
+/.github
+  /workflows
+    /check-types.yml             # CI: Supabase type drift + tsc on every push to main — see Section 24
 /docs
   /ai
     /system-prompt.xml
@@ -504,6 +507,9 @@ Option B: `hidden md:block` desktop grid + `md:hidden` mobile stack.
 - Single pinned post enforced via partial unique index `social_posts_single_pinned (WHERE is_pinned=true)`
 - Pin swap via `pin_social_post(p_id uuid)` RPC — atomic, no race condition
 - OG scrape at save-time via `lib/og-scrape.ts` — silently returns nulls for IG/FB (platforms block server fetches)
+
+### `announcements`
+`id, titles, contents, access_level, is_active, sort_order, created_at`
 
 ### `vital_sign_definitions`
 `id, category, label, is_active, sort_order, created_at`
@@ -622,7 +628,7 @@ All-time, including soft-deleted. Paginated 50/page.
 | EventPopup guest | Roles section (`px-4 py-3` block incl. heading) hidden entirely for `userRole === 'guest'` or `null`. |
 | About page layout | Option B: `hidden md:block` desktop + `md:hidden` mobile. CANONICAL REFERENCE. |
 | Admin calendar order | `ascending: true` in `/api/admin/calendar` GET. |
-| `types/supabase.ts` | Regenerate after EVERY migration. |
+| `types/supabase.ts` | Regenerate after EVERY migration. CI will fail the build on the next push if `types/supabase.ts` does not match the live DB schema. See Section 24 for fix command. |
 | `<img>` vs `next/image` | Use `<img>` for user-uploaded images — domains unpredictable. |
 | Admin link in ProfileTile | `role === 'admin'` only. |
 | `style2` prop | NEVER USE. Merge into a single `style` object. |
@@ -665,8 +671,9 @@ All-time, including soft-deleted. Paginated 50/page.
 | v1.6.0 | 2026-03-20 | Shipped | social_posts DB+API, vital_sign_definitions+member_vital_signs, LOS Tree fix, role color system, Clerk metadata sync |
 | v1.7.0 | 2026-03-21 | Shipped | /trips registered UX + detail page, calendar tooltip bugs, profile 2-col layout, translation hardening |
 | v1.7.1 | 2026-03-21 | Shipped | About page fixes (heading align, mail icon, Mapbox terrain), profile section renames, admin navbar chevron |
+| v1.7.2 | 2026-03-21 | Shipped | Supabase types regen (announcements + guides sort_order), CI type-check workflow added |
 
-Latest stable commit: `e5283e8`
+Latest stable commit: `f6dce70`
 
 ---
 
@@ -675,12 +682,8 @@ Latest stable commit: `e5283e8`
 | ID | Name | Priority | Status | Blocked By |
 |---|---|---|---|---|
 | ISS-0056 | Meta token expiry alert + refresh flow | Low | Blocked | Needs FB_APP_ID + FB_APP_SECRET in Vercel |
-| ISS-0109 | CalendarClient: agenda view shows no events | P0 | To Do | — |
 | ISS-0125 | Design revisit: inner pages mobile layout | P2 | Needs Design | — |
-| ISS-0158 | UI: Socials section in /admin/content + rework SocialsTile | High | To Do | ISS-0157 ✓ |
-| ISS-0162 | UI: Vital Signs config panel in /admin/members | High | To Do | ISS-0161 ✓ |
-| ISS-0165 | /admin/content: drag-to-reorder for all 4 sections | High | To Do | ISS-0164 ✓ |
-| ISS-0170 | /profile My Trips — payment modal (mid-screen, blocking) | Medium | To Do | — |
+| ISS-0170 | /profile My Trips — payment modal (mid-screen, blocking) | P2 | To Do | — |
 | ISS-0172 | Admin social posts: URL preview / manual override UI | Low | To Do | ISS-0157 ✓ |
 
 ---
@@ -691,7 +694,7 @@ Latest stable commit: `e5283e8`
 2. DDL changes → `apply_migration` (never raw `execute_sql` for DDL)
 3. Verify with `execute_sql` after
 4. Save SQL to `supabase/migrations/YYYYMMDDNNNNNN_name.sql`
-5. Run `generate_typescript_types` → write to `types/supabase.ts`
+5. **Run `generate_typescript_types` → write output to `types/supabase.ts` → commit the updated file in the same push as the migration.** This is mandatory. If skipped, the CI type-drift check (Section 24) will fail the build on the next push.
 6. `npx tsc --noEmit` → zero errors → commit
 
 ### RLS Pattern
@@ -705,3 +708,64 @@ profile_id = (SELECT id FROM profiles WHERE clerk_id = auth.jwt() ->> 'sub' LIMI
 ## 23. When This File Is Wrong
 
 If any instruction here contradicts Next.js 16 / Clerk v7 / Supabase current SDK behavior — stop and flag it. Do not silently comply with an outdated instruction. State the contradiction, cite the correct current behavior, and ask for a decision before proceeding.
+
+---
+
+## 24. CI — Type Check Workflow
+
+### What it does
+
+On every push to `main`, GitHub Actions runs `.github/workflows/check-types.yml`. It does two things in order:
+
+1. **Supabase type drift check** — calls `supabase gen types typescript --project-id ynykjpnetfwqzdnsgkkg` against the live database and diffs the output against the committed `types/supabase.ts`. If they differ, the job fails immediately with a diff and the exact command needed to fix it. The build never reaches Vercel.
+
+2. **TypeScript check** — runs `npx tsc --noEmit`. If there are any type errors anywhere in the project, the job fails.
+
+### Why it exists
+
+On 2026-03-21, the `announcements` table had a `sort_order` column added to the DB as part of ISS-0165 (drag-to-reorder). The generated types file was never updated. The route `app/api/admin/announcements/route.ts` called `.update({ sort_order })` — TypeScript rejected it because the column was absent from `types/supabase.ts`. The Vercel build failed. The fix was to regenerate the types and commit. This CI workflow was added to make that class of failure impossible to ship silently.
+
+### Workflow file
+
+`.github/workflows/check-types.yml`
+
+### Required GitHub Actions secret
+
+`SUPABASE_ACCESS_TOKEN` — a Supabase personal access token (not a service role key). Stored as a repository secret.
+
+- To verify or rotate: `github.com/teamenjoyvd/tevd-portal/settings/secrets/actions`
+- To generate a new token: `supabase.com/dashboard/account/tokens`
+
+Without this secret, the `supabase gen types` step will fail with an auth error and the entire CI job will be red.
+
+### What CI failure looks like
+
+If `types/supabase.ts` is stale, the job prints a unified diff, then exits 1 with:
+
+```
+❌ types/supabase.ts is stale.
+Run: supabase gen types typescript --project-id ynykjpnetfwqzdnsgkkg > types/supabase.ts
+Then commit the updated file.
+```
+
+### How to fix a type drift failure
+
+Run this locally, then push:
+
+```bash
+supabase gen types typescript --project-id ynykjpnetfwqzdnsgkkg > types/supabase.ts
+npx tsc --noEmit
+git add types/supabase.ts
+git commit -m "fix: regenerate Supabase types"
+git push
+```
+
+### The mandatory rule
+
+**Every migration that adds, removes, or renames a column MUST be followed immediately by a types regen commit — in the same push as the application code that references the new schema.** Do not push application code referencing a new column without also pushing the updated `types/supabase.ts`. The CI check will catch it, but by then the build is already broken.
+
+This rule is already codified in Section 22 (step 5) and in the Section 3 Database rules. It is repeated here because the consequence of missing it is now explicit: the entire CI job fails and blocks every subsequent push until fixed.
+
+### Live CI status
+
+`github.com/teamenjoyvd/tevd-portal/actions`
