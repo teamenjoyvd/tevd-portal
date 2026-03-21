@@ -32,11 +32,24 @@ export async function POST(req: Request) {
   if (profile?.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 })
 
   const body: {
-    platform: string
-    post_url: string
+    platform?: string
+    post_url?: string
     caption?: string
     thumbnail_url?: string
+    items?: { id: string; sort_order: number }[]
   } = await req.json()
+
+  // Batch reorder: { items: [{ id, sort_order }] }
+  if (Array.isArray(body.items)) {
+    const updates = await Promise.all(
+      body.items.map((item: { id: string; sort_order: number }) =>
+        supabase.from('social_posts').update({ sort_order: item.sort_order }).eq('id', item.id)
+      )
+    )
+    const err = updates.find(r => r.error)
+    if (err?.error) return Response.json({ error: err.error.message }, { status: 500 })
+    return Response.json({ ok: true })
+  }
 
   if (!body.platform || !body.post_url) {
     return Response.json({ error: 'platform and post_url are required' }, { status: 400 })
