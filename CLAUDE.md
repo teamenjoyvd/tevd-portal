@@ -1,5 +1,5 @@
 # CLAUDE.md — teamenjoyVD Portal
-> Last updated: 2026-03-21 — Session close. Latest stable commit: d98497b. Build green. UX fixes, calendar tooltip bugs, profile 2-col layout, translation system hardening this session.
+> Last updated: 2026-03-21 — Duplicate audit complete. 22 ghost records flagged. Seq autonumber field added to Issues table. READ protocol updated to filter duplicates. Latest stable commit: e5283e8.
 
 ---
 
@@ -23,7 +23,7 @@ When the user types **SSU**, execute this sequence in full, in order:
 3. **Vercel** — call `list_teams`. Confirm `teamenjoyvd` team is reachable. Report latest production deployment state for `tevd-portal`. Report: ✅ or ❌ + error.
 4. **Supabase** — call `list_projects`. Confirm `ynykjpnetfwqzdnsgkkg` (tevd-portal, eu-west-2) is `ACTIVE_HEALTHY`. Report: ✅ or ❌ + error.
 5. **Instructions** — confirm `CLAUDE.md` was successfully read in step 2. Report: ✅ loaded or ❌ missing/unreadable.
-6. **Queue** — check Airtable Issues for any `Status = "In Progress"` record. If found, report it. If not, report the highest-priority unblocked `Status = "To Do"` ticket.
+6. **Queue** — check Airtable Issues for any `Status = "In Progress"` AND `Duplicate = false/empty` record. If found, report it. If not, report the highest-priority unblocked `Status = "To Do"` AND `Duplicate = false/empty` ticket.
 
 Output a clean status table at the end:
 
@@ -36,7 +36,7 @@ Output a clean status table at the end:
 | Vercel         | ✅/❌  | ...   |
 | Supabase       | ✅/❌  | ...   |
 | CLAUDE.md      | ✅/❌  | ...   |
-| Queue          | —      | ISS-XXXX: ... / All clear |
+| Queue          | —      | ISS-XXXX (Seq N): ... / All clear |
 ```
 
 If any connection is ❌, do not proceed to any task work — surface the failure and wait for instruction.
@@ -189,51 +189,55 @@ Declare current phase at the opening of every work response:
 `PHASE: READ | CLAIM | GATHER | EXECUTE | VERIFY | FINALIZE`
 
 **PHASE: READ**
-1. Query Issues where `Status = "In Progress"`. If one exists, resume — skip to GATHER.
-2. If none, query Issues where `Status = "To Do"` AND `Blocked By` is empty, sorted by Priority ascending.
-3. If the top ticket is vague, over-scoped, contradictory, or potentially harmful — do not claim it. Surface the problem via targeted questions.
-4. If the queue is empty: list blocked tickets with their blockers, list Needs Design tickets, state queue is empty. Ask a single routing question.
+1. Query Issues where `Status = "In Progress"` AND `Duplicate` is empty/false. If one exists, resume — skip to GATHER.
+2. If none, query Issues where `Status = "To Do"` AND `Blocked By` is empty AND `Duplicate` is empty/false, sorted by Priority ascending.
+3. **Duplicate guard:** If a query returns multiple records with the same `Issue ID`, STOP. Do not claim either. Report the collision and ask which `Seq` number to proceed with.
+4. If the top ticket is vague, over-scoped, contradictory, or potentially harmful — do not claim it. Surface the problem via targeted questions.
+5. If the queue is empty: list blocked tickets with their blockers, list Needs Design tickets, state queue is empty. Ask a single routing question.
 
 **PHASE: CLAIM**
-5. Update `Status → "In Progress"`. Gate: `Blocked By` must be empty. If not — refuse and ask why the blocker is being ignored.
+6. Update `Status → "In Progress"` using the record's **`Seq` number** as the internal identifier — not `Issue ID`. Gate: `Blocked By` must be empty and `Duplicate` must be false/empty. If either fails — refuse.
+7. **Before creating any new ticket:** query `list_records_for_table` sorted by `Issue ID` descending, read the current maximum, and state the next ID explicitly before writing the record. Never derive the next ID from memory or from this file.
 
 **PHASE: GATHER**
-6. Read `CLAUDE.md` from repo root. If missing, outdated, or contradicts current best practice — stop and flag the specific contradiction. Do not silently comply.
-7. Read `Target Files` and `Definition of Done` from the Airtable record.
-8. If the DoD is vague, incomplete, or contradicts `CLAUDE.md` — probe before writing any code. A DoD that cannot be verified is not a DoD.
+8. Read `CLAUDE.md` from repo root. If missing, outdated, or contradicts current best practice — stop and flag the specific contradiction. Do not silently comply.
+9. Read `Target Files` and `Definition of Done` from the Airtable record.
+10. If the DoD is vague, incomplete, or contradicts `CLAUDE.md` — probe before writing any code. A DoD that cannot be verified is not a DoD.
 
 **PHASE: EXECUTE**
-9. Write the code.
-10. Zero-Refactor Rule: change only the lines required by the DoD.
+11. Write the code.
+12. Zero-Refactor Rule: change only the lines required by the DoD.
 
 **PHASE: VERIFY**
-11. Open a thinking block. Go through the DoD point by point and confirm each item is satisfied.
-12. Ask: Does this actually prevent the failure mode we claimed to address? What edge case is still untested? Have we introduced debt not in the ticket?
-13. Check Vercel `list_deployments` — confirm the latest deployment is READY before marking Done. If ERROR, read build logs and fix before closing.
-14. If any gap remains — iterate. Do not proceed to FINALIZE.
+13. Open a thinking block. Go through the DoD point by point and confirm each item is satisfied.
+14. Ask: Does this actually prevent the failure mode we claimed to address? What edge case is still untested? Have we introduced debt not in the ticket?
+15. Check Vercel `list_deployments` — confirm the latest deployment is READY before marking Done. If ERROR, read build logs and fix before closing.
+16. If any gap remains — iterate. Do not proceed to FINALIZE.
 
 **PHASE: FINALIZE**
-15. Commit and push. Format: `[ISS-XXXX] Short imperative description`.
-16. Single Airtable write: `Status=Done` + `CommitLink` + `ClaudeNotes`. Do not write `Status=Done` before the commit link exists.
-17. `ClaudeNotes` must include: what was done, assumptions questioned and resolved, remaining risks or debt, honest DoD assessment, open questions for future validation.
+17. Commit and push. Format: `[ISS-XXXX] Short imperative description`.
+18. Single Airtable write: `Status=Done` + `CommitLink` + `ClaudeNotes`. Do not write `Status=Done` before the commit link exists.
+19. `ClaudeNotes` must include: what was done, assumptions questioned and resolved, remaining risks or debt, honest DoD assessment, open questions for future validation.
 
 ### Airtable Reference
 
 **Base ID:** `app1n7KYX8i8xSiB7` — **Issues Table:** `tblUq45Wo3xngSf3w`
 
 #### Field IDs
-| Field | ID |
-|---|---|
-| Issue ID | `fldE1F4ViLRQml5Hw` |
-| Name | `fldOSw4VEE9mXDpTm` |
-| Type | `fldQN5hAQoMFdXxyl` |
-| Status | `fldsTwNbtnh6SUuF0` |
-| Priority | `flde5GkbsiEi4jtwq` |
-| Blocked By | `fldRq9a57bHubveIx` |
-| Target Files | `fld2hLIPYvrhcyiMA` |
-| Definition of Done | `fld5U92AZuxpLHsuJ` |
-| Claude Notes | `fldYsznuq4tUt79o4` |
-| Commit Link | `fld0VWrOimUTolMIe` |
+| Field | ID | Notes |
+|---|---|---|
+| Issue ID | `fldE1F4ViLRQml5Hw` | Human-readable label — NOT unique, NOT the primary key |
+| Seq | `fldnKdNxb4YjdHoIf` | **Unique record identifier.** Autonumber — never edit. Use this to target specific records. |
+| Name | `fldOSw4VEE9mXDpTm` | |
+| Type | `fldQN5hAQoMFdXxyl` | |
+| Status | `fldsTwNbtnh6SUuF0` | |
+| Priority | `flde5GkbsiEi4jtwq` | |
+| Blocked By | `fldRq9a57bHubveIx` | |
+| Target Files | `fld2hLIPYvrhcyiMA` | |
+| Definition of Done | `fld5U92AZuxpLHsuJ` | |
+| Claude Notes | `fldYsznuq4tUt79o4` | |
+| Commit Link | `fld0VWrOimUTolMIe` | |
+| Duplicate | `fld2P6m5fMOsi1q3G` | Checkbox. If true — ghost record, skip entirely in all queries. |
 
 #### Status Choice IDs
 | Status | Choice ID |
@@ -244,6 +248,9 @@ Declare current phase at the opening of every work response:
 | Not relevant | `sellrX5il5BmfBxm9` |
 | Needs Design | `sel98265UTlgLcw5r` |
 | Blocked | `sellZeVnRByP94606` |
+
+#### Duplicate-safe query protocol
+Every READ query MUST include `Duplicate is empty` as a filter condition. If the Airtable MCP filter syntax does not support checkbox isEmpty, fetch all records and discard any where `fld2P6m5fMOsi1q3G === true` before selecting a ticket to work.
 
 ---
 
@@ -382,7 +389,7 @@ Singleton service role client. Do not create a new client per request. All authe
 Translation source of truth. `TranslationKey = keyof typeof translations` — strict union. **Every new `t()` call requires a corresponding entry in this file or the build breaks.**
 
 ### `components/about/AboutMapTile.tsx`
-Client Mapbox tile. Accepts `gridColumn`, `className`, `style` props. Theme-aware (light-v11/dark-v11), MutationObserver for theme swap.
+Client Mapbox tile. Accepts `gridColumn`, `className`, `style` props. Theme-aware (outdoors-v12 light / dark-v11 dark), MutationObserver for theme swap.
 
 ### `components/events/EventPopup.tsx`
 - **Mobile (<768px):** Fixed bottom sheet — backdrop + `rounded-t-2xl`, `85dvh` max, drag handle, `overflow-y-auto` on wrapper
@@ -522,10 +529,10 @@ Auth required: all other routes (including `/trips/[id]`)
 **Path A — Standard ABO:**
 Guest submits `claimed_abo` + `claimed_upline_abo` → admin approves → `role='member'`, `abo_number` set, normal tree placement.
 
-**Path B — Manual, no ABO, user-initiated (PENDING ISS-0140/0141):**
+**Path B — Manual, no ABO, user-initiated:**
 Guest submits only `claimed_upline_abo` + selects "I don't have an ABO number" → `request_type='manual'` → admin approves → `role='member'`, `abo_number=NULL`, placed as `p_<uuid>` child of upline.
 
-**Path C — Admin-initiated manual (PENDING ISS-0140/0142):**
+**Path C — Admin-initiated manual:**
 Admin picks guest, provides upline ABO → directly promotes to member.
 
 **No-ABO member constraints:**
@@ -579,10 +586,10 @@ Client-side `filterType` state. Clicking active filter deactivates it. Combinabl
 Trips CRUD + milestones + admin payment log + member payment submission review.
 
 ### Approval Hub (`admin/approval-hub`)
-Standard ABO requests + manual requests (separate section) + Path C direct-verify form. ISS-0142 pending.
+Standard ABO requests + manual requests (separate section) + Path C direct-verify form.
 
 ### Data Center (`admin/data-center`)
-LOS import + reconciliation panel for matching unrecognized LOS members to no-ABO profiles. ISS-0143 pending.
+LOS import + reconciliation panel for matching unrecognized LOS members to no-ABO profiles.
 
 ### Notifications Audit Log
 All-time, including soft-deleted. Paginated 50/page.
@@ -598,6 +605,7 @@ All-time, including soft-deleted. Paginated 50/page.
 | Tailwind v4 | No `@layer components` + `@apply`. Inline utilities only. |
 | Mapbox GL JS | CDN only. Dupe guard on script load. Logo/attrib hidden via globals.css. |
 | Mapbox theme swap | `map.setStyle()` + listen for `styledata` event. MutationObserver on `data-theme`. |
+| Mapbox About tile style | `outdoors-v12` (light) / `dark-v11` (dark). Updated ISS-0165. |
 | Client tiles + rowSpan | Must apply `gridRow: span N` to outermost element or grid collapses. |
 | Nav casing | `tracking-widest uppercase` for ALL languages including BG. |
 | Eyebrow on teal/forest | Pass `style={{ color: 'var(--brand-parchment)' }}` to override default crimson. |
@@ -639,6 +647,8 @@ All-time, including soft-deleted. Paginated 50/page.
 | Profile bento pillbox | Document type pillbox uses `opacity + pointerEvents` wrapper for view/edit mode — not per-button `disabled`. |
 | Profile personal details layout | Two-column internal split: `flex flex-col md:flex-row`. Left = names/phone/email. Right = ABO verification (Access, ABO #, Upline). Thin separator: `hidden md:block` 1px div. Travel Document below both columns. |
 | /trips registered UX | Users with `registration.status !== 'denied'` see "View Trip Details" button → `/trips/[id]`. Register button only shown when no registration OR status is denied. |
+| Airtable Issue ID uniqueness | `Issue ID` is a plain text field — NOT unique, NOT enforced. `Seq` (autonumber) is the true unique record identifier. Always reference records by `Seq` internally. Never derive the next `Issue ID` from memory — query current max first. |
+| Duplicate records | 22 ghost records exist from batch-creation collisions (ISS-0028, 0103–0110, 0162–0169, 0173). All flagged with `Duplicate = true`. All READ queries must filter `Duplicate = false/empty`. |
 
 ---
 
@@ -654,30 +664,24 @@ All-time, including soft-deleted. Paginated 50/page.
 | v1.5.0 | 2026-03-19 | Shipped | Profile overhaul (ISS-0128–0138), footer/BottomNav fixes, verification paths |
 | v1.6.0 | 2026-03-20 | Shipped | social_posts DB+API, vital_sign_definitions+member_vital_signs, LOS Tree fix, role color system, Clerk metadata sync |
 | v1.7.0 | 2026-03-21 | Shipped | /trips registered UX + detail page, calendar tooltip bugs, profile 2-col layout, translation hardening |
+| v1.7.1 | 2026-03-21 | Shipped | About page fixes (heading align, mail icon, Mapbox terrain), profile section renames, admin navbar chevron |
 
-Latest stable commit: `d98497b`
+Latest stable commit: `e5283e8`
 
 ---
 
 ## 21. Pending Issues
 
-| ID | Name | Priority | Status | Notes |
+| ID | Name | Priority | Status | Blocked By |
 |---|---|---|---|---|
-| ISS-0056 | Meta token expiry alert + refresh flow | Low | Blocked | Needs `FB_APP_ID` + `FB_APP_SECRET` in Vercel |
-| ISS-0125 | Design revisit: inner pages mobile layout | P2 | Needs Design | /calendar, /trips, /guides, /profile |
-| ISS-0139 | DB migration: verification paths + upsert_tree_node NULL-ABO | P1 | To Do | Foundation for ISS-0140–0143 |
-| ISS-0140 | API: verify-abo Path B + Path C routes | P1 | To Do | Blocked by ISS-0139 |
-| ISS-0141 | Profile page: Path B manual verification UI | P2 | To Do | Blocked by ISS-0140 |
-| ISS-0142 | Admin approval hub: manual queue + Path C direct-verify | P2 | To Do | Blocked by ISS-0140 |
-| ISS-0143 | LOS import: reconciliation panel for no-ABO profiles | P2 | To Do | Blocked by ISS-0139 |
-| ISS-0158 | UI: Socials section in /admin/content + rework SocialsTile | High | To Do | Blocked by ISS-0157 |
-| ISS-0162 | UI: Vital Signs config panel in /admin/members | High | To Do | Blocked by ISS-0161 |
-| ISS-0165 (rec9JHk) | /admin/content: drag-to-reorder for all 4 sections | High | To Do | Blocked by ISS-0164 |
-| ISS-0165 (recGDk) | /about — heading, mail icon, Mapbox color | Medium | To Do | |
-| ISS-0168 | /profile — section renames | Low | To Do | |
-| ISS-0169 | /admin navbar — PORTAL > | Low | To Do | |
-| ISS-0170 | /profile My Trips — payment modal | Medium | To Do | |
-| ISS-0172 | Admin social posts: URL preview / manual override UI | Low | To Do | Blocked by ISS-0157 |
+| ISS-0056 | Meta token expiry alert + refresh flow | Low | Blocked | Needs FB_APP_ID + FB_APP_SECRET in Vercel |
+| ISS-0109 | CalendarClient: agenda view shows no events | P0 | To Do | — |
+| ISS-0125 | Design revisit: inner pages mobile layout | P2 | Needs Design | — |
+| ISS-0158 | UI: Socials section in /admin/content + rework SocialsTile | High | To Do | ISS-0157 ✓ |
+| ISS-0162 | UI: Vital Signs config panel in /admin/members | High | To Do | ISS-0161 ✓ |
+| ISS-0165 | /admin/content: drag-to-reorder for all 4 sections | High | To Do | ISS-0164 ✓ |
+| ISS-0170 | /profile My Trips — payment modal (mid-screen, blocking) | Medium | To Do | — |
+| ISS-0172 | Admin social posts: URL preview / manual override UI | Low | To Do | ISS-0157 ✓ |
 
 ---
 
