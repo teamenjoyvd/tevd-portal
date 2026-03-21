@@ -1,5 +1,5 @@
 # CLAUDE.md — teamenjoyVD Portal
-> Last updated: 2026-03-21 — CI type-check workflow added (Section 24). Supabase types regenerated (announcements + guides sort_order). Latest stable commit: f6dce70.
+> Last updated: 2026-03-21 — Generic payments system (payable_items + payments tables), trip cancellation, profiles.ui_prefs, /profile bento split (Trips+Payments col-4, Vital Signs+Participation col-4). Latest stable commit: e655376.
 
 ---
 
@@ -414,7 +414,7 @@ Option B: `hidden md:block` desktop grid + `md:hidden` mobile stack.
     /about/page.tsx              # CANONICAL dual-layout reference
     /trips/page.tsx
     /trips/[id]/page.tsx         # Trip detail page — auth-gated, registered users only
-    /profile/page.tsx            # Multi-bento layout
+    /profile/page.tsx            # Multi-bento layout — see Section 14 for bento inventory
   /admin
     /approval-hub/page.tsx       # ABO + manual verification review
     /calendar/page.tsx           # ascending: true (soonest first)
@@ -423,8 +423,12 @@ Option B: `hidden md:block` desktop grid + `md:hidden` mobile stack.
     /operations/page.tsx         # Trips CRUD + payment log + submission review
   /api
     /admin/calendar/route.ts
-    /admin/payments/route.ts
-    /admin/payments/[id]/route.ts
+    /admin/payments/route.ts           # trip_payments (existing, trip-linked)
+    /admin/payments/[id]/route.ts      # trip_payments approve/deny
+    /admin/payments-generic/route.ts   # payments table (new generic system)
+    /admin/payments-generic/[id]/route.ts  # payments approve/deny
+    /admin/payable-items/route.ts      # GET all + POST create
+    /admin/payable-items/[id]/route.ts # PATCH update + DELETE soft-delete
     /admin/verify/route.ts
     /admin/vital-sign-definitions/route.ts
     /admin/vital-sign-definitions/[id]/route.ts
@@ -432,7 +436,10 @@ Option B: `hidden md:block` desktop grid + `md:hidden` mobile stack.
     /admin/members/[id]/vital-signs/[definitionId]/route.ts
     /admin/social-posts/route.ts
     /admin/social-posts/[id]/route.ts
-    /profile/payments/route.ts
+    /admin/trips/registrations/[id]/cancel/route.ts  # admin cancel any registration
+    /payable-items/route.ts            # GET active items (member-facing)
+    /payments/route.ts                 # GET own + POST submit (member-facing)
+    /profile/payments/route.ts         # trip_payments (existing, trip-linked)
     /profile/route.ts
     /profile/verify-abo/route.ts
     /profile/vitals/route.ts     # Deprecated — delegates to new schema
@@ -440,6 +447,7 @@ Option B: `hidden md:block` desktop grid + `md:hidden` mobile stack.
     /profile/event-roles/route.ts
     /profile/los-summary/route.ts
     /profile/upline/route.ts
+    /profile/trips/[id]/cancel/route.ts  # member cancel own registration
     /socials/route.ts            # Replaced Meta Graph API with DB-backed social_posts
     /webhooks/clerk/route.ts
 /components
@@ -472,6 +480,18 @@ Option B: `hidden md:block` desktop grid + `md:hidden` mobile stack.
     /system-prompt.xml
 ```
 
+### /profile bento inventory (member/core/admin layout)
+| Bento | Col-span | Condition |
+|---|---|---|
+| A: Personal Details | col-8 | always |
+| B: Trips | col-4 | hasTrips |
+| C: Payments | col-4 | always (shows empty state) |
+| D: Vital Signs | col-4 | hasVitals |
+| E: Participation | col-4 | hasEventRoles |
+| F: Calendar Subscription | col-8 | always |
+| G: Stats | col-8 | abo_number present |
+| H: Admin Tools | col-8 | role === 'admin' |
+
 ---
 
 ## 14. Database Schema (key tables)
@@ -484,9 +504,10 @@ Option B: `hidden md:block` desktop grid + `md:hidden` mobile stack.
 `id, google_event_id, title, description, start_time, end_time, category, visibility_roles, week_number, event_type, created_at, created_by`
 
 ### `profiles`
-`id, clerk_id, first_name, last_name, display_names, role, abo_number, upline_abo_number, document_active_type, id_number, passport_number, valid_through, ical_token, phone, contact_email, created_at`
+`id, clerk_id, first_name, last_name, display_names, role, abo_number, upline_abo_number, document_active_type, id_number, passport_number, valid_through, ical_token, phone, contact_email, created_at, ui_prefs`
 - `role` DB default: `'guest'`
 - `upline_abo_number` — stores soft upline ref for manually-verified no-ABO members (ISS-0139)
+- `ui_prefs` — JSONB, default `{}`. Shape: `{ profile_bento_order: string[], profile_bento_collapsed: string[] }` (ISS-0174)
 
 ### `abo_verification_requests`
 `id, profile_id, claimed_abo, claimed_upline_abo, request_type, status, admin_note, created_at, resolved_at`
@@ -494,8 +515,29 @@ Option B: `hidden md:block` desktop grid + `md:hidden` mobile stack.
 
 ### `trip_payments`
 `id, trip_id, profile_id, amount, transaction_date, status, note, proof_url, payment_method, submitted_by_member, created_at`
+- **Legacy trip-linked payments.** Still used by `/api/profile/payments` and `/api/admin/payments`.
 - Members INSERT with `submitted_by_member=true, status='pending'` only (RLS)
 - Admin/Core approve/deny via PATCH `/api/admin/payments/[id]`
+
+### `payable_items` (ISS-0174)
+`id, title, description, amount, currency, item_type, linked_trip_id, is_active, created_by, created_at`
+- `item_type`: `'trip' | 'book' | 'ticket' | 'other'`
+- Admin defines items. Members read active items only.
+- Soft-delete via `is_active = false`.
+
+### `payments` (ISS-0174)
+`id, profile_id, payable_item_id, amount, transaction_date, status, payment_method, proof_url, note, admin_note, submitted_by_member, created_at`
+- Generic member→admin payment system. Not trip-specific.
+- `status`: `'pending' | 'approved' | 'denied'`
+- Member submits via POST `/api/payments`. Admin approves/denies via PATCH `/api/admin/payments-generic/[id]`.
+- **Do NOT confuse with `trip_payments`** — two separate tables, two separate API paths.
+
+### `trip_registrations`
+`id, trip_id, profile_id, status, created_at, cancelled_at, cancelled_by`
+- `cancelled_at` + `cancelled_by` added ISS-0174. Non-null = cancelled.
+- Member cancel: POST `/api/profile/trips/[id]/cancel` (by trip_id, own registration).
+- Admin cancel: POST `/api/admin/trips/registrations/[id]/cancel` (by registration_id, any).
+- 409 returned if already cancelled.
 
 ### `tree_nodes`
 `id, profile_id, parent_id, path (ltree), depth, created_at`
@@ -646,7 +688,7 @@ All-time, including soft-deleted. Paginated 50/page.
 | Role colors | ALWAYS use `getRoleColors(role)` from `lib/role-colors.ts`. Never hardcode role bg/font inline. |
 | Clerk publicMetadata.role | UserDropdown reads role from here. Must be kept in sync with `profiles.role` via `updateUserMetadata()` on every promotion. |
 | OG scrape for social posts | `lib/og-scrape.ts` will return nulls for IG/FB URLs — platforms block server fetches. Admins must supply thumbnail_url manually. ISS-0172 tracks a preview UI for this. |
-| Ticket Done = deployed + verified | Never mark Done based on static analysis alone. Confirm Vercel deployment is READY and fix is confirmed working in production. |
+| Ticket Done = deployed + verified | Never mark Done based on static analysis alone. Confirm Vercel deployment is READY and fix is confirmed working in production before closing. |
 | Schema migration sweep | Before rebuilding a table, grep entire codebase (including API routes, not just UI) for all files using old column names. Orphaned routes with old schema will fail tsc and block all deployments. |
 | `useParams` in Next.js 16 | `useParams()` takes NO type argument. Use `const params = useParams(); const id = params.id as string`. `useParams<{id:string}>()` will fail tsc. |
 | TranslationKey is strict | `t('some.key')` where `some.key` is not in `lib/i18n/translations.ts` is a **compile-time error**. Add the key to translations.ts BEFORE using it in any component. |
@@ -655,6 +697,12 @@ All-time, including soft-deleted. Paginated 50/page.
 | /trips registered UX | Users with `registration.status !== 'denied'` see "View Trip Details" button → `/trips/[id]`. Register button only shown when no registration OR status is denied. |
 | Airtable Issue ID uniqueness | `Issue ID` is a plain text field — NOT unique, NOT enforced. `Seq` (autonumber) is the true unique record identifier. Always reference records by `Seq` internally. Never derive the next `Issue ID` from memory — query current max first. |
 | Duplicate records | 22 ghost records exist from batch-creation collisions (ISS-0028, 0103–0110, 0162–0169, 0173). All flagged with `Duplicate = true`. All READ queries must filter `Duplicate = false/empty`. |
+| trip_payments vs payments | Two separate tables. `trip_payments` is legacy (trip-linked, existing admin UI). `payments` is the new generic system (payable_items FK). API paths: old = `/api/admin/payments`, new = `/api/admin/payments-generic`. Do NOT mix them. |
+| payments-generic path | Admin generic payments API lives at `/api/admin/payments-generic` (not `/api/admin/payments`) to avoid collision with the existing trip_payments admin route. Downstream UI must use the correct path. |
+| Trip cancel signal | `cancelled_at IS NOT NULL` on `trip_registrations` = cancelled. No status enum change. |
+| Payment cancelled-trip flag | In /profile Payments bento, the ⓘ flag for cancelled-trip payments uses a heuristic: `item_type === 'trip'` + `cancelledTripIds.size > 0`. A precise match would require `linked_trip_id` in the `/api/payments` response. Low-priority follow-up. |
+| profiles.ui_prefs | JSONB column, NOT NULL, default `{}`. Shape: `{ profile_bento_order: string[], profile_bento_collapsed: string[] }`. Used by ISS-0178 (drag/drop bento). |
+| SectionSkeleton col-span | `SectionSkeleton` hardcodes `gridColumn: 'span 8'`. For col-4 skeletons, inline the skeleton div directly rather than modifying the helper (Zero-Refactor). |
 
 ---
 
@@ -672,8 +720,9 @@ All-time, including soft-deleted. Paginated 50/page.
 | v1.7.0 | 2026-03-21 | Shipped | /trips registered UX + detail page, calendar tooltip bugs, profile 2-col layout, translation hardening |
 | v1.7.1 | 2026-03-21 | Shipped | About page fixes (heading align, mail icon, Mapbox terrain), profile section renames, admin navbar chevron |
 | v1.7.2 | 2026-03-21 | Shipped | Supabase types regen (announcements + guides sort_order), CI type-check workflow added |
+| v1.8.0 | 2026-03-21 | Shipped | Generic payments system (payable_items + payments tables + cancel + ui_prefs), /profile bento split (Trips+Payments col-4, Vital Signs+Participation col-4), 8 new API routes |
 
-Latest stable commit: `f6dce70`
+Latest stable commit: `e655376`
 
 ---
 
@@ -683,8 +732,8 @@ Latest stable commit: `f6dce70`
 |---|---|---|---|---|
 | ISS-0056 | Meta token expiry alert + refresh flow | Low | Blocked | Needs FB_APP_ID + FB_APP_SECRET in Vercel |
 | ISS-0125 | Design revisit: inner pages mobile layout | P2 | Needs Design | — |
-| ISS-0170 | /profile My Trips — payment modal (mid-screen, blocking) | P2 | To Do | — |
 | ISS-0172 | Admin social posts: URL preview / manual override UI | Low | To Do | ISS-0157 ✓ |
+| ISS-0178 | /profile bento boxes: drag/drop reorder + collapsible, persisted to profiles.ui_prefs | P2 | To Do | — (ISS-0174 ✓) |
 
 ---
 
