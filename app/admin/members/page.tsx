@@ -3,8 +3,9 @@
 import { useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getRoleColors } from '@/lib/role-colors'
+import { formatDate } from '@/lib/format'
 
-// ── Shared types ────────────────────────────────────────────────
+// ── Shared types ───────────────────────────────────────────────────────
 
 // — Members tab —
 type LOSMember = {
@@ -112,7 +113,7 @@ type ImportResult = {
   manual_members_no_abo: ManualMemberNoAbo[]
 }
 
-// ── Members tab helpers ────────────────────────────────────────────
+// ── Members tab helpers ───────────────────────────────────────────────
 
 function formatNum(n: number) {
   return new Intl.NumberFormat('en-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)
@@ -150,11 +151,136 @@ function buildTree(nodes: TreeNode[]): TreeNode[] {
   return roots
 }
 
+// ── Vital Signs Config panel ──────────────────────────────────────────
+
+function VitalSignsConfig({ definitions, onRefetch }: {
+  definitions: VitalSignDefinition[]
+  onRefetch: () => void
+}) {
+  const qc = useQueryClient()
+  const [dragging, setDragging] = useState<string | null>(null)
+  const [localDefs, setLocalDefs] = useState<VitalSignDefinition[]>(() =>
+    [...definitions].sort((a, b) => a.sort_order - b.sort_order)
+  )
+
+  // Keep local in sync with server data when it changes
+  const defsKey = definitions.map(d => d.id + d.is_active + d.sort_order).join(',')
+  const prevKey = useRef(defsKey)
+  if (prevKey.current !== defsKey) {
+    prevKey.current = defsKey
+    setLocalDefs([...definitions].sort((a, b) => a.sort_order - b.sort_order))
+  }
+
+  const toggleActiveMutation = useMutation({
+    mutationFn: ({ id, is_active }: { id: string; is_active: boolean }) =>
+      fetch(`/api/admin/vital-sign-definitions/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_active }),
+      }).then(r => r.json()),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['vital-sign-definitions'] })
+      onRefetch()
+    },
+  })
+
+  const reorderMutation = useMutation({
+    mutationFn: (items: { id: string; sort_order: number }[]) =>
+      Promise.all(items.map(item =>
+        fetch(`/api/admin/vital-sign-definitions/${item.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sort_order: item.sort_order }),
+        })
+      )),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['vital-sign-definitions'] }),
+  })
+
+  function handleDragStart(id: string) {
+    setDragging(id)
+  }
+
+  function handleDragOver(e: React.DragEvent, targetId: string) {
+    e.preventDefault()
+    if (!dragging || dragging === targetId) return
+    setLocalDefs(prev => {
+      const from = prev.findIndex(d => d.id === dragging)
+      const to = prev.findIndex(d => d.id === targetId)
+      if (from === -1 || to === -1) return prev
+      const next = [...prev]
+      const [moved] = next.splice(from, 1)
+      next.splice(to, 0, moved)
+      return next
+    })
+  }
+
+  function handleDrop() {
+    setDragging(null)
+    const updates = localDefs.map((d, i) => ({ id: d.id, sort_order: i * 10 }))
+    reorderMutation.mutate(updates)
+  }
+
+  return (
+    <div className="rounded-xl p-4 mb-6"
+      style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+      <p className="text-xs font-semibold uppercase tracking-widest mb-3"
+        style={{ color: 'var(--brand-crimson)' }}>Vital Signs</p>
+      <div className="space-y-1.5">
+        {localDefs.map(def => (
+          <div
+            key={def.id}
+            draggable
+            onDragStart={() => handleDragStart(def.id)}
+            onDragOver={e => handleDragOver(e, def.id)}
+            onDrop={handleDrop}
+            onDragEnd={() => setDragging(null)}
+            className="flex items-center gap-3 px-3 py-2 rounded-lg transition-opacity"
+            style={{
+              backgroundColor: dragging === def.id ? 'rgba(0,0,0,0.06)' : 'transparent',
+              opacity: def.is_active ? 1 : 0.5,
+              cursor: 'grab',
+            }}
+          >
+            {/* Drag handle */}
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"
+              className="flex-shrink-0" style={{ color: 'var(--text-secondary)' }}>
+              <circle cx="4" cy="3" r="1.2" fill="currentColor"/>
+              <circle cx="4" cy="7" r="1.2" fill="currentColor"/>
+              <circle cx="4" cy="11" r="1.2" fill="currentColor"/>
+              <circle cx="10" cy="3" r="1.2" fill="currentColor"/>
+              <circle cx="10" cy="7" r="1.2" fill="currentColor"/>
+              <circle cx="10" cy="11" r="1.2" fill="currentColor"/>
+            </svg>
+            <span className="flex-1 text-sm font-body" style={{ color: 'var(--text-primary)' }}>
+              {def.label ?? def.category}
+            </span>
+            {/* Active toggle pill */}
+            <button
+              disabled={toggleActiveMutation.isPending}
+              onClick={() => toggleActiveMutation.mutate({ id: def.id, is_active: !def.is_active })}
+              className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold transition-all disabled:opacity-50"
+              style={{
+                backgroundColor: def.is_active ? 'rgba(26,107,74,0.12)' : 'rgba(0,0,0,0.06)',
+                color: def.is_active ? '#1a6b4a' : 'var(--text-secondary)',
+              }}
+            >
+              {def.is_active ? 'Active' : 'Inactive'}
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── NodeCard ───────────────────────────────────────────────────────────────────
+
 function NodeCard({
-  node, definitions, onToggle, isPending,
+  node, definitions, allDefinitions, onToggle, isPending,
 }: {
   node: TreeNode
-  definitions: VitalSignDefinition[]
+  definitions: VitalSignDefinition[]       // active only
+  allDefinitions: VitalSignDefinition[]    // all 6 (for inactive historical display)
   onToggle: (profileId: string, definitionId: string, currentlyRecorded: boolean) => void
   isPending: boolean
 }) {
@@ -165,6 +291,11 @@ function NodeCard({
     ? `${node.first_name} ${node.last_name}`
     : node.name ?? node.abo_number
   const vitalSigns = Array.isArray(node.vital_signs) ? node.vital_signs : []
+
+  // Inactive definitions that this member has historical records for
+  const inactiveWithHistory = allDefinitions
+    .filter(d => !d.is_active)
+    .filter(d => vitalSigns.some(v => v.definition_id === d.id))
 
   return (
     <div className="relative">
@@ -192,26 +323,58 @@ function NodeCard({
               )}
               <span className="font-body text-[10px]" style={{ color: 'var(--text-secondary)' }}>#{node.abo_number}</span>
             </div>
-            <div className="flex flex-wrap gap-3 mt-2">
-              {definitions.map(def => {
-                const checked = vitalSigns.some(v => v.definition_id === def.id)
-                const noProfile = !node.profile_id
-                return (
-                  <label key={def.id}
-                    className={`flex items-center gap-1.5 ${noProfile ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer group'}`}
-                    title={noProfile ? 'No portal account — cannot track vital signs' : undefined}>
-                    <input type="checkbox" checked={checked}
-                      disabled={isPending || noProfile}
-                      onChange={() => onToggle(node.profile_id!, def.id, checked)}
-                      className="w-3.5 h-3.5 rounded accent-[var(--brand-crimson)]" />
-                    <span className="text-[11px] font-body transition-colors"
-                      style={{ color: checked ? 'var(--brand-crimson)' : 'var(--text-secondary)' }}>
-                      {def.label ?? def.category}
+
+            {/* Active vital sign checkboxes */}
+            {definitions.length > 0 && (
+              <div className="flex flex-wrap gap-3 mt-2">
+                {definitions.map(def => {
+                  const record = vitalSigns.find(v => v.definition_id === def.id)
+                  const checked = !!record
+                  const noProfile = !node.profile_id
+                  return (
+                    <label key={def.id}
+                      className={`flex items-center gap-1.5 ${noProfile ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer group'}`}
+                      title={noProfile ? 'No portal account — cannot track vital signs' : undefined}>
+                      <input type="checkbox" checked={checked}
+                        disabled={isPending || noProfile}
+                        onChange={() => onToggle(node.profile_id!, def.id, checked)}
+                        className="w-3.5 h-3.5 rounded accent-[var(--brand-crimson)]" />
+                      <span className="text-[11px] font-body transition-colors"
+                        style={{ color: checked ? 'var(--brand-crimson)' : 'var(--text-secondary)' }}>
+                        {def.label ?? def.category}
+                      </span>
+                      {checked && record?.recorded_at && (
+                        <span className="text-[10px] font-body" style={{ color: 'var(--text-secondary)', opacity: 0.7 }}>
+                          {formatDate(record.recorded_at)}
+                        </span>
+                      )}
+                    </label>
+                  )
+                })}
+              </div>
+            )}
+
+            {/* Inactive definitions with historical records — read-only */}
+            {inactiveWithHistory.length > 0 && (
+              <div className="flex flex-wrap gap-3 mt-1.5 pt-1.5 border-t" style={{ borderColor: 'var(--border-default)' }}>
+                {inactiveWithHistory.map(def => {
+                  const record = vitalSigns.find(v => v.definition_id === def.id)!
+                  return (
+                    <span key={def.id} className="flex items-center gap-1.5" style={{ opacity: 0.45 }}>
+                      <input type="checkbox" checked readOnly disabled className="w-3.5 h-3.5 rounded" />
+                      <span className="text-[11px] font-body" style={{ color: 'var(--text-secondary)' }}>
+                        {def.label ?? def.category}
+                      </span>
+                      {record.recorded_at && (
+                        <span className="text-[10px] font-body" style={{ color: 'var(--text-secondary)' }}>
+                          {formatDate(record.recorded_at)}
+                        </span>
+                      )}
                     </span>
-                  </label>
-                )
-              })}
-            </div>
+                  )
+                })}
+              </div>
+            )}
           </div>
           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0"
             style={{ backgroundColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
@@ -223,6 +386,7 @@ function NodeCard({
         <div className="ml-6 pl-4 border-l" style={{ borderColor: 'var(--border-default)' }}>
           {node.children!.map(child => (
             <NodeCard key={child.abo_number} node={child} definitions={definitions}
+              allDefinitions={allDefinitions}
               onToggle={onToggle} isPending={isPending} />
           ))}
         </div>
@@ -231,7 +395,7 @@ function NodeCard({
   )
 }
 
-// ── Data Center tab helpers ───────────────────────────────────────────────
+// ── Data Center tab helpers ─────────────────────────────────────────────
 
 const HEADER_MAP: Record<string, string> = {
   'ABO Level': 'abo_level', 'Sponsor ABO Number': 'sponsor_abo_number',
@@ -441,7 +605,7 @@ function ReconciliationPanel({
   )
 }
 
-// ── Tab: Members ────────────────────────────────────────────────────────
+// ── Tab: Members ──────────────────────────────────────────────────────────────
 
 function MembersTab() {
   const qc = useQueryClient()
@@ -659,24 +823,25 @@ function MembersTab() {
   )
 }
 
-// ── Tab: LOS Tree ─────────────────────────────────────────────────────
+// ── Tab: LOS Tree ─────────────────────────────────────────────────────────────
 
 function LosTab() {
   const qc = useQueryClient()
 
-  const { data: treeResponse, isLoading: treeLoading } = useQuery<LosTreeResponse>({
+  const { data: treeResponse, isLoading: treeLoading, refetch: refetchTree } = useQuery<LosTreeResponse>({
     queryKey: ['los-tree'],
     queryFn: () => fetch('/api/los/tree').then(r => r.json()),
   })
 
-  const { data: definitionsRaw } = useQuery<VitalSignDefinition[]>({
+  const { data: definitionsRaw, refetch: refetchDefs } = useQuery<VitalSignDefinition[]>({
     queryKey: ['vital-sign-definitions'],
     queryFn: () => fetch('/api/admin/vital-sign-definitions').then(r => r.json()),
     staleTime: 5 * 60 * 1000,
   })
 
   const flatNodes = Array.isArray(treeResponse?.nodes) ? treeResponse.nodes : []
-  const definitions = (Array.isArray(definitionsRaw) ? definitionsRaw : []).filter(d => d.is_active)
+  const allDefinitions = Array.isArray(definitionsRaw) ? definitionsRaw : []
+  const definitions = allDefinitions.filter(d => d.is_active)
 
   const checkMutation = useMutation({
     mutationFn: ({ profileId, definitionId }: { profileId: string; definitionId: string }) =>
@@ -708,6 +873,11 @@ function LosTab() {
     }
   }
 
+  function handleConfigRefetch() {
+    refetchDefs()
+    refetchTree()
+  }
+
   const treeRoots = buildTree(flatNodes)
 
   return (
@@ -719,14 +889,9 @@ function LosTab() {
         <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{flatNodes.length} members</span>
       </div>
 
-      {definitions.length > 0 && (
-        <div className="rounded-xl p-4 flex flex-wrap gap-4"
-          style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-          <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--brand-crimson)' }}>Vital Signs</span>
-          {definitions.map(def => (
-            <span key={def.id} className="text-xs font-body" style={{ color: 'var(--text-secondary)' }}>✓ {def.label ?? def.category}</span>
-          ))}
-        </div>
+      {/* Vital Signs Config panel */}
+      {allDefinitions.length > 0 && (
+        <VitalSignsConfig definitions={allDefinitions} onRefetch={handleConfigRefetch} />
       )}
 
       {treeLoading ? (
@@ -741,6 +906,7 @@ function LosTab() {
         <div className="space-y-1">
           {treeRoots.map(node => (
             <NodeCard key={node.abo_number} node={node} definitions={definitions}
+              allDefinitions={allDefinitions}
               onToggle={handleToggle}
               isPending={isPending} />
           ))}
@@ -750,7 +916,7 @@ function LosTab() {
   )
 }
 
-// ── Tab: Data Center ───────────────────────────────────────────────────
+// ── Tab: Data Center ─────────────────────────────────────────────────────
 
 function DataCenterTab() {
   const fileRef = useRef<HTMLInputElement>(null)
@@ -915,7 +1081,7 @@ function DataCenterTab() {
   )
 }
 
-// ── Main page shell ──────────────────────────────────────────────────────
+// ── Main page shell ────────────────────────────────────────────────────────────
 
 type TabKey = 'members' | 'los' | 'data-center'
 
