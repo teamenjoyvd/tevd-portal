@@ -1,5 +1,5 @@
 # CONTEXT.md — teamenjoyVD Portal Reference
-> Last updated: 2026-03-21 — v1.8.0. Latest stable commit: e655376.
+> Last updated: 2026-03-21 — v1.8.0. Latest stable commit: 7755922.
 > Read on demand when a ticket touches these areas. CLAUDE.md is the operational core.
 
 ---
@@ -457,4 +457,4 @@ git push
 | v1.7.2 | 2026-03-21 | Supabase types regen (announcements + guides sort_order), CI type-check workflow added |
 | v1.8.0 | 2026-03-21 | Generic payments system (payable_items + payments + cancel + ui_prefs), /profile bento split (Trips+Payments col-4, Vital Signs+Participation col-4), 8 new API routes |
 
-Latest stable commit: `e655376`
+Latest stable commit: `7755922`

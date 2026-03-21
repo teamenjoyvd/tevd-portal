@@ -1,5 +1,5 @@
 # CLAUDE.md — teamenjoyVD Portal
-> Last updated: 2026-03-21 — v1.8.0. Latest stable commit: e655376.
+> Last updated: 2026-03-21 — v1.8.0. Restructured into CLAUDE.md (operational core) + docs/ai/CONTEXT.md (reference). Latest stable commit: 7755922.
 > Reference material (schema, directory tree, design system, releases) lives in `docs/ai/CONTEXT.md`.
 
 ---
@@ -45,7 +45,7 @@ If any ❌ — stop. Do not proceed to task work.
 1. Update CLAUDE.md header (stable commit, session summary).
 2. Update `docs/ai/CONTEXT.md` — schema changes, new routes, new release entry, pending issues.
 3. Update Gotchas below if new non-obvious decisions were made this session.
-4. Verify latest commit is pushed. Confirm new session can start with: repo URL + PAT + SSU.
+4. Verify latest commit is pushed and Vercel deployment is READY. Confirm new session can start with: repo URL + PAT + SSU.
 
 ---
 
@@ -212,6 +212,7 @@ Things that would cause silent failures or wrong implementations if not explicit
 | Payment cancelled-trip flag | `/profile` Payments bento uses heuristic: `item_type==='trip'` + `cancelledTripIds.size>0`. Imprecise. Low-priority follow-up. |
 | OG scrape nulls | `lib/og-scrape.ts` returns nulls for IG/FB — platforms block server fetches. |
 | Ticket Done = deployed | Never mark Done without Vercel READY confirmation. |
+| PIU removes nothing | When restructuring docs, check both files against the previous version line-by-line before pushing. Never silently drop content. |
 
 ---
 
@@ -231,7 +232,7 @@ profile_id = (SELECT id FROM profiles WHERE clerk_id = auth.jwt() ->> 'sub' LIMI
 ```
 
 ### CI Type Check
-On every push to `main`: (1) Supabase type drift check — diffs live DB against `types/supabase.ts`, fails with fix command if stale. (2) `tsc --noEmit`. Required secret: `SUPABASE_ACCESS_TOKEN` in repo secrets. See CONTEXT.md §9 for full CI detail and fix instructions.
+On every push to `main`: (1) Supabase type drift check — diffs live DB against `types/supabase.ts`, fails with fix command if stale. (2) `tsc --noEmit`. Required secret: `SUPABASE_ACCESS_TOKEN` in repo secrets. See CONTEXT.md §12 for full CI detail and fix instructions.
 
 ---
 
@@ -243,6 +244,6 @@ If any instruction here contradicts Next.js 16 / Clerk v7 / Supabase current SDK
 
 ## 9. Reference
 
-For schema, directory structure, design system, i18n, navigation, admin pages, access control flows, LOS, CI detail, and release history — read `docs/ai/CONTEXT.md`.
+For schema, directory structure, key files & patterns, navigation, design system, i18n, admin pages, access control flows, LOS, calendar, CI detail, and release history — read `docs/ai/CONTEXT.md`.
 
 For live schema — `Supabase:list_tables` verbose is always more current than CONTEXT.md.
