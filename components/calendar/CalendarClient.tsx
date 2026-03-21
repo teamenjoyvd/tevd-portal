@@ -425,10 +425,11 @@ export default function CalendarClient({
   return (
     <div className="w-full" style={{ backgroundColor: 'var(--bg-global)' }}>
 
-      {/* Mobile: original top-toolbar layout (unchanged) */}
+      {/* Mobile: top-toolbar layout */}
       <div className="md:hidden">
         <div className="flex-shrink-0 border-b" style={{ backgroundColor: 'var(--bg-global)', borderColor: 'var(--border-default)' }}>
           <div className="max-w-[1024px] mx-auto px-4">
+            {/* Row 1: period nav */}
             <div className="flex items-center gap-2 py-2.5">
               <button onClick={() => navigate(-1)}
                 className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5"
@@ -455,7 +456,8 @@ export default function CalendarClient({
                 {periodLabel}
               </p>
             </div>
-            <div className="flex items-center justify-between gap-2 pb-2.5">
+            {/* Row 2: view switcher */}
+            <div className="flex items-center justify-between gap-2 pb-2">
               <div className="flex gap-0.5 p-0.5 rounded-lg" style={{ backgroundColor: 'rgba(0,0,0,0.05)' }}>
                 {views.map(v => (
                   <button key={v.key} onClick={() => setView(v.key)}
@@ -469,6 +471,49 @@ export default function CalendarClient({
                   </button>
                 ))}
               </div>
+            </div>
+            {/* Row 3: category + format filter chips */}
+            <div className="flex items-center gap-1.5 pb-2.5 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+              <button
+                onClick={() => setShowN21(v => !v)}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 transition-all"
+                style={{
+                  backgroundColor: showN21 ? 'var(--forest)' : 'rgba(0,0,0,0.05)',
+                  color: showN21 ? 'white' : 'var(--text-secondary)',
+                }}
+              >
+                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: showN21 ? 'rgba(255,255,255,0.6)' : 'var(--forest)' }} />
+                N21
+              </button>
+              {canSeePersonal && (
+                <button
+                  onClick={() => setShowPersonal(v => !v)}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 transition-all"
+                  style={{
+                    backgroundColor: showPersonal ? 'var(--sienna)' : 'rgba(0,0,0,0.05)',
+                    color: showPersonal ? 'white' : 'var(--text-secondary)',
+                  }}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: showPersonal ? 'rgba(255,255,255,0.6)' : 'var(--sienna)' }} />
+                  {t('cal.personal')}
+                </button>
+              )}
+              <div className="w-px h-4 flex-shrink-0" style={{ backgroundColor: 'var(--border-default)' }} />
+              {TYPE_FILTERS.map(type => (
+                <button
+                  key={type}
+                  onClick={() => setFilterType(filterType === type ? null : type)}
+                  className="px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 transition-all"
+                  style={{
+                    backgroundColor: filterType === type ? 'var(--brand-teal)' : 'rgba(0,0,0,0.05)',
+                    color: filterType === type ? 'white' : 'var(--text-secondary)',
+                  }}
+                >
+                  {type === 'in-person' ? t('cal.inPerson') : type === 'online' ? t('cal.online') : t('cal.hybrid')}
+                </button>
+              ))}
             </div>
           </div>
         </div>
