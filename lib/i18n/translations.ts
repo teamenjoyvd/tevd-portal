@@ -106,6 +106,8 @@ export const translations = {
   'trips.pageSubtitle':      { en: 'Register and track your payments', bg: 'Регистрирайте се и следете плащанията' },
   'trips.memberOnly':        { en: 'Member access required to register', bg: 'Необходим е достъп на член за регистрация' },
   'trips.accommodation':     { en: 'Accommodation:',          bg: 'Настаняване:'                       },
+  'trips.back':              { en: 'Back',                    bg: 'Назад'                              },
+  'trips.viewDetails':       { en: 'View Trip Details',       bg: 'Виж детайли за пътуването'          },
 
   // Calendar
   'cal.today':     { en: 'Today',   bg: 'Днес'      },
