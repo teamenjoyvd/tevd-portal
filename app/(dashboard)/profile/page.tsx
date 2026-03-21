@@ -1260,75 +1260,76 @@ export default function ProfilePage() {
               ) : null}
 
               {/* ── BENTO C: Vital Signs ────────────────────────────────────── */}
-              {activityLoading ? (
-                <SectionSkeleton height={120} />
-              ) : hasEventActivity ? (
-                <div style={{ gridColumn: 'span 8' }}>
-                  <div className="rounded-2xl p-6" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+              {vitalsLoading ? (
+                <div style={{ gridColumn: 'span 4' }}>
+                  <div className="rounded-2xl animate-pulse" style={{ height: 120, backgroundColor: 'var(--border-default)' }} />
+                </div>
+              ) : hasVitals ? (
+                <div style={{ gridColumn: 'span 4' }}>
+                  <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
                     <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-6" style={{ color: 'var(--brand-crimson)' }}>
                       Vital Signs
                     </p>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, minmax(0, 1fr))', gap: '12px' }}>
-                      {hasVitals && (
-                        <div style={{ gridColumn: 'span 4' }}>
-                          <p className="text-xs font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
-                            Tickets
-                          </p>
-                          <div className="space-y-2">
-                            {vitalsData!.map(vs => (
-                              <div key={vs.id} className="flex items-center justify-between gap-3 text-xs py-1.5">
-                                <span style={{ color: 'var(--text-primary)' }}>{vs.event_label}</span>
-                                <span
-                                  className="font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
-                                  style={{
-                                    backgroundColor: vs.has_ticket ? 'rgba(188,71,73,0.12)' : 'var(--border-default)',
-                                    color: vs.has_ticket ? 'var(--brand-crimson)' : 'var(--text-secondary)',
-                                  }}
-                                >
-                                  {vs.has_ticket ? '✓ Ticketed' : '○ No ticket'}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
+                    <div className="space-y-2">
+                      {vitalsData!.map(vs => (
+                        <div key={vs.id} className="flex items-center justify-between gap-3 text-xs py-1.5">
+                          <span style={{ color: 'var(--text-primary)' }}>{vs.event_label}</span>
+                          <span
+                            className="font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
+                            style={{
+                              backgroundColor: vs.has_ticket ? 'rgba(188,71,73,0.12)' : 'var(--border-default)',
+                              color: vs.has_ticket ? 'var(--brand-crimson)' : 'var(--text-secondary)',
+                            }}
+                          >
+                            {vs.has_ticket ? '✓ Ticketed' : '○ No ticket'}
+                          </span>
                         </div>
-                      )}
-                      {hasEventRoles && (
-                        <div style={{ gridColumn: hasVitals ? 'span 4' : 'span 8' }}>
-                          <p className="text-xs font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
-                            Participation
-                          </p>
-                          <div className="space-y-2">
-                            {eventRolesData!.map(er => {
-                              const rs = REG_STATUS_STYLES[er.status.toLowerCase()] ?? REG_STATUS_STYLES.pending
-                              return (
-                                <div key={er.id} className="flex items-start justify-between gap-3 text-xs py-1.5">
-                                  <div className="min-w-0">
-                                    <p className="font-medium truncate" style={{ color: 'var(--text-primary)' }}>
-                                      {er.calendar_events?.title ?? '—'}
-                                    </p>
-                                    <p style={{ color: 'var(--text-secondary)' }}>{er.role_label}</p>
-                                  </div>
-                                  <span
-                                    className="font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
-                                    style={{ backgroundColor: rs.bg, color: rs.color }}
-                                  >
-                                    {er.status}
-                                  </span>
-                                </div>
-                              )
-                            })}
-                          </div>
-                        </div>
-                      )}
+                      ))}
                     </div>
                   </div>
                 </div>
               ) : null}
 
-              {/* ── BENTO D: Calendar subscription ─────────────────────────── */}
+              {/* ── BENTO D: Participation ───────────────────────────────────── */}
+              {eventRolesLoading ? (
+                <div style={{ gridColumn: 'span 4' }}>
+                  <div className="rounded-2xl animate-pulse" style={{ height: 120, backgroundColor: 'var(--border-default)' }} />
+                </div>
+              ) : hasEventRoles ? (
+                <div style={{ gridColumn: 'span 4' }}>
+                  <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+                    <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-6" style={{ color: 'var(--brand-crimson)' }}>
+                      Participation
+                    </p>
+                    <div className="space-y-2">
+                      {eventRolesData!.map(er => {
+                        const rs = REG_STATUS_STYLES[er.status.toLowerCase()] ?? REG_STATUS_STYLES.pending
+                        return (
+                          <div key={er.id} className="flex items-start justify-between gap-3 text-xs py-1.5">
+                            <div className="min-w-0">
+                              <p className="font-medium truncate" style={{ color: 'var(--text-primary)' }}>
+                                {er.calendar_events?.title ?? '—'}
+                              </p>
+                              <p style={{ color: 'var(--text-secondary)' }}>{er.role_label}</p>
+                            </div>
+                            <span
+                              className="font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
+                              style={{ backgroundColor: rs.bg, color: rs.color }}
+                            >
+                              {er.status}
+                            </span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
+              {/* ── BENTO E: Calendar subscription ─────────────────────────── */}
               {calSubscriptionBlock}
 
-              {/* ── BENTO E: STATS ──────────────────────────────────────────── */}
+              {/* ── BENTO F: STATS ──────────────────────────────────────────── */}
               {validProfile.abo_number && (
                 losSummaryLoading ? (
                   <SectionSkeleton height={80} />
@@ -1374,7 +1375,7 @@ export default function ProfilePage() {
                 )
               )}
 
-              {/* ── BENTO F: Admin Tools (admin only) ──────────────────────── */}
+              {/* ── BENTO G: Admin Tools (admin only) ──────────────────────── */}
               {isAdmin && (
                 <div style={{ gridColumn: 'span 8' }}>
                   <div className="rounded-2xl p-6" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
