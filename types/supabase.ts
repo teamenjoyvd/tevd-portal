@@ -470,6 +470,120 @@ export type Database = {
           },
         ]
       }
+      payable_items: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string
+          currency: string
+          description: string | null
+          id: string
+          is_active: boolean
+          item_type: string
+          linked_trip_id: string | null
+          title: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by: string
+          currency?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          item_type: string
+          linked_trip_id?: string | null
+          title: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string
+          currency?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          item_type?: string
+          linked_trip_id?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payable_items_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payable_items_linked_trip_id_fkey"
+            columns: ["linked_trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payments: {
+        Row: {
+          admin_note: string | null
+          amount: number
+          created_at: string
+          id: string
+          note: string | null
+          payable_item_id: string
+          payment_method: string | null
+          profile_id: string
+          proof_url: string | null
+          status: string
+          submitted_by_member: boolean
+          transaction_date: string
+        }
+        Insert: {
+          admin_note?: string | null
+          amount: number
+          created_at?: string
+          id?: string
+          note?: string | null
+          payable_item_id: string
+          payment_method?: string | null
+          profile_id: string
+          proof_url?: string | null
+          status?: string
+          submitted_by_member?: boolean
+          transaction_date: string
+        }
+        Update: {
+          admin_note?: string | null
+          amount?: number
+          created_at?: string
+          id?: string
+          note?: string | null
+          payable_item_id?: string
+          payment_method?: string | null
+          profile_id?: string
+          proof_url?: string | null
+          status?: string
+          submitted_by_member?: boolean
+          transaction_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_payable_item_id_fkey"
+            columns: ["payable_item_id"]
+            isOneToOne: false
+            referencedRelation: "payable_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           abo_number: string | null
@@ -486,6 +600,7 @@ export type Database = {
           passport_number: string | null
           phone: string | null
           role: Database["public"]["Enums"]["user_role"]
+          ui_prefs: Json
           upline_abo_number: string | null
           valid_through: string | null
         }
@@ -504,6 +619,7 @@ export type Database = {
           passport_number?: string | null
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          ui_prefs?: Json
           upline_abo_number?: string | null
           valid_through?: string | null
         }
@@ -522,6 +638,7 @@ export type Database = {
           passport_number?: string | null
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          ui_prefs?: Json
           upline_abo_number?: string | null
           valid_through?: string | null
         }
@@ -694,6 +811,8 @@ export type Database = {
       }
       trip_registrations: {
         Row: {
+          cancelled_at: string | null
+          cancelled_by: string | null
           created_at: string
           id: string
           profile_id: string
@@ -701,6 +820,8 @@ export type Database = {
           trip_id: string
         }
         Insert: {
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           created_at?: string
           id?: string
           profile_id: string
@@ -708,6 +829,8 @@ export type Database = {
           trip_id: string
         }
         Update: {
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           created_at?: string
           id?: string
           profile_id?: string
@@ -715,6 +838,13 @@ export type Database = {
           trip_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "trip_registrations_cancelled_by_fkey"
+            columns: ["cancelled_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "trip_registrations_profile_id_fkey"
             columns: ["profile_id"]
