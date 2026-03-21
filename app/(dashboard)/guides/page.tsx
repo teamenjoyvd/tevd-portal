@@ -53,7 +53,7 @@ export default function GuidesPage() {
               return (
                 <Link key={g.id} href={`/guides/${g.slug}`} className="group block">
                   <div
-                    className="rounded-2xl p-6 flex flex-col justify-between transition-colors group-hover:border-[var(--border-hover)]"
+                    className="rounded-2xl p-6 flex flex-col justify-between transition-shadow duration-150 hover:shadow-sm group-hover:border-[var(--border-hover)]"
                     style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)', minHeight: 160 }}
                   >
                     <span className="text-4xl">{g.emoji ?? '📄'}</span>
@@ -123,7 +123,7 @@ export default function GuidesPage() {
                   className="group"
                 >
                   <div
-                    className="h-full rounded-2xl p-6 flex flex-col justify-between transition-colors group-hover:border-[var(--border-hover)]"
+                    className="h-full rounded-2xl p-6 flex flex-col justify-between transition-shadow duration-150 hover:shadow-sm group-hover:border-[var(--border-hover)]"
                     style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}
                   >
                     <span className="text-4xl">{g.emoji ?? '📄'}</span>

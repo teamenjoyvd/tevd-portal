@@ -84,7 +84,7 @@ function TripCard({
   const isRegistered = !!registration && registration.status !== 'denied'
 
   return (
-    <div className="h-full rounded-2xl overflow-hidden flex flex-col" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+    <div className="h-full rounded-2xl overflow-hidden flex flex-col transition-shadow duration-150 hover:shadow-sm" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
       {trip.image_url && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
