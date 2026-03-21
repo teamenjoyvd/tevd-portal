@@ -1259,14 +1259,14 @@ export default function ProfilePage() {
                 </div>
               ) : null}
 
-              {/* ── BENTO C: Activity ───────────────────────────────────────── */}
+              {/* ── BENTO C: Vital Signs ────────────────────────────────────── */}
               {activityLoading ? (
                 <SectionSkeleton height={120} />
               ) : hasEventActivity ? (
                 <div style={{ gridColumn: 'span 8' }}>
                   <div className="rounded-2xl p-6" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
                     <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-6" style={{ color: 'var(--brand-crimson)' }}>
-                      Activity
+                      Vital Signs
                     </p>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, minmax(0, 1fr))', gap: '12px' }}>
                       {hasVitals && (
