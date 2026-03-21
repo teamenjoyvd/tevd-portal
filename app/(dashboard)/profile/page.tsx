@@ -696,7 +696,7 @@ export default function ProfilePage() {
           ) : (
             // ── MEMBER / CORE / ADMIN LAYOUT ─────────────────────────────────
             <>
-              {/* ── BENTO A: Personal Details (merged) ────────────────────── */}
+              {/* ── BENTO A: Personal Details (2-col internal layout) ────────── */}
               <div style={{ gridColumn: 'span 8' }}>
                 <div className="rounded-2xl p-6" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
 
@@ -737,195 +737,221 @@ export default function ProfilePage() {
                     )}
                   </div>
 
-                  {/* ── Personal Details sub-section ── */}
-                  <div className="space-y-4 mb-6">
-                    {/* EN names */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
-                          {t('profile.firstName')}
-                        </label>
-                        {editMode ? (
-                          <input
-                            value={form.first_name ?? ''}
-                            onChange={e => setForm(f => ({ ...f, first_name: e.target.value }))}
-                            className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-                            style={{ color: 'var(--text-primary)' }}
-                          />
-                        ) : (
-                          <p className="text-sm font-medium py-2.5" style={{ color: 'var(--text-primary)' }}>
-                            {validProfile.first_name || '—'}
-                          </p>
-                        )}
-                      </div>
-                      <div>
-                        <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
-                          {t('profile.lastName')}
-                        </label>
-                        {editMode ? (
-                          <input
-                            value={form.last_name ?? ''}
-                            onChange={e => setForm(f => ({ ...f, last_name: e.target.value }))}
-                            className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-                            style={{ color: 'var(--text-primary)' }}
-                          />
-                        ) : (
-                          <p className="text-sm font-medium py-2.5" style={{ color: 'var(--text-primary)' }}>
-                            {validProfile.last_name || '—'}
-                          </p>
-                        )}
-                      </div>
-                    </div>
+                  {/* ── Two-column split: PERSONAL DETAILS | ABO VERIFICATION ── */}
+                  <div className="flex flex-col md:flex-row gap-0">
 
-                    {/* BG names */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
-                          {t('profile.firstName')} (БГ)
-                        </label>
-                        {editMode ? (
-                          <input
-                            value={bgFirst}
-                            onChange={e => setForm(f => ({ ...f, display_names: { ...((f.display_names ?? {}) as Record<string,string>), bg_first: e.target.value } }))}
-                            className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-                            style={{ color: 'var(--text-primary)' }}
-                          />
-                        ) : (
-                          <p className="text-sm font-medium py-2.5" style={{ color: 'var(--text-primary)' }}>
-                            {bgFirst || '—'}
-                          </p>
-                        )}
-                      </div>
-                      <div>
-                        <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
-                          {t('profile.lastName')} (БГ)
-                        </label>
-                        {editMode ? (
-                          <input
-                            value={bgLast}
-                            onChange={e => setForm(f => ({ ...f, display_names: { ...((f.display_names ?? {}) as Record<string,string>), bg_last: e.target.value } }))}
-                            className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-                            style={{ color: 'var(--text-primary)' }}
-                          />
-                        ) : (
-                          <p className="text-sm font-medium py-2.5" style={{ color: 'var(--text-primary)' }}>
-                            {bgLast || '—'}
-                          </p>
-                        )}
-                      </div>
-                    </div>
+                    {/* Left col — PERSONAL DETAILS */}
+                    <div className="flex-1 space-y-4 md:pr-6">
+                      <p className="text-[10px] font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
+                        Details
+                      </p>
 
-                    {/* Phone + Email */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Phone</label>
-                        {editMode ? (
-                          <input
-                            value={form.phone ?? ''}
-                            onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
-                            placeholder="+359 88 000 0000"
-                            className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-                            style={{ color: 'var(--text-primary)' }}
-                          />
-                        ) : (
-                          <p className="text-sm py-2.5" style={{ color: validProfile.phone ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
-                            {validProfile.phone || '—'}
-                          </p>
-                        )}
-                      </div>
-                      <div>
-                        <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Contact email</label>
-                        {editMode ? (
-                          <input
-                            value={form.contact_email ?? ''}
-                            onChange={e => setForm(f => ({ ...f, contact_email: e.target.value }))}
-                            placeholder="your@email.com"
-                            className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-                            style={{ color: 'var(--text-primary)' }}
-                          />
-                        ) : (
-                          <p className="text-sm py-2.5" style={{ color: validProfile.contact_email ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
-                            {validProfile.contact_email || '—'}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Access level */}
-                    {(() => {
-                      const rc = getRoleColors(validProfile.role)
-                      return (
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Access level</span>
-                          <span
-                            className="text-xs font-semibold px-2.5 py-1 rounded-full"
-                            style={{ backgroundColor: rc.bg, color: rc.font }}
-                          >
-                            {isUnverified ? 'Unverified' : ROLE_LABELS[validProfile.role]}
-                          </span>
+                      {/* EN names */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
+                            {t('profile.firstName')}
+                          </label>
+                          {editMode ? (
+                            <input
+                              value={form.first_name ?? ''}
+                              onChange={e => setForm(f => ({ ...f, first_name: e.target.value }))}
+                              className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+                              style={{ color: 'var(--text-primary)' }}
+                            />
+                          ) : (
+                            <p className="text-sm font-medium py-2.5" style={{ color: 'var(--text-primary)' }}>
+                              {validProfile.first_name || '—'}
+                            </p>
+                          )}
                         </div>
-                      )
-                    })()}
-                  </div>
+                        <div>
+                          <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
+                            {t('profile.lastName')}
+                          </label>
+                          {editMode ? (
+                            <input
+                              value={form.last_name ?? ''}
+                              onChange={e => setForm(f => ({ ...f, last_name: e.target.value }))}
+                              className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+                              style={{ color: 'var(--text-primary)' }}
+                            />
+                          ) : (
+                            <p className="text-sm font-medium py-2.5" style={{ color: 'var(--text-primary)' }}>
+                              {validProfile.last_name || '—'}
+                            </p>
+                          )}
+                        </div>
+                      </div>
 
-                  {/* ── ABO Verification sub-section ── */}
-                  {validProfile.abo_number && (
-                    <>
-                      <div style={{ borderTop: '1px solid var(--border-default)', marginBottom: '16px' }} />
-                      <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
+                      {/* BG names */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
+                            {t('profile.firstName')} (БГ)
+                          </label>
+                          {editMode ? (
+                            <input
+                              value={bgFirst}
+                              onChange={e => setForm(f => ({ ...f, display_names: { ...((f.display_names ?? {}) as Record<string,string>), bg_first: e.target.value } }))}
+                              className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+                              style={{ color: 'var(--text-primary)' }}
+                            />
+                          ) : (
+                            <p className="text-sm font-medium py-2.5" style={{ color: 'var(--text-primary)' }}>
+                              {bgFirst || '—'}
+                            </p>
+                          )}
+                        </div>
+                        <div>
+                          <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
+                            {t('profile.lastName')} (БГ)
+                          </label>
+                          {editMode ? (
+                            <input
+                              value={bgLast}
+                              onChange={e => setForm(f => ({ ...f, display_names: { ...((f.display_names ?? {}) as Record<string,string>), bg_last: e.target.value } }))}
+                              className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+                              style={{ color: 'var(--text-primary)' }}
+                            />
+                          ) : (
+                            <p className="text-sm font-medium py-2.5" style={{ color: 'var(--text-primary)' }}>
+                              {bgLast || '—'}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Phone + Email */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Phone</label>
+                          {editMode ? (
+                            <input
+                              value={form.phone ?? ''}
+                              onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
+                              placeholder="+359 88 000 0000"
+                              className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+                              style={{ color: 'var(--text-primary)' }}
+                            />
+                          ) : (
+                            <p className="text-sm py-2.5" style={{ color: validProfile.phone ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
+                              {validProfile.phone || '—'}
+                            </p>
+                          )}
+                        </div>
+                        <div>
+                          <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Contact email</label>
+                          {editMode ? (
+                            <input
+                              value={form.contact_email ?? ''}
+                              onChange={e => setForm(f => ({ ...f, contact_email: e.target.value }))}
+                              placeholder="your@email.com"
+                              className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+                              style={{ color: 'var(--text-primary)' }}
+                            />
+                          ) : (
+                            <p className="text-sm py-2.5" style={{ color: validProfile.contact_email ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
+                              {validProfile.contact_email || '—'}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Thin vertical separator — desktop only */}
+                    <div
+                      className="hidden md:block flex-shrink-0"
+                      style={{ width: 1, backgroundColor: 'var(--border-default)', margin: '0 0' }}
+                    />
+
+                    {/* Right col — ABO VERIFICATION */}
+                    <div className="flex-1 space-y-3 md:pl-6 mt-6 md:mt-0">
+                      <p className="text-[10px] font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
                         ABO Verification
                       </p>
-                      <div className="space-y-1.5">
-                        <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                          ABO #{' '}
-                          <span className="font-medium font-mono" style={{ color: 'var(--text-primary)' }}>
-                            {validProfile.abo_number}
-                          </span>
-                        </p>
-                        {uplineData?.upline_abo_number && (
-                          <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                            Upline —{' '}
-                            <span className="font-medium" style={{ color: 'var(--text-primary)' }}>
-                              {uplineData.upline_name ?? uplineData.upline_abo_number}
-                            </span>
-                            {uplineData.upline_name && (
-                              <span className="font-mono ml-1 opacity-60">{uplineData.upline_abo_number}</span>
-                            )}
-                          </p>
-                        )}
-                        <p className="text-xs font-medium" style={{ color: '#2d6a4f' }}>✓ Your profile is verified</p>
-                      </div>
-                    </>
-                  )}
 
-                  {/* ── Travel Document sub-section ── */}
+                      {/* Access row */}
+                      {(() => {
+                        const rc = getRoleColors(validProfile.role)
+                        return (
+                          <div className="grid grid-cols-2 gap-4">
+                            <p className="text-xs py-1" style={{ color: 'var(--text-secondary)' }}>Access</p>
+                            <span
+                              className="text-xs font-semibold px-2.5 py-1 rounded-full self-start"
+                              style={{ backgroundColor: rc.bg, color: rc.font }}
+                            >
+                              {isUnverified ? 'Unverified' : ROLE_LABELS[validProfile.role]}
+                            </span>
+                          </div>
+                        )
+                      })()}
+
+                      {/* ABO # row */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <p className="text-xs py-1" style={{ color: 'var(--text-secondary)' }}>ABO #</p>
+                        {validProfile.abo_number ? (
+                          <p className="text-xs font-medium font-mono py-1" style={{ color: 'var(--text-primary)' }}>
+                            {validProfile.abo_number}{' '}
+                            <span style={{ color: '#2d6a4f' }}>✓</span>
+                          </p>
+                        ) : (
+                          <p className="text-xs py-1" style={{ color: 'var(--text-secondary)' }}>—</p>
+                        )}
+                      </div>
+
+                      {/* Upline name row */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <p className="text-xs py-1" style={{ color: 'var(--text-secondary)' }}>Upline</p>
+                        <p className="text-xs font-medium py-1" style={{ color: 'var(--text-primary)' }}>
+                          {uplineData?.upline_name ?? '—'}
+                        </p>
+                      </div>
+
+                      {/* Upline number row */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <p className="text-xs py-1" style={{ color: 'var(--text-secondary)' }}>Upline #</p>
+                        <p className="text-xs font-mono py-1" style={{ color: 'var(--text-secondary)' }}>
+                          {uplineData?.upline_abo_number ?? '—'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── Travel Document sub-section (full width, below split) ── */}
                   <>
-                    <div style={{ borderTop: '1px solid var(--border-default)', margin: '16px 0' }} />
+                    <div style={{ borderTop: '1px solid var(--border-default)', margin: '20px 0 16px' }} />
                     <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-4" style={{ color: 'var(--text-secondary)' }}>
                       {t('profile.travelDoc')}
                     </p>
                     <div className="space-y-4">
-                      {/* Pillbox document type */}
-                      <div className="flex gap-2">
-                        {(['id', 'passport'] as const).map(dt => (
-                          <button
-                            key={dt}
-                            disabled={!editMode}
-                            onClick={() => editMode && setForm(f => ({ ...f, document_active_type: dt }))}
-                            className="flex-1 py-2 rounded-xl text-xs font-semibold tracking-widest uppercase transition-all"
-                            style={{
-                              backgroundColor: (form.document_active_type ?? activeDocType) === dt
-                                ? 'var(--text-primary)' : 'transparent',
-                              color: (form.document_active_type ?? activeDocType) === dt
-                                ? 'var(--bg-card)' : 'var(--text-secondary)',
-                              border: '1px solid var(--border-default)',
-                              cursor: editMode ? 'pointer' : 'default',
-                              opacity: !editMode && (form.document_active_type ?? activeDocType) !== dt ? 0.4 : 1,
-                            }}
-                          >
-                            {dt === 'id' ? 'PERSONAL ID' : 'PASSPORT'}
-                          </button>
-                        ))}
+                      {/* Pillbox document type — muted in view mode */}
+                      <div
+                        style={{
+                          opacity: editMode ? 1 : 0.45,
+                          pointerEvents: editMode ? 'auto' : 'none',
+                          transition: 'opacity 0.15s ease',
+                        }}
+                      >
+                        <div className="flex gap-2">
+                          {(['id', 'passport'] as const).map(dt => (
+                            <button
+                              key={dt}
+                              onClick={() => setForm(f => ({ ...f, document_active_type: dt }))}
+                              className="flex-1 py-2 rounded-xl text-xs font-semibold tracking-widest uppercase transition-all"
+                              style={{
+                                backgroundColor: (form.document_active_type ?? activeDocType) === dt
+                                  ? 'var(--text-primary)' : 'transparent',
+                                color: (form.document_active_type ?? activeDocType) === dt
+                                  ? 'var(--bg-card)' : 'var(--text-secondary)',
+                                border: '1px solid var(--border-default)',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              {dt === 'id' ? 'PERSONAL ID' : 'PASSPORT'}
+                            </button>
+                          ))}
+                        </div>
                       </div>
 
                       <div className="grid grid-cols-2 gap-4">
