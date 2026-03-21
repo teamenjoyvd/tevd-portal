@@ -15,9 +15,9 @@ CREATE TABLE payable_items (
 );
 ALTER TABLE payable_items ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "payable_items_admin_all" ON payable_items
+CREATE POLICY "payable_items_admin_core_all" ON payable_items
   FOR ALL
-  USING ((auth.jwt() ->> 'user_role') IN ('admin'));
+  USING ((auth.jwt() ->> 'user_role') IN ('admin', 'core'));
 
 CREATE POLICY "payable_items_member_read" ON payable_items
   FOR SELECT
@@ -47,9 +47,9 @@ CREATE POLICY "payments_member_own" ON payments
     SELECT id FROM profiles WHERE clerk_id = auth.jwt() ->> 'sub' LIMIT 1
   ));
 
-CREATE POLICY "payments_admin_all" ON payments
+CREATE POLICY "payments_admin_core_all" ON payments
   FOR ALL
-  USING ((auth.jwt() ->> 'user_role') IN ('admin'));
+  USING ((auth.jwt() ->> 'user_role') IN ('admin', 'core'));
 
 -- ── 3. trip_registrations: cancel columns ────────────────────────────────────
 ALTER TABLE trip_registrations
