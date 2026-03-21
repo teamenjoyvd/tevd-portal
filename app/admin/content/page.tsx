@@ -1,11 +1,29 @@
 'use client'
 
-import { Suspense } from 'react'
+import { Suspense, useRef } from 'react'
 import { useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useBentoConfig, type BentoConfigEntry } from '@/lib/hooks/useBentoConfig'
+
+// ── Shared drag handle ───────────────────────────────────────────────
+
+function GripHandle() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="flex-shrink-0"
+      style={{ color: 'var(--text-secondary)', cursor: 'grab' }}>
+      <circle cx="4" cy="3" r="1.2" fill="currentColor"/>
+      <circle cx="4" cy="7" r="1.2" fill="currentColor"/>
+      <circle cx="4" cy="11" r="1.2" fill="currentColor"/>
+      <circle cx="10" cy="3" r="1.2" fill="currentColor"/>
+      <circle cx="10" cy="7" r="1.2" fill="currentColor"/>
+      <circle cx="10" cy="11" r="1.2" fill="currentColor"/>
+    </svg>
+  )
+}
+
+// ── BentoSettings ───────────────────────────────────────────────
 
 const TILE_LABELS: Record<string, string> = {
   events:        'Events tile',
@@ -91,17 +109,16 @@ function BentoSettings() {
   )
 }
 
+// ── Types ───────────────────────────────────────────────────────
+
 type Announcement = {
   id: string; titles: Record<string,string>; contents: Record<string,string>
-  access_level: string[]; is_active: boolean; created_at: string
+  access_level: string[]; is_active: boolean; created_at: string; sort_order: number
 }
 type QuickLink = {
   id: string; label: string; url: string; icon_name: string
   access_level: string[]; sort_order: number
 }
-
-// ── Social Posts types ───────────────────────────────────────────
-
 type SocialPost = {
   id: string
   platform: 'instagram' | 'facebook'
@@ -134,7 +151,7 @@ function FacebookIcon() {
 
 const LANGS = ['en', 'bg', 'sk']
 
-// ── Guides types & helpers ────────────────────────────────────────────
+// ── Guides types ───────────────────────────────────────────────
 
 type Block = {
   type: 'heading' | 'paragraph' | 'callout'
@@ -153,6 +170,7 @@ type Guide = {
   is_published: boolean
   created_at: string
   updated_at: string
+  sort_order: number
 }
 
 const ALL_ROLES = ['guest', 'member', 'core', 'admin']
@@ -170,6 +188,7 @@ function emptyGuide(): Omit<Guide, 'id' | 'created_at' | 'updated_at'> {
     body: [],
     access_roles: [...ALL_ROLES],
     is_published: false,
+    sort_order: 0,
   }
 }
 
@@ -460,7 +479,7 @@ function GuideForm({
   )
 }
 
-// ── Tab definitions ─────────────────────────────────────────────────
+// ── Tab definitions ───────────────────────────────────────────────
 
 const TABS = [
   { key: 'announcements', label: 'Announcements' },
@@ -472,18 +491,32 @@ const TABS = [
 
 type TabKey = typeof TABS[number]['key']
 
-// ── Inner page (needs useSearchParams → Suspense boundary required) ─────
+// ── Inner page ────────────────────────────────────────────────────
 
 function ContentPageInner() {
   const searchParams = useSearchParams()
   const tab = (searchParams.get('tab') ?? 'announcements') as TabKey
-
   const qc = useQueryClient()
 
   // ── Announcements ───────────────────────────────────
-  const { data: announcements = [] } = useQuery<Announcement[]>({
+  const { data: announcementsRaw = [] } = useQuery<Announcement[]>({
     queryKey: ['announcements'],
     queryFn: () => fetch('/api/admin/announcements').then(r => r.json()),
+  })
+  const [localAnnouncements, setLocalAnnouncements] = useState<Announcement[]>([])
+  const aPrevKey = useRef('')
+  const aKey = announcementsRaw.map(a => a.id).join(',')
+  if (aPrevKey.current !== aKey) { aPrevKey.current = aKey; setLocalAnnouncements([...announcementsRaw]) }
+  const [aDragging, setADragging] = useState<string | null>(null)
+
+  const reorderAnnouncements = useMutation({
+    mutationFn: (items: { id: string; sort_order: number }[]) =>
+      fetch('/api/admin/announcements', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items }),
+      }).then(r => r.json()),
+    onError: () => setLocalAnnouncements([...announcementsRaw]),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['announcements'] }),
   })
 
   const [aForm, setAForm] = useState({
@@ -554,9 +587,24 @@ function ContentPageInner() {
   }
 
   // ── Quick Links ────────────────────────────────────
-  const { data: links = [] } = useQuery<QuickLink[]>({
+  const { data: linksRaw = [] } = useQuery<QuickLink[]>({
     queryKey: ['quick-links'],
     queryFn: () => fetch('/api/admin/quick-links').then(r => r.json()),
+  })
+  const [localLinks, setLocalLinks] = useState<QuickLink[]>([])
+  const lPrevKey = useRef('')
+  const lKey = linksRaw.map(l => l.id).join(',')
+  if (lPrevKey.current !== lKey) { lPrevKey.current = lKey; setLocalLinks([...linksRaw]) }
+  const [lDragging, setLDragging] = useState<string | null>(null)
+
+  const reorderLinks = useMutation({
+    mutationFn: (items: { id: string; sort_order: number }[]) =>
+      fetch('/api/admin/quick-links', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items }),
+      }).then(r => r.json()),
+    onError: () => setLocalLinks([...linksRaw]),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['quick-links'] }),
   })
 
   const [lForm, setLForm] = useState({ label: '', url: '', icon_name: 'link', sort_order: 0, access_level: ['guest','member','core','admin'] as string[] })
@@ -610,9 +658,24 @@ function ContentPageInner() {
   const [guidesCreating, setGuidesCreating] = useState(false)
   const [guidesMutError, setGuidesMutError] = useState<string | null>(null)
 
-  const { data: guides = [], isLoading: guidesLoading } = useQuery<Guide[]>({
+  const { data: guidesRaw = [], isLoading: guidesLoading } = useQuery<Guide[]>({
     queryKey: ['admin-guides'],
     queryFn: () => fetch('/api/admin/guides').then(r => r.json()),
+  })
+  const [localGuides, setLocalGuides] = useState<Guide[]>([])
+  const gPrevKey = useRef('')
+  const gKey = guidesRaw.map(g => g.id).join(',')
+  if (gPrevKey.current !== gKey) { gPrevKey.current = gKey; setLocalGuides([...guidesRaw]) }
+  const [gDragging, setGDragging] = useState<string | null>(null)
+
+  const reorderGuides = useMutation({
+    mutationFn: (items: { id: string; sort_order: number }[]) =>
+      fetch('/api/admin/guides', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items }),
+      }).then(r => r.json()),
+    onError: () => setLocalGuides([...guidesRaw]),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-guides'] }),
   })
 
   const createGuide = useMutation({
@@ -646,9 +709,24 @@ function ContentPageInner() {
     updateGuide.mutate({ id: guide.id, is_published: !guide.is_published })
 
   // ── Social Posts ───────────────────────────────────
-  const { data: socialPosts = [] } = useQuery<SocialPost[]>({
+  const { data: socialPostsRaw = [] } = useQuery<SocialPost[]>({
     queryKey: ['admin-social-posts'],
     queryFn: () => fetch('/api/admin/social-posts').then(r => r.json()),
+  })
+  const [localSocials, setLocalSocials] = useState<SocialPost[]>([])
+  const sPrevKey = useRef('')
+  const sKey = socialPostsRaw.map(p => p.id).join(',')
+  if (sPrevKey.current !== sKey) { sPrevKey.current = sKey; setLocalSocials([...socialPostsRaw]) }
+  const [sDragging, setSDragging] = useState<string | null>(null)
+
+  const reorderSocials = useMutation({
+    mutationFn: (items: { id: string; sort_order: number }[]) =>
+      fetch('/api/admin/social-posts', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items }),
+      }).then(r => r.json()),
+    onError: () => setLocalSocials([...socialPostsRaw]),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-social-posts'] }); qc.invalidateQueries({ queryKey: ['socials'] }) },
   })
 
   const [spForm, setSpForm] = useState({
@@ -698,6 +776,43 @@ function ContentPageInner() {
     },
   })
 
+  // ── Generic drag helpers ───────────────────────────────
+  function makeDragHandlers<T extends { id: string }>(
+    dragging: string | null,
+    setDragging: (id: string | null) => void,
+    local: T[],
+    setLocal: (items: T[]) => void,
+    onDrop: (items: { id: string; sort_order: number }[]) => void,
+  ) {
+    return {
+      onDragStart: (id: string) => setDragging(id),
+      onDragOver: (e: React.DragEvent, targetId: string) => {
+        e.preventDefault()
+        if (!dragging || dragging === targetId) return
+        setLocal(prev => {
+          const from = prev.findIndex(x => x.id === dragging)
+          const to   = prev.findIndex(x => x.id === targetId)
+          if (from === -1 || to === -1) return prev
+          const next = [...prev]
+          const [moved] = next.splice(from, 1)
+          next.splice(to, 0, moved)
+          return next
+        })
+      },
+      onDrop: () => {
+        setDragging(null)
+        onDrop(local.map((item, i) => ({ id: item.id, sort_order: i * 10 })))
+      },
+      onDragEnd: () => setDragging(null),
+      isDragging: (id: string) => dragging === id,
+    }
+  }
+
+  const aDrag = makeDragHandlers(aDragging, setADragging, localAnnouncements, setLocalAnnouncements, items => reorderAnnouncements.mutate(items))
+  const lDrag = makeDragHandlers(lDragging, setLDragging, localLinks, setLocalLinks, items => reorderLinks.mutate(items))
+  const gDrag = makeDragHandlers(gDragging, setGDragging, localGuides, setLocalGuides, items => reorderGuides.mutate(items))
+  const sDrag = makeDragHandlers(sDragging, setSDragging, localSocials, setLocalSocials, items => reorderSocials.mutate(items))
+
   return (
     <div className="space-y-6">
       <div>
@@ -743,53 +858,46 @@ function ContentPageInner() {
             </div>
 
             <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-6 mb-4 space-y-3">
-              <input
-                value={aForm.titles[aLang] ?? ''}
+              <input value={aForm.titles[aLang] ?? ''}
                 onChange={e => setAForm(f => ({ ...f, titles: { ...f.titles, [aLang]: e.target.value } }))}
                 placeholder={`Title (${aLang.toUpperCase()})`}
                 className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-                style={{ color: 'var(--text-primary)' }}
-              />
-              <textarea
-                value={aForm.contents[aLang] ?? ''}
+                style={{ color: 'var(--text-primary)' }} />
+              <textarea value={aForm.contents[aLang] ?? ''}
                 onChange={e => setAForm(f => ({ ...f, contents: { ...f.contents, [aLang]: e.target.value } }))}
                 placeholder={`Content (${aLang.toUpperCase()})`}
                 rows={4}
                 className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm resize-none"
-                style={{ color: 'var(--text-primary)' }}
-              />
+                style={{ color: 'var(--text-primary)' }} />
               <div className="flex gap-2 flex-wrap">
                 {['guest','member','core','admin'].map(role => (
                   <button key={role}
-                    onClick={() => setAForm(f => ({
-                      ...f,
-                      access_level: f.access_level.includes(role)
-                        ? f.access_level.filter(r => r !== role)
-                        : [...f.access_level, role],
-                    }))}
+                    onClick={() => setAForm(f => ({ ...f, access_level: f.access_level.includes(role) ? f.access_level.filter(r => r !== role) : [...f.access_level, role] }))}
                     className="px-3 py-1 rounded-full text-xs font-semibold transition-all"
-                    style={{
-                      backgroundColor: aForm.access_level.includes(role) ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)',
-                      color: aForm.access_level.includes(role) ? 'var(--brand-parchment)' : 'var(--text-secondary)',
-                    }}>
+                    style={{ backgroundColor: aForm.access_level.includes(role) ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)', color: aForm.access_level.includes(role) ? 'var(--brand-parchment)' : 'var(--text-secondary)' }}>
                     {role}
                   </button>
                 ))}
               </div>
-              <button
-                onClick={() => createAnnouncement.mutate(aForm)}
+              <button onClick={() => createAnnouncement.mutate(aForm)}
                 disabled={createAnnouncement.isPending || !aForm.titles.en}
                 className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
-                style={{ backgroundColor: 'var(--brand-crimson)' }}
-              >
+                style={{ backgroundColor: 'var(--brand-crimson)' }}>
                 {createAnnouncement.isPending ? 'Publishing…' : 'Publish'}
               </button>
             </div>
 
-            <div className="space-y-2">
-              {announcements.map(a => (
+            <div className="space-y-1.5">
+              {localAnnouncements.map(a => (
                 <div key={a.id}
-                  className="bg-white rounded-2xl border border-black/5 shadow-sm p-4 flex items-start justify-between gap-4">
+                  draggable
+                  onDragStart={() => aDrag.onDragStart(a.id)}
+                  onDragOver={e => aDrag.onDragOver(e, a.id)}
+                  onDrop={aDrag.onDrop}
+                  onDragEnd={aDrag.onDragEnd}
+                  className="bg-white rounded-2xl border border-black/5 shadow-sm p-4 flex items-start gap-3"
+                  style={{ opacity: aDrag.isDragging(a.id) ? 0.5 : 1 }}>
+                  <GripHandle />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
                       {a.titles.en ?? a.titles.bg ?? 'Untitled'}
@@ -799,30 +907,17 @@ function ContentPageInner() {
                     </p>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <button
-                      onClick={() => startEditingAnnouncement(a)}
+                    <button onClick={() => startEditingAnnouncement(a)}
                       className="text-xs px-2.5 py-1 rounded-full font-medium border hover:bg-black/5 transition-colors"
-                      style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => toggleAnnouncement.mutate({ id: a.id, is_active: !a.is_active })}
+                      style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>Edit</button>
+                    <button onClick={() => toggleAnnouncement.mutate({ id: a.id, is_active: !a.is_active })}
                       className="text-xs px-2.5 py-1 rounded-full font-medium"
-                      style={{
-                        backgroundColor: a.is_active ? '#81b29a33' : 'rgba(0,0,0,0.05)',
-                        color: a.is_active ? '#2d6a4f' : 'var(--text-secondary)',
-                      }}
-                    >
+                      style={{ backgroundColor: a.is_active ? '#81b29a33' : 'rgba(0,0,0,0.05)', color: a.is_active ? '#2d6a4f' : 'var(--text-secondary)' }}>
                       {a.is_active ? 'Active' : 'Inactive'}
                     </button>
-                    <button
-                      onClick={() => deleteAnnouncement.mutate(a.id)}
+                    <button onClick={() => deleteAnnouncement.mutate(a.id)}
                       className="text-xs font-medium hover:opacity-70 transition-opacity"
-                      style={{ color: 'var(--brand-crimson)' }}
-                    >
-                      Delete
-                    </button>
+                      style={{ color: 'var(--brand-crimson)' }}>Delete</button>
                   </div>
                 </div>
               ))}
@@ -831,62 +926,41 @@ function ContentPageInner() {
             {editingAnnouncement && (
               <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-6 mt-4 space-y-3">
                 <div className="flex items-center justify-between mb-1">
-                  <p className="text-xs font-semibold tracking-widest uppercase" style={{ color: 'var(--text-secondary)' }}>
-                    Edit announcement
-                  </p>
-                  <button onClick={() => setEditingAnnouncement(null)}
-                    className="text-xs hover:opacity-70 transition-opacity" style={{ color: 'var(--text-secondary)' }}>
-                    Cancel
-                  </button>
+                  <p className="text-xs font-semibold tracking-widest uppercase" style={{ color: 'var(--text-secondary)' }}>Edit announcement</p>
+                  <button onClick={() => setEditingAnnouncement(null)} className="text-xs hover:opacity-70 transition-opacity" style={{ color: 'var(--text-secondary)' }}>Cancel</button>
                 </div>
                 <div className="flex gap-2 mb-2">
                   {LANGS.map(l => (
                     <button key={l} onClick={() => setEditALang(l)}
                       className="px-3 py-1 rounded-lg text-sm font-medium transition-colors"
-                      style={{
-                        backgroundColor: editALang === l ? 'var(--text-primary)' : 'rgba(0,0,0,0.05)',
-                        color: editALang === l ? 'white' : 'var(--text-secondary)',
-                      }}>
+                      style={{ backgroundColor: editALang === l ? 'var(--text-primary)' : 'rgba(0,0,0,0.05)', color: editALang === l ? 'white' : 'var(--text-secondary)' }}>
                       {l.toUpperCase()}
                     </button>
                   ))}
                 </div>
-                <input
-                  value={editAForm.titles[editALang] ?? ''}
+                <input value={editAForm.titles[editALang] ?? ''}
                   onChange={e => setEditAForm(f => ({ ...f, titles: { ...f.titles, [editALang]: e.target.value } }))}
                   placeholder={`Title (${editALang.toUpperCase()})`}
                   className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-                  style={{ color: 'var(--text-primary)' }}
-                />
-                <textarea
-                  value={editAForm.contents[editALang] ?? ''}
+                  style={{ color: 'var(--text-primary)' }} />
+                <textarea value={editAForm.contents[editALang] ?? ''}
                   onChange={e => setEditAForm(f => ({ ...f, contents: { ...f.contents, [editALang]: e.target.value } }))}
                   placeholder={`Content (${editALang.toUpperCase()})`}
                   rows={4}
                   className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm resize-none"
-                  style={{ color: 'var(--text-primary)' }}
-                />
+                  style={{ color: 'var(--text-primary)' }} />
                 <div className="flex gap-2 flex-wrap">
                   {['guest','member','core','admin'].map(role => (
                     <button key={role}
-                      onClick={() => setEditAForm(f => ({
-                        ...f,
-                        access_level: f.access_level.includes(role)
-                          ? f.access_level.filter(r => r !== role)
-                          : [...f.access_level, role],
-                      }))}
+                      onClick={() => setEditAForm(f => ({ ...f, access_level: f.access_level.includes(role) ? f.access_level.filter(r => r !== role) : [...f.access_level, role] }))}
                       className="px-3 py-1 rounded-full text-xs font-semibold transition-all"
-                      style={{
-                        backgroundColor: editAForm.access_level.includes(role) ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)',
-                        color: editAForm.access_level.includes(role) ? 'var(--brand-parchment)' : 'var(--text-secondary)',
-                      }}>
+                      style={{ backgroundColor: editAForm.access_level.includes(role) ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)', color: editAForm.access_level.includes(role) ? 'var(--brand-parchment)' : 'var(--text-secondary)' }}>
                       {role}
                     </button>
                   ))}
                 </div>
                 <div className="flex gap-3 pt-1">
-                  <button
-                    onClick={() => updateAnnouncement.mutate({ id: editingAnnouncement.id, ...editAForm })}
+                  <button onClick={() => updateAnnouncement.mutate({ id: editingAnnouncement.id, ...editAForm })}
                     disabled={updateAnnouncement.isPending || !editAForm.titles.en}
                     className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
                     style={{ backgroundColor: 'var(--brand-crimson)' }}>
@@ -894,9 +968,7 @@ function ContentPageInner() {
                   </button>
                   <button onClick={() => setEditingAnnouncement(null)}
                     className="px-5 py-2 rounded-xl text-sm font-semibold border transition-colors hover:bg-black/5"
-                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
-                    Cancel
-                  </button>
+                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>Cancel</button>
                 </div>
               </div>
             )}
@@ -908,72 +980,50 @@ function ContentPageInner() {
           <section>
             <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-6 mb-4">
               <div className="grid grid-cols-4 gap-3 mb-4">
-                <input value={lForm.label}
-                  onChange={e => setLForm(f => ({ ...f, label: e.target.value }))}
-                  placeholder="Label"
-                  className="border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-                  style={{ color: 'var(--text-primary)' }} />
-                <input value={lForm.url}
-                  onChange={e => setLForm(f => ({ ...f, url: e.target.value }))}
-                  placeholder="URL"
-                  className="border border-black/10 rounded-xl px-3 py-2.5 text-sm col-span-2"
-                  style={{ color: 'var(--text-primary)' }} />
-                <input value={lForm.icon_name}
-                  onChange={e => setLForm(f => ({ ...f, icon_name: e.target.value }))}
-                  placeholder="Icon name"
-                  className="border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-                  style={{ color: 'var(--text-primary)' }} />
+                <input value={lForm.label} onChange={e => setLForm(f => ({ ...f, label: e.target.value }))} placeholder="Label" className="border border-black/10 rounded-xl px-3 py-2.5 text-sm" style={{ color: 'var(--text-primary)' }} />
+                <input value={lForm.url} onChange={e => setLForm(f => ({ ...f, url: e.target.value }))} placeholder="URL" className="border border-black/10 rounded-xl px-3 py-2.5 text-sm col-span-2" style={{ color: 'var(--text-primary)' }} />
+                <input value={lForm.icon_name} onChange={e => setLForm(f => ({ ...f, icon_name: e.target.value }))} placeholder="Icon name" className="border border-black/10 rounded-xl px-3 py-2.5 text-sm" style={{ color: 'var(--text-primary)' }} />
               </div>
               <div className="flex gap-2 flex-wrap mb-4">
                 {['guest','member','core','admin'].map(role => (
                   <button key={role}
-                    onClick={() => setLForm(f => ({
-                      ...f,
-                      access_level: f.access_level.includes(role)
-                        ? f.access_level.filter(r => r !== role)
-                        : [...f.access_level, role],
-                    }))}
+                    onClick={() => setLForm(f => ({ ...f, access_level: f.access_level.includes(role) ? f.access_level.filter(r => r !== role) : [...f.access_level, role] }))}
                     className="px-3 py-1 rounded-full text-xs font-semibold transition-all"
-                    style={{
-                      backgroundColor: lForm.access_level.includes(role) ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)',
-                      color: lForm.access_level.includes(role) ? 'var(--brand-parchment)' : 'var(--text-secondary)',
-                    }}>
+                    style={{ backgroundColor: lForm.access_level.includes(role) ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)', color: lForm.access_level.includes(role) ? 'var(--brand-parchment)' : 'var(--text-secondary)' }}>
                     {role}
                   </button>
                 ))}
               </div>
-              <button
-                onClick={() => createLink.mutate(lForm)}
+              <button onClick={() => createLink.mutate(lForm)}
                 disabled={createLink.isPending || !lForm.label || !lForm.url}
                 className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
-                style={{ backgroundColor: 'var(--brand-crimson)' }}
-              >
+                style={{ backgroundColor: 'var(--brand-crimson)' }}>
                 {createLink.isPending ? 'Adding…' : 'Add link'}
               </button>
             </div>
-            <div className="space-y-2">
-              {links.map(l => (
+
+            <div className="space-y-1.5">
+              {localLinks.map(l => (
                 <div key={l.id}
-                  className="bg-white rounded-2xl border border-black/5 shadow-sm p-4 flex items-center justify-between gap-4">
-                  <div>
+                  draggable
+                  onDragStart={() => lDrag.onDragStart(l.id)}
+                  onDragOver={e => lDrag.onDragOver(e, l.id)}
+                  onDrop={lDrag.onDrop}
+                  onDragEnd={lDrag.onDragEnd}
+                  className="bg-white rounded-2xl border border-black/5 shadow-sm p-4 flex items-center gap-3"
+                  style={{ opacity: lDrag.isDragging(l.id) ? 0.5 : 1 }}>
+                  <GripHandle />
+                  <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{l.label}</p>
                     <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>{l.url}</p>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <button
-                      onClick={() => startEditingLink(l)}
+                    <button onClick={() => startEditingLink(l)}
                       className="text-xs font-medium border px-2.5 py-1 rounded-full hover:bg-black/5 transition-colors"
-                      style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => deleteLink.mutate(l.id)}
+                      style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>Edit</button>
+                    <button onClick={() => deleteLink.mutate(l.id)}
                       className="text-xs font-medium hover:opacity-70 transition-opacity"
-                      style={{ color: 'var(--brand-crimson)' }}
-                    >
-                      Delete
-                    </button>
+                      style={{ color: 'var(--brand-crimson)' }}>Delete</button>
                   </div>
                 </div>
               ))}
@@ -982,52 +1032,26 @@ function ContentPageInner() {
             {editingLink && (
               <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-6 mt-4">
                 <div className="flex items-center justify-between mb-4">
-                  <p className="text-xs font-semibold tracking-widest uppercase" style={{ color: 'var(--text-secondary)' }}>
-                    Edit link
-                  </p>
-                  <button onClick={() => setEditingLink(null)}
-                    className="text-xs hover:opacity-70 transition-opacity" style={{ color: 'var(--text-secondary)' }}>
-                    Cancel
-                  </button>
+                  <p className="text-xs font-semibold tracking-widest uppercase" style={{ color: 'var(--text-secondary)' }}>Edit link</p>
+                  <button onClick={() => setEditingLink(null)} className="text-xs hover:opacity-70 transition-opacity" style={{ color: 'var(--text-secondary)' }}>Cancel</button>
                 </div>
                 <div className="grid grid-cols-4 gap-3 mb-4">
-                  <input value={editLForm.label}
-                    onChange={e => setEditLForm(f => ({ ...f, label: e.target.value }))}
-                    placeholder="Label"
-                    className="border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-                    style={{ color: 'var(--text-primary)' }} />
-                  <input value={editLForm.url}
-                    onChange={e => setEditLForm(f => ({ ...f, url: e.target.value }))}
-                    placeholder="URL"
-                    className="border border-black/10 rounded-xl px-3 py-2.5 text-sm col-span-2"
-                    style={{ color: 'var(--text-primary)' }} />
-                  <input value={editLForm.icon_name}
-                    onChange={e => setEditLForm(f => ({ ...f, icon_name: e.target.value }))}
-                    placeholder="Icon name"
-                    className="border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-                    style={{ color: 'var(--text-primary)' }} />
+                  <input value={editLForm.label} onChange={e => setEditLForm(f => ({ ...f, label: e.target.value }))} placeholder="Label" className="border border-black/10 rounded-xl px-3 py-2.5 text-sm" style={{ color: 'var(--text-primary)' }} />
+                  <input value={editLForm.url} onChange={e => setEditLForm(f => ({ ...f, url: e.target.value }))} placeholder="URL" className="border border-black/10 rounded-xl px-3 py-2.5 text-sm col-span-2" style={{ color: 'var(--text-primary)' }} />
+                  <input value={editLForm.icon_name} onChange={e => setEditLForm(f => ({ ...f, icon_name: e.target.value }))} placeholder="Icon name" className="border border-black/10 rounded-xl px-3 py-2.5 text-sm" style={{ color: 'var(--text-primary)' }} />
                 </div>
                 <div className="flex gap-2 flex-wrap mb-4">
                   {['guest','member','core','admin'].map(role => (
                     <button key={role}
-                      onClick={() => setEditLForm(f => ({
-                        ...f,
-                        access_level: f.access_level.includes(role)
-                          ? f.access_level.filter(r => r !== role)
-                          : [...f.access_level, role],
-                      }))}
+                      onClick={() => setEditLForm(f => ({ ...f, access_level: f.access_level.includes(role) ? f.access_level.filter(r => r !== role) : [...f.access_level, role] }))}
                       className="px-3 py-1 rounded-full text-xs font-semibold transition-all"
-                      style={{
-                        backgroundColor: editLForm.access_level.includes(role) ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)',
-                        color: editLForm.access_level.includes(role) ? 'var(--brand-parchment)' : 'var(--text-secondary)',
-                      }}>
+                      style={{ backgroundColor: editLForm.access_level.includes(role) ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)', color: editLForm.access_level.includes(role) ? 'var(--brand-parchment)' : 'var(--text-secondary)' }}>
                       {role}
                     </button>
                   ))}
                 </div>
                 <div className="flex gap-3">
-                  <button
-                    onClick={() => updateLink.mutate({ id: editingLink.id, ...editLForm })}
+                  <button onClick={() => updateLink.mutate({ id: editingLink.id, ...editLForm })}
                     disabled={updateLink.isPending || !editLForm.label || !editLForm.url}
                     className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
                     style={{ backgroundColor: 'var(--brand-crimson)' }}>
@@ -1035,9 +1059,7 @@ function ContentPageInner() {
                   </button>
                   <button onClick={() => setEditingLink(null)}
                     className="px-5 py-2 rounded-xl text-sm font-semibold border transition-colors hover:bg-black/5"
-                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
-                    Cancel
-                  </button>
+                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>Cancel</button>
                 </div>
               </div>
             )}
@@ -1049,42 +1071,27 @@ function ContentPageInner() {
           <section className="space-y-6">
             <div className="flex items-center justify-between">
               <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                {guides.length} guide{guides.length !== 1 ? 's' : ''}
+                {guidesRaw.length} guide{guidesRaw.length !== 1 ? 's' : ''}
               </p>
               {!guidesCreating && !guidesEditing && (
-                <button
-                  onClick={() => { setGuidesCreating(true); setGuidesMutError(null) }}
+                <button onClick={() => { setGuidesCreating(true); setGuidesMutError(null) }}
                   className="px-4 py-2 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-opacity"
-                  style={{ backgroundColor: 'var(--brand-crimson)' }}>
-                  + New Guide
-                </button>
+                  style={{ backgroundColor: 'var(--brand-crimson)' }}>+ New Guide</button>
               )}
             </div>
 
             {guidesCreating && (
-              <div className="rounded-2xl border p-6"
-                style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
-                <h2 className="font-display text-lg font-semibold mb-5" style={{ color: 'var(--text-primary)' }}>
-                  New Guide
-                </h2>
-                <GuideForm
-                  initial={emptyGuide()}
-                  onSave={data => createGuide.mutate(data)}
-                  onCancel={() => { setGuidesCreating(false); setGuidesMutError(null) }}
-                  isPending={createGuide.isPending}
-                  error={guidesMutError}
-                />
+              <div className="rounded-2xl border p-6" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
+                <h2 className="font-display text-lg font-semibold mb-5" style={{ color: 'var(--text-primary)' }}>New Guide</h2>
+                <GuideForm initial={emptyGuide()} onSave={data => createGuide.mutate(data)} onCancel={() => { setGuidesCreating(false); setGuidesMutError(null) }} isPending={createGuide.isPending} error={guidesMutError} />
               </div>
             )}
 
             {guidesEditing && (
-              <div className="rounded-2xl border p-6"
-                style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
-                <h2 className="font-display text-lg font-semibold mb-5" style={{ color: 'var(--text-primary)' }}>
-                  Edit: {guidesEditing.title.en || guidesEditing.slug}
-                </h2>
+              <div className="rounded-2xl border p-6" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
+                <h2 className="font-display text-lg font-semibold mb-5" style={{ color: 'var(--text-primary)' }}>Edit: {guidesEditing.title.en || guidesEditing.slug}</h2>
                 <GuideForm
-                  initial={{ slug: guidesEditing.slug, title: guidesEditing.title, cover_image_url: guidesEditing.cover_image_url, emoji: guidesEditing.emoji, body: guidesEditing.body, access_roles: guidesEditing.access_roles, is_published: guidesEditing.is_published }}
+                  initial={{ slug: guidesEditing.slug, title: guidesEditing.title, cover_image_url: guidesEditing.cover_image_url, emoji: guidesEditing.emoji, body: guidesEditing.body, access_roles: guidesEditing.access_roles, is_published: guidesEditing.is_published, sort_order: guidesEditing.sort_order }}
                   onSave={data => updateGuide.mutate({ id: guidesEditing.id, ...data })}
                   onCancel={() => { setGuidesEditing(null); setGuidesMutError(null) }}
                   isPending={updateGuide.isPending}
@@ -1096,59 +1103,47 @@ function ContentPageInner() {
             {guidesLoading ? (
               <div className="space-y-3">
                 {[...Array(3)].map((_, i) => (
-                  <div key={i} className="h-16 rounded-2xl animate-pulse"
-                    style={{ backgroundColor: 'var(--border-default)' }} />
+                  <div key={i} className="h-16 rounded-2xl animate-pulse" style={{ backgroundColor: 'var(--border-default)' }} />
                 ))}
               </div>
-            ) : guides.length === 0 && !guidesCreating ? (
-              <div className="rounded-2xl border px-6 py-12 text-center"
-                style={{ borderColor: 'var(--border-default)' }}>
+            ) : guidesRaw.length === 0 && !guidesCreating ? (
+              <div className="rounded-2xl border px-6 py-12 text-center" style={{ borderColor: 'var(--border-default)' }}>
                 <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No guides yet. Create the first one.</p>
               </div>
             ) : (
-              <div className="space-y-2">
-                {guides.map(guide => (
+              <div className="space-y-1.5">
+                {localGuides.map(guide => (
                   <div key={guide.id}
-                    className="rounded-2xl border px-5 py-4 flex items-center gap-4"
-                    style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
+                    draggable
+                    onDragStart={() => gDrag.onDragStart(guide.id)}
+                    onDragOver={e => gDrag.onDragOver(e, guide.id)}
+                    onDrop={gDrag.onDrop}
+                    onDragEnd={gDrag.onDragEnd}
+                    className="rounded-2xl border px-4 py-4 flex items-center gap-3"
+                    style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)', opacity: gDrag.isDragging(guide.id) ? 0.5 : 1 }}>
+                    <GripHandle />
                     <span className="text-xl flex-shrink-0">{guide.emoji ?? '📄'}</span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
-                        {guide.title.en || '(untitled)'}
-                      </p>
-                      <p className="text-xs mt-0.5 font-mono" style={{ color: 'var(--text-secondary)' }}>
-                        /{guide.slug} · {guide.access_roles.join(', ')}
-                      </p>
+                      <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{guide.title.en || '(untitled)'}</p>
+                      <p className="text-xs mt-0.5 font-mono" style={{ color: 'var(--text-secondary)' }}>/{guide.slug} · {guide.access_roles.join(', ')}</p>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      <span
-                        className="px-2.5 py-0.5 rounded-full text-xs font-semibold"
-                        style={{
-                          backgroundColor: guide.is_published ? 'rgba(34,197,94,0.12)' : 'rgba(0,0,0,0.06)',
-                          color: guide.is_published ? '#15803d' : 'var(--text-secondary)',
-                        }}>
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold"
+                        style={{ backgroundColor: guide.is_published ? 'rgba(34,197,94,0.12)' : 'rgba(0,0,0,0.06)', color: guide.is_published ? '#15803d' : 'var(--text-secondary)' }}>
                         {guide.is_published ? 'Published' : 'Draft'}
                       </span>
-                      <button
-                        onClick={() => toggleGuidePublish(guide)}
-                        disabled={updateGuide.isPending}
+                      <button onClick={() => toggleGuidePublish(guide)} disabled={updateGuide.isPending}
                         className="px-3 py-1 rounded-full text-xs font-semibold border transition-all disabled:opacity-50 hover:bg-black/5"
                         style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
                         {guide.is_published ? 'Unpublish' : 'Publish'}
                       </button>
-                      <button
-                        onClick={() => { setGuidesEditing(guide); setGuidesMutError(null) }}
+                      <button onClick={() => { setGuidesEditing(guide); setGuidesMutError(null) }}
                         className="px-3 py-1 rounded-lg text-xs font-semibold border transition-colors hover:bg-black/5"
-                        style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => { if (confirm(`Delete "${guide.title.en}"?`)) deleteGuide.mutate(guide.id) }}
+                        style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>Edit</button>
+                      <button onClick={() => { if (confirm(`Delete "${guide.title.en}"?`)) deleteGuide.mutate(guide.id) }}
                         disabled={deleteGuide.isPending}
                         className="px-3 py-1 rounded-lg text-xs font-semibold transition-colors hover:bg-red-50 disabled:opacity-50"
-                        style={{ color: 'var(--brand-crimson)' }}>
-                        Delete
-                      </button>
+                        style={{ color: 'var(--brand-crimson)' }}>Delete</button>
                     </div>
                   </div>
                 ))}
@@ -1160,78 +1155,48 @@ function ContentPageInner() {
         {/* ── Social Posts tab ── */}
         {tab === 'socials' && (
           <section className="space-y-6">
-            {/* Add post form */}
-            <div className="rounded-2xl border p-6 space-y-4"
-              style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
+            <div className="rounded-2xl border p-6 space-y-4" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
               <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--brand-crimson)' }}>Add post</p>
-
-              {/* Platform toggle */}
               <div className="flex gap-2">
                 {(['instagram', 'facebook'] as const).map(p => (
-                  <button key={p}
-                    onClick={() => setSpForm(f => ({ ...f, platform: p }))}
+                  <button key={p} onClick={() => setSpForm(f => ({ ...f, platform: p }))}
                     className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all"
-                    style={{
-                      backgroundColor: spForm.platform === p ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)',
-                      color: spForm.platform === p ? 'var(--brand-parchment)' : 'var(--text-secondary)',
-                    }}>
+                    style={{ backgroundColor: spForm.platform === p ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)', color: spForm.platform === p ? 'var(--brand-parchment)' : 'var(--text-secondary)' }}>
                     {p === 'instagram' ? <InstagramIcon /> : <FacebookIcon />}
                     {p.charAt(0).toUpperCase() + p.slice(1)}
                   </button>
                 ))}
               </div>
-
-              <input
-                value={spForm.post_url}
-                onChange={e => setSpForm(f => ({ ...f, post_url: e.target.value }))}
-                placeholder="Post URL (required)"
-                className="w-full border rounded-xl px-3 py-2.5 text-sm"
-                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
-              />
-              <textarea
-                value={spForm.caption}
-                onChange={e => setSpForm(f => ({ ...f, caption: e.target.value }))}
-                placeholder="Caption — auto-extracted from post if left blank"
-                rows={3}
-                className="w-full border rounded-xl px-3 py-2.5 text-sm resize-none"
-                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
-              />
-              <input
-                value={spForm.thumbnail_url}
-                onChange={e => setSpForm(f => ({ ...f, thumbnail_url: e.target.value }))}
-                placeholder="Thumbnail URL — auto-extracted from post if left blank"
-                className="w-full border rounded-xl px-3 py-2.5 text-sm"
-                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
-              />
+              <input value={spForm.post_url} onChange={e => setSpForm(f => ({ ...f, post_url: e.target.value }))} placeholder="Post URL (required)" className="w-full border rounded-xl px-3 py-2.5 text-sm" style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
+              <textarea value={spForm.caption} onChange={e => setSpForm(f => ({ ...f, caption: e.target.value }))} placeholder="Caption — auto-extracted from post if left blank" rows={3} className="w-full border rounded-xl px-3 py-2.5 text-sm resize-none" style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
+              <input value={spForm.thumbnail_url} onChange={e => setSpForm(f => ({ ...f, thumbnail_url: e.target.value }))} placeholder="Thumbnail URL — auto-extracted from post if left blank" className="w-full border rounded-xl px-3 py-2.5 text-sm" style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
               {createSocialPost.isError && (
-                <p className="text-xs" style={{ color: 'var(--brand-crimson)' }}>
-                  {(createSocialPost.error as Error).message}
-                </p>
+                <p className="text-xs" style={{ color: 'var(--brand-crimson)' }}>{(createSocialPost.error as Error).message}</p>
               )}
-              <button
-                onClick={() => createSocialPost.mutate(spForm)}
-                disabled={createSocialPost.isPending || !spForm.post_url}
+              <button onClick={() => createSocialPost.mutate(spForm)} disabled={createSocialPost.isPending || !spForm.post_url}
                 className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity"
-                style={{ backgroundColor: 'var(--brand-crimson)' }}
-              >
+                style={{ backgroundColor: 'var(--brand-crimson)' }}>
                 {createSocialPost.isPending ? 'Adding…' : 'Add post'}
               </button>
             </div>
 
-            {/* Post list */}
-            <div className="space-y-2">
-              {socialPosts.length === 0 && (
+            <div className="space-y-1.5">
+              {localSocials.length === 0 && (
                 <div className="rounded-2xl border px-6 py-10 text-center" style={{ borderColor: 'var(--border-default)' }}>
                   <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No posts yet. Add one above.</p>
                 </div>
               )}
-              {socialPosts.map(post => (
+              {localSocials.map(post => (
                 <div key={post.id}
-                  className="rounded-2xl border px-4 py-3 flex items-center gap-4"
-                  style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
-                  {/* Thumbnail */}
-                  <div className="flex-shrink-0 rounded-lg overflow-hidden"
-                    style={{ width: 40, height: 40, backgroundColor: 'rgba(0,0,0,0.06)' }}>
+                  draggable
+                  onDragStart={() => sDrag.onDragStart(post.id)}
+                  onDragOver={e => sDrag.onDragOver(e, post.id)}
+                  onDrop={sDrag.onDrop}
+                  onDragEnd={sDrag.onDragEnd}
+                  className="rounded-2xl border px-4 py-3 flex items-center gap-3"
+                  style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)', opacity: sDrag.isDragging(post.id) ? 0.5 : 1 }}>
+                  <GripHandle />
+                  <div className="flex-shrink-0 rounded-lg overflow-hidden" style={{ width: 40, height: 40, backgroundColor: 'rgba(0,0,0,0.06)' }}>
                     {post.thumbnail_url ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={post.thumbnail_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -1241,51 +1206,29 @@ function ContentPageInner() {
                       </div>
                     )}
                   </div>
-
-                  {/* Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
-                      <span style={{ color: 'var(--text-secondary)' }}>
-                        {post.platform === 'instagram' ? <InstagramIcon /> : <FacebookIcon />}
-                      </span>
+                      <span style={{ color: 'var(--text-secondary)' }}>{post.platform === 'instagram' ? <InstagramIcon /> : <FacebookIcon />}</span>
                       {post.is_pinned && (
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white"
-                          style={{ backgroundColor: 'var(--brand-crimson)' }}>Pinned</span>
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white" style={{ backgroundColor: 'var(--brand-crimson)' }}>Pinned</span>
                       )}
                     </div>
-                    <p className="text-xs truncate" style={{ color: 'var(--text-secondary)' }}>
-                      {post.caption ?? post.post_url}
-                    </p>
+                    <p className="text-xs truncate" style={{ color: 'var(--text-secondary)' }}>{post.caption ?? post.post_url}</p>
                   </div>
-
-                  {/* Actions */}
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <button
-                      onClick={() => patchSocialPost.mutate({ id: post.id, is_visible: !post.is_visible })}
-                      disabled={patchSocialPost.isPending}
+                    <button onClick={() => patchSocialPost.mutate({ id: post.id, is_visible: !post.is_visible })} disabled={patchSocialPost.isPending}
                       className="text-xs px-2.5 py-1 rounded-full font-semibold transition-all disabled:opacity-50"
-                      style={{
-                        backgroundColor: post.is_visible ? 'rgba(26,107,74,0.12)' : 'rgba(0,0,0,0.06)',
-                        color: post.is_visible ? '#1a6b4a' : 'var(--text-secondary)',
-                      }}>
+                      style={{ backgroundColor: post.is_visible ? 'rgba(26,107,74,0.12)' : 'rgba(0,0,0,0.06)', color: post.is_visible ? '#1a6b4a' : 'var(--text-secondary)' }}>
                       {post.is_visible ? 'Active' : 'Hidden'}
                     </button>
-                    <button
-                      onClick={() => patchSocialPost.mutate({ id: post.id, is_pinned: !post.is_pinned })}
-                      disabled={patchSocialPost.isPending}
+                    <button onClick={() => patchSocialPost.mutate({ id: post.id, is_pinned: !post.is_pinned })} disabled={patchSocialPost.isPending}
                       className="text-xs px-2.5 py-1 rounded-full font-semibold border transition-all disabled:opacity-50 hover:bg-black/5"
                       style={{ borderColor: 'var(--border-default)', color: post.is_pinned ? 'var(--brand-crimson)' : 'var(--text-secondary)' }}>
                       {post.is_pinned ? 'Unpin' : 'Pin'}
                     </button>
-                    <button
-                      onClick={() => {
-                        if (window.confirm('Delete this post?')) deleteSocialPost.mutate(post.id)
-                      }}
-                      disabled={deleteSocialPost.isPending}
+                    <button onClick={() => { if (window.confirm('Delete this post?')) deleteSocialPost.mutate(post.id) }} disabled={deleteSocialPost.isPending}
                       className="text-xs font-medium hover:opacity-70 transition-opacity disabled:opacity-40"
-                      style={{ color: 'var(--brand-crimson)' }}>
-                      Delete
-                    </button>
+                      style={{ color: 'var(--brand-crimson)' }}>Delete</button>
                   </div>
                 </div>
               ))}
