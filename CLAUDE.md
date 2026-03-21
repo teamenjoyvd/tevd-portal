@@ -1,5 +1,5 @@
 # CLAUDE.md — teamenjoyVD Portal
-> Last updated: 2026-03-20 — Session close. Latest stable commit: 352ce11. Build green. Major schema migration + API layer + role color system this session.
+> Last updated: 2026-03-21 — Session close. Latest stable commit: d98497b. Build green. UX fixes, calendar tooltip bugs, profile 2-col layout, translation system hardening this session.
 
 ---
 
@@ -157,10 +157,10 @@ The pattern is always:
 
 ## 5. i18n
 
-- All user-facing strings go through `t()` from `next-intl`.
+- All user-facing strings go through `t()` from `useLanguage` hook.
+- Translation source of truth: `lib/i18n/translations.ts` — NOT `messages/en.json` or `messages/bg.json` (those are legacy/unused).
+- `TranslationKey` is `keyof typeof translations` — a strict union. Calling `t()` with an undefined key is a **compile-time type error** under `strict: true`. Always add new keys to `translations.ts` before using them in components.
 - Supported locales: `en`, `bg`.
-- Translation files: `/messages/en.json` and `/messages/bg.json`.
-- Never hardcode a user-facing string in a component.
 - Cyrillic nav labels: no uppercase transform, reduced letter-spacing.
 
 ---
@@ -378,12 +378,16 @@ Role color palette. **Always import `getRoleColors(role)` — never hardcode rol
 ### `lib/supabase/service.ts`
 Singleton service role client. Do not create a new client per request. All authenticated server queries go through here.
 
+### `lib/i18n/translations.ts`
+Translation source of truth. `TranslationKey = keyof typeof translations` — strict union. **Every new `t()` call requires a corresponding entry in this file or the build breaks.**
+
 ### `components/about/AboutMapTile.tsx`
 Client Mapbox tile. Accepts `gridColumn`, `className`, `style` props. Theme-aware (light-v11/dark-v11), MutationObserver for theme swap.
 
 ### `components/events/EventPopup.tsx`
-- **Mobile (<768px):** Fixed bottom sheet — backdrop + `rounded-t-2xl`, `85dvh` max, drag handle
-- **Desktop:** Anchor-relative popover, clamped to viewport on all sides
+- **Mobile (<768px):** Fixed bottom sheet — backdrop + `rounded-t-2xl`, `85dvh` max, drag handle, `overflow-y-auto` on wrapper
+- **Desktop:** Anchor-relative popover, clamped to viewport on all sides, `maxHeight: 360` on body scroll container
+- Guest / unauthenticated users: Roles section hidden entirely (`isGuest = userRole === 'guest' || userRole === null`)
 
 ### `components/bento/tiles/LocationTile.tsx`
 - Theme-aware via MutationObserver
@@ -402,6 +406,7 @@ Option B: `hidden md:block` desktop grid + `md:hidden` mobile stack.
     /page.tsx                    # Homepage — 12-col BentoGrid server component
     /about/page.tsx              # CANONICAL dual-layout reference
     /trips/page.tsx
+    /trips/[id]/page.tsx         # Trip detail page — auth-gated, registered users only
     /profile/page.tsx            # Multi-bento layout
   /admin
     /approval-hub/page.tsx       # ABO + manual verification review
@@ -449,7 +454,7 @@ Option B: `hidden md:block` desktop grid + `md:hidden` mobile stack.
     /client.ts                   # Browser client (anon key)
     /server.ts                   # Server client (anon key + cookies)
     /service.ts                  # Service role singleton
-  /i18n/translations.ts
+  /i18n/translations.ts          # Translation source of truth — add keys here before using t()
 /styles
   /brand-tokens.css
 /docs
@@ -510,7 +515,7 @@ Option B: `hidden md:block` desktop grid + `md:hidden` mobile stack.
 Role hierarchy: `admin > core > member > guest`
 
 Public (no auth): `/`, `/about`, `/calendar`, `/trips`
-Auth required: all other routes
+Auth required: all other routes (including `/trips/[id]`)
 
 ### Registration & Verification Flows
 
@@ -605,7 +610,8 @@ All-time, including soft-deleted. Paginated 50/page.
 | Date/time formatting | ALWAYS use `lib/format.ts`. Never inline `toLocaleDateString`. EET = bg-BG locale, 24h, DD.MM.YYYY. |
 | Currency formatting | `formatCurrency()` → `1.234,00 €` (de-DE Intl). |
 | LocationTile border | Overridden with `style={{ border: 'none' }}` on BentoCard. |
-| EventPopup mobile | Bottom sheet pattern (`fixed bottom-0`, `85dvh`, backdrop). NOT anchor-relative on mobile. |
+| EventPopup mobile | Bottom sheet: `fixed bottom-0`, `85dvh`, `overflow-y-auto` on wrapper, backdrop tap-to-close. NOT `overflow-hidden`. NOT anchor-relative on mobile. |
+| EventPopup guest | Roles section (`px-4 py-3` block incl. heading) hidden entirely for `userRole === 'guest'` or `null`. |
 | About page layout | Option B: `hidden md:block` desktop + `md:hidden` mobile. CANONICAL REFERENCE. |
 | Admin calendar order | `ascending: true` in `/api/admin/calendar` GET. |
 | `types/supabase.ts` | Regenerate after EVERY migration. |
@@ -628,6 +634,11 @@ All-time, including soft-deleted. Paginated 50/page.
 | OG scrape for social posts | `lib/og-scrape.ts` will return nulls for IG/FB URLs — platforms block server fetches. Admins must supply thumbnail_url manually. ISS-0172 tracks a preview UI for this. |
 | Ticket Done = deployed + verified | Never mark Done based on static analysis alone. Confirm Vercel deployment is READY and fix is confirmed working in production. |
 | Schema migration sweep | Before rebuilding a table, grep entire codebase (including API routes, not just UI) for all files using old column names. Orphaned routes with old schema will fail tsc and block all deployments. |
+| `useParams` in Next.js 16 | `useParams()` takes NO type argument. Use `const params = useParams(); const id = params.id as string`. `useParams<{id:string}>()` will fail tsc. |
+| TranslationKey is strict | `t('some.key')` where `some.key` is not in `lib/i18n/translations.ts` is a **compile-time error**. Add the key to translations.ts BEFORE using it in any component. |
+| Profile bento pillbox | Document type pillbox uses `opacity + pointerEvents` wrapper for view/edit mode — not per-button `disabled`. |
+| Profile personal details layout | Two-column internal split: `flex flex-col md:flex-row`. Left = names/phone/email. Right = ABO verification (Access, ABO #, Upline). Thin separator: `hidden md:block` 1px div. Travel Document below both columns. |
+| /trips registered UX | Users with `registration.status !== 'denied'` see "View Trip Details" button → `/trips/[id]`. Register button only shown when no registration OR status is denied. |
 
 ---
 
@@ -642,8 +653,9 @@ All-time, including soft-deleted. Paginated 50/page.
 | v1.4.1 | 2026-03-19 | Shipped | Profile crash guard, webhook guest default, service client singleton, SSU |
 | v1.5.0 | 2026-03-19 | Shipped | Profile overhaul (ISS-0128–0138), footer/BottomNav fixes, verification paths |
 | v1.6.0 | 2026-03-20 | Shipped | social_posts DB+API, vital_sign_definitions+member_vital_signs, LOS Tree fix, role color system, Clerk metadata sync |
+| v1.7.0 | 2026-03-21 | Shipped | /trips registered UX + detail page, calendar tooltip bugs, profile 2-col layout, translation hardening |
 
-Latest stable commit: `352ce11`
+Latest stable commit: `d98497b`
 
 ---
 
@@ -658,10 +670,10 @@ Latest stable commit: `352ce11`
 | ISS-0141 | Profile page: Path B manual verification UI | P2 | To Do | Blocked by ISS-0140 |
 | ISS-0142 | Admin approval hub: manual queue + Path C direct-verify | P2 | To Do | Blocked by ISS-0140 |
 | ISS-0143 | LOS import: reconciliation panel for no-ABO profiles | P2 | To Do | Blocked by ISS-0139 |
-| ISS-0164 | [BUG] /calendar tooltip — Guest sees Roles + mobile broken | High | To Do | Next priority |
-| ISS-0165 | /about — heading, mail icon, Mapbox color | Medium | To Do | |
-| ISS-0166 | /trips — registered user: View Trip Details | High | To Do | |
-| ISS-0167 | /profile — pillbox + 2-col layout | Medium | To Do | |
+| ISS-0158 | UI: Socials section in /admin/content + rework SocialsTile | High | To Do | Blocked by ISS-0157 |
+| ISS-0162 | UI: Vital Signs config panel in /admin/members | High | To Do | Blocked by ISS-0161 |
+| ISS-0165 (rec9JHk) | /admin/content: drag-to-reorder for all 4 sections | High | To Do | Blocked by ISS-0164 |
+| ISS-0165 (recGDk) | /about — heading, mail icon, Mapbox color | Medium | To Do | |
 | ISS-0168 | /profile — section renames | Low | To Do | |
 | ISS-0169 | /admin navbar — PORTAL > | Low | To Do | |
 | ISS-0170 | /profile My Trips — payment modal | Medium | To Do | |
