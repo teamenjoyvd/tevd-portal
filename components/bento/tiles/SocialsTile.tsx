@@ -3,26 +3,18 @@
 import { useQuery } from '@tanstack/react-query'
 import BentoCard, { Eyebrow } from '@/components/bento/BentoCard'
 
-type InstagramPost = {
+type SocialPost = {
   id: string
+  platform: string
+  post_url: string
   caption: string | null
-  media_type: string
-  media_url: string | null
   thumbnail_url: string | null
-  permalink: string
-  timestamp: string
-} | null
-
-type FacebookPost = {
-  message: string | null
-  full_picture: string | null
-  permalink_url: string
-  created_time: string
-} | null
+  is_pinned: boolean
+  created_at: string
+}
 
 type SocialsData = {
-  instagram: InstagramPost
-  facebook: FacebookPost
+  post: SocialPost | null
 }
 
 function timeAgo(dateStr: string): string {
@@ -54,78 +46,14 @@ function FacebookIcon() {
   )
 }
 
-function PostCard({
-  platform,
-  icon,
-  thumbnail,
-  caption,
-  timestamp,
-  href,
-}: {
-  platform: string
-  icon: React.ReactNode
-  thumbnail: string | null
-  caption: string | null
-  timestamp: string
-  href: string
-}) {
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="flex gap-3 group"
-      style={{ textDecoration: 'none' }}
-    >
-      {thumbnail && (
-        <div
-          className="flex-shrink-0 rounded-lg overflow-hidden"
-          style={{ width: 56, height: 56, position: 'relative', backgroundColor: 'rgba(0,0,0,0.06)' }}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={thumbnail}
-            alt={`${platform} post`}
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-          />
-        </div>
-      )}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5 mb-1" style={{ color: 'var(--text-secondary)' }}>
-          {icon}
-          <span className="text-xs font-medium">{platform}</span>
-          <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>· {timeAgo(timestamp)}</span>
-        </div>
-        {caption && (
-          <p
-            className="text-xs leading-relaxed group-hover:underline"
-            style={{
-              color: 'var(--text-primary)',
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden',
-            }}
-          >
-            {caption}
-          </p>
-        )}
-        {!caption && (
-          <p className="text-xs italic" style={{ color: 'var(--text-secondary)' }}>View post →</p>
-        )}
-      </div>
-    </a>
-  )
-}
-
 export default function SocialsTile({ colSpan = 4, rowSpan, halfWidthMobile }: { colSpan?: number; rowSpan?: number; halfWidthMobile?: boolean }) {
   const { data, isLoading } = useQuery<SocialsData>({
     queryKey: ['socials'],
     queryFn: () => fetch('/api/socials').then(r => r.json()),
-    staleTime: 3600 * 1000, // 1 hour — matches server revalidate
+    staleTime: 300 * 1000,
   })
 
-  const hasAny = data && (data.instagram !== null || data.facebook !== null)
+  const post = data?.post ?? null
 
   return (
     <BentoCard
@@ -136,7 +64,7 @@ export default function SocialsTile({ colSpan = 4, rowSpan, halfWidthMobile }: {
       className="bento-tile flex flex-col relative overflow-hidden"
       style={{ animationDelay: '350ms' }}
     >
-      {/* Decorative background image — replace public/socials-image.jpg with your own */}
+      {/* Decorative background image */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src="/socials-image.jpg"
@@ -154,46 +82,66 @@ export default function SocialsTile({ colSpan = 4, rowSpan, halfWidthMobile }: {
         }}
       />
 
-      {/* Card content — above the image */}
       <div className="relative flex flex-col flex-1" style={{ zIndex: 10 }}>
         <Eyebrow>Socials</Eyebrow>
 
         {isLoading && (
           <div className="flex-1 flex flex-col justify-center gap-3 mt-3">
             <div className="h-14 rounded-lg animate-pulse" style={{ backgroundColor: 'rgba(0,0,0,0.06)' }} />
-            <div className="h-14 rounded-lg animate-pulse" style={{ backgroundColor: 'rgba(0,0,0,0.06)' }} />
           </div>
         )}
 
-        {!isLoading && !hasAny && (
+        {!isLoading && !post && (
           <p className="font-body text-xs mt-3" style={{ color: 'var(--text-secondary)' }}>
             Social feed coming soon.
           </p>
         )}
 
-        {!isLoading && hasAny && (
-          <div className="flex flex-col gap-4 mt-4 flex-1">
-            {data.instagram && (
-              <PostCard
-                platform="Instagram"
-                icon={<InstagramIcon />}
-                thumbnail={data.instagram.thumbnail_url ?? data.instagram.media_url}
-                caption={data.instagram.caption}
-                timestamp={data.instagram.timestamp}
-                href={data.instagram.permalink}
-              />
+        {!isLoading && post && (
+          <a
+            href={post.post_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex gap-3 group mt-4 flex-1"
+            style={{ textDecoration: 'none' }}
+          >
+            {post.thumbnail_url && (
+              <div
+                className="flex-shrink-0 rounded-lg overflow-hidden"
+                style={{ width: 56, height: 56, backgroundColor: 'rgba(0,0,0,0.06)' }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={post.thumbnail_url}
+                  alt={`${post.platform} post`}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              </div>
             )}
-            {data.facebook && (
-              <PostCard
-                platform="Facebook"
-                icon={<FacebookIcon />}
-                thumbnail={data.facebook.full_picture}
-                caption={data.facebook.message}
-                timestamp={data.facebook.created_time}
-                href={data.facebook.permalink_url}
-              />
-            )}
-          </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 mb-1" style={{ color: 'var(--text-secondary)' }}>
+                {post.platform === 'instagram' ? <InstagramIcon /> : <FacebookIcon />}
+                <span className="text-xs font-medium capitalize">{post.platform}</span>
+                <span className="text-xs" style={{ color: 'var(--text-secondary)', opacity: 0.6 }}>· {timeAgo(post.created_at)}</span>
+              </div>
+              {post.caption ? (
+                <p
+                  className="text-xs leading-relaxed group-hover:underline"
+                  style={{
+                    color: 'var(--text-primary)',
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                  }}
+                >
+                  {post.caption}
+                </p>
+              ) : (
+                <p className="text-xs italic" style={{ color: 'var(--text-secondary)' }}>View post →</p>
+              )}
+            </div>
+          </a>
         )}
       </div>
     </BentoCard>

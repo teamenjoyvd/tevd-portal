@@ -100,9 +100,41 @@ type QuickLink = {
   access_level: string[]; sort_order: number
 }
 
+// ── Social Posts types ───────────────────────────────────────────
+
+type SocialPost = {
+  id: string
+  platform: 'instagram' | 'facebook'
+  post_url: string
+  caption: string | null
+  thumbnail_url: string | null
+  is_visible: boolean
+  is_pinned: boolean
+  sort_order: number
+  created_at: string
+}
+
+function InstagramIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+      <rect x="2" y="2" width="20" height="20" rx="5" stroke="currentColor" strokeWidth="1.8"/>
+      <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="1.8"/>
+      <circle cx="17.5" cy="6.5" r="1" fill="currentColor"/>
+    </svg>
+  )
+}
+
+function FacebookIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+      <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  )
+}
+
 const LANGS = ['en', 'bg', 'sk']
 
-// ── Guides types & helpers ────────────────────────────────────────────────
+// ── Guides types & helpers ────────────────────────────────────────────
 
 type Block = {
   type: 'heading' | 'paragraph' | 'callout'
@@ -428,7 +460,7 @@ function GuideForm({
   )
 }
 
-// ── Tab definitions ───────────────────────────────────────────────────────
+// ── Tab definitions ─────────────────────────────────────────────────
 
 const TABS = [
   { key: 'announcements', label: 'Announcements' },
@@ -440,7 +472,7 @@ const TABS = [
 
 type TabKey = typeof TABS[number]['key']
 
-// ── Inner page (needs useSearchParams → Suspense boundary required) ───────
+// ── Inner page (needs useSearchParams → Suspense boundary required) ─────
 
 function ContentPageInner() {
   const searchParams = useSearchParams()
@@ -448,7 +480,7 @@ function ContentPageInner() {
 
   const qc = useQueryClient()
 
-  // ── Announcements ──────────────────────────────────────────
+  // ── Announcements ───────────────────────────────────
   const { data: announcements = [] } = useQuery<Announcement[]>({
     queryKey: ['announcements'],
     queryFn: () => fetch('/api/admin/announcements').then(r => r.json()),
@@ -521,7 +553,7 @@ function ContentPageInner() {
     setEditingAnnouncement(a)
   }
 
-  // ── Quick Links ────────────────────────────────────────────
+  // ── Quick Links ────────────────────────────────────
   const { data: links = [] } = useQuery<QuickLink[]>({
     queryKey: ['quick-links'],
     queryFn: () => fetch('/api/admin/quick-links').then(r => r.json()),
@@ -573,7 +605,7 @@ function ContentPageInner() {
     setEditingLink(l)
   }
 
-  // ── Guides ─────────────────────────────────────────────────
+  // ── Guides ─────────────────────────────────────────
   const [guidesEditing, setGuidesEditing] = useState<Guide | null>(null)
   const [guidesCreating, setGuidesCreating] = useState(false)
   const [guidesMutError, setGuidesMutError] = useState<string | null>(null)
@@ -612,6 +644,59 @@ function ContentPageInner() {
 
   const toggleGuidePublish = (guide: Guide) =>
     updateGuide.mutate({ id: guide.id, is_published: !guide.is_published })
+
+  // ── Social Posts ───────────────────────────────────
+  const { data: socialPosts = [] } = useQuery<SocialPost[]>({
+    queryKey: ['admin-social-posts'],
+    queryFn: () => fetch('/api/admin/social-posts').then(r => r.json()),
+  })
+
+  const [spForm, setSpForm] = useState({
+    platform: 'instagram' as 'instagram' | 'facebook',
+    post_url: '',
+    caption: '',
+    thumbnail_url: '',
+  })
+
+  const createSocialPost = useMutation({
+    mutationFn: (body: typeof spForm) =>
+      fetch('/api/admin/social-posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...body,
+          caption: body.caption || undefined,
+          thumbnail_url: body.thumbnail_url || undefined,
+        }),
+      }).then(async r => { if (!r.ok) throw new Error((await r.json()).error ?? 'Failed'); return r.json() }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-social-posts'] })
+      qc.invalidateQueries({ queryKey: ['socials'] })
+      setSpForm({ platform: 'instagram', post_url: '', caption: '', thumbnail_url: '' })
+    },
+  })
+
+  const patchSocialPost = useMutation({
+    mutationFn: ({ id, ...patch }: { id: string } & Partial<SocialPost>) =>
+      fetch(`/api/admin/social-posts/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch),
+      }).then(r => r.json()),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-social-posts'] })
+      qc.invalidateQueries({ queryKey: ['socials'] })
+    },
+  })
+
+  const deleteSocialPost = useMutation({
+    mutationFn: (id: string) =>
+      fetch(`/api/admin/social-posts/${id}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-social-posts'] })
+      qc.invalidateQueries({ queryKey: ['socials'] })
+    },
+  })
 
   return (
     <div className="space-y-6">
@@ -1072,13 +1157,138 @@ function ContentPageInner() {
           </section>
         )}
 
-        {/* ── Social Posts tab (placeholder) ── */}
+        {/* ── Social Posts tab ── */}
         {tab === 'socials' && (
-          <section>
-            <div className="rounded-2xl border px-6 py-12 text-center"
-              style={{ borderColor: 'var(--border-default)' }}>
-              <p className="text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>Coming soon</p>
-              <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Social post management will be available once the feed backend is ready.</p>
+          <section className="space-y-6">
+            {/* Add post form */}
+            <div className="rounded-2xl border p-6 space-y-4"
+              style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
+              <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--brand-crimson)' }}>Add post</p>
+
+              {/* Platform toggle */}
+              <div className="flex gap-2">
+                {(['instagram', 'facebook'] as const).map(p => (
+                  <button key={p}
+                    onClick={() => setSpForm(f => ({ ...f, platform: p }))}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all"
+                    style={{
+                      backgroundColor: spForm.platform === p ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)',
+                      color: spForm.platform === p ? 'var(--brand-parchment)' : 'var(--text-secondary)',
+                    }}>
+                    {p === 'instagram' ? <InstagramIcon /> : <FacebookIcon />}
+                    {p.charAt(0).toUpperCase() + p.slice(1)}
+                  </button>
+                ))}
+              </div>
+
+              <input
+                value={spForm.post_url}
+                onChange={e => setSpForm(f => ({ ...f, post_url: e.target.value }))}
+                placeholder="Post URL (required)"
+                className="w-full border rounded-xl px-3 py-2.5 text-sm"
+                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
+              />
+              <textarea
+                value={spForm.caption}
+                onChange={e => setSpForm(f => ({ ...f, caption: e.target.value }))}
+                placeholder="Caption — auto-extracted from post if left blank"
+                rows={3}
+                className="w-full border rounded-xl px-3 py-2.5 text-sm resize-none"
+                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
+              />
+              <input
+                value={spForm.thumbnail_url}
+                onChange={e => setSpForm(f => ({ ...f, thumbnail_url: e.target.value }))}
+                placeholder="Thumbnail URL — auto-extracted from post if left blank"
+                className="w-full border rounded-xl px-3 py-2.5 text-sm"
+                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
+              />
+              {createSocialPost.isError && (
+                <p className="text-xs" style={{ color: 'var(--brand-crimson)' }}>
+                  {(createSocialPost.error as Error).message}
+                </p>
+              )}
+              <button
+                onClick={() => createSocialPost.mutate(spForm)}
+                disabled={createSocialPost.isPending || !spForm.post_url}
+                className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity"
+                style={{ backgroundColor: 'var(--brand-crimson)' }}
+              >
+                {createSocialPost.isPending ? 'Adding…' : 'Add post'}
+              </button>
+            </div>
+
+            {/* Post list */}
+            <div className="space-y-2">
+              {socialPosts.length === 0 && (
+                <div className="rounded-2xl border px-6 py-10 text-center" style={{ borderColor: 'var(--border-default)' }}>
+                  <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No posts yet. Add one above.</p>
+                </div>
+              )}
+              {socialPosts.map(post => (
+                <div key={post.id}
+                  className="rounded-2xl border px-4 py-3 flex items-center gap-4"
+                  style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
+                  {/* Thumbnail */}
+                  <div className="flex-shrink-0 rounded-lg overflow-hidden"
+                    style={{ width: 40, height: 40, backgroundColor: 'rgba(0,0,0,0.06)' }}>
+                    {post.thumbnail_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={post.thumbnail_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center" style={{ color: 'var(--text-secondary)' }}>
+                        {post.platform === 'instagram' ? <InstagramIcon /> : <FacebookIcon />}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span style={{ color: 'var(--text-secondary)' }}>
+                        {post.platform === 'instagram' ? <InstagramIcon /> : <FacebookIcon />}
+                      </span>
+                      {post.is_pinned && (
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white"
+                          style={{ backgroundColor: 'var(--brand-crimson)' }}>Pinned</span>
+                      )}
+                    </div>
+                    <p className="text-xs truncate" style={{ color: 'var(--text-secondary)' }}>
+                      {post.caption ?? post.post_url}
+                    </p>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <button
+                      onClick={() => patchSocialPost.mutate({ id: post.id, is_visible: !post.is_visible })}
+                      disabled={patchSocialPost.isPending}
+                      className="text-xs px-2.5 py-1 rounded-full font-semibold transition-all disabled:opacity-50"
+                      style={{
+                        backgroundColor: post.is_visible ? 'rgba(26,107,74,0.12)' : 'rgba(0,0,0,0.06)',
+                        color: post.is_visible ? '#1a6b4a' : 'var(--text-secondary)',
+                      }}>
+                      {post.is_visible ? 'Active' : 'Hidden'}
+                    </button>
+                    <button
+                      onClick={() => patchSocialPost.mutate({ id: post.id, is_pinned: !post.is_pinned })}
+                      disabled={patchSocialPost.isPending}
+                      className="text-xs px-2.5 py-1 rounded-full font-semibold border transition-all disabled:opacity-50 hover:bg-black/5"
+                      style={{ borderColor: 'var(--border-default)', color: post.is_pinned ? 'var(--brand-crimson)' : 'var(--text-secondary)' }}>
+                      {post.is_pinned ? 'Unpin' : 'Pin'}
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (window.confirm('Delete this post?')) deleteSocialPost.mutate(post.id)
+                      }}
+                      disabled={deleteSocialPost.isPending}
+                      className="text-xs font-medium hover:opacity-70 transition-opacity disabled:opacity-40"
+                      style={{ color: 'var(--brand-crimson)' }}>
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           </section>
         )}
