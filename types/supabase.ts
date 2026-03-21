@@ -65,6 +65,7 @@ export type Database = {
           created_at: string
           id: string
           is_active: boolean
+          sort_order: number
           titles: Json
         }
         Insert: {
@@ -73,6 +74,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          sort_order?: number
           titles?: Json
         }
         Update: {
@@ -81,6 +83,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          sort_order?: number
           titles?: Json
         }
         Relationships: []
@@ -211,6 +214,7 @@ export type Database = {
           id: string
           is_published: boolean
           slug: string
+          sort_order: number
           title: Json
           updated_at: string
         }
@@ -223,6 +227,7 @@ export type Database = {
           id?: string
           is_published?: boolean
           slug: string
+          sort_order?: number
           title?: Json
           updated_at?: string
         }
@@ -235,6 +240,7 @@ export type Database = {
           id?: string
           is_published?: boolean
           slug?: string
+          sort_order?: number
           title?: Json
           updated_at?: string
         }
