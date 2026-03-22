@@ -1,5 +1,5 @@
 # CONTEXT.md — teamenjoyVD Portal Reference
-> Last updated: 2026-03-21 — v1.8.0. Latest stable commit: 7755922.
+> Last updated: 2026-03-22 — v1.9.0. Latest stable commit: 8f1a17a.
 > Read on demand when a ticket touches these areas. CLAUDE.md is the operational core.
 
 ---
@@ -13,7 +13,7 @@
     /about/page.tsx              # CANONICAL dual-layout reference
     /trips/page.tsx
     /trips/[id]/page.tsx         # Trip detail — auth-gated, registered users only
-    /profile/page.tsx            # Multi-bento layout
+    /profile/page.tsx            # Multi-bento layout, drag/drop reorder + collapsible
   /admin
     /approval-hub/page.tsx       # ABO + manual verification review
     /calendar/page.tsx           # Events ordered ascending by start_time
@@ -75,16 +75,18 @@
 
 ### /profile bento inventory (member/core/admin)
 
-| Bento | Col-span | Renders when |
-|---|---|---|
-| A: Personal Details | col-8 | always |
-| B: Trips | col-4 | hasTrips |
-| C: Payments | col-4 | always (empty state shown) |
-| D: Vital Signs | col-4 | hasVitals |
-| E: Participation | col-4 | hasEventRoles |
-| F: Calendar Subscription | col-8 | always |
-| G: Stats | col-8 | abo_number present |
-| H: Admin Tools | col-8 | role === 'admin' |
+All bentos are drag/drop reorderable and collapsible. Order + collapsed state persisted to `profiles.ui_prefs` via debounced PATCH. Personal Details is pinned at index 0 (not draggable).
+
+| Bento | ID | Col-span | Renders when |
+|---|---|---|---|
+| A: Personal Details | `personal` | col-8 | always (pinned) |
+| B: Trips | `trips` | col-4 | hasTrips |
+| C: Payments | `payments` | col-4 | always (empty state shown) |
+| D: Vital Signs | `vitals` | col-4 | hasVitals |
+| E: Participation | `participation` | col-4 | hasEventRoles |
+| F: Calendar Subscription | `calendar` | col-8 | always |
+| G: Stats | `stats` | col-8 | abo_number present |
+| H: Admin Tools | `admin` | col-8 | role === 'admin' |
 
 ---
 
@@ -156,7 +158,7 @@ Option B: `hidden md:block` desktop grid + `md:hidden` mobile stack. Read before
 `id, clerk_id, first_name, last_name, display_names, role, abo_number, upline_abo_number, document_active_type, id_number, passport_number, valid_through, ical_token, phone, contact_email, created_at, ui_prefs`
 - `role` default: `'guest'`
 - `upline_abo_number` — soft upline ref for no-ABO members (ISS-0139)
-- `ui_prefs` JSONB NOT NULL default `{}` — shape: `{ profile_bento_order: string[], profile_bento_collapsed: string[] }` (ISS-0174)
+- `ui_prefs` JSONB NOT NULL default `{}` — shape: `{ bento_order: string[], bento_collapsed: Record<string, boolean> }` (ISS-0177)
 
 ### `payable_items` (ISS-0174)
 `id, title, description, amount, currency, item_type, linked_trip_id, is_active, created_by, created_at`
@@ -435,9 +437,8 @@ git push
 | ID | Name | Priority | Status | Blocked By |
 |---|---|---|---|---|
 | ISS-0056 | Meta token expiry alert + refresh flow | Low | Blocked | Needs FB_APP_ID + FB_APP_SECRET in Vercel |
-| ISS-0125 | Design revisit: inner pages mobile layout | P2 | Needs Design | — |
 | ISS-0172 | Admin social posts: URL preview / manual override UI | Low | To Do | ISS-0157 ✓ |
-| ISS-0178 | /profile bento drag/drop + collapsible, persisted to ui_prefs | P2 | To Do | — |
+| ISS-0178 | Admin: payable_items management UI in /admin/operations | P2 | To Do | ISS-0175 ✓ |
 
 ---
 
@@ -456,5 +457,6 @@ git push
 | v1.7.1 | 2026-03-21 | About page fixes (heading align, mail icon, Mapbox terrain), profile section renames, admin navbar chevron |
 | v1.7.2 | 2026-03-21 | Supabase types regen (announcements + guides sort_order), CI type-check workflow added |
 | v1.8.0 | 2026-03-21 | Generic payments system (payable_items + payments + cancel + ui_prefs), /profile bento split (Trips+Payments col-4, Vital Signs+Participation col-4), 8 new API routes |
+| v1.9.0 | 2026-03-22 | ISS-0177: drag/drop reorder + collapsible bentos on /profile (dnd-kit, persisted to ui_prefs). 3 build-fix commits: DragHandle forwardRef (React 19), DEFAULT_ORDER string[] typing, early-return prerender guard. |
 
-Latest stable commit: `7755922`
+Latest stable commit: `8f1a17a`

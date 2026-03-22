@@ -1,5 +1,5 @@
 # CLAUDE.md — teamenjoyVD Portal
-> Last updated: 2026-03-21 — v1.8.0. Restructured into CLAUDE.md (operational core) + docs/ai/CONTEXT.md (reference). Latest stable commit: 7755922.
+> Last updated: 2026-03-22 — v1.9.0. Restructured into CLAUDE.md (operational core) + docs/ai/CONTEXT.md (reference). Latest stable commit: 8f1a17a.
 > Reference material (schema, directory tree, design system, releases) lives in `docs/ai/CONTEXT.md`.
 
 ---
@@ -207,12 +207,15 @@ Things that would cause silent failures or wrong implementations if not explicit
 | trip_payments vs payments | Two separate tables and API paths. `trip_payments` = legacy trip-linked. `payments` = new generic system. Never mix. |
 | payments-generic path | `/api/admin/payments-generic` — avoids collision with legacy `/api/admin/payments`. |
 | Trip cancel signal | `cancelled_at IS NOT NULL` = cancelled. No enum change. |
-| profiles.ui_prefs | JSONB, NOT NULL, default `{}`. Shape: `{ profile_bento_order: string[], profile_bento_collapsed: string[] }`. |
+| profiles.ui_prefs | JSONB, NOT NULL, default `{}`. Shape: `{ bento_order: string[], bento_collapsed: Record<string, boolean> }`. |
 | SectionSkeleton col-span | Hardcodes `span 8`. For col-4 skeletons, inline the div — don't modify the helper. |
 | Payment cancelled-trip flag | `/profile` Payments bento uses heuristic: `item_type==='trip'` + `cancelledTripIds.size>0`. Imprecise. Low-priority follow-up. |
 | OG scrape nulls | `lib/og-scrape.ts` returns nulls for IG/FB — platforms block server fetches. |
 | Ticket Done = deployed | Never mark Done without Vercel READY confirmation. |
 | PIU removes nothing | When restructuring docs, check both files against the previous version line-by-line before pushing. Never silently drop content. |
+| dnd-kit forwardRef | `DragHandle` must use `React.forwardRef` — React 19 does not accept `ref` on plain function components. `setActivatorNodeRef` ref is passed directly, no cast needed. |
+| DEFAULT_ORDER type | Declare as `string[]` (not inferred from `as const` values). `Array.prototype.includes` on a readonly const tuple rejects `string` arguments — tsc build fails. |
+| Profile page prerender | `/profile` is `'use client'` but Next.js still prerenders it. Guard ALL `validProfile!` accesses with an early return: `if (isLoading || !validProfile) return <ProfileSkeleton />` before any JSX that references profile fields. bentoMap must be below this guard. |
 
 ---
 
