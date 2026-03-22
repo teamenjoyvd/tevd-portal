@@ -481,6 +481,7 @@ export type Database = {
           is_active: boolean
           item_type: string
           linked_trip_id: string | null
+          properties: Json
           title: string
         }
         Insert: {
@@ -493,6 +494,7 @@ export type Database = {
           is_active?: boolean
           item_type: string
           linked_trip_id?: string | null
+          properties?: Json
           title: string
         }
         Update: {
@@ -505,6 +507,7 @@ export type Database = {
           is_active?: boolean
           item_type?: string
           linked_trip_id?: string | null
+          properties?: Json
           title?: string
         }
         Relationships: [
@@ -527,47 +530,72 @@ export type Database = {
       payments: {
         Row: {
           admin_note: string | null
+          admin_reject_reason: string | null
+          admin_status: string
           amount: number
           created_at: string
+          currency: string
           id: string
+          logged_by_admin: string | null
+          member_reject_reason: string | null
+          member_status: string
           note: string | null
-          payable_item_id: string
+          payable_item_id: string | null
           payment_method: string | null
           profile_id: string
           proof_url: string | null
-          status: string
-          submitted_by_member: boolean
+          properties: Json
           transaction_date: string
+          trip_id: string | null
         }
         Insert: {
           admin_note?: string | null
+          admin_reject_reason?: string | null
+          admin_status?: string
           amount: number
           created_at?: string
+          currency?: string
           id?: string
+          logged_by_admin?: string | null
+          member_reject_reason?: string | null
+          member_status?: string
           note?: string | null
-          payable_item_id: string
+          payable_item_id?: string | null
           payment_method?: string | null
           profile_id: string
           proof_url?: string | null
-          status?: string
-          submitted_by_member?: boolean
+          properties?: Json
           transaction_date: string
+          trip_id?: string | null
         }
         Update: {
           admin_note?: string | null
+          admin_reject_reason?: string | null
+          admin_status?: string
           amount?: number
           created_at?: string
+          currency?: string
           id?: string
+          logged_by_admin?: string | null
+          member_reject_reason?: string | null
+          member_status?: string
           note?: string | null
-          payable_item_id?: string
+          payable_item_id?: string | null
           payment_method?: string | null
           profile_id?: string
           proof_url?: string | null
-          status?: string
-          submitted_by_member?: boolean
+          properties?: Json
           transaction_date?: string
+          trip_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "payments_logged_by_admin_fkey"
+            columns: ["logged_by_admin"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "payments_payable_item_id_fkey"
             columns: ["payable_item_id"]
@@ -580,6 +608,13 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
             referencedColumns: ["id"]
           },
         ]
@@ -748,63 +783,6 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      trip_payments: {
-        Row: {
-          amount: number
-          created_at: string
-          id: string
-          note: string | null
-          payment_method: string | null
-          profile_id: string
-          proof_url: string | null
-          status: Database["public"]["Enums"]["payment_status"]
-          submitted_by_member: boolean
-          transaction_date: string
-          trip_id: string
-        }
-        Insert: {
-          amount: number
-          created_at?: string
-          id?: string
-          note?: string | null
-          payment_method?: string | null
-          profile_id: string
-          proof_url?: string | null
-          status?: Database["public"]["Enums"]["payment_status"]
-          submitted_by_member?: boolean
-          transaction_date?: string
-          trip_id: string
-        }
-        Update: {
-          amount?: number
-          created_at?: string
-          id?: string
-          note?: string | null
-          payment_method?: string | null
-          profile_id?: string
-          proof_url?: string | null
-          status?: Database["public"]["Enums"]["payment_status"]
-          submitted_by_member?: boolean
-          transaction_date?: string
-          trip_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "trip_payments_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "trip_payments_trip_id_fkey"
-            columns: ["trip_id"]
-            isOneToOne: false
-            referencedRelation: "trips"
             referencedColumns: ["id"]
           },
         ]
@@ -1014,7 +992,6 @@ export type Database = {
         | "event_fetched"
         | "doc_expiry"
         | "los_digest"
-      payment_status: "completed" | "pending" | "failed"
       registration_status: "pending" | "approved" | "denied"
       user_role: "admin" | "core" | "member" | "guest"
     }
@@ -1155,7 +1132,6 @@ export const Constants = {
         "doc_expiry",
         "los_digest",
       ],
-      payment_status: ["completed", "pending", "failed"],
       registration_status: ["pending", "approved", "denied"],
       user_role: ["admin", "core", "member", "guest"],
     },
