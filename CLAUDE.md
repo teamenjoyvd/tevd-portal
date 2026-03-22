@@ -1,5 +1,5 @@
 # CLAUDE.md — teamenjoyVD Portal
-> Last updated: 2026-03-22 — v1.9.1. Latest stable commit: 1b877a2.
+> Last updated: 2026-03-22 — v1.9.2. Latest stable commit: 373c81c.
 > Reference material (schema, directory tree, design system, releases) lives in `docs/ai/CONTEXT.md`.
 > **CONTEXT.md is never read at SSU. Read specific sections in GATHER only when the ticket targets those areas.**
 
@@ -19,7 +19,7 @@
 When the user types **SSU**, execute in full, in order:
 
 1. **Airtable** — `list_bases`. Confirm `app1n7KYX8i8xSiB7` reachable. ✅/❌
-2. **GitHub MCP** — `get_file_contents` on `CLAUDE.md`. Confirm loaded. ✅/❌
+2. **GitHub MCP** — `get_file_contents` on `CLAUDE.md` from repo `teamenjoyvd/tevd-portal`. Confirm loaded. ✅/❌
 3. **Vercel** — `list_deployments`. Confirm latest production deployment is READY. ✅/❌
 4. **Supabase** — `list_projects`. Confirm `ynykjpnetfwqzdnsgkkg` is `ACTIVE_HEALTHY`. ✅/❌
 5. **Queue** — check Issues for `Status = "In Progress"` AND `Duplicate = false/empty`. If found, report it. Else report highest-priority unblocked `Status = "To Do"` AND `Duplicate = false/empty` ticket.
@@ -32,7 +32,7 @@ When the user types **SSU**, execute in full, in order:
 | GitHub MCP  | ✅/❌  | ...   |
 | Vercel      | ✅/❌  | ...   |
 | Supabase    | ✅/❌  | ...   |
-| Queue       | —      | SEQ-NNN: ... / All clear |
+| Queue       | —      | SEQ<NNN>-ISS<NNN>: ... / All clear |
 ```
 
 If any ❌ — stop. Do not proceed to task work.
@@ -60,7 +60,7 @@ If any ❌ — stop. Do not proceed to task work.
 | Maps | Mapbox GL JS v2.15.0 | CDN only — never npm. Token: `NEXT_PUBLIC_MAPBOX_TOKEN`. |
 | Middleware | `proxy.ts` | **NEVER create `middleware.ts`.** |
 | Deployment | Vercel | Team: `teamenjoyvd`. Project: `prj_HFZJZg2vkLtpX8XvjJlo3mDkSCyn`. |
-| Repo | `https://github.com/teamenjoyvd/tevd-portal.git` | Private, `main` only. |
+| Repo | `teamenjoyvd/tevd-portal` — `https://github.com/teamenjoyvd/tevd-portal.git` | Private, `main` only. Never ask user for repo — always use this. |
 | Production | `https://tevd-portal.vercel.app` | |
 
 ---
@@ -111,6 +111,8 @@ Prohibitions: no BottomNav, no tab bar, no FAB, no `overflow-x-auto` on nav.
 
 Declare phase at opening of every work response: `PHASE: READ | CLAIM | GATHER | EXECUTE | VERIFY | FINALIZE`
 
+**Issue numbering:** `SEQ<NNN>-ISS<NNN>` — e.g. `SEQ116-ISS107`. Always use this format in reports, commit messages, and notes.
+
 **READ:** Query `Status = "In Progress"` AND `Duplicate = false/empty`. Resume if found. Else query `Status = "To Do"` AND `Blocked By = empty` AND `Duplicate = false/empty`, sorted by Priority asc. Probe vague/harmful tickets before claiming.
 
 **CLAIM:** Set `Status = "In Progress"` by **Seq** (not Issue ID). Gate: Blocked By empty + Duplicate false.
@@ -121,7 +123,7 @@ Declare phase at opening of every work response: `PHASE: READ | CLAIM | GATHER |
 
 **VERIFY:** DoD point-by-point. Check Vercel deployment is READY. Iterate if gaps remain.
 
-**FINALIZE:** Commit `[SEQ-NNN] Short imperative description`. Single Airtable write: `Status=Done` + `CommitLink` + `ClaudeNotes`.
+**FINALIZE:** Commit `[SEQ<NNN>-ISS<NNN>] Short imperative description`. Single Airtable write: `Status=Done` + `CommitLink` + `ClaudeNotes`.
 
 ### Airtable Reference
 
@@ -188,7 +190,7 @@ Duplicate-safe: every READ must filter `Duplicate = false/empty`. Fetch all and 
 | `DEFAULT_ORDER` | Declare as `string[]` not inferred const tuple — `Array.prototype.includes` rejects `string` args on readonly tuples. |
 | Profile page prerender | `/profile` prerenders. Guard ALL `validProfile!` accesses with `if (isLoading || !validProfile) return <ProfileSkeleton />` before any JSX referencing profile fields. |
 | `dnd-kit` forwardRef | `DragHandle` must use `React.forwardRef` — React 19 rejects `ref` on plain function components. |
-| Seq is the true PK | `Issue ID` is NOT unique. `Seq` (autonumber) is the PK. Always target by Seq. Commit format: `[SEQ-NNN] Description`. |
+| Seq is the true PK | `Issue ID` is NOT unique. `Seq` (autonumber) is the PK. Always target by Seq. Issue format: `SEQ<NNN>-ISS<NNN>`. Commit format: `[SEQ<NNN>-ISS<NNN>] Description`. |
 
 ---
 
