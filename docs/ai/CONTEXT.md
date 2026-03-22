@@ -1,6 +1,7 @@
 # CONTEXT.md — teamenjoyVD Portal Reference
 > Last updated: 2026-03-22 — v1.9.1. Latest stable commit: 1b877a2.
-> Read on demand when a ticket touches these areas. CLAUDE.md is the operational core.
+> **Read on demand in GATHER only. Never read at SSU.**
+> Consult the section map in CLAUDE.md §9 to read only what the ticket needs.
 
 ---
 
@@ -21,6 +22,7 @@
     /data-center/page.tsx        # LOS import + reconciliation panel
     /notifications/page.tsx      # All-time audit log incl. soft-deleted, paginated 50/page
     /operations/page.tsx         # Trips CRUD + milestones + admin payment log + submission review
+    /payable-items/page.tsx      # Payable items CRUD + per-item payment review
   /api
     /admin/calendar/route.ts
     /admin/payments/route.ts               # trip_payments (legacy)
@@ -43,7 +45,6 @@
     /profile/payments/route.ts             # trip_payments (legacy)
     /profile/route.ts
     /profile/verify-abo/route.ts
-    /profile/vitals/route.ts               # Deprecated
     /profile/vital-signs/route.ts
     /profile/event-roles/route.ts
     /profile/los-summary/route.ts
@@ -64,7 +65,7 @@
   /format.ts                     # EET helpers — always use this
   /nav.ts                        # Single source of truth for all nav configs
   /role-colors.ts                # getRoleColors(role) — always use this
-  /og-scrape.ts                  # Server-only OG scraper (nulls for IG/FB)
+  /og-scrape.ts                  # Server-only OG scraper (nulls for IG/FB — platforms block server fetches)
   /supabase/client.ts            # Browser client (anon key)
   /supabase/server.ts            # Server client (anon key + cookies)
   /supabase/service.ts           # Singleton service role client — do not create new client per request
@@ -138,13 +139,13 @@ Client Mapbox tile. Accepts `gridColumn`, `className`, `style` props. Theme-awar
 ### `components/events/EventPopup.tsx`
 - **Mobile (<768px):** Fixed bottom sheet — backdrop + `rounded-t-2xl`, `85dvh` max, drag handle, `overflow-y-auto` on wrapper. NOT `overflow-hidden`. Backdrop tap-to-close.
 - **Desktop:** Anchor-relative popover, clamped to viewport on all sides, `maxHeight: 360` on body scroll container.
-- **Guest / unauthenticated:** Roles section (`px-4 py-3` block incl. heading) hidden entirely (`isGuest = userRole === 'guest' || userRole === null`).
+- **Guest / unauthenticated:** Roles section hidden entirely (`isGuest = userRole === 'guest' || userRole === null`).
 
 ### `components/bento/tiles/LocationTile.tsx`
 Theme-aware via MutationObserver. `border: none` override on BentoCard.
 
 ### About Page (`app/(dashboard)/about/page.tsx`) — CANONICAL DUAL LAYOUT REFERENCE
-Option B: `hidden md:block` desktop grid + `md:hidden` mobile stack. Read before implementing any new page.
+Option B: `hidden md:block` desktop grid + `md:hidden` mobile stack. Read before implementing any new page with dual layouts.
 
 ---
 
@@ -174,33 +175,30 @@ Option B: `hidden md:block` desktop grid + `md:hidden` mobile stack. Read before
 ### `profiles`
 `id, clerk_id, first_name, last_name, display_names, role, abo_number, upline_abo_number, document_active_type, id_number, passport_number, valid_through, ical_token, phone, contact_email, created_at, ui_prefs`
 - `role` default: `'guest'`
-- `upline_abo_number` — soft upline ref for no-ABO members (ISS-0139)
-- `ui_prefs` JSONB NOT NULL default `{}` — shape: `{ bento_order: string[], bento_collapsed: Record<string, boolean> }` (ISS-0177)
+- `upline_abo_number` — soft upline ref for no-ABO members
+- `ui_prefs` JSONB NOT NULL default `{}` — shape: `{ bento_order: string[], bento_collapsed: Record<string, boolean> }`
 
-### `payable_items` (ISS-0174)
+### `payable_items`
 `id, title, description, amount, currency, item_type, linked_trip_id, is_active, created_by, created_at`
 - `item_type`: `'trip' | 'book' | 'ticket' | 'other'`
-- Admin CRUD. Members read active only. Soft-delete via `is_active = false`.
+- Admin/core CRUD. Members read active only. Soft-delete via `is_active = false`.
 
-### `payments` (ISS-0174)
+### `payments` (generic)
 `id, profile_id, payable_item_id, amount, transaction_date, status, payment_method, proof_url, note, admin_note, submitted_by_member, created_at`
-- Generic member→admin system. `status`: `pending | approved | denied`.
-- Member: POST `/api/payments`. Admin: PATCH `/api/admin/payments-generic/[id]`.
+- `status`: `pending | approved | denied`
+- Member POST: `/api/payments`. Admin PATCH: `/api/admin/payments-generic/[id]`.
 - **Not `trip_payments`** — separate table, separate API paths.
 
 ### `trip_payments` (legacy)
 `id, trip_id, profile_id, amount, transaction_date, status, note, proof_url, payment_method, submitted_by_member, created_at`
 - `status`: `completed | pending | failed`
-- Still active. Used by `/api/profile/payments` and `/api/admin/payments`.
-- Members INSERT with `submitted_by_member=true, status='pending'` only (RLS).
 - Admin/Core approve/deny via PATCH `/api/admin/payments/[id]`.
 
 ### `trip_registrations`
 `id, trip_id, profile_id, status, created_at, cancelled_at, cancelled_by`
-- `status` enum: `pending | approved | denied` (no cancelled value — use `cancelled_at IS NOT NULL`).
-- `cancelled_at` + `cancelled_by` added ISS-0174.
-- Member cancel: POST `/api/profile/trips/[id]/cancel` (by trip_id, own only).
-- Admin cancel: POST `/api/admin/trips/registrations/[id]/cancel` (by registration_id, any).
+- `status` enum: `pending | approved | denied` — no cancelled value.
+- Cancelled signal: `cancelled_at IS NOT NULL`.
+- Member cancel: POST `/api/profile/trips/[id]/cancel`. Admin cancel: POST `/api/admin/trips/registrations/[id]/cancel`.
 - 409 if already cancelled.
 
 ### `notifications`
@@ -213,7 +211,7 @@ Option B: `hidden md:block` desktop grid + `md:hidden` mobile stack. Read before
 ### `social_posts`
 `id, platform, post_url, caption, thumbnail_url, is_visible, is_pinned, sort_order, created_at`
 - Single pinned post enforced via partial unique index `social_posts_single_pinned (WHERE is_pinned=true)`.
-- Pin swap via `pin_social_post(p_id uuid)` RPC — atomic, no race condition.
+- Pin swap via `pin_social_post(p_id uuid)` RPC — atomic.
 
 ### `announcements`
 `id, titles, contents, access_level, is_active, sort_order, created_at`
@@ -224,7 +222,7 @@ Option B: `hidden md:block` desktop grid + `md:hidden` mobile stack. Read before
 
 ### `member_vital_signs`
 `id, profile_id, definition_id, recorded_at, note, created_at, recorded_by`
-- UNIQUE on (profile_id, definition_id). FK to profiles (x2) + vital_sign_definitions.
+- UNIQUE on (profile_id, definition_id).
 
 ### `abo_verification_requests`
 `id, profile_id, claimed_abo, claimed_upline_abo, request_type, status, admin_note, created_at, resolved_at`
@@ -266,20 +264,20 @@ All tokens: `styles/brand-tokens.css`. Role colors: `lib/role-colors.ts` — alw
 ### Role Colors
 | Role | bg | font |
 |---|---|---|
-| admin | `#DC143C` (crimson) | `#faf8f3` |
-| core | `#008080` (teal) | `#faf8f3` |
-| member | `#1a6b4a` (forest green) | `#faf8f3` |
-| guest | `#e8e4dc` (parchment) | `#2d2d2d` |
+| admin | `#DC143C` | `#faf8f3` |
+| core | `#008080` | `#faf8f3` |
+| member | `#1a6b4a` | `#faf8f3` |
+| guest | `#e8e4dc` | `#2d2d2d` |
 
 ### BentoCard Variants
-| Variant | Class | Use |
-|---|---|---|
-| `default` | `.card` | Standard card |
-| `forest` | `.card.card--forest` | Dark green — hero, map |
-| `crimson` | `.card.card--crimson` | Red — trips tile |
-| `teal` | `.card.card--teal` | Teal — quick links |
-| `edge-info` | `.card.card--edge-info` | Left teal border |
-| `edge-alert` | `.card.card--edge-alert` | Left crimson border |
+| Variant | Use |
+|---|---|
+| `default` | Standard card |
+| `forest` | Dark green — hero, map |
+| `crimson` | Red — trips tile |
+| `teal` | Teal — quick links |
+| `edge-info` | Left teal border |
+| `edge-alert` | Left crimson border |
 
 ### BentoGrid
 - `grid-template-columns: repeat(12, 1fr)` + `gap: 12px` + `auto-rows: minmax(120px, auto)`
@@ -302,11 +300,9 @@ ROW 4: Guides(col-12,default)
 ## 6. Regional Standards & i18n
 
 - Dates: `DD.MM.YYYY`. Time: 24h (`14:30`). Currency: `1.234,56 €`. Week starts Monday.
-- Numbers: period thousands separator, comma decimal.
 - **Always `lib/format.ts` — never inline `toLocaleDateString` or Intl.**
 - Translations: `lib/i18n/translations.ts`. `TranslationKey` is strict — add before using `t()` or build fails.
-- Supported locales: `en`, `bg`. Cyrillic: no uppercase transform, reduced letter-spacing.
-- Nav labels (`lib/nav.ts`) use their own `labels: { en, bg }` system — NOT `t()`. `sk` is not covered in nav labels.
+- Supported locales: `en`, `bg`. Nav labels use `labels: { en, bg }` system in `lib/nav.ts` — NOT `t()`.
 
 ---
 
@@ -318,13 +314,11 @@ Public (no auth): `/`, `/about`, `/calendar`, `/trips`. Auth-required: all other
 
 ### Verification Paths
 
-**Path A — Standard ABO:** Guest submits `claimed_abo` + `claimed_upline_abo` → admin approves → `role='member'`, `abo_number` set, normal tree placement.
+**Path A — Standard ABO:** Guest submits `claimed_abo` + `claimed_upline_abo` → admin approves → `role='member'`, `abo_number` set.
 
-**Path B — Manual, no ABO, user-initiated:** Guest submits `claimed_upline_abo` + selects "I don't have an ABO number" → `request_type='manual'` → admin approves → `role='member'`, `abo_number=NULL`, placed as `p_<uuid>` child of upline.
+**Path B — Manual, no ABO, user-initiated:** Guest submits `claimed_upline_abo` only, `request_type='manual'` → admin approves → `role='member'`, placed as `p_<uuid>` child of upline.
 
 **Path C — Admin-initiated manual:** Admin picks guest, provides upline ABO → directly promotes to member.
-
-**No-ABO member constraints:** Cannot have downlines. Full portal access otherwise. LOS import always wins for tree positioning.
 
 ### Role promotion → Clerk metadata sync
 Every route that updates `profiles.role` MUST also call:
@@ -333,7 +327,10 @@ const clerk = await clerkClient()
 await clerk.users.updateUserMetadata(clerkId, { publicMetadata: { role: newRole } })
 ```
 Routes: `/api/admin/verify`, `/api/admin/members/verify/[id]`, `/api/admin/members/[id]` PATCH.
-**Pre-fix cohort:** users promoted before commit 4b2d69c have stale Clerk metadata. Re-login or manual sync required — no backfill by design.
+**Pre-fix cohort:** users promoted before commit 4b2d69c have stale Clerk metadata. Re-login to fix.
+
+### /trips registered UX
+Users with `registration.status !== 'denied'` see "View Trip Details" → `/trips/[id]`. Register button only shown when no registration OR status is denied.
 
 ---
 
@@ -371,13 +368,16 @@ Client-side `filterType` state. Clicking active filter deactivates it. Combinabl
 Events ordered ascending by `start_time` (soonest first).
 
 ### Content (`admin/content`)
-Tabbed: Announcements | Quick Links | Guides | Social Posts | Bento. Social Posts tab has OG preview on URL blur — fires `/api/admin/social-posts/preview?url=...`, auto-populates caption + thumbnail_url, shows hint text on failure.
+Tabbed: Announcements | Quick Links | Guides | Social Posts | Bento. Social Posts tab has OG preview on URL blur.
 
 ### Operations (`admin/operations`)
-Trips CRUD + milestones + admin payment log + member payment submission review.
+Trips CRUD + milestones + admin payment log + member payment submission review (trip_payments legacy).
+
+### Payable Items (`admin/payable-items`)
+Payable items CRUD + per-item pending payment review (generic payments table).
 
 ### Approval Hub (`admin/approval-hub`)
-Standard ABO requests + manual requests (separate section) + Path C direct-verify form.
+Standard ABO requests + manual requests + Path C direct-verify form.
 
 ### Data Center (`admin/data-center`)
 LOS import + reconciliation panel for matching unrecognized LOS members to no-ABO profiles.
@@ -409,24 +409,14 @@ All-time, including soft-deleted. Paginated 50/page.
 ## 12. CI — Type Check Workflow
 
 ### What it does
-On every push to `main`, `.github/workflows/check-types.yml` runs two steps:
-1. **Supabase type drift check** — calls `supabase gen types typescript --project-id ynykjpnetfwqzdnsgkkg` against the live DB, diffs against committed `types/supabase.ts`. Fails with fix command if stale. Build never reaches Vercel.
-2. **TypeScript check** — `npx tsc --noEmit`. Fails on any type error.
-
-### Why it exists
-On 2026-03-21, `announcements.sort_order` was added to the DB (ISS-0165) but `types/supabase.ts` was never regenerated. The route called `.update({ sort_order })` and TypeScript rejected it — Vercel build failed. CI was added to make this class of failure impossible to ship silently.
+On every push to `main`, `.github/workflows/check-types.yml` runs:
+1. **Supabase type drift check** — diffs live DB against `types/supabase.ts`. Fails if stale.
+2. **TypeScript check** — `npx tsc --noEmit`.
 
 ### Required secret
-`SUPABASE_ACCESS_TOKEN` — Supabase personal access token (not service role key). Stored as a repo secret.
+`SUPABASE_ACCESS_TOKEN` — Supabase personal access token. Stored as repo secret.
 - Verify/rotate: `github.com/teamenjoyvd/tevd-portal/settings/secrets/actions`
 - Generate: `supabase.com/dashboard/account/tokens`
-
-### What failure looks like
-```
-❌ types/supabase.ts is stale.
-Run: supabase gen types typescript --project-id ynykjpnetfwqzdnsgkkg > types/supabase.ts
-Then commit the updated file.
-```
 
 ### Fix
 ```bash
@@ -437,37 +427,14 @@ git commit -m "fix: regenerate Supabase types"
 git push
 ```
 
-### Live CI status
-`github.com/teamenjoyvd/tevd-portal/actions`
-
 ---
 
-## 13. Pending Issues
-
-Queue is clear as of 2026-03-22 end of session. No unblocked To Do tickets.
-
-| ID | Name | Priority | Status | Notes |
-|---|---|---|---|---|
-| ISS-0056 | Meta token expiry alert + refresh flow | Low | Blocked | Needs FB_APP_ID + FB_APP_SECRET in Vercel |
-
----
-
-## 14. Releases
+## 13. Releases
 
 | Version | Date | Notes |
 |---|---|---|
-| v1.0.0 | 2026-03-01 | Core Auth & LOS |
-| v1.2.0 | 2026-03-16 | Calendar rewrite, approval hub, member profiles |
-| v1.3.0 | 2026-03-18 | Admin CRUD, QA, LOS views, Core notifications, bento polish |
-| v1.4.0 | 2026-03-18 | About page, mobile overhaul, QA batch, EET formatting, lib/format.ts |
-| v1.4.1 | 2026-03-19 | Profile crash guard, webhook guest default, service client singleton, SSU |
-| v1.5.0 | 2026-03-19 | Profile overhaul (ISS-0128–0138), footer/BottomNav fixes, verification paths |
-| v1.6.0 | 2026-03-20 | social_posts DB+API, vital signs, LOS Tree fix, role color system, Clerk metadata sync |
-| v1.7.0 | 2026-03-21 | /trips registered UX + detail page, calendar tooltip bugs, profile 2-col layout, translation hardening |
-| v1.7.1 | 2026-03-21 | About page fixes (heading align, mail icon, Mapbox terrain), profile section renames, admin navbar chevron |
-| v1.7.2 | 2026-03-21 | Supabase types regen (announcements + guides sort_order), CI type-check workflow added |
-| v1.8.0 | 2026-03-21 | Generic payments system (payable_items + payments + cancel + ui_prefs), /profile bento split (Trips+Payments col-4, Vital Signs+Participation col-4), 8 new API routes |
-| v1.9.0 | 2026-03-22 | ISS-0177: drag/drop reorder + collapsible bentos on /profile (dnd-kit, persisted to ui_prefs). 3 build-fix commits: DragHandle forwardRef (React 19), DEFAULT_ORDER string[] typing, early-return prerender guard. |
-| v1.9.1 | 2026-03-22 | ISS-0182: CI fix (package-lock.json + @dnd-kit deps). ISS-0178: bento drag/drop verified complete. ISS-0172: OG preview endpoint + auto-populate social post form. ISS-0184: collapsed bento compact label strip. Footer QA: nav → Profile (not My Network), logo enlarged, subheading removed, attribution updated. lib/nav.ts FOOTER_MEMBER_NAV filter swapped (/los out, /profile in). |
+| v1.8.0 | 2026-03-21 | Generic payments system (payable_items + payments + cancel + ui_prefs), /profile bento split |
+| v1.9.0 | 2026-03-22 | Drag/drop reorder + collapsible bentos on /profile (dnd-kit, persisted to ui_prefs) |
+| v1.9.1 | 2026-03-22 | CI fix, ISS-0178 payable items admin UI, ISS-0184 collapsed bento label strip, footer QA |
 
 Latest stable commit: `1b877a2`

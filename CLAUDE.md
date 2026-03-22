@@ -1,6 +1,7 @@
 # CLAUDE.md — teamenjoyVD Portal
-> Last updated: 2026-03-22 — v1.9.1. Restructured into CLAUDE.md (operational core) + docs/ai/CONTEXT.md (reference). Latest stable commit: 1b877a2.
+> Last updated: 2026-03-22 — v1.9.1. Latest stable commit: 1b877a2.
 > Reference material (schema, directory tree, design system, releases) lives in `docs/ai/CONTEXT.md`.
+> **CONTEXT.md is never read at SSU. Read specific sections in GATHER only when the ticket targets those areas.**
 
 ---
 
@@ -9,7 +10,7 @@
 | Command | What it does |
 |---|---|
 | **SSU** | System Status Update — checks all connections, confirms session is ready |
-| **PIU** | Pack It Up — session handover, updates both CLAUDE.md and CONTEXT.md |
+| **PIU** | Pack It Up — session handover, updates CLAUDE.md and CONTEXT.md |
 
 ---
 
@@ -18,11 +19,10 @@
 When the user types **SSU**, execute in full, in order:
 
 1. **Airtable** — `list_bases`. Confirm `app1n7KYX8i8xSiB7` reachable. ✅/❌
-2. **GitHub MCP** — `tool_search` query `"github get file contents"`, then `get_file_contents` on `CLAUDE.md`. ✅/❌
-3. **Vercel** — `list_teams`. Confirm `teamenjoyvd` reachable. Report latest production deployment state. ✅/❌
+2. **GitHub MCP** — `get_file_contents` on `CLAUDE.md`. Confirm loaded. ✅/❌
+3. **Vercel** — `list_deployments`. Confirm latest production deployment is READY. ✅/❌
 4. **Supabase** — `list_projects`. Confirm `ynykjpnetfwqzdnsgkkg` is `ACTIVE_HEALTHY`. ✅/❌
-5. **Instructions** — confirm CLAUDE.md read in step 2. ✅/❌
-6. **Queue** — check Issues for `Status = "In Progress"` AND `Duplicate = false/empty`. If found, report it. Else report highest-priority unblocked `Status = "To Do"` AND `Duplicate = false/empty` ticket.
+5. **Queue** — check Issues for `Status = "In Progress"` AND `Duplicate = false/empty`. If found, report it. Else report highest-priority unblocked `Status = "To Do"` AND `Duplicate = false/empty` ticket.
 
 ```
 ## SSU Report
@@ -32,8 +32,7 @@ When the user types **SSU**, execute in full, in order:
 | GitHub MCP  | ✅/❌  | ...   |
 | Vercel      | ✅/❌  | ...   |
 | Supabase    | ✅/❌  | ...   |
-| CLAUDE.md   | ✅/❌  | ...   |
-| Queue       | —      | ISS-XXXX (Seq N): ... / All clear |
+| Queue       | —      | SEQ-NNN: ... / All clear |
 ```
 
 If any ❌ — stop. Do not proceed to task work.
@@ -42,10 +41,10 @@ If any ❌ — stop. Do not proceed to task work.
 
 ## PIU — Pack It Up
 
-1. Update CLAUDE.md header (stable commit, session summary).
+1. Update CLAUDE.md header (stable commit, date).
 2. Update `docs/ai/CONTEXT.md` — schema changes, new routes, new release entry, pending issues.
 3. Update Gotchas below if new non-obvious decisions were made this session.
-4. Verify latest commit is pushed and Vercel deployment is READY. Confirm new session can start with: repo URL + PAT + SSU.
+4. Verify latest commit is pushed and Vercel deployment is READY.
 
 ---
 
@@ -84,7 +83,7 @@ Two separate complete layouts. No hybrid responsive design. Pattern:
 <div className="hidden md:block">{/* Desktop */}</div>
 <div className="md:hidden">{/* Mobile */}</div>
 ```
-Prohibitions: no BottomNav, no tab bar, no FAB, no `overflow-x-auto` on nav, no mobile padding offsets without ticket sign-off.
+Prohibitions: no BottomNav, no tab bar, no FAB, no `overflow-x-auto` on nav.
 
 **Canonical reference:** `app/(dashboard)/about/page.tsx`
 
@@ -103,7 +102,7 @@ Prohibitions: no BottomNav, no tab bar, no FAB, no `overflow-x-auto` on nav, no 
 - Schema changes via migration files in `/supabase/migrations/` only. Never raw DDL in app code.
 - RLS on every user-facing table. Never disable to fix permissions — fix the policy.
 - **Regenerate `types/supabase.ts` after every migration** in the same push. CI enforces this.
-- Before migrating a table: grep entire codebase (incl. API routes) for old column names. Orphaned routes fail tsc and block deployment.
+- Before migrating a table: grep entire codebase (incl. API routes) for old column names.
 - `npx tsc --noEmit` must pass with zero errors before every commit.
 
 ---
@@ -114,15 +113,15 @@ Declare phase at opening of every work response: `PHASE: READ | CLAIM | GATHER |
 
 **READ:** Query `Status = "In Progress"` AND `Duplicate = false/empty`. Resume if found. Else query `Status = "To Do"` AND `Blocked By = empty` AND `Duplicate = false/empty`, sorted by Priority asc. Probe vague/harmful tickets before claiming.
 
-**CLAIM:** Set `Status = "In Progress"` by **Seq** (not Issue ID). Gate: Blocked By empty + Duplicate false. Before creating tickets: query max Issue ID first — never derive from memory.
+**CLAIM:** Set `Status = "In Progress"` by **Seq** (not Issue ID). Gate: Blocked By empty + Duplicate false.
 
-**GATHER:** Read CLAUDE.md + relevant CONTEXT.md sections. Read Target Files + DoD from Airtable. Probe vague DoD before writing code.
+**GATHER:** Read relevant sections of `docs/ai/CONTEXT.md` based on ticket scope (see section map in CONTEXT.md header). Read Target Files + DoD from Airtable. Probe vague DoD before writing code.
 
 **EXECUTE:** Write code. Zero-Refactor Rule: change only lines required by DoD.
 
-**VERIFY:** DoD point-by-point in thinking block. Check Vercel deployment is READY. Iterate if gaps remain.
+**VERIFY:** DoD point-by-point. Check Vercel deployment is READY. Iterate if gaps remain.
 
-**FINALIZE:** Commit `[ISS-XXXX] Short imperative description`. Single Airtable write: `Status=Done` + `CommitLink` + `ClaudeNotes`.
+**FINALIZE:** Commit `[SEQ-NNN] Short imperative description`. Single Airtable write: `Status=Done` + `CommitLink` + `ClaudeNotes`.
 
 ### Airtable Reference
 
@@ -151,14 +150,15 @@ Declare phase at opening of every work response: `PHASE: READ | CLAIM | GATHER |
 | Not relevant | `sellrX5il5BmfBxm9` |
 | Needs Design | `sel98265UTlgLcw5r` |
 | Blocked | `sellZeVnRByP94606` |
+| Archived | `selfMrAD2qCxrMoXg` |
 
-Duplicate-safe: every READ must filter `Duplicate = false/empty`. If MCP can't filter checkboxes, fetch all and discard `fld2P6m5fMOsi1q3G === true` before selecting.
+Duplicate-safe: every READ must filter `Duplicate = false/empty`. Fetch all and discard `fld2P6m5fMOsi1q3G === true` if MCP can't filter checkboxes.
 
 ---
 
 ## 5. Code Style
 
-- Zero-Refactor Rule: change only lines required by the DoD. Never re-indent, rename, reformat untouched sections.
+- Zero-Refactor Rule: change only lines required by the DoD. Never re-indent, rename, or reformat untouched sections.
 - No `any` — use `unknown` and narrow.
 - No `console.log` in committed code.
 - No default exports from utility files.
@@ -172,8 +172,6 @@ Duplicate-safe: every READ must filter `Duplicate = false/empty`. If MCP can't f
 
 ## 6. Gotchas (non-derivable decisions)
 
-Things that would cause silent failures or wrong implementations if not explicitly known.
-
 | Topic | Rule |
 |---|---|
 | `middleware.ts` | NEVER. Use `proxy.ts`. |
@@ -182,43 +180,15 @@ Things that would cause silent failures or wrong implementations if not explicit
 | Mapbox | CDN only. Dupe guard on load. Logo/attribution hidden via globals.css. |
 | Mapbox theme swap | `map.setStyle()` + `styledata` event. MutationObserver on `data-theme`. |
 | Mapbox About tile style | `outdoors-v12` (light) / `dark-v11` (dark). |
-| Client tiles + rowSpan | Must apply `gridRow: span N` to outermost element or grid collapses. |
 | Clerk shadow DOM | CSS vars unavailable. Use hardcoded hex (`#bc4749`). |
 | Clerk v7 auth | `await auth()` → `{ userId }`. No sync auth. No JWT template. |
-| Supabase auth | RLS NOT via Clerk JWT. Gate = `await auth()` at route handler. |
-| Role promotion | Every `profiles.role` update MUST also call `clerk.users.updateUserMetadata`. Routes: `/api/admin/verify`, `/api/admin/members/[id]` PATCH. Pre-fix cohort (before commit 4b2d69c) has stale metadata — re-login to fix. |
-| useLanguage | Dispatches `window.dispatchEvent(new Event('language-changed'))` on toggle. |
-| BottomNav | DEAD STUB. Do not import. |
-| Footer mobile | `hidden md:flex` — hamburger only on mobile. |
-| Homepage empty tiles | Events/Trips/Announcements/Links return null when empty. Grid auto-fills. |
-| Admin calendar order | `ascending: true` in `/api/admin/calendar` GET — soonest first. |
-| `types/supabase.ts` | Regenerate after every migration in same push. CI will fail if stale. |
-| Schema sweep | Before touching a table, grep all files (incl. API routes) for old column names. |
-| `style2` prop | NEVER. Merge into single `style` object. |
-| Profile page guard | Use `profile?.id` check — error responses are truthy objects. |
-| Profile bento pillbox | Document type pillbox uses `opacity + pointerEvents` wrapper for view/edit mode — not per-button `disabled`. |
-| Profile personal details layout | Two-column `flex flex-col md:flex-row`. Left = names/phone/email. Right = ABO verification. Thin separator: `hidden md:block` 1px div. Travel Document below both columns. |
-| LOS Tree response | `/api/los/tree` returns `{ scope, nodes, caller_abo }` — extract `.nodes`. |
-| LOSBox array guard | Always `Array.isArray()` before passing API response to `buildSubtree`. |
-| /trips registered UX | Users with `registration.status !== 'denied'` see "View Trip Details" → `/trips/[id]`. Register button only shown when no registration OR status is denied. |
-| Airtable Seq vs Issue ID | `Issue ID` is NOT unique. `Seq` (autonumber) is the true PK. Always target by Seq. |
-| Duplicate records | 22 ghost records from batch-creation collisions (ISS-0028, 0103–0110, 0162–0169, 0173). Always filter `Duplicate = false/empty`. |
-| Airtable next Issue ID | Query max before creating — never derive from memory or this file. |
-| trip_payments vs payments | Two separate tables and API paths. `trip_payments` = legacy trip-linked. `payments` = new generic system. Never mix. |
-| payments-generic path | `/api/admin/payments-generic` — avoids collision with legacy `/api/admin/payments`. |
-| Trip cancel signal | `cancelled_at IS NOT NULL` = cancelled. No enum change. |
-| profiles.ui_prefs | JSONB, NOT NULL, default `{}`. Shape: `{ bento_order: string[], bento_collapsed: Record<string, boolean> }`. |
-| SectionSkeleton col-span | Hardcodes `span 8`. For col-4 skeletons, inline the div — don't modify the helper. |
-| Payment cancelled-trip flag | `/profile` Payments bento uses heuristic: `item_type==='trip'` + `cancelledTripIds.size>0`. Imprecise. Low-priority follow-up. |
-| OG scrape nulls | `lib/og-scrape.ts` returns nulls for IG/FB — platforms block server fetches. Preview endpoint exists at `/api/admin/social-posts/preview?url=...`. |
-| Ticket Done = deployed | Never mark Done without Vercel READY confirmation. |
-| PIU removes nothing | When restructuring docs, check both files against the previous version line-by-line before pushing. Never silently drop content. |
-| dnd-kit forwardRef | `DragHandle` must use `React.forwardRef` — React 19 does not accept `ref` on plain function components. `setActivatorNodeRef` ref is passed directly, no cast needed. |
-| DEFAULT_ORDER type | Declare as `string[]` (not inferred from `as const` values). `Array.prototype.includes` on a readonly const tuple rejects `string` arguments — tsc build fails. |
-| Profile page prerender | `/profile` is `'use client'` but Next.js still prerenders it. Guard ALL `validProfile!` accesses with an early return: `if (isLoading || !validProfile) return <ProfileSkeleton />` before any JSX that references profile fields. bentoMap must be below this guard. |
-| Profile bento collapsed | Collapsed state renders a compact labelled strip (card bg + border, drag handle, label, chevron) — NOT a blank card shell. Label map: `BENTO_LABELS` in `profile/page.tsx`. Content is unmounted when collapsed (not `display:none`). |
-| lib/nav.ts i18n | Nav labels use their own inline `labels: { en, bg }` system — NOT the `t()` i18n infrastructure. Footer reads `labels[lang]` directly. `sk` locale is not covered in nav labels (gap vs main translations). |
-| Footer nav filter | `FOOTER_MEMBER_NAV` filters OUT `/los` (My Network). Footer shows: Home, About, Calendar, Trips, Guides, Profile. Header shows My Network, not Profile in that slot. |
+| Role promotion | Every `profiles.role` update MUST also call `clerk.users.updateUserMetadata`. Routes: `/api/admin/verify`, `/api/admin/members/[id]` PATCH, `/api/admin/members/verify/[id]`. Pre-fix cohort (before commit 4b2d69c) has stale metadata — re-login to fix. |
+| `useLanguage` | Dispatches `window.dispatchEvent(new Event('language-changed'))` on toggle. |
+| `useParams()` | No type argument in Next.js 16. Cast result: `const id = params.id as string`. |
+| `DEFAULT_ORDER` | Declare as `string[]` not inferred const tuple — `Array.prototype.includes` rejects `string` args on readonly tuples. |
+| Profile page prerender | `/profile` prerenders. Guard ALL `validProfile!` accesses with `if (isLoading || !validProfile) return <ProfileSkeleton />` before any JSX referencing profile fields. |
+| `dnd-kit` forwardRef | `DragHandle` must use `React.forwardRef` — React 19 rejects `ref` on plain function components. |
+| Seq is the true PK | `Issue ID` is NOT unique. `Seq` (autonumber) is the PK. Always target by Seq. Commit format: `[SEQ-NNN] Description`. |
 
 ---
 
@@ -238,18 +208,35 @@ profile_id = (SELECT id FROM profiles WHERE clerk_id = auth.jwt() ->> 'sub' LIMI
 ```
 
 ### CI Type Check
-On every push to `main`: (1) Supabase type drift check — diffs live DB against `types/supabase.ts`, fails with fix command if stale. (2) `tsc --noEmit`. Required secret: `SUPABASE_ACCESS_TOKEN` in repo secrets. See CONTEXT.md §12 for full CI detail and fix instructions.
+On every push to `main`: (1) Supabase type drift check — diffs live DB against `types/supabase.ts`, fails with fix command if stale. (2) `tsc --noEmit`. Required secret: `SUPABASE_ACCESS_TOKEN` in repo secrets. See CONTEXT.md §12 for full CI detail.
 
 ---
 
 ## 8. When This File Is Wrong
 
-If any instruction here contradicts Next.js 16 / Clerk v7 / Supabase current SDK behaviour — stop and flag it. Do not silently comply with an outdated instruction. State the contradiction, cite the correct current behaviour, and ask for a decision before proceeding.
+If any instruction here contradicts Next.js 16 / Clerk v7 / Supabase current SDK behaviour — stop and flag it. Do not silently comply. State the contradiction, cite the correct current behaviour, and ask for a decision before proceeding.
 
 ---
 
 ## 9. Reference
 
 For schema, directory structure, key files & patterns, navigation, design system, i18n, admin pages, access control flows, LOS, calendar, CI detail, and release history — read `docs/ai/CONTEXT.md`.
+
+### CONTEXT.md section map — read only what the ticket needs
+
+| Section | Read when ticket touches |
+|---|---|
+| §1 Directory tree | New files, new routes, component moves |
+| §2 Key files & patterns | `lib/`, `components/`, established patterns |
+| §3 Navigation | Header, Footer, AdminNav, `lib/nav.ts` |
+| §4 Schema | DB, API routes, `types/supabase.ts`, migrations |
+| §5 Design system | Bento, tokens, colors, layout, role colors |
+| §6 i18n & regional | `translations.ts`, `t()`, `lib/format.ts` |
+| §7 Access control | Auth, RLS, verification paths, Clerk sync |
+| §8 LOS & notifications | `tree_nodes`, triggers, `pg_cron` |
+| §9 Calendar | `CalendarClient`, `--cal-height`, period views |
+| §10 Admin pages | Any `/admin/*` page |
+| §11 Env vars | New secrets, deployment config |
+| §12 CI | `types/supabase.ts`, `check-types.yml` |
 
 For live schema — `Supabase:list_tables` verbose is always more current than CONTEXT.md.
