@@ -13,7 +13,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
   const { data, error } = await supabase
     .from('trip_registrations')
-    .select('*, profile:profiles(id, first_name, last_name, abo_number)')
+    .select('*, profile:profiles!profile_id(id, first_name, last_name, abo_number)')
     .eq('trip_id', trip_id)
     .order('created_at')
 

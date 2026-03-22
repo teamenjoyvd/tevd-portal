@@ -12,7 +12,7 @@ type TripRegistration = {
   status: 'pending' | 'approved' | 'denied'
   created_at: string
   trip_id: string
-  profile: { id: string; first_name: string; last_name: string; abo_number: string | null }
+  profile: { id: string; first_name: string; last_name: string; abo_number: string | null } | null
 }
 
 type CalendarEvent = { id: string; title: string; start_time: string }
@@ -382,7 +382,7 @@ function TripRegistrationsTab() {
       const results = await Promise.all(
         trips.map(t => fetch(`/api/trips/${t.id}/registrations`).then(r => r.json()))
       )
-      return results.flat()
+      return results.flat().filter((r): r is TripRegistration => !r.error)
     },
     enabled: trips.length > 0,
   })
@@ -467,8 +467,8 @@ function TripRegistrationsTab() {
             <div key={r.id} className="bg-white rounded-xl border border-black/5 px-4 py-3.5 flex items-center gap-3">
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                  {r.profile.first_name} {r.profile.last_name}
-                  {r.profile.abo_number && (
+                  {r.profile?.first_name} {r.profile?.last_name}
+                  {r.profile?.abo_number && (
                     <span className="font-normal text-xs ml-1.5" style={{ color: 'var(--text-secondary)' }}>
                       {r.profile.abo_number}
                     </span>
@@ -506,7 +506,7 @@ function TripRegistrationsTab() {
           <div key={r.id} className="bg-white rounded-xl border border-black/5 px-4 py-3 flex items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
-                {r.profile.first_name} {r.profile.last_name}
+                {r.profile?.first_name} {r.profile?.last_name}
               </p>
               <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
                 {tripTitle(r.trip_id)}
@@ -712,7 +712,7 @@ export default function ApprovalHubPage() {
       const results = await Promise.all(
         trips.map(t => fetch(`/api/trips/${t.id}/registrations`).then(r => r.json()))
       )
-      return results.flat()
+      return results.flat().filter((r): r is TripRegistration => !r.error)
     },
     enabled: trips.length > 0,
   })
