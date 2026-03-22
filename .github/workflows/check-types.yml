@@ -29,22 +29,28 @@ jobs:
 
       - name: Generate fresh types
         run: |
+          echo "=== Generating Supabase types ==="
           supabase gen types typescript \
             --project-id ynykjpnetfwqzdnsgkkg \
             > /tmp/supabase-fresh.ts
+          echo "=== Types generated successfully ==="
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
       - name: Diff types against committed file
         run: |
+          echo "=== STEP: Supabase type drift check ==="
           if ! diff -u types/supabase.ts /tmp/supabase-fresh.ts; then
             echo ""
-            echo "❌ types/supabase.ts is stale."
+            echo "❌ FAILED: types/supabase.ts is stale."
             echo "Run: supabase gen types typescript --project-id ynykjpnetfwqzdnsgkkg > types/supabase.ts"
             echo "Then commit the updated file."
             exit 1
           fi
-          echo "✅ types/supabase.ts is up to date."
+          echo "✅ PASSED: types/supabase.ts is up to date."
 
       - name: TypeScript check
-        run: npx tsc --noEmit
+        run: |
+          echo "=== STEP: TypeScript check (tsc --noEmit) ==="
+          npx tsc --noEmit
+          echo "✅ PASSED: tsc --noEmit returned zero errors."
