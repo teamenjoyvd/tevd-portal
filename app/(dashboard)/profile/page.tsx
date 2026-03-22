@@ -393,6 +393,27 @@ const DEFAULT_ORDER: string[] = [
   BENTO_IDS.ADMIN,
 ]
 
+// ── Loading skeleton (prerender + loading state) ──────────────────────────────
+
+function ProfileSkeleton() {
+  return (
+    <div className="py-8 pb-16">
+      <div className="max-w-[960px] mx-auto px-4">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, minmax(0, 1fr))', gap: '12px' }}>
+          <div style={{ gridColumn: 'span 8' }}>
+            <div className="space-y-3">
+              {[...Array(2)].map((_, i) => (
+                <div key={i} className="h-48 rounded-2xl animate-pulse"
+                  style={{ backgroundColor: 'var(--border-default)' }} />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function ProfilePage() {
@@ -682,12 +703,24 @@ export default function ProfilePage() {
     },
   })
 
-  const activeDocType = form.document_active_type ?? validProfile?.document_active_type ?? 'id'
-  const expiryState   = getExpiryState(form.valid_through ?? validProfile?.valid_through ?? null)
-  const isGuest       = validProfile?.role === 'guest' && !validProfile?.abo_number
-  const isUnverified  = validProfile?.role === 'guest' &&
+  // ── Guard: render skeleton until profile is loaded ────────────────────────
+  // This prevents prerender crash and avoids all validProfile! assertions
+  // being evaluated before data exists.
+  if (isLoading || !validProfile) {
+    return (
+      <ProfileSkeleton />
+    )
+  }
+
+  // From here validProfile is guaranteed non-null.
+  const p = validProfile
+
+  const activeDocType = form.document_active_type ?? p.document_active_type ?? 'id'
+  const expiryState   = getExpiryState(form.valid_through ?? p.valid_through ?? null)
+  const isGuest       = p.role === 'guest' && !p.abo_number
+  const isUnverified  = p.role === 'guest' &&
     !!verRequest && (verRequest.status === 'pending' || verRequest.status === 'denied')
-  const isAdmin       = validProfile?.role === 'admin'
+  const isAdmin       = p.role === 'admin'
 
   const hasTrips = Array.isArray(tripsData) && tripsData.length > 0
   const hasVitals = Array.isArray(vitalsData) && vitalsData.length > 0
@@ -700,10 +733,10 @@ export default function ProfilePage() {
 
   // Group generic payments by payable_item title
   const paymentsByItem: Record<string, GenericPayment[]> = {}
-  for (const p of (paymentsData ?? [])) {
-    const key = p.payable_items?.title ?? 'Unknown'
+  for (const pay of (paymentsData ?? [])) {
+    const key = pay.payable_items?.title ?? 'Unknown'
     if (!paymentsByItem[key]) paymentsByItem[key] = []
-    paymentsByItem[key].push(p)
+    paymentsByItem[key].push(pay)
   }
 
   // Collect cancelled trip IDs for payment flagging
@@ -756,6 +789,7 @@ export default function ProfilePage() {
   )
 
   // ── Bento content map ─────────────────────────────────────────────────────
+  // bentoMap is only constructed after the guard above, so p is always non-null here.
 
   type BentoEntry = { colSpan: number; node: ReactNode }
 
@@ -782,16 +816,16 @@ export default function ProfilePage() {
               <button
                 onClick={() => {
                   setEditMode(false)
-                  if (validProfile) setForm({
-                    first_name: validProfile.first_name,
-                    last_name: validProfile.last_name,
-                    document_active_type: validProfile.document_active_type,
-                    id_number: validProfile.id_number ?? '',
-                    passport_number: validProfile.passport_number ?? '',
-                    valid_through: validProfile.valid_through ?? '',
-                    phone: validProfile.phone ?? '',
-                    contact_email: validProfile.contact_email ?? '',
-                    display_names: validProfile.display_names ?? {},
+                  setForm({
+                    first_name: p.first_name,
+                    last_name: p.last_name,
+                    document_active_type: p.document_active_type,
+                    id_number: p.id_number ?? '',
+                    passport_number: p.passport_number ?? '',
+                    valid_through: p.valid_through ?? '',
+                    phone: p.phone ?? '',
+                    contact_email: p.contact_email ?? '',
+                    display_names: p.display_names ?? {},
                   })
                 }}
                 className="text-xs font-semibold hover:opacity-70 transition-opacity"
@@ -826,7 +860,7 @@ export default function ProfilePage() {
                     />
                   ) : (
                     <p className="text-sm font-medium py-2.5" style={{ color: 'var(--text-primary)' }}>
-                      {validProfile!.first_name || '—'}
+                      {p.first_name || '—'}
                     </p>
                   )}
                 </div>
@@ -843,7 +877,7 @@ export default function ProfilePage() {
                     />
                   ) : (
                     <p className="text-sm font-medium py-2.5" style={{ color: 'var(--text-primary)' }}>
-                      {validProfile!.last_name || '—'}
+                      {p.last_name || '—'}
                     </p>
                   )}
                 </div>
@@ -900,8 +934,8 @@ export default function ProfilePage() {
                       style={{ color: 'var(--text-primary)' }}
                     />
                   ) : (
-                    <p className="text-sm py-2.5" style={{ color: validProfile!.phone ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
-                      {validProfile!.phone || '—'}
+                    <p className="text-sm py-2.5" style={{ color: p.phone ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
+                      {p.phone || '—'}
                     </p>
                   )}
                 </div>
@@ -916,8 +950,8 @@ export default function ProfilePage() {
                       style={{ color: 'var(--text-primary)' }}
                     />
                   ) : (
-                    <p className="text-sm py-2.5" style={{ color: validProfile!.contact_email ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
-                      {validProfile!.contact_email || '—'}
+                    <p className="text-sm py-2.5" style={{ color: p.contact_email ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
+                      {p.contact_email || '—'}
                     </p>
                   )}
                 </div>
@@ -938,7 +972,7 @@ export default function ProfilePage() {
 
               {/* Access row */}
               {(() => {
-                const rc = getRoleColors(validProfile!.role)
+                const rc = getRoleColors(p.role)
                 return (
                   <div className="grid grid-cols-2 gap-4">
                     <p className="text-xs py-1" style={{ color: 'var(--text-secondary)' }}>Access</p>
@@ -946,7 +980,7 @@ export default function ProfilePage() {
                       className="text-xs font-semibold px-2.5 py-1 rounded-full self-start"
                       style={{ backgroundColor: rc.bg, color: rc.font }}
                     >
-                      {isUnverified ? 'Unverified' : ROLE_LABELS[validProfile!.role]}
+                      {isUnverified ? 'Unverified' : ROLE_LABELS[p.role]}
                     </span>
                   </div>
                 )
@@ -955,9 +989,9 @@ export default function ProfilePage() {
               {/* ABO # row */}
               <div className="grid grid-cols-2 gap-4">
                 <p className="text-xs py-1" style={{ color: 'var(--text-secondary)' }}>ABO #</p>
-                {validProfile!.abo_number ? (
+                {p.abo_number ? (
                   <p className="text-xs font-medium font-mono py-1" style={{ color: 'var(--text-primary)' }}>
-                    {validProfile!.abo_number}{' '}
+                    {p.abo_number}{' '}
                     <span style={{ color: '#2d6a4f' }}>✓</span>
                   </p>
                 ) : (
@@ -1037,7 +1071,7 @@ export default function ProfilePage() {
                     />
                   ) : (
                     <p className="text-sm font-mono py-2.5" style={{ color: 'var(--text-primary)' }}>
-                      {(activeDocType === 'passport' ? validProfile!.passport_number : validProfile!.id_number) || '—'}
+                      {(activeDocType === 'passport' ? p.passport_number : p.id_number) || '—'}
                     </p>
                   )}
                 </div>
@@ -1055,7 +1089,7 @@ export default function ProfilePage() {
                     />
                   ) : (
                     <p className="text-sm py-2.5" style={{ color: 'var(--text-primary)' }}>
-                      {validProfile!.valid_through ? formatDate(validProfile!.valid_through) : '—'}
+                      {p.valid_through ? formatDate(p.valid_through) : '—'}
                     </p>
                   )}
                 </div>
@@ -1186,40 +1220,40 @@ export default function ProfilePage() {
                         {itemTitle}
                       </p>
                       <div className="space-y-1.5">
-                        {itemPayments.map(p => {
-                          const ps = PAYMENT_STATUS_STYLES[p.status] ?? PAYMENT_STATUS_STYLES.pending
-                          const linkedTripCancelled = p.payable_items?.item_type === 'trip' &&
+                        {itemPayments.map(pay => {
+                          const ps = PAYMENT_STATUS_STYLES[pay.status] ?? PAYMENT_STATUS_STYLES.pending
+                          const linkedTripCancelled = pay.payable_items?.item_type === 'trip' &&
                             cancelledTripIds.size > 0
                           return (
                             <div
-                              key={p.id}
+                              key={pay.id}
                               className="flex items-center gap-2 text-xs rounded-xl px-3 py-2"
                               style={{ backgroundColor: 'var(--bg-global)' }}
                             >
                               <span className="font-semibold flex-shrink-0" style={{ color: 'var(--text-primary)' }}>
-                                {formatCurrency(p.amount, p.payable_items?.currency ?? 'EUR')}
+                                {formatCurrency(pay.amount, pay.payable_items?.currency ?? 'EUR')}
                               </span>
-                              <span style={{ color: 'var(--text-secondary)' }}>{formatDate(p.transaction_date)}</span>
-                              {p.payment_method && (
-                                <span style={{ color: 'var(--text-secondary)' }}>{p.payment_method}</span>
+                              <span style={{ color: 'var(--text-secondary)' }}>{formatDate(pay.transaction_date)}</span>
+                              {pay.payment_method && (
+                                <span style={{ color: 'var(--text-secondary)' }}>{pay.payment_method}</span>
                               )}
                               <span
                                 className="ml-auto font-semibold px-2 py-0.5 rounded-full flex-shrink-0 flex items-center gap-1"
                                 style={{ backgroundColor: ps.bg, color: ps.color }}
                               >
-                                {p.status}
-                                {(p.admin_note || linkedTripCancelled) && (
+                                {pay.status}
+                                {(pay.admin_note || linkedTripCancelled) && (
                                   <span
-                                    title={linkedTripCancelled ? 'Trip was cancelled' : (p.admin_note ?? '')}
+                                    title={linkedTripCancelled ? 'Trip was cancelled' : (pay.admin_note ?? '')}
                                     style={{ cursor: 'help', fontSize: 10, lineHeight: 1 }}
                                   >
                                     ⓘ
                                   </span>
                                 )}
                               </span>
-                              {p.proof_url && (
+                              {pay.proof_url && (
                                 <a
-                                  href={p.proof_url}
+                                  href={pay.proof_url}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="flex-shrink-0 hover:underline"
@@ -1312,7 +1346,7 @@ export default function ProfilePage() {
       node: calSubscriptionBlock,
     },
 
-    [BENTO_IDS.STATS]: validProfile?.abo_number
+    [BENTO_IDS.STATS]: p.abo_number
       ? losSummaryLoading
         ? { colSpan: 8, node: <div className="rounded-2xl animate-pulse" style={{ height: 80, backgroundColor: 'var(--border-default)' }} /> }
         : {
@@ -1326,7 +1360,7 @@ export default function ProfilePage() {
                   <div>
                     <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Role</p>
                     <p className="text-sm font-semibold mt-0.5" style={{ color: 'var(--text-primary)' }}>
-                      {ROLE_LABELS[validProfile!.role]}
+                      {ROLE_LABELS[p.role]}
                     </p>
                   </div>
                   {losSummary?.depth !== null && losSummary?.depth !== undefined && (
@@ -1407,28 +1441,8 @@ export default function ProfilePage() {
             gap: '12px',
           }}
         >
-          {isLoading ? (
-            <div style={{ gridColumn: 'span 8' }}>
-              <div className="space-y-3">
-                {[...Array(2)].map((_, i) => (
-                  <div key={i} className="h-48 rounded-2xl animate-pulse"
-                    style={{ backgroundColor: 'var(--border-default)' }} />
-                ))}
-              </div>
-            </div>
-          ) : !validProfile ? (
-            <div style={{ gridColumn: 'span 8' }}>
-              <div className="rounded-2xl p-8 text-center" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-                <p className="text-sm font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
-                  Profile not set up yet
-                </p>
-                <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                  Your account is being configured. Please try again shortly or contact an admin.
-                </p>
-              </div>
-            </div>
-          ) : isGuest ? (
-            // ── GUEST LAYOUT — unchanged ────────────────────────────────────
+          {isGuest ? (
+            // ── GUEST LAYOUT ────────────────────────────────────────────────
             <>
               {/* col-4: Name fields */}
               <div style={{ gridColumn: 'span 4' }}>
