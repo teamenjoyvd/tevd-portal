@@ -1,5 +1,5 @@
 # CONTEXT.md — teamenjoyVD Portal Reference
-> Last updated: 2026-03-22 — v1.9.0. Latest stable commit: 8f1a17a.
+> Last updated: 2026-03-22 — v1.9.1. Latest stable commit: 1b877a2.
 > Read on demand when a ticket touches these areas. CLAUDE.md is the operational core.
 
 ---
@@ -17,6 +17,7 @@
   /admin
     /approval-hub/page.tsx       # ABO + manual verification review
     /calendar/page.tsx           # Events ordered ascending by start_time
+    /content/page.tsx            # Announcements, Quick Links, Guides, Social Posts, Bento config
     /data-center/page.tsx        # LOS import + reconciliation panel
     /notifications/page.tsx      # All-time audit log incl. soft-deleted, paginated 50/page
     /operations/page.tsx         # Trips CRUD + milestones + admin payment log + submission review
@@ -35,6 +36,7 @@
     /admin/members/[id]/vital-signs/[definitionId]/route.ts
     /admin/social-posts/route.ts
     /admin/social-posts/[id]/route.ts
+    /admin/social-posts/preview/route.ts   # GET ?url=... — OG scrape, returns { thumbnail_url, caption }
     /admin/trips/registrations/[id]/cancel/route.ts
     /payable-items/route.ts                # member-facing active items
     /payments/route.ts                     # member-facing GET+POST
@@ -60,8 +62,9 @@
   /layout/BottomNav.tsx          # DEAD STUB — do not import
 /lib
   /format.ts                     # EET helpers — always use this
+  /nav.ts                        # Single source of truth for all nav configs
   /role-colors.ts                # getRoleColors(role) — always use this
-  /og-scrape.ts                  # Server-only OG scraper
+  /og-scrape.ts                  # Server-only OG scraper (nulls for IG/FB)
   /supabase/client.ts            # Browser client (anon key)
   /supabase/server.ts            # Server client (anon key + cookies)
   /supabase/service.ts           # Singleton service role client — do not create new client per request
@@ -75,7 +78,7 @@
 
 ### /profile bento inventory (member/core/admin)
 
-All bentos are drag/drop reorderable and collapsible. Order + collapsed state persisted to `profiles.ui_prefs` via debounced PATCH. Personal Details is pinned at index 0 (not draggable).
+All bentos are drag/drop reorderable and collapsible. Order + collapsed state persisted to `profiles.ui_prefs` via debounced PATCH. Personal Details is pinned at index 0 (not draggable). Collapsed state renders a compact labelled strip — NOT a blank card shell.
 
 | Bento | ID | Col-span | Renders when |
 |---|---|---|---|
@@ -91,6 +94,18 @@ All bentos are drag/drop reorderable and collapsible. Order + collapsed state pe
 ---
 
 ## 2. Key Files & Patterns
+
+### `lib/nav.ts`
+Single source of truth for all navigation. Header, Footer, and AdminNav all import from here. Never hardcode nav labels in components.
+
+```ts
+PUBLIC_NAV          // Home, About, Calendar, Trips
+MEMBER_NAV          // Guides, My Network (/los), Profile (/profile)
+FOOTER_MEMBER_NAV   // MEMBER_NAV filtered — excludes /los. Footer shows: Guides + Profile.
+ADMIN_NAV           // Admin section links
+```
+
+Nav labels use inline `labels: { en, bg }` — NOT the `t()` i18n system. `sk` locale not covered in nav labels.
 
 ### `lib/format.ts`
 EET/EEST regional formatting. **Always import from here — never inline `toLocaleDateString` or Intl.**
@@ -115,7 +130,7 @@ Singleton service role client. Do not create a new client per request.
 `TranslationKey = keyof typeof translations` — strict union. Every new `t()` call requires a corresponding entry here or the build breaks.
 
 ### `lib/og-scrape.ts`
-Server-only. Returns nulls for IG/FB URLs — platforms block server fetches. ISS-0172 tracks preview UI.
+Server-only. Returns nulls for IG/FB URLs — platforms block server fetches. Preview endpoint at `/api/admin/social-posts/preview?url=...` wraps this and is called client-side on URL blur in the admin social posts form.
 
 ### `components/about/AboutMapTile.tsx`
 Client Mapbox tile. Accepts `gridColumn`, `className`, `style` props. Theme-aware (`outdoors-v12` light / `dark-v11` dark). MutationObserver on `data-theme`.
@@ -142,10 +157,12 @@ Option B: `hidden md:block` desktop grid + `md:hidden` mobile stack. Read before
 - Nav casing: `tracking-widest uppercase` unconditionally for all languages
 
 ### Footer (`components/layout/Footer.tsx`)
-- Logo: `filter: brightness(0) invert(1)` — white on forest bg
+- Logo: `w-10 h-10` (40px), `filter: brightness(0) invert(1)` — white on forest bg
 - Nav: `hidden md:flex flex-nowrap` — hidden on mobile, single row on md+
-- Nav order: Home → About → Calendar → Trips → Guides → My Network
+- Nav order: Home → About → Calendar → Trips → Guides → Profile
 - 3-col: brand | nav | socials (IG, FB, email icons)
+- No subheading under logo/brand name
+- Bottom bar: `© 2026 teamenjoyVD · All rights reserved` | `Built with ♥ by Vera & Deniz in Sofia.`
 - **NO BottomNav. NO mobile tab bar. Mobile nav = Header hamburger only.**
 
 ---
@@ -289,17 +306,7 @@ ROW 4: Guides(col-12,default)
 - **Always `lib/format.ts` — never inline `toLocaleDateString` or Intl.**
 - Translations: `lib/i18n/translations.ts`. `TranslationKey` is strict — add before using `t()` or build fails.
 - Supported locales: `en`, `bg`. Cyrillic: no uppercase transform, reduced letter-spacing.
-
-```ts
-formatDate(iso)       // 18.03.2026
-formatShortDate(iso)  // 18.03.
-formatLongDate(iso)   // Сряда, 18.03.2026
-formatTime(iso)       // 14:30
-formatDateTime(iso)   // 18.03.2026, 14:30
-formatCurrency(n)     // 1.234,00 €
-calDay(iso)           // 18
-calMonth(iso)         // MAR
-```
+- Nav labels (`lib/nav.ts`) use their own `labels: { en, bg }` system — NOT `t()`. `sk` is not covered in nav labels.
 
 ---
 
@@ -362,6 +369,9 @@ Client-side `filterType` state. Clicking active filter deactivates it. Combinabl
 
 ### Calendar (`admin/calendar`)
 Events ordered ascending by `start_time` (soonest first).
+
+### Content (`admin/content`)
+Tabbed: Announcements | Quick Links | Guides | Social Posts | Bento. Social Posts tab has OG preview on URL blur — fires `/api/admin/social-posts/preview?url=...`, auto-populates caption + thumbnail_url, shows hint text on failure.
 
 ### Operations (`admin/operations`)
 Trips CRUD + milestones + admin payment log + member payment submission review.
@@ -434,11 +444,11 @@ git push
 
 ## 13. Pending Issues
 
-| ID | Name | Priority | Status | Blocked By |
+Queue is clear as of 2026-03-22 end of session. No unblocked To Do tickets.
+
+| ID | Name | Priority | Status | Notes |
 |---|---|---|---|---|
 | ISS-0056 | Meta token expiry alert + refresh flow | Low | Blocked | Needs FB_APP_ID + FB_APP_SECRET in Vercel |
-| ISS-0172 | Admin social posts: URL preview / manual override UI | Low | To Do | ISS-0157 ✓ |
-| ISS-0178 | Admin: payable_items management UI in /admin/operations | P2 | To Do | ISS-0175 ✓ |
 
 ---
 
@@ -458,5 +468,6 @@ git push
 | v1.7.2 | 2026-03-21 | Supabase types regen (announcements + guides sort_order), CI type-check workflow added |
 | v1.8.0 | 2026-03-21 | Generic payments system (payable_items + payments + cancel + ui_prefs), /profile bento split (Trips+Payments col-4, Vital Signs+Participation col-4), 8 new API routes |
 | v1.9.0 | 2026-03-22 | ISS-0177: drag/drop reorder + collapsible bentos on /profile (dnd-kit, persisted to ui_prefs). 3 build-fix commits: DragHandle forwardRef (React 19), DEFAULT_ORDER string[] typing, early-return prerender guard. |
+| v1.9.1 | 2026-03-22 | ISS-0182: CI fix (package-lock.json + @dnd-kit deps). ISS-0178: bento drag/drop verified complete. ISS-0172: OG preview endpoint + auto-populate social post form. ISS-0184: collapsed bento compact label strip. Footer QA: nav → Profile (not My Network), logo enlarged, subheading removed, attribution updated. lib/nav.ts FOOTER_MEMBER_NAV filter swapped (/los out, /profile in). |
 
-Latest stable commit: `8f1a17a`
+Latest stable commit: `1b877a2`

@@ -1,5 +1,5 @@
 # CLAUDE.md — teamenjoyVD Portal
-> Last updated: 2026-03-22 — v1.9.0. Restructured into CLAUDE.md (operational core) + docs/ai/CONTEXT.md (reference). Latest stable commit: 8f1a17a.
+> Last updated: 2026-03-22 — v1.9.1. Restructured into CLAUDE.md (operational core) + docs/ai/CONTEXT.md (reference). Latest stable commit: 1b877a2.
 > Reference material (schema, directory tree, design system, releases) lives in `docs/ai/CONTEXT.md`.
 
 ---
@@ -210,12 +210,15 @@ Things that would cause silent failures or wrong implementations if not explicit
 | profiles.ui_prefs | JSONB, NOT NULL, default `{}`. Shape: `{ bento_order: string[], bento_collapsed: Record<string, boolean> }`. |
 | SectionSkeleton col-span | Hardcodes `span 8`. For col-4 skeletons, inline the div — don't modify the helper. |
 | Payment cancelled-trip flag | `/profile` Payments bento uses heuristic: `item_type==='trip'` + `cancelledTripIds.size>0`. Imprecise. Low-priority follow-up. |
-| OG scrape nulls | `lib/og-scrape.ts` returns nulls for IG/FB — platforms block server fetches. |
+| OG scrape nulls | `lib/og-scrape.ts` returns nulls for IG/FB — platforms block server fetches. Preview endpoint exists at `/api/admin/social-posts/preview?url=...`. |
 | Ticket Done = deployed | Never mark Done without Vercel READY confirmation. |
 | PIU removes nothing | When restructuring docs, check both files against the previous version line-by-line before pushing. Never silently drop content. |
 | dnd-kit forwardRef | `DragHandle` must use `React.forwardRef` — React 19 does not accept `ref` on plain function components. `setActivatorNodeRef` ref is passed directly, no cast needed. |
 | DEFAULT_ORDER type | Declare as `string[]` (not inferred from `as const` values). `Array.prototype.includes` on a readonly const tuple rejects `string` arguments — tsc build fails. |
 | Profile page prerender | `/profile` is `'use client'` but Next.js still prerenders it. Guard ALL `validProfile!` accesses with an early return: `if (isLoading || !validProfile) return <ProfileSkeleton />` before any JSX that references profile fields. bentoMap must be below this guard. |
+| Profile bento collapsed | Collapsed state renders a compact labelled strip (card bg + border, drag handle, label, chevron) — NOT a blank card shell. Label map: `BENTO_LABELS` in `profile/page.tsx`. Content is unmounted when collapsed (not `display:none`). |
+| lib/nav.ts i18n | Nav labels use their own inline `labels: { en, bg }` system — NOT the `t()` i18n infrastructure. Footer reads `labels[lang]` directly. `sk` locale is not covered in nav labels (gap vs main translations). |
+| Footer nav filter | `FOOTER_MEMBER_NAV` filters OUT `/los` (My Network). Footer shows: Home, About, Calendar, Trips, Guides, Profile. Header shows My Network, not Profile in that slot. |
 
 ---
 
