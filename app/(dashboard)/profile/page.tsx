@@ -371,17 +371,18 @@ function SortableBento({
 // ── Bento ID constants ────────────────────────────────────────────────────────
 
 const BENTO_IDS = {
-  PERSONAL: 'personal',
-  TRIPS:    'trips',
-  PAYMENTS: 'payments',
-  VITALS:   'vitals',
+  PERSONAL:      'personal',
+  TRIPS:         'trips',
+  PAYMENTS:      'payments',
+  VITALS:        'vitals',
   PARTICIPATION: 'participation',
-  CALENDAR: 'calendar',
-  STATS:    'stats',
-  ADMIN:    'admin',
-} as const
+  CALENDAR:      'calendar',
+  STATS:         'stats',
+  ADMIN:         'admin',
+}
 
-const DEFAULT_ORDER = [
+// Typed as string[] so Array.prototype.includes accepts string arguments.
+const DEFAULT_ORDER: string[] = [
   BENTO_IDS.PERSONAL,
   BENTO_IDS.TRIPS,
   BENTO_IDS.PAYMENTS,
@@ -443,10 +444,10 @@ export default function ProfilePage() {
     if (!validProfile) return
     const prefs = validProfile.ui_prefs ?? {}
     if (Array.isArray(prefs.bento_order) && prefs.bento_order.length > 0) {
-      const saved = prefs.bento_order as string[]
+      const savedOrder = prefs.bento_order as string[]
       const merged = [
-        ...saved.filter((id: string) => DEFAULT_ORDER.includes(id)),
-        ...DEFAULT_ORDER.filter(id => !saved.includes(id)),
+        ...savedOrder.filter(id => DEFAULT_ORDER.includes(id)),
+        ...DEFAULT_ORDER.filter(id => !savedOrder.includes(id)),
       ]
       setBentoOrder(merged)
     }
