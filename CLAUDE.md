@@ -1,5 +1,5 @@
 # CLAUDE.md — teamenjoyVD Portal
-> Last updated: 2026-03-22 — v1.9.2. Latest stable commit: 373c81c.
+> Last updated: 2026-03-23 — v1.9.3. Latest stable commit: 5689a14.
 > Reference material (schema, directory tree, design system, releases) lives in `docs/ai/CONTEXT.md`.
 > **CONTEXT.md is never read at SSU. Read specific sections in GATHER only when the ticket targets those areas.**
 
@@ -74,7 +74,7 @@ Violation = immediate stop.
 - **NEVER expose `SUPABASE_SERVICE_ROLE_KEY` to the client.** Server-only.
 - **NEVER write `Status=Done` before the commit link exists.** Finalization is atomic.
 - **NEVER proceed past CLAIM if `Blocked By` is non-empty** without explicit acknowledgment.
-- **NEVER mark Done on static analysis alone.** Verify Vercel deployment is READY.
+- **NEVER mark Done on static analysis alone.** Verify Vercel deployment is READY AND CI passes.
 
 ### Desktop / Mobile Layout Law
 
@@ -101,7 +101,7 @@ Prohibitions: no BottomNav, no tab bar, no FAB, no `overflow-x-auto` on nav.
 - Routing: `layout.tsx`, `page.tsx`, `loading.tsx`, `error.tsx`. Dynamic segments: `[param]`. No `getServerSideProps` / `getStaticProps`.
 - Schema changes via migration files in `/supabase/migrations/` only. Never raw DDL in app code.
 - RLS on every user-facing table. Never disable to fix permissions — fix the policy.
-- **Regenerate `types/supabase.ts` after every migration** in the same push. CI enforces this.
+- **Regenerate `types/supabase.ts` after every migration** using `Supabase:generate_typescript_types` MCP tool, then commit in the same push as the migration.
 - Before migrating a table: grep entire codebase (incl. API routes) for old column names.
 - `npx tsc --noEmit` must pass with zero errors before every commit.
 
@@ -121,7 +121,7 @@ Declare phase at opening of every work response: `PHASE: READ | CLAIM | GATHER |
 
 **EXECUTE:** Write code. Zero-Refactor Rule: change only lines required by DoD.
 
-**VERIFY:** DoD point-by-point. Check Vercel deployment is READY. Iterate if gaps remain.
+**VERIFY:** DoD point-by-point. Check Vercel deployment is READY and CI is green. Iterate if gaps remain.
 
 **FINALIZE:** Commit `[SEQ<NNN>-ISS<NNN>] Short imperative description`. Single Airtable write: `Status=Done` + `CommitLink` + `ClaudeNotes`.
 
@@ -191,6 +191,8 @@ Duplicate-safe: every READ must filter `Duplicate = false/empty`. Fetch all and 
 | Profile page prerender | `/profile` prerenders. Guard ALL `validProfile!` accesses with `if (isLoading || !validProfile) return <ProfileSkeleton />` before any JSX referencing profile fields. |
 | `dnd-kit` forwardRef | `DragHandle` must use `React.forwardRef` — React 19 rejects `ref` on plain function components. |
 | Seq is the true PK | `Issue ID` is NOT unique. `Seq` (autonumber) is the PK. Always target by Seq. Issue format: `SEQ<NNN>-ISS<NNN>`. Commit format: `[SEQ<NNN>-ISS<NNN>] Description`. |
+| `types/supabase.ts` | Always regenerate via `Supabase:generate_typescript_types` MCP tool after migrations — NOT the CLI. The CLI format differs and is not installed locally. CI only runs `tsc --noEmit` (no drift diff). |
+| `supabase gen types` CLI | NOT installed. Do not ask user to run it. Use MCP tool instead. |
 
 ---
 
@@ -210,7 +212,7 @@ profile_id = (SELECT id FROM profiles WHERE clerk_id = auth.jwt() ->> 'sub' LIMI
 ```
 
 ### CI Type Check
-On every push to `main`: (1) Supabase type drift check — diffs live DB against `types/supabase.ts`, fails with fix command if stale. (2) `tsc --noEmit`. Required secret: `SUPABASE_ACCESS_TOKEN` in repo secrets. See CONTEXT.md §12 for full CI detail.
+On every push to `main`: `tsc --noEmit` only. No type drift diff step (removed — CLI not available locally, MCP SDK format differs from CLI output). Workflow: `.github/workflows/check-types.yml`.
 
 ---
 
