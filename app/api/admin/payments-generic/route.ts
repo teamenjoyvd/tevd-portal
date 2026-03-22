@@ -8,7 +8,7 @@ export async function GET(req: Request): Promise<Response> {
   const supabase = createServiceClient()
   const { data: profile } = await supabase
     .from('profiles').select('role').eq('clerk_id', userId).single()
-  if (profile?.role !== 'admin' && profile?.role !== 'core') {
+  if (!profile || (profile.role !== 'admin' && profile.role !== 'core')) {
     return Response.json({ error: 'Forbidden' }, { status: 403 })
   }
 
