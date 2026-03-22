@@ -281,6 +281,19 @@ const DragHandle = forwardRef<HTMLSpanElement, React.HTMLAttributes<HTMLSpanElem
   }
 )
 
+// ── Bento label map ───────────────────────────────────────────────────────────
+
+const BENTO_LABELS: Record<string, string> = {
+  personal:      'Personal Details',
+  trips:         'Trips',
+  payments:      'Payments',
+  vitals:        'Vital Signs',
+  participation: 'Participation',
+  calendar:      'Calendar',
+  stats:         'Stats',
+  admin:         'Admin Tools',
+}
+
 // ── Sortable bento wrapper ────────────────────────────────────────────────────
 
 function SortableBento({
@@ -322,48 +335,89 @@ function SortableBento({
       className={colSpan === 4 ? 'bento-mobile-full' : ''}
       style={style}
     >
-      {/* Collapse / drag controls overlay — top-right of the card */}
-      <div
-        style={{
-          position: 'absolute',
-          top: 18,
-          right: 16,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-          zIndex: 10,
-        }}
-      >
-        {!disabled && (
-          <DragHandle
-            ref={setActivatorNodeRef}
-            {...attributes}
-            {...listeners}
-          />
-        )}
-        <button
-          onClick={onToggleCollapse}
-          title={collapsed ? 'Expand' : 'Collapse'}
-          style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            padding: 0,
-            fontSize: 12,
-            lineHeight: 1,
-            color: 'var(--text-secondary)',
-            opacity: 0.5,
-            flexShrink: 0,
-          }}
+      {collapsed ? (
+        // ── Collapsed strip: label + drag handle + chevron ──────────────────
+        <div
+          className="rounded-2xl px-6 py-4 flex items-center justify-between"
+          style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}
         >
-          {collapsed ? '▸' : '▾'}
-        </button>
-      </div>
+          <div className="flex items-center gap-3">
+            {!disabled && (
+              <DragHandle
+                ref={setActivatorNodeRef}
+                {...attributes}
+                {...listeners}
+              />
+            )}
+            <span className="text-xs font-semibold tracking-[0.2em] uppercase" style={{ color: 'var(--text-secondary)' }}>
+              {BENTO_LABELS[id] ?? id}
+            </span>
+          </div>
+          <button
+            onClick={onToggleCollapse}
+            title="Expand"
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: 0,
+              fontSize: 12,
+              lineHeight: 1,
+              color: 'var(--text-secondary)',
+              opacity: 0.5,
+              flexShrink: 0,
+            }}
+          >
+            ▸
+          </button>
+        </div>
+      ) : (
+        // ── Uncollapsed: full card content with overlay controls ─────────────
+        <>
+          {/* Collapse / drag controls overlay — top-right of the card */}
+          <div
+            style={{
+              position: 'absolute',
+              top: 18,
+              right: 16,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              zIndex: 10,
+            }}
+          >
+            {!disabled && (
+              <DragHandle
+                ref={setActivatorNodeRef}
+                {...attributes}
+                {...listeners}
+              />
+            )}
+            <button
+              onClick={onToggleCollapse}
+              title="Collapse"
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: 0,
+                fontSize: 12,
+                lineHeight: 1,
+                color: 'var(--text-secondary)',
+                opacity: 0.5,
+                flexShrink: 0,
+              }}
+            >
+              ▾
+            </button>
+          </div>
 
-      {/* Card content — collapsed hides body, the wrapping card div stays */}
-      <div style={{ overflow: 'hidden' }}>
-        {children}
-      </div>
+          {/* Card content */}
+          <div style={{ overflow: 'hidden' }}>
+            {children}
+          </div>
+        </>
+      )}
     </div>
   )
 }
@@ -1647,16 +1701,7 @@ export default function ProfilePage() {
                     onToggleCollapse={() => toggleCollapse(id)}
                     colSpan={entry.colSpan}
                   >
-                    <div style={{ display: bentoCollapsed[id] ? 'none' : undefined }}>
-                      {entry.node}
-                    </div>
-                    {/* Collapsed placeholder — shows just the card outline */}
-                    {bentoCollapsed[id] && (
-                      <div
-                        className="rounded-2xl px-6 py-4"
-                        style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}
-                      />
-                    )}
+                    {entry.node}
                   </SortableBento>
                 ))}
               </SortableContext>
