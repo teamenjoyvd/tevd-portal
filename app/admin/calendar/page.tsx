@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { formatDateTime } from '@/lib/format'
+import { Drawer } from '@/components/ui/Drawer'
 
 type CalEvent = {
   id: string
@@ -36,10 +37,9 @@ function emptyForm() {
 
 export default function AdminCalendarPage() {
   const qc = useQueryClient()
-  const [creating, setCreating] = useState(false)
-  const [form, setForm] = useState(emptyForm())
+  const [drawerOpen, setDrawerOpen] = useState(false)
   const [editing, setEditing] = useState<CalEvent | null>(null)
-  const [editForm, setEditForm] = useState(emptyForm())
+  const [form, setForm] = useState(emptyForm())
   const [formError, setFormError] = useState<string | null>(null)
 
   const { data: events = [], isLoading } = useQuery<CalEvent[]>({
@@ -53,17 +53,27 @@ export default function AdminCalendarPage() {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       }).then(async r => { if (!r.ok) throw new Error((await r.json()).error); return r.json() }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-calendar'] }); setCreating(false); setForm(emptyForm()); setFormError(null) },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-calendar'] })
+      setDrawerOpen(false)
+      setForm(emptyForm())
+      setFormError(null)
+    },
     onError: (e: Error) => setFormError(e.message),
   })
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, ...body }: { id: string } & typeof editForm) =>
+    mutationFn: ({ id, ...body }: { id: string } & typeof form) =>
       fetch(`/api/admin/calendar/${id}`, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       }).then(async r => { if (!r.ok) throw new Error((await r.json()).error); return r.json() }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-calendar'] }); setEditing(null); setFormError(null) },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-calendar'] })
+      setDrawerOpen(false)
+      setEditing(null)
+      setFormError(null)
+    },
     onError: (e: Error) => setFormError(e.message),
   })
 
@@ -72,53 +82,68 @@ export default function AdminCalendarPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-calendar'] }),
   })
 
-  function startEditing(ev: CalEvent) {
-    setEditForm({
-      title: ev.title, description: ev.description ?? '', start_time: ev.start_time.slice(0, 16),
-      end_time: ev.end_time.slice(0, 16), week_number: ev.week_number, category: ev.category,
+  function openCreate() {
+    setEditing(null)
+    setForm(emptyForm())
+    setFormError(null)
+    setDrawerOpen(true)
+  }
+
+  function openEdit(ev: CalEvent) {
+    setForm({
+      title: ev.title,
+      description: ev.description ?? '',
+      start_time: ev.start_time.slice(0, 16),
+      end_time: ev.end_time.slice(0, 16),
+      week_number: ev.week_number,
+      category: ev.category,
       event_type: ev.event_type,
       visibility_roles: Array.isArray(ev.visibility_roles) ? ev.visibility_roles : [...ALL_ROLES],
     })
     setFormError(null)
     setEditing(ev)
+    setDrawerOpen(true)
+  }
+
+  function handleClose() {
+    setDrawerOpen(false)
+    setEditing(null)
+    setForm(emptyForm())
+    setFormError(null)
   }
 
   function EventForm({
-    f, setF, onSave, onCancel, isPending, label,
+    f, setF, onSave, isPending, label,
   }: {
     f: typeof form
     setF: (fn: (prev: typeof form) => typeof form) => void
     onSave: () => void
-    onCancel: () => void
     isPending: boolean
     label: string
   }) {
     return (
-      <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-6 mb-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <p className="text-xs font-semibold tracking-widest uppercase" style={{ color: 'var(--text-secondary)' }}>{label}</p>
-          <button onClick={onCancel} className="text-xs hover:opacity-70" style={{ color: 'var(--text-secondary)' }}>Cancel</button>
-        </div>
+      <div className="space-y-4">
         <input value={f.title} onChange={e => setF(p => ({ ...p, title: e.target.value }))}
-          placeholder="Title" className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-          style={{ color: 'var(--text-primary)' }} />
+          placeholder="Title" className="w-full border rounded-xl px-3 py-2.5 text-sm"
+          style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
         <textarea value={f.description ?? ''} onChange={e => setF(p => ({ ...p, description: e.target.value }))}
-          placeholder="Description (optional)" rows={2} className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm resize-none"
-          style={{ color: 'var(--text-primary)' }} />
+          placeholder="Description (optional)" rows={2}
+          className="w-full border rounded-xl px-3 py-2.5 text-sm resize-none"
+          style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Start</label>
             <input type="datetime-local" value={f.start_time}
               onChange={e => setF(p => ({ ...p, start_time: e.target.value }))}
-              className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-              style={{ color: 'var(--text-primary)' }} />
+              className="w-full border rounded-xl px-3 py-2.5 text-sm"
+              style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
           </div>
           <div>
             <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>End</label>
             <input type="datetime-local" value={f.end_time}
               onChange={e => setF(p => ({ ...p, end_time: e.target.value }))}
-              className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-              style={{ color: 'var(--text-primary)' }} />
+              className="w-full border rounded-xl px-3 py-2.5 text-sm"
+              style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
           </div>
         </div>
         <div className="flex flex-wrap gap-4 items-start">
@@ -165,13 +190,13 @@ export default function AdminCalendarPage() {
           </div>
         </div>
         {formError && <p className="text-sm" style={{ color: 'var(--brand-crimson)' }}>{formError}</p>}
-        <div className="flex gap-3 pt-1">
+        <div className="flex gap-3 pt-2">
           <button onClick={onSave} disabled={isPending || !f.title || !f.start_time || !f.end_time}
             className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity"
             style={{ backgroundColor: 'var(--brand-crimson)' }}>
             {isPending ? 'Saving…' : label}
           </button>
-          <button onClick={onCancel}
+          <button onClick={handleClose}
             className="px-6 py-2.5 rounded-xl text-sm font-semibold border transition-colors hover:bg-black/5"
             style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
             Cancel
@@ -190,28 +215,12 @@ export default function AdminCalendarPage() {
             Create, edit, and delete calendar events. Google Calendar sync also populates this table.
           </p>
         </div>
-        {!creating && !editing && (
-          <button onClick={() => { setCreating(true); setFormError(null) }}
-            className="px-4 py-2 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-opacity"
-            style={{ backgroundColor: 'var(--brand-crimson)' }}>
-            + New event
-          </button>
-        )}
+        <button onClick={openCreate}
+          className="px-4 py-2 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-opacity"
+          style={{ backgroundColor: 'var(--brand-crimson)' }}>
+          + New event
+        </button>
       </div>
-
-      {creating && (
-        <EventForm f={form} setF={setForm as never}
-          onSave={() => createMutation.mutate(form)}
-          onCancel={() => { setCreating(false); setForm(emptyForm()); setFormError(null) }}
-          isPending={createMutation.isPending} label="Create event" />
-      )}
-
-      {editing && (
-        <EventForm f={editForm} setF={setEditForm as never}
-          onSave={() => updateMutation.mutate({ id: editing.id, ...editForm })}
-          onCancel={() => { setEditing(null); setFormError(null) }}
-          isPending={updateMutation.isPending} label="Save changes" />
-      )}
 
       {isLoading ? (
         <div className="space-y-2">
@@ -250,7 +259,7 @@ export default function AdminCalendarPage() {
                 </p>
               </div>
               <div className="flex items-center gap-3 flex-shrink-0">
-                <button onClick={() => startEditing(ev)}
+                <button onClick={() => openEdit(ev)}
                   className="text-xs hover:opacity-70 transition-opacity" style={{ color: 'var(--text-secondary)' }}>Edit</button>
                 <button onClick={() => { if (confirm(`Delete "${ev.title}"?`)) deleteMutation.mutate(ev.id) }}
                   disabled={deleteMutation.isPending}
@@ -260,6 +269,20 @@ export default function AdminCalendarPage() {
           ))}
         </div>
       )}
+
+      <Drawer
+        open={drawerOpen}
+        onClose={handleClose}
+        title={editing ? `Edit: ${editing.title}` : 'New event'}
+      >
+        <EventForm
+          f={form}
+          setF={setForm as never}
+          onSave={() => editing ? updateMutation.mutate({ id: editing.id, ...form }) : createMutation.mutate(form)}
+          isPending={createMutation.isPending || updateMutation.isPending}
+          label={editing ? 'Save changes' : 'Create event'}
+        />
+      </Drawer>
     </div>
   )
 }
