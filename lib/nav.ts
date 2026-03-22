@@ -31,11 +31,10 @@ export const FOOTER_MEMBER_NAV: NavItem[] = MEMBER_NAV.filter(
 )
 
 export const ADMIN_NAV: NavItem[] = [
-  { href: '/admin/approval-hub',    labels: { en: 'Approval Hub',    bg: 'Approval Hub'    } },
-  { href: '/admin/operations',      labels: { en: 'Operations',      bg: 'Operations'      } },
-  { href: '/admin/payable-items',   labels: { en: 'Payable Items',   bg: 'Payable Items'   } },
-  { href: '/admin/calendar',        labels: { en: 'Calendar',        bg: 'Calendar'        } },
-  { href: '/admin/content',         labels: { en: 'Content',         bg: 'Content'         } },
-  { href: '/admin/notifications',   labels: { en: 'Notifications',   bg: 'Notifications'   } },
-  { href: '/admin/members',         labels: { en: 'Members',         bg: 'Members'         } },
+  { href: '/admin/approval-hub',  labels: { en: 'Approval Hub',  bg: 'Approval Hub'  } },
+  { href: '/admin/operations',    labels: { en: 'Operations',    bg: 'Operations'    } },
+  { href: '/admin/calendar',      labels: { en: 'Calendar',      bg: 'Calendar'      } },
+  { href: '/admin/content',       labels: { en: 'Content',       bg: 'Content'       } },
+  { href: '/admin/notifications', labels: { en: 'Notifications', bg: 'Notifications' } },
+  { href: '/admin/members',       labels: { en: 'Members',       bg: 'Members'       } },
 ]
