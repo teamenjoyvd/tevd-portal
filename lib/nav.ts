@@ -3,7 +3,7 @@
 //
 // Consumer guide:
 //   Header    — PUBLIC_NAV + MEMBER_NAV (filters /los)
-//   Footer    — PUBLIC_NAV + FOOTER_MEMBER_NAV (guides + network, no profile)
+//   Footer    — PUBLIC_NAV + FOOTER_MEMBER_NAV (guides + profile, no /los)
 //   AdminNav  — ADMIN_NAV
 
 export type NavItem = {
@@ -25,9 +25,9 @@ export const MEMBER_NAV: NavItem[] = [
   { href: '/profile', labels: { en: 'Profile',    bg: 'Профил'       }, minRole: 'member' },
 ]
 
-// Footer shows guides + network but not profile
+// Footer shows guides + profile but not /los
 export const FOOTER_MEMBER_NAV: NavItem[] = MEMBER_NAV.filter(
-  item => item.href !== '/profile'
+  item => item.href !== '/los'
 )
 
 export const ADMIN_NAV: NavItem[] = [

@@ -16,26 +16,21 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
 
           {/* Col 1 — Brand */}
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0"
-                style={{ border: '1px solid rgba(255,255,255,0.15)' }}>
-                <Image
-                  src="/logo.png"
-                  alt="teamenjoyVD"
-                  width={32}
-                  height={32}
-                  className="object-contain"
-                  style={{ filter: 'brightness(0) invert(1)' }}
-                />
-              </div>
-              <span className="font-display text-sm font-bold tracking-tight" style={{ color: 'var(--brand-parchment)' }}>
-                TEAMENJOY<span style={{ color: 'var(--brand-crimson)' }}>VD</span>
-              </span>
+          <div className="flex items-center gap-2.5">
+            <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0"
+              style={{ border: '1px solid rgba(255,255,255,0.15)' }}>
+              <Image
+                src="/logo.png"
+                alt="teamenjoyVD"
+                width={40}
+                height={40}
+                className="object-contain"
+                style={{ filter: 'brightness(0) invert(1)' }}
+              />
             </div>
-            <p className="text-xs" style={{ color: 'rgba(242,239,232,0.45)' }}>
-              N21 Community — Sofia, Bulgaria
-            </p>
+            <span className="font-display text-sm font-bold tracking-tight" style={{ color: 'var(--brand-parchment)' }}>
+              TEAMENJOY<span style={{ color: 'var(--brand-crimson)' }}>VD</span>
+            </span>
           </div>
 
           {/* Col 2 — Nav: hidden on mobile (BottomNav handles mobile), single row on md+ */}
@@ -95,7 +90,7 @@ export default function Footer() {
             © 2026 teamenjoyVD · All rights reserved
           </p>
           <p className="text-[11px]" style={{ color: 'rgba(242,239,232,0.3)' }}>
-            Built with ♥ by Vera &amp; Deniz
+            Built with ♥ by Vera &amp; Deniz in Sofia.
           </p>
         </div>
       </div>
