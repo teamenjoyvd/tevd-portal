@@ -1,7 +1,7 @@
 'use client'
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState, useEffect, useRef, useCallback, type ReactNode } from 'react'
+import { useState, useEffect, useRef, useCallback, forwardRef, type ReactNode } from 'react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { formatDate, formatCurrency } from '@/lib/format'
 import { getRoleColors } from '@/lib/role-colors'
@@ -264,22 +264,24 @@ function Col4Bento({ children }: { children: ReactNode }) {
 }
 
 // ── Drag handle icon ──────────────────────────────────────────────────────────
+// forwardRef required so dnd-kit's setActivatorNodeRef can attach to the DOM node.
 
-function DragHandle(props: React.HTMLAttributes<HTMLSpanElement>) {
-  return (
-    <span
-      {...props}
-      title="Drag to reorder"
-      style={{ cursor: 'grab', touchAction: 'none', userSelect: 'none', fontSize: 14, lineHeight: 1, color: 'var(--text-secondary)', opacity: 0.5, flexShrink: 0 }}
-    >
-      ⠿
-    </span>
-  )
-}
+const DragHandle = forwardRef<HTMLSpanElement, React.HTMLAttributes<HTMLSpanElement>>(
+  function DragHandle(props, ref) {
+    return (
+      <span
+        {...props}
+        ref={ref}
+        title="Drag to reorder"
+        style={{ cursor: 'grab', touchAction: 'none', userSelect: 'none', fontSize: 14, lineHeight: 1, color: 'var(--text-secondary)', opacity: 0.5, flexShrink: 0 }}
+      >
+        ⠿
+      </span>
+    )
+  }
+)
 
 // ── Sortable bento wrapper ────────────────────────────────────────────────────
-// Wraps any bento box with dnd-kit sortable. The drag handle is exposed via
-// the listeners/attributes on the handle element only — not the whole card.
 
 function SortableBento({
   id,
@@ -334,7 +336,7 @@ function SortableBento({
       >
         {!disabled && (
           <DragHandle
-            ref={setActivatorNodeRef as unknown as React.Ref<HTMLSpanElement>}
+            ref={setActivatorNodeRef}
             {...attributes}
             {...listeners}
           />
@@ -441,7 +443,6 @@ export default function ProfilePage() {
     if (!validProfile) return
     const prefs = validProfile.ui_prefs ?? {}
     if (Array.isArray(prefs.bento_order) && prefs.bento_order.length > 0) {
-      // Merge: saved order first, append any IDs not yet in saved order
       const saved = prefs.bento_order as string[]
       const merged = [
         ...saved.filter((id: string) => DEFAULT_ORDER.includes(id)),
@@ -474,7 +475,6 @@ export default function ProfilePage() {
       const oldIndex = prev.indexOf(active.id as string)
       const newIndex = prev.indexOf(over.id as string)
       const next = arrayMove(prev, oldIndex, newIndex)
-      // personal is always pinned to index 0
       const withPin = [
         BENTO_IDS.PERSONAL,
         ...next.filter(id => id !== BENTO_IDS.PERSONAL),
@@ -487,7 +487,6 @@ export default function ProfilePage() {
   const toggleCollapse = useCallback((id: string) => {
     setBentoCollapsed(prev => {
       const next = { ...prev, [id]: !prev[id] }
-      // Optimistic — persist immediately
       setBentoOrder(order => {
         persistPrefs(order, next)
         return order
@@ -756,8 +755,6 @@ export default function ProfilePage() {
   )
 
   // ── Bento content map ─────────────────────────────────────────────────────
-  // Each entry: { colSpan, node: ReactNode | null }
-  // null = bento should not render at all (conditional bentos with no data)
 
   type BentoEntry = { colSpan: number; node: ReactNode }
 
