@@ -1,7 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
 
-export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }): Promise<Response> {
   const { userId } = await auth()
   if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -14,17 +14,16 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   const { id } = await params
   const body = await req.json()
-  const { status, note } = body
+  const { admin_status, admin_note } = body
 
-  if (!status || !['completed', 'failed'].includes(status)) {
-    return Response.json({ error: 'status must be completed or failed' }, { status: 400 })
+  if (!admin_status || !['approved', 'rejected'].includes(admin_status)) {
+    return Response.json({ error: 'admin_status must be approved or rejected' }, { status: 400 })
   }
 
   const { data, error } = await supabase
-    .from('trip_payments')
-    .update({ status, note: note ?? null })
+    .from('payments')
+    .update({ admin_status, admin_note: admin_note ?? null })
     .eq('id', id)
-    .eq('submitted_by_member', true)
     .select()
     .single()
 
