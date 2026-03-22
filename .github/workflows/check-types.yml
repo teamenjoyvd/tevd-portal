@@ -38,7 +38,6 @@ jobs:
       - name: Diff types against committed file
         run: |
           if ! diff -u types/supabase.ts /tmp/supabase-fresh.ts; then
-            echo ""
             echo "❌ types/supabase.ts is stale."
             echo "Run: supabase gen types typescript --project-id ynykjpnetfwqzdnsgkkg > types/supabase.ts"
             echo "Then commit the updated file."
