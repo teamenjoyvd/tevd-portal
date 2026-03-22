@@ -46,6 +46,8 @@ type ItemForm = {
   is_active: boolean
 }
 
+type ItemPayload = Omit<ItemForm, 'amount'> & { amount: number }
+
 const emptyForm = (): ItemForm => ({
   title: '',
   description: '',
@@ -87,7 +89,7 @@ export default function PayableItemsPage() {
   })
 
   const createMutation = useMutation({
-    mutationFn: (body: Omit<ItemForm, 'amount'> & { amount: number }) =>
+    mutationFn: (body: ItemPayload) =>
       fetch('/api/admin/payable-items', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -106,7 +108,7 @@ export default function PayableItemsPage() {
   })
 
   const editMutation = useMutation({
-    mutationFn: ({ id, body }: { id: string; body: Partial<ItemForm> & { amount?: number } }) =>
+    mutationFn: ({ id, body }: { id: string; body: ItemPayload }) =>
       fetch(`/api/admin/payable-items/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -161,25 +163,26 @@ export default function PayableItemsPage() {
     setEditing(item)
   }
 
+  function toPayload(form: ItemForm): ItemPayload {
+    return {
+      title: form.title,
+      description: form.description,
+      amount: Number(form.amount),
+      currency: form.currency,
+      item_type: form.item_type,
+      linked_trip_id: form.linked_trip_id,
+      is_active: form.is_active,
+    }
+  }
+
   function submitCreate() {
     if (!createForm.title || !createForm.amount || !createForm.item_type) return
-    createMutation.mutate({
-      ...createForm,
-      amount: Number(createForm.amount),
-      linked_trip_id: createForm.linked_trip_id || '',
-    })
+    createMutation.mutate(toPayload(createForm))
   }
 
   function submitEdit() {
     if (!editing) return
-    editMutation.mutate({
-      id: editing.id,
-      body: {
-        ...editForm,
-        amount: Number(editForm.amount),
-        linked_trip_id: editForm.linked_trip_id || '',
-      },
-    })
+    editMutation.mutate({ id: editing.id, body: toPayload(editForm) })
   }
 
   const paymentsForItem = (itemId: string) =>
