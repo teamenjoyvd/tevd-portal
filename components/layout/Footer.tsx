@@ -87,7 +87,7 @@ export default function Footer() {
       <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
         <div className="max-w-[1440px] mx-auto px-8 xl:px-12 2xl:px-16 py-3 flex items-center justify-between gap-4">
           <p className="text-[11px]" style={{ color: 'rgba(242,239,232,0.3)' }}>
-            © 2026 teamenjoyVD · All rights reserved
+            © 2026 teamenjoyvd.com · All rights reserved
           </p>
           <p className="text-[11px]" style={{ color: 'rgba(242,239,232,0.3)' }}>
             Built with ♥ by Vera &amp; Deniz in Sofia.
