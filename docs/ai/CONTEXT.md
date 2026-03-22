@@ -1,5 +1,5 @@
 # CONTEXT.md — teamenjoyVD Portal Reference
-> Last updated: 2026-03-22 — v1.9.1. Latest stable commit: 1b877a2.
+> Last updated: 2026-03-23 — v1.9.3. Latest stable commit: b677ce0.
 > **Read on demand in GATHER only. Never read at SSU.**
 > Consult the section map in CLAUDE.md §9 to read only what the ticket needs.
 
@@ -21,28 +21,29 @@
     /content/page.tsx            # Announcements, Quick Links, Guides, Social Posts, Bento config
     /data-center/page.tsx        # LOS import + reconciliation panel
     /notifications/page.tsx      # All-time audit log incl. soft-deleted, paginated 50/page
-    /operations/page.tsx         # Trips CRUD + milestones + admin payment log + submission review
-    /payable-items/page.tsx      # Payable items CRUD + per-item payment review
+    /operations/page.tsx         # Trips CRUD — to be rewritten by ISS-0186 (Drawer, 3 tabs)
+    /payable-items/page.tsx      # Legacy — to be absorbed into /operations by ISS-0186
   /api
     /admin/calendar/route.ts
-    /admin/payments/route.ts               # trip_payments (legacy)
-    /admin/payments/[id]/route.ts
-    /admin/payments-generic/route.ts       # payments table (generic system)
-    /admin/payments-generic/[id]/route.ts
+    /admin/payments/route.ts               # GET all payments + POST log payment (admin)
+    /admin/payments/[id]/route.ts          # PATCH admin_status + admin_note
+    /admin/payments-generic/route.ts       # LEGACY — to be deleted by ISS-0191
+    /admin/payments-generic/[id]/route.ts  # LEGACY — to be deleted by ISS-0191
     /admin/payable-items/route.ts
     /admin/payable-items/[id]/route.ts
     /admin/verify/route.ts
     /admin/vital-sign-definitions/route.ts
     /admin/vital-sign-definitions/[id]/route.ts
+    /admin/members/[id]/route.ts           # GET member profile + payments (unified) + registrations
     /admin/members/[id]/vital-signs/route.ts
     /admin/members/[id]/vital-signs/[definitionId]/route.ts
     /admin/social-posts/route.ts
     /admin/social-posts/[id]/route.ts
-    /admin/social-posts/preview/route.ts   # GET ?url=... — OG scrape, returns { thumbnail_url, caption }
+    /admin/social-posts/preview/route.ts   # GET ?url=... — OG scrape
     /admin/trips/registrations/[id]/cancel/route.ts
     /payable-items/route.ts                # member-facing active items
-    /payments/route.ts                     # member-facing GET+POST
-    /profile/payments/route.ts             # trip_payments (legacy)
+    /payments/route.ts                     # member-facing GET+POST (unified payments table)
+    /profile/payments/route.ts             # GET trip registrations+payments; POST member payment
     /profile/route.ts
     /profile/verify-abo/route.ts
     /profile/vital-signs/route.ts
@@ -50,6 +51,7 @@
     /profile/los-summary/route.ts
     /profile/upline/route.ts
     /profile/trips/[id]/cancel/route.ts
+    /trips/[id]/payments/route.ts          # GET payments by trip_id (unified payments table)
     /socials/route.ts
     /webhooks/clerk/route.ts
 /components
@@ -61,6 +63,7 @@
   /layout/Footer.tsx
   /layout/Header.tsx
   /layout/BottomNav.tsx          # DEAD STUB — do not import
+  /ui/Drawer.tsx                 # Right slide-over Drawer — use for all admin create/edit forms
 /lib
   /format.ts                     # EET helpers — always use this
   /nav.ts                        # Single source of truth for all nav configs
@@ -133,6 +136,9 @@ Singleton service role client. Do not create a new client per request.
 ### `lib/og-scrape.ts`
 Server-only. Returns nulls for IG/FB URLs — platforms block server fetches. Preview endpoint at `/api/admin/social-posts/preview?url=...` wraps this and is called client-side on URL blur in the admin social posts form.
 
+### `components/ui/Drawer.tsx`
+Right slide-over Drawer primitive. Use for ALL admin create/edit forms site-wide. Props: `open`, `onClose`, `title`, `children`. Exceptions: Announcements and Quick Links use always-visible inline create cards (3-field UIs). Delete remains inline with `window.confirm`.
+
 ### `components/about/AboutMapTile.tsx`
 Client Mapbox tile. Accepts `gridColumn`, `className`, `style` props. Theme-aware (`outdoors-v12` light / `dark-v11` dark). MutationObserver on `data-theme`.
 
@@ -179,20 +185,21 @@ Option B: `hidden md:block` desktop grid + `md:hidden` mobile stack. Read before
 - `ui_prefs` JSONB NOT NULL default `{}` — shape: `{ bento_order: string[], bento_collapsed: Record<string, boolean> }`
 
 ### `payable_items`
-`id, title, description, amount, currency, item_type, linked_trip_id, is_active, created_by, created_at`
-- `item_type`: `'trip' | 'book' | 'ticket' | 'other'`
+`id, title, description, amount, currency, item_type, linked_trip_id, is_active, created_by, created_at, properties`
+- `item_type`: `'merchandise' | 'ticket' | 'food' | 'book' | 'other'` (note: `'trip'` removed in ISS-0190)
+- `properties` JSONB NOT NULL default `{}` — item-specific attributes (size, colour, engraving text, etc.)
 - Admin/core CRUD. Members read active only. Soft-delete via `is_active = false`.
 
-### `payments` (generic)
-`id, profile_id, payable_item_id, amount, transaction_date, status, payment_method, proof_url, note, admin_note, submitted_by_member, created_at`
-- `status`: `pending | approved | denied`
-- Member POST: `/api/payments`. Admin PATCH: `/api/admin/payments-generic/[id]`.
-- **Not `trip_payments`** — separate table, separate API paths.
-
-### `trip_payments` (legacy)
-`id, trip_id, profile_id, amount, transaction_date, status, note, proof_url, payment_method, submitted_by_member, created_at`
-- `status`: `completed | pending | failed`
-- Admin/Core approve/deny via PATCH `/api/admin/payments/[id]`.
+### `payments` (unified)
+`id, profile_id, trip_id, payable_item_id, amount, currency, transaction_date, admin_status, member_status, admin_reject_reason, member_reject_reason, payment_method, proof_url, note, admin_note, logged_by_admin, properties, created_at`
+- **Entity constraint:** exactly one of `trip_id` / `payable_item_id` must be non-null (`num_nonnulls(...) = 1`).
+- `admin_status` / `member_status`: `'pending' | 'approved' | 'rejected'`. Both default `'pending'`.
+- Green state = both `approved`.
+- **Admin-logged:** `logged_by_admin = admin_profile_id`, `admin_status = 'approved'`, `member_status = 'pending'`.
+- **Member-submitted:** `logged_by_admin = NULL`, `member_status = 'approved'`, `admin_status = 'pending'`.
+- `properties` JSONB NOT NULL default `{}` — member-supplied variant data at purchase time.
+- RLS: admin/core full access; member SELECT own; member INSERT own + `logged_by_admin IS NULL`; member UPDATE own admin-logged rows only.
+- **`trip_payments` table dropped.** `payment_status` enum dropped. All old routes migrated.
 
 ### `trip_registrations`
 `id, trip_id, profile_id, status, created_at, cancelled_at, cancelled_by`
@@ -365,16 +372,16 @@ Client-side `filterType` state. Clicking active filter deactivates it. Combinabl
 ## 10. Admin Pages
 
 ### Calendar (`admin/calendar`)
-Events ordered ascending by `start_time` (soonest first).
+Events ordered ascending by `start_time` (soonest first). Create/edit via Drawer (ISS-0187).
 
 ### Content (`admin/content`)
-Tabbed: Announcements | Quick Links | Guides | Social Posts | Bento. Social Posts tab has OG preview on URL blur.
+Tabbed: Announcements | Quick Links | Guides | Social Posts | Bento. Social Posts tab has OG preview on URL blur. Edit forms via Drawer (ISS-0188). Announcements + Quick Links: inline create stays, edit moves to Drawer.
 
 ### Operations (`admin/operations`)
-Trips CRUD + milestones + admin payment log + member payment submission review (trip_payments legacy).
+To be rewritten by ISS-0186: 3 URL-param tabs (`?tab=trips|items|payments`). Trips tab: create/edit via Drawer. Items tab: absorbs `/admin/payable-items`. Payments tab: Log Payment Drawer + unified payments table with admin_status filter pills + inline approve/deny.
 
 ### Payable Items (`admin/payable-items`)
-Payable items CRUD + per-item pending payment review (generic payments table).
+Legacy — to be absorbed into /admin/operations?tab=items by ISS-0186. Redirect will be added.
 
 ### Approval Hub (`admin/approval-hub`)
 Standard ABO requests + manual requests + Path C direct-verify form.
@@ -410,21 +417,16 @@ All-time, including soft-deleted. Paginated 50/page.
 
 ### What it does
 On every push to `main`, `.github/workflows/check-types.yml` runs:
-1. **Supabase type drift check** — diffs live DB against `types/supabase.ts`. Fails if stale.
-2. **TypeScript check** — `npx tsc --noEmit`.
+1. **TypeScript check** — `npx tsc --noEmit`.
 
-### Required secret
-`SUPABASE_ACCESS_TOKEN` — Supabase personal access token. Stored as repo secret.
-- Verify/rotate: `github.com/teamenjoyvd/tevd-portal/settings/secrets/actions`
-- Generate: `supabase.com/dashboard/account/tokens`
+Note: Supabase type drift diff step was removed (2026-03-23). The Supabase CLI is not available locally and the MCP SDK generates a different output format. Types are maintained exclusively via `Supabase:generate_typescript_types` MCP tool after every migration. No `SUPABASE_ACCESS_TOKEN` secret required.
 
-### Fix
-```bash
-supabase gen types typescript --project-id ynykjpnetfwqzdnsgkkg > types/supabase.ts
-npx tsc --noEmit
-git add types/supabase.ts
-git commit -m "fix: regenerate Supabase types"
-git push
+### Fix for type errors
+```
+1. Run Supabase:generate_typescript_types MCP tool
+2. Write output to types/supabase.ts
+3. npx tsc --noEmit
+4. Commit and push
 ```
 
 ---
@@ -436,5 +438,16 @@ git push
 | v1.8.0 | 2026-03-21 | Generic payments system (payable_items + payments + cancel + ui_prefs), /profile bento split |
 | v1.9.0 | 2026-03-22 | Drag/drop reorder + collapsible bentos on /profile (dnd-kit, persisted to ui_prefs) |
 | v1.9.1 | 2026-03-22 | CI fix, ISS-0178 payable items admin UI, ISS-0184 collapsed bento label strip, footer QA |
+| v1.9.2 | 2026-03-22 | Drawer primitive (ISS-0185) |
+| v1.9.3 | 2026-03-23 | ISS-0190: drop trip_payments, unified payments table with dual-approval (admin_status + member_status), entity check constraint, all payment routes migrated, CI tsc-only |
 
-Latest stable commit: `1b877a2`
+Latest stable commit: `b677ce0`
+
+### Pending issues (next sessions)
+| SEQ | ISS | Title | Blocked by |
+|---|---|---|---|
+| 215 | ISS-0191 | API: replace payments routes with unified endpoints | — (mostly done; delete payments-generic) |
+| 210 | ISS-0186 | /admin/operations rewrite — Trips+Items+Payments tabs, Drawer | ISS-0191 |
+| 211 | ISS-0187 | /admin/calendar — create/edit via Drawer | — |
+| 212 | ISS-0188 | /admin/content — edit forms via Drawer | — |
+| 213 | ISS-0189 | /profile — payment modal → Drawer | ISS-0191 |
