@@ -25,8 +25,8 @@ export async function GET(
       .select('*, trip:trips(title, destination, start_date)')
       .eq('profile_id', id)
       .order('created_at', { ascending: false }),
-    supabase.from('trip_payments')
-      .select('*, trip:trips(title)')
+    supabase.from('payments')
+      .select('*, trip:trips(title), item:payable_items(title)')
       .eq('profile_id', id)
       .order('transaction_date', { ascending: false }),
     supabase.from('event_role_requests')
