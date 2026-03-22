@@ -736,6 +736,32 @@ function ContentPageInner() {
     caption: '',
     thumbnail_url: '',
   })
+  // null = not yet attempted, true = scraping, false = scrape done (success or fail)
+  const [spPreviewing, setSpPreviewing] = useState(false)
+  const [spPreviewHint, setSpPreviewHint] = useState<string | null>(null)
+
+  async function fetchOgPreview(url: string) {
+    if (!url) return
+    setSpPreviewing(true)
+    setSpPreviewHint(null)
+    try {
+      const res = await fetch(`/api/admin/social-posts/preview?url=${encodeURIComponent(url)}`)
+      if (!res.ok) throw new Error('preview failed')
+      const data = await res.json() as { thumbnail_url: string | null; caption: string | null }
+      setSpForm(f => ({
+        ...f,
+        thumbnail_url: data.thumbnail_url ?? f.thumbnail_url,
+        caption: data.caption ?? f.caption,
+      }))
+      if (!data.thumbnail_url && !data.caption) {
+        setSpPreviewHint('Preview unavailable for this platform — enter thumbnail URL manually')
+      }
+    } catch {
+      setSpPreviewHint('Preview unavailable for this platform — enter thumbnail URL manually')
+    } finally {
+      setSpPreviewing(false)
+    }
+  }
 
   const createSocialPost = useMutation({
     mutationFn: (body: typeof spForm) =>
@@ -752,6 +778,7 @@ function ContentPageInner() {
       qc.invalidateQueries({ queryKey: ['admin-social-posts'] })
       qc.invalidateQueries({ queryKey: ['socials'] })
       setSpForm({ platform: 'instagram', post_url: '', caption: '', thumbnail_url: '' })
+      setSpPreviewHint(null)
     },
   })
 
@@ -1169,9 +1196,37 @@ function ContentPageInner() {
                   </button>
                 ))}
               </div>
-              <input value={spForm.post_url} onChange={e => setSpForm(f => ({ ...f, post_url: e.target.value }))} placeholder="Post URL (required)" className="w-full border rounded-xl px-3 py-2.5 text-sm" style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
-              <textarea value={spForm.caption} onChange={e => setSpForm(f => ({ ...f, caption: e.target.value }))} placeholder="Caption — auto-extracted from post if left blank" rows={3} className="w-full border rounded-xl px-3 py-2.5 text-sm resize-none" style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
-              <input value={spForm.thumbnail_url} onChange={e => setSpForm(f => ({ ...f, thumbnail_url: e.target.value }))} placeholder="Thumbnail URL — auto-extracted from post if left blank" className="w-full border rounded-xl px-3 py-2.5 text-sm" style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
+              <div>
+                <input
+                  value={spForm.post_url}
+                  onChange={e => setSpForm(f => ({ ...f, post_url: e.target.value }))}
+                  onBlur={e => { if (e.target.value) fetchOgPreview(e.target.value) }}
+                  placeholder="Post URL (required)"
+                  className="w-full border rounded-xl px-3 py-2.5 text-sm"
+                  style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
+                />
+                {spPreviewing && (
+                  <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>Fetching preview…</p>
+                )}
+                {!spPreviewing && spPreviewHint && (
+                  <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>{spPreviewHint}</p>
+                )}
+              </div>
+              <textarea
+                value={spForm.caption}
+                onChange={e => setSpForm(f => ({ ...f, caption: e.target.value }))}
+                placeholder="Caption — auto-extracted from post if left blank"
+                rows={3}
+                className="w-full border rounded-xl px-3 py-2.5 text-sm resize-none"
+                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
+              />
+              <input
+                value={spForm.thumbnail_url}
+                onChange={e => setSpForm(f => ({ ...f, thumbnail_url: e.target.value }))}
+                placeholder="Thumbnail URL — auto-extracted from post if left blank"
+                className="w-full border rounded-xl px-3 py-2.5 text-sm"
+                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
+              />
               {createSocialPost.isError && (
                 <p className="text-xs" style={{ color: 'var(--brand-crimson)' }}>{(createSocialPost.error as Error).message}</p>
               )}
