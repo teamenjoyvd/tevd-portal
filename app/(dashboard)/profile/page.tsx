@@ -1,7 +1,7 @@
 'use client'
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type ReactNode } from 'react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { formatDate, formatCurrency } from '@/lib/format'
 import { getRoleColors } from '@/lib/role-colors'
@@ -235,7 +235,7 @@ function SectionSkeleton({ height = 120 }: { height?: number }) {
 // On mobile: full width (bento-mobile-full overrides to 1/-1).
 // On md+: span 4 via inline style (matches existing desktop layout).
 
-function Col4Bento({ children }: { children: React.ReactNode }) {
+function Col4Bento({ children }: { children: ReactNode }) {
   return (
     <div className="bento-mobile-full" style={{ gridColumn: 'span 4' }}>
       {children}
@@ -1190,7 +1190,6 @@ export default function ProfilePage() {
                             <div className="space-y-1.5">
                               {itemPayments.map(p => {
                                 const ps = PAYMENT_STATUS_STYLES[p.status] ?? PAYMENT_STATUS_STYLES.pending
-                                // Check if this payment is linked to a cancelled trip via payable_item
                                 const linkedTripCancelled = p.payable_items?.item_type === 'trip' &&
                                   cancelledTripIds.size > 0
                                 return (
