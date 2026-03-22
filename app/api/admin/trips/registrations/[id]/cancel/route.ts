@@ -9,11 +9,13 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
 
   const { data: adminProfile } = await supabase
     .from('profiles').select('id, role').eq('clerk_id', userId).single()
-  if (adminProfile?.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 })
+  if (adminProfile?.role !== 'admin' && adminProfile?.role !== 'core') {
+    return Response.json({ error: 'Forbidden' }, { status: 403 })
+  }
 
   const { id: registrationId } = await params
 
-  // Find the registration by its own id (admin can cancel any)
+  // Find the registration by its own id (admin/core can cancel any)
   const { data: registration } = await supabase
     .from('trip_registrations')
     .select('id, cancelled_at')

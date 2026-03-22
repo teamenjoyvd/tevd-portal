@@ -8,7 +8,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const supabase = createServiceClient()
   const { data: profile } = await supabase
     .from('profiles').select('role').eq('clerk_id', userId).single()
-  if (profile?.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 })
+  if (profile?.role !== 'admin' && profile?.role !== 'core') {
+    return Response.json({ error: 'Forbidden' }, { status: 403 })
+  }
 
   const { id } = await params
   const body = await req.json()
@@ -19,13 +21,13 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   }
 
   const update: Record<string, unknown> = {}
-  if (title !== undefined)         update.title = title
-  if (description !== undefined)   update.description = description
-  if (amount !== undefined)        update.amount = amount
-  if (currency !== undefined)      update.currency = currency
-  if (item_type !== undefined)     update.item_type = item_type
+  if (title !== undefined)          update.title = title
+  if (description !== undefined)    update.description = description
+  if (amount !== undefined)         update.amount = amount
+  if (currency !== undefined)       update.currency = currency
+  if (item_type !== undefined)      update.item_type = item_type
   if (linked_trip_id !== undefined) update.linked_trip_id = linked_trip_id
-  if (is_active !== undefined)     update.is_active = is_active
+  if (is_active !== undefined)      update.is_active = is_active
 
   if (Object.keys(update).length === 0) {
     return Response.json({ error: 'No fields to update' }, { status: 400 })
@@ -49,7 +51,9 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   const supabase = createServiceClient()
   const { data: profile } = await supabase
     .from('profiles').select('role').eq('clerk_id', userId).single()
-  if (profile?.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 })
+  if (profile?.role !== 'admin' && profile?.role !== 'core') {
+    return Response.json({ error: 'Forbidden' }, { status: 403 })
+  }
 
   const { id } = await params
 
