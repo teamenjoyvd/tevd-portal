@@ -1,5 +1,5 @@
 # CLAUDE.md — teamenjoyVD Portal
-> Last updated: 2026-03-23 — v1.9.3. Latest stable commit: 5689a14.
+> Last updated: 2026-03-23 — v2.0.0. Latest stable commit: fe1e5d0.
 > Reference material (schema, directory tree, design system, releases) lives in `docs/ai/CONTEXT.md`.
 > **CONTEXT.md is never read at SSU. Read specific sections in GATHER only when the ticket targets those areas.**
 
@@ -193,6 +193,8 @@ Duplicate-safe: every READ must filter `Duplicate = false/empty`. Fetch all and 
 | Seq is the true PK | `Issue ID` is NOT unique. `Seq` (autonumber) is the PK. Always target by Seq. Issue format: `SEQ<NNN>-ISS<NNN>`. Commit format: `[SEQ<NNN>-ISS<NNN>] Description`. |
 | `types/supabase.ts` | Always regenerate via `Supabase:generate_typescript_types` MCP tool after migrations — NOT the CLI. The CLI format differs and is not installed locally. CI only runs `tsc --noEmit` (no drift diff). |
 | `supabase gen types` CLI | NOT installed. Do not ask user to run it. Use MCP tool instead. |
+| `payments → profiles` FK ambiguity | `payments` has TWO FKs to `profiles`: `profile_id` (member) and `logged_by_admin` (admin). Any PostgREST `.select()` that joins `profiles(...)` from `payments` MUST use the FK hint: `profiles!profile_id(...)`. Without it PostgREST returns 500. Same pattern applies to any future table with multiple FKs to the same target. |
+| `Drawer` for admin forms | Use `components/ui/Drawer.tsx` for ALL admin create/edit flows. Exceptions: Announcements create + Quick Links create stay as always-visible inline cards. Delete stays inline with `window.confirm`. |
 
 ---
 

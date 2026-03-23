@@ -1,5 +1,5 @@
 # CONTEXT.md — teamenjoyVD Portal Reference
-> Last updated: 2026-03-23 — v1.9.3. Latest stable commit: b677ce0.
+> Last updated: 2026-03-23 — v2.0.0. Latest stable commit: fe1e5d0.
 > **Read on demand in GATHER only. Never read at SSU.**
 > Consult the section map in CLAUDE.md §9 to read only what the ticket needs.
 
@@ -14,26 +14,25 @@
     /about/page.tsx              # CANONICAL dual-layout reference
     /trips/page.tsx
     /trips/[id]/page.tsx         # Trip detail — auth-gated, registered users only
-    /profile/page.tsx            # Multi-bento layout, drag/drop reorder + collapsible
+    /profile/page.tsx            # Multi-bento layout, drag/drop reorder + collapsible; payment submit via Drawer
   /admin
     /approval-hub/page.tsx       # ABO + manual verification review
-    /calendar/page.tsx           # Events ordered ascending by start_time
-    /content/page.tsx            # Announcements, Quick Links, Guides, Social Posts, Bento config
+    /calendar/page.tsx           # Events ordered ascending by start_time; create/edit via Drawer
+    /content/page.tsx            # Announcements, Quick Links, Guides, Social Posts, Bento config; edit forms via Drawer
     /data-center/page.tsx        # LOS import + reconciliation panel
     /notifications/page.tsx      # All-time audit log incl. soft-deleted, paginated 50/page
-    /operations/page.tsx         # Trips CRUD — to be rewritten by ISS-0186 (Drawer, 3 tabs)
-    /payable-items/page.tsx      # Legacy — to be absorbed into /operations by ISS-0186
+    /operations/page.tsx         # 3 URL-param tabs: ?tab=trips|items|payments. All create/edit via Drawer.
+    /payable-items/page.tsx      # Redirect → /admin/operations?tab=items (ISS-0186)
   /api
     /admin/calendar/route.ts
-    /admin/payments/route.ts               # GET all payments + POST log payment (admin)
+    /admin/payments/route.ts               # GET all payments (profiles!profile_id FK hint required) + POST log payment (admin)
     /admin/payments/[id]/route.ts          # PATCH admin_status + admin_note
-    /admin/payments-generic/route.ts       # LEGACY — to be deleted by ISS-0191
-    /admin/payments-generic/[id]/route.ts  # LEGACY — to be deleted by ISS-0191
     /admin/payable-items/route.ts
     /admin/payable-items/[id]/route.ts
     /admin/verify/route.ts
     /admin/vital-sign-definitions/route.ts
     /admin/vital-sign-definitions/[id]/route.ts
+    /admin/members/route.ts                # GET LOS members + profiles + pending verifications + guests
     /admin/members/[id]/route.ts           # GET member profile + payments (unified) + registrations
     /admin/members/[id]/vital-signs/route.ts
     /admin/members/[id]/vital-signs/[definitionId]/route.ts
@@ -46,7 +45,7 @@
     /profile/payments/route.ts             # GET trip registrations+payments; POST member payment
     /profile/route.ts
     /profile/verify-abo/route.ts
-    /profile/vital-signs/route.ts
+    /profile/vitals/route.ts
     /profile/event-roles/route.ts
     /profile/los-summary/route.ts
     /profile/upline/route.ts
@@ -63,10 +62,10 @@
   /layout/Footer.tsx
   /layout/Header.tsx
   /layout/BottomNav.tsx          # DEAD STUB — do not import
-  /ui/Drawer.tsx                 # Right slide-over Drawer — use for all admin create/edit forms
+  /ui/Drawer.tsx                 # Right slide-over Drawer — use for ALL admin create/edit forms
 /lib
   /format.ts                     # EET helpers — always use this
-  /nav.ts                        # Single source of truth for all nav configs
+  /nav.ts                        # Single source of truth for all nav configs (payable-items entry removed)
   /role-colors.ts                # getRoleColors(role) — always use this
   /og-scrape.ts                  # Server-only OG scraper (nulls for IG/FB — platforms block server fetches)
   /supabase/client.ts            # Browser client (anon key)
@@ -88,7 +87,7 @@ All bentos are drag/drop reorderable and collapsible. Order + collapsed state pe
 |---|---|---|---|
 | A: Personal Details | `personal` | col-8 | always (pinned) |
 | B: Trips | `trips` | col-4 | hasTrips |
-| C: Payments | `payments` | col-4 | always (empty state shown) |
+| C: Payments | `payments` | col-4 | always (empty state shown); + Submit payment opens Drawer |
 | D: Vital Signs | `vitals` | col-4 | hasVitals |
 | E: Participation | `participation` | col-4 | hasEventRoles |
 | F: Calendar Subscription | `calendar` | col-8 | always |
@@ -106,7 +105,8 @@ Single source of truth for all navigation. Header, Footer, and AdminNav all impo
 PUBLIC_NAV          // Home, About, Calendar, Trips
 MEMBER_NAV          // Guides, My Network (/los), Profile (/profile)
 FOOTER_MEMBER_NAV   // MEMBER_NAV filtered — excludes /los. Footer shows: Guides + Profile.
-ADMIN_NAV           // Admin section links
+ADMIN_NAV           // Approval Hub, Operations, Calendar, Content, Notifications, Members
+                    // Note: payable-items removed — absorbed into /operations?tab=items
 ```
 
 Nav labels use inline `labels: { en, bg }` — NOT the `t()` i18n system. `sk` locale not covered in nav labels.
@@ -137,7 +137,11 @@ Singleton service role client. Do not create a new client per request.
 Server-only. Returns nulls for IG/FB URLs — platforms block server fetches. Preview endpoint at `/api/admin/social-posts/preview?url=...` wraps this and is called client-side on URL blur in the admin social posts form.
 
 ### `components/ui/Drawer.tsx`
-Right slide-over Drawer primitive. Use for ALL admin create/edit forms site-wide. Props: `open`, `onClose`, `title`, `children`. Exceptions: Announcements and Quick Links use always-visible inline create cards (3-field UIs). Delete remains inline with `window.confirm`.
+Right slide-over Drawer primitive. Use for ALL admin create/edit forms and member-facing modal flows site-wide.
+Props: `open`, `onClose`, `title`, `children`.
+- Backdrop click closes. Escape key closes. Body scroll locked while open.
+- Exceptions: Announcements create + Quick Links create stay as always-visible inline cards. Delete stays inline with `window.confirm`.
+- Pattern for create+edit: single `drawerOpen` bool + `editing` state. `openCreate()` clears editing; `openEdit(item)` pre-fills.
 
 ### `components/about/AboutMapTile.tsx`
 Client Mapbox tile. Accepts `gridColumn`, `className`, `style` props. Theme-aware (`outdoors-v12` light / `dark-v11` dark). MutationObserver on `data-theme`.
@@ -200,6 +204,7 @@ Option B: `hidden md:block` desktop grid + `md:hidden` mobile stack. Read before
 - `properties` JSONB NOT NULL default `{}` — member-supplied variant data at purchase time.
 - RLS: admin/core full access; member SELECT own; member INSERT own + `logged_by_admin IS NULL`; member UPDATE own admin-logged rows only.
 - **`trip_payments` table dropped.** `payment_status` enum dropped. All old routes migrated.
+- **FK ambiguity:** `payments` has two FKs to `profiles` (`profile_id` + `logged_by_admin`). Any PostgREST join MUST use `profiles!profile_id(...)` — see Gotchas.
 
 ### `trip_registrations`
 `id, trip_id, profile_id, status, created_at, cancelled_at, cancelled_by`
@@ -372,16 +377,19 @@ Client-side `filterType` state. Clicking active filter deactivates it. Combinabl
 ## 10. Admin Pages
 
 ### Calendar (`admin/calendar`)
-Events ordered ascending by `start_time` (soonest first). Create/edit via Drawer (ISS-0187).
+Events ordered ascending by `start_time` (soonest first). Create/edit via Drawer (ISS-0187 — done).
 
 ### Content (`admin/content`)
-Tabbed: Announcements | Quick Links | Guides | Social Posts | Bento. Social Posts tab has OG preview on URL blur. Edit forms via Drawer (ISS-0188). Announcements + Quick Links: inline create stays, edit moves to Drawer.
+Tabbed: Announcements | Quick Links | Guides | Social Posts | Bento. Social Posts tab has OG preview on URL blur. Edit forms via Drawer (ISS-0188 — done). Announcements + Quick Links: inline create stays, edit moves to Drawer. Guides: create + edit both in Drawer; `+ New Guide` always visible.
 
 ### Operations (`admin/operations`)
-To be rewritten by ISS-0186: 3 URL-param tabs (`?tab=trips|items|payments`). Trips tab: create/edit via Drawer. Items tab: absorbs `/admin/payable-items`. Payments tab: Log Payment Drawer + unified payments table with admin_status filter pills + inline approve/deny.
+3 URL-param tabs (`?tab=trips|items|payments`), default `trips`. All create/edit flows via Drawer.
+- **Trips tab:** list, create/edit via Drawer, delete inline with `window.confirm`.
+- **Items tab:** payable items list + create/edit via Drawer + deactivate inline. Absorbs `/admin/payable-items`.
+- **Payments tab:** Log Payment Drawer with `<optgroup>` entity select (Trips / active Items); member selector from `/api/admin/members` (los_members[].profile + manual_members_no_abo, sorted by last name); status filter pills (All/Pending/Approved/Rejected); pending member submissions (logged_by_admin === null) at top with inline approve/deny.
 
 ### Payable Items (`admin/payable-items`)
-Legacy — to be absorbed into /admin/operations?tab=items by ISS-0186. Redirect will be added.
+Now a `redirect()` → `/admin/operations?tab=items`. Removed from `ADMIN_NAV`.
 
 ### Approval Hub (`admin/approval-hub`)
 Standard ABO requests + manual requests + Path C direct-verify form.
@@ -440,14 +448,9 @@ Note: Supabase type drift diff step was removed (2026-03-23). The Supabase CLI i
 | v1.9.1 | 2026-03-22 | CI fix, ISS-0178 payable items admin UI, ISS-0184 collapsed bento label strip, footer QA |
 | v1.9.2 | 2026-03-22 | Drawer primitive (ISS-0185) |
 | v1.9.3 | 2026-03-23 | ISS-0190: drop trip_payments, unified payments table with dual-approval (admin_status + member_status), entity check constraint, all payment routes migrated, CI tsc-only |
+| v2.0.0 | 2026-03-23 | Drawer rollout complete: ISS-0186 /admin/operations rewrite (3 tabs), ISS-0187 /admin/calendar, ISS-0188 /admin/content, ISS-0189 /profile payment modal. PostgREST FK ambiguity fix on payments→profiles join. |
 
-Latest stable commit: `b677ce0`
+Latest stable commit: `fe1e5d0`
 
 ### Pending issues (next sessions)
-| SEQ | ISS | Title | Blocked by |
-|---|---|---|---|
-| 215 | ISS-0191 | API: replace payments routes with unified endpoints | — (mostly done; delete payments-generic) |
-| 210 | ISS-0186 | /admin/operations rewrite — Trips+Items+Payments tabs, Drawer | ISS-0191 |
-| 211 | ISS-0187 | /admin/calendar — create/edit via Drawer | — |
-| 212 | ISS-0188 | /admin/content — edit forms via Drawer | — |
-| 213 | ISS-0189 | /profile — payment modal → Drawer | ISS-0191 |
+Queue is empty. No To Do tickets remain.
