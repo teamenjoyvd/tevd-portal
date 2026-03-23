@@ -11,10 +11,10 @@ export async function GET(): Promise<Response> {
     .from('profiles').select('id').eq('clerk_id', userId).single()
   if (!profile?.id) return Response.json({ error: 'Profile not found' }, { status: 404 })
 
-  // Registrations with trip details
+  // Registrations with trip details — include cancelled_at so the UI can detect cancellation
   const { data: registrations, error: regError } = await supabase
     .from('trip_registrations')
-    .select('id, trip_id, status, created_at, trips(id, title, destination, start_date, end_date, total_cost, currency)')
+    .select('id, trip_id, status, created_at, cancelled_at, trips(id, title, destination, start_date, end_date, total_cost, currency)')
     .eq('profile_id', profile.id)
     .order('created_at', { ascending: false })
 
@@ -41,6 +41,7 @@ export async function GET(): Promise<Response> {
     registration_id: reg.id,
     registration_status: reg.status,
     registered_at: reg.created_at,
+    cancelled_at: reg.cancelled_at ?? null,
     trip: reg.trips,
     payments: paymentsByTrip[reg.trip_id] ?? [],
   }))
