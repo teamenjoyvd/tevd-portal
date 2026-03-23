@@ -14,6 +14,14 @@ export type TripProfile = Pick<
 type Registration = Tables<'trip_registrations'>
 export type TripPayment = Tables<'payments'>
 
+export type TeamAttendee = {
+  profile_id: string
+  first_name: string
+  last_name: string
+  role: string
+  abo_number: string
+}
+
 function deriveTripState(
   trip: Trip,
   profile: TripProfile,
@@ -80,6 +88,15 @@ export default async function TripDetailPage({
 
   const state = deriveTripState(trip, profile, registration ?? null)
 
+  let teamAttendees: TeamAttendee[] = []
+  if (state === 'attendee') {
+    const { data: rpcData } = await supabase.rpc('get_trip_team_attendees', {
+      p_trip_id: id,
+      p_viewer_profile: profile.id,
+    })
+    teamAttendees = (rpcData ?? []) as TeamAttendee[]
+  }
+
   return (
     <TripDetailClient
       trip={trip}
@@ -87,6 +104,7 @@ export default async function TripDetailPage({
       registration={registration ?? null}
       payments={payments ?? []}
       profile={profile}
+      teamAttendees={teamAttendees}
     />
   )
 }
