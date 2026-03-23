@@ -1,5 +1,5 @@
 # CONTEXT.md — teamenjoyVD Portal Reference
-> Last updated: 2026-03-23 — v2.0.0. Latest stable commit: fe1e5d0.
+> Last updated: 2026-03-23 — v2.0.2. Latest stable commit: 41a00e1.
 > **Read on demand in GATHER only. Never read at SSU.**
 > Consult the section map in CLAUDE.md §9 to read only what the ticket needs.
 
@@ -40,6 +40,10 @@
     /admin/social-posts/[id]/route.ts
     /admin/social-posts/preview/route.ts   # GET ?url=... — OG scrape
     /admin/trips/registrations/[id]/cancel/route.ts
+    /admin/guides/route.ts                 # GET list + POST create + POST batch reorder
+    /admin/guides/[id]/route.ts            # GET single + PATCH update + DELETE
+    /admin/guides/upload/route.ts          # POST multipart — uploads to guide-covers Supabase Storage bucket
+    /api/guides/route.ts                   # Public GET (published only, respects access_roles)
     /payable-items/route.ts                # member-facing active items
     /payments/route.ts                     # member-facing GET+POST (unified payments table)
     /profile/payments/route.ts             # GET trip registrations+payments; POST member payment
@@ -56,23 +60,29 @@
 /components
   /about/AboutMapTile.tsx
   /bento/BentoCard.tsx
-  /bento/BentoGrid.tsx
+  /bento/BentoGrid.tsx                     # max-w-[1280px] canvas
   /bento/tiles/LocationTile.tsx
+  /bento/tiles/ThemeTile.tsx               # uses useTheme() hook
   /events/EventPopup.tsx
   /layout/Footer.tsx
-  /layout/Header.tsx
-  /layout/BottomNav.tsx          # DEAD STUB — do not import
-  /ui/Drawer.tsx                 # Right slide-over Drawer — use for ALL admin create/edit forms
+  /layout/Header.tsx                       # lg breakpoint (1024px) for desktop nav
+  /layout/UserDropdown.tsx                 # uses useTheme() hook
+  /layout/UserPopup.tsx                    # uses useTheme() hook; includes theme toggle row
+  /layout/BottomNav.tsx                    # DEAD STUB — do not import
+  /ui/Drawer.tsx                           # Right slide-over Drawer — use for ALL admin create/edit forms
 /lib
-  /format.ts                     # EET helpers — always use this
-  /nav.ts                        # Single source of truth for all nav configs (payable-items entry removed)
-  /role-colors.ts                # getRoleColors(role) — always use this
-  /og-scrape.ts                  # Server-only OG scraper (nulls for IG/FB — platforms block server fetches)
-  /supabase/client.ts            # Browser client (anon key)
-  /supabase/server.ts            # Server client (anon key + cookies)
-  /supabase/service.ts           # Singleton service role client — do not create new client per request
-  /i18n/translations.ts          # Translation source of truth — add keys here before using t()
-/styles/brand-tokens.css
+  /format.ts                               # EET helpers — always use this
+  /hooks/useTheme.ts                       # Single-source-of-truth theme hook. Uses tevd-theme-change DOM event for same-tab sync.
+  /hooks/useLanguage.ts
+  /hooks/useNotifications.ts
+  /nav.ts                                  # Single source of truth for all nav configs
+  /role-colors.ts                          # getRoleColors(role) — always use this
+  /og-scrape.ts                            # Server-only OG scraper
+  /supabase/client.ts
+  /supabase/server.ts
+  /supabase/service.ts
+  /i18n/translations.ts
+/styles/brand-tokens.css                   # --text-nav + --bg-global-rgb dark overrides added
 /.github/workflows/check-types.yml
 /docs/ai/CONTEXT.md
 /supabase/migrations/
@@ -85,14 +95,14 @@ All bentos are drag/drop reorderable and collapsible. Order + collapsed state pe
 
 | Bento | ID | Col-span | Renders when |
 |---|---|---|---|
-| A: Personal Details | `personal` | col-8 | always (pinned) |
-| B: Trips | `trips` | col-4 | hasTrips |
-| C: Payments | `payments` | col-4 | always (empty state shown); + Submit payment opens Drawer |
-| D: Vital Signs | `vitals` | col-4 | hasVitals |
-| E: Participation | `participation` | col-4 | hasEventRoles |
-| F: Calendar Subscription | `calendar` | col-8 | always |
-| G: Stats | `stats` | col-8 | abo_number present |
-| H: Admin Tools | `admin` | col-8 | role === 'admin' |
+| A: Personal Details | `personal` | col-12 | always (pinned) |
+| B: Trips | `trips` | col-6 | hasTrips |
+| C: Payments | `payments` | col-6 | always (empty state shown); + Submit payment opens Drawer |
+| D: Vital Signs | `vitals` | col-6 | hasVitals |
+| E: Participation | `participation` | col-6 | hasEventRoles |
+| F: Calendar Subscription | `calendar` | col-12 | always |
+| G: Stats | `stats` | col-12 | abo_number present |
+| H: Admin Tools | `admin` | col-12 | role === 'admin' |
 
 ---
 
@@ -123,6 +133,9 @@ formatCurrency(n)     // 1.234,00 €
 calDay(iso)           // 18
 calMonth(iso)         // MAR
 ```
+
+### `lib/hooks/useTheme.ts`
+Single-source-of-truth theme hook. All three consumers (`ThemeTile`, `UserDropdown`, `UserPopup`) import from here. Returns `{ theme, mounted, toggle }`. Same-tab sync via custom `tevd-theme-change` CustomEvent. Cross-tab sync via `StorageEvent`. Key: `tevd-theme`.
 
 ### `lib/role-colors.ts`
 **Always `getRoleColors(role)` — never hardcode role bg/font inline.**
@@ -164,8 +177,10 @@ Option B: `hidden md:block` desktop grid + `md:hidden` mobile stack. Read before
 ### Header (`components/layout/Header.tsx`)
 - Public routes: `/`, `/about`, `/calendar`, `/trips`
 - Auth-only: `/profile`, `/notifications`, `/los`, `/guides`, `/admin`
-- Mobile hamburger: `md:hidden` button, slide-down drawer, outside-click + Escape dismissal
+- Desktop nav: `hidden lg:flex` — visible at 1024px+. Landscape phones (≤926px) always see hamburger.
+- Mobile hamburger: `lg:hidden` button, slide-down drawer (`lg:hidden`), outside-click + Escape dismissal
 - Nav casing: `tracking-widest uppercase` unconditionally for all languages
+- Nav link / icon color: `var(--text-nav)` — bumped to `var(--brand-parchment)` in dark mode for full contrast on dark backdrop
 
 ### Footer (`components/layout/Footer.tsx`)
 - Logo: `w-10 h-10` (40px), `filter: brightness(0) invert(1)` — white on forest bg
@@ -187,6 +202,11 @@ Option B: `hidden md:block` desktop grid + `md:hidden` mobile stack. Read before
 - `role` default: `'guest'`
 - `upline_abo_number` — soft upline ref for no-ABO members
 - `ui_prefs` JSONB NOT NULL default `{}` — shape: `{ bento_order: string[], bento_collapsed: Record<string, boolean> }`
+
+### `guides`
+`id, slug, title (jsonb {en, bg}), emoji, cover_image_url, body (jsonb Block[]), access_roles, is_published, sort_order, created_at, updated_at`
+- Block shape: `{ type: 'heading'|'paragraph'|'callout', content: {en, bg}, emoji? }`
+- Cover images stored in Supabase Storage bucket `guide-covers` (public). Upload via `/api/admin/guides/upload`.
 
 ### `payable_items`
 `id, title, description, amount, currency, item_type, linked_trip_id, is_active, created_by, created_at, properties`
@@ -268,7 +288,9 @@ All tokens: `styles/brand-tokens.css`. Role colors: `lib/role-colors.ts` — alw
 | `--text-primary` | `#1A1F18` | `#FAF8F3` |
 | `--text-secondary` | `#5C5950` | `#B5B0A8` |
 | `--text-tertiary` | `#8A8577` | (inherits light) |
+| `--text-nav` | `var(--text-secondary)` | `var(--brand-parchment)` |
 | `--bg-global` | `#FAF8F3` | `#1A1F18` |
+| `--bg-global-rgb` | `250, 248, 243` | `26, 31, 24` |
 | `--bg-card` | `#F0EDE6` | `#252B23` |
 | `--border-default` | `rgba(45, 51, 42, 0.08)` | — |
 | `--border-hover` | `rgba(188, 71, 73, 0.30)` | — |
@@ -293,7 +315,7 @@ All tokens: `styles/brand-tokens.css`. Role colors: `lib/role-colors.ts` — alw
 
 ### BentoGrid
 - `grid-template-columns: repeat(12, 1fr)` + `gap: 12px` + `auto-rows: minmax(120px, auto)`
-- Outer wrapper: `max-w-[1440px] mx-auto px-4 sm:px-8 xl:px-12 2xl:px-16`
+- Outer wrapper: `max-w-[1280px] mx-auto px-4 sm:px-6 xl:px-8`
 - Mobile: `.bento-mobile-full` = `grid-column: 1/-1 !important`, `.bento-mobile-half` = `span 6 !important`
 - Client tiles must accept + apply `rowSpan` prop or grid collapses.
 - Eyebrow default: `var(--brand-crimson)`. On teal/forest tiles: pass `style={{ color: 'var(--brand-parchment)' }}`.
@@ -449,8 +471,11 @@ Note: Supabase type drift diff step was removed (2026-03-23). The Supabase CLI i
 | v1.9.2 | 2026-03-22 | Drawer primitive (ISS-0185) |
 | v1.9.3 | 2026-03-23 | ISS-0190: drop trip_payments, unified payments table with dual-approval (admin_status + member_status), entity check constraint, all payment routes migrated, CI tsc-only |
 | v2.0.0 | 2026-03-23 | Drawer rollout complete: ISS-0186 /admin/operations rewrite (3 tabs), ISS-0187 /admin/calendar, ISS-0188 /admin/content, ISS-0189 /profile payment modal. PostgREST FK ambiguity fix on payments→profiles join. |
+| v2.0.1 | 2026-03-23 | SEQ221: guides stale state fix (useEffect sync), cover image upload fix, next/image domain fix. SEQ222: canvas 1280px sitewide, all pages col-12. |
+| v2.0.2 | 2026-03-23 | SEQ221 bugfixes: guides publish/unpublish + form saves reflect immediately. SEQ223: theme system overhaul — useTheme hook, no-flash blocking script, UserDropdown dark mode, UserPopup theme toggle. SEQ224: navbar dark mode (--bg-global-rgb dark override, --text-nav token), lg breakpoint for landscape phone fix. |
 
-Latest stable commit: `fe1e5d0`
+Latest stable commit: `41a00e1`
 
 ### Pending issues (next sessions)
-Queue is empty. No To Do tickets remain.
+- ISS-0043 (SEQ221): Navbar dark mode contrast — resolved in SEQ224, ticket open for cleanup/close.
+- Queue otherwise empty.

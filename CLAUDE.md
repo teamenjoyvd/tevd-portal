@@ -1,5 +1,5 @@
 # CLAUDE.md — teamenjoyVD Portal
-> Last updated: 2026-03-23 — v2.0.1. Latest stable commit: f7c5f7b.
+> Last updated: 2026-03-23 — v2.0.2. Latest stable commit: 41a00e1.
 > Reference material (schema, directory tree, design system, releases) lives in `docs/ai/CONTEXT.md`.
 > **CONTEXT.md is never read at SSU. Read specific sections in GATHER only when the ticket targets those areas.**
 
@@ -197,9 +197,18 @@ Duplicate-safe: every READ must filter `Duplicate = false/empty`. Fetch all and 
 | `Drawer` for admin forms | Use `components/ui/Drawer.tsx` for ALL admin create/edit flows. Exceptions: Announcements create + Quick Links create stay as always-visible inline cards. Delete stays inline with `window.confirm`. |
 | Admin form components inside render | NEVER define a form component (or any stateful component) as an inner function inside a parent page component. React treats it as a new component type on every render, causing remount + state reset. Always hoist to module scope. Caught in SEQ216. |
 | `UserDropdown` name source | Reads name from `['profile']` TanStack Query cache (not from Clerk `useUser()`). This stays fresh because `saveMutation.onSuccess` calls `qc.setQueryData(['profile'], data)`. Do NOT switch back to `useUser()` for name display. |
-| `UserDropdown` theme toggle | Reads/writes `localStorage['tevd-theme']` + sets `data-theme` on `<html>`. Dispatches `StorageEvent` so ThemeTile syncs immediately in the same tab. Both components share the same key — do not rename it. |
-| `/api/profile/vitals` shape | Returns `member_vital_signs` joined with `vital_sign_definitions`. Shape: `{ id, definition_id, recorded_at, note, created_at, vital_sign_definitions: { category, label, sort_order } }`. Does NOT have `event_key`, `event_label`, or `has_ticket` — those are from a deprecated schema. Display using `vital_sign_definitions.label` + `recorded_at`. |
-| Guide cover image upload | `POST /api/admin/guides/upload` → Supabase storage bucket `guide-covers`. Bucket must exist in Supabase Storage. If upload returns 404/500, create bucket manually in Supabase dashboard first. |
+| Theme system | Single source of truth: `lib/hooks/useTheme.ts`. Three consumers: `ThemeTile`, `UserDropdown`, `UserPopup`. Same-tab sync via custom `tevd-theme-change` DOM event. Cross-tab sync via `StorageEvent`. Key: `tevd-theme`. Do not rename. |
+| `--bg-global-rgb` dark override | MUST be overridden in `[data-theme="dark"]` as `26, 31, 24`. The header uses `rgba(var(--bg-global-rgb), 0.80)` for its frosted backdrop — without this the navbar renders as ~80% white in dark mode. |
+| `--text-nav` dark value | `var(--brand-parchment)` in dark mode. Used for all nav chrome: links, bell, hamburger, drawer items. Do not set to a muted value — the dark navbar backdrop requires full contrast. |
+| Theme flash prevention | `app/layout.tsx` contains a blocking inline `<script>` that reads `localStorage['tevd-theme']` and applies `data-theme` to `<html>` before first paint. Do not remove it. This is the standard no-flash pattern. |
+| `push_files` source file corruption | `push_files` with multiple large TSX/TS files corrupts newlines (renders as single-line blobs). For large source files always use `create_or_update_file` per file. Never mix CLAUDE.md and source files in the same `push_files` call. |
+| stale `localX` pattern | `localGuides`, `localAnnouncements`, `localLinks`, `localSocials` are local drag copies. Use `useEffect` on the raw query data to sync them — NOT a render-phase ref comparison keyed on IDs. ID-key sync only fires on add/remove, missing in-place field updates (publish toggle, edits). |
+| Nav breakpoint | Desktop nav and hamburger use `lg` (1024px), not `md` (768px). Landscape phones (max ~926px) would clear `md` and show the full desktop nav with overflow. `lg` keeps hamburger on all phones in any orientation. |
+| `/guides` cover image | Use `<img>` not `next/image` for Supabase storage URLs. `next/image` requires domain allowlist in `next.config.ts remotePatterns`. The `*.supabase.co` wildcard is set but user-uploaded image domains remain unpredictable — use plain `<img>` per code style rule. |
+| Guide cover bucket | Supabase Storage bucket `guide-covers` (public). Created via SQL INSERT into `storage.buckets`. RLS: public SELECT, admin INSERT/UPDATE/DELETE. |
+| `UserDropdown` theme toggle | Now uses `useTheme()` hook. Old `StorageEvent` + manual `localStorage` pattern removed. Do not restore the old pattern. |
+| `/profile` bento col-spans | `personal`, `calendar`, `stats`, `admin` = col-12. `trips`, `payments`, `vitals`, `participation` = col-6. Outer grid = 12-col. |
+| Canvas width | All pages use `max-w-[1280px]`. `BentoGrid` outer wrapper: `max-w-[1280px] mx-auto px-4 sm:px-6 xl:px-8`. Col-8 pages (about, trips, guides, profile) migrated to col-12 at 1280px canvas in SEQ222. |
 
 ---
 
