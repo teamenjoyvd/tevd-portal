@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useRef } from 'react'
+import { Suspense, useEffect } from 'react'
 import { useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -555,9 +555,8 @@ function ContentPageInner() {
     queryFn: () => fetch('/api/admin/announcements').then(r => r.json()),
   })
   const [localAnnouncements, setLocalAnnouncements] = useState<Announcement[]>([])
-  const aPrevKey = useRef('')
-  const aKey = announcementsRaw.map(a => a.id).join(',')
-  if (aPrevKey.current !== aKey) { aPrevKey.current = aKey; setLocalAnnouncements([...announcementsRaw]) }
+  // Sync on any data change (including in-place field updates, not just add/remove)
+  useEffect(() => { setLocalAnnouncements([...announcementsRaw]) }, [announcementsRaw])
   const [aDragging, setADragging] = useState<string | null>(null)
 
   const reorderAnnouncements = useMutation({
@@ -643,9 +642,7 @@ function ContentPageInner() {
     queryFn: () => fetch('/api/admin/quick-links').then(r => r.json()),
   })
   const [localLinks, setLocalLinks] = useState<QuickLink[]>([])
-  const lPrevKey = useRef('')
-  const lKey = linksRaw.map(l => l.id).join(',')
-  if (lPrevKey.current !== lKey) { lPrevKey.current = lKey; setLocalLinks([...linksRaw]) }
+  useEffect(() => { setLocalLinks([...linksRaw]) }, [linksRaw])
   const [lDragging, setLDragging] = useState<string | null>(null)
 
   const reorderLinks = useMutation({
@@ -714,9 +711,7 @@ function ContentPageInner() {
     queryFn: () => fetch('/api/admin/guides').then(r => r.json()),
   })
   const [localGuides, setLocalGuides] = useState<Guide[]>([])
-  const gPrevKey = useRef('')
-  const gKey = guidesRaw.map(g => g.id).join(',')
-  if (gPrevKey.current !== gKey) { gPrevKey.current = gKey; setLocalGuides([...guidesRaw]) }
+  useEffect(() => { setLocalGuides([...guidesRaw]) }, [guidesRaw])
   const [gDragging, setGDragging] = useState<string | null>(null)
 
   const reorderGuides = useMutation({
@@ -765,9 +760,7 @@ function ContentPageInner() {
     queryFn: () => fetch('/api/admin/social-posts').then(r => r.json()),
   })
   const [localSocials, setLocalSocials] = useState<SocialPost[]>([])
-  const sPrevKey = useRef('')
-  const sKey = socialPostsRaw.map(p => p.id).join(',')
-  if (sPrevKey.current !== sKey) { sPrevKey.current = sKey; setLocalSocials([...socialPostsRaw]) }
+  useEffect(() => { setLocalSocials([...socialPostsRaw]) }, [socialPostsRaw])
   const [sDragging, setSDragging] = useState<string | null>(null)
 
   const reorderSocials = useMutation({
