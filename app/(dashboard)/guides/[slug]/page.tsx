@@ -67,7 +67,7 @@ export default async function GuideArticlePage({
   return (
     <>
       <PageHeading title={title} subtitle="Guide" />
-      <div className="max-w-[1024px] mx-auto px-4 md:px-6 lg:px-8 py-8 pb-16">
+      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 xl:px-8 py-8 pb-16">
 
         <Link href="/guides"
           className="inline-flex items-center gap-1.5 text-xs font-semibold tracking-widest uppercase mb-8 transition-opacity hover:opacity-70"
