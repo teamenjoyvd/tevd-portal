@@ -1,5 +1,5 @@
 # CLAUDE.md — teamenjoyVD Portal
-> Last updated: 2026-03-23 — v2.0.0. Latest stable commit: fe1e5d0.
+> Last updated: 2026-03-23 — v2.0.1. Latest stable commit: f7c5f7b.
 > Reference material (schema, directory tree, design system, releases) lives in `docs/ai/CONTEXT.md`.
 > **CONTEXT.md is never read at SSU. Read specific sections in GATHER only when the ticket targets those areas.**
 
@@ -195,6 +195,11 @@ Duplicate-safe: every READ must filter `Duplicate = false/empty`. Fetch all and 
 | `supabase gen types` CLI | NOT installed. Do not ask user to run it. Use MCP tool instead. |
 | `payments → profiles` FK ambiguity | `payments` has TWO FKs to `profiles`: `profile_id` (member) and `logged_by_admin` (admin). Any PostgREST `.select()` that joins `profiles(...)` from `payments` MUST use the FK hint: `profiles!profile_id(...)`. Without it PostgREST returns 500. Same pattern applies to any future table with multiple FKs to the same target. |
 | `Drawer` for admin forms | Use `components/ui/Drawer.tsx` for ALL admin create/edit flows. Exceptions: Announcements create + Quick Links create stay as always-visible inline cards. Delete stays inline with `window.confirm`. |
+| Admin form components inside render | NEVER define a form component (or any stateful component) as an inner function inside a parent page component. React treats it as a new component type on every render, causing remount + state reset. Always hoist to module scope. Caught in SEQ216. |
+| `UserDropdown` name source | Reads name from `['profile']` TanStack Query cache (not from Clerk `useUser()`). This stays fresh because `saveMutation.onSuccess` calls `qc.setQueryData(['profile'], data)`. Do NOT switch back to `useUser()` for name display. |
+| `UserDropdown` theme toggle | Reads/writes `localStorage['tevd-theme']` + sets `data-theme` on `<html>`. Dispatches `StorageEvent` so ThemeTile syncs immediately in the same tab. Both components share the same key — do not rename it. |
+| `/api/profile/vitals` shape | Returns `member_vital_signs` joined with `vital_sign_definitions`. Shape: `{ id, definition_id, recorded_at, note, created_at, vital_sign_definitions: { category, label, sort_order } }`. Does NOT have `event_key`, `event_label`, or `has_ticket` — those are from a deprecated schema. Display using `vital_sign_definitions.label` + `recorded_at`. |
+| Guide cover image upload | `POST /api/admin/guides/upload` → Supabase storage bucket `guide-covers`. Bucket must exist in Supabase Storage. If upload returns 404/500, create bucket manually in Supabase dashboard first. |
 
 ---
 
