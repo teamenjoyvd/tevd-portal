@@ -12,6 +12,7 @@ export type TripProfile = Pick<
   'id' | 'role' | 'valid_through' | 'document_active_type'
 >
 type Registration = Tables<'trip_registrations'>
+export type TripPayment = Tables<'payments'>
 
 function deriveTripState(
   trip: Trip,
@@ -50,7 +51,7 @@ export default async function TripDetailPage({
 
   const supabase = createServiceClient()
 
-  // profile + trip in parallel; registration needs profile.id so it follows
+  // profile + trip in parallel; registration + payments need profile.id so they follow
   const [{ data: profile }, { data: trip }] = await Promise.all([
     supabase
       .from('profiles')
@@ -62,12 +63,20 @@ export default async function TripDetailPage({
 
   if (!profile || !trip) redirect('/trips')
 
-  const { data: registration } = await supabase
-    .from('trip_registrations')
-    .select('*')
-    .eq('trip_id', id)
-    .eq('profile_id', profile.id)
-    .maybeSingle()
+  const [{ data: registration }, { data: payments }] = await Promise.all([
+    supabase
+      .from('trip_registrations')
+      .select('*')
+      .eq('trip_id', id)
+      .eq('profile_id', profile.id)
+      .maybeSingle(),
+    supabase
+      .from('payments')
+      .select('*')
+      .eq('trip_id', id)
+      .eq('profile_id', profile.id)
+      .order('transaction_date', { ascending: true }),
+  ])
 
   const state = deriveTripState(trip, profile, registration ?? null)
 
@@ -76,6 +85,7 @@ export default async function TripDetailPage({
       trip={trip}
       state={state}
       registration={registration ?? null}
+      payments={payments ?? []}
       profile={profile}
     />
   )
