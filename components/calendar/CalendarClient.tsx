@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useSearchParams } from 'next/navigation'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { DAYS_I18N, MONTHS_I18N } from '@/lib/i18n/translations'
 import EventPopup from '@/components/events/EventPopup'
@@ -223,15 +224,17 @@ function MonthView({
 // ── Agenda View ─────────────────────────────────────────────────────────────────────────
 
 function AgendaView({
-  events, onEventClick, isLoading,
+  events, onEventClick, isLoading, highlightId,
 }: {
   events: CalendarEvent[]
   onEventClick: (id: string, rect: DOMRect) => void
   isLoading: boolean
+  highlightId?: string | null
 }) {
   const { t } = useLanguage()
   const today = new Date()
   today.setHours(0, 0, 0, 0)
+  const highlightRef = useRef<HTMLButtonElement | null>(null)
 
   const grouped = useMemo(() => {
     const map: Record<string, CalendarEvent[]> = {}
@@ -245,6 +248,13 @@ function AgendaView({
       })
     return map
   }, [events])
+
+  // Scroll highlighted event into view once loaded
+  useEffect(() => {
+    if (highlightRef.current) {
+      highlightRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }, [grouped])
 
   const dates = Object.keys(grouped)
 
@@ -293,12 +303,18 @@ function AgendaView({
             <div className="space-y-2">
               {grouped[dateKey].map(ev => {
                 const c = CATEGORY_COLOR[ev.category]
+                const isHighlighted = ev.id === highlightId
                 return (
                   <button
                     key={ev.id}
+                    ref={isHighlighted ? highlightRef : null}
                     onClick={e => onEventClick(ev.id, e.currentTarget.getBoundingClientRect())}
-                    className="w-full text-left rounded-xl border border-black/5 overflow-hidden hover:shadow-sm transition-shadow flex"
-                    style={{ backgroundColor: 'var(--bg-card)' }}
+                    className="w-full text-left rounded-xl border overflow-hidden hover:shadow-sm transition-shadow flex"
+                    style={{
+                      backgroundColor: 'var(--bg-card)',
+                      borderColor: isHighlighted ? 'var(--brand-crimson)' : 'rgba(0,0,0,0.05)',
+                      boxShadow: isHighlighted ? '0 0 0 2px rgba(188,71,73,0.25)' : undefined,
+                    }}
                   >
                     <div className="w-1 flex-shrink-0" style={{ backgroundColor: c.bg }} />
                     <div className="flex-1 px-4 py-3 min-w-0">
@@ -345,6 +361,7 @@ export default function CalendarClient({
 }: Props) {
   const { lang, t } = useLanguage()
   const MONTHS = MONTHS_I18N[lang]
+  const searchParams = useSearchParams()
 
   const [view, setView]       = useState<View>('month')
   const [current, setCurrent] = useState(() => {
@@ -356,9 +373,18 @@ export default function CalendarClient({
   const [showN21, setShowN21]                     = useState(true)
   const [showPersonal, setShowPersonal]           = useState(true)
   const [filterType, setFilterType]               = useState<'in-person' | 'online' | 'hybrid' | null>(null)
+  const [deepLinkId, setDeepLinkId]               = useState<string | null>(null)
+
+  // Deep-link: ?event=<id> → switch to agenda, open popup, highlight row
+  useEffect(() => {
+    const eventId = searchParams.get('event')
+    if (!eventId) return
+    setDeepLinkId(eventId)
+    setView('agenda')
+    setSelectedEventId(eventId)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const canSeePersonal = isAuthenticated && userRole !== 'guest'
-  const fetchMonth     = view === 'agenda' ? null : toMonthParam(current)
 
   // Month query — seeded from SSR, cached 60s
   const { data: monthEvents = [] } = useQuery<CalendarEvent[]>({
@@ -379,7 +405,6 @@ export default function CalendarClient({
   })
 
   const rawEvents = view === 'agenda' ? agendaEvents : monthEvents
-  const isPending = view === 'agenda' ? agendaPending : false
 
   const events = useMemo(() =>
     rawEvents.filter(e => {
@@ -522,7 +547,7 @@ export default function CalendarClient({
             <MonthView current={current} events={events} onEventClick={handleEventClick} onDayClick={handleDayClick} />
           )}
           {view === 'agenda' && (
-            <AgendaView events={events} onEventClick={handleEventClick} isLoading={agendaPending} />
+            <AgendaView events={events} onEventClick={handleEventClick} isLoading={agendaPending} highlightId={deepLinkId} />
           )}
         </div>
       </div>
@@ -656,6 +681,7 @@ export default function CalendarClient({
                   events={events}
                   onEventClick={handleEventClick}
                   isLoading={agendaPending}
+                  highlightId={deepLinkId}
                 />
               )}
             </div>
@@ -668,7 +694,7 @@ export default function CalendarClient({
         <EventPopup
           eventId={selectedEventId}
           anchorRect={anchorRect}
-          onClose={() => { setSelectedEventId(null); setAnchorRect(null) }}
+          onClose={() => { setSelectedEventId(null); setAnchorRect(null); setDeepLinkId(null) }}
           userRole={userRole}
           userProfileId={userProfileId}
         />
