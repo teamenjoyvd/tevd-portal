@@ -61,7 +61,7 @@ function TripCard({
   registration: Registration | undefined
   payments: Payment[]
   profileId: string | null
-  onCancel: (registrationId: string) => void
+  onCancel: (tripId: string) => void
   isCancelling: boolean
   t: (key: Parameters<ReturnType<typeof useLanguage>['t']>[0]) => string
   userRole: string
@@ -180,7 +180,7 @@ function TripCard({
               </p>
               {registration!.status === 'pending' && (
                 <button
-                  onClick={() => onCancel(registration!.id)}
+                  onClick={() => onCancel(trip.id)}
                   disabled={isCancelling}
                   className="text-xs font-medium disabled:opacity-50"
                   style={{ color: STATUS_STYLES[registration!.status].color }}
@@ -362,13 +362,13 @@ export default function TripsPage() {
     enabled: registrations.filter(r => r.status === 'approved').length > 0,
   })
 
+  // Cancel uses the member-facing route: POST /api/profile/trips/[tripId]/cancel
   const cancelMutation = useMutation({
-    mutationFn: (registrationId: string) =>
-      fetch(`/api/admin/registrations/${registrationId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'denied' }),
-      }).then(r => r.json()),
+    mutationFn: (tripId: string) =>
+      fetch(`/api/profile/trips/${tripId}/cancel`, { method: 'POST' }).then(async r => {
+        if (!r.ok) throw new Error((await r.json()).error)
+        return r.json()
+      }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['registrations'] }),
   })
 
@@ -408,7 +408,7 @@ export default function TripsPage() {
                 registration={regFor(trip.id)}
                 payments={payments}
                 profileId={profile?.id ?? null}
-                onCancel={(id) => cancelMutation.mutate(id)}
+                onCancel={(tripId) => cancelMutation.mutate(tripId)}
                 isCancelling={cancelMutation.isPending}
                 t={t}
                 userRole={profile?.role ?? 'guest'}
@@ -467,7 +467,7 @@ export default function TripsPage() {
                   registration={regFor(trip.id)}
                   payments={payments}
                   profileId={profile?.id ?? null}
-                  onCancel={(id) => cancelMutation.mutate(id)}
+                  onCancel={(tripId) => cancelMutation.mutate(tripId)}
                   isCancelling={cancelMutation.isPending}
                   t={t}
                   userRole={profile?.role ?? 'guest'}
