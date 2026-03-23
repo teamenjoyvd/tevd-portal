@@ -4,10 +4,11 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { formatDate, formatCurrency } from '@/lib/format'
+import { getRoleColors } from '@/lib/role-colors'
 import { Drawer } from '@/components/ui/Drawer'
 import RegisterButton from '@/components/trips/RegisterButton'
 import type { Tables } from '@/types/supabase'
-import type { TripState, TripProfile, TripPayment } from './page'
+import type { TripState, TripProfile, TripPayment, TeamAttendee } from './page'
 
 type Trip = Tables<'trips'>
 type Registration = Tables<'trip_registrations'>
@@ -19,6 +20,7 @@ interface TripDetailClientProps {
   registration: Registration | null
   payments: TripPayment[]
   profile: TripProfile
+  teamAttendees: TeamAttendee[]
 }
 
 // ── Shared primitives ────────────────────────────────────────────────────────
@@ -423,9 +425,63 @@ function SubmitPaymentDrawer({
   )
 }
 
+// ── SEQ227: WHO'S GOING TILE ─────────────────────────────────────────────────
+
+function WhosGoingTile({ attendees }: { attendees: TeamAttendee[] }) {
+  // Hidden when attendees is empty array AND the RPC returned nothing meaningful.
+  // The server only calls the RPC when state === 'attendee'; an empty array means
+  // the viewer has no tree_node (no ABO path) or genuinely no downline attendees.
+  if (attendees.length === 0) return null
+
+  return (
+    <div className="rounded-2xl overflow-hidden"
+      style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+      <div className="px-6 pt-5 pb-2">
+        <p className="text-xs font-semibold tracking-widest uppercase"
+          style={{ color: 'var(--text-secondary)' }}>
+          Who&apos;s Going
+        </p>
+      </div>
+      <div className="px-6 pb-5">
+        {attendees.length === 0 ? (
+          <p className="text-sm pt-2" style={{ color: 'var(--text-secondary)' }}>
+            None of your team are registered yet.
+          </p>
+        ) : (
+          <div className="space-y-2 mt-1">
+            {attendees.map(a => {
+              const colors = getRoleColors(a.role)
+              return (
+                <div key={a.profile_id}
+                  className="flex items-center justify-between gap-3 py-2 border-b last:border-0"
+                  style={{ borderColor: 'var(--border-default)' }}>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                      {a.first_name} {a.last_name}
+                    </p>
+                    {a.abo_number && (
+                      <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                        {a.abo_number}
+                      </p>
+                    )}
+                  </div>
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: colors.bg, color: colors.font }}>
+                    {a.role}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function AttendeeView({
-  trip, profile, payments,
-}: { trip: Trip; profile: TripProfile; payments: TripPayment[] }) {
+  trip, profile, payments, teamAttendees,
+}: { trip: Trip; profile: TripProfile; payments: TripPayment[]; teamAttendees: TeamAttendee[] }) {
   const [drawerOpen, setDrawerOpen] = useState(false)
 
   const milestones: Milestone[] = Array.isArray(trip.milestones)
@@ -599,6 +655,9 @@ function AttendeeView({
           </div>
         </div>
 
+        {/* Who's Going */}
+        <WhosGoingTile attendees={teamAttendees} />
+
         {/* Trip info (read-only) */}
         <TripHero trip={trip} profile={profile} />
       </div>
@@ -727,14 +786,14 @@ function ArchivedView({
 // ── Root export ──────────────────────────────────────────────────────────────
 
 function TripDetailContent(props: TripDetailClientProps) {
-  const { trip, state, registration, payments, profile } = props
+  const { trip, state, registration, payments, profile, teamAttendees } = props
 
   if (state === 'locked') return <LockedView profile={profile} />
   if (state === 'available') return <AvailableView trip={trip} profile={profile} />
   if (state === 'pending' && registration)
     return <PendingView trip={trip} profile={profile} registration={registration} />
   if (state === 'attendee')
-    return <AttendeeView trip={trip} profile={profile} payments={payments} />
+    return <AttendeeView trip={trip} profile={profile} payments={payments} teamAttendees={teamAttendees} />
   if (state === 'archived')
     return <ArchivedView trip={trip} profile={profile} payments={payments} />
 
