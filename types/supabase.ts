@@ -959,6 +959,16 @@ export type Database = {
         Args: never
         Returns: Database["public"]["Enums"]["user_role"]
       }
+      get_trip_team_attendees: {
+        Args: { p_trip_id: string; p_viewer_profile: string }
+        Returns: {
+          abo_number: string
+          first_name: string
+          last_name: string
+          profile_id: string
+          role: string
+        }[]
+      }
       import_los_members: { Args: { rows: Json }; Returns: Json }
       is_admin: { Args: never; Returns: boolean }
       pin_social_post: { Args: { p_id: string }; Returns: undefined }
