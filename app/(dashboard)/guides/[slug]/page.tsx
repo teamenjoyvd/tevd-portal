@@ -1,6 +1,5 @@
 import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
-import Image from 'next/image'
 import Link from 'next/link'
 import { createServiceClient } from '@/lib/supabase/service'
 import PageHeading from '@/components/layout/PageHeading'
@@ -81,13 +80,12 @@ export default async function GuideArticlePage({
         </Link>
 
         {g.cover_image_url && (
-          <div className="h-80 relative rounded-2xl overflow-hidden mb-8">
-            <Image
+          <div className="h-80 rounded-2xl overflow-hidden mb-8">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
               src={g.cover_image_url}
               alt={title}
-              fill
-              className="object-cover"
-              priority
+              className="w-full h-full object-cover"
             />
           </div>
         )}
