@@ -1,1 +1,1378 @@
-'use client'\n\nimport { Suspense, useRef } from 'react'\nimport { useState } from 'react'\nimport { useSearchParams } from 'next/navigation'\nimport Link from 'next/link'\nimport { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'\nimport { useBentoConfig, type BentoConfigEntry } from '@/lib/hooks/useBentoConfig'\nimport type { Dispatch, SetStateAction } from 'react'\nimport { Drawer } from '@/components/ui/Drawer'\n\n// ── Shared drag handle ───────────────────────────────────────────────\n\nfunction GripHandle() {\n  return (\n    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="flex-shrink-0"\n      style={{ color: 'var(--text-secondary)', cursor: 'grab' }}>\n      <circle cx="4" cy="3" r="1.2" fill="currentColor"/>\n      <circle cx="4" cy="7" r="1.2" fill="currentColor"/>\n      <circle cx="4" cy="11" r="1.2" fill="currentColor"/>\n      <circle cx="10" cy="3" r="1.2" fill="currentColor"/>\n      <circle cx="10" cy="7" r="1.2" fill="currentColor"/>\n      <circle cx="10" cy="11" r="1.2" fill="currentColor"/>\n    </svg>\n  )\n}\n\n// ── BentoSettings ───────────────────────────────────────────────\n\nconst TILE_LABELS: Record<string, string> = {\n  events:        'Events tile',\n  trips:         'Trips tile',\n  announcements: 'Announcements tile',\n  howtos:        'Howtos tile',\n  links:         'Quick Links tile',\n}\n\nfunction BentoSettings() {\n  const qc = useQueryClient()\n  const { data: config = [], isLoading } = useBentoConfig()\n  const [draft, setDraft] = useState<Record<string, number>>({})\n  const [saved, setSaved] = useState(false)\n\n  const values: Record<string, number> = {}\n  config.forEach(e => { values[e.tile_key] = draft[e.tile_key] ?? e.max_items })\n\n  const saveMutation = useMutation({\n    mutationFn: (updates: BentoConfigEntry[]) =>\n      fetch('/api/admin/bento-config', {\n        method: 'PATCH',\n        headers: { 'Content-Type': 'application/json' },\n        body: JSON.stringify(updates),\n      }).then(async r => { if (!r.ok) throw new Error((await r.json()).error); return r.json() }),\n    onSuccess: () => {\n      qc.invalidateQueries({ queryKey: ['bento-config'] })\n      setDraft({})\n      setSaved(true)\n      setTimeout(() => setSaved(false), 2500)\n    },\n  })\n\n  function handleSave() {\n    const updates = Object.entries(draft).map(([tile_key, max_items]) => ({ tile_key, max_items }))\n    if (updates.length > 0) saveMutation.mutate(updates)\n  }\n\n  const isDirty = Object.keys(draft).length > 0\n\n  return (\n    <section>\n      <div className="rounded-2xl border p-6" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>\n        <p className="text-xs mb-5" style={{ color: 'var(--text-secondary)' }}>\n          Maximum number of items shown per tile on the homepage.\n        </p>\n        {isLoading ? (\n          <div className="space-y-3">\n            {[...Array(5)].map((_, i) => (\n              <div key={i} className="h-10 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--border-default)' }} />\n            ))}\n          </div>\n        ) : (\n          <div className="space-y-3">\n            {config.map(entry => (\n              <div key={entry.tile_key} className="flex items-center justify-between gap-4">\n                <label className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>\n                  {TILE_LABELS[entry.tile_key] ?? entry.tile_key}\n                </label>\n                <input\n                  type="number"\n                  min={1}\n                  max={20}\n                  value={values[entry.tile_key] ?? entry.max_items}\n                  onChange={e => setDraft(d => ({ ...d, [entry.tile_key]: Number(e.target.value) }))}\n                  className="w-20 border rounded-xl px-3 py-2 text-sm text-center"\n                  style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}\n                />\n              </div>\n            ))}\n          </div>\n        )}\n        <button\n          onClick={handleSave}\n          disabled={!isDirty || saveMutation.isPending}\n          className="mt-5 px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity"\n          style={{ backgroundColor: 'var(--brand-crimson)' }}\n        >\n          {saveMutation.isPending ? 'Saving…' : saved ? 'Saved ✓' : 'Save'}\n        </button>\n      </div>\n    </section>\n  )\n}\n\n// ── Types ───────────────────────────────────────────────────────\n\ntype Announcement = {\n  id: string; titles: Record<string,string>; contents: Record<string,string>\n  access_level: string[]; is_active: boolean; created_at: string; sort_order: number\n}\ntype QuickLink = {\n  id: string; label: string; url: string; icon_name: string\n  access_level: string[]; sort_order: number\n}\ntype SocialPost = {\n  id: string\n  platform: 'instagram' | 'facebook'\n  post_url: string\n  caption: string | null\n  thumbnail_url: string | null\n  is_visible: boolean\n  is_pinned: boolean\n  sort_order: number\n  created_at: string\n}\n\nfunction InstagramIcon() {\n  return (\n    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">\n      <rect x="2" y="2" width="20" height="20" rx="5" stroke="currentColor" strokeWidth="1.8"/>\n      <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="1.8"/>\n      <circle cx="17.5" cy="6.5" r="1" fill="currentColor"/>\n    </svg>\n  )\n}\n\nfunction FacebookIcon() {\n  return (\n    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">\n      <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>\n    </svg>\n  )\n}\n\nconst LANGS = ['en', 'bg', 'sk']\n\n// ── Guides types ───────────────────────────────────────────────\n\ntype Block = {\n  type: 'heading' | 'paragraph' | 'callout'\n  content: { en: string; bg: string }\n  emoji?: string\n}\n\ntype Guide = {\n  id: string\n  slug: string\n  title: { en: string; bg: string }\n  cover_image_url: string | null\n  emoji: string | null\n  body: Block[]\n  access_roles: string[]\n  is_published: boolean\n  created_at: string\n  updated_at: string\n  sort_order: number\n}\n\nconst ALL_ROLES = ['guest', 'member', 'core', 'admin']\n\nfunction slugify(str: string) {\n  return str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')\n}\n\nfunction emptyGuide(): Omit<Guide, 'id' | 'created_at' | 'updated_at'> {\n  return {\n    slug: '',\n    title: { en: '', bg: '' },\n    cover_image_url: null,\n    emoji: null,\n    body: [],\n    access_roles: [...ALL_ROLES],\n    is_published: false,\n    sort_order: 0,\n  }\n}\n\nfunction BlockEditor({ blocks, onChange }: { blocks: Block[]; onChange: (b: Block[]) => void }) {\n  function addBlock(type: Block['type']) {\n    onChange([...safeBlocks, { type, content: { en: '', bg: '' }, emoji: type === 'callout' ? '💡' : undefined }])\n  }\n  function updateBlock(i: number, partial: Partial<Block>) {\n    const next = safeBlocks.map((b, idx) => idx === i ? { ...b, ...partial } : b)\n    onChange(next)\n  }\n  function updateContent(i: number, lang: 'en' | 'bg', value: string) {\n    updateBlock(i, { content: { ...safeBlocks[i].content, [lang]: value } })\n  }\n  function moveBlock(i: number, dir: -1 | 1) {\n    const next = [...safeBlocks]\n    const j = i + dir\n    if (j < 0 || j >= next.length) return\n    ;[next[i], next[j]] = [next[j], next[i]]\n    onChange(next)\n  }\n  function removeBlock(i: number) {\n    onChange(safeBlocks.filter((_, idx) => idx !== i))\n  }\n\n  const safeBlocks = Array.isArray(blocks) ? blocks : []\n\n  return (\n    <div className="space-y-3">\n      {safeBlocks.map((block, i) => (\n        <div key={i} className="rounded-xl border p-4 space-y-3"\n          style={{ backgroundColor: 'var(--bg-global)', borderColor: 'var(--border-default)' }}>\n          <div className="flex items-center justify-between gap-2">\n            <div className="flex items-center gap-2">\n              <span className="text-xs font-semibold px-2 py-0.5 rounded-full uppercase tracking-widest"\n                style={{\n                  backgroundColor: block.type === 'heading' ? 'var(--brand-forest)' : block.type === 'callout' ? 'var(--brand-teal)' : 'rgba(0,0,0,0.06)',\n                  color: block.type === 'paragraph' ? 'var(--text-secondary)' : 'var(--brand-parchment)',\n                }}>\n                {block.type}\n              </span>\n              {block.type === 'callout' && (\n                <input\n                  value={block.emoji ?? ''}\n                  onChange={e => updateBlock(i, { emoji: e.target.value })}\n                  placeholder="emoji"\n                  className="w-14 border rounded-lg px-2 py-1 text-sm text-center"\n                  style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}\n                />\n              )}\n            </div>\n            <div className="flex items-center gap-1">\n              <button onClick={() => moveBlock(i, -1)} disabled={i === 0}\n                className="w-6 h-6 flex items-center justify-center rounded hover:bg-black/5 disabled:opacity-30 text-xs"\n                style={{ color: 'var(--text-secondary)' }}>↑</button>\n              <button onClick={() => moveBlock(i, 1)} disabled={i === safeBlocks.length - 1}\n                className="w-6 h-6 flex items-center justify-center rounded hover:bg-black/5 disabled:opacity-30 text-xs"\n                style={{ color: 'var(--text-secondary)' }}>↓</button>\n              <button onClick={() => removeBlock(i)}\n                className="w-6 h-6 flex items-center justify-center rounded hover:bg-black/5 text-xs"\n                style={{ color: 'var(--brand-crimson)' }}>✕</button>\n            </div>\n          </div>\n          <div className="grid grid-cols-2 gap-3">\n            {(['en', 'bg'] as const).map(lang => (\n              <div key={lang}>\n                <label className="text-[10px] font-semibold uppercase tracking-widest mb-1 block"\n                  style={{ color: 'var(--text-secondary)' }}>{lang.toUpperCase()}</label>\n                {block.type === 'paragraph' || block.type === 'callout' ? (\n                  <textarea\n                    value={block.content[lang]}\n                    onChange={e => updateContent(i, lang, e.target.value)}\n                    rows={3}\n                    className="w-full border rounded-xl px-3 py-2 text-sm resize-none"\n                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}\n                  />\n                ) : (\n                  <input\n                    value={block.content[lang]}\n                    onChange={e => updateContent(i, lang, e.target.value)}\n                    className="w-full border rounded-xl px-3 py-2 text-sm"\n                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}\n                  />\n                )}\n              </div>\n            ))}\n          </div>\n        </div>\n      ))}\n      <div className="flex gap-2 pt-1">\n        {(['heading', 'paragraph', 'callout'] as const).map(type => (\n          <button key={type} onClick={() => addBlock(type)}\n            className="px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors hover:bg-black/5"\n            style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>\n            + {type}\n          </button>\n        ))}\n      </div>\n    </div>\n  )\n}\n\nfunction GuideForm({\n  initial,\n  onSave,\n  onCancel,\n  isPending,\n  error,\n}: {\n  initial: Omit<Guide, 'id' | 'created_at' | 'updated_at'>\n  onSave: (data: typeof initial) => void\n  onCancel: () => void\n  isPending: boolean\n  error: string | null\n}) {\n  const [form, setForm] = useState({\n    ...initial,\n    body: Array.isArray(initial.body) ? initial.body : [],\n    access_roles: Array.isArray(initial.access_roles) ? initial.access_roles : [...ALL_ROLES],\n  })\n  const [slugManual, setSlugManual] = useState(!!initial.slug)\n  const [copied, setCopied] = useState(false)\n  const [coverFile, setCoverFile] = useState<File | null>(null)\n  const [coverUploading, setCoverUploading] = useState(false)\n\n  function copySlugUrl() {\n    const base = process.env.NEXT_PUBLIC_APP_URL ?? window.location.origin\n    navigator.clipboard.writeText(`${base}/guides/${form.slug}`)\n    setCopied(true)\n    setTimeout(() => setCopied(false), 1500)\n  }\n\n  function handleTitleEnChange(val: string) {\n    setForm(f => ({\n      ...f,\n      title: { ...f.title, en: val },\n      slug: slugManual ? f.slug : slugify(val),\n    }))\n  }\n\n  function toggleRole(role: string) {\n    setForm(f => ({\n      ...f,\n      access_roles: f.access_roles.includes(role)\n        ? f.access_roles.filter(r => r !== role)\n        : [...f.access_roles, role],\n    }))\n  }\n\n  async function handleCoverFileChange(file: File) {\n    setCoverFile(file)\n    setCoverUploading(true)\n    try {\n      const fd = new FormData()\n      fd.append('file', file)\n      const res = await fetch('/api/admin/guides/upload', { method: 'POST', body: fd })\n      if (!res.ok) throw new Error((await res.json()).error ?? 'Upload failed')\n      const { url } = await res.json() as { url: string }\n      setForm(f => ({ ...f, cover_image_url: url }))\n    } catch (e) {\n      alert((e as Error).message)\n    } finally {\n      setCoverUploading(false)\n    }\n  }\n\n  return (\n    <div className="space-y-5">\n      <div className="grid grid-cols-2 gap-4">\n        {(['en', 'bg'] as const).map(lang => (\n          <div key={lang}>\n            <label className="text-xs font-semibold uppercase tracking-widest mb-1 block"\n              style={{ color: 'var(--text-secondary)' }}>Title ({lang.toUpperCase()})</label>\n            <input\n              value={form.title[lang]}\n              onChange={e => lang === 'en' ? handleTitleEnChange(e.target.value) : setForm(f => ({ ...f, title: { ...f.title, bg: e.target.value } }))}\n              className="w-full border rounded-xl px-3 py-2 text-sm"\n              style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}\n            />\n          </div>\n        ))}\n      </div>\n\n      <div>\n        <label className="text-xs font-semibold uppercase tracking-widest mb-1 block"\n          style={{ color: 'var(--text-secondary)' }}>Slug</label>\n        <div className="flex items-center gap-2">\n          <input\n            value={form.slug}\n            onChange={e => { setSlugManual(true); setForm(f => ({ ...f, slug: e.target.value })) }}\n            className="flex-1 border rounded-xl px-3 py-2 text-sm font-mono"\n            style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}\n          />\n          <button\n            type="button"\n            onClick={copySlugUrl}\n            disabled={!form.slug}\n            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border transition-all disabled:opacity-30 hover:bg-black/5 flex-shrink-0"\n            style={{\n              borderColor: copied ? 'rgba(34,197,94,0.4)' : 'var(--border-default)',\n              color: copied ? '#15803d' : 'var(--text-secondary)',\n              backgroundColor: copied ? 'rgba(34,197,94,0.08)' : 'transparent',\n            }}\n          >\n            {copied ? (\n              <>\n                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">\n                  <polyline points="20 6 9 17 4 12"/>\n                </svg>\n                Copied!\n              </>\n            ) : (\n              <>\n                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">\n                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>\n                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>\n                </svg>\n                Copy URL\n              </>\n            )}\n          </button>\n        </div>\n      </div>\n\n      <div className="grid grid-cols-2 gap-4">\n        <div>\n          <label className="text-xs font-semibold uppercase tracking-widest mb-1 block"\n            style={{ color: 'var(--text-secondary)' }}>Emoji</label>\n          <input\n            value={form.emoji ?? ''}\n            onChange={e => setForm(f => ({ ...f, emoji: e.target.value || null }))}\n            placeholder="e.g. 📦"\n            className="w-full border rounded-xl px-3 py-2 text-sm text-center"\n            style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}\n          />\n        </div>\n        <div>\n          <label className="text-xs font-semibold uppercase tracking-widest mb-1 block"\n            style={{ color: 'var(--text-secondary)' }}>Cover Image</label>\n          <div className="space-y-2">\n            <div className="flex items-center gap-2">\n              <label\n                className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold border cursor-pointer hover:bg-black/5 transition-colors flex-shrink-0"\n                style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}\n              >\n                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">\n                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>\n                  <polyline points="17 8 12 3 7 8"/>\n                  <line x1="12" x2="12" y1="3" y2="15"/>\n                </svg>\n                {coverUploading ? 'Uploading…' : 'Upload'}\n                <input\n                  type="file"\n                  accept="image/*"\n                  className="hidden"\n                  onChange={e => { const f = e.target.files?.[0]; if (f) handleCoverFileChange(f) }}\n                />\n              </label>\n              {coverFile && !coverUploading && (\n                <span className="text-[11px] truncate max-w-[120px]" style={{ color: 'var(--brand-teal)' }}>\n                  {coverFile.name}\n                </span>\n              )}\n            </div>\n            <input\n              value={form.cover_image_url ?? ''}\n              onChange={e => setForm(f => ({ ...f, cover_image_url: e.target.value || null }))}\n              placeholder="or paste URL…"\n              className="w-full border rounded-xl px-3 py-2 text-xs"\n              style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)', backgroundColor: 'var(--bg-card)' }}\n            />\n            {form.cover_image_url && (\n              // eslint-disable-next-line @next/next/no-img-element\n              <img src={form.cover_image_url} alt="" className="rounded-lg object-cover" style={{ width: '100%', height: 80 }} />\n            )}\n          </div>\n        </div>\n      </div>\n\n      <div>\n        <label className="text-xs font-semibold uppercase tracking-widest mb-2 block"\n          style={{ color: 'var(--text-secondary)' }}>Access Roles</label>\n        <div className="flex gap-2">\n          {ALL_ROLES.map(role => (\n            <button key={role} onClick={() => toggleRole(role)}\n              className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"\n              style={{\n                backgroundColor: form.access_roles.includes(role) ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)',\n                color: form.access_roles.includes(role) ? 'var(--brand-parchment)' : 'var(--text-secondary)',\n              }}>\n              {role}\n            </button>\n          ))}\n        </div>\n      </div>\n\n      <div>\n        <label className="text-xs font-semibold uppercase tracking-widest mb-2 block"\n          style={{ color: 'var(--text-secondary)' }}>Body Blocks</label>\n        <BlockEditor blocks={form.body} onChange={body => setForm(f => ({ ...f, body }))} />\n      </div>\n\n      <div className="flex items-center gap-3">\n        <span\n          className="px-2.5 py-0.5 rounded-full text-xs font-semibold"\n          style={{\n            backgroundColor: form.is_published ? 'rgba(34,197,94,0.12)' : 'rgba(0,0,0,0.06)',\n            color: form.is_published ? '#15803d' : 'var(--text-secondary)',\n          }}>\n          {form.is_published ? 'Published' : 'Draft'}\n        </span>\n        <button\n          onClick={() => setForm(f => ({ ...f, is_published: !f.is_published }))}\n          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border transition-all hover:bg-black/5"\n          style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>\n          {form.is_published ? 'Unpublish' : 'Publish'}\n        </button>\n      </div>\n\n      {error && <p className="text-sm" style={{ color: 'var(--brand-crimson)' }}>{error}</p>}\n\n      <div className="flex gap-3 pt-2">\n        <button\n          onClick={() => onSave(form)}\n          disabled={isPending || !form.slug || !form.title.en || coverUploading}\n          className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40 transition-opacity hover:opacity-90"\n          style={{ backgroundColor: 'var(--brand-crimson)' }}>\n          {isPending ? 'Saving…' : 'Save'}\n        </button>\n        <button onClick={onCancel}\n          className="px-6 py-2.5 rounded-xl text-sm font-semibold border transition-colors hover:bg-black/5"\n          style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>\n          Cancel\n        </button>\n      </div>\n    </div>\n  )\n}\n\n// ── Tab definitions ───────────────────────────────────────────────\n\nconst TABS = [\n  { key: 'announcements', label: 'Announcements' },\n  { key: 'links',         label: 'Quick Links'   },\n  { key: 'guides',        label: 'Guides'        },\n  { key: 'socials',       label: 'Social Posts'  },\n  { key: 'bento',         label: 'Bento'         },\n] as const\n\ntype TabKey = typeof TABS[number]['key']\n\n// ── Inner page ────────────────────────────────────────────────────\n\nfunction ContentPageInner() {\n  const searchParams = useSearchParams()\n  const tab = (searchParams.get('tab') ?? 'announcements') as TabKey\n  const qc = useQueryClient()\n\n  // ── Announcements ───────────────────────────────────\n  const { data: announcementsRaw = [] } = useQuery<Announcement[]>({\n    queryKey: ['announcements'],\n    queryFn: () => fetch('/api/admin/announcements').then(r => r.json()),\n  })\n  const [localAnnouncements, setLocalAnnouncements] = useState<Announcement[]>([])\n  const aPrevKey = useRef('')\n  const aKey = announcementsRaw.map(a => a.id).join(',')\n  if (aPrevKey.current !== aKey) { aPrevKey.current = aKey; setLocalAnnouncements([...announcementsRaw]) }\n  const [aDragging, setADragging] = useState<string | null>(null)\n\n  const reorderAnnouncements = useMutation({\n    mutationFn: (items: { id: string; sort_order: number }[]) =>\n      fetch('/api/admin/announcements', {\n        method: 'POST', headers: { 'Content-Type': 'application/json' },\n        body: JSON.stringify({ items }),\n      }).then(r => r.json()),\n    onError: () => setLocalAnnouncements([...announcementsRaw]),\n    onSuccess: () => qc.invalidateQueries({ queryKey: ['announcements'] }),\n  })\n\n  const [aForm, setAForm] = useState({\n    titles: { en: '', bg: '', sk: '' } as Record<string,string>,\n    contents: { en: '', bg: '', sk: '' } as Record<string,string>,\n    is_active: true,\n    access_level: ['guest', 'member', 'core', 'admin'] as string[],\n  })\n  const [aLang, setALang] = useState('en')\n\n  const createAnnouncement = useMutation({\n    mutationFn: (body: typeof aForm) =>\n      fetch('/api/admin/announcements', {\n        method: 'POST', headers: { 'Content-Type': 'application/json' },\n        body: JSON.stringify(body),\n      }).then(r => r.json()),\n    onSuccess: () => {\n      qc.invalidateQueries({ queryKey: ['announcements'] })\n      setAForm({ titles: { en:'',bg:'',sk:'' }, contents: { en:'',bg:'',sk:'' }, is_active: true, access_level: ['guest','member','core','admin'] })\n    },\n  })\n\n  const toggleAnnouncement = useMutation({\n    mutationFn: ({ id, is_active }: { id: string; is_active: boolean }) =>\n      fetch(`/api/admin/announcements/${id}`, {\n        method: 'PATCH', headers: { 'Content-Type': 'application/json' },\n        body: JSON.stringify({ is_active }),\n      }).then(r => r.json()),\n    onSuccess: () => qc.invalidateQueries({ queryKey: ['announcements'] }),\n  })\n\n  const deleteAnnouncement = useMutation({\n    mutationFn: (id: string) =>\n      fetch(`/api/admin/announcements/${id}`, { method: 'DELETE' }),\n    onSuccess: () => qc.invalidateQueries({ queryKey: ['announcements'] }),\n  })\n\n  const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null)\n  const [editAForm, setEditAForm] = useState({\n    titles: { en: '', bg: '', sk: '' } as Record<string,string>,\n    contents: { en: '', bg: '', sk: '' } as Record<string,string>,\n    is_active: true,\n    access_level: ['guest', 'member', 'core', 'admin'] as string[],\n  })\n  const [editALang, setEditALang] = useState('en')\n\n  const updateAnnouncement = useMutation({\n    mutationFn: ({ id, ...body }: { id: string } & typeof editAForm) =>\n      fetch(`/api/admin/announcements/${id}`, {\n        method: 'PATCH', headers: { 'Content-Type': 'application/json' },\n        body: JSON.stringify(body),\n      }).then(r => r.json()),\n    onSuccess: () => {\n      qc.invalidateQueries({ queryKey: ['announcements'] })\n      setEditingAnnouncement(null)\n    },\n  })\n\n  function startEditingAnnouncement(a: Announcement) {\n    setEditAForm({\n      titles: { en: '', bg: '', sk: '', ...a.titles },\n      contents: { en: '', bg: '', sk: '', ...a.contents },\n      is_active: a.is_active,\n      access_level: Array.isArray(a.access_level) ? a.access_level : ['guest','member','core','admin'],\n    })\n    setEditALang('en')\n    setEditingAnnouncement(a)\n  }\n\n  // ── Quick Links ────────────────────────────────────\n  const { data: linksRaw = [] } = useQuery<QuickLink[]>({\n    queryKey: ['quick-links'],\n    queryFn: () => fetch('/api/admin/quick-links').then(r => r.json()),\n  })\n  const [localLinks, setLocalLinks] = useState<QuickLink[]>([])\n  const lPrevKey = useRef('')\n  const lKey = linksRaw.map(l => l.id).join(',')\n  if (lPrevKey.current !== lKey) { lPrevKey.current = lKey; setLocalLinks([...linksRaw]) }\n  const [lDragging, setLDragging] = useState<string | null>(null)\n\n  const reorderLinks = useMutation({\n    mutationFn: (items: { id: string; sort_order: number }[]) =>\n      fetch('/api/admin/quick-links', {\n        method: 'POST', headers: { 'Content-Type': 'application/json' },\n        body: JSON.stringify({ items }),\n      }).then(r => r.json()),\n    onError: () => setLocalLinks([...linksRaw]),\n    onSuccess: () => qc.invalidateQueries({ queryKey: ['quick-links'] }),\n  })\n\n  const [lForm, setLForm] = useState({ label: '', url: '', icon_name: 'link', sort_order: 0, access_level: ['guest','member','core','admin'] as string[] })\n\n  const createLink = useMutation({\n    mutationFn: (body: typeof lForm) =>\n      fetch('/api/admin/quick-links', {\n        method: 'POST', headers: { 'Content-Type': 'application/json' },\n        body: JSON.stringify(body),\n      }).then(r => r.json()),\n    onSuccess: () => {\n      qc.invalidateQueries({ queryKey: ['quick-links'] })\n      setLForm({ label: '', url: '', icon_name: 'link', sort_order: 0, access_level: ['guest','member','core','admin'] })\n    },\n  })\n\n  const deleteLink = useMutation({\n    mutationFn: (id: string) =>\n      fetch(`/api/admin/quick-links/${id}`, { method: 'DELETE' }),\n    onSuccess: () => qc.invalidateQueries({ queryKey: ['quick-links'] }),\n  })\n\n  const [editingLink, setEditingLink] = useState<QuickLink | null>(null)\n  const [editLForm, setEditLForm] = useState({ label: '', url: '', icon_name: 'link', sort_order: 0, access_level: ['guest','member','core','admin'] as string[] })\n\n  const updateLink = useMutation({\n    mutationFn: ({ id, ...body }: { id: string } & typeof editLForm) =>\n      fetch(`/api/admin/quick-links/${id}`, {\n        method: 'PATCH', headers: { 'Content-Type': 'application/json' },\n        body: JSON.stringify(body),\n      }).then(r => r.json()),\n    onSuccess: () => {\n      qc.invalidateQueries({ queryKey: ['quick-links'] })\n      setEditingLink(null)\n    },\n  })\n\n  function startEditingLink(l: QuickLink) {\n    setEditLForm({\n      label: l.label,\n      url: l.url,\n      icon_name: l.icon_name,\n      sort_order: l.sort_order,\n      access_level: Array.isArray(l.access_level) ? l.access_level : ['guest','member','core','admin'],\n    })\n    setEditingLink(l)\n  }\n\n  // ── Guides ─────────────────────────────────────────\n  const [guidesEditing, setGuidesEditing] = useState<Guide | null>(null)\n  const [guidesCreating, setGuidesCreating] = useState(false)\n  const [guidesMutError, setGuidesMutError] = useState<string | null>(null)\n\n  const { data: guidesRaw = [], isLoading: guidesLoading } = useQuery<Guide[]>({\n    queryKey: ['admin-guides'],\n    queryFn: () => fetch('/api/admin/guides').then(r => r.json()),\n  })\n  const [localGuides, setLocalGuides] = useState<Guide[]>([])\n  const gPrevKey = useRef('')\n  const gKey = guidesRaw.map(g => g.id).join(',')\n  if (gPrevKey.current !== gKey) { gPrevKey.current = gKey; setLocalGuides([...guidesRaw]) }\n  const [gDragging, setGDragging] = useState<string | null>(null)\n\n  const reorderGuides = useMutation({\n    mutationFn: (items: { id: string; sort_order: number }[]) =>\n      fetch('/api/admin/guides', {\n        method: 'POST', headers: { 'Content-Type': 'application/json' },\n        body: JSON.stringify({ items }),\n      }).then(r => r.json()),\n    onError: () => setLocalGuides([...guidesRaw]),\n    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-guides'] }),\n  })\n\n  const createGuide = useMutation({\n    mutationFn: (body: ReturnType<typeof emptyGuide>) =>\n      fetch('/api/admin/guides', {\n        method: 'POST',\n        headers: { 'Content-Type': 'application/json' },\n        body: JSON.stringify(body),\n      }).then(async r => { if (!r.ok) throw new Error((await r.json()).error); return r.json() }),\n    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-guides'] }); setGuidesCreating(false); setGuidesMutError(null) },\n    onError: (e: Error) => setGuidesMutError(e.message),\n  })\n\n  const updateGuide = useMutation({\n    mutationFn: ({ id, ...body }: Partial<Guide> & { id: string }) =>\n      fetch(`/api/admin/guides/${id}`, {\n        method: 'PATCH',\n        headers: { 'Content-Type': 'application/json' },\n        body: JSON.stringify(body),\n      }).then(async r => { if (!r.ok) throw new Error((await r.json()).error); return r.json() }),\n    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-guides'] }); setGuidesEditing(null); setGuidesMutError(null) },\n    onError: (e: Error) => setGuidesMutError(e.message),\n  })\n\n  const deleteGuide = useMutation({\n    mutationFn: (id: string) => fetch(`/api/admin/guides/${id}`, { method: 'DELETE' }),\n    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-guides'] }),\n  })\n\n  const toggleGuidePublish = (guide: Guide) =>\n    updateGuide.mutate({ id: guide.id, is_published: !guide.is_published })\n\n  // ── Social Posts ───────────────────────────────────\n  const { data: socialPostsRaw = [] } = useQuery<SocialPost[]>({\n    queryKey: ['admin-social-posts'],\n    queryFn: () => fetch('/api/admin/social-posts').then(r => r.json()),\n  })\n  const [localSocials, setLocalSocials] = useState<SocialPost[]>([])\n  const sPrevKey = useRef('')\n  const sKey = socialPostsRaw.map(p => p.id).join(',')\n  if (sPrevKey.current !== sKey) { sPrevKey.current = sKey; setLocalSocials([...socialPostsRaw]) }\n  const [sDragging, setSDragging] = useState<string | null>(null)\n\n  const reorderSocials = useMutation({\n    mutationFn: (items: { id: string; sort_order: number }[]) =>\n      fetch('/api/admin/social-posts', {\n        method: 'POST', headers: { 'Content-Type': 'application/json' },\n        body: JSON.stringify({ items }),\n      }).then(r => r.json()),\n    onError: () => setLocalSocials([...socialPostsRaw]),\n    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-social-posts'] }); qc.invalidateQueries({ queryKey: ['socials'] }) },\n  })\n\n  const [spForm, setSpForm] = useState({\n    platform: 'instagram' as 'instagram' | 'facebook',\n    post_url: '',\n    caption: '',\n    thumbnail_url: '',\n  })\n  const [spPreviewing, setSpPreviewing] = useState(false)\n  const [spPreviewHint, setSpPreviewHint] = useState<string | null>(null)\n\n  async function fetchOgPreview(url: string) {\n    if (!url) return\n    setSpPreviewing(true)\n    setSpPreviewHint(null)\n    try {\n      const res = await fetch(`/api/admin/social-posts/preview?url=${encodeURIComponent(url)}`)\n      if (!res.ok) throw new Error('preview failed')\n      const data = await res.json() as { thumbnail_url: string | null; caption: string | null }\n      setSpForm(f => ({\n        ...f,\n        thumbnail_url: data.thumbnail_url ?? f.thumbnail_url,\n        caption: data.caption ?? f.caption,\n      }))\n      if (!data.thumbnail_url && !data.caption) {\n        setSpPreviewHint('Preview unavailable for this platform — enter thumbnail URL manually')\n      }\n    } catch {\n      setSpPreviewHint('Preview unavailable for this platform — enter thumbnail URL manually')\n    } finally {\n      setSpPreviewing(false)\n    }\n  }\n\n  const createSocialPost = useMutation({\n    mutationFn: (body: typeof spForm) =>\n      fetch('/api/admin/social-posts', {\n        method: 'POST',\n        headers: { 'Content-Type': 'application/json' },\n        body: JSON.stringify({\n          ...body,\n          caption: body.caption || undefined,\n          thumbnail_url: body.thumbnail_url || undefined,\n        }),\n      }).then(async r => { if (!r.ok) throw new Error((await r.json()).error ?? 'Failed'); return r.json() }),\n    onSuccess: () => {\n      qc.invalidateQueries({ queryKey: ['admin-social-posts'] })\n      qc.invalidateQueries({ queryKey: ['socials'] })\n      setSpForm({ platform: 'instagram', post_url: '', caption: '', thumbnail_url: '' })\n      setSpPreviewHint(null)\n    },\n  })\n\n  const patchSocialPost = useMutation({\n    mutationFn: ({ id, ...patch }: { id: string } & Partial<SocialPost>) =>\n      fetch(`/api/admin/social-posts/${id}`, {\n        method: 'PATCH',\n        headers: { 'Content-Type': 'application/json' },\n        body: JSON.stringify(patch),\n      }).then(r => r.json()),\n    onSuccess: () => {\n      qc.invalidateQueries({ queryKey: ['admin-social-posts'] })\n      qc.invalidateQueries({ queryKey: ['socials'] })\n    },\n  })\n\n  const deleteSocialPost = useMutation({\n    mutationFn: (id: string) =>\n      fetch(`/api/admin/social-posts/${id}`, { method: 'DELETE' }),\n    onSuccess: () => {\n      qc.invalidateQueries({ queryKey: ['admin-social-posts'] })\n      qc.invalidateQueries({ queryKey: ['socials'] })\n    },\n  })\n\n  // ── Generic drag helpers ───────────────────────────────\n  function makeDragHandlers<T extends { id: string }>(\n    dragging: string | null,\n    setDragging: (id: string | null) => void,\n    local: T[],\n    setLocal: Dispatch<SetStateAction<T[]>>,\n    onDrop: (items: { id: string; sort_order: number }[]) => void,\n  ) {\n    return {\n      onDragStart: (id: string) => setDragging(id),\n      onDragOver: (e: React.DragEvent, targetId: string) => {\n        e.preventDefault()\n        if (!dragging || dragging === targetId) return\n        setLocal(prev => {\n          const from = prev.findIndex(x => x.id === dragging)\n          const to   = prev.findIndex(x => x.id === targetId)\n          if (from === -1 || to === -1) return prev\n          const next = [...prev]\n          const [moved] = next.splice(from, 1)\n          next.splice(to, 0, moved)\n          return next\n        })\n      },\n      onDrop: () => {\n        setDragging(null)\n        onDrop(local.map((item, i) => ({ id: item.id, sort_order: i * 10 })))\n      },\n      onDragEnd: () => setDragging(null),\n      isDragging: (id: string) => dragging === id,\n    }\n  }\n\n  const aDrag = makeDragHandlers(aDragging, setADragging, localAnnouncements, setLocalAnnouncements, items => reorderAnnouncements.mutate(items))\n  const lDrag = makeDragHandlers(lDragging, setLDragging, localLinks, setLocalLinks, items => reorderLinks.mutate(items))\n  const gDrag = makeDragHandlers(gDragging, setGDragging, localGuides, setLocalGuides, items => reorderGuides.mutate(items))\n  const sDrag = makeDragHandlers(sDragging, setSDragging, localSocials, setLocalSocials, items => reorderSocials.mutate(items))\n\n  return (\n    <div className="space-y-6">\n      <div>\n        <h1 className="font-display text-2xl font-semibold" style={{ color: 'var(--text-primary)' }}>\n          Content\n        </h1>\n      </div>\n\n      {/* ── Tabs ── */}\n      <div>\n        <div className="flex gap-1 border-b mb-6" style={{ borderColor: 'var(--border-default)' }}>\n          {TABS.map(t => (\n            <Link\n              key={t.key}\n              href={`/admin/content?tab=${t.key}`}\n              scroll={false}\n              className="px-4 py-2.5 text-sm font-semibold transition-colors relative"\n              style={{\n                color: tab === t.key ? 'var(--text-primary)' : 'var(--text-secondary)',\n                borderBottom: tab === t.key ? '2px solid var(--brand-crimson)' : '2px solid transparent',\n                marginBottom: '-1px',\n              }}\n            >\n              {t.label}\n            </Link>\n          ))}\n        </div>\n\n        {/* ── Announcements tab ── */}\n        {tab === 'announcements' && (\n          <section>\n            <div className="flex gap-2 mb-4">\n              {LANGS.map(l => (\n                <button key={l} onClick={() => setALang(l)}\n                  className="px-3 py-1 rounded-lg text-sm font-medium transition-colors"\n                  style={{\n                    backgroundColor: aLang === l ? 'var(--text-primary)' : 'rgba(0,0,0,0.05)',\n                    color: aLang === l ? 'white' : 'var(--text-secondary)',\n                  }}>\n                  {l.toUpperCase()}\n                </button>\n              ))}\n            </div>\n\n            <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-6 mb-4 space-y-3">\n              <input value={aForm.titles[aLang] ?? ''}\n                onChange={e => setAForm(f => ({ ...f, titles: { ...f.titles, [aLang]: e.target.value } }))}\n                placeholder={`Title (${aLang.toUpperCase()})`}\n                className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"\n                style={{ color: 'var(--text-primary)' }} />\n              <textarea value={aForm.contents[aLang] ?? ''}\n                onChange={e => setAForm(f => ({ ...f, contents: { ...f.contents, [aLang]: e.target.value } }))}\n                placeholder={`Content (${aLang.toUpperCase()})`}\n                rows={4}\n                className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm resize-none"\n                style={{ color: 'var(--text-primary)' }} />\n              <div className="flex gap-2 flex-wrap">\n                {['guest','member','core','admin'].map(role => (\n                  <button key={role}\n                    onClick={() => setAForm(f => ({ ...f, access_level: f.access_level.includes(role) ? f.access_level.filter(r => r !== role) : [...f.access_level, role] }))}\n                    className="px-3 py-1 rounded-full text-xs font-semibold transition-all"\n                    style={{ backgroundColor: aForm.access_level.includes(role) ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)', color: aForm.access_level.includes(role) ? 'var(--brand-parchment)' : 'var(--text-secondary)' }}>\n                    {role}\n                  </button>\n                ))}\n              </div>\n              <button onClick={() => createAnnouncement.mutate(aForm)}\n                disabled={createAnnouncement.isPending || !aForm.titles.en}\n                className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"\n                style={{ backgroundColor: 'var(--brand-crimson)' }}>\n                {createAnnouncement.isPending ? 'Publishing…' : 'Publish'}\n              </button>\n            </div>\n\n            <div className="space-y-1.5">\n              {localAnnouncements.map(a => (\n                <div key={a.id}\n                  draggable\n                  onDragStart={() => aDrag.onDragStart(a.id)}\n                  onDragOver={e => aDrag.onDragOver(e, a.id)}\n                  onDrop={aDrag.onDrop}\n                  onDragEnd={aDrag.onDragEnd}\n                  className="bg-white rounded-2xl border border-black/5 shadow-sm p-4 flex items-start gap-3"\n                  style={{ opacity: aDrag.isDragging(a.id) ? 0.5 : 1 }}>\n                  <GripHandle />\n                  <div className="flex-1 min-w-0">\n                    <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>\n                      {a.titles.en ?? a.titles.bg ?? 'Untitled'}\n                    </p>\n                    <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>\n                      {new Date(a.created_at).toLocaleDateString()}\n                    </p>\n                  </div>\n                  <div className="flex items-center gap-2 flex-shrink-0">\n                    <button onClick={() => startEditingAnnouncement(a)}\n                      className="text-xs px-2.5 py-1 rounded-full font-medium border hover:bg-black/5 transition-colors"\n                      style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>Edit</button>\n                    <button onClick={() => toggleAnnouncement.mutate({ id: a.id, is_active: !a.is_active })}\n                      className="text-xs px-2.5 py-1 rounded-full font-medium"\n                      style={{ backgroundColor: a.is_active ? '#81b29a33' : 'rgba(0,0,0,0.05)', color: a.is_active ? '#2d6a4f' : 'var(--text-secondary)' }}>\n                      {a.is_active ? 'Active' : 'Inactive'}\n                    </button>\n                    <button onClick={() => deleteAnnouncement.mutate(a.id)}\n                      className="text-xs font-medium hover:opacity-70 transition-opacity"\n                      style={{ color: 'var(--brand-crimson)' }}>Delete</button>\n                  </div>\n                </div>\n              ))}\n            </div>\n\n            {/* Edit announcement Drawer */}\n            <Drawer\n              open={!!editingAnnouncement}\n              onClose={() => setEditingAnnouncement(null)}\n              title="Edit announcement"\n            >\n              <div className="space-y-3">\n                <div className="flex gap-2 mb-2">\n                  {LANGS.map(l => (\n                    <button key={l} onClick={() => setEditALang(l)}\n                      className="px-3 py-1 rounded-lg text-sm font-medium transition-colors"\n                      style={{ backgroundColor: editALang === l ? 'var(--text-primary)' : 'rgba(0,0,0,0.05)', color: editALang === l ? 'white' : 'var(--text-secondary)' }}>\n                      {l.toUpperCase()}\n                    </button>\n                  ))}\n                </div>\n                <input value={editAForm.titles[editALang] ?? ''}\n                  onChange={e => setEditAForm(f => ({ ...f, titles: { ...f.titles, [editALang]: e.target.value } }))}\n                  placeholder={`Title (${editALang.toUpperCase()})`}\n                  className="w-full border rounded-xl px-3 py-2.5 text-sm"\n                  style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />\n                <textarea value={editAForm.contents[editALang] ?? ''}\n                  onChange={e => setEditAForm(f => ({ ...f, contents: { ...f.contents, [editALang]: e.target.value } }))}\n                  placeholder={`Content (${editALang.toUpperCase()})`}\n                  rows={4}\n                  className="w-full border rounded-xl px-3 py-2.5 text-sm resize-none"\n                  style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />\n                <div className="flex gap-2 flex-wrap">\n                  {['guest','member','core','admin'].map(role => (\n                    <button key={role}\n                      onClick={() => setEditAForm(f => ({ ...f, access_level: f.access_level.includes(role) ? f.access_level.filter(r => r !== role) : [...f.access_level, role] }))}\n                      className="px-3 py-1 rounded-full text-xs font-semibold transition-all"\n                      style={{ backgroundColor: editAForm.access_level.includes(role) ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)', color: editAForm.access_level.includes(role) ? 'var(--brand-parchment)' : 'var(--text-secondary)' }}>\n                      {role}\n                    </button>\n                  ))}\n                </div>\n                <div className="flex gap-3 pt-2">\n                  <button onClick={() => editingAnnouncement && updateAnnouncement.mutate({ id: editingAnnouncement.id, ...editAForm })}\n                    disabled={updateAnnouncement.isPending || !editAForm.titles.en}\n                    className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"\n                    style={{ backgroundColor: 'var(--brand-crimson)' }}>\n                    {updateAnnouncement.isPending ? 'Saving…' : 'Save changes'}\n                  </button>\n                  <button onClick={() => setEditingAnnouncement(null)}\n                    className="px-5 py-2 rounded-xl text-sm font-semibold border transition-colors hover:bg-black/5"\n                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>Cancel</button>\n                </div>\n              </div>\n            </Drawer>\n          </section>\n        )}\n\n        {/* ── Quick Links tab ── */}\n        {tab === 'links' && (\n          <section>\n            <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-6 mb-4">\n              <div className="grid grid-cols-4 gap-3 mb-4">\n                <input value={lForm.label} onChange={e => setLForm(f => ({ ...f, label: e.target.value }))} placeholder="Label" className="border border-black/10 rounded-xl px-3 py-2.5 text-sm" style={{ color: 'var(--text-primary)' }} />\n                <input value={lForm.url} onChange={e => setLForm(f => ({ ...f, url: e.target.value }))} placeholder="URL" className="border border-black/10 rounded-xl px-3 py-2.5 text-sm col-span-2" style={{ color: 'var(--text-primary)' }} />\n                <input value={lForm.icon_name} onChange={e => setLForm(f => ({ ...f, icon_name: e.target.value }))} placeholder="Icon name" className="border border-black/10 rounded-xl px-3 py-2.5 text-sm" style={{ color: 'var(--text-primary)' }} />\n              </div>\n              <div className="flex gap-2 flex-wrap mb-4">\n                {['guest','member','core','admin'].map(role => (\n                  <button key={role}\n                    onClick={() => setLForm(f => ({ ...f, access_level: f.access_level.includes(role) ? f.access_level.filter(r => r !== role) : [...f.access_level, role] }))}\n                    className="px-3 py-1 rounded-full text-xs font-semibold transition-all"\n                    style={{ backgroundColor: lForm.access_level.includes(role) ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)', color: lForm.access_level.includes(role) ? 'var(--brand-parchment)' : 'var(--text-secondary)' }}>\n                    {role}\n                  </button>\n                ))}\n              </div>\n              <button onClick={() => createLink.mutate(lForm)}\n                disabled={createLink.isPending || !lForm.label || !lForm.url}\n                className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"\n                style={{ backgroundColor: 'var(--brand-crimson)' }}>\n                {createLink.isPending ? 'Adding…' : 'Add link'}\n              </button>\n            </div>\n\n            <div className="space-y-1.5">\n              {localLinks.map(l => (\n                <div key={l.id}\n                  draggable\n                  onDragStart={() => lDrag.onDragStart(l.id)}\n                  onDragOver={e => lDrag.onDragOver(e, l.id)}\n                  onDrop={lDrag.onDrop}\n                  onDragEnd={lDrag.onDragEnd}\n                  className="bg-white rounded-2xl border border-black/5 shadow-sm p-4 flex items-center gap-3"\n                  style={{ opacity: lDrag.isDragging(l.id) ? 0.5 : 1 }}>\n                  <GripHandle />\n                  <div className="flex-1 min-w-0">\n                    <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{l.label}</p>\n                    <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>{l.url}</p>\n                  </div>\n                  <div className="flex items-center gap-2 flex-shrink-0">\n                    <button onClick={() => startEditingLink(l)}\n                      className="text-xs font-medium border px-2.5 py-1 rounded-full hover:bg-black/5 transition-colors"\n                      style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>Edit</button>\n                    <button onClick={() => deleteLink.mutate(l.id)}\n                      className="text-xs font-medium hover:opacity-70 transition-opacity"\n                      style={{ color: 'var(--brand-crimson)' }}>Delete</button>\n                  </div>\n                </div>\n              ))}\n            </div>\n\n            {/* Edit link Drawer */}\n            <Drawer\n              open={!!editingLink}\n              onClose={() => setEditingLink(null)}\n              title={editingLink ? `Edit: ${editingLink.label}` : 'Edit link'}\n            >\n              <div className="space-y-4">\n                <div className="grid grid-cols-2 gap-3">\n                  <div>\n                    <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Label</label>\n                    <input value={editLForm.label} onChange={e => setEditLForm(f => ({ ...f, label: e.target.value }))} placeholder="Label"\n                      className="w-full border rounded-xl px-3 py-2.5 text-sm"\n                      style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />\n                  </div>\n                  <div>\n                    <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Icon name</label>\n                    <input value={editLForm.icon_name} onChange={e => setEditLForm(f => ({ ...f, icon_name: e.target.value }))} placeholder="Icon name"\n                      className="w-full border rounded-xl px-3 py-2.5 text-sm"\n                      style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />\n                  </div>\n                </div>\n                <div>\n                  <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>URL</label>\n                  <input value={editLForm.url} onChange={e => setEditLForm(f => ({ ...f, url: e.target.value }))} placeholder="URL"\n                    className="w-full border rounded-xl px-3 py-2.5 text-sm"\n                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />\n                </div>\n                <div className="flex gap-2 flex-wrap">\n                  {['guest','member','core','admin'].map(role => (\n                    <button key={role}\n                      onClick={() => setEditLForm(f => ({ ...f, access_level: f.access_level.includes(role) ? f.access_level.filter(r => r !== role) : [...f.access_level, role] }))}\n                      className="px-3 py-1 rounded-full text-xs font-semibold transition-all"\n                      style={{ backgroundColor: editLForm.access_level.includes(role) ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)', color: editLForm.access_level.includes(role) ? 'var(--brand-parchment)' : 'var(--text-secondary)' }}>\n                      {role}\n                    </button>\n                  ))}\n                </div>\n                <div className="flex gap-3 pt-2">\n                  <button onClick={() => editingLink && updateLink.mutate({ id: editingLink.id, ...editLForm })}\n                    disabled={updateLink.isPending || !editLForm.label || !editLForm.url}\n                    className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"\n                    style={{ backgroundColor: 'var(--brand-crimson)' }}>\n                    {updateLink.isPending ? 'Saving…' : 'Save changes'}\n                  </button>\n                  <button onClick={() => setEditingLink(null)}\n                    className="px-5 py-2 rounded-xl text-sm font-semibold border transition-colors hover:bg-black/5"\n                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>Cancel</button>\n                </div>\n              </div>\n            </Drawer>\n          </section>\n        )}\n\n        {/* ── Guides tab ── */}\n        {tab === 'guides' && (\n          <section className="space-y-6">\n            <div className="flex items-center justify-between">\n              <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>\n                {guidesRaw.length} guide{guidesRaw.length !== 1 ? 's' : ''}\n              </p>\n              <button onClick={() => { setGuidesCreating(true); setGuidesEditing(null); setGuidesMutError(null) }}\n                className="px-4 py-2 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-opacity"\n                style={{ backgroundColor: 'var(--brand-crimson)' }}>+ New Guide</button>\n            </div>\n\n            {/* Guides create + edit Drawer */}\n            <Drawer\n              open={guidesCreating || !!guidesEditing}\n              onClose={() => { setGuidesCreating(false); setGuidesEditing(null); setGuidesMutError(null) }}\n              title={guidesEditing ? `Edit: ${guidesEditing.title.en || guidesEditing.slug}` : 'New Guide'}\n            >\n              {guidesCreating && (\n                <GuideForm\n                  initial={emptyGuide()}\n                  onSave={data => createGuide.mutate(data)}\n                  onCancel={() => { setGuidesCreating(false); setGuidesMutError(null) }}\n                  isPending={createGuide.isPending}\n                  error={guidesMutError}\n                />\n              )}\n              {guidesEditing && (\n                <GuideForm\n                  initial={{ slug: guidesEditing.slug, title: guidesEditing.title, cover_image_url: guidesEditing.cover_image_url, emoji: guidesEditing.emoji, body: guidesEditing.body, access_roles: guidesEditing.access_roles, is_published: guidesEditing.is_published, sort_order: guidesEditing.sort_order }}\n                  onSave={data => updateGuide.mutate({ id: guidesEditing.id, ...data })}\n                  onCancel={() => { setGuidesEditing(null); setGuidesMutError(null) }}\n                  isPending={updateGuide.isPending}\n                  error={guidesMutError}\n                />\n              )}\n            </Drawer>\n\n            {guidesLoading ? (\n              <div className="space-y-3">\n                {[...Array(3)].map((_, i) => (\n                  <div key={i} className="h-16 rounded-2xl animate-pulse" style={{ backgroundColor: 'var(--border-default)' }} />\n                ))}\n              </div>\n            ) : guidesRaw.length === 0 ? (\n              <div className="rounded-2xl border px-6 py-12 text-center" style={{ borderColor: 'var(--border-default)' }}>\n                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No guides yet. Create the first one.</p>\n              </div>\n            ) : (\n              <div className="space-y-1.5">\n                {localGuides.map(guide => (\n                  <div key={guide.id}\n                    draggable\n                    onDragStart={() => gDrag.onDragStart(guide.id)}\n                    onDragOver={e => gDrag.onDragOver(e, guide.id)}\n                    onDrop={gDrag.onDrop}\n                    onDragEnd={gDrag.onDragEnd}\n                    className="rounded-2xl border px-4 py-4 flex items-center gap-3"\n                    style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)', opacity: gDrag.isDragging(guide.id) ? 0.5 : 1 }}>\n                    <GripHandle />\n                    <span className="text-xl flex-shrink-0">{guide.emoji ?? '📄'}</span>\n                    <div className="flex-1 min-w-0">\n                      <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{guide.title.en || '(untitled)'}</p>\n                      <p className="text-xs mt-0.5 font-mono" style={{ color: 'var(--text-secondary)' }}>/{guide.slug} · {guide.access_roles.join(', ')}</p>\n                    </div>\n                    <div className="flex items-center gap-2 flex-shrink-0">\n                      <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold"\n                        style={{ backgroundColor: guide.is_published ? 'rgba(34,197,94,0.12)' : 'rgba(0,0,0,0.06)', color: guide.is_published ? '#15803d' : 'var(--text-secondary)' }}>\n                        {guide.is_published ? 'Published' : 'Draft'}\n                      </span>\n                      <button onClick={() => toggleGuidePublish(guide)} disabled={updateGuide.isPending}\n                        className="px-3 py-1 rounded-full text-xs font-semibold border transition-all disabled:opacity-50 hover:bg-black/5"\n                        style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>\n                        {guide.is_published ? 'Unpublish' : 'Publish'}\n                      </button>\n                      <button onClick={() => { setGuidesEditing(guide); setGuidesCreating(false); setGuidesMutError(null) }}\n                        className="px-3 py-1 rounded-lg text-xs font-semibold border transition-colors hover:bg-black/5"\n                        style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>Edit</button>\n                      <button onClick={() => { if (confirm(`Delete "${guide.title.en}"?`)) deleteGuide.mutate(guide.id) }}\n                        disabled={deleteGuide.isPending}\n                        className="px-3 py-1 rounded-lg text-xs font-semibold transition-colors hover:bg-red-50 disabled:opacity-50"\n                        style={{ color: 'var(--brand-crimson)' }}>Delete</button>\n                    </div>\n                  </div>\n                ))}\n              </div>\n            )}\n          </section>\n        )}\n\n        {/* ── Social Posts tab ── */}\n        {tab === 'socials' && (\n          <section className="space-y-6">\n            <div className="rounded-2xl border p-6 space-y-4" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>\n              <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--brand-crimson)' }}>Add post</p>\n              <div className="flex gap-2">\n                {(['instagram', 'facebook'] as const).map(p => (\n                  <button key={p} onClick={() => setSpForm(f => ({ ...f, platform: p }))}\n                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all"\n                    style={{ backgroundColor: spForm.platform === p ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)', color: spForm.platform === p ? 'var(--brand-parchment)' : 'var(--text-secondary)' }}>\n                    {p === 'instagram' ? <InstagramIcon /> : <FacebookIcon />}\n                    {p.charAt(0).toUpperCase() + p.slice(1)}\n                  </button>\n                ))}\n              </div>\n              <div>\n                <input\n                  value={spForm.post_url}\n                  onChange={e => setSpForm(f => ({ ...f, post_url: e.target.value }))}\n                  onBlur={e => { if (e.target.value) fetchOgPreview(e.target.value) }}\n                  placeholder="Post URL (required)"\n                  className="w-full border rounded-xl px-3 py-2.5 text-sm"\n                  style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}\n                />\n                {spPreviewing && (\n                  <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>Fetching preview…</p>\n                )}\n                {!spPreviewing && spPreviewHint && (\n                  <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>{spPreviewHint}</p>\n                )}\n              </div>\n              <textarea\n                value={spForm.caption}\n                onChange={e => setSpForm(f => ({ ...f, caption: e.target.value }))}\n                placeholder="Caption — auto-extracted from post if left blank"\n                rows={3}\n                className="w-full border rounded-xl px-3 py-2.5 text-sm resize-none"\n                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}\n              />\n              <input\n                value={spForm.thumbnail_url}\n                onChange={e => setSpForm(f => ({ ...f, thumbnail_url: e.target.value }))}\n                placeholder="Thumbnail URL — auto-extracted from post if left blank"\n                className="w-full border rounded-xl px-3 py-2.5 text-sm"\n                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}\n              />\n              {createSocialPost.isError && (\n                <p className="text-xs" style={{ color: 'var(--brand-crimson)' }}>{(createSocialPost.error as Error).message}</p>\n              )}\n              <button onClick={() => createSocialPost.mutate(spForm)} disabled={createSocialPost.isPending || !spForm.post_url}\n                className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity"\n                style={{ backgroundColor: 'var(--brand-crimson)' }}>\n                {createSocialPost.isPending ? 'Adding…' : 'Add post'}\n              </button>\n            </div>\n\n            <div className="space-y-1.5">\n              {localSocials.length === 0 && (\n                <div className="rounded-2xl border px-6 py-10 text-center" style={{ borderColor: 'var(--border-default)' }}>\n                  <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No posts yet. Add one above.</p>\n                </div>\n              )}\n              {localSocials.map(post => (\n                <div key={post.id}\n                  draggable\n                  onDragStart={() => sDrag.onDragStart(post.id)}\n                  onDragOver={e => sDrag.onDragOver(e, post.id)}\n                  onDrop={sDrag.onDrop}\n                  onDragEnd={sDrag.onDragEnd}\n                  className="rounded-2xl border px-4 py-3 flex items-center gap-3"\n                  style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)', opacity: sDrag.isDragging(post.id) ? 0.5 : 1 }}>\n                  <GripHandle />\n                  <div className="flex-shrink-0 rounded-lg overflow-hidden" style={{ width: 40, height: 40, backgroundColor: 'rgba(0,0,0,0.06)' }}>\n                    {post.thumbnail_url ? (\n                      // eslint-disable-next-line @next/next/no-img-element\n                      <img src={post.thumbnail_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />\n                    ) : (\n                      <div className="w-full h-full flex items-center justify-center" style={{ color: 'var(--text-secondary)' }}>\n                        {post.platform === 'instagram' ? <InstagramIcon /> : <FacebookIcon />}\n                      </div>\n                    )}\n                  </div>\n                  <div className="flex-1 min-w-0">\n                    <div className="flex items-center gap-2 mb-0.5">\n                      <span style={{ color: 'var(--text-secondary)' }}>{post.platform === 'instagram' ? <InstagramIcon /> : <FacebookIcon />}</span>\n                      {post.is_pinned && (\n                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white" style={{ backgroundColor: 'var(--brand-crimson)' }}>Pinned</span>\n                      )}\n                    </div>\n                    <p className="text-xs truncate" style={{ color: 'var(--text-secondary)' }}>{post.caption ?? post.post_url}</p>\n                  </div>\n                  <div className="flex items-center gap-2 flex-shrink-0">\n                    <button onClick={() => patchSocialPost.mutate({ id: post.id, is_visible: !post.is_visible })} disabled={patchSocialPost.isPending}\n                      className="text-xs px-2.5 py-1 rounded-full font-semibold transition-all disabled:opacity-50"\n                      style={{ backgroundColor: post.is_visible ? 'rgba(26,107,74,0.12)' : 'rgba(0,0,0,0.06)', color: post.is_visible ? '#1a6b4a' : 'var(--text-secondary)' }}>\n                      {post.is_visible ? 'Active' : 'Hidden'}\n                    </button>\n                    <button onClick={() => patchSocialPost.mutate({ id: post.id, is_pinned: !post.is_pinned })} disabled={patchSocialPost.isPending}\n                      className="text-xs px-2.5 py-1 rounded-full font-semibold border transition-all disabled:opacity-50 hover:bg-black/5"\n                      style={{ borderColor: 'var(--border-default)', color: post.is_pinned ? 'var(--brand-crimson)' : 'var(--text-secondary)' }}>\n                      {post.is_pinned ? 'Unpin' : 'Pin'}\n                    </button>\n                    <button onClick={() => { if (window.confirm('Delete this post?')) deleteSocialPost.mutate(post.id) }} disabled={deleteSocialPost.isPending}\n                      className="text-xs font-medium hover:opacity-70 transition-opacity disabled:opacity-40"\n                      style={{ color: 'var(--brand-crimson)' }}>Delete</button>\n                  </div>\n                </div>\n              ))}\n            </div>\n          </section>\n        )}\n\n        {/* ── Bento tab ── */}\n        {tab === 'bento' && <BentoSettings />}\n      </div>\n    </div>\n  )\n}\n\nexport default function ContentPage() {\n  return (\n    <Suspense>\n      <ContentPageInner />\n    </Suspense>\n  )\n}\n
+'use client'
+
+import { Suspense, useRef } from 'react'
+import { useState } from 'react'
+import { useSearchParams } from 'next/navigation'
+import Link from 'next/link'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useBentoConfig, type BentoConfigEntry } from '@/lib/hooks/useBentoConfig'
+import type { Dispatch, SetStateAction } from 'react'
+import { Drawer } from '@/components/ui/Drawer'
+
+// ── Shared drag handle ───────────────────────────────────────────────
+
+function GripHandle() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="flex-shrink-0"
+      style={{ color: 'var(--text-secondary)', cursor: 'grab' }}>
+      <circle cx="4" cy="3" r="1.2" fill="currentColor"/>
+      <circle cx="4" cy="7" r="1.2" fill="currentColor"/>
+      <circle cx="4" cy="11" r="1.2" fill="currentColor"/>
+      <circle cx="10" cy="3" r="1.2" fill="currentColor"/>
+      <circle cx="10" cy="7" r="1.2" fill="currentColor"/>
+      <circle cx="10" cy="11" r="1.2" fill="currentColor"/>
+    </svg>
+  )
+}
+
+// ── BentoSettings ───────────────────────────────────────────────
+
+const TILE_LABELS: Record<string, string> = {
+  events:        'Events tile',
+  trips:         'Trips tile',
+  announcements: 'Announcements tile',
+  howtos:        'Howtos tile',
+  links:         'Quick Links tile',
+}
+
+function BentoSettings() {
+  const qc = useQueryClient()
+  const { data: config = [], isLoading } = useBentoConfig()
+  const [draft, setDraft] = useState<Record<string, number>>({})
+  const [saved, setSaved] = useState(false)
+
+  const values: Record<string, number> = {}
+  config.forEach(e => { values[e.tile_key] = draft[e.tile_key] ?? e.max_items })
+
+  const saveMutation = useMutation({
+    mutationFn: (updates: BentoConfigEntry[]) =>
+      fetch('/api/admin/bento-config', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      }).then(async r => { if (!r.ok) throw new Error((await r.json()).error); return r.json() }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['bento-config'] })
+      setDraft({})
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2500)
+    },
+  })
+
+  function handleSave() {
+    const updates = Object.entries(draft).map(([tile_key, max_items]) => ({ tile_key, max_items }))
+    if (updates.length > 0) saveMutation.mutate(updates)
+  }
+
+  const isDirty = Object.keys(draft).length > 0
+
+  return (
+    <section>
+      <div className="rounded-2xl border p-6" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
+        <p className="text-xs mb-5" style={{ color: 'var(--text-secondary)' }}>
+          Maximum number of items shown per tile on the homepage.
+        </p>
+        {isLoading ? (
+          <div className="space-y-3">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="h-10 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--border-default)' }} />
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {config.map(entry => (
+              <div key={entry.tile_key} className="flex items-center justify-between gap-4">
+                <label className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                  {TILE_LABELS[entry.tile_key] ?? entry.tile_key}
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={20}
+                  value={values[entry.tile_key] ?? entry.max_items}
+                  onChange={e => setDraft(d => ({ ...d, [entry.tile_key]: Number(e.target.value) }))}
+                  className="w-20 border rounded-xl px-3 py-2 text-sm text-center"
+                  style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
+                />
+              </div>
+            ))}
+          </div>
+        )}
+        <button
+          onClick={handleSave}
+          disabled={!isDirty || saveMutation.isPending}
+          className="mt-5 px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity"
+          style={{ backgroundColor: 'var(--brand-crimson)' }}
+        >
+          {saveMutation.isPending ? 'Saving…' : saved ? 'Saved ✓' : 'Save'}
+        </button>
+      </div>
+    </section>
+  )
+}
+
+// ── Types ───────────────────────────────────────────────────────
+
+type Announcement = {
+  id: string; titles: Record<string,string>; contents: Record<string,string>
+  access_level: string[]; is_active: boolean; created_at: string; sort_order: number
+}
+type QuickLink = {
+  id: string; label: string; url: string; icon_name: string
+  access_level: string[]; sort_order: number
+}
+type SocialPost = {
+  id: string
+  platform: 'instagram' | 'facebook'
+  post_url: string
+  caption: string | null
+  thumbnail_url: string | null
+  is_visible: boolean
+  is_pinned: boolean
+  sort_order: number
+  created_at: string
+}
+
+function InstagramIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+      <rect x="2" y="2" width="20" height="20" rx="5" stroke="currentColor" strokeWidth="1.8"/>
+      <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="1.8"/>
+      <circle cx="17.5" cy="6.5" r="1" fill="currentColor"/>
+    </svg>
+  )
+}
+
+function FacebookIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+      <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  )
+}
+
+const LANGS = ['en', 'bg', 'sk']
+
+// ── Guides types ───────────────────────────────────────────────
+
+type Block = {
+  type: 'heading' | 'paragraph' | 'callout'
+  content: { en: string; bg: string }
+  emoji?: string
+}
+
+type Guide = {
+  id: string
+  slug: string
+  title: { en: string; bg: string }
+  cover_image_url: string | null
+  emoji: string | null
+  body: Block[]
+  access_roles: string[]
+  is_published: boolean
+  created_at: string
+  updated_at: string
+  sort_order: number
+}
+
+const ALL_ROLES = ['guest', 'member', 'core', 'admin']
+
+function slugify(str: string) {
+  return str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+}
+
+function emptyGuide(): Omit<Guide, 'id' | 'created_at' | 'updated_at'> {
+  return {
+    slug: '',
+    title: { en: '', bg: '' },
+    cover_image_url: null,
+    emoji: null,
+    body: [],
+    access_roles: [...ALL_ROLES],
+    is_published: false,
+    sort_order: 0,
+  }
+}
+
+function BlockEditor({ blocks, onChange }: { blocks: Block[]; onChange: (b: Block[]) => void }) {
+  function addBlock(type: Block['type']) {
+    onChange([...safeBlocks, { type, content: { en: '', bg: '' }, emoji: type === 'callout' ? '💡' : undefined }])
+  }
+  function updateBlock(i: number, partial: Partial<Block>) {
+    const next = safeBlocks.map((b, idx) => idx === i ? { ...b, ...partial } : b)
+    onChange(next)
+  }
+  function updateContent(i: number, lang: 'en' | 'bg', value: string) {
+    updateBlock(i, { content: { ...safeBlocks[i].content, [lang]: value } })
+  }
+  function moveBlock(i: number, dir: -1 | 1) {
+    const next = [...safeBlocks]
+    const j = i + dir
+    if (j < 0 || j >= next.length) return
+    ;[next[i], next[j]] = [next[j], next[i]]
+    onChange(next)
+  }
+  function removeBlock(i: number) {
+    onChange(safeBlocks.filter((_, idx) => idx !== i))
+  }
+
+  const safeBlocks = Array.isArray(blocks) ? blocks : []
+
+  return (
+    <div className="space-y-3">
+      {safeBlocks.map((block, i) => (
+        <div key={i} className="rounded-xl border p-4 space-y-3"
+          style={{ backgroundColor: 'var(--bg-global)', borderColor: 'var(--border-default)' }}>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full uppercase tracking-widest"
+                style={{
+                  backgroundColor: block.type === 'heading' ? 'var(--brand-forest)' : block.type === 'callout' ? 'var(--brand-teal)' : 'rgba(0,0,0,0.06)',
+                  color: block.type === 'paragraph' ? 'var(--text-secondary)' : 'var(--brand-parchment)',
+                }}>
+                {block.type}
+              </span>
+              {block.type === 'callout' && (
+                <input
+                  value={block.emoji ?? ''}
+                  onChange={e => updateBlock(i, { emoji: e.target.value })}
+                  placeholder="emoji"
+                  className="w-14 border rounded-lg px-2 py-1 text-sm text-center"
+                  style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                />
+              )}
+            </div>
+            <div className="flex items-center gap-1">
+              <button onClick={() => moveBlock(i, -1)} disabled={i === 0}
+                className="w-6 h-6 flex items-center justify-center rounded hover:bg-black/5 disabled:opacity-30 text-xs"
+                style={{ color: 'var(--text-secondary)' }}>↑</button>
+              <button onClick={() => moveBlock(i, 1)} disabled={i === safeBlocks.length - 1}
+                className="w-6 h-6 flex items-center justify-center rounded hover:bg-black/5 disabled:opacity-30 text-xs"
+                style={{ color: 'var(--text-secondary)' }}>↓</button>
+              <button onClick={() => removeBlock(i)}
+                className="w-6 h-6 flex items-center justify-center rounded hover:bg-black/5 text-xs"
+                style={{ color: 'var(--brand-crimson)' }}>✕</button>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {(['en', 'bg'] as const).map(lang => (
+              <div key={lang}>
+                <label className="text-[10px] font-semibold uppercase tracking-widest mb-1 block"
+                  style={{ color: 'var(--text-secondary)' }}>{lang.toUpperCase()}</label>
+                {block.type === 'paragraph' || block.type === 'callout' ? (
+                  <textarea
+                    value={block.content[lang]}
+                    onChange={e => updateContent(i, lang, e.target.value)}
+                    rows={3}
+                    className="w-full border rounded-xl px-3 py-2 text-sm resize-none"
+                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
+                  />
+                ) : (
+                  <input
+                    value={block.content[lang]}
+                    onChange={e => updateContent(i, lang, e.target.value)}
+                    className="w-full border rounded-xl px-3 py-2 text-sm"
+                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+      <div className="flex gap-2 pt-1">
+        {(['heading', 'paragraph', 'callout'] as const).map(type => (
+          <button key={type} onClick={() => addBlock(type)}
+            className="px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors hover:bg-black/5"
+            style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
+            + {type}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function GuideForm({
+  initial,
+  onSave,
+  onCancel,
+  isPending,
+  error,
+}: {
+  initial: Omit<Guide, 'id' | 'created_at' | 'updated_at'>
+  onSave: (data: typeof initial) => void
+  onCancel: () => void
+  isPending: boolean
+  error: string | null
+}) {
+  const [form, setForm] = useState({
+    ...initial,
+    body: Array.isArray(initial.body) ? initial.body : [],
+    access_roles: Array.isArray(initial.access_roles) ? initial.access_roles : [...ALL_ROLES],
+  })
+  const [slugManual, setSlugManual] = useState(!!initial.slug)
+  const [copied, setCopied] = useState(false)
+  const [coverFile, setCoverFile] = useState<File | null>(null)
+  const [coverUploading, setCoverUploading] = useState(false)
+
+  function copySlugUrl() {
+    const base = process.env.NEXT_PUBLIC_APP_URL ?? window.location.origin
+    navigator.clipboard.writeText(`${base}/guides/${form.slug}`)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }
+
+  function handleTitleEnChange(val: string) {
+    setForm(f => ({
+      ...f,
+      title: { ...f.title, en: val },
+      slug: slugManual ? f.slug : slugify(val),
+    }))
+  }
+
+  function toggleRole(role: string) {
+    setForm(f => ({
+      ...f,
+      access_roles: f.access_roles.includes(role)
+        ? f.access_roles.filter(r => r !== role)
+        : [...f.access_roles, role],
+    }))
+  }
+
+  async function handleCoverFileChange(file: File) {
+    setCoverFile(file)
+    setCoverUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch('/api/admin/guides/upload', { method: 'POST', body: fd })
+      if (!res.ok) throw new Error((await res.json()).error ?? 'Upload failed')
+      const { url } = await res.json() as { url: string }
+      setForm(f => ({ ...f, cover_image_url: url }))
+    } catch (e) {
+      alert((e as Error).message)
+    } finally {
+      setCoverUploading(false)
+    }
+  }
+
+  return (
+    <div className="space-y-5">
+      <div className="grid grid-cols-2 gap-4">
+        {(['en', 'bg'] as const).map(lang => (
+          <div key={lang}>
+            <label className="text-xs font-semibold uppercase tracking-widest mb-1 block"
+              style={{ color: 'var(--text-secondary)' }}>Title ({lang.toUpperCase()})</label>
+            <input
+              value={form.title[lang]}
+              onChange={e => lang === 'en' ? handleTitleEnChange(e.target.value) : setForm(f => ({ ...f, title: { ...f.title, bg: e.target.value } }))}
+              className="w-full border rounded-xl px-3 py-2 text-sm"
+              style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
+            />
+          </div>
+        ))}
+      </div>
+
+      <div>
+        <label className="text-xs font-semibold uppercase tracking-widest mb-1 block"
+          style={{ color: 'var(--text-secondary)' }}>Slug</label>
+        <div className="flex items-center gap-2">
+          <input
+            value={form.slug}
+            onChange={e => { setSlugManual(true); setForm(f => ({ ...f, slug: e.target.value })) }}
+            className="flex-1 border rounded-xl px-3 py-2 text-sm font-mono"
+            style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
+          />
+          <button
+            type="button"
+            onClick={copySlugUrl}
+            disabled={!form.slug}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border transition-all disabled:opacity-30 hover:bg-black/5 flex-shrink-0"
+            style={{
+              borderColor: copied ? 'rgba(34,197,94,0.4)' : 'var(--border-default)',
+              color: copied ? '#15803d' : 'var(--text-secondary)',
+              backgroundColor: copied ? 'rgba(34,197,94,0.08)' : 'transparent',
+            }}
+          >
+            {copied ? (
+              <>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                Copied!
+              </>
+            ) : (
+              <>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                </svg>
+                Copy URL
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="text-xs font-semibold uppercase tracking-widest mb-1 block"
+            style={{ color: 'var(--text-secondary)' }}>Emoji</label>
+          <input
+            value={form.emoji ?? ''}
+            onChange={e => setForm(f => ({ ...f, emoji: e.target.value || null }))}
+            placeholder="e.g. 📦"
+            className="w-full border rounded-xl px-3 py-2 text-sm text-center"
+            style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
+          />
+        </div>
+        <div>
+          <label className="text-xs font-semibold uppercase tracking-widest mb-1 block"
+            style={{ color: 'var(--text-secondary)' }}>Cover Image</label>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <label
+                className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold border cursor-pointer hover:bg-black/5 transition-colors flex-shrink-0"
+                style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="17 8 12 3 7 8"/>
+                  <line x1="12" x2="12" y1="3" y2="15"/>
+                </svg>
+                {coverUploading ? 'Uploading…' : 'Upload'}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={e => { const f = e.target.files?.[0]; if (f) handleCoverFileChange(f) }}
+                />
+              </label>
+              {coverFile && !coverUploading && (
+                <span className="text-[11px] truncate max-w-[120px]" style={{ color: 'var(--brand-teal)' }}>
+                  {coverFile.name}
+                </span>
+              )}
+            </div>
+            <input
+              value={form.cover_image_url ?? ''}
+              onChange={e => setForm(f => ({ ...f, cover_image_url: e.target.value || null }))}
+              placeholder="or paste URL…"
+              className="w-full border rounded-xl px-3 py-2 text-xs"
+              style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)', backgroundColor: 'var(--bg-card)' }}
+            />
+            {form.cover_image_url && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={form.cover_image_url} alt="" className="rounded-lg object-cover" style={{ width: '100%', height: 80 }} />
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <label className="text-xs font-semibold uppercase tracking-widest mb-2 block"
+          style={{ color: 'var(--text-secondary)' }}>Access Roles</label>
+        <div className="flex gap-2">
+          {ALL_ROLES.map(role => (
+            <button key={role} onClick={() => toggleRole(role)}
+              className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
+              style={{
+                backgroundColor: form.access_roles.includes(role) ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)',
+                color: form.access_roles.includes(role) ? 'var(--brand-parchment)' : 'var(--text-secondary)',
+              }}>
+              {role}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <label className="text-xs font-semibold uppercase tracking-widest mb-2 block"
+          style={{ color: 'var(--text-secondary)' }}>Body Blocks</label>
+        <BlockEditor blocks={form.body} onChange={body => setForm(f => ({ ...f, body }))} />
+      </div>
+
+      <div className="flex items-center gap-3">
+        <span
+          className="px-2.5 py-0.5 rounded-full text-xs font-semibold"
+          style={{
+            backgroundColor: form.is_published ? 'rgba(34,197,94,0.12)' : 'rgba(0,0,0,0.06)',
+            color: form.is_published ? '#15803d' : 'var(--text-secondary)',
+          }}>
+          {form.is_published ? 'Published' : 'Draft'}
+        </span>
+        <button
+          onClick={() => setForm(f => ({ ...f, is_published: !f.is_published }))}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border transition-all hover:bg-black/5"
+          style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
+          {form.is_published ? 'Unpublish' : 'Publish'}
+        </button>
+      </div>
+
+      {error && <p className="text-sm" style={{ color: 'var(--brand-crimson)' }}>{error}</p>}
+
+      <div className="flex gap-3 pt-2">
+        <button
+          onClick={() => onSave(form)}
+          disabled={isPending || !form.slug || !form.title.en || coverUploading}
+          className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40 transition-opacity hover:opacity-90"
+          style={{ backgroundColor: 'var(--brand-crimson)' }}>
+          {isPending ? 'Saving…' : 'Save'}
+        </button>
+        <button onClick={onCancel}
+          className="px-6 py-2.5 rounded-xl text-sm font-semibold border transition-colors hover:bg-black/5"
+          style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
+          Cancel
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ── Tab definitions ───────────────────────────────────────────────
+
+const TABS = [
+  { key: 'announcements', label: 'Announcements' },
+  { key: 'links',         label: 'Quick Links'   },
+  { key: 'guides',        label: 'Guides'        },
+  { key: 'socials',       label: 'Social Posts'  },
+  { key: 'bento',         label: 'Bento'         },
+] as const
+
+type TabKey = typeof TABS[number]['key']
+
+// ── Inner page ────────────────────────────────────────────────────
+
+function ContentPageInner() {
+  const searchParams = useSearchParams()
+  const tab = (searchParams.get('tab') ?? 'announcements') as TabKey
+  const qc = useQueryClient()
+
+  // ── Announcements ───────────────────────────────────
+  const { data: announcementsRaw = [] } = useQuery<Announcement[]>({
+    queryKey: ['announcements'],
+    queryFn: () => fetch('/api/admin/announcements').then(r => r.json()),
+  })
+  const [localAnnouncements, setLocalAnnouncements] = useState<Announcement[]>([])
+  const aPrevKey = useRef('')
+  const aKey = announcementsRaw.map(a => a.id).join(',')
+  if (aPrevKey.current !== aKey) { aPrevKey.current = aKey; setLocalAnnouncements([...announcementsRaw]) }
+  const [aDragging, setADragging] = useState<string | null>(null)
+
+  const reorderAnnouncements = useMutation({
+    mutationFn: (items: { id: string; sort_order: number }[]) =>
+      fetch('/api/admin/announcements', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items }),
+      }).then(r => r.json()),
+    onError: () => setLocalAnnouncements([...announcementsRaw]),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['announcements'] }),
+  })
+
+  const [aForm, setAForm] = useState({
+    titles: { en: '', bg: '', sk: '' } as Record<string,string>,
+    contents: { en: '', bg: '', sk: '' } as Record<string,string>,
+    is_active: true,
+    access_level: ['guest', 'member', 'core', 'admin'] as string[],
+  })
+  const [aLang, setALang] = useState('en')
+
+  const createAnnouncement = useMutation({
+    mutationFn: (body: typeof aForm) =>
+      fetch('/api/admin/announcements', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      }).then(r => r.json()),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['announcements'] })
+      setAForm({ titles: { en:'',bg:'',sk:'' }, contents: { en:'',bg:'',sk:'' }, is_active: true, access_level: ['guest','member','core','admin'] })
+    },
+  })
+
+  const toggleAnnouncement = useMutation({
+    mutationFn: ({ id, is_active }: { id: string; is_active: boolean }) =>
+      fetch(`/api/admin/announcements/${id}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_active }),
+      }).then(r => r.json()),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['announcements'] }),
+  })
+
+  const deleteAnnouncement = useMutation({
+    mutationFn: (id: string) =>
+      fetch(`/api/admin/announcements/${id}`, { method: 'DELETE' }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['announcements'] }),
+  })
+
+  const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null)
+  const [editAForm, setEditAForm] = useState({
+    titles: { en: '', bg: '', sk: '' } as Record<string,string>,
+    contents: { en: '', bg: '', sk: '' } as Record<string,string>,
+    is_active: true,
+    access_level: ['guest', 'member', 'core', 'admin'] as string[],
+  })
+  const [editALang, setEditALang] = useState('en')
+
+  const updateAnnouncement = useMutation({
+    mutationFn: ({ id, ...body }: { id: string } & typeof editAForm) =>
+      fetch(`/api/admin/announcements/${id}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      }).then(r => r.json()),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['announcements'] })
+      setEditingAnnouncement(null)
+    },
+  })
+
+  function startEditingAnnouncement(a: Announcement) {
+    setEditAForm({
+      titles: { en: '', bg: '', sk: '', ...a.titles },
+      contents: { en: '', bg: '', sk: '', ...a.contents },
+      is_active: a.is_active,
+      access_level: Array.isArray(a.access_level) ? a.access_level : ['guest','member','core','admin'],
+    })
+    setEditALang('en')
+    setEditingAnnouncement(a)
+  }
+
+  // ── Quick Links ────────────────────────────────────
+  const { data: linksRaw = [] } = useQuery<QuickLink[]>({
+    queryKey: ['quick-links'],
+    queryFn: () => fetch('/api/admin/quick-links').then(r => r.json()),
+  })
+  const [localLinks, setLocalLinks] = useState<QuickLink[]>([])
+  const lPrevKey = useRef('')
+  const lKey = linksRaw.map(l => l.id).join(',')
+  if (lPrevKey.current !== lKey) { lPrevKey.current = lKey; setLocalLinks([...linksRaw]) }
+  const [lDragging, setLDragging] = useState<string | null>(null)
+
+  const reorderLinks = useMutation({
+    mutationFn: (items: { id: string; sort_order: number }[]) =>
+      fetch('/api/admin/quick-links', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items }),
+      }).then(r => r.json()),
+    onError: () => setLocalLinks([...linksRaw]),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['quick-links'] }),
+  })
+
+  const [lForm, setLForm] = useState({ label: '', url: '', icon_name: 'link', sort_order: 0, access_level: ['guest','member','core','admin'] as string[] })
+
+  const createLink = useMutation({
+    mutationFn: (body: typeof lForm) =>
+      fetch('/api/admin/quick-links', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      }).then(r => r.json()),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['quick-links'] })
+      setLForm({ label: '', url: '', icon_name: 'link', sort_order: 0, access_level: ['guest','member','core','admin'] })
+    },
+  })
+
+  const deleteLink = useMutation({
+    mutationFn: (id: string) =>
+      fetch(`/api/admin/quick-links/${id}`, { method: 'DELETE' }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['quick-links'] }),
+  })
+
+  const [editingLink, setEditingLink] = useState<QuickLink | null>(null)
+  const [editLForm, setEditLForm] = useState({ label: '', url: '', icon_name: 'link', sort_order: 0, access_level: ['guest','member','core','admin'] as string[] })
+
+  const updateLink = useMutation({
+    mutationFn: ({ id, ...body }: { id: string } & typeof editLForm) =>
+      fetch(`/api/admin/quick-links/${id}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      }).then(r => r.json()),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['quick-links'] })
+      setEditingLink(null)
+    },
+  })
+
+  function startEditingLink(l: QuickLink) {
+    setEditLForm({
+      label: l.label,
+      url: l.url,
+      icon_name: l.icon_name,
+      sort_order: l.sort_order,
+      access_level: Array.isArray(l.access_level) ? l.access_level : ['guest','member','core','admin'],
+    })
+    setEditingLink(l)
+  }
+
+  // ── Guides ─────────────────────────────────────────
+  const [guidesEditing, setGuidesEditing] = useState<Guide | null>(null)
+  const [guidesCreating, setGuidesCreating] = useState(false)
+  const [guidesMutError, setGuidesMutError] = useState<string | null>(null)
+
+  const { data: guidesRaw = [], isLoading: guidesLoading } = useQuery<Guide[]>({
+    queryKey: ['admin-guides'],
+    queryFn: () => fetch('/api/admin/guides').then(r => r.json()),
+  })
+  const [localGuides, setLocalGuides] = useState<Guide[]>([])
+  const gPrevKey = useRef('')
+  const gKey = guidesRaw.map(g => g.id).join(',')
+  if (gPrevKey.current !== gKey) { gPrevKey.current = gKey; setLocalGuides([...guidesRaw]) }
+  const [gDragging, setGDragging] = useState<string | null>(null)
+
+  const reorderGuides = useMutation({
+    mutationFn: (items: { id: string; sort_order: number }[]) =>
+      fetch('/api/admin/guides', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items }),
+      }).then(r => r.json()),
+    onError: () => setLocalGuides([...guidesRaw]),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-guides'] }),
+  })
+
+  const createGuide = useMutation({
+    mutationFn: (body: ReturnType<typeof emptyGuide>) =>
+      fetch('/api/admin/guides', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      }).then(async r => { if (!r.ok) throw new Error((await r.json()).error); return r.json() }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-guides'] }); setGuidesCreating(false); setGuidesMutError(null) },
+    onError: (e: Error) => setGuidesMutError(e.message),
+  })
+
+  const updateGuide = useMutation({
+    mutationFn: ({ id, ...body }: Partial<Guide> & { id: string }) =>
+      fetch(`/api/admin/guides/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      }).then(async r => { if (!r.ok) throw new Error((await r.json()).error); return r.json() }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-guides'] }); setGuidesEditing(null); setGuidesMutError(null) },
+    onError: (e: Error) => setGuidesMutError(e.message),
+  })
+
+  const deleteGuide = useMutation({
+    mutationFn: (id: string) => fetch(`/api/admin/guides/${id}`, { method: 'DELETE' }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-guides'] }),
+  })
+
+  const toggleGuidePublish = (guide: Guide) =>
+    updateGuide.mutate({ id: guide.id, is_published: !guide.is_published })
+
+  // ── Social Posts ───────────────────────────────────
+  const { data: socialPostsRaw = [] } = useQuery<SocialPost[]>({
+    queryKey: ['admin-social-posts'],
+    queryFn: () => fetch('/api/admin/social-posts').then(r => r.json()),
+  })
+  const [localSocials, setLocalSocials] = useState<SocialPost[]>([])
+  const sPrevKey = useRef('')
+  const sKey = socialPostsRaw.map(p => p.id).join(',')
+  if (sPrevKey.current !== sKey) { sPrevKey.current = sKey; setLocalSocials([...socialPostsRaw]) }
+  const [sDragging, setSDragging] = useState<string | null>(null)
+
+  const reorderSocials = useMutation({
+    mutationFn: (items: { id: string; sort_order: number }[]) =>
+      fetch('/api/admin/social-posts', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items }),
+      }).then(r => r.json()),
+    onError: () => setLocalSocials([...socialPostsRaw]),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-social-posts'] }); qc.invalidateQueries({ queryKey: ['socials'] }) },
+  })
+
+  const [spForm, setSpForm] = useState({
+    platform: 'instagram' as 'instagram' | 'facebook',
+    post_url: '',
+    caption: '',
+    thumbnail_url: '',
+  })
+  const [spPreviewing, setSpPreviewing] = useState(false)
+  const [spPreviewHint, setSpPreviewHint] = useState<string | null>(null)
+
+  async function fetchOgPreview(url: string) {
+    if (!url) return
+    setSpPreviewing(true)
+    setSpPreviewHint(null)
+    try {
+      const res = await fetch(`/api/admin/social-posts/preview?url=${encodeURIComponent(url)}`)
+      if (!res.ok) throw new Error('preview failed')
+      const data = await res.json() as { thumbnail_url: string | null; caption: string | null }
+      setSpForm(f => ({
+        ...f,
+        thumbnail_url: data.thumbnail_url ?? f.thumbnail_url,
+        caption: data.caption ?? f.caption,
+      }))
+      if (!data.thumbnail_url && !data.caption) {
+        setSpPreviewHint('Preview unavailable for this platform — enter thumbnail URL manually')
+      }
+    } catch {
+      setSpPreviewHint('Preview unavailable for this platform — enter thumbnail URL manually')
+    } finally {
+      setSpPreviewing(false)
+    }
+  }
+
+  const createSocialPost = useMutation({
+    mutationFn: (body: typeof spForm) =>
+      fetch('/api/admin/social-posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...body,
+          caption: body.caption || undefined,
+          thumbnail_url: body.thumbnail_url || undefined,
+        }),
+      }).then(async r => { if (!r.ok) throw new Error((await r.json()).error ?? 'Failed'); return r.json() }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-social-posts'] })
+      qc.invalidateQueries({ queryKey: ['socials'] })
+      setSpForm({ platform: 'instagram', post_url: '', caption: '', thumbnail_url: '' })
+      setSpPreviewHint(null)
+    },
+  })
+
+  const patchSocialPost = useMutation({
+    mutationFn: ({ id, ...patch }: { id: string } & Partial<SocialPost>) =>
+      fetch(`/api/admin/social-posts/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch),
+      }).then(r => r.json()),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-social-posts'] })
+      qc.invalidateQueries({ queryKey: ['socials'] })
+    },
+  })
+
+  const deleteSocialPost = useMutation({
+    mutationFn: (id: string) =>
+      fetch(`/api/admin/social-posts/${id}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-social-posts'] })
+      qc.invalidateQueries({ queryKey: ['socials'] })
+    },
+  })
+
+  // ── Generic drag helpers ───────────────────────────────
+  function makeDragHandlers<T extends { id: string }>(
+    dragging: string | null,
+    setDragging: (id: string | null) => void,
+    local: T[],
+    setLocal: Dispatch<SetStateAction<T[]>>,
+    onDrop: (items: { id: string; sort_order: number }[]) => void,
+  ) {
+    return {
+      onDragStart: (id: string) => setDragging(id),
+      onDragOver: (e: React.DragEvent, targetId: string) => {
+        e.preventDefault()
+        if (!dragging || dragging === targetId) return
+        setLocal(prev => {
+          const from = prev.findIndex(x => x.id === dragging)
+          const to   = prev.findIndex(x => x.id === targetId)
+          if (from === -1 || to === -1) return prev
+          const next = [...prev]
+          const [moved] = next.splice(from, 1)
+          next.splice(to, 0, moved)
+          return next
+        })
+      },
+      onDrop: () => {
+        setDragging(null)
+        onDrop(local.map((item, i) => ({ id: item.id, sort_order: i * 10 })))
+      },
+      onDragEnd: () => setDragging(null),
+      isDragging: (id: string) => dragging === id,
+    }
+  }
+
+  const aDrag = makeDragHandlers(aDragging, setADragging, localAnnouncements, setLocalAnnouncements, items => reorderAnnouncements.mutate(items))
+  const lDrag = makeDragHandlers(lDragging, setLDragging, localLinks, setLocalLinks, items => reorderLinks.mutate(items))
+  const gDrag = makeDragHandlers(gDragging, setGDragging, localGuides, setLocalGuides, items => reorderGuides.mutate(items))
+  const sDrag = makeDragHandlers(sDragging, setSDragging, localSocials, setLocalSocials, items => reorderSocials.mutate(items))
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="font-display text-2xl font-semibold" style={{ color: 'var(--text-primary)' }}>
+          Content
+        </h1>
+      </div>
+
+      {/* ── Tabs ── */}
+      <div>
+        <div className="flex gap-1 border-b mb-6" style={{ borderColor: 'var(--border-default)' }}>
+          {TABS.map(t => (
+            <Link
+              key={t.key}
+              href={`/admin/content?tab=${t.key}`}
+              scroll={false}
+              className="px-4 py-2.5 text-sm font-semibold transition-colors relative"
+              style={{
+                color: tab === t.key ? 'var(--text-primary)' : 'var(--text-secondary)',
+                borderBottom: tab === t.key ? '2px solid var(--brand-crimson)' : '2px solid transparent',
+                marginBottom: '-1px',
+              }}
+            >
+              {t.label}
+            </Link>
+          ))}
+        </div>
+
+        {/* ── Announcements tab ── */}
+        {tab === 'announcements' && (
+          <section>
+            <div className="flex gap-2 mb-4">
+              {LANGS.map(l => (
+                <button key={l} onClick={() => setALang(l)}
+                  className="px-3 py-1 rounded-lg text-sm font-medium transition-colors"
+                  style={{
+                    backgroundColor: aLang === l ? 'var(--text-primary)' : 'rgba(0,0,0,0.05)',
+                    color: aLang === l ? 'white' : 'var(--text-secondary)',
+                  }}>
+                  {l.toUpperCase()}
+                </button>
+              ))}
+            </div>
+
+            <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-6 mb-4 space-y-3">
+              <input value={aForm.titles[aLang] ?? ''}
+                onChange={e => setAForm(f => ({ ...f, titles: { ...f.titles, [aLang]: e.target.value } }))}
+                placeholder={`Title (${aLang.toUpperCase()})`}
+                className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+                style={{ color: 'var(--text-primary)' }} />
+              <textarea value={aForm.contents[aLang] ?? ''}
+                onChange={e => setAForm(f => ({ ...f, contents: { ...f.contents, [aLang]: e.target.value } }))}
+                placeholder={`Content (${aLang.toUpperCase()})`}
+                rows={4}
+                className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm resize-none"
+                style={{ color: 'var(--text-primary)' }} />
+              <div className="flex gap-2 flex-wrap">
+                {['guest','member','core','admin'].map(role => (
+                  <button key={role}
+                    onClick={() => setAForm(f => ({ ...f, access_level: f.access_level.includes(role) ? f.access_level.filter(r => r !== role) : [...f.access_level, role] }))}
+                    className="px-3 py-1 rounded-full text-xs font-semibold transition-all"
+                    style={{ backgroundColor: aForm.access_level.includes(role) ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)', color: aForm.access_level.includes(role) ? 'var(--brand-parchment)' : 'var(--text-secondary)' }}>
+                    {role}
+                  </button>
+                ))}
+              </div>
+              <button onClick={() => createAnnouncement.mutate(aForm)}
+                disabled={createAnnouncement.isPending || !aForm.titles.en}
+                className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
+                style={{ backgroundColor: 'var(--brand-crimson)' }}>
+                {createAnnouncement.isPending ? 'Publishing…' : 'Publish'}
+              </button>
+            </div>
+
+            <div className="space-y-1.5">
+              {localAnnouncements.map(a => (
+                <div key={a.id}
+                  draggable
+                  onDragStart={() => aDrag.onDragStart(a.id)}
+                  onDragOver={e => aDrag.onDragOver(e, a.id)}
+                  onDrop={aDrag.onDrop}
+                  onDragEnd={aDrag.onDragEnd}
+                  className="bg-white rounded-2xl border border-black/5 shadow-sm p-4 flex items-start gap-3"
+                  style={{ opacity: aDrag.isDragging(a.id) ? 0.5 : 1 }}>
+                  <GripHandle />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
+                      {a.titles.en ?? a.titles.bg ?? 'Untitled'}
+                    </p>
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                      {new Date(a.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <button onClick={() => startEditingAnnouncement(a)}
+                      className="text-xs px-2.5 py-1 rounded-full font-medium border hover:bg-black/5 transition-colors"
+                      style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>Edit</button>
+                    <button onClick={() => toggleAnnouncement.mutate({ id: a.id, is_active: !a.is_active })}
+                      className="text-xs px-2.5 py-1 rounded-full font-medium"
+                      style={{ backgroundColor: a.is_active ? '#81b29a33' : 'rgba(0,0,0,0.05)', color: a.is_active ? '#2d6a4f' : 'var(--text-secondary)' }}>
+                      {a.is_active ? 'Active' : 'Inactive'}
+                    </button>
+                    <button onClick={() => deleteAnnouncement.mutate(a.id)}
+                      className="text-xs font-medium hover:opacity-70 transition-opacity"
+                      style={{ color: 'var(--brand-crimson)' }}>Delete</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Edit announcement Drawer */}
+            <Drawer
+              open={!!editingAnnouncement}
+              onClose={() => setEditingAnnouncement(null)}
+              title="Edit announcement"
+            >
+              <div className="space-y-3">
+                <div className="flex gap-2 mb-2">
+                  {LANGS.map(l => (
+                    <button key={l} onClick={() => setEditALang(l)}
+                      className="px-3 py-1 rounded-lg text-sm font-medium transition-colors"
+                      style={{ backgroundColor: editALang === l ? 'var(--text-primary)' : 'rgba(0,0,0,0.05)', color: editALang === l ? 'white' : 'var(--text-secondary)' }}>
+                      {l.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+                <input value={editAForm.titles[editALang] ?? ''}
+                  onChange={e => setEditAForm(f => ({ ...f, titles: { ...f.titles, [editALang]: e.target.value } }))}
+                  placeholder={`Title (${editALang.toUpperCase()})`}
+                  className="w-full border rounded-xl px-3 py-2.5 text-sm"
+                  style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
+                <textarea value={editAForm.contents[editALang] ?? ''}
+                  onChange={e => setEditAForm(f => ({ ...f, contents: { ...f.contents, [editALang]: e.target.value } }))}
+                  placeholder={`Content (${editALang.toUpperCase()})`}
+                  rows={4}
+                  className="w-full border rounded-xl px-3 py-2.5 text-sm resize-none"
+                  style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
+                <div className="flex gap-2 flex-wrap">
+                  {['guest','member','core','admin'].map(role => (
+                    <button key={role}
+                      onClick={() => setEditAForm(f => ({ ...f, access_level: f.access_level.includes(role) ? f.access_level.filter(r => r !== role) : [...f.access_level, role] }))}
+                      className="px-3 py-1 rounded-full text-xs font-semibold transition-all"
+                      style={{ backgroundColor: editAForm.access_level.includes(role) ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)', color: editAForm.access_level.includes(role) ? 'var(--brand-parchment)' : 'var(--text-secondary)' }}>
+                      {role}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <button onClick={() => editingAnnouncement && updateAnnouncement.mutate({ id: editingAnnouncement.id, ...editAForm })}
+                    disabled={updateAnnouncement.isPending || !editAForm.titles.en}
+                    className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
+                    style={{ backgroundColor: 'var(--brand-crimson)' }}>
+                    {updateAnnouncement.isPending ? 'Saving…' : 'Save changes'}
+                  </button>
+                  <button onClick={() => setEditingAnnouncement(null)}
+                    className="px-5 py-2 rounded-xl text-sm font-semibold border transition-colors hover:bg-black/5"
+                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>Cancel</button>
+                </div>
+              </div>
+            </Drawer>
+          </section>
+        )}
+
+        {/* ── Quick Links tab ── */}
+        {tab === 'links' && (
+          <section>
+            <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-6 mb-4">
+              <div className="grid grid-cols-4 gap-3 mb-4">
+                <input value={lForm.label} onChange={e => setLForm(f => ({ ...f, label: e.target.value }))} placeholder="Label" className="border border-black/10 rounded-xl px-3 py-2.5 text-sm" style={{ color: 'var(--text-primary)' }} />
+                <input value={lForm.url} onChange={e => setLForm(f => ({ ...f, url: e.target.value }))} placeholder="URL" className="border border-black/10 rounded-xl px-3 py-2.5 text-sm col-span-2" style={{ color: 'var(--text-primary)' }} />
+                <input value={lForm.icon_name} onChange={e => setLForm(f => ({ ...f, icon_name: e.target.value }))} placeholder="Icon name" className="border border-black/10 rounded-xl px-3 py-2.5 text-sm" style={{ color: 'var(--text-primary)' }} />
+              </div>
+              <div className="flex gap-2 flex-wrap mb-4">
+                {['guest','member','core','admin'].map(role => (
+                  <button key={role}
+                    onClick={() => setLForm(f => ({ ...f, access_level: f.access_level.includes(role) ? f.access_level.filter(r => r !== role) : [...f.access_level, role] }))}
+                    className="px-3 py-1 rounded-full text-xs font-semibold transition-all"
+                    style={{ backgroundColor: lForm.access_level.includes(role) ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)', color: lForm.access_level.includes(role) ? 'var(--brand-parchment)' : 'var(--text-secondary)' }}>
+                    {role}
+                  </button>
+                ))}
+              </div>
+              <button onClick={() => createLink.mutate(lForm)}
+                disabled={createLink.isPending || !lForm.label || !lForm.url}
+                className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
+                style={{ backgroundColor: 'var(--brand-crimson)' }}>
+                {createLink.isPending ? 'Adding…' : 'Add link'}
+              </button>
+            </div>
+
+            <div className="space-y-1.5">
+              {localLinks.map(l => (
+                <div key={l.id}
+                  draggable
+                  onDragStart={() => lDrag.onDragStart(l.id)}
+                  onDragOver={e => lDrag.onDragOver(e, l.id)}
+                  onDrop={lDrag.onDrop}
+                  onDragEnd={lDrag.onDragEnd}
+                  className="bg-white rounded-2xl border border-black/5 shadow-sm p-4 flex items-center gap-3"
+                  style={{ opacity: lDrag.isDragging(l.id) ? 0.5 : 1 }}>
+                  <GripHandle />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{l.label}</p>
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>{l.url}</p>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <button onClick={() => startEditingLink(l)}
+                      className="text-xs font-medium border px-2.5 py-1 rounded-full hover:bg-black/5 transition-colors"
+                      style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>Edit</button>
+                    <button onClick={() => deleteLink.mutate(l.id)}
+                      className="text-xs font-medium hover:opacity-70 transition-opacity"
+                      style={{ color: 'var(--brand-crimson)' }}>Delete</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Edit link Drawer */}
+            <Drawer
+              open={!!editingLink}
+              onClose={() => setEditingLink(null)}
+              title={editingLink ? `Edit: ${editingLink.label}` : 'Edit link'}
+            >
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Label</label>
+                    <input value={editLForm.label} onChange={e => setEditLForm(f => ({ ...f, label: e.target.value }))} placeholder="Label"
+                      className="w-full border rounded-xl px-3 py-2.5 text-sm"
+                      style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
+                  </div>
+                  <div>
+                    <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Icon name</label>
+                    <input value={editLForm.icon_name} onChange={e => setEditLForm(f => ({ ...f, icon_name: e.target.value }))} placeholder="Icon name"
+                      className="w-full border rounded-xl px-3 py-2.5 text-sm"
+                      style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>URL</label>
+                  <input value={editLForm.url} onChange={e => setEditLForm(f => ({ ...f, url: e.target.value }))} placeholder="URL"
+                    className="w-full border rounded-xl px-3 py-2.5 text-sm"
+                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                  {['guest','member','core','admin'].map(role => (
+                    <button key={role}
+                      onClick={() => setEditLForm(f => ({ ...f, access_level: f.access_level.includes(role) ? f.access_level.filter(r => r !== role) : [...f.access_level, role] }))}
+                      className="px-3 py-1 rounded-full text-xs font-semibold transition-all"
+                      style={{ backgroundColor: editLForm.access_level.includes(role) ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)', color: editLForm.access_level.includes(role) ? 'var(--brand-parchment)' : 'var(--text-secondary)' }}>
+                      {role}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <button onClick={() => editingLink && updateLink.mutate({ id: editingLink.id, ...editLForm })}
+                    disabled={updateLink.isPending || !editLForm.label || !editLForm.url}
+                    className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
+                    style={{ backgroundColor: 'var(--brand-crimson)' }}>
+                    {updateLink.isPending ? 'Saving…' : 'Save changes'}
+                  </button>
+                  <button onClick={() => setEditingLink(null)}
+                    className="px-5 py-2 rounded-xl text-sm font-semibold border transition-colors hover:bg-black/5"
+                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>Cancel</button>
+                </div>
+              </div>
+            </Drawer>
+          </section>
+        )}
+
+        {/* ── Guides tab ── */}
+        {tab === 'guides' && (
+          <section className="space-y-6">
+            <div className="flex items-center justify-between">
+              <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                {guidesRaw.length} guide{guidesRaw.length !== 1 ? 's' : ''}
+              </p>
+              <button onClick={() => { setGuidesCreating(true); setGuidesEditing(null); setGuidesMutError(null) }}
+                className="px-4 py-2 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-opacity"
+                style={{ backgroundColor: 'var(--brand-crimson)' }}>+ New Guide</button>
+            </div>
+
+            {/* Guides create + edit Drawer */}
+            <Drawer
+              open={guidesCreating || !!guidesEditing}
+              onClose={() => { setGuidesCreating(false); setGuidesEditing(null); setGuidesMutError(null) }}
+              title={guidesEditing ? `Edit: ${guidesEditing.title.en || guidesEditing.slug}` : 'New Guide'}
+            >
+              {guidesCreating && (
+                <GuideForm
+                  initial={emptyGuide()}
+                  onSave={data => createGuide.mutate(data)}
+                  onCancel={() => { setGuidesCreating(false); setGuidesMutError(null) }}
+                  isPending={createGuide.isPending}
+                  error={guidesMutError}
+                />
+              )}
+              {guidesEditing && (
+                <GuideForm
+                  initial={{ slug: guidesEditing.slug, title: guidesEditing.title, cover_image_url: guidesEditing.cover_image_url, emoji: guidesEditing.emoji, body: guidesEditing.body, access_roles: guidesEditing.access_roles, is_published: guidesEditing.is_published, sort_order: guidesEditing.sort_order }}
+                  onSave={data => updateGuide.mutate({ id: guidesEditing.id, ...data })}
+                  onCancel={() => { setGuidesEditing(null); setGuidesMutError(null) }}
+                  isPending={updateGuide.isPending}
+                  error={guidesMutError}
+                />
+              )}
+            </Drawer>
+
+            {guidesLoading ? (
+              <div className="space-y-3">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="h-16 rounded-2xl animate-pulse" style={{ backgroundColor: 'var(--border-default)' }} />
+                ))}
+              </div>
+            ) : guidesRaw.length === 0 ? (
+              <div className="rounded-2xl border px-6 py-12 text-center" style={{ borderColor: 'var(--border-default)' }}>
+                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No guides yet. Create the first one.</p>
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                {localGuides.map(guide => (
+                  <div key={guide.id}
+                    draggable
+                    onDragStart={() => gDrag.onDragStart(guide.id)}
+                    onDragOver={e => gDrag.onDragOver(e, guide.id)}
+                    onDrop={gDrag.onDrop}
+                    onDragEnd={gDrag.onDragEnd}
+                    className="rounded-2xl border px-4 py-4 flex items-center gap-3"
+                    style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)', opacity: gDrag.isDragging(guide.id) ? 0.5 : 1 }}>
+                    <GripHandle />
+                    <span className="text-xl flex-shrink-0">{guide.emoji ?? '📄'}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{guide.title.en || '(untitled)'}</p>
+                      <p className="text-xs mt-0.5 font-mono" style={{ color: 'var(--text-secondary)' }}>/{guide.slug} · {guide.access_roles.join(', ')}</p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold"
+                        style={{ backgroundColor: guide.is_published ? 'rgba(34,197,94,0.12)' : 'rgba(0,0,0,0.06)', color: guide.is_published ? '#15803d' : 'var(--text-secondary)' }}>
+                        {guide.is_published ? 'Published' : 'Draft'}
+                      </span>
+                      <button onClick={() => toggleGuidePublish(guide)} disabled={updateGuide.isPending}
+                        className="px-3 py-1 rounded-full text-xs font-semibold border transition-all disabled:opacity-50 hover:bg-black/5"
+                        style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
+                        {guide.is_published ? 'Unpublish' : 'Publish'}
+                      </button>
+                      <button onClick={() => { setGuidesEditing(guide); setGuidesCreating(false); setGuidesMutError(null) }}
+                        className="px-3 py-1 rounded-lg text-xs font-semibold border transition-colors hover:bg-black/5"
+                        style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>Edit</button>
+                      <button onClick={() => { if (confirm(`Delete "${guide.title.en}"?`)) deleteGuide.mutate(guide.id) }}
+                        disabled={deleteGuide.isPending}
+                        className="px-3 py-1 rounded-lg text-xs font-semibold transition-colors hover:bg-red-50 disabled:opacity-50"
+                        style={{ color: 'var(--brand-crimson)' }}>Delete</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* ── Social Posts tab ── */}
+        {tab === 'socials' && (
+          <section className="space-y-6">
+            <div className="rounded-2xl border p-6 space-y-4" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
+              <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--brand-crimson)' }}>Add post</p>
+              <div className="flex gap-2">
+                {(['instagram', 'facebook'] as const).map(p => (
+                  <button key={p} onClick={() => setSpForm(f => ({ ...f, platform: p }))}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all"
+                    style={{ backgroundColor: spForm.platform === p ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)', color: spForm.platform === p ? 'var(--brand-parchment)' : 'var(--text-secondary)' }}>
+                    {p === 'instagram' ? <InstagramIcon /> : <FacebookIcon />}
+                    {p.charAt(0).toUpperCase() + p.slice(1)}
+                  </button>
+                ))}
+              </div>
+              <div>
+                <input
+                  value={spForm.post_url}
+                  onChange={e => setSpForm(f => ({ ...f, post_url: e.target.value }))}
+                  onBlur={e => { if (e.target.value) fetchOgPreview(e.target.value) }}
+                  placeholder="Post URL (required)"
+                  className="w-full border rounded-xl px-3 py-2.5 text-sm"
+                  style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
+                />
+                {spPreviewing && (
+                  <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>Fetching preview…</p>
+                )}
+                {!spPreviewing && spPreviewHint && (
+                  <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>{spPreviewHint}</p>
+                )}
+              </div>
+              <textarea
+                value={spForm.caption}
+                onChange={e => setSpForm(f => ({ ...f, caption: e.target.value }))}
+                placeholder="Caption — auto-extracted from post if left blank"
+                rows={3}
+                className="w-full border rounded-xl px-3 py-2.5 text-sm resize-none"
+                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
+              />
+              <input
+                value={spForm.thumbnail_url}
+                onChange={e => setSpForm(f => ({ ...f, thumbnail_url: e.target.value }))}
+                placeholder="Thumbnail URL — auto-extracted from post if left blank"
+                className="w-full border rounded-xl px-3 py-2.5 text-sm"
+                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
+              />
+              {createSocialPost.isError && (
+                <p className="text-xs" style={{ color: 'var(--brand-crimson)' }}>{(createSocialPost.error as Error).message}</p>
+              )}
+              <button onClick={() => createSocialPost.mutate(spForm)} disabled={createSocialPost.isPending || !spForm.post_url}
+                className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity"
+                style={{ backgroundColor: 'var(--brand-crimson)' }}>
+                {createSocialPost.isPending ? 'Adding…' : 'Add post'}
+              </button>
+            </div>
+
+            <div className="space-y-1.5">
+              {localSocials.length === 0 && (
+                <div className="rounded-2xl border px-6 py-10 text-center" style={{ borderColor: 'var(--border-default)' }}>
+                  <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No posts yet. Add one above.</p>
+                </div>
+              )}
+              {localSocials.map(post => (
+                <div key={post.id}
+                  draggable
+                  onDragStart={() => sDrag.onDragStart(post.id)}
+                  onDragOver={e => sDrag.onDragOver(e, post.id)}
+                  onDrop={sDrag.onDrop}
+                  onDragEnd={sDrag.onDragEnd}
+                  className="rounded-2xl border px-4 py-3 flex items-center gap-3"
+                  style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)', opacity: sDrag.isDragging(post.id) ? 0.5 : 1 }}>
+                  <GripHandle />
+                  <div className="flex-shrink-0 rounded-lg overflow-hidden" style={{ width: 40, height: 40, backgroundColor: 'rgba(0,0,0,0.06)' }}>
+                    {post.thumbnail_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={post.thumbnail_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center" style={{ color: 'var(--text-secondary)' }}>
+                        {post.platform === 'instagram' ? <InstagramIcon /> : <FacebookIcon />}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span style={{ color: 'var(--text-secondary)' }}>{post.platform === 'instagram' ? <InstagramIcon /> : <FacebookIcon />}</span>
+                      {post.is_pinned && (
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white" style={{ backgroundColor: 'var(--brand-crimson)' }}>Pinned</span>
+                      )}
+                    </div>
+                    <p className="text-xs truncate" style={{ color: 'var(--text-secondary)' }}>{post.caption ?? post.post_url}</p>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <button onClick={() => patchSocialPost.mutate({ id: post.id, is_visible: !post.is_visible })} disabled={patchSocialPost.isPending}
+                      className="text-xs px-2.5 py-1 rounded-full font-semibold transition-all disabled:opacity-50"
+                      style={{ backgroundColor: post.is_visible ? 'rgba(26,107,74,0.12)' : 'rgba(0,0,0,0.06)', color: post.is_visible ? '#1a6b4a' : 'var(--text-secondary)' }}>
+                      {post.is_visible ? 'Active' : 'Hidden'}
+                    </button>
+                    <button onClick={() => patchSocialPost.mutate({ id: post.id, is_pinned: !post.is_pinned })} disabled={patchSocialPost.isPending}
+                      className="text-xs px-2.5 py-1 rounded-full font-semibold border transition-all disabled:opacity-50 hover:bg-black/5"
+                      style={{ borderColor: 'var(--border-default)', color: post.is_pinned ? 'var(--brand-crimson)' : 'var(--text-secondary)' }}>
+                      {post.is_pinned ? 'Unpin' : 'Pin'}
+                    </button>
+                    <button onClick={() => { if (window.confirm('Delete this post?')) deleteSocialPost.mutate(post.id) }} disabled={deleteSocialPost.isPending}
+                      className="text-xs font-medium hover:opacity-70 transition-opacity disabled:opacity-40"
+                      style={{ color: 'var(--brand-crimson)' }}>Delete</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* ── Bento tab ── */}
+        {tab === 'bento' && <BentoSettings />}
+      </div>
+    </div>
+  )
+}
+
+export default function ContentPage() {
+  return (
+    <Suspense>
+      <ContentPageInner />
+    </Suspense>
+  )
+}
