@@ -1,12 +1,13 @@
 'use client'
 
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { formatDate, formatCurrency } from '@/lib/format'
-import { useLanguage } from '@/lib/hooks/useLanguage'
+import { Drawer } from '@/components/ui/Drawer'
 import RegisterButton from '@/components/trips/RegisterButton'
 import type { Tables } from '@/types/supabase'
-import type { TripState, TripProfile } from './page'
+import type { TripState, TripProfile, TripPayment } from './page'
 
 type Trip = Tables<'trips'>
 type Registration = Tables<'trip_registrations'>
@@ -16,12 +17,14 @@ interface TripDetailClientProps {
   trip: Trip
   state: TripState
   registration: Registration | null
+  payments: TripPayment[]
   profile: TripProfile
 }
 
+// ── Shared primitives ────────────────────────────────────────────────────────
+
 function BackButton() {
   const router = useRouter()
-  const { t } = useLanguage()
   return (
     <button
       onClick={() => router.push('/trips')}
@@ -32,13 +35,12 @@ function BackButton() {
         stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <polyline points="15 18 9 12 15 6" />
       </svg>
-      {t('trips.back')}
+      Back to trips
     </button>
   )
 }
 
 function TripHero({ trip, profile }: { trip: Trip; profile: TripProfile }) {
-  const { t } = useLanguage()
   const milestones: Milestone[] = Array.isArray(trip.milestones)
     ? (trip.milestones as Milestone[])
     : []
@@ -47,10 +49,8 @@ function TripHero({ trip, profile }: { trip: Trip; profile: TripProfile }) {
   )
 
   return (
-    <div
-      className="rounded-2xl overflow-hidden"
-      style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}
-    >
+    <div className="rounded-2xl overflow-hidden"
+      style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
       {trip.image_url && (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={trip.image_url} alt="" aria-hidden="true"
@@ -84,7 +84,7 @@ function TripHero({ trip, profile }: { trip: Trip; profile: TripProfile }) {
               <p className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>
                 {formatCurrency(trip.total_cost)}
               </p>
-              <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('trips.total')}</p>
+              <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Total cost</p>
             </div>
           )}
         </div>
@@ -119,7 +119,7 @@ function TripHero({ trip, profile }: { trip: Trip; profile: TripProfile }) {
 
         {trip.accommodation_type && (
           <p className="text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>
-            <span className="font-medium">{t('trips.accommodation')}</span>{' '}{trip.accommodation_type}
+            <span className="font-medium">Accommodation:</span>{' '}{trip.accommodation_type}
           </p>
         )}
 
@@ -138,7 +138,7 @@ function TripHero({ trip, profile }: { trip: Trip; profile: TripProfile }) {
           <div className="mt-4 pt-4 border-t" style={{ borderColor: 'var(--border-default)' }}>
             <p className="text-xs font-semibold tracking-widest uppercase mb-3"
               style={{ color: 'var(--text-secondary)' }}>
-              {t('trips.milestones')}
+              Payment milestones
             </p>
             <div className="space-y-2">
               {milestones.map((m, i) => (
@@ -147,7 +147,7 @@ function TripHero({ trip, profile }: { trip: Trip; profile: TripProfile }) {
                   <div>
                     <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{m.label}</p>
                     <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                      {t('trips.due')} {formatDate(m.due_date)}
+                      Due {formatDate(m.due_date)}
                     </p>
                   </div>
                   <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
@@ -163,7 +163,7 @@ function TripHero({ trip, profile }: { trip: Trip; profile: TripProfile }) {
   )
 }
 
-// ── SEQ224: LOCKED state ─────────────────────────────────────────────────────
+// ── SEQ224: LOCKED ───────────────────────────────────────────────────────────
 
 function LockedView({ profile }: { profile: TripProfile }) {
   const router = useRouter()
@@ -176,10 +176,8 @@ function LockedView({ profile }: { profile: TripProfile }) {
     <div className="py-8 pb-16">
       <div className="max-w-[720px] mx-auto px-4">
         <BackButton />
-        <div
-          className="rounded-2xl px-6 py-8"
-          style={{ backgroundColor: 'rgba(188,71,73,0.08)', border: '1px solid rgba(188,71,73,0.25)' }}
-        >
+        <div className="rounded-2xl px-6 py-8"
+          style={{ backgroundColor: 'rgba(188,71,73,0.08)', border: '1px solid rgba(188,71,73,0.25)' }}>
           <div className="flex items-start gap-4">
             <div className="flex-shrink-0 mt-0.5">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
@@ -212,7 +210,7 @@ function LockedView({ profile }: { profile: TripProfile }) {
   )
 }
 
-// ── SEQ224: AVAILABLE state ──────────────────────────────────────────────────
+// ── SEQ224: AVAILABLE ────────────────────────────────────────────────────────
 
 function AvailableView({ trip, profile }: { trip: Trip; profile: TripProfile }) {
   return (
@@ -228,17 +226,11 @@ function AvailableView({ trip, profile }: { trip: Trip; profile: TripProfile }) 
   )
 }
 
-// ── SEQ225: PENDING state ────────────────────────────────────────────────────
+// ── SEQ225: PENDING ──────────────────────────────────────────────────────────
 
 function PendingView({
-  trip,
-  profile,
-  registration,
-}: {
-  trip: Trip
-  profile: TripProfile
-  registration: Registration
-}) {
+  trip, profile, registration,
+}: { trip: Trip; profile: TripProfile; registration: Registration }) {
   const router = useRouter()
 
   const cancelMutation = useMutation({
@@ -250,8 +242,6 @@ function PendingView({
     onSuccess: () => router.push('/trips'),
   })
 
-  // Defensive: if cancelled_at is set, registration should not be in pending state
-  // but guard anyway to avoid showing cancel UI for an already-cancelled registration
   if (registration.cancelled_at) {
     return (
       <div className="py-8 pb-16">
@@ -312,14 +302,423 @@ function PendingView({
   )
 }
 
-// ── Placeholder for states handled by later tickets ──────────────────────────
+// ── SEQ226: ATTENDEE ─────────────────────────────────────────────────────────
 
-function PlaceholderView({ state, trip, profile }: { state: TripState; trip: Trip; profile: TripProfile }) {
+function SubmitPaymentDrawer({
+  tripId,
+  open,
+  onClose,
+}: {
+  tripId: string
+  open: boolean
+  onClose: () => void
+}) {
+  const qc = useQueryClient()
+  const [amount, setAmount] = useState('')
+  const [date, setDate] = useState('')
+  const [method, setMethod] = useState('')
+  const [file, setFile] = useState<File | null>(null)
+  const [note, setNote] = useState('')
+
+  const submitMutation = useMutation({
+    mutationFn: async () => {
+      let proof_url: string | null = null
+
+      if (file) {
+        const fd = new FormData()
+        fd.append('file', file)
+        const uploadRes = await fetch('/api/profile/payments/upload', { method: 'POST', body: fd })
+        if (!uploadRes.ok) throw new Error((await uploadRes.json()).error ?? 'Upload failed')
+        const { url } = await uploadRes.json()
+        proof_url = url
+      }
+
+      const res = await fetch('/api/payments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          trip_id: tripId,
+          amount: parseFloat(amount),
+          currency: 'EUR',
+          transaction_date: date,
+          payment_method: method || null,
+          proof_url,
+          note: note || null,
+        }),
+      })
+      if (!res.ok) throw new Error((await res.json()).error ?? 'Submission failed')
+      return res.json()
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['trip-payments', tripId] })
+      onClose()
+      setAmount(''); setDate(''); setMethod(''); setFile(null); setNote('')
+    },
+  })
+
+  const inputStyle = {
+    backgroundColor: 'var(--bg-global)',
+    border: '1px solid var(--border-default)',
+    color: 'var(--text-primary)',
+    borderRadius: '0.75rem',
+    padding: '0.625rem 0.875rem',
+    fontSize: '0.875rem',
+    width: '100%',
+    outline: 'none',
+  } as const
+
+  const labelStyle = {
+    display: 'block',
+    fontSize: '0.75rem',
+    fontWeight: 600,
+    marginBottom: '0.375rem',
+    color: 'var(--text-secondary)',
+  } as const
+
+  return (
+    <Drawer open={open} onClose={onClose} title="Submit Payment">
+      <div className="space-y-5">
+        <div>
+          <label style={labelStyle}>Amount (EUR) *</label>
+          <input type="number" min="0" step="0.01" placeholder="0.00"
+            value={amount} onChange={e => setAmount(e.target.value)} style={inputStyle} />
+        </div>
+        <div>
+          <label style={labelStyle}>Payment Date *</label>
+          <input type="date" value={date} onChange={e => setDate(e.target.value)} style={inputStyle} />
+        </div>
+        <div>
+          <label style={labelStyle}>Payment Method</label>
+          <input type="text" placeholder="Bank transfer, cash…"
+            value={method} onChange={e => setMethod(e.target.value)} style={inputStyle} />
+        </div>
+        <div>
+          <label style={labelStyle}>Note</label>
+          <input type="text" placeholder="Optional note"
+            value={note} onChange={e => setNote(e.target.value)} style={inputStyle} />
+        </div>
+        <div>
+          <label style={labelStyle}>Proof of Payment</label>
+          <input type="file" accept="image/*,.pdf"
+            onChange={e => setFile(e.target.files?.[0] ?? null)}
+            style={{ ...inputStyle, padding: '0.5rem' }} />
+        </div>
+
+        {submitMutation.isError && (
+          <p className="text-xs" style={{ color: '#bc4749' }}>
+            {(submitMutation.error as Error).message}
+          </p>
+        )}
+
+        <button
+          onClick={() => submitMutation.mutate()}
+          disabled={submitMutation.isPending || !amount || !date}
+          className="w-full py-3 rounded-xl text-sm font-semibold text-white disabled:opacity-50 transition-opacity hover:opacity-90"
+          style={{ backgroundColor: 'var(--brand-forest)' }}
+        >
+          {submitMutation.isPending ? 'Submitting…' : 'Submit Payment'}
+        </button>
+      </div>
+    </Drawer>
+  )
+}
+
+function AttendeeView({
+  trip, profile, payments,
+}: { trip: Trip; profile: TripProfile; payments: TripPayment[] }) {
+  const [drawerOpen, setDrawerOpen] = useState(false)
+
+  const milestones: Milestone[] = Array.isArray(trip.milestones)
+    ? (trip.milestones as Milestone[])
+    : []
+
+  // Countdown
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const start = new Date(trip.start_date)
+  start.setHours(0, 0, 0, 0)
+  const daysToGo = Math.max(0, Math.round((start.getTime() - today.getTime()) / 86400000))
+
+  // Payment arithmetic
+  const approvedTotal = payments
+    .filter(p => p.admin_status === 'approved')
+    .reduce((sum, p) => sum + p.amount, 0)
+  const remaining = Math.max(0, trip.total_cost - approvedTotal)
+
+  // Milestone coverage: milestone i is covered if cumulative sum of milestones 0..i <= approvedTotal
+  const cumulativeMilestones = milestones.reduce<number[]>((acc, m) => {
+    acc.push((acc[acc.length - 1] ?? 0) + m.amount)
+    return acc
+  }, [])
+
   return (
     <div className="py-8 pb-16">
-      <div className="max-w-[720px] mx-auto px-4">
+      <div className="max-w-[720px] mx-auto px-4 space-y-4">
         <BackButton />
+
+        {/* Countdown header */}
+        <div className="rounded-2xl px-6 py-7 flex items-center justify-between gap-4"
+          style={{ backgroundColor: 'var(--brand-forest)', color: 'rgba(255,255,255,0.92)' }}>
+          <div>
+            <p className="text-xs font-semibold tracking-widest uppercase opacity-70 mb-1">
+              {trip.destination} · {trip.title}
+            </p>
+            <div className="flex items-baseline gap-2">
+              <span className="font-display text-5xl font-bold leading-none">{daysToGo}</span>
+              <span className="text-lg font-medium opacity-80">days to go</span>
+            </div>
+            <p className="text-sm opacity-60 mt-1">
+              {formatDate(trip.start_date)} – {formatDate(trip.end_date)}
+            </p>
+          </div>
+          {daysToGo === 0 && (
+            <span className="text-xs font-semibold px-3 py-1 rounded-full"
+              style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}>
+              Today!
+            </span>
+          )}
+        </div>
+
+        {/* Payment ledger */}
+        <div className="rounded-2xl overflow-hidden"
+          style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+          <div className="px-6 pt-5 pb-2 flex items-center justify-between">
+            <p className="text-xs font-semibold tracking-widest uppercase"
+              style={{ color: 'var(--text-secondary)' }}>
+              Payment Ledger
+            </p>
+            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+              {formatCurrency(approvedTotal)} / {formatCurrency(trip.total_cost)}
+            </p>
+          </div>
+
+          {/* Milestone checklist */}
+          {milestones.length > 0 && (
+            <div className="px-6 pb-4">
+              <div className="space-y-2 mt-1">
+                {milestones.map((m, i) => {
+                  const covered = (cumulativeMilestones[i] ?? 0) <= approvedTotal
+                  return (
+                    <div key={i} className="flex items-center gap-3 py-2 border-b last:border-0"
+                      style={{ borderColor: 'var(--border-default)' }}>
+                      <div className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center"
+                        style={{
+                          backgroundColor: covered ? 'rgba(129,178,154,0.2)' : 'var(--border-default)',
+                        }}>
+                        {covered && (
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
+                            stroke="#2d6a4f" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium" style={{
+                          color: covered ? 'var(--text-secondary)' : 'var(--text-primary)',
+                          textDecoration: covered ? 'line-through' : 'none',
+                        }}>
+                          {m.label}
+                        </p>
+                        <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                          Due {formatDate(m.due_date)}
+                        </p>
+                      </div>
+                      <p className="text-sm font-semibold flex-shrink-0"
+                        style={{ color: covered ? 'var(--text-secondary)' : 'var(--text-primary)' }}>
+                        {formatCurrency(m.amount)}
+                      </p>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Payment history */}
+          {payments.length > 0 && (
+            <div className="border-t px-6 pt-4 pb-4" style={{ borderColor: 'var(--border-default)' }}>
+              <p className="text-xs font-semibold tracking-widest uppercase mb-3"
+                style={{ color: 'var(--text-secondary)' }}>
+                Payment History
+              </p>
+              <div className="space-y-2">
+                {payments.map(p => (
+                  <div key={p.id} className="flex items-start justify-between gap-3 py-2 border-b last:border-0"
+                    style={{ borderColor: 'var(--border-default)' }}>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                          {formatCurrency(p.amount)}
+                        </p>
+                        <span className="text-xs px-1.5 py-0.5 rounded-full font-medium"
+                          style={
+                            p.admin_status === 'approved'
+                              ? { backgroundColor: 'rgba(129,178,154,0.15)', color: '#2d6a4f' }
+                              : { backgroundColor: 'rgba(180,138,60,0.12)', color: '#b48a3c' }
+                          }>
+                          {p.admin_status === 'approved' ? 'Approved' : 'Pending'}
+                        </span>
+                      </div>
+                      <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                        {formatDate(p.transaction_date)}
+                        {p.payment_method ? ` · ${p.payment_method}` : ''}
+                        {p.note ? ` · ${p.note}` : ''}
+                      </p>
+                    </div>
+                    {p.proof_url && (
+                      <a href={p.proof_url} target="_blank" rel="noopener noreferrer"
+                        className="text-xs flex-shrink-0 hover:opacity-70 transition-opacity"
+                        style={{ color: 'var(--brand-teal)' }}>
+                        Proof ↗
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Balance + submit */}
+          <div className="px-6 pt-3 pb-5 border-t" style={{ borderColor: 'var(--border-default)' }}>
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
+                Balance remaining
+              </p>
+              <p className="text-base font-semibold"
+                style={{ color: remaining === 0 ? '#2d6a4f' : 'var(--text-primary)' }}>
+                {remaining === 0 ? '✓ Paid in full' : formatCurrency(remaining)}
+              </p>
+            </div>
+            <button
+              onClick={() => setDrawerOpen(true)}
+              className="w-full py-3 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90"
+              style={{ backgroundColor: 'var(--brand-forest)' }}
+            >
+              Submit Payment
+            </button>
+          </div>
+        </div>
+
+        {/* Trip info (read-only) */}
         <TripHero trip={trip} profile={profile} />
+      </div>
+
+      <SubmitPaymentDrawer
+        tripId={trip.id}
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+      />
+    </div>
+  )
+}
+
+// ── SEQ228: ARCHIVED ─────────────────────────────────────────────────────────
+
+function ArchivedView({
+  trip, profile, payments,
+}: { trip: Trip; profile: TripProfile; payments: TripPayment[] }) {
+  const approvedTotal = payments
+    .filter(p => p.admin_status === 'approved')
+    .reduce((sum, p) => sum + p.amount, 0)
+
+  return (
+    <div className="py-8 pb-16">
+      <div className="max-w-[720px] mx-auto px-4 space-y-4">
+        <BackButton />
+
+        {/* Muted hero header */}
+        <div className="rounded-2xl overflow-hidden"
+          style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+          {trip.image_url && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={trip.image_url} alt="" aria-hidden="true"
+              className="w-full object-cover" style={{ height: 200, opacity: 0.55 }} />
+          )}
+          <div className="px-6 pt-5 pb-6">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1 min-w-0">
+                <div className="flex flex-wrap items-center gap-2 mb-2">
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                    style={{ backgroundColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
+                    {trip.destination}
+                  </span>
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                    style={{ backgroundColor: 'rgba(129,178,154,0.15)', color: '#2d6a4f' }}>
+                    Completed
+                  </span>
+                </div>
+                <h1 className="font-display text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>
+                  {trip.title}
+                </h1>
+                <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
+                  {formatDate(trip.start_date)} – {formatDate(trip.end_date)}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Final ledger — read-only */}
+        <div className="rounded-2xl overflow-hidden"
+          style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+          <div className="px-6 pt-5 pb-2">
+            <p className="text-xs font-semibold tracking-widest uppercase"
+              style={{ color: 'var(--text-secondary)' }}>
+              Final Ledger
+            </p>
+          </div>
+
+          {payments.length > 0 ? (
+            <div className="px-6 pb-4">
+              <div className="space-y-2 mt-2">
+                {payments.map(p => (
+                  <div key={p.id} className="flex items-start justify-between gap-3 py-2 border-b last:border-0"
+                    style={{ borderColor: 'var(--border-default)' }}>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                          {formatCurrency(p.amount)}
+                        </p>
+                        <span className="text-xs px-1.5 py-0.5 rounded-full font-medium"
+                          style={
+                            p.admin_status === 'approved'
+                              ? { backgroundColor: 'rgba(129,178,154,0.15)', color: '#2d6a4f' }
+                              : { backgroundColor: 'rgba(180,138,60,0.12)', color: '#b48a3c' }
+                          }>
+                          {p.admin_status === 'approved' ? 'Approved' : 'Pending'}
+                        </span>
+                      </div>
+                      <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                        {formatDate(p.transaction_date)}
+                        {p.payment_method ? ` · ${p.payment_method}` : ''}
+                        {p.note ? ` · ${p.note}` : ''}
+                      </p>
+                    </div>
+                    {p.proof_url && (
+                      <a href={p.proof_url} target="_blank" rel="noopener noreferrer"
+                        className="text-xs flex-shrink-0 hover:opacity-70 transition-opacity"
+                        style={{ color: 'var(--brand-teal)' }}>
+                        Proof ↗
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <p className="px-6 pb-5 text-sm" style={{ color: 'var(--text-secondary)' }}>
+              No payments recorded.
+            </p>
+          )}
+
+          <div className="px-6 pt-3 pb-5 border-t flex items-center justify-between"
+            style={{ borderColor: 'var(--border-default)' }}>
+            <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>Total paid</p>
+            <p className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
+              {formatCurrency(approvedTotal)} / {formatCurrency(trip.total_cost)}
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   )
@@ -327,17 +726,32 @@ function PlaceholderView({ state, trip, profile }: { state: TripState; trip: Tri
 
 // ── Root export ──────────────────────────────────────────────────────────────
 
-function TripDetailContent({
-  trip,
-  state,
-  registration,
-  profile,
-}: TripDetailClientProps) {
+function TripDetailContent(props: TripDetailClientProps) {
+  const { trip, state, registration, payments, profile } = props
+
   if (state === 'locked') return <LockedView profile={profile} />
   if (state === 'available') return <AvailableView trip={trip} profile={profile} />
   if (state === 'pending' && registration)
     return <PendingView trip={trip} profile={profile} registration={registration} />
-  return <PlaceholderView state={state} trip={trip} profile={profile} />
+  if (state === 'attendee')
+    return <AttendeeView trip={trip} profile={profile} payments={payments} />
+  if (state === 'archived')
+    return <ArchivedView trip={trip} profile={profile} payments={payments} />
+
+  // Fallback — should not be reached
+  return (
+    <div className="py-8 pb-16">
+      <div className="max-w-[720px] mx-auto px-4">
+        <BackButton />
+        <div className="rounded-2xl overflow-hidden"
+          style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+          <div className="px-6 py-8">
+            <p style={{ color: 'var(--text-secondary)' }}>Trip details unavailable.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 export function TripDetailClient(props: TripDetailClientProps) {
