@@ -80,7 +80,6 @@ function TripCard({
     denied:   { bg: '#bc474920', color: '#bc4749', label: t('trips.status.denied')   },
   }
 
-  // A user is "registered" when they have a non-denied registration row
   const isRegistered = !!registration && registration.status !== 'denied'
 
   return (
@@ -377,7 +376,7 @@ export default function TripsPage() {
 
   return (
     <div className="py-8 pb-16">
-      <div className="max-w-[960px] mx-auto px-4">
+      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 xl:px-8">
         {/* Mobile: single-column stack */}
         <div className="md:hidden flex flex-col gap-3">
           {isLoading || !isLoaded ? (
@@ -418,11 +417,11 @@ export default function TripsPage() {
           )}
         </div>
 
-        {/* Desktop: 2-up 8-col grid */}
+        {/* Desktop: 12-col grid, trip cards span 6 each (2-up) */}
         <div
           className="hidden md:grid"
           style={{
-            gridTemplateColumns: 'repeat(8, minmax(0, 1fr))',
+            gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
             gap: '12px',
             gridAutoRows: 'minmax(120px, auto)',
           }}
@@ -433,7 +432,7 @@ export default function TripsPage() {
                 key={i}
                 className="rounded-2xl animate-pulse"
                 style={{
-                  gridColumn: 'span 4',
+                  gridColumn: 'span 6',
                   gridRow: 'span 2',
                   backgroundColor: 'var(--border-default)',
                   minHeight: 240,
@@ -443,7 +442,7 @@ export default function TripsPage() {
           ) : trips.length === 0 ? (
             <div
               style={{
-                gridColumn: 'span 8',
+                gridColumn: 'span 12',
                 backgroundColor: 'var(--bg-card)',
                 border: '1px solid var(--border-default)',
               }}
@@ -461,7 +460,7 @@ export default function TripsPage() {
             trips.map(trip => (
               <div
                 key={trip.id}
-                style={{ gridColumn: 'span 4', gridRow: 'span 2', minHeight: 240 }}
+                style={{ gridColumn: 'span 6', gridRow: 'span 2', minHeight: 240 }}
               >
                 <TripCard
                   trip={trip}
