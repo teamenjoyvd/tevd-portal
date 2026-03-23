@@ -15,9 +15,11 @@ export async function GET(req: Request): Promise<Response> {
   const { searchParams } = new URL(req.url)
   const statusFilter = searchParams.get('admin_status')
 
+  // profiles!profile_id disambiguates the FK — payments has two FKs to profiles
+  // (profile_id and logged_by_admin), which causes PostgREST to 500 without a hint.
   let query = supabase
     .from('payments')
-    .select('id, amount, currency, transaction_date, admin_status, member_status, admin_reject_reason, member_reject_reason, payment_method, proof_url, note, admin_note, logged_by_admin, created_at, profiles(first_name, last_name, abo_number), trips(title, destination), payable_items(title, item_type, currency)')
+    .select('id, amount, currency, transaction_date, admin_status, member_status, admin_reject_reason, member_reject_reason, payment_method, proof_url, note, admin_note, logged_by_admin, created_at, profiles!profile_id(first_name, last_name, abo_number), trips(title, destination), payable_items(title, item_type, currency)')
     .order('created_at', { ascending: false })
 
   if (statusFilter) query = query.eq('admin_status', statusFilter)
