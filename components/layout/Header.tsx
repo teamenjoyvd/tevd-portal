@@ -93,14 +93,15 @@ export default function Header() {
             </span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-0.5 absolute left-1/2 -translate-x-1/2">
+          {/* Desktop nav — lg+ only (1024px+) so landscape phones use the hamburger */}
+          <nav className="hidden lg:flex items-center gap-0.5 absolute left-1/2 -translate-x-1/2">
             {NAV_LINKS.map(({ href, labels }) => (
               <Link
                 key={href}
                 href={href}
                 className="px-3.5 py-1.5 rounded-lg text-xs font-semibold tracking-widest uppercase transition-colors"
                 style={{
-                  color: isActive(href) ? 'var(--brand-crimson)' : 'var(--text-secondary)',
+                  color: isActive(href) ? 'var(--brand-crimson)' : 'var(--text-nav)',
                   backgroundColor: isActive(href) ? 'rgba(188,71,73,0.06)' : 'transparent',
                 }}
               >
@@ -110,22 +111,23 @@ export default function Header() {
           </nav>
 
           <div className="flex items-center gap-2 ml-auto">
+            {/* Hamburger — visible below lg (covers portrait + landscape phones, portrait tablet) */}
             <button
-              className="md:hidden w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors"
+              className="lg:hidden w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors"
               onClick={() => setMobileNavOpen(o => !o)}
               aria-label="Toggle navigation"
               aria-expanded={mobileNavOpen}
             >
               {mobileNavOpen ? (
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-                  stroke="var(--text-secondary)" strokeWidth="2"
+                  stroke="var(--text-nav)" strokeWidth="2"
                   strokeLinecap="round" strokeLinejoin="round">
                   <line x1="18" y1="6" x2="6" y2="18"/>
                   <line x1="6" y1="6" x2="18" y2="18"/>
                 </svg>
               ) : (
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-                  stroke="var(--text-secondary)" strokeWidth="2"
+                  stroke="var(--text-nav)" strokeWidth="2"
                   strokeLinecap="round" strokeLinejoin="round">
                   <line x1="3" y1="6" x2="21" y2="6"/>
                   <line x1="3" y1="12" x2="21" y2="12"/>
@@ -142,7 +144,7 @@ export default function Header() {
                     className="relative w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors"
                   >
                     <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
-                      stroke="var(--text-secondary)" strokeWidth="1.8"
+                      stroke="var(--text-nav)" strokeWidth="1.8"
                       strokeLinecap="round" strokeLinejoin="round">
                       <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
                       <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
@@ -168,7 +170,7 @@ export default function Header() {
                   className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors"
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-                    stroke="var(--text-secondary)" strokeWidth="1.8"
+                    stroke="var(--text-nav)" strokeWidth="1.8"
                     strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="8" r="4"/>
                     <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
@@ -183,9 +185,10 @@ export default function Header() {
 
         </div>
 
+        {/* Mobile/tablet drawer — visible below lg */}
         {mobileNavOpen && (
           <div
-            className="md:hidden mt-2 rounded-2xl py-2 px-3"
+            className="lg:hidden mt-2 rounded-2xl py-2 px-3"
             style={{
               backgroundColor: 'rgba(var(--bg-global-rgb), 0.97)',
               border: '1px solid var(--border-default)',
@@ -200,7 +203,7 @@ export default function Header() {
                 onClick={() => setMobileNavOpen(false)}
                 className="flex items-center px-3 py-2.5 rounded-xl text-xs font-semibold tracking-widest uppercase transition-colors"
                 style={{
-                  color: isActive(href) ? 'var(--brand-crimson)' : 'var(--text-secondary)',
+                  color: isActive(href) ? 'var(--brand-crimson)' : 'var(--text-nav)',
                   backgroundColor: isActive(href) ? 'rgba(188,71,73,0.06)' : 'transparent',
                 }}
               >

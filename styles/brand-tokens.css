@@ -18,6 +18,7 @@
   --text-primary:      var(--brand-void);
   --text-secondary:    #5C5950;
   --text-tertiary:     #8A8577;
+  --text-nav:          var(--text-secondary); /* nav chrome — bumped in dark mode */
   --border-default:    rgba(45, 51, 42, 0.08);
   --border-hover:      rgba(188, 71, 73, 0.30);
   --accent-left-info:  var(--brand-teal);
@@ -38,6 +39,7 @@
   --bg-card:        var(--brand-moss);
   --text-primary:   var(--brand-parchment);
   --text-secondary: #B5B0A8;
+  --text-nav:       #D4CFC7; /* ~7.8:1 on --brand-void, WCAG AAA */
 }
 
 /* ── Utility classes ── */
