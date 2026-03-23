@@ -35,11 +35,12 @@
 }
 
 [data-theme="dark"] {
+  --bg-global-rgb:  26, 31, 24;   /* #1A1F18 — required for rgba() header backdrop */
   --bg-global:      var(--brand-void);
   --bg-card:        var(--brand-moss);
   --text-primary:   var(--brand-parchment);
   --text-secondary: #B5B0A8;
-  --text-nav:       #D4CFC7; /* ~7.8:1 on --brand-void, WCAG AAA */
+  --text-nav:       var(--brand-parchment); /* full parchment on dark backdrop */
 }
 
 /* ── Utility classes ── */
