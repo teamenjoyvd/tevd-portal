@@ -34,7 +34,7 @@ export default function Footer() {
           </div>
 
           {/* Col 2 — Nav: hidden on mobile (BottomNav handles mobile), single row on md+ */}
-          <nav className="hidden md:flex flex-nowrap items-center gap-x-4 justify-center">
+          <nav className="hidden lg:flex flex-nowrap items-center gap-x-4 justify-center">
             {FOOTER_NAV.map(({ href, labels }) => (
               <Link
                 key={href}
