@@ -1,5 +1,5 @@
 # CLAUDE.md — teamenjoyVD Portal
-> Last updated: 2026-03-23 — v2.0.2. Latest stable commit: 41a00e1.
+> Last updated: 2026-03-24 — v2.0.3. Latest stable commit: 2f7f0fd.
 > Reference material (schema, directory tree, design system, releases) lives in `docs/ai/CONTEXT.md`.
 > **CONTEXT.md is never read at SSU. Read specific sections in GATHER only when the ticket targets those areas.**
 
@@ -209,6 +209,7 @@ Duplicate-safe: every READ must filter `Duplicate = false/empty`. Fetch all and 
 | `UserDropdown` theme toggle | Now uses `useTheme()` hook. Old `StorageEvent` + manual `localStorage` pattern removed. Do not restore the old pattern. |
 | `/profile` bento col-spans | `personal`, `calendar`, `stats`, `admin` = col-12. `trips`, `payments`, `vitals`, `participation` = col-6. Outer grid = 12-col. |
 | Canvas width | All pages use `max-w-[1280px]`. `BentoGrid` outer wrapper: `max-w-[1280px] mx-auto px-4 sm:px-6 xl:px-8`. Col-8 pages (about, trips, guides, profile) migrated to col-12 at 1280px canvas in SEQ222. |
+| `TeamAttendee` type | Exported from `app/(dashboard)/trips/[id]/page.tsx`. Mirrors the `get_trip_team_attendees` RPC return shape. Import from there — do not redeclare. |
 
 ---
 
