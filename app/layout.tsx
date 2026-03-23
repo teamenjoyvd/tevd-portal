@@ -39,6 +39,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <ClerkProvider afterSignOutUrl="/">
       <html lang="en" className={`${playfair.variable} ${montserrat.variable} ${cormorant.variable} ${dmSans.variable}`}>
+        <head>
+          {/*
+            Blocking inline script: apply stored theme BEFORE first paint.
+            This prevents the flash-of-light-mode on refresh when dark is stored.
+            Must be inline (not deferred/async) so it runs synchronously during HTML parse.
+          */}
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `(function(){try{var t=localStorage.getItem('tevd-theme');if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}})();`,
+            }}
+          />
+        </head>
         <body className="font-body" style={{ backgroundColor: 'var(--bg-global)', color: 'var(--text-primary)' }}>
           <Providers>
             {children}

@@ -5,6 +5,7 @@ import { useUser, useClerk } from '@clerk/nextjs'
 import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
 import { useLanguage } from '@/lib/hooks/useLanguage'
+import { useTheme } from '@/lib/hooks/useTheme'
 import { getRoleColors } from '@/lib/role-colors'
 
 const ROLE_LABELS: Record<string, string> = {
@@ -25,41 +26,14 @@ type ProfileData = {
 export default function UserDropdown() {
   const { user } = useUser()
   const { signOut } = useClerk()
-  const { lang, toggle } = useLanguage()
+  const { lang, toggle: toggleLang } = useLanguage()
+  const { theme, mounted: themeMounted, toggle: toggleTheme } = useTheme()
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
-
-  // Theme state — synced with ThemeTile via localStorage + storage event
-  const [theme, setTheme] = useState<'light' | 'dark'>('light')
-  const [themeMounted, setThemeMounted] = useState(false)
-  useEffect(() => {
-    const stored = localStorage.getItem('tevd-theme') as 'light' | 'dark' | null
-    setTheme(stored ?? 'light')
-    setThemeMounted(true)
-    function onStorage(e: StorageEvent) {
-      if (e.key === 'tevd-theme' && (e.newValue === 'light' || e.newValue === 'dark')) {
-        setTheme(e.newValue)
-      }
-    }
-    window.addEventListener('storage', onStorage)
-    return () => window.removeEventListener('storage', onStorage)
-  }, [])
-
-  function toggleTheme() {
-    const next = theme === 'light' ? 'dark' : 'light'
-    setTheme(next)
-    localStorage.setItem('tevd-theme', next)
-    document.documentElement.setAttribute('data-theme', next)
-    // Notify ThemeTile and any other tab via storage event
-    window.dispatchEvent(new StorageEvent('storage', { key: 'tevd-theme', newValue: next }))
-  }
 
   const role = (user?.publicMetadata?.role as string) ?? 'guest'
   const isAdmin = role === 'admin'
 
-  // Read name from TanStack Query cache (populated by /api/profile).
-  // This is always fresh after a profile save because saveMutation.onSuccess
-  // calls qc.setQueryData(['profile'], data).
   const { data: profileData } = useQuery<ProfileData>({
     queryKey: ['profile'],
     queryFn: () => fetch('/api/profile').then(r => r.json()),
@@ -88,7 +62,6 @@ export default function UserDropdown() {
     !!verRequest &&
     (verRequest.status === 'pending' || verRequest.status === 'denied')
 
-  // Close on outside click
   useEffect(() => {
     function handle(e: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
@@ -99,7 +72,6 @@ export default function UserDropdown() {
     return () => document.removeEventListener('mousedown', handle)
   }, [])
 
-  // Close on Escape
   useEffect(() => {
     function handle(e: KeyboardEvent) {
       if (e.key === 'Escape') setOpen(false)
@@ -122,19 +94,19 @@ export default function UserDropdown() {
         {initials}
       </button>
 
-      {/* Dropdown */}
+      {/* Dropdown — fully theme-aware via CSS variables */}
       {open && (
         <div
           className="absolute right-0 top-full mt-2 rounded-2xl z-50 overflow-hidden"
           style={{
             width: 220,
-            backgroundColor: 'white',
-            border: '1px solid rgba(0,0,0,0.08)',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)',
+            backgroundColor: 'var(--bg-card)',
+            border: '1px solid var(--border-default)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.16), 0 2px 8px rgba(0,0,0,0.08)',
           }}
         >
           {/* Identity block */}
-          <div className="px-4 py-4 border-b border-black/5">
+          <div className="px-4 py-4" style={{ borderBottom: '1px solid var(--border-default)' }}>
             <div className="flex items-center gap-3">
               <div
                 className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
@@ -168,8 +140,10 @@ export default function UserDropdown() {
               <Link
                 href="/admin"
                 onClick={() => setOpen(false)}
-                className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors hover:bg-black/[0.03]"
+                className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors"
                 style={{ color: 'var(--text-primary)' }}
+                onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--bg-global)')}
+                onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                   stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -181,36 +155,52 @@ export default function UserDropdown() {
                 Admin
               </Link>
             )}
-            <div className="border-t flex items-center justify-between px-4 py-2.5"
-              style={{ borderColor: 'var(--border-default)' }}>
+
+            {/* Language */}
+            <div
+              className="flex items-center justify-between px-4 py-2.5"
+              style={{ borderTop: '1px solid var(--border-default)' }}
+            >
               <span className="text-sm font-body" style={{ color: 'var(--text-secondary)' }}>
-                {lang === 'en' ? 'Language' : 'Език'}
+                {lang === 'en' ? 'Language' : '\u0415\u0437\u0438\u043a'}
               </span>
               <button
-                onClick={toggle}
-                className="px-2.5 py-1 rounded-lg text-xs font-bold tracking-widest uppercase transition-colors hover:bg-black/5"
-                style={{ color: 'var(--text-secondary)' }}
+                onClick={toggleLang}
+                className="px-2.5 py-1 rounded-lg text-xs font-bold tracking-widest uppercase transition-colors"
+                style={{ color: 'var(--text-secondary)', backgroundColor: 'var(--bg-global)' }}
+                onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--border-default)')}
+                onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'var(--bg-global)')}
               >
-                {lang === 'en' ? 'БГ' : 'EN'}
+                {lang === 'en' ? '\u0411\u0413' : 'EN'}
               </button>
             </div>
-            <div className="border-t flex items-center justify-between px-4 py-2.5"
-              style={{ borderColor: 'var(--border-default)' }}>
+
+            {/* Theme */}
+            <div
+              className="flex items-center justify-between px-4 py-2.5"
+              style={{ borderTop: '1px solid var(--border-default)' }}
+            >
               <span className="text-sm font-body" style={{ color: 'var(--text-secondary)' }}>
                 {themeMounted ? (theme === 'light' ? 'Light mode' : 'Dark mode') : 'Theme'}
               </span>
               <button
                 onClick={toggleTheme}
-                className="px-2.5 py-1 rounded-lg text-xs font-bold tracking-widest uppercase transition-colors hover:bg-black/5"
-                style={{ color: 'var(--text-secondary)' }}
+                className="px-2.5 py-1 rounded-lg text-xs font-bold tracking-widest uppercase transition-colors"
+                style={{ color: 'var(--text-secondary)', backgroundColor: 'var(--bg-global)' }}
+                onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--border-default)')}
+                onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'var(--bg-global)')}
               >
-                {!themeMounted ? '…' : theme === 'light' ? '🌙' : '☀️'}
+                {!themeMounted ? '\u2026' : theme === 'light' ? '\uD83C\uDF19' : '\u2600\uFE0F'}
               </button>
             </div>
+
+            {/* Sign out */}
             <button
               onClick={() => signOut({ redirectUrl: '/' })}
-              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors hover:bg-black/[0.03] border-t"
-              style={{ color: 'var(--brand-crimson)', borderColor: 'var(--border-default)' }}
+              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors"
+              style={{ color: 'var(--brand-crimson)', borderTop: '1px solid var(--border-default)', backgroundColor: 'transparent' }}
+              onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--bg-global)')}
+              onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

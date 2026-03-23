@@ -41,7 +41,7 @@ export default function GuidesPage() {
 
   return (
     <div className="py-8 pb-16">
-      <div className="max-w-[960px] mx-auto px-4">
+      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 xl:px-8">
         {/* Mobile: single-column stack */}
         <div className="md:hidden flex flex-col gap-3">
           {isLoading ? (
@@ -76,11 +76,11 @@ export default function GuidesPage() {
           )}
         </div>
 
-        {/* Desktop: 2-up 8-col grid */}
+        {/* Desktop: 12-col grid, cards span 4 each (3-up layout) */}
         <div
           className="hidden md:grid"
           style={{
-            gridTemplateColumns: 'repeat(8, minmax(0, 1fr))',
+            gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
             gap: '12px',
             gridAutoRows: 'minmax(120px, auto)',
           }}
@@ -101,7 +101,7 @@ export default function GuidesPage() {
           ) : guides.length === 0 ? (
             <div
               style={{
-                gridColumn: 'span 8',
+                gridColumn: 'span 12',
                 backgroundColor: 'var(--bg-card)',
                 border: '1px solid var(--border-default)',
               }}

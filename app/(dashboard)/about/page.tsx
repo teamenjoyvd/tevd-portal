@@ -59,45 +59,45 @@ export default function AboutPage() {
 
       {/* ════════════════════════════════════════════════════════════════════
           DESKTOP layout (md+)
-          max-w-[960px] centered, 8-col CSS grid
-          Row 1: [col-2 heading][col-6 text rowSpan-3]
-          Row 2: [col-2 empty  ][col-2 empty          ]
-          Row 3: [col-2 empty  ][col-2 empty          ]
-          Row 4: [col-2 hero   ][col-2 empty][col-2 email][col-2 map teal]
+          max-w-[1280px] centered, 12-col CSS grid
+          Row 1: [col-3 heading][col-9 text rowSpan-3]
+          Row 2: [col-3 empty]
+          Row 3: [col-3 empty]
+          Row 4: [col-3 hero][col-3 empty][col-3 email][col-3 map]
           ════════════════════════════════════════════════════════════════════ */}
-      <div className="hidden md:block max-w-[960px] mx-auto px-4">
+      <div className="hidden md:block max-w-[1280px] mx-auto px-4 sm:px-6 xl:px-8">
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(8, minmax(0, 1fr))',
+            gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
             gap: '12px',
             gridAutoRows: 'auto',
           }}
         >
-          {/* Row 1 col 1-2: heading — top-aligned, flush with text */}
-          <div style={{ gridColumn: 'span 2' }} className="flex items-start">
+          {/* Row 1 col 1-3: heading */}
+          <div style={{ gridColumn: 'span 3' }} className="flex items-start">
             {HEADING}
           </div>
 
-          {/* Row 1-3 col 3-8: body text, rowSpan 3, starts at top */}
+          {/* Row 1-3 col 4-12: body text, rowSpan 3 */}
           <div
-            style={{ gridColumn: 'span 6', gridRow: 'span 3' }}
+            style={{ gridColumn: 'span 9', gridRow: 'span 3' }}
             className="flex flex-col justify-start"
           >
             {BODY}
           </div>
 
-          {/* Row 2 col 1-2: empty */}
-          <div style={{ gridColumn: 'span 2' }} />
+          {/* Row 2 col 1-3: empty */}
+          <div style={{ gridColumn: 'span 3' }} />
 
-          {/* Row 3 col 1-2: empty */}
-          <div style={{ gridColumn: 'span 2' }} />
+          {/* Row 3 col 1-3: empty */}
+          <div style={{ gridColumn: 'span 3' }} />
 
-          {/* Row 4 col 1-2: square hero image */}
+          {/* Row 4 col 1-3: square hero image */}
           <div
             className="rounded-2xl overflow-hidden relative"
             style={{
-              gridColumn: 'span 2',
+              gridColumn: 'span 3',
               aspectRatio: '1 / 1',
               minHeight: 80,
             }}
@@ -111,17 +111,17 @@ export default function AboutPage() {
             />
           </div>
 
-          {/* Row 4 col 3-4: empty */}
-          <div style={{ gridColumn: 'span 2' }} />
+          {/* Row 4 col 4-6: empty */}
+          <div style={{ gridColumn: 'span 3' }} />
 
-          {/* Row 4 col 5-6: email — crimson */}
-          <div style={{ gridColumn: 'span 2', minHeight: 120 }}>
+          {/* Row 4 col 7-9: email */}
+          <div style={{ gridColumn: 'span 3', minHeight: 120 }}>
             {EMAIL_TILE}
           </div>
 
-          {/* Row 4 col 7-8: map — teal */}
+          {/* Row 4 col 10-12: map */}
           <AboutMapTile
-            gridColumn="span 2"
+            gridColumn="span 3"
             style={{ minHeight: 120, backgroundColor: 'var(--brand-teal)' }}
           />
 
@@ -129,15 +129,12 @@ export default function AboutPage() {
       </div>
 
       {/* ════════════════════════════════════════════════════════════════════
-          MOBILE layout (< md)
-          Simple vertical stack
+          MOBILE layout (< md) — unchanged
           ════════════════════════════════════════════════════════════════════ */}
       <div className="md:hidden flex flex-col gap-3 px-4">
 
-        {/* Heading */}
         <div>{HEADING}</div>
 
-        {/* Hero image — square */}
         <div
           className="rounded-2xl overflow-hidden relative"
           style={{ aspectRatio: '1 / 1', width: '100%' }}
@@ -151,10 +148,8 @@ export default function AboutPage() {
           />
         </div>
 
-        {/* Body text */}
         <div>{BODY}</div>
 
-        {/* Email + Map side by side */}
         <div className="grid grid-cols-2 gap-3">
           <div style={{ minHeight: 96 }}>{EMAIL_TILE}</div>
           <AboutMapTile style={{ minHeight: 96, backgroundColor: 'var(--brand-teal)' }} />

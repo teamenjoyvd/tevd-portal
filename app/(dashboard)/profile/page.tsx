@@ -251,7 +251,7 @@ const ROLE_LABELS: Record<string, string> = {
 
 function SectionSkeleton({ height = 120 }: { height?: number }) {
   return (
-    <div style={{ gridColumn: 'span 8' }}>
+    <div style={{ gridColumn: 'span 12' }}>
       <div
         className="rounded-2xl animate-pulse"
         style={{ height, backgroundColor: 'var(--border-default)' }}
@@ -260,11 +260,11 @@ function SectionSkeleton({ height = 120 }: { height?: number }) {
   )
 }
 
-// ── Mobile-aware col-4 bento wrapper ─────────────────────────────────────────
+// ── Mobile-aware col-6 bento wrapper ─────────────────────────────────────────
 
-function Col4Bento({ children }: { children: ReactNode }) {
+function Col6Bento({ children }: { children: ReactNode }) {
   return (
-    <div className="bento-mobile-full" style={{ gridColumn: 'span 4' }}>
+    <div className="bento-mobile-full" style={{ gridColumn: 'span 6' }}>
       {children}
     </div>
   )
@@ -338,7 +338,7 @@ function SortableBento({
   return (
     <div
       ref={setNodeRef}
-      className={colSpan === 4 ? 'bento-mobile-full' : ''}
+      className={colSpan === 6 ? 'bento-mobile-full' : ''}
       style={style}
     >
       {collapsed ? (
@@ -453,9 +453,9 @@ const DEFAULT_ORDER: string[] = [
 function ProfileSkeleton() {
   return (
     <div className="py-8 pb-16">
-      <div className="max-w-[960px] mx-auto px-4">
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, minmax(0, 1fr))', gap: '12px' }}>
-          <div style={{ gridColumn: 'span 8' }}>
+      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 xl:px-8">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: '12px' }}>
+          <div style={{ gridColumn: 'span 12' }}>
             <div className="space-y-3">
               {[...Array(2)].map((_, i) => (
                 <div key={i} className="h-48 rounded-2xl animate-pulse"
@@ -846,7 +846,7 @@ export default function ProfilePage() {
 
   const bentoMap: Record<string, BentoEntry | null> = {
     [BENTO_IDS.PERSONAL]: {
-      colSpan: 8,
+      colSpan: 12,
       node: (
         <div className="rounded-2xl p-6" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
 
@@ -1163,10 +1163,10 @@ export default function ProfilePage() {
     },
 
     [BENTO_IDS.TRIPS]: tripsLoading
-      ? { colSpan: 4, node: <div className="rounded-2xl animate-pulse" style={{ height: 160, backgroundColor: 'var(--border-default)' }} /> }
+      ? { colSpan: 6, node: <div className="rounded-2xl animate-pulse" style={{ height: 160, backgroundColor: 'var(--border-default)' }} /> }
       : hasTrips
         ? {
-            colSpan: 4,
+            colSpan: 6,
             node: (
               <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
                 <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-4 pr-16" style={{ color: 'var(--brand-crimson)' }}>
@@ -1231,9 +1231,9 @@ export default function ProfilePage() {
         : null,
 
     [BENTO_IDS.PAYMENTS]: paymentsLoading
-      ? { colSpan: 4, node: <div className="rounded-2xl animate-pulse" style={{ height: 160, backgroundColor: 'var(--border-default)' }} /> }
+      ? { colSpan: 6, node: <div className="rounded-2xl animate-pulse" style={{ height: 160, backgroundColor: 'var(--border-default)' }} /> }
       : {
-          colSpan: 4,
+          colSpan: 6,
           node: (
             <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
               <div className="flex items-center justify-between mb-4 pr-16">
@@ -1314,10 +1314,10 @@ export default function ProfilePage() {
 
     // ── Vital Signs ── API shape: member_vital_signs + vital_sign_definitions
     [BENTO_IDS.VITALS]: vitalsLoading
-      ? { colSpan: 4, node: <div className="rounded-2xl animate-pulse" style={{ height: 120, backgroundColor: 'var(--border-default)' }} /> }
+      ? { colSpan: 6, node: <div className="rounded-2xl animate-pulse" style={{ height: 120, backgroundColor: 'var(--border-default)' }} /> }
       : hasVitals
         ? {
-            colSpan: 4,
+            colSpan: 6,
             node: (
               <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
                 <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-6 pr-16" style={{ color: 'var(--brand-crimson)' }}>
@@ -1354,10 +1354,10 @@ export default function ProfilePage() {
         : null,
 
     [BENTO_IDS.PARTICIPATION]: eventRolesLoading
-      ? { colSpan: 4, node: <div className="rounded-2xl animate-pulse" style={{ height: 120, backgroundColor: 'var(--border-default)' }} /> }
+      ? { colSpan: 6, node: <div className="rounded-2xl animate-pulse" style={{ height: 120, backgroundColor: 'var(--border-default)' }} /> }
       : hasEventRoles
         ? {
-            colSpan: 4,
+            colSpan: 6,
             node: (
               <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
                 <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-6 pr-16" style={{ color: 'var(--brand-crimson)' }}>
@@ -1390,15 +1390,15 @@ export default function ProfilePage() {
         : null,
 
     [BENTO_IDS.CALENDAR]: {
-      colSpan: 8,
+      colSpan: 12,
       node: calSubscriptionBlock,
     },
 
     [BENTO_IDS.STATS]: p.abo_number
       ? losSummaryLoading
-        ? { colSpan: 8, node: <div className="rounded-2xl animate-pulse" style={{ height: 80, backgroundColor: 'var(--border-default)' }} /> }
+        ? { colSpan: 12, node: <div className="rounded-2xl animate-pulse" style={{ height: 80, backgroundColor: 'var(--border-default)' }} /> }
         : {
-            colSpan: 8,
+            colSpan: 12,
             node: (
               <div className="rounded-2xl p-6" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
                 <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-4 pr-16" style={{ color: 'var(--brand-crimson)' }}>
@@ -1442,7 +1442,7 @@ export default function ProfilePage() {
 
     [BENTO_IDS.ADMIN]: isAdmin
       ? {
-          colSpan: 8,
+          colSpan: 12,
           node: (
             <div className="rounded-2xl p-6" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
               <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-4 pr-16" style={{ color: 'var(--brand-teal)' }}>
@@ -1480,18 +1480,18 @@ export default function ProfilePage() {
 
   return (
     <div className="py-8 pb-16">
-      <div className="max-w-[960px] mx-auto px-4">
+      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 xl:px-8">
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(8, minmax(0, 1fr))',
+            gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
             gap: '12px',
           }}
         >
           {isGuest ? (
             // ── GUEST LAYOUT ────────────────────────────────────────────────
             <>
-              <div style={{ gridColumn: 'span 4' }}>
+              <div style={{ gridColumn: 'span 6' }}>
                 <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
                   <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-6" style={{ color: 'var(--brand-crimson)' }}>
                     {t('profile.identity')}
@@ -1557,7 +1557,7 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              <div style={{ gridColumn: 'span 4' }}>
+              <div style={{ gridColumn: 'span 6' }}>
                 <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', borderLeft: '4px solid var(--brand-teal)', border: '1px solid var(--border-default)' }}>
                   <p className="text-xs font-semibold tracking-widest uppercase mb-1"
                     style={{ color: 'var(--text-secondary)' }}>
@@ -1670,7 +1670,7 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              <div style={{ gridColumn: 'span 8' }}>
+              <div style={{ gridColumn: 'span 12' }}>
                 {calSubscriptionBlock}
               </div>
             </>
