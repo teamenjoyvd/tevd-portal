@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useBentoConfig, type BentoConfigEntry } from '@/lib/hooks/useBentoConfig'
 import type { Dispatch, SetStateAction } from 'react'
+import { Drawer } from '@/components/ui/Drawer'
 
 // ── Shared drag handle ───────────────────────────────────────────────
 
@@ -736,7 +737,6 @@ function ContentPageInner() {
     caption: '',
     thumbnail_url: '',
   })
-  // null = not yet attempted, true = scraping, false = scrape done (success or fail)
   const [spPreviewing, setSpPreviewing] = useState(false)
   const [spPreviewHint, setSpPreviewHint] = useState<string | null>(null)
 
@@ -805,7 +805,6 @@ function ContentPageInner() {
   })
 
   // ── Generic drag helpers ───────────────────────────────
-  // setLocal uses React.Dispatch<SetStateAction<T[]>> so the callback form is accepted by tsc
   function makeDragHandlers<T extends { id: string }>(
     dragging: string | null,
     setDragging: (id: string | null) => void,
@@ -952,12 +951,13 @@ function ContentPageInner() {
               ))}
             </div>
 
-            {editingAnnouncement && (
-              <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-6 mt-4 space-y-3">
-                <div className="flex items-center justify-between mb-1">
-                  <p className="text-xs font-semibold tracking-widest uppercase" style={{ color: 'var(--text-secondary)' }}>Edit announcement</p>
-                  <button onClick={() => setEditingAnnouncement(null)} className="text-xs hover:opacity-70 transition-opacity" style={{ color: 'var(--text-secondary)' }}>Cancel</button>
-                </div>
+            {/* Edit announcement Drawer */}
+            <Drawer
+              open={!!editingAnnouncement}
+              onClose={() => setEditingAnnouncement(null)}
+              title="Edit announcement"
+            >
+              <div className="space-y-3">
                 <div className="flex gap-2 mb-2">
                   {LANGS.map(l => (
                     <button key={l} onClick={() => setEditALang(l)}
@@ -970,14 +970,14 @@ function ContentPageInner() {
                 <input value={editAForm.titles[editALang] ?? ''}
                   onChange={e => setEditAForm(f => ({ ...f, titles: { ...f.titles, [editALang]: e.target.value } }))}
                   placeholder={`Title (${editALang.toUpperCase()})`}
-                  className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-                  style={{ color: 'var(--text-primary)' }} />
+                  className="w-full border rounded-xl px-3 py-2.5 text-sm"
+                  style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
                 <textarea value={editAForm.contents[editALang] ?? ''}
                   onChange={e => setEditAForm(f => ({ ...f, contents: { ...f.contents, [editALang]: e.target.value } }))}
                   placeholder={`Content (${editALang.toUpperCase()})`}
                   rows={4}
-                  className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm resize-none"
-                  style={{ color: 'var(--text-primary)' }} />
+                  className="w-full border rounded-xl px-3 py-2.5 text-sm resize-none"
+                  style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
                 <div className="flex gap-2 flex-wrap">
                   {['guest','member','core','admin'].map(role => (
                     <button key={role}
@@ -988,8 +988,8 @@ function ContentPageInner() {
                     </button>
                   ))}
                 </div>
-                <div className="flex gap-3 pt-1">
-                  <button onClick={() => updateAnnouncement.mutate({ id: editingAnnouncement.id, ...editAForm })}
+                <div className="flex gap-3 pt-2">
+                  <button onClick={() => editingAnnouncement && updateAnnouncement.mutate({ id: editingAnnouncement.id, ...editAForm })}
                     disabled={updateAnnouncement.isPending || !editAForm.titles.en}
                     className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
                     style={{ backgroundColor: 'var(--brand-crimson)' }}>
@@ -1000,7 +1000,7 @@ function ContentPageInner() {
                     style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>Cancel</button>
                 </div>
               </div>
-            )}
+            </Drawer>
           </section>
         )}
 
@@ -1058,18 +1058,34 @@ function ContentPageInner() {
               ))}
             </div>
 
-            {editingLink && (
-              <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-6 mt-4">
-                <div className="flex items-center justify-between mb-4">
-                  <p className="text-xs font-semibold tracking-widest uppercase" style={{ color: 'var(--text-secondary)' }}>Edit link</p>
-                  <button onClick={() => setEditingLink(null)} className="text-xs hover:opacity-70 transition-opacity" style={{ color: 'var(--text-secondary)' }}>Cancel</button>
+            {/* Edit link Drawer */}
+            <Drawer
+              open={!!editingLink}
+              onClose={() => setEditingLink(null)}
+              title={editingLink ? `Edit: ${editingLink.label}` : 'Edit link'}
+            >
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Label</label>
+                    <input value={editLForm.label} onChange={e => setEditLForm(f => ({ ...f, label: e.target.value }))} placeholder="Label"
+                      className="w-full border rounded-xl px-3 py-2.5 text-sm"
+                      style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
+                  </div>
+                  <div>
+                    <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Icon name</label>
+                    <input value={editLForm.icon_name} onChange={e => setEditLForm(f => ({ ...f, icon_name: e.target.value }))} placeholder="Icon name"
+                      className="w-full border rounded-xl px-3 py-2.5 text-sm"
+                      style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
+                  </div>
                 </div>
-                <div className="grid grid-cols-4 gap-3 mb-4">
-                  <input value={editLForm.label} onChange={e => setEditLForm(f => ({ ...f, label: e.target.value }))} placeholder="Label" className="border border-black/10 rounded-xl px-3 py-2.5 text-sm" style={{ color: 'var(--text-primary)' }} />
-                  <input value={editLForm.url} onChange={e => setEditLForm(f => ({ ...f, url: e.target.value }))} placeholder="URL" className="border border-black/10 rounded-xl px-3 py-2.5 text-sm col-span-2" style={{ color: 'var(--text-primary)' }} />
-                  <input value={editLForm.icon_name} onChange={e => setEditLForm(f => ({ ...f, icon_name: e.target.value }))} placeholder="Icon name" className="border border-black/10 rounded-xl px-3 py-2.5 text-sm" style={{ color: 'var(--text-primary)' }} />
+                <div>
+                  <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>URL</label>
+                  <input value={editLForm.url} onChange={e => setEditLForm(f => ({ ...f, url: e.target.value }))} placeholder="URL"
+                    className="w-full border rounded-xl px-3 py-2.5 text-sm"
+                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
                 </div>
-                <div className="flex gap-2 flex-wrap mb-4">
+                <div className="flex gap-2 flex-wrap">
                   {['guest','member','core','admin'].map(role => (
                     <button key={role}
                       onClick={() => setEditLForm(f => ({ ...f, access_level: f.access_level.includes(role) ? f.access_level.filter(r => r !== role) : [...f.access_level, role] }))}
@@ -1079,8 +1095,8 @@ function ContentPageInner() {
                     </button>
                   ))}
                 </div>
-                <div className="flex gap-3">
-                  <button onClick={() => updateLink.mutate({ id: editingLink.id, ...editLForm })}
+                <div className="flex gap-3 pt-2">
+                  <button onClick={() => editingLink && updateLink.mutate({ id: editingLink.id, ...editLForm })}
                     disabled={updateLink.isPending || !editLForm.label || !editLForm.url}
                     className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
                     style={{ backgroundColor: 'var(--brand-crimson)' }}>
@@ -1091,7 +1107,7 @@ function ContentPageInner() {
                     style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>Cancel</button>
                 </div>
               </div>
-            )}
+            </Drawer>
           </section>
         )}
 
@@ -1102,23 +1118,27 @@ function ContentPageInner() {
               <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                 {guidesRaw.length} guide{guidesRaw.length !== 1 ? 's' : ''}
               </p>
-              {!guidesCreating && !guidesEditing && (
-                <button onClick={() => { setGuidesCreating(true); setGuidesMutError(null) }}
-                  className="px-4 py-2 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-opacity"
-                  style={{ backgroundColor: 'var(--brand-crimson)' }}>+ New Guide</button>
-              )}
+              <button onClick={() => { setGuidesCreating(true); setGuidesEditing(null); setGuidesMutError(null) }}
+                className="px-4 py-2 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-opacity"
+                style={{ backgroundColor: 'var(--brand-crimson)' }}>+ New Guide</button>
             </div>
 
-            {guidesCreating && (
-              <div className="rounded-2xl border p-6" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
-                <h2 className="font-display text-lg font-semibold mb-5" style={{ color: 'var(--text-primary)' }}>New Guide</h2>
-                <GuideForm initial={emptyGuide()} onSave={data => createGuide.mutate(data)} onCancel={() => { setGuidesCreating(false); setGuidesMutError(null) }} isPending={createGuide.isPending} error={guidesMutError} />
-              </div>
-            )}
-
-            {guidesEditing && (
-              <div className="rounded-2xl border p-6" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
-                <h2 className="font-display text-lg font-semibold mb-5" style={{ color: 'var(--text-primary)' }}>Edit: {guidesEditing.title.en || guidesEditing.slug}</h2>
+            {/* Guides create + edit Drawer */}
+            <Drawer
+              open={guidesCreating || !!guidesEditing}
+              onClose={() => { setGuidesCreating(false); setGuidesEditing(null); setGuidesMutError(null) }}
+              title={guidesEditing ? `Edit: ${guidesEditing.title.en || guidesEditing.slug}` : 'New Guide'}
+            >
+              {guidesCreating && (
+                <GuideForm
+                  initial={emptyGuide()}
+                  onSave={data => createGuide.mutate(data)}
+                  onCancel={() => { setGuidesCreating(false); setGuidesMutError(null) }}
+                  isPending={createGuide.isPending}
+                  error={guidesMutError}
+                />
+              )}
+              {guidesEditing && (
                 <GuideForm
                   initial={{ slug: guidesEditing.slug, title: guidesEditing.title, cover_image_url: guidesEditing.cover_image_url, emoji: guidesEditing.emoji, body: guidesEditing.body, access_roles: guidesEditing.access_roles, is_published: guidesEditing.is_published, sort_order: guidesEditing.sort_order }}
                   onSave={data => updateGuide.mutate({ id: guidesEditing.id, ...data })}
@@ -1126,8 +1146,8 @@ function ContentPageInner() {
                   isPending={updateGuide.isPending}
                   error={guidesMutError}
                 />
-              </div>
-            )}
+              )}
+            </Drawer>
 
             {guidesLoading ? (
               <div className="space-y-3">
@@ -1135,7 +1155,7 @@ function ContentPageInner() {
                   <div key={i} className="h-16 rounded-2xl animate-pulse" style={{ backgroundColor: 'var(--border-default)' }} />
                 ))}
               </div>
-            ) : guidesRaw.length === 0 && !guidesCreating ? (
+            ) : guidesRaw.length === 0 ? (
               <div className="rounded-2xl border px-6 py-12 text-center" style={{ borderColor: 'var(--border-default)' }}>
                 <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No guides yet. Create the first one.</p>
               </div>
@@ -1166,7 +1186,7 @@ function ContentPageInner() {
                         style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
                         {guide.is_published ? 'Unpublish' : 'Publish'}
                       </button>
-                      <button onClick={() => { setGuidesEditing(guide); setGuidesMutError(null) }}
+                      <button onClick={() => { setGuidesEditing(guide); setGuidesCreating(false); setGuidesMutError(null) }}
                         className="px-3 py-1 rounded-lg text-xs font-semibold border transition-colors hover:bg-black/5"
                         style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>Edit</button>
                       <button onClick={() => { if (confirm(`Delete "${guide.title.en}"?`)) deleteGuide.mutate(guide.id) }}

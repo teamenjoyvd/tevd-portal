@@ -5,6 +5,7 @@ import { useState, useEffect, useRef, useCallback, forwardRef, type ReactNode } 
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { formatDate, formatCurrency } from '@/lib/format'
 import { getRoleColors } from '@/lib/role-colors'
+import { Drawer } from '@/components/ui/Drawer'
 import {
   DndContext,
   PointerSensor,
@@ -264,7 +265,6 @@ function Col4Bento({ children }: { children: ReactNode }) {
 }
 
 // ── Drag handle icon ──────────────────────────────────────────────────────────
-// forwardRef required so dnd-kit's setActivatorNodeRef can attach to the DOM node.
 
 const DragHandle = forwardRef<HTMLSpanElement, React.HTMLAttributes<HTMLSpanElement>>(
   function DragHandle(props, ref) {
@@ -275,7 +275,7 @@ const DragHandle = forwardRef<HTMLSpanElement, React.HTMLAttributes<HTMLSpanElem
         title="Drag to reorder"
         style={{ cursor: 'grab', touchAction: 'none', userSelect: 'none', fontSize: 14, lineHeight: 1, color: 'var(--text-secondary)', opacity: 0.5, flexShrink: 0 }}
       >
-        ⠿
+        ⠇
       </span>
     )
   }
@@ -336,7 +336,6 @@ function SortableBento({
       style={style}
     >
       {collapsed ? (
-        // ── Collapsed strip: label + drag handle + chevron ──────────────────
         <div
           className="rounded-2xl px-6 py-4 flex items-center justify-between"
           style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}
@@ -372,9 +371,7 @@ function SortableBento({
           </button>
         </div>
       ) : (
-        // ── Uncollapsed: full card content with overlay controls ─────────────
         <>
-          {/* Collapse / drag controls overlay — top-right of the card */}
           <div
             style={{
               position: 'absolute',
@@ -412,7 +409,6 @@ function SortableBento({
             </button>
           </div>
 
-          {/* Card content */}
           <div style={{ overflow: 'hidden' }}>
             {children}
           </div>
@@ -435,7 +431,6 @@ const BENTO_IDS = {
   ADMIN:         'admin',
 }
 
-// Typed as string[] so Array.prototype.includes accepts string arguments.
 const DEFAULT_ORDER: string[] = [
   BENTO_IDS.PERSONAL,
   BENTO_IDS.TRIPS,
@@ -447,7 +442,7 @@ const DEFAULT_ORDER: string[] = [
   BENTO_IDS.ADMIN,
 ]
 
-// ── Loading skeleton (prerender + loading state) ──────────────────────────────
+// ── Loading skeleton ──────────────────────────────────────────────────────────
 
 function ProfileSkeleton() {
   return (
@@ -480,14 +475,26 @@ export default function ProfilePage() {
   const [uplineInput, setUplineInput] = useState('')
   const [verificationMode, setVerificationMode] = useState<'standard' | 'manual'>('standard')
   const [calCopied, setCalCopied] = useState(false)
-  // Generic payment modal state
-  const [payModalOpen, setPayModalOpen] = useState(false)
+
+  // Generic payment Drawer state
+  const [payDrawerOpen, setPayDrawerOpen] = useState(false)
   const [payModalItemId, setPayModalItemId] = useState('')
   const [payModalAmount, setPayModalAmount] = useState('')
   const [payModalDate, setPayModalDate] = useState('')
   const [payModalMethod, setPayModalMethod] = useState('')
   const [payModalNote, setPayModalNote] = useState('')
   const [payModalFile, setPayModalFile] = useState<File | null>(null)
+
+  function closePayDrawer() {
+    setPayDrawerOpen(false)
+    setPayModalItemId('')
+    setPayModalAmount('')
+    setPayModalDate('')
+    setPayModalMethod('')
+    setPayModalNote('')
+    setPayModalFile(null)
+    submitGenericPayment.reset()
+  }
 
   // ── Drag/drop + collapse state ───────────────────────────────────────────
   const [bentoOrder, setBentoOrder] = useState<string[]>(DEFAULT_ORDER)
@@ -514,7 +521,6 @@ export default function ProfilePage() {
 
   const validProfile = profile?.id ? profile : null
 
-  // Hydrate bento order + collapse from ui_prefs on first load
   useEffect(() => {
     if (!validProfile) return
     const prefs = validProfile.ui_prefs ?? {}
@@ -532,7 +538,6 @@ export default function ProfilePage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [validProfile?.id])
 
-  // Debounced persist to ui_prefs
   const persistPrefs = useCallback((order: string[], collapsed: Record<string, boolean>) => {
     if (persistDebounceRef.current) clearTimeout(persistDebounceRef.current)
     persistDebounceRef.current = setTimeout(() => {
@@ -540,7 +545,7 @@ export default function ProfilePage() {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ui_prefs: { bento_order: order, bento_collapsed: collapsed } }),
-      }).catch(() => { /* silent — prefs are non-critical */ })
+      }).catch(() => { /* silent */ })
     }, 500)
   }, [])
 
@@ -747,26 +752,15 @@ export default function ProfilePage() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['profile-generic-payments'] })
-      setPayModalOpen(false)
-      setPayModalItemId('')
-      setPayModalAmount('')
-      setPayModalDate('')
-      setPayModalMethod('')
-      setPayModalNote('')
-      setPayModalFile(null)
+      closePayDrawer()
     },
   })
 
-  // ── Guard: render skeleton until profile is loaded ────────────────────────
-  // This prevents prerender crash and avoids all validProfile! assertions
-  // being evaluated before data exists.
+  // ── Guard ─────────────────────────────────────────────────────────────────
   if (isLoading || !validProfile) {
-    return (
-      <ProfileSkeleton />
-    )
+    return <ProfileSkeleton />
   }
 
-  // From here validProfile is guaranteed non-null.
   const p = validProfile
 
   const activeDocType = form.document_active_type ?? p.document_active_type ?? 'id'
@@ -780,12 +774,10 @@ export default function ProfilePage() {
   const hasVitals = Array.isArray(vitalsData) && vitalsData.length > 0
   const hasEventRoles = Array.isArray(eventRolesData) && eventRolesData.length > 0
 
-  // BG name helpers
   const dnMap = ((form.display_names ?? {}) as Record<string, string>)
   const bgFirst = dnMap.bg_first ?? ''
   const bgLast  = dnMap.bg_last ?? ''
 
-  // Group generic payments by payable_item title
   const paymentsByItem: Record<string, GenericPayment[]> = {}
   for (const pay of (paymentsData ?? [])) {
     const key = pay.payable_items?.title ?? 'Unknown'
@@ -793,12 +785,10 @@ export default function ProfilePage() {
     paymentsByItem[key].push(pay)
   }
 
-  // Collect cancelled trip IDs for payment flagging
   const cancelledTripIds = new Set(
     (tripsData ?? []).filter(e => e.cancelled_at).map(e => e.trip?.id).filter(Boolean) as string[]
   )
 
-  // ── Calendar subscription block (shared) ────────────────────────
   const calSubscriptionBlock = (
     <div className="rounded-2xl p-6" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
       <p className="text-xs font-semibold tracking-widest uppercase mb-1"
@@ -842,9 +832,6 @@ export default function ProfilePage() {
     </div>
   )
 
-  // ── Bento content map ─────────────────────────────────────────────────────
-  // bentoMap is only constructed after the guard above, so p is always non-null here.
-
   type BentoEntry = { colSpan: number; node: ReactNode }
 
   const bentoMap: Record<string, BentoEntry | null> = {
@@ -853,7 +840,6 @@ export default function ProfilePage() {
       node: (
         <div className="rounded-2xl p-6" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
 
-          {/* Header row — pr-20 to leave room for the absolute controls */}
           <div className="flex items-center justify-between mb-6 pr-20">
             <p className="text-xs font-semibold tracking-[0.25em] uppercase" style={{ color: 'var(--brand-crimson)' }}>
               Personal Details
@@ -890,16 +876,13 @@ export default function ProfilePage() {
             )}
           </div>
 
-          {/* ── Two-column split: PERSONAL DETAILS | ABO VERIFICATION ── */}
           <div className="flex flex-col md:flex-row gap-0">
 
-            {/* Left col — PERSONAL DETAILS */}
             <div className="flex-1 space-y-4 md:pr-6">
               <p className="text-[10px] font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
                 Details
               </p>
 
-              {/* EN names */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
@@ -937,7 +920,6 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              {/* BG names */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
@@ -975,7 +957,6 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              {/* Phone + Email */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Phone</label>
@@ -1012,19 +993,16 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            {/* Thin vertical separator — desktop only */}
             <div
               className="hidden md:block flex-shrink-0"
               style={{ width: 1, backgroundColor: 'var(--border-default)', margin: '0 0' }}
             />
 
-            {/* Right col — ABO VERIFICATION */}
             <div className="flex-1 space-y-3 md:pl-6 mt-6 md:mt-0">
               <p className="text-[10px] font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
                 ABO Verification
               </p>
 
-              {/* Access row */}
               {(() => {
                 const rc = getRoleColors(p.role)
                 return (
@@ -1040,7 +1018,6 @@ export default function ProfilePage() {
                 )
               })()}
 
-              {/* ABO # row */}
               <div className="grid grid-cols-2 gap-4">
                 <p className="text-xs py-1" style={{ color: 'var(--text-secondary)' }}>ABO #</p>
                 {p.abo_number ? (
@@ -1053,7 +1030,6 @@ export default function ProfilePage() {
                 )}
               </div>
 
-              {/* Upline name row */}
               <div className="grid grid-cols-2 gap-4">
                 <p className="text-xs py-1" style={{ color: 'var(--text-secondary)' }}>Upline</p>
                 <p className="text-xs font-medium py-1" style={{ color: 'var(--text-primary)' }}>
@@ -1061,7 +1037,6 @@ export default function ProfilePage() {
                 </p>
               </div>
 
-              {/* Upline number row */}
               <div className="grid grid-cols-2 gap-4">
                 <p className="text-xs py-1" style={{ color: 'var(--text-secondary)' }}>Upline #</p>
                 <p className="text-xs font-mono py-1" style={{ color: 'var(--text-secondary)' }}>
@@ -1071,7 +1046,6 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* ── Travel Document sub-section ── */}
           <>
             <div style={{ borderTop: '1px solid var(--border-default)', margin: '20px 0 16px' }} />
             <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-4" style={{ color: 'var(--text-secondary)' }}>
@@ -1257,7 +1231,7 @@ export default function ProfilePage() {
                   Payments
                 </p>
                 <button
-                  onClick={() => setPayModalOpen(true)}
+                  onClick={() => setPayDrawerOpen(true)}
                   className="px-3 py-1.5 rounded-xl text-xs font-semibold text-white hover:opacity-90 transition-opacity flex-shrink-0"
                   style={{ backgroundColor: 'var(--brand-forest)' }}
                 >
@@ -1480,7 +1454,6 @@ export default function ProfilePage() {
       : null,
   }
 
-  // Ordered list of bentos that have content to render
   const orderedBentos = bentoOrder
     .map(id => ({ id, entry: bentoMap[id] ?? null }))
     .filter((b): b is { id: string; entry: BentoEntry } => b.entry !== null)
@@ -1498,7 +1471,6 @@ export default function ProfilePage() {
           {isGuest ? (
             // ── GUEST LAYOUT ────────────────────────────────────────────────
             <>
-              {/* col-4: Name fields */}
               <div style={{ gridColumn: 'span 4' }}>
                 <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
                   <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-6" style={{ color: 'var(--brand-crimson)' }}>
@@ -1565,7 +1537,6 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              {/* col-4: ABO verification */}
               <div style={{ gridColumn: 'span 4' }}>
                 <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', borderLeft: '4px solid var(--brand-teal)', border: '1px solid var(--border-default)' }}>
                   <p className="text-xs font-semibold tracking-widest uppercase mb-1"
@@ -1679,13 +1650,12 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              {/* col-8: Calendar subscription */}
               <div style={{ gridColumn: 'span 8' }}>
                 {calSubscriptionBlock}
               </div>
             </>
           ) : (
-            // ── MEMBER / CORE / ADMIN LAYOUT — sortable bentos ───────────────
+            // ── MEMBER / CORE / ADMIN LAYOUT ─────────────────────────────────
             <DndContext
               sensors={sensors}
               collisionDetection={closestCenter}
@@ -1710,139 +1680,105 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* ── PAYMENT MODAL (fixed, blocking, non-backdrop-dismissable) ─────── */}
-      {payModalOpen && (
-        <>
-          <div
-            className="fixed inset-0 z-50"
-            style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
-          />
-          <div
-            className="fixed z-[51] rounded-2xl shadow-xl p-6"
-            style={{
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: '100%',
-              maxWidth: 'min(28rem, calc(100vw - 2rem))',
-              backgroundColor: 'var(--bg-card)',
-              border: '1px solid var(--border-default)',
-            }}
-          >
-            <p className="text-sm font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
-              Submit Payment
-            </p>
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Item</label>
-                <select
-                  value={payModalItemId}
-                  onChange={e => setPayModalItemId(e.target.value)}
-                  className="w-full border border-black/10 rounded-xl px-3 py-2 text-sm"
-                  style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
-                >
-                  <option value="">Select an item…</option>
-                  {(payableItems ?? []).map(item => (
-                    <option key={item.id} value={item.id}>
-                      {item.title} — {formatCurrency(item.amount, item.currency)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Amount</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={payModalAmount}
-                    onChange={e => setPayModalAmount(e.target.value)}
-                    className="w-full border border-black/10 rounded-xl px-3 py-2 text-sm"
-                    style={{ color: 'var(--text-primary)' }}
-                  />
-                </div>
-                <div>
-                  <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Date</label>
-                  <input
-                    type="date"
-                    value={payModalDate}
-                    onChange={e => setPayModalDate(e.target.value)}
-                    className="w-full border border-black/10 rounded-xl px-3 py-2 text-sm"
-                    style={{ color: 'var(--text-primary)' }}
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Payment method</label>
-                <input
-                  value={payModalMethod}
-                  onChange={e => setPayModalMethod(e.target.value)}
-                  placeholder="e.g. bank transfer, cash"
-                  className="w-full border border-black/10 rounded-xl px-3 py-2 text-sm"
-                  style={{ color: 'var(--text-primary)' }}
-                />
-              </div>
-              <div>
-                <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Proof of payment (optional)</label>
-                <input
-                  type="file"
-                  accept="image/*,.pdf"
-                  onChange={e => setPayModalFile(e.target.files?.[0] ?? null)}
-                  className="w-full text-xs"
-                  style={{ color: 'var(--text-secondary)' }}
-                />
-                {payModalFile && (
-                  <p className="text-[11px] mt-1" style={{ color: 'var(--brand-teal)' }}>
-                    {payModalFile.name}
-                  </p>
-                )}
-              </div>
-              <div>
-                <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Note</label>
-                <textarea
-                  value={payModalNote}
-                  onChange={e => setPayModalNote(e.target.value)}
-                  rows={2}
-                  className="w-full border border-black/10 rounded-xl px-3 py-2 text-sm resize-none"
-                  style={{ color: 'var(--text-primary)' }}
-                />
-              </div>
-              {submitGenericPayment.isError && (
-                <p className="text-xs" style={{ color: 'var(--brand-crimson)' }}>
-                  {(submitGenericPayment.error as Error).message}
-                </p>
-              )}
-              <div className="flex gap-3 pt-1">
-                <button
-                  onClick={() => {
-                    setPayModalOpen(false)
-                    setPayModalItemId('')
-                    setPayModalAmount('')
-                    setPayModalDate('')
-                    setPayModalMethod('')
-                    setPayModalNote('')
-                    setPayModalFile(null)
-                    submitGenericPayment.reset()
-                  }}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold border hover:bg-black/5 transition-colors"
-                  style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => submitGenericPayment.mutate()}
-                  disabled={submitGenericPayment.isPending || !payModalItemId || !payModalAmount || !payModalDate}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity"
-                  style={{ backgroundColor: 'var(--brand-forest)' }}
-                >
-                  {submitGenericPayment.isPending ? 'Submitting…' : 'Submit'}
-                </button>
-              </div>
+      {/* ── Submit Payment Drawer ─────────────────────────────────────────── */}
+      <Drawer open={payDrawerOpen} onClose={closePayDrawer} title="Submit Payment">
+        <div className="space-y-4">
+          <div>
+            <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Item</label>
+            <select
+              value={payModalItemId}
+              onChange={e => setPayModalItemId(e.target.value)}
+              className="w-full border rounded-xl px-3 py-2 text-sm"
+              style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
+            >
+              <option value="">Select an item…</option>
+              {(payableItems ?? []).map(item => (
+                <option key={item.id} value={item.id}>
+                  {item.title} — {formatCurrency(item.amount, item.currency)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Amount</label>
+              <input
+                type="number" min="0" step="0.01"
+                value={payModalAmount}
+                onChange={e => setPayModalAmount(e.target.value)}
+                className="w-full border rounded-xl px-3 py-2 text-sm"
+                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
+              />
+            </div>
+            <div>
+              <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Date</label>
+              <input
+                type="date"
+                value={payModalDate}
+                onChange={e => setPayModalDate(e.target.value)}
+                className="w-full border rounded-xl px-3 py-2 text-sm"
+                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
+              />
             </div>
           </div>
-        </>
-      )}
+          <div>
+            <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Payment method</label>
+            <input
+              value={payModalMethod}
+              onChange={e => setPayModalMethod(e.target.value)}
+              placeholder="e.g. bank transfer, cash"
+              className="w-full border rounded-xl px-3 py-2 text-sm"
+              style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
+            />
+          </div>
+          <div>
+            <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Proof of payment <span className="opacity-60 font-normal">(optional)</span></label>
+            <input
+              type="file"
+              accept="image/*,.pdf"
+              onChange={e => setPayModalFile(e.target.files?.[0] ?? null)}
+              className="w-full text-xs"
+              style={{ color: 'var(--text-secondary)' }}
+            />
+            {payModalFile && (
+              <p className="text-[11px] mt-1" style={{ color: 'var(--brand-teal)' }}>
+                {payModalFile.name}
+              </p>
+            )}
+          </div>
+          <div>
+            <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Note</label>
+            <textarea
+              value={payModalNote}
+              onChange={e => setPayModalNote(e.target.value)}
+              rows={2}
+              className="w-full border rounded-xl px-3 py-2 text-sm resize-none"
+              style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
+            />
+          </div>
+          {submitGenericPayment.isError && (
+            <p className="text-xs" style={{ color: 'var(--brand-crimson)' }}>
+              {(submitGenericPayment.error as Error).message}
+            </p>
+          )}
+          <div className="flex gap-3 pt-2">
+            <button onClick={closePayDrawer}
+              className="flex-1 py-2.5 rounded-xl text-sm font-semibold border hover:bg-black/5 transition-colors"
+              style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => submitGenericPayment.mutate()}
+              disabled={submitGenericPayment.isPending || !payModalItemId || !payModalAmount || !payModalDate}
+              className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity"
+              style={{ backgroundColor: 'var(--brand-forest)' }}
+            >
+              {submitGenericPayment.isPending ? 'Submitting…' : 'Submit'}
+            </button>
+          </div>
+        </div>
+      </Drawer>
     </div>
   )
 }
