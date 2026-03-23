@@ -7,12 +7,15 @@ import type { Tables } from '@/types/supabase'
 export type TripState = 'locked' | 'available' | 'pending' | 'attendee' | 'archived'
 
 type Trip = Tables<'trips'>
-type Profile = Pick<Tables<'profiles'>, 'id' | 'role' | 'valid_through'>
+export type TripProfile = Pick<
+  Tables<'profiles'>,
+  'id' | 'role' | 'valid_through' | 'document_active_type'
+>
 type Registration = Tables<'trip_registrations'>
 
 function deriveTripState(
   trip: Trip,
-  profile: Profile,
+  profile: TripProfile,
   registration: Registration | null
 ): TripState {
   const now = new Date()
@@ -51,7 +54,7 @@ export default async function TripDetailPage({
   const [{ data: profile }, { data: trip }] = await Promise.all([
     supabase
       .from('profiles')
-      .select('id, role, valid_through')
+      .select('id, role, valid_through, document_active_type')
       .eq('clerk_id', userId)
       .single(),
     supabase.from('trips').select('*').eq('id', id).single(),
