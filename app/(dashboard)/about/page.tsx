@@ -5,9 +5,14 @@ import AboutMapTile from '@/components/about/AboutMapTile'
 // ── Shared content blocks ─────────────────────────────────────────────────
 
 const HEADING = (
-  <h1 className="font-display text-3xl font-semibold text-right" style={{ color: 'var(--brand-stone)' }}>
-    About Us
-  </h1>
+  <div
+    className="rounded-2xl flex items-center justify-end px-6 py-4 h-full"
+    style={{ backgroundColor: 'var(--brand-stone)' }}
+  >
+    <h1 className="font-display text-3xl font-semibold text-right" style={{ color: 'var(--bg-global)' }}>
+      About Us
+    </h1>
+  </div>
 )
 
 const BODY = (
@@ -74,7 +79,7 @@ export default function AboutPage() {
             gridAutoRows: 'auto',
           }}
         >
-          {/* Row 1 col 1-3: heading */}
+          {/* Row 1 col 1-3: heading box */}
           <div style={{ gridColumn: 'span 3' }} className="flex items-start">
             {HEADING}
           </div>
