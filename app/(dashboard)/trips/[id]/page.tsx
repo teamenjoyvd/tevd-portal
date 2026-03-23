@@ -1,253 +1,90 @@
-'use client'
+import { redirect } from 'next/navigation'
+import { auth } from '@clerk/nextjs/server'
+import { createServiceClient } from '@/lib/supabase/service'
+import { TripDetailClient } from './TripDetailClient'
+import type { Tables } from '@/types/supabase'
 
-import { useParams, useRouter } from 'next/navigation'
-import { useQuery } from '@tanstack/react-query'
-import { useUser } from '@clerk/nextjs'
-import { formatDate, formatCurrency } from '@/lib/format'
-import { useLanguage } from '@/lib/hooks/useLanguage'
+export type TripState = 'locked' | 'available' | 'pending' | 'attendee' | 'archived'
 
-type Milestone = { label: string; amount: number; due_date: string }
+type Trip = Tables<'trips'>
+type Profile = Pick<Tables<'profiles'>, 'id' | 'role' | 'valid_through'>
+type Registration = Tables<'trip_registrations'>
 
-type Trip = {
-  id: string
-  title: string
-  destination: string
-  description: string
-  image_url: string | null
-  start_date: string
-  end_date: string
-  currency: 'EUR'
-  total_cost: number
-  milestones: Milestone[]
-  visibility_roles: string[]
-  location: string | null
-  accommodation_type: string | null
-  inclusions: string[]
-  trip_type: string | null
+function deriveTripState(
+  trip: Trip,
+  profile: Profile,
+  registration: Registration | null
+): TripState {
+  const now = new Date()
+  const ninetyDaysFromNow = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000)
+
+  const isLocked =
+    !profile.valid_through ||
+    new Date(profile.valid_through) < ninetyDaysFromNow
+
+  if (isLocked) return 'locked'
+
+  if (!registration || registration.status === 'denied') return 'available'
+  if (registration.status === 'pending') return 'pending'
+
+  // status === 'approved'
+  const tripEnd = new Date(trip.end_date)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  if (tripEnd >= today) return 'attendee'
+  return 'archived'
 }
 
-type UserProfile = { id: string; role: string }
+export default async function TripDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const { id } = await params
+  const { userId } = await auth()
+  if (!userId) redirect('/sign-in')
 
-function tripDuration(start: string, end: string) {
-  const days = Math.round(
-    (new Date(end).getTime() - new Date(start).getTime()) / 86400000
-  )
-  return `${days} day${days !== 1 ? 's' : ''}`
-}
+  const supabase = createServiceClient()
 
-export default function TripDetailPage() {
-  const params = useParams()
-  const id = params.id as string
-  const router = useRouter()
-  const { isSignedIn, isLoaded } = useUser()
-  const { t } = useLanguage()
+  const [{ data: profile }, { data: trip }, { data: registration }] =
+    await Promise.all([
+      supabase
+        .from('profiles')
+        .select('id, role, valid_through')
+        .eq('clerk_id', userId)
+        .single(),
+      supabase.from('trips').select('*').eq('id', id).single(),
+      supabase
+        .from('trip_registrations')
+        .select('*')
+        .eq('trip_id', id)
+        .eq('profile_id',
+          // profile_id resolved below after profile fetch completes
+          // We re-query after profile is known
+          '00000000-0000-0000-0000-000000000000'
+        )
+        .maybeSingle(),
+    ])
 
-  const { data: profile } = useQuery<UserProfile>({
-    queryKey: ['profile'],
-    queryFn: () => fetch('/api/profile').then(r => r.json()),
-    enabled: !!isSignedIn,
-  })
+  if (!profile || !trip) redirect('/trips')
 
-  const { data: trip, isLoading, error } = useQuery<Trip>({
-    queryKey: ['trip', id],
-    queryFn: () => fetch(`/api/trips/${id}`).then(async r => {
-      if (!r.ok) throw new Error((await r.json()).error)
-      return r.json()
-    }),
-    enabled: isLoaded && !!isSignedIn,
-  })
+  // Re-fetch registration scoped to the real profile id
+  const { data: scopedRegistration } = await supabase
+    .from('trip_registrations')
+    .select('*')
+    .eq('trip_id', id)
+    .eq('profile_id', profile.id)
+    .maybeSingle()
 
-  if (!isLoaded || isLoading) {
-    return (
-      <div className="py-8 pb-16">
-        <div className="max-w-[720px] mx-auto px-4">
-          <div className="h-8 w-32 rounded-lg animate-pulse mb-6" style={{ backgroundColor: 'var(--border-default)' }} />
-          <div className="rounded-2xl animate-pulse" style={{ height: 400, backgroundColor: 'var(--border-default)' }} />
-        </div>
-      </div>
-    )
-  }
-
-  if (!isSignedIn) {
-    return (
-      <div className="py-8 pb-16">
-        <div className="max-w-[720px] mx-auto px-4">
-          <p style={{ color: 'var(--text-secondary)' }}>You must be signed in to view trip details.</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (error || !trip) {
-    return (
-      <div className="py-8 pb-16">
-        <div className="max-w-[720px] mx-auto px-4">
-          <button
-            onClick={() => router.push('/trips')}
-            className="flex items-center gap-1.5 text-sm font-medium mb-6 hover:opacity-70 transition-opacity"
-            style={{ color: 'var(--text-secondary)' }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="15 18 9 12 15 6" />
-            </svg>
-            {t('trips.back')}
-          </button>
-          <p style={{ color: 'var(--text-secondary)' }}>Trip not found.</p>
-        </div>
-      </div>
-    )
-  }
-
-  const milestones: Milestone[] = Array.isArray(trip.milestones) ? trip.milestones : []
-  const userRole = profile?.role ?? 'guest'
+  const state = deriveTripState(trip, profile, scopedRegistration ?? null)
 
   return (
-    <div className="py-8 pb-16">
-      <div className="max-w-[720px] mx-auto px-4">
-        <button
-          onClick={() => router.push('/trips')}
-          className="flex items-center gap-1.5 text-sm font-medium mb-6 hover:opacity-70 transition-opacity"
-          style={{ color: 'var(--text-secondary)' }}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
-          {t('trips.back')}
-        </button>
-
-        <div
-          className="rounded-2xl overflow-hidden"
-          style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}
-        >
-          {trip.image_url && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={trip.image_url}
-              alt=""
-              aria-hidden="true"
-              className="w-full object-cover"
-              style={{ height: 240 }}
-            />
-          )}
-
-          <div className="px-6 pt-6 pb-8">
-            <div className="flex items-start justify-between gap-4 mb-4">
-              <div className="flex-1 min-w-0">
-                <div className="flex flex-wrap items-center gap-2 mb-2">
-                  <span
-                    className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                    style={{ backgroundColor: 'var(--brand-forest)', color: 'rgba(255,255,255,0.85)' }}
-                  >
-                    {trip.destination}
-                  </span>
-                  {trip.trip_type && (
-                    <span
-                      className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                      style={{ backgroundColor: 'var(--brand-teal)', color: 'rgba(255,255,255,0.85)' }}
-                    >
-                      {trip.trip_type}
-                    </span>
-                  )}
-                  <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                    {tripDuration(trip.start_date, trip.end_date)}
-                  </span>
-                </div>
-                <h1
-                  className="font-display text-2xl font-semibold leading-snug"
-                  style={{ color: 'var(--text-primary)' }}
-                >
-                  {trip.title}
-                </h1>
-              </div>
-              {userRole !== 'guest' && (
-                <div className="text-right flex-shrink-0">
-                  <p className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>
-                    {formatCurrency(trip.total_cost)}
-                  </p>
-                  <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('trips.total')}</p>
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-center gap-1.5 text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect width="18" height="18" x="3" y="4" rx="2" />
-                <line x1="16" x2="16" y1="2" y2="6" />
-                <line x1="8" x2="8" y1="2" y2="6" />
-                <line x1="3" x2="21" y1="10" y2="10" />
-              </svg>
-              {formatDate(trip.start_date)} – {formatDate(trip.end_date)}
-            </div>
-
-            {trip.description && (
-              <p className="text-sm leading-relaxed mb-5" style={{ color: 'var(--text-secondary)' }}>
-                {trip.description}
-              </p>
-            )}
-
-            {trip.location && (
-              <div className="flex items-center gap-1.5 text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-                  stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" />
-                </svg>
-                {trip.location}
-              </div>
-            )}
-
-            {trip.accommodation_type && (
-              <p className="text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>
-                <span className="font-medium">{t('trips.accommodation')}</span> {trip.accommodation_type}
-              </p>
-            )}
-
-            {trip.inclusions.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mb-5">
-                {trip.inclusions.map((inc, i) => (
-                  <span
-                    key={i}
-                    className="text-xs px-2 py-0.5 rounded-full"
-                    style={{ backgroundColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
-                  >
-                    {inc}
-                  </span>
-                ))}
-              </div>
-            )}
-
-            {userRole !== 'guest' && milestones.length > 0 && (
-              <div className="mt-4 pt-4 border-t" style={{ borderColor: 'var(--border-default)' }}>
-                <p
-                  className="text-xs font-semibold tracking-widest uppercase mb-3"
-                  style={{ color: 'var(--text-secondary)' }}
-                >
-                  {t('trips.milestones')}
-                </p>
-                <div className="space-y-2">
-                  {milestones.map((m, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center justify-between py-2 border-b last:border-0"
-                      style={{ borderColor: 'var(--border-default)' }}
-                    >
-                      <div>
-                        <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{m.label}</p>
-                        <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('trips.due')} {formatDate(m.due_date)}</p>
-                      </div>
-                      <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                        {formatCurrency(m.amount)}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
+    <TripDetailClient
+      trip={trip}
+      state={state}
+      registration={scopedRegistration ?? null}
+      profile={profile}
+    />
   )
 }
