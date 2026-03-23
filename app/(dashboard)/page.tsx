@@ -25,6 +25,29 @@ const EVENT_TYPE_LABELS: Record<string, string> = {
   'hybrid': 'Hybrid',
 }
 
+/** Normalise any user-entered URL to a fully-qualified https:// href.
+ *  Handles: domain.com | www.domain.com | http://... | https://...
+ */
+function normaliseUrl(raw: string): string {
+  const trimmed = raw.trim()
+  if (!trimmed) return '#'
+  if (/^https?:\/\//i.test(trimmed)) return trimmed
+  return `https://${trimmed}`
+}
+
+/** Return event duration as a human-readable string, e.g. "1h 30m" or "45m" */
+function eventDuration(startIso: string, endIso: string | null | undefined): string {
+  if (!endIso) return ''
+  const diffMs = new Date(endIso).getTime() - new Date(startIso).getTime()
+  if (diffMs <= 0) return ''
+  const totalMins = Math.round(diffMs / 60000)
+  const h = Math.floor(totalMins / 60)
+  const m = totalMins % 60
+  if (h > 0 && m > 0) return `${h}h ${m}m`
+  if (h > 0) return `${h}h`
+  return `${m}m`
+}
+
 export default async function HomePage() {
   let userId: string | null = null
   try { const session = await auth(); userId = session.userId } catch { userId = null }
@@ -40,7 +63,7 @@ export default async function HomePage() {
     supabase.from('announcements').select('*').eq('is_active', true)
       .contains('access_level', [role]).order('created_at', { ascending: false }).limit(5),
     supabase.from('quick_links').select('*').contains('access_level', [role]).order('sort_order').limit(4),
-    supabase.from('calendar_events').select('id, title, start_time, week_number, event_type')
+    supabase.from('calendar_events').select('id, title, start_time, end_time, week_number, event_type')
       .contains('visibility_roles', [role]).gte('start_time', new Date().toISOString()).order('start_time').limit(3),
     supabase.from('trips').select('id, title, destination, start_date, image_url')
       .contains('visibility_roles', [role]).order('start_date').limit(3),
@@ -48,7 +71,7 @@ export default async function HomePage() {
 
   const announcements = (announcementsRes.data ?? []) as unknown as Announcement[]
   const quickLinks    = (quickLinksRes.data ?? []) as unknown as QuickLink[]
-  const nextEvents    = (eventsRes.data ?? []) as unknown as { id: string; title: string; start_time: string; week_number: number; event_type: string | null }[]
+  const nextEvents    = (eventsRes.data ?? []) as unknown as { id: string; title: string; start_time: string; end_time: string | null; week_number: number; event_type: string | null }[]
   const trips         = (tripsRes.data ?? []) as unknown as Trip[]
 
   const featuredAnnouncement = announcements[0] ?? null
@@ -83,36 +106,45 @@ export default async function HomePage() {
             <Link href="/calendar" className="font-body text-[11px] font-bold tracking-widest uppercase hover:underline" style={{ color: 'var(--brand-crimson)' }}>See all →</Link>
           </div>
           <div className="flex flex-col gap-3 flex-1">
-            {nextEvents.slice(0, 3).map(event => (
-              <div key={event.id} className="flex items-center justify-between gap-3 py-2 border-b last:border-0" style={{ borderColor: 'var(--border-default)' }}>
-                <div className="flex-1 min-w-0">
-                  <p className="font-body text-xs font-semibold leading-snug" style={{ color: 'var(--text-primary)' }}>{event.title}</p>
-                  {event.event_type && (
-                    <span className="inline-block mt-1 font-body text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                      style={{ backgroundColor: 'rgba(0,0,0,0.06)', color: 'var(--text-secondary)' }}>
-                      {EVENT_TYPE_LABELS[event.event_type] ?? event.event_type}
-                    </span>
-                  )}
-                </div>
-                <div className="flex flex-col items-center flex-shrink-0" style={{ minWidth: 40 }}>
-                  <div className="rounded-lg overflow-hidden flex flex-col items-center" style={{ width: 40, backgroundColor: 'var(--brand-crimson)' }}>
-                    <div className="w-full text-center py-0.5" style={{ backgroundColor: 'var(--brand-crimson)', opacity: 0.85 }}>
+            {nextEvents.slice(0, 3).map(event => {
+              const duration = eventDuration(event.start_time, event.end_time)
+              const typeParts = [
+                event.event_type ? (EVENT_TYPE_LABELS[event.event_type] ?? event.event_type) : null,
+                formatTime(event.start_time),
+                duration || null,
+              ].filter(Boolean).join(' · ')
+
+              return (
+                <Link
+                  key={event.id}
+                  href={`/calendar?event=${event.id}`}
+                  className="flex items-center justify-between gap-3 py-2 border-b last:border-0 hover:opacity-70 transition-opacity"
+                  style={{ borderColor: 'var(--border-default)', textDecoration: 'none' }}
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="font-body text-sm font-semibold leading-snug" style={{ color: 'var(--text-primary)' }}>{event.title}</p>
+                    {typeParts && (
+                      <p className="font-body text-[10px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                        {typeParts}
+                      </p>
+                    )}
+                  </div>
+                  {/* Date box: 33% month / 67% date number */}
+                  <div className="flex flex-col items-center flex-shrink-0 rounded-lg overflow-hidden" style={{ width: 40 }}>
+                    <div className="w-full text-center py-0.5" style={{ backgroundColor: 'var(--brand-crimson)', flex: '0 0 33%' }}>
                       <span className="text-[8px] font-bold tracking-widest uppercase" style={{ color: 'rgba(255,255,255,0.9)' }}>
                         {calMonth(event.start_time)}
                       </span>
                     </div>
-                    <div className="w-full text-center pb-1" style={{ backgroundColor: 'var(--bg-card)' }}>
-                      <span className="font-display text-xl font-bold leading-none" style={{ color: 'var(--brand-crimson)' }}>
+                    <div className="w-full text-center" style={{ backgroundColor: 'var(--bg-card)', flex: '0 0 67%', paddingTop: 3, paddingBottom: 4 }}>
+                      <span className="font-display text-2xl font-bold leading-none" style={{ color: 'var(--brand-crimson)' }}>
                         {calDay(event.start_time)}
                       </span>
                     </div>
                   </div>
-                  <span className="font-body text-[9px] font-medium mt-1" style={{ color: 'var(--text-secondary)' }}>
-                    {formatTime(event.start_time)}
-                  </span>
-                </div>
-              </div>
-            ))}
+                </Link>
+              )
+            })}
           </div>
         </BentoCard>
         )}
@@ -173,7 +205,7 @@ export default async function HomePage() {
           </div>
           <div className="flex flex-col gap-1.5 flex-1">
             {quickLinks.map(link => (
-              <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer"
+              <a key={link.id} href={normaliseUrl(link.url)} target="_blank" rel="noopener noreferrer"
                 className="font-body flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium truncate hover:opacity-80 transition-opacity"
                 style={{ backgroundColor: 'rgba(255,255,255,0.12)', color: 'var(--brand-parchment)' }}>
                 <span style={{ flexShrink: 0, opacity: 0.7 }}>→</span>
