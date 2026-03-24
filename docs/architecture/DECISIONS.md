@@ -1,0 +1,244 @@
+# DECISIONS.md — Architecture Decision Records
+> tevd-portal · Last updated: 2026-03-24
+> Format: Context | Decision | Consequences (Benefits / Risks / Mitigations)
+> Records are never deleted. Superseded records are marked and linked to their replacement.
+
+---
+
+## Index
+
+| ID | Decision | Date | Status |
+|----|----------|------|--------|
+| ADR-001 | ltree for LOS hierarchy over recursive CTEs | 2026-03 | Active |
+| ADR-002 | Service role for all server DB access (no JWT client) | 2026-03 | Active |
+| ADR-003 | Mapbox as CDN-only integration (no npm) | 2026-03 | Active |
+| ADR-004 | Dual-approval payment model (no payment processor) | 2026-03 | Active |
+| ADR-005 | Clerk as identity provider with manual Supabase metadata sync | 2026-03 | Active |
+| ADR-006 | proxy.ts as the sole middleware file (never middleware.ts) | 2026-03 | Active |
+| ADR-007 | Unified payments table (single table, entity check constraint) | 2026-03 | Active |
+
+---
+
+## ADR-001 — ltree for LOS Hierarchy
+
+**Date:** 2026-03
+**Status:** Active
+
+### Context
+The organisation has a multi-level downline (LOS — Line of Sponsorship) where each member has exactly one upline. The system needs to support: displaying a member's full downline, scoping notifications to ancestors/descendants, and importing/reconciling LOS data from an external source. The depth can be 10+ levels. Both reads and writes to the tree are frequent.
+
+### Decision
+Use PostgreSQL's `ltree` extension, storing each node's full ancestor path as a materialized label chain in `tree_nodes.path` (e.g., `100001.100045.p_abc123`). GiST index on the path column.
+
+### Why not recursive CTEs
+Recursive CTEs compute the tree at query time. For a subtree query at depth 5 with 500 descendants, this means 500+ recursive steps per query. ltree with a GiST index reduces the same query to a single index scan using the `<@` (is descendant of) operator. The read performance difference is an order of magnitude at the scale expected.
+
+### Consequences
+
+**Benefits:**
+- Subtree queries are O(log n) with the GiST index regardless of depth
+- Ancestor queries (`@>`) are equally fast
+- Path is human-readable and directly maps to ABO number chains
+- pg_cron digest and notification fan-out both use ltree operators efficiently
+
+**Risks:**
+- Renaming a node (ABO assignment to a previously no-ABO node) requires `rebuild_tree_paths` to cascade the rename to all descendants — this is a write-heavy operation proportional to subtree size
+- ltree labels have character restrictions — ABO numbers and `p_<uuid>` labels must be sanitised before insertion
+- LOS import always wins for positioning, which can conflict with manually-placed nodes if reconciliation is not run
+
+**Mitigations:**
+- `rebuild_tree_paths` is called server-side, not triggered by the user directly
+- ABO label sanitisation is handled in the import pipeline
+- Reconciliation panel in `/admin/data-center` exists for exactly this conflict case
+
+---
+
+## ADR-002 — Service Role for All Server DB Access
+
+**Date:** 2026-03
+**Status:** Active
+
+### Context
+Supabase supports two access patterns from Next.js: (1) service role key — bypasses RLS entirely, full access; (2) JWT client — passes the user's Clerk JWT, RLS policies evaluate it. Both are viable.
+
+### Decision
+All server-side database access uses `createServiceClient()` (service role). The anon key and JWT client are never used on the server. Access control is enforced in route handlers by checking `userId` from `await auth()` and the user's `role` from their profile, not by RLS policy evaluation on the server.
+
+### Why not the JWT client
+The Clerk JWT contains a `user_role` claim that Supabase RLS policies can read. However, making this work requires configuring a Clerk JWT template in Supabase, keeping the JWT secret in sync, and writing RLS policies that accurately mirror every business rule. Any mismatch between policy and application intent is a silent security gap — there is no type-safety or test coverage for RLS policy logic. The service role approach makes access logic explicit and testable in TypeScript.
+
+### Consequences
+
+**Benefits:**
+- Access control logic lives in TypeScript route handlers — readable, type-safe, testable
+- No JWT template configuration required in either Clerk or Supabase
+- No risk of RLS policy drift silently opening or closing access
+- Simpler local development — no JWT plumbing required
+
+**Risks:**
+- Service role bypasses RLS entirely — a bug in a route handler can expose or mutate any data
+- RLS policies still exist on tables but are not the primary enforcement mechanism for server routes
+
+**Mitigations:**
+- Every protected route explicitly calls `await auth()` and returns 401 if `userId` is null — enforced by convention and code review
+- RLS policies exist as a defence-in-depth layer, protecting against hypothetical direct DB access or future anon client usage
+- This decision is explicitly documented in CLAUDE.md as a hard constraint: "Do NOT introduce a Clerk JWT Supabase client without a ticket explicitly scoping it"
+
+---
+
+## ADR-003 — Mapbox as CDN-Only Integration
+
+**Date:** 2026-03
+**Status:** Active
+
+### Context
+The application needs interactive maps on `/about` and `/profile`. Mapbox GL JS is the chosen library. It can be installed via npm or loaded via CDN script tag.
+
+### Decision
+Mapbox GL JS is loaded exclusively via CDN script tag. It is never installed as an npm package.
+
+### Why not npm
+Mapbox GL JS is a large bundle (~900KB minified). Adding it to the npm dependency graph means it is included in the Next.js bundle analysis, subject to tree-shaking failures, and increases cold-start time for server components that don't need it. The CDN approach loads it only on pages that render a map tile, in parallel with the page, and is cached aggressively by the browser.
+
+### Consequences
+
+**Benefits:**
+- Zero impact on Next.js bundle size
+- CDN caching means repeat visitors pay no load cost
+- No npm version lock — CDN version can be pinned independently
+- Simpler import model: `window.mapboxgl` is available after script load, no module resolution required
+
+**Risks:**
+- External CDN dependency — if Mapbox CDN is unavailable, map tiles fail
+- Version must be managed manually (currently v2.15.0)
+- A dupe-guard is required to prevent double-initialisation on React hot reload
+
+**Mitigations:**
+- Map tiles are non-critical UI — their failure degrades gracefully (tile container renders empty)
+- Dupe-guard pattern is implemented in `AboutMapTile.tsx` and documented in CLAUDE.md gotchas
+- Version is pinned in the script URL, not floating
+
+---
+
+## ADR-004 — Dual-Approval Payment Model (No Payment Processor)
+
+**Date:** 2026-03
+**Status:** Active
+
+### Context
+Members pay for trips and merchandise via cash or bank transfer — no credit card processing. The system needs to track payment claims from both sides: members claiming they paid, and admins confirming receipt.
+
+### Decision
+All payments are manual records in the unified `payments` table with two independent status columns: `admin_status` and `member_status`. A payment is "green" (fully confirmed) only when both are `approved`. No payment processor is integrated.
+
+### Submission paths
+- **Member-submitted:** Member creates record with proof (`logged_by_admin = NULL`, `member_status = 'approved'`, `admin_status = 'pending'`). Admin must approve.
+- **Admin-logged:** Admin creates record on behalf of a member (`logged_by_admin = admin_profile_id`, `admin_status = 'approved'`, `member_status = 'pending'`). Member must confirm.
+
+### Consequences
+
+**Benefits:**
+- Accurately models the real-world process — both parties must agree on a payment
+- No third-party payment processor dependency, PCI scope, or webhook complexity
+- Admin can log historical payments and members can dispute
+
+**Risks:**
+- No automated reconciliation — admin must manually verify bank transfers
+- Dual-approval adds UI complexity (members see pending admin-logged items, admins see pending member submissions)
+- If a payment processor is added in future, this model will need a third status path or a new table
+
+**Mitigations:**
+- Admin operations page (`/admin/operations?tab=payments`) surfaces pending member submissions at the top for easy review
+- The entity check constraint (`num_nonnulls(trip_id, payable_item_id) = 1`) is DB-enforced, preventing orphaned payment records
+- FK ambiguity on `payments → profiles` (two FKs) is documented as a hard gotcha in CLAUDE.md
+
+---
+
+## ADR-005 — Clerk as Identity Provider with Manual Metadata Sync
+
+**Date:** 2026-03
+**Status:** Active
+
+### Context
+The application needs authentication, session management, and a way to communicate role information to Supabase RLS policies via JWT. Options considered: Supabase Auth, Clerk, Auth.js.
+
+### Decision
+Clerk is the identity provider. User roles are stored in Clerk `publicMetadata.role` in addition to `profiles.role` in Supabase. The two must be kept in sync manually on every role change. The Clerk JWT carries the role, making it available to Supabase RLS policies without a separate lookup.
+
+### Why Clerk over Supabase Auth
+Supabase Auth is tightly coupled to the Supabase JWT secret. Clerk provides a more complete hosted auth solution (social login, MFA, user management UI, webhook emission) without requiring Supabase's auth infrastructure. The tradeoff is the manual sync requirement.
+
+### Consequences
+
+**Benefits:**
+- Clerk provides a full-featured hosted auth UI (sign-in, sign-up, MFA)
+- `publicMetadata.role` in the JWT means RLS policies can read role without a profile lookup
+- Clerk webhook (`user.created`) drives profile creation — no dual-write on sign-up
+
+**Risks:**
+- Role sync is manual and can drift — if `clerk.users.updateUserMetadata` fails after the Supabase write, the JWT carries a stale role until the user re-logs in
+- Pre-fix cohort (users promoted before commit 4b2d69c) has stale Clerk metadata permanently until re-login
+
+**Mitigations:**
+- Every role promotion route explicitly calls both writes — enforced by CLAUDE.md hard constraint and documented in gotchas
+- The three affected routes are named explicitly: `/api/admin/verify`, `/api/admin/members/verify/[id]`, `/api/admin/members/[id]` PATCH
+- Re-login forces a fresh JWT, resolving stale metadata for any affected user
+
+---
+
+## ADR-006 — proxy.ts as the Sole Middleware File
+
+**Date:** 2026-03
+**Status:** Active
+
+### Context
+Next.js middleware runs on every request and is the correct place to enforce Clerk authentication at the edge. Next.js looks for `middleware.ts` by default.
+
+### Decision
+The middleware file is named `proxy.ts`, not `middleware.ts`. This is configured explicitly in `next.config.ts`. Creating a `middleware.ts` file is a hard constraint violation.
+
+### Why not middleware.ts
+During early development, a naming conflict or accidental creation of `middleware.ts` alongside `proxy.ts` caused two middleware files to run simultaneously, producing unpredictable auth behaviour. Renaming to `proxy.ts` makes the unconventional choice explicit and prevents accidental recreation.
+
+### Consequences
+
+**Benefits:**
+- Eliminates the risk of a second middleware file silently overriding or conflicting with Clerk auth
+- The unconventional name is a forcing function — any developer who tries to add `middleware.ts` will notice the project already has middleware
+
+**Risks:**
+- Non-standard — developers unfamiliar with the codebase will not find middleware in the expected location
+- Next.js documentation and tooling assume `middleware.ts`
+
+**Mitigations:**
+- Documented as the first hard constraint in CLAUDE.md
+- `next.config.ts` explicitly points to `proxy.ts`
+
+---
+
+## ADR-007 — Unified Payments Table with Entity Check Constraint
+
+**Date:** 2026-03
+**Status:** Active
+
+### Context
+Initially the system had a separate `trip_payments` table for trip-related payments. When merchandise payments (payable items) were introduced, a second payments table was considered. Instead, both were unified.
+
+### Decision
+A single `payments` table handles all payment types. The entity type (trip vs. payable item) is determined by which FK column is non-null. A DB-level check constraint enforces that exactly one is non-null: `CHECK (num_nonnulls(trip_id, payable_item_id) = 1)`.
+
+### Consequences
+
+**Benefits:**
+- Single query surface for all payment reporting and admin review
+- Dual-approval logic, RLS policies, and audit trail apply uniformly to all payment types
+- Adding a third entity type (e.g., event tickets) requires only a new FK column and constraint update, not a new table
+
+**Risks:**
+- PostgREST join ambiguity — `payments` has two FKs to `profiles` (`profile_id` + `logged_by_admin`). Any PostgREST `.select()` that joins profiles must use the FK hint `profiles!profile_id(...)` or the query returns 500
+- The entity constraint means API routes must be careful not to pass both IDs or neither
+
+**Mitigations:**
+- FK ambiguity is documented as a hard gotcha in CLAUDE.md
+- API routes validate the entity input before inserting
+- `trip_payments` table was dropped in migration `v1.9.3` — there is no fallback to the old table
