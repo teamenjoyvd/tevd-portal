@@ -376,7 +376,7 @@ export default function TripsPage() {
 
   return (
     <div className="py-8 pb-16">
-      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 xl:px-8">
+      <div className="max-w-[860px] mx-auto px-4 sm:px-6 xl:px-8">
         {/* Mobile: single-column stack */}
         <div className="md:hidden flex flex-col gap-3">
           {isLoading || !isLoaded ? (
