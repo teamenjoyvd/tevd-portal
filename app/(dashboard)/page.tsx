@@ -152,7 +152,8 @@ export default async function HomePage() {
         {/* ── ROW 2: Trips col-3 | Announcements col-6 | Links col-3 ── */}
 
         {nextTrip && (
-        <BentoCard variant="crimson" colSpan={3} rowSpan={2} halfWidthMobile className="bento-tile flex flex-col relative overflow-hidden" style={{ animationDelay: '200ms' }}>
+        <BentoCard variant="crimson" colSpan={3} rowSpan={2} halfWidthMobile className="bento-tile relative overflow-hidden p-0" style={{ animationDelay: '200ms' }}>
+          {/* Full-bleed background image */}
           {nextTrip.image_url && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -161,18 +162,45 @@ export default async function HomePage() {
               aria-hidden="true"
               style={{
                 position: 'absolute', inset: 0, width: '100%', height: '100%',
-                objectFit: 'cover', opacity: 0.22, pointerEvents: 'none',
+                objectFit: 'cover', opacity: 0.45, pointerEvents: 'none',
               }}
             />
           )}
-          <div className="flex items-center justify-between mb-3">
-            <Eyebrow>Trips</Eyebrow>
-            <Link href="/trips" className="font-body text-[11px] font-bold tracking-widest uppercase hover:underline opacity-70 hover:opacity-100 transition-opacity" style={{ color: 'var(--brand-parchment)' }}>View trips →</Link>
+          {/* Bottom-to-top darkening gradient for legibility */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.18) 55%, transparent 100%)' }}
+          />
+          {/* Top row: destination badge (left) + link (right) */}
+          <div className="absolute top-0 left-0 right-0 flex items-start justify-between px-5 pt-5 z-10">
+            <span
+              className="font-body text-[11px] font-bold px-2.5 py-1 rounded-full"
+              style={{ backgroundColor: 'rgba(0,0,0,0.35)', color: 'var(--brand-parchment)', backdropFilter: 'blur(4px)' }}
+            >
+              {nextTrip.destination}
+            </span>
+            <Link
+              href="/trips"
+              className="font-body text-[11px] font-bold tracking-widest uppercase hover:underline transition-opacity hover:opacity-100"
+              style={{ color: 'var(--brand-parchment)', opacity: 0.75 }}
+            >
+              View trips →
+            </Link>
           </div>
-          <div className="mt-1">
-            <span className="font-body text-[11px] font-bold px-2 py-0.5 rounded-full mb-2 inline-block" style={{ backgroundColor: 'rgba(255,255,255,0.18)', color: 'var(--brand-parchment)' }}>{nextTrip.destination}</span>
-            <h3 className="font-display text-base font-semibold leading-snug" style={{ color: 'var(--brand-parchment)' }}>{nextTrip.title}</h3>
-            <p className="font-body text-[11px] mt-1" style={{ color: 'rgba(242,239,232,0.6)' }}>{formatDate(nextTrip.start_date)}</p>
+          {/* Bottom block: title + date */}
+          <div className="absolute bottom-0 left-0 right-0 px-5 pb-5 z-10">
+            <h3
+              className="font-display text-2xl font-semibold leading-tight"
+              style={{ color: 'var(--brand-parchment)' }}
+            >
+              {nextTrip.title}
+            </h3>
+            <p
+              className="font-body text-[12px] mt-1"
+              style={{ color: 'rgba(242,239,232,0.65)' }}
+            >
+              {formatDate(nextTrip.start_date)}
+            </p>
           </div>
         </BentoCard>
         )}
