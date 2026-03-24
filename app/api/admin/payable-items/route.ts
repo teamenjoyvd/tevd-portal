@@ -39,8 +39,8 @@ export async function POST(req: Request): Promise<Response> {
     return Response.json({ error: 'title, amount, and item_type are required' }, { status: 400 })
   }
 
-  if (!['trip', 'book', 'ticket', 'other'].includes(item_type)) {
-    return Response.json({ error: 'item_type must be trip, book, ticket, or other' }, { status: 400 })
+  if (!['merchandise', 'ticket', 'food', 'book', 'other'].includes(item_type)) {
+    return Response.json({ error: 'item_type must be merchandise, ticket, food, book, or other' }, { status: 400 })
   }
 
   const { data, error } = await supabase
@@ -51,7 +51,7 @@ export async function POST(req: Request): Promise<Response> {
       amount,
       currency: currency ?? 'EUR',
       item_type,
-      linked_trip_id: linked_trip_id ?? null,
+      linked_trip_id: linked_trip_id || null,
       created_by: profile.id,
     })
     .select()
