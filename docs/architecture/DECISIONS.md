@@ -16,6 +16,9 @@
 | ADR-005 | Clerk as identity provider with manual Supabase metadata sync | 2026-03 | Active |
 | ADR-006 | proxy.ts as the sole middleware file (never middleware.ts) | 2026-03 | Active |
 | ADR-007 | Unified payments table (single table, entity check constraint) | 2026-03 | Active |
+| ADR-008 | Strict TranslationKey union over i18n library | 2026-03 | Active |
+| ADR-009 | Dual-layout pattern (two complete layouts, not responsive) | 2026-03 | Active |
+| ADR-010 | 12-column CSS grid for BentoGrid (not a component library) | 2026-03 | Active |
 
 ---
 
@@ -242,3 +245,99 @@ A single `payments` table handles all payment types. The entity type (trip vs. p
 - FK ambiguity is documented as a hard gotcha in CLAUDE.md
 - API routes validate the entity input before inserting
 - `trip_payments` table was dropped in migration `v1.9.3` — there is no fallback to the old table
+
+---
+
+## ADR-008 — Strict TranslationKey Union over i18n Library
+
+**Date:** 2026-03
+**Status:** Active
+
+### Context
+The application displays UI text in two locales (English, Bulgarian). Options: a full i18n library (next-intl, react-i18next), a loose key-value map, or a strict TypeScript union type over a flat translations object.
+
+### Decision
+`lib/i18n/translations.ts` exports a flat object. `TranslationKey = keyof typeof translations` is a strict union. The `t()` helper accepts only `TranslationKey`. Any call to `t()` with an unknown key is a compile-time error. Navigation labels use a separate inline `{ en, bg }` system in `lib/nav.ts` and are not routed through `t()`.
+
+### Why not a library
+next-intl and react-i18next both require: a provider wrapping the app, locale detection/routing config, message file loading, and a runtime `useTranslations()` hook. For two locales and a controlled vocabulary, this is configuration overhead with no material benefit. The strict union provides the same compile-time safety (unknown keys break the build) with zero runtime config.
+
+### Consequences
+
+**Benefits:**
+- Unknown translation keys break the build — no silent missing-text bugs in production
+- Zero library dependency, zero provider config, zero locale routing
+- Adding a translation requires one line in `translations.ts` — immediately type-safe
+
+**Risks:**
+- Adding a third locale (e.g., Slovak) requires updating every translation key — no fallback chain
+- Nav labels use a separate system, so the translation surface is split across two files
+
+**Mitigations:**
+- The split is explicit and documented here. Nav labels in `lib/nav.ts`, UI strings in `translations.ts`.
+- If a third locale is needed, this ADR is the decision point for whether to migrate to a library.
+
+---
+
+## ADR-009 — Dual-Layout Pattern (Two Complete Layouts, Not Responsive)
+
+**Date:** 2026-03
+**Status:** Active
+
+### Context
+Pages need to render correctly on both desktop (1024px+) and mobile (390px+). Options: a single responsive layout using breakpoint utilities, or two separate complete layout trees with `hidden md:block` / `md:hidden`.
+
+### Decision
+Every page that has meaningfully different desktop and mobile UX uses two separate complete layout trees. No hybrid responsive layout. Canonical reference: `app/(dashboard)/about/page.tsx`.
+
+### Why not a single responsive layout
+Desktop and mobile UX contracts for this application are fundamentally different: navigation pattern (persistent header nav vs. hamburger), content density (multi-column bento grid vs. stacked single column), and component behaviour (popovers vs. bottom sheets in `EventPopup`). A single responsive layout that satisfies both produces compromises on both. Two complete layouts make each contract explicit and independently maintainable.
+
+### Consequences
+
+**Benefits:**
+- Each layout is independently readable — no mental model of "at md this collapses, at lg this hides"
+- Component behaviour can differ completely between layouts without conditional logic
+- Adding a new page requires a deliberate layout decision, not a default
+
+**Risks:**
+- Content duplication — the same data is often passed to both layout trees
+- Two trees to update when shared content changes
+
+**Mitigations:**
+- Data fetching is shared (RSC or TanStack Query); only the presentation layer is duplicated
+- The canonical reference page makes the pattern immediately copyable
+- The Hard Constraint in CLAUDE.md prevents drift back to hybrid responsive
+
+---
+
+## ADR-010 — 12-Column CSS Grid for BentoGrid (Not a Component Library)
+
+**Date:** 2026-03
+**Status:** Active
+
+### Context
+The homepage and `/profile` use a tile-based layout with precise, non-standard column spans (col-2, col-3, col-4, col-6, col-12 in the same row). Options: a component library grid (shadcn, MUI Grid, CSS Grid wrappers), or a direct CSS Grid implementation.
+
+### Decision
+`BentoGrid` is a direct CSS Grid implementation: `grid-template-columns: repeat(12, 1fr)`, `gap: 12px`, `auto-rows: minmax(120px, auto)`. Column spans are applied via inline `style` or Tailwind `col-span-*` utilities. No component library grid is used.
+
+### Why not a component library
+shadcn/ui does not ship a grid layout primitive. MUI Grid and similar impose a DOM structure, className conventions, and breakpoint systems that conflict with Tailwind v4's utility-first approach. The homepage grid has spans (col-2, col-3 in the same row) that most library grids cannot express without workarounds. A direct CSS Grid is zero-cost at runtime, has no API surface to learn, and expresses the exact layout intent.
+
+### Consequences
+
+**Benefits:**
+- Zero runtime cost — pure CSS
+- Any column span expressible without library constraints
+- No version lock on a grid library
+- `grid-column` is directly inspectable in devtools
+
+**Risks:**
+- No built-in responsive behaviour — mobile layout requires explicit `.bento-mobile-full` / `.bento-mobile-half` CSS classes
+- `rowSpan` prop must be accepted and applied by every client tile component or the grid collapses
+
+**Mitigations:**
+- Mobile override classes are defined in `globals.css` and documented in LOOKUP.md §4
+- `rowSpan` requirement is a code review gate — any new tile that doesn't accept it is caught before merge
+- This ADR is the decision point if shadcn/ui is ever proposed: its grid limitations are the reason it was not adopted

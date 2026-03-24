@@ -11,6 +11,7 @@
 2. [Registration State Machine](#2-registration-state-machine)
 3. [Payment Lifecycle](#3-payment-lifecycle)
 4. [LOS Tree Propagation](#4-los-tree-propagation)
+5. [Vital Signs](#5-vital-signs)
 
 A flow is added here when a ticket produces ambiguity about state transitions, ownership boundaries, or sequencing. If a feature idea touches one of these flows, the flow diagram must be verified (and updated if it changes) before the ticket is executed.
 
@@ -77,7 +78,7 @@ sequenceDiagram
     N->>N: Apply business-layer access check (role from profile)
     N-->>B: Response
 
-    Note over N,S: Service role bypasses RLS entirely.<br/>Access enforcement is in the route handler,<br/>not in Supabase policies for server routes.<br/>RLS policies only protect direct DB access<br/>(e.g., if anon/JWT client were ever used).
+    Note over N,S: All server DB access uses service role — RLS is never evaluated on server routes.<br/>Access control is TypeScript in the route handler.<br/>RLS policies exist as defence-in-depth only, protecting against hypothetical direct DB access.<br/>They are not the primary enforcement mechanism.<br/>Never disable RLS to fix a bug — fix the policy or the route logic.
 ```
 
 **Invariant:** The application never uses the anon key or a JWT Supabase client on the server. All server DB access is service role. RLS policies exist as a defence-in-depth layer, not the primary access control mechanism on the server.
@@ -271,10 +272,30 @@ Tree structure drives targeted notification delivery:
 - `get_core_ancestors(uuid)` — returns Core-role profile UUIDs above the given node via ltree ancestor query
 - `notify_role_request` — notifies admins + Core ancestors of the requester
 - `notify_calendar_event_created` (Core-created) — fans down to all descendants + fans up to Core ancestors
-- `run_los_digest` — pg_cron, 06:00 UTC daily, aggregates LOS activity
+- `run_los_digest` — pg_cron, 06:00 UTC daily, aggregates LOS activity into a single digest notification per member
 
 ### Invariants
 - Every `tree_nodes` row has a `path` that is a valid ltree label chain matching the ancestor chain up to root.
 - `rebuild_tree_paths` must be called after any ABO number assignment that renames a node label.
 - LOS import always wins for tree positioning — manual placement is overridden on next import reconciliation.
 - No-ABO labels (`p_<uuid>`) are internal identifiers. They are never displayed to users.
+
+---
+
+## 5. Vital Signs
+
+> ⚠️ Status: **Undocumented — pending SO clarification.**
+> Tickets SEQ241, SEQ242, SEQ243 are on hold until the state model is confirmed.
+> Do not execute any vital signs ticket without first completing this section.
+
+### What exists (schema + routes only)
+
+Tables: `vital_sign_definitions` (categories + labels, admin-managed), `member_vital_signs` (per-member records, UNIQUE on `profile_id + definition_id`).
+
+Routes: `/api/admin/vital-sign-definitions/*` (definition CRUD), `/api/admin/members/[id]/vital-signs/*` (admin record management), `/api/profile/vitals` (member read).
+
+### Open questions (resolve with SO before writing the flow)
+1. Is a vital sign record one-time per member per definition, or can multiple be recorded over time? (UNIQUE constraint suggests one-time, but confirm.)
+2. Does admin recording require member confirmation (dual-approval like payments), or is it a direct admin write?
+3. Can members self-report vital signs, or is recording admin-only?
+4. What triggers a vital sign becoming "active" or "expired"?

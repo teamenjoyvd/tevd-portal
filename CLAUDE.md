@@ -1,7 +1,7 @@
 # CLAUDE.md — teamenjoyVD Portal
 > Last updated: 2026-03-24 — v2.0.3. Latest stable commit: 2f7f0fd.
-> Reference material (schema, directory tree, design system, releases) lives in `docs/ai/CONTEXT.md`.
-> **CONTEXT.md is never read at SSU. Read specific sections in GATHER only when the ticket targets those areas.**
+> Architecture docs live in `docs/architecture/`. Reference tables live in `docs/ai/LOOKUP.md`. Orienting context in `docs/ai/CONTEXT.md`.
+> **Neither CONTEXT.md nor LOOKUP.md is read at SSU. Read specific sections in GATHER/SHAPE only.**
 
 ---
 
@@ -10,7 +10,7 @@
 | Command | What it does |
 |---|---|
 | **SSU** | System Status Update — checks all connections, confirms session is ready |
-| **PIU** | Pack It Up — session handover, updates CLAUDE.md and CONTEXT.md |
+| **PIU** | Pack It Up — session handover, updates docs |
 
 ---
 
@@ -42,9 +42,11 @@ If any ❌ — stop. Do not proceed to task work.
 ## PIU — Pack It Up
 
 1. Update CLAUDE.md header (stable commit, date).
-2. Update `docs/ai/CONTEXT.md` — schema changes, new routes, new release entry, pending issues.
-3. Update Gotchas below if new non-obvious decisions were made this session.
-4. Verify latest commit is pushed and Vercel deployment is READY.
+2. Update `docs/ai/CONTEXT.md` — new routes, new release entry, pending issues.
+3. Update `docs/ai/LOOKUP.md` — schema changes, new env vars, new API routes.
+4. Update `docs/architecture/` — if session introduced a new flow, new external system, or new architectural decision.
+5. Update Gotchas below if new non-obvious decisions were made this session.
+6. Verify latest commit is pushed and Vercel deployment is READY.
 
 ---
 
@@ -60,7 +62,7 @@ If any ❌ — stop. Do not proceed to task work.
 | Maps | Mapbox GL JS v2.15.0 | CDN only — never npm. Token: `NEXT_PUBLIC_MAPBOX_TOKEN`. |
 | Middleware | `proxy.ts` | **NEVER create `middleware.ts`.** |
 | Deployment | Vercel | Team: `teamenjoyvd`. Project: `prj_HFZJZg2vkLtpX8XvjJlo3mDkSCyn`. |
-| Repo | `teamenjoyvd/tevd-portal` — `https://github.com/teamenjoyvd/tevd-portal.git` | Private, `main` only. Never ask user for repo — always use this. |
+| Repo | `teamenjoyvd/tevd-portal` | Private, `main` only. Never ask user for repo — always use this. |
 | Production | `https://tevd-portal.vercel.app` | |
 
 ---
@@ -75,6 +77,7 @@ Violation = immediate stop.
 - **NEVER write `Status=Done` before the commit link exists.** Finalization is atomic.
 - **NEVER proceed past CLAIM if `Blocked By` is non-empty** without explicit acknowledgment.
 - **NEVER mark Done on static analysis alone.** Verify Vercel deployment is READY AND CI passes.
+- **390px Mobile-First:** Every new UI surface must render correctly at 390px. The layout law below is non-negotiable.
 
 ### Desktop / Mobile Layout Law
 
@@ -89,35 +92,27 @@ Prohibitions: no BottomNav, no tab bar, no FAB, no `overflow-x-auto` on nav.
 
 ---
 
-## 3. Architecture Rules
+## 3. Workflow Loop — Airtable → GitHub
 
-- Default to RSC. `"use client"` only for: useState/useReducer, useEffect, browser APIs, event handlers.
-- `cookies()` and `headers()` are async in Next.js 16 — always `await`.
-- Do not fetch in client components unless real-time or user-triggered.
-- No `fetch()` calls with hardcoded `localhost` URLs.
-- Revalidation via `revalidatePath` / `revalidateTag` — not full page reload.
-- Auth: `const { userId } = await auth()` → 401 if null. All DB queries via `createServiceClient()` (service role).
-- Do NOT introduce a Clerk JWT Supabase client without a ticket explicitly scoping it.
-- Routing: `layout.tsx`, `page.tsx`, `loading.tsx`, `error.tsx`. Dynamic segments: `[param]`. No `getServerSideProps` / `getStaticProps`.
-- Schema changes via migration files in `/supabase/migrations/` only. Never raw DDL in app code.
-- RLS on every user-facing table. Never disable to fix permissions — fix the policy.
-- **Regenerate `types/supabase.ts` after every migration** using `Supabase:generate_typescript_types` MCP tool, then commit in the same push as the migration.
-- Before migrating a table: grep entire codebase (incl. API routes) for old column names.
-- `npx tsc --noEmit` must pass with zero errors before every commit.
-
----
-
-## 4. Workflow Loop — Airtable → GitHub
-
-Declare phase at opening of every work response: `PHASE: READ | CLAIM | GATHER | EXECUTE | VERIFY | FINALIZE`
+Declare phase at opening of every work response: `PHASE: READ | SHAPE | CLAIM | GATHER | EXECUTE | VERIFY | FINALIZE`
 
 **Issue numbering:** `SEQ<NNN>-ISS<NNN>` — e.g. `SEQ116-ISS107`. Always use this format in reports, commit messages, and notes.
 
 **READ:** Query `Status = "In Progress"` AND `Duplicate = false/empty`. Resume if found. Else query `Status = "To Do"` AND `Blocked By = empty` AND `Duplicate = false/empty`, sorted by Priority asc. Probe vague/harmful tickets before claiming.
 
+**SHAPE:** Before claiming, locate the ticket in the architecture docs. Hard stop on each trigger:
+- Ticket touches auth, role, Clerk sync → read `FLOWS.md §1`
+- Ticket touches registration status → read `FLOWS.md §2`
+- Ticket touches payments → read `FLOWS.md §3`
+- Ticket touches LOS, tree, notifications → read `FLOWS.md §4`
+- Ticket touches vital signs → read `FLOWS.md §5` (pending SO clarification — do not proceed without it)
+- Ticket introduces a new external dependency → update `C4.md` first
+- Ticket introduces a new architectural pattern or library → write ADR in `DECISIONS.md` before EXECUTE
+- DoD still vague after this check → probe before claiming
+
 **CLAIM:** Set `Status = "In Progress"` by **Seq** (not Issue ID). Gate: Blocked By empty + Duplicate false.
 
-**GATHER:** Read relevant sections of `docs/ai/CONTEXT.md` based on ticket scope (see section map in CONTEXT.md header). Read Target Files + DoD from Airtable. Probe vague DoD before writing code.
+**GATHER:** Read `docs/ai/CONTEXT.md` first. Then pull from `docs/ai/LOOKUP.md` only for sections the ticket needs (see section map in CONTEXT.md header).
 
 **EXECUTE:** Write code. Zero-Refactor Rule: change only lines required by DoD.
 
@@ -158,7 +153,7 @@ Duplicate-safe: every READ must filter `Duplicate = false/empty`. Fetch all and 
 
 ---
 
-## 5. Code Style
+## 4. Code Style
 
 - Zero-Refactor Rule: change only lines required by the DoD. Never re-indent, rename, or reformat untouched sections.
 - No `any` — use `unknown` and narrow.
@@ -172,7 +167,7 @@ Duplicate-safe: every READ must filter `Duplicate = false/empty`. Fetch all and 
 
 ---
 
-## 6. Gotchas (non-derivable decisions)
+## 5. Gotchas (non-derivable decisions)
 
 | Topic | Rule |
 |---|---|
@@ -187,77 +182,36 @@ Duplicate-safe: every READ must filter `Duplicate = false/empty`. Fetch all and 
 | Role promotion | Every `profiles.role` update MUST also call `clerk.users.updateUserMetadata`. Routes: `/api/admin/verify`, `/api/admin/members/[id]` PATCH, `/api/admin/members/verify/[id]`. Pre-fix cohort (before commit 4b2d69c) has stale metadata — re-login to fix. |
 | `useLanguage` | Dispatches `window.dispatchEvent(new Event('language-changed'))` on toggle. |
 | `useParams()` | No type argument in Next.js 16. Cast result: `const id = params.id as string`. |
-| `DEFAULT_ORDER` | Declare as `string[]` not inferred const tuple — `Array.prototype.includes` rejects `string` args on readonly tuples. |
-| Profile page prerender | `/profile` prerenders. Guard ALL `validProfile!` accesses with `if (isLoading || !validProfile) return <ProfileSkeleton />` before any JSX referencing profile fields. |
-| `dnd-kit` forwardRef | `DragHandle` must use `React.forwardRef` — React 19 rejects `ref` on plain function components. |
+| Profile page prerender | `/profile` prerenders. Guard ALL `validProfile!` accesses with `if (isLoading \|\| !validProfile) return <ProfileSkeleton />` before any JSX referencing profile fields. |
 | Seq is the true PK | `Issue ID` is NOT unique. `Seq` (autonumber) is the PK. Always target by Seq. Issue format: `SEQ<NNN>-ISS<NNN>`. Commit format: `[SEQ<NNN>-ISS<NNN>] Description`. |
-| `types/supabase.ts` | Always regenerate via `Supabase:generate_typescript_types` MCP tool after migrations — NOT the CLI. The CLI format differs and is not installed locally. CI only runs `tsc --noEmit` (no drift diff). |
+| `types/supabase.ts` | Always regenerate via `Supabase:generate_typescript_types` MCP tool after migrations — NOT the CLI. |
 | `supabase gen types` CLI | NOT installed. Do not ask user to run it. Use MCP tool instead. |
-| `payments → profiles` FK ambiguity | `payments` has TWO FKs to `profiles`: `profile_id` (member) and `logged_by_admin` (admin). Any PostgREST `.select()` that joins `profiles(...)` from `payments` MUST use the FK hint: `profiles!profile_id(...)`. Without it PostgREST returns 500. Same pattern applies to any future table with multiple FKs to the same target. |
+| `payments → profiles` FK ambiguity | `payments` has TWO FKs to `profiles`: `profile_id` (member) and `logged_by_admin` (admin). Any PostgREST `.select()` joining `profiles(...)` from `payments` MUST use `profiles!profile_id(...)`. Without it PostgREST returns 500. |
 | `Drawer` for admin forms | Use `components/ui/Drawer.tsx` for ALL admin create/edit flows. Exceptions: Announcements create + Quick Links create stay as always-visible inline cards. Delete stays inline with `window.confirm`. |
-| Admin form components inside render | NEVER define a form component (or any stateful component) as an inner function inside a parent page component. React treats it as a new component type on every render, causing remount + state reset. Always hoist to module scope. Caught in SEQ216. |
-| `UserDropdown` name source | Reads name from `['profile']` TanStack Query cache (not from Clerk `useUser()`). This stays fresh because `saveMutation.onSuccess` calls `qc.setQueryData(['profile'], data)`. Do NOT switch back to `useUser()` for name display. |
-| Theme system | Single source of truth: `lib/hooks/useTheme.ts`. Three consumers: `ThemeTile`, `UserDropdown`, `UserPopup`. Same-tab sync via custom `tevd-theme-change` DOM event. Cross-tab sync via `StorageEvent`. Key: `tevd-theme`. Do not rename. |
-| `--bg-global-rgb` dark override | MUST be overridden in `[data-theme="dark"]` as `26, 31, 24`. The header uses `rgba(var(--bg-global-rgb), 0.80)` for its frosted backdrop — without this the navbar renders as ~80% white in dark mode. |
-| `--text-nav` dark value | `var(--brand-parchment)` in dark mode. Used for all nav chrome: links, bell, hamburger, drawer items. Do not set to a muted value — the dark navbar backdrop requires full contrast. |
-| Theme flash prevention | `app/layout.tsx` contains a blocking inline `<script>` that reads `localStorage['tevd-theme']` and applies `data-theme` to `<html>` before first paint. Do not remove it. This is the standard no-flash pattern. |
-| `push_files` source file corruption | `push_files` with multiple large TSX/TS files corrupts newlines (renders as single-line blobs). For large source files always use `create_or_update_file` per file. Never mix CLAUDE.md and source files in the same `push_files` call. |
-| stale `localX` pattern | `localGuides`, `localAnnouncements`, `localLinks`, `localSocials` are local drag copies. Use `useEffect` on the raw query data to sync them — NOT a render-phase ref comparison keyed on IDs. ID-key sync only fires on add/remove, missing in-place field updates (publish toggle, edits). |
-| Nav breakpoint | Desktop nav and hamburger use `lg` (1024px), not `md` (768px). Landscape phones (max ~926px) would clear `md` and show the full desktop nav with overflow. `lg` keeps hamburger on all phones in any orientation. |
-| `/guides` cover image | Use `<img>` not `next/image` for Supabase storage URLs. `next/image` requires domain allowlist in `next.config.ts remotePatterns`. The `*.supabase.co` wildcard is set but user-uploaded image domains remain unpredictable — use plain `<img>` per code style rule. |
-| Guide cover bucket | Supabase Storage bucket `guide-covers` (public). Created via SQL INSERT into `storage.buckets`. RLS: public SELECT, admin INSERT/UPDATE/DELETE. |
-| `UserDropdown` theme toggle | Now uses `useTheme()` hook. Old `StorageEvent` + manual `localStorage` pattern removed. Do not restore the old pattern. |
-| `/profile` bento col-spans | `personal`, `calendar`, `stats`, `admin` = col-12. `trips`, `payments`, `vitals`, `participation` = col-6. Outer grid = 12-col. |
-| Canvas width | All pages use `max-w-[1280px]`. `BentoGrid` outer wrapper: `max-w-[1280px] mx-auto px-4 sm:px-6 xl:px-8`. Col-8 pages (about, trips, guides, profile) migrated to col-12 at 1280px canvas in SEQ222. |
-| `TeamAttendee` type | Exported from `app/(dashboard)/trips/[id]/page.tsx`. Mirrors the `get_trip_team_attendees` RPC return shape. Import from there — do not redeclare. |
+| Admin form components inside render | NEVER define a form component inside a parent page component. React remounts it on every render causing state reset. Always hoist to module scope. |
+| Theme system | Single source: `lib/hooks/useTheme.ts`. Three consumers: `ThemeTile`, `UserDropdown`, `UserPopup`. Same-tab sync via `tevd-theme-change` DOM event. Cross-tab via `StorageEvent`. Key: `tevd-theme`. |
+| `--bg-global-rgb` dark override | MUST be `26, 31, 24` in `[data-theme="dark"]`. Header uses `rgba(var(--bg-global-rgb), 0.80)` — without this the navbar renders ~80% white in dark mode. |
+| `--text-nav` dark value | `var(--brand-parchment)` in dark mode. Full contrast required on dark navbar backdrop. |
+| Nav breakpoint | Desktop nav and hamburger use `lg` (1024px), not `md`. Landscape phones clear `md` — `lg` keeps hamburger on all phones in any orientation. |
+| `/guides` cover image | Use `<img>` not `next/image` for Supabase storage URLs. |
+| Guide cover bucket | Supabase Storage bucket `guide-covers` (public). RLS: public SELECT, admin INSERT/UPDATE/DELETE. |
+| `/profile` bento col-spans | `personal`, `calendar`, `stats`, `admin` = col-12. `trips`, `payments`, `vitals`, `participation` = col-6. |
+| Canvas width | All pages use `max-w-[1280px]`. BentoGrid outer wrapper: `max-w-[1280px] mx-auto px-4 sm:px-6 xl:px-8`. |
+| `TeamAttendee` type | Exported from `app/(dashboard)/trips/[id]/page.tsx`. Do not redeclare. |
 
 ---
 
-## 7. Supabase MCP Workflow
+## 6. Supabase MCP Workflow
 
-1. **Read existing function/table first** with `execute_sql` before writing any DDL.
+1. Read existing function/table first with `execute_sql` before writing any DDL.
 2. DDL → `apply_migration` only. Never raw `execute_sql` for DDL.
 3. Verify result with `execute_sql` after.
 4. Save SQL to `supabase/migrations/YYYYMMDDNNNNNN_name.sql`.
 5. Run `generate_typescript_types` → write to `types/supabase.ts` → commit in same push as migration.
 6. `npx tsc --noEmit` → zero errors → commit.
 
-### RLS Pattern
-```sql
-(auth.jwt() ->> 'user_role') IN ('admin', 'core')
-profile_id = (SELECT id FROM profiles WHERE clerk_id = auth.jwt() ->> 'sub' LIMIT 1)
-```
-
-### CI Type Check
-On every push to `main`: `tsc --noEmit` only. No type drift diff step (removed — CLI not available locally, MCP SDK format differs from CLI output). Workflow: `.github/workflows/check-types.yml`.
-
 ---
 
-## 8. When This File Is Wrong
+## 7. When This File Is Wrong
 
-If any instruction here contradicts Next.js 16 / Clerk v7 / Supabase current SDK behaviour — stop and flag it. Do not silently comply. State the contradiction, cite the correct current behaviour, and ask for a decision before proceeding.
-
----
-
-## 9. Reference
-
-For schema, directory structure, key files & patterns, navigation, design system, i18n, admin pages, access control flows, LOS, calendar, CI detail, and release history — read `docs/ai/CONTEXT.md`.
-
-### CONTEXT.md section map — read only what the ticket needs
-
-| Section | Read when ticket touches |
-|---|---|
-| §1 Directory tree | New files, new routes, component moves |
-| §2 Key files & patterns | `lib/`, `components/`, established patterns |
-| §3 Navigation | Header, Footer, AdminNav, `lib/nav.ts` |
-| §4 Schema | DB, API routes, `types/supabase.ts`, migrations |
-| §5 Design system | Bento, tokens, colors, layout, role colors |
-| §6 i18n & regional | `translations.ts`, `t()`, `lib/format.ts` |
-| §7 Access control | Auth, RLS, verification paths, Clerk sync |
-| §8 LOS & notifications | `tree_nodes`, triggers, `pg_cron` |
-| §9 Calendar | `CalendarClient`, `--cal-height`, period views |
-| §10 Admin pages | Any `/admin/*` page |
-| §11 Env vars | New secrets, deployment config |
-| §12 CI | `types/supabase.ts`, `check-types.yml` |
-
-For live schema — `Supabase:list_tables` verbose is always more current than CONTEXT.md.
+If any instruction here contradicts Next.js 16 / Clerk v7 / Supabase current SDK behaviour — stop and flag it. State the contradiction, cite the correct behaviour, ask for a decision before proceeding.
