@@ -23,6 +23,18 @@ function charsetFromHtmlMeta(raw: string): string | null {
   return m2 ? m2[1].trim() : null
 }
 
+/** Decode HTML entities in an attribute value extracted via regex. */
+function decodeEntities(str: string): string {
+  return str
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
+    .replace(/&#([0-9]+);/g, (_, dec) => String.fromCodePoint(parseInt(dec, 10)))
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+}
+
 export async function scrapeOgTags(url: string): Promise<OgScrapeResult> {
   try {
     const controller = new AbortController()
@@ -66,8 +78,8 @@ export async function scrapeOgTags(url: string): Promise<OgScrapeResult> {
       ?? html.match(/<meta[^>]+content=[\"']([^\"']+)[\"'][^>]+property=[\"']og:description[\"']/i)
 
     return {
-      thumbnail_url: ogImage?.[1] ?? null,
-      caption: ogDesc?.[1] ?? null,
+      thumbnail_url: ogImage?.[1] != null ? decodeEntities(ogImage[1]) : null,
+      caption:       ogDesc?.[1]  != null ? decodeEntities(ogDesc[1])  : null,
     }
   } catch (err) {
     console.error('[og-scrape] Failed to scrape', url, err)
