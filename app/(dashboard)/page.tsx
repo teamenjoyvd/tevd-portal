@@ -166,16 +166,11 @@ export default async function HomePage() {
               }}
             />
           )}
-          {/* Bottom-to-top darkening gradient for legibility */}
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.18) 55%, transparent 100%)' }}
-          />
           {/* Top row: destination badge (left) + link (right) */}
           <div className="absolute top-0 left-0 right-0 flex items-start justify-between px-5 pt-5 z-10">
             <span
               className="font-body text-[11px] font-bold px-2.5 py-1 rounded-full"
-              style={{ backgroundColor: 'rgba(0,0,0,0.35)', color: 'var(--brand-parchment)', backdropFilter: 'blur(4px)' }}
+              style={{ backgroundColor: 'rgba(255,255,255,0.18)', color: 'var(--brand-parchment)' }}
             >
               {nextTrip.destination}
             </span>
