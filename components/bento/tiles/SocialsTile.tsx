@@ -22,7 +22,6 @@ function timeAgo(dateStr: string): string {
   const mins  = Math.floor(diff / 60000)
   const hours = Math.floor(diff / 3600000)
   const days  = Math.floor(diff / 86400000)
-  if (mins < 1)   return 'just now'
   if (mins < 60)  return `${mins}m ago`
   if (hours < 24) return `${hours}h ago`
   return `${days}d ago`
@@ -76,14 +75,16 @@ export default function SocialsTile({ colSpan = 4, rowSpan, halfWidthMobile }: {
           width: '100%',
           height: '100%',
           objectFit: 'cover',
-          opacity: 0.20,
+          opacity: 0.15,
           pointerEvents: 'none',
           zIndex: 0,
         }}
       />
 
-      <div className="relative flex flex-col flex-1" style={{ zIndex: 10 }}>
-        <Eyebrow>Socials</Eyebrow>
+      <div className="relative flex flex-col flex-1" style={{ zIndex: 1 }}>
+        <div className="flex items-center gap-1.5" style={{ color: 'var(--text-secondary)' }}>
+          <Eyebrow>Socials</Eyebrow>
+        </div>
 
         {isLoading && (
           <div className="flex-1 flex flex-col justify-center gap-3 mt-3">
@@ -102,27 +103,15 @@ export default function SocialsTile({ colSpan = 4, rowSpan, halfWidthMobile }: {
             href={post.post_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex gap-3 group mt-4 flex-1"
+            className="flex gap-3 group mt-3 flex-1"
             style={{ textDecoration: 'none' }}
           >
-            {post.thumbnail_url && (
-              <div
-                className="flex-shrink-0 rounded-lg overflow-hidden"
-                style={{ width: 56, height: 56, backgroundColor: 'rgba(0,0,0,0.06)' }}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={post.thumbnail_url}
-                  alt={`${post.platform} post`}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
-              </div>
-            )}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5 mb-1" style={{ color: 'var(--text-secondary)' }}>
+            {/* Caption + platform meta — grows to fill */}
+            <div className="flex-1 min-w-0 flex flex-col justify-between">
+              <div className="flex items-center gap-1.5 mb-1.5" style={{ color: 'var(--text-secondary)' }}>
                 {post.platform === 'instagram' ? <InstagramIcon /> : <FacebookIcon />}
-                <span className="text-xs font-medium capitalize">{post.platform}</span>
-                <span className="text-xs" style={{ color: 'var(--text-secondary)', opacity: 0.6 }}>· {timeAgo(post.created_at)}</span>
+                <span className="text-xs font-medium capitalize" style={{ color: 'var(--text-secondary)' }}>{post.platform}</span>
+                <span className="text-xs" style={{ color: 'var(--text-secondary)', opacity: 0.55 }}>· {timeAgo(post.created_at)}</span>
               </div>
               {post.caption ? (
                 <p
@@ -130,7 +119,7 @@ export default function SocialsTile({ colSpan = 4, rowSpan, halfWidthMobile }: {
                   style={{
                     color: 'var(--text-primary)',
                     display: '-webkit-box',
-                    WebkitLineClamp: 2,
+                    WebkitLineClamp: 3,
                     WebkitBoxOrient: 'vertical',
                     overflow: 'hidden',
                   }}
@@ -141,6 +130,21 @@ export default function SocialsTile({ colSpan = 4, rowSpan, halfWidthMobile }: {
                 <p className="text-xs italic" style={{ color: 'var(--text-secondary)' }}>View post →</p>
               )}
             </div>
+
+            {/* Thumbnail — right-aligned, 64×64 */}
+            {post.thumbnail_url && (
+              <div
+                className="flex-shrink-0 rounded-lg overflow-hidden self-start"
+                style={{ width: 64, height: 64, backgroundColor: 'rgba(0,0,0,0.06)' }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={post.thumbnail_url}
+                  alt={`${post.platform} post`}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              </div>
+            )}
           </a>
         )}
       </div>
