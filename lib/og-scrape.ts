@@ -6,6 +6,23 @@ export type OgScrapeResult = {
   caption: string | null
 }
 
+/** Extract charset label from a Content-Type header value, e.g. "text/html; charset=windows-1251" */
+function charsetFromContentType(contentType: string | null): string | null {
+  if (!contentType) return null
+  const m = contentType.match(/charset=([^\s;]+)/i)
+  return m ? m[1].trim() : null
+}
+
+/** Extract charset from raw HTML bytes decoded as latin-1 (safe for ASCII-range meta tags) */
+function charsetFromHtmlMeta(raw: string): string | null {
+  // <meta charset="windows-1251">
+  const m1 = raw.match(/<meta[^>]+charset=[\"']?([^\"'\s;>]+)/i)
+  if (m1) return m1[1].trim()
+  // <meta http-equiv="Content-Type" content="text/html; charset=windows-1251">
+  const m2 = raw.match(/charset=([^\s;\"']+)/i)
+  return m2 ? m2[1].trim() : null
+}
+
 export async function scrapeOgTags(url: string): Promise<OgScrapeResult> {
   try {
     const controller = new AbortController()
@@ -22,13 +39,31 @@ export async function scrapeOgTags(url: string): Promise<OgScrapeResult> {
       return { thumbnail_url: null, caption: null }
     }
 
-    const html = await res.text()
+    // Detect charset — header first, then meta tags in raw bytes
+    const buffer = await res.arrayBuffer()
+    const ctCharset = charsetFromContentType(res.headers.get('content-type'))
 
-    const ogImage = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i)
-      ?? html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i)
+    let charset = ctCharset ?? 'utf-8'
 
-    const ogDesc = html.match(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i)
-      ?? html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:description["']/i)
+    if (!ctCharset) {
+      // Decode a leading slice as latin-1 to safely read ASCII-range meta tags
+      const probe = new TextDecoder('latin-1').decode(buffer.slice(0, 4096))
+      charset = charsetFromHtmlMeta(probe) ?? 'utf-8'
+    }
+
+    let html: string
+    try {
+      html = new TextDecoder(charset).decode(buffer)
+    } catch {
+      // Unknown charset label — fall back to UTF-8
+      html = new TextDecoder('utf-8').decode(buffer)
+    }
+
+    const ogImage = html.match(/<meta[^>]+property=[\"']og:image[\"'][^>]+content=[\"']([^\"']+)[\"']/i)
+      ?? html.match(/<meta[^>]+content=[\"']([^\"']+)[\"'][^>]+property=[\"']og:image[\"']/i)
+
+    const ogDesc = html.match(/<meta[^>]+property=[\"']og:description[\"'][^>]+content=[\"']([^\"']+)[\"']/i)
+      ?? html.match(/<meta[^>]+content=[\"']([^\"']+)[\"'][^>]+property=[\"']og:description[\"']/i)
 
     return {
       thumbnail_url: ogImage?.[1] ?? null,
