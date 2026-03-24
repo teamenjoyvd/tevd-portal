@@ -16,8 +16,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const body = await req.json()
   const { title, description, amount, currency, item_type, linked_trip_id, is_active } = body
 
-  if (item_type !== undefined && !['trip', 'book', 'ticket', 'other'].includes(item_type)) {
-    return Response.json({ error: 'item_type must be trip, book, ticket, or other' }, { status: 400 })
+  if (item_type !== undefined && !['merchandise', 'ticket', 'food', 'book', 'other'].includes(item_type)) {
+    return Response.json({ error: 'item_type must be merchandise, ticket, food, book, or other' }, { status: 400 })
   }
 
   const update: Record<string, unknown> = {}
@@ -26,7 +26,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (amount !== undefined)         update.amount = amount
   if (currency !== undefined)       update.currency = currency
   if (item_type !== undefined)      update.item_type = item_type
-  if (linked_trip_id !== undefined) update.linked_trip_id = linked_trip_id
+  if (linked_trip_id !== undefined) update.linked_trip_id = linked_trip_id || null
   if (is_active !== undefined)      update.is_active = is_active
 
   if (Object.keys(update).length === 0) {
