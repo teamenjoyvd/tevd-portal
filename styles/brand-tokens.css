@@ -21,6 +21,7 @@
   --text-nav:          var(--text-secondary); /* nav chrome — bumped in dark mode */
   --border-default:    rgba(45, 51, 42, 0.08);
   --border-hover:      rgba(188, 71, 73, 0.30);
+  --nav-border:        rgba(45, 51, 42, 0.08); /* nav pill border — more visible in dark mode */
   --accent-left-info:  var(--brand-teal);
   --accent-left-alert: var(--brand-crimson);
   --accent-left-brand: var(--brand-forest);
@@ -41,6 +42,7 @@
   --text-primary:   var(--brand-parchment);
   --text-secondary: #B5B0A8;
   --text-nav:       var(--brand-parchment); /* full parchment on dark backdrop */
+  --nav-border:     rgba(250, 248, 243, 0.10); /* parchment-tinted, subtle outline on dark bg */
 }
 
 /* ── Utility classes ── */
