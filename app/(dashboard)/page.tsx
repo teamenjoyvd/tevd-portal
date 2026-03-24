@@ -83,7 +83,7 @@ export default async function HomePage() {
     <div style={{ backgroundColor: 'var(--bg-global)' }}>
       <BentoGrid className="py-4 pb-16">
 
-        {/* ── ROW 1: Hero col-6 | Profile col-2 | Events col-4 ── */}
+        {/* ── ROW 1: Hero col-6 | Events col-4 | Profile col-2 ── */}
 
         <BentoCard variant="forest" colSpan={6} rowSpan={2} fullWidthMobile className="bento-tile relative overflow-hidden" style={{ animationDelay: '0ms', minHeight: 320 }}>
           <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 40% 50%, rgba(188,71,73,0.18) 0%, transparent 70%)' }} />
@@ -96,8 +96,6 @@ export default async function HomePage() {
             </p>
           </div>
         </BentoCard>
-
-        <ProfileTile colSpan={2} rowSpan={2} halfWidthMobile />
 
         {nextEvents.length > 0 && (
         <BentoCard variant="default" colSpan={4} rowSpan={2} fullWidthMobile className="bento-tile flex flex-col" style={{ animationDelay: '150ms' }}>
@@ -148,6 +146,8 @@ export default async function HomePage() {
           </div>
         </BentoCard>
         )}
+
+        <ProfileTile colSpan={2} rowSpan={2} halfWidthMobile />
 
         {/* ── ROW 2: Trips col-3 | Announcements col-6 | Links col-3 ── */}
 
