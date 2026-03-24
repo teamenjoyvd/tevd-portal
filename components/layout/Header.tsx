@@ -71,7 +71,7 @@ export default function Header() {
         <div className="h-14 flex items-center px-5 rounded-2xl backdrop-blur-md backdrop-saturate-150"
           style={{
             backgroundColor: 'rgba(var(--bg-global-rgb), 0.80)',
-            border: '1px solid var(--border-default)',
+            border: '1px solid var(--nav-border)',
           }}>
 
           <Link href="/" className="flex items-center gap-2.5 flex-shrink-0">
@@ -191,7 +191,7 @@ export default function Header() {
             className="lg:hidden mt-2 rounded-2xl py-2 px-3"
             style={{
               backgroundColor: 'rgba(var(--bg-global-rgb), 0.97)',
-              border: '1px solid var(--border-default)',
+              border: '1px solid var(--nav-border)',
               boxShadow: '0 8px 32px rgba(0,0,0,0.10)',
               backdropFilter: 'blur(12px)',
             }}
