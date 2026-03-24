@@ -28,7 +28,7 @@ type PayableItem = {
   description: string | null
   amount: number
   currency: string
-  item_type: 'trip' | 'book' | 'ticket' | 'merchandise' | 'other'
+  item_type: 'merchandise' | 'ticket' | 'food' | 'book' | 'other'
   linked_trip_id: string | null
   is_active: boolean
   created_at: string
@@ -63,7 +63,7 @@ type MemberProfile = { id: string; first_name: string; last_name: string; abo_nu
 // ── Constants ────────────────────────────────────────────────────
 
 const ALL_ROLES = ['guest', 'member', 'core', 'admin']
-const ITEM_TYPES = ['trip', 'book', 'ticket', 'merchandise', 'other'] as const
+const ITEM_TYPES = ['merchandise', 'ticket', 'food', 'book', 'other'] as const
 
 const TABS = [
   { key: 'trips',    label: 'Trips'    },
@@ -84,7 +84,7 @@ const emptyTrip = (): Omit<Trip, 'id' | 'currency'> => ({
 
 type ItemForm = {
   title: string; description: string; amount: string; currency: string
-  item_type: 'trip' | 'book' | 'ticket' | 'merchandise' | 'other'
+  item_type: 'merchandise' | 'ticket' | 'food' | 'book' | 'other'
   linked_trip_id: string; is_active: boolean
 }
 const emptyItem = (): ItemForm => ({
@@ -407,10 +407,10 @@ function ItemsTab({ trips }: { trips: Trip[] }) {
     setDrawerOpen(true)
   }
 
-  type ItemPayload = Omit<ItemForm, 'amount'> & { amount: number }
+  type ItemPayload = Omit<ItemForm, 'amount' | 'linked_trip_id'> & { amount: number; linked_trip_id: string | null }
 
   function toPayload(f: ItemForm): ItemPayload {
-    return { ...f, amount: Number(f.amount) }
+    return { ...f, amount: Number(f.amount), linked_trip_id: f.linked_trip_id || null }
   }
 
   const createMutation = useMutation({
@@ -521,7 +521,7 @@ function ItemsTab({ trips }: { trips: Trip[] }) {
             </div>
             <div>
               <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Type *</label>
-              <select value={form.item_type} onChange={e => setForm(f => ({ ...f, item_type: e.target.value as ItemForm['item_type'], linked_trip_id: '' }))}
+              <select value={form.item_type} onChange={e => setForm(f => ({ ...f, item_type: e.target.value as ItemForm['item_type'] }))}
                 className="w-full border rounded-xl px-3 py-2.5 text-sm"
                 style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}>
                 {ITEM_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
@@ -548,17 +548,6 @@ function ItemsTab({ trips }: { trips: Trip[] }) {
                 style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
             </div>
           </div>
-          {form.item_type === 'trip' && (
-            <div>
-              <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Linked trip</label>
-              <select value={form.linked_trip_id} onChange={e => setForm(f => ({ ...f, linked_trip_id: e.target.value }))}
-                className="w-full border rounded-xl px-3 py-2.5 text-sm"
-                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}>
-                <option value="">Select trip…</option>
-                {trips.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
-              </select>
-            </div>
-          )}
           <div>
             <button onClick={() => setForm(f => ({ ...f, is_active: !f.is_active }))}
               className="text-xs font-semibold px-3 py-1.5 rounded-full transition-all"
@@ -793,7 +782,7 @@ function PaymentsTab({ trips }: { trips: Trip[] }) {
         <div className="rounded-2xl border overflow-hidden" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
           {payments.map((p, i) => {
             const pill = statusPill(p.admin_status)
-            const entity = p.trips?.title ?? p.payable_items?.title ?? '—'
+            const entityLabel = p.trips?.title ?? p.payable_items?.title ?? '—'
             return (
               <div key={p.id} className="px-5 py-3 flex items-center justify-between gap-4"
                 style={{ borderTop: i > 0 ? '1px solid var(--border-default)' : 'none' }}>
@@ -803,7 +792,7 @@ function PaymentsTab({ trips }: { trips: Trip[] }) {
                     {p.profiles?.abo_number && <span className="font-mono text-xs opacity-60 ml-1.5">{p.profiles.abo_number}</span>}
                   </p>
                   <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                    {entity} · {formatDate(p.transaction_date)} · {formatCurrency(p.amount, p.currency)}
+                    {entityLabel} · {formatDate(p.transaction_date)} · {formatCurrency(p.amount, p.currency)}
                     {p.payment_method && ` · ${p.payment_method}`}
                   </p>
                 </div>
