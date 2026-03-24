@@ -27,6 +27,10 @@ function timeAgo(dateStr: string): string {
   return `${days}d ago`
 }
 
+function thumbnailSrc(url: string): string {
+  return `/api/socials/thumbnail?src=${encodeURIComponent(url)}`
+}
+
 function InstagramIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -131,7 +135,7 @@ export default function SocialsTile({ colSpan = 4, rowSpan, halfWidthMobile }: {
               )}
             </div>
 
-            {/* Thumbnail — right-aligned, 64×64 */}
+            {/* Thumbnail — right-aligned, 64×64, proxied to bypass CDN CORS block */}
             {post.thumbnail_url && (
               <div
                 className="flex-shrink-0 rounded-lg overflow-hidden self-start"
@@ -139,7 +143,7 @@ export default function SocialsTile({ colSpan = 4, rowSpan, halfWidthMobile }: {
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={post.thumbnail_url}
+                  src={thumbnailSrc(post.thumbnail_url)}
                   alt={`${post.platform} post`}
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />
