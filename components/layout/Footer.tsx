@@ -13,7 +13,9 @@ export default function Footer() {
   return (
     <footer style={{ backgroundColor: 'var(--brand-forest)' }}>
       <div className="max-w-[1440px] mx-auto px-8 xl:px-12 2xl:px-16 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
+        {/* Mobile (<md): single flex row — brand left, socials right */}
+        {/* Desktop (md+): 3-col grid */}
+        <div className="flex items-center justify-between md:grid md:grid-cols-3 md:gap-8 md:items-center">
 
           {/* Col 1 — Brand */}
           <div className="flex items-center gap-2.5">
@@ -33,7 +35,7 @@ export default function Footer() {
             </span>
           </div>
 
-          {/* Col 2 — Nav: hidden on mobile (BottomNav handles mobile), single row on md+ */}
+          {/* Col 2 — Nav: hidden on mobile, single row on lg+ */}
           <nav className="hidden lg:flex flex-nowrap items-center gap-x-4 justify-center">
             {FOOTER_NAV.map(({ href, labels }) => (
               <Link
