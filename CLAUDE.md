@@ -167,8 +167,6 @@ Duplicate-safe: always filter `Duplicate = false/empty`; discard `fld2P6m5fMOsi1
 | Nav breakpoint | Desktop nav and hamburger use `lg` (1024px), not `md`. Landscape phones clear `md` — `lg` keeps hamburger on all phones in any orientation. |
 | `/guides` cover image | Use `<img>` not `next/image` for Supabase storage URLs. |
 | Guide cover bucket | Supabase Storage bucket `guide-covers` (public). RLS: public SELECT, admin INSERT/UPDATE/DELETE. |
-| `/profile` bento col-spans | `personal`, `calendar`, `stats`, `admin` = col-12. `trips`, `payments`, `vitals`, `participation` = col-6. |
-| Canvas width | All pages use `max-w-[1280px]`. BentoGrid outer wrapper: `max-w-[1280px] mx-auto px-4 sm:px-6 xl:px-8`. |
 | `TeamAttendee` type | Exported from `app/(dashboard)/trips/[id]/page.tsx`. Do not redeclare. |
 
 ---
