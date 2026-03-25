@@ -6,6 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useUser } from '@clerk/nextjs'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import RegisterButton from '@/components/trips/RegisterButton'
+import { Skeleton } from '@/components/ui/Skeleton'
 import { formatDate, formatCurrency } from '@/lib/format'
 
 type Milestone = { label: string; amount: number; due_date: string }
@@ -381,11 +382,7 @@ export default function TripsPage() {
         <div className="md:hidden flex flex-col gap-3">
           {isLoading || !isLoaded ? (
             [...Array(2)].map((_, i) => (
-              <div
-                key={i}
-                className="rounded-2xl animate-pulse"
-                style={{ height: 240, backgroundColor: 'var(--border-default)' }}
-              />
+              <Skeleton key={i} className="rounded-2xl" style={{ height: 240 }} />
             ))
           ) : trips.length === 0 ? (
             <div
@@ -428,13 +425,12 @@ export default function TripsPage() {
         >
           {isLoading || !isLoaded ? (
             [...Array(2)].map((_, i) => (
-              <div
+              <Skeleton
                 key={i}
-                className="rounded-2xl animate-pulse"
+                className="rounded-2xl"
                 style={{
                   gridColumn: 'span 6',
                   gridRow: 'span 2',
-                  backgroundColor: 'var(--border-default)',
                   minHeight: 240,
                 }}
               />

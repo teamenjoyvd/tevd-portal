@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { useLanguage } from '@/lib/hooks/useLanguage'
+import { Skeleton } from '@/components/ui/Skeleton'
 
 type Guide = {
   id: string
@@ -20,33 +21,25 @@ export default function GuidesPage() {
     queryFn: () => fetch('/api/guides').then(r => r.json()),
   })
 
-  const skeletonCard = (i: number) => (
-    <div
-      key={i}
-      className="rounded-2xl animate-pulse"
-      style={{ height: 240, backgroundColor: 'var(--border-default)' }}
-    />
-  )
-
-  const emptyState = (
-    <div
-      className="rounded-2xl flex items-center justify-center py-16"
-      style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}
-    >
-      <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-        No guides available yet.
-      </p>
-    </div>
-  )
-
   return (
     <div className="py-8 pb-16">
       <div className="max-w-[860px] mx-auto px-4 sm:px-6 xl:px-8">
         {/* Mobile: single-column stack */}
         <div className="md:hidden flex flex-col gap-3">
           {isLoading ? (
-            [...Array(4)].map((_, i) => skeletonCard(i))
-          ) : guides.length === 0 ? emptyState : (
+            [...Array(4)].map((_, i) => (
+              <Skeleton key={i} className="rounded-2xl" style={{ height: 240 }} />
+            ))
+          ) : guides.length === 0 ? (
+            <div
+              className="rounded-2xl flex items-center justify-center py-16"
+              style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}
+            >
+              <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                No guides available yet.
+              </p>
+            </div>
+          ) : (
             guides.map(g => {
               const title = (g.title as Record<string, string>)[lang]
                 ?? (g.title as Record<string, string>).en ?? ''
@@ -87,13 +80,12 @@ export default function GuidesPage() {
         >
           {isLoading ? (
             [...Array(4)].map((_, i) => (
-              <div
+              <Skeleton
                 key={i}
-                className="rounded-2xl animate-pulse"
+                className="rounded-2xl"
                 style={{
                   gridColumn: 'span 4',
                   gridRow: 'span 2',
-                  backgroundColor: 'var(--border-default)',
                   minHeight: 240,
                 }}
               />
