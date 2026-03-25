@@ -1,5 +1,5 @@
 # CLAUDE.md — teamenjoyVD Portal
-> Last updated: 2026-03-25 — v2.0.4. Latest stable commit: 2f7f0fd.
+> Last updated: 2026-03-26 — v2.0.5. Latest stable commit: 2f7f0fd.
 > Architecture docs live in `docs/architecture/`. Reference tables live in `docs/ai/LOOKUP.md`. Orienting context in `docs/ai/CONTEXT.md`.
 > **Neither CONTEXT.md nor LOOKUP.md is read at SSU. Read specific sections in GATHER/SHAPE only.**
 
@@ -78,6 +78,7 @@ Violation = immediate stop.
 - **NEVER proceed past CLAIM if `Blocked By` is non-empty** without explicit acknowledgment.
 - **NEVER mark Done on static analysis alone.** Verify Vercel deployment is READY AND CI passes.
 - **390px Mobile-First:** Every new UI surface must render correctly at 390px. The layout law below is non-negotiable.
+- **RLS policies MUST use Pattern A helper functions** (`is_admin()`, `get_my_role()`, `get_my_profile_id()`, `get_my_clerk_id()`). Never use raw `auth.jwt() ->> 'sub'` or `auth.jwt() ->> 'user_role'` directly. See ADR-011 in `docs/architecture/DECISIONS.md`.
 
 ### Desktop / Mobile Layout Law
 
@@ -168,6 +169,7 @@ Duplicate-safe: always filter `Duplicate = false/empty`; discard `fld2P6m5fMOsi1
 | `/guides` cover image | Use `<img>` not `next/image` for Supabase storage URLs. |
 | Guide cover bucket | Supabase Storage bucket `guide-covers` (public). RLS: public SELECT, admin INSERT/UPDATE/DELETE. |
 | `TeamAttendee` type | Exported from `app/(dashboard)/trips/[id]/page.tsx`. Do not redeclare. |
+| RLS pattern | New policies MUST use Pattern A helpers: `is_admin()`, `get_my_role()`, `get_my_profile_id()`, `get_my_clerk_id()`. Never `auth.jwt() ->> 'sub'` (resolves to Supabase Auth UUID, not Clerk user — silently non-functional). See ADR-011. |
 
 ---
 
