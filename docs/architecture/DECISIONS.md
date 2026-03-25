@@ -1,5 +1,5 @@
 # DECISIONS.md — Architecture Decision Records
-> tevd-portal · Last updated: 2026-03-24
+> tevd-portal · Last updated: 2026-03-26
 > Format: Context | Decision | Consequences (Benefits / Risks / Mitigations)
 > Records are never deleted. Superseded records are marked and linked to their replacement.
 
@@ -19,6 +19,7 @@
 | ADR-008 | Strict TranslationKey union over i18n library | 2026-03 | Active |
 | ADR-009 | Dual-layout pattern (two complete layouts, not responsive) | 2026-03 | Active |
 | ADR-010 | 12-column CSS grid for BentoGrid (not a component library) | 2026-03 | Active |
+| ADR-011 | RLS as defence-in-depth layer; canonical policy pattern uses Clerk JWT helper functions | 2026-03 | Active |
 
 ---
 
@@ -341,3 +342,90 @@ shadcn/ui does not ship a grid layout primitive. MUI Grid and similar impose a D
 - Mobile override classes are defined in `globals.css` and documented in LOOKUP.md §4
 - `rowSpan` requirement is a code review gate — any new tile that doesn't accept it is caught before merge
 - This ADR is the decision point if shadcn/ui is ever proposed: its grid limitations are the reason it was not adopted
+
+---
+
+## ADR-011 — RLS as Defence-in-Depth; Canonical Policy Pattern Uses Clerk JWT Helper Functions
+
+**Date:** 2026-03
+**Status:** Active
+
+### Context
+RLS is enabled on all 19 public tables. Policies exist on all tables. However, two distinct policy patterns have accumulated across the codebase, and their relationship to the ADR-002 service-role decision needed to be formally mapped.
+
+### Audit Results (2026-03-26)
+
+All 19 tables have `rowsecurity = true`. Policy coverage is complete — no table is unprotected.
+
+| Table | RLS Enabled | Policy pattern | Commands covered |
+|---|---|---|---|
+| `profiles` | ✅ | Pattern A (helper functions) | SELECT (own + downline + admin), UPDATE (own + admin), ALL (admin) |
+| `notifications` | ✅ | Pattern A | SELECT (own, deleted_at IS NULL), UPDATE (own), ALL (admin) |
+| `payments` | ✅ | Pattern A + raw JWT sub | SELECT (own), INSERT (own, logged_by_admin guard), UPDATE (admin-logged only), ALL (admin+core) |
+| `trip_registrations` | ✅ | Pattern A | SELECT (own), INSERT (own), ALL (admin) |
+| `event_role_requests` | ✅ | Pattern A | SELECT (own), INSERT (own), ALL (admin) |
+| `abo_verification_requests` | ✅ | Pattern A | SELECT (own), INSERT (own), DELETE (own pending) |
+| `announcements` | ✅ | Pattern A | SELECT (active + role match), ALL (admin) |
+| `calendar_events` | ✅ | Pattern A | SELECT (N21 public, Personal member+), ALL (admin) |
+| `quick_links` | ✅ | Pattern A | SELECT (role match), ALL (admin) |
+| `home_settings` | ✅ | Pattern A | SELECT (true), ALL (admin) |
+| `trips` | ✅ | Pattern A | SELECT (member+), ALL (admin) |
+| `tree_nodes` | ✅ | Pattern A | SELECT (own subtree + admin), ALL (admin) |
+| `los_members` | ✅ | Pattern A | SELECT (own ABO match), ALL (admin) |
+| `guides` | ✅ | **Pattern B** (`auth.jwt() ->> 'user_role'`) | SELECT (published + role, or admin/core), INSERT/UPDATE/DELETE (admin) |
+| `bento_config` | ✅ | **Pattern B** (`auth.jwt() ->> 'user_role'`) | SELECT (authenticated), UPDATE (admin) |
+| `social_posts` | ✅ | **Pattern B** (`auth.jwt() ->> 'user_role'`) | SELECT (authenticated), INSERT/UPDATE/DELETE (admin) |
+| `member_vital_signs` | ✅ | **Pattern B** (mixed: `auth.jwt() ->> 'sub'` + `auth.jwt() ->> 'user_role'`) | SELECT (own profile_id or admin), INSERT/DELETE (admin) |
+| `vital_sign_definitions` | ✅ | **Pattern B** (`auth.jwt() ->> 'user_role'`) | SELECT (authenticated), INSERT/UPDATE/DELETE (admin) |
+| `payable_items` | ✅ | **Pattern B** (`auth.jwt() ->> 'user_role'`) | SELECT (active, all), ALL (admin+core) |
+
+### The Two Patterns
+
+**Pattern A — canonical, uses project helper functions:**
+```sql
+-- Role check
+is_admin()                          -- wraps get_my_role() = 'admin'
+get_my_role()                       -- reads request.jwt.claims -> 'user_role'
+-- Identity check
+get_my_profile_id()                 -- subselect: profiles.clerk_id = get_my_clerk_id()
+get_my_clerk_id()                   -- reads request.jwt.claims -> 'user_id'
+```
+These functions read the `user_id` claim from `request.jwt.claims`, which is the Clerk user ID passed via the custom JWT template.
+
+**Pattern B — inconsistent, uses raw JWT accessors:**
+```sql
+auth.jwt() ->> 'user_role'          -- reads role directly from JWT (works if claim exists)
+auth.jwt() ->> 'sub'                -- reads Supabase Auth subject (WRONG for Clerk users)
+```
+`auth.jwt() ->> 'sub'` resolves to the Supabase Auth UUID, which does not exist for Clerk-authenticated users. Any policy using `auth.jwt() ->> 'sub'` for identity matching (as in `member_vital_signs`) will never match a Clerk user. This policy is silently non-functional for its intended purpose.
+
+### Decision
+1. **RLS remains defence-in-depth** (ADR-002 unchanged). The service role is the primary access control mechanism for all server routes. RLS protects against direct DB access, future anon client usage, and Supabase Studio access.
+2. **Pattern A is the canonical policy pattern** for all new and migrated policies. No new policy may use `auth.jwt() ->> 'sub'`. No new policy may use raw `auth.jwt()` accessors when a helper function covers the same check.
+3. **Pattern B tables are flagged for remediation** in SEQ261–265. Priority order: `member_vital_signs` first (has a broken `sub`-based identity check), then the remaining Pattern B tables.
+4. **The `member_vital_signs` SELECT policy using `auth.jwt() ->> 'sub'`** must be replaced with `get_my_profile_id()` in the remediation ticket.
+
+### Helper Functions Reference
+
+| Function | Reads from JWT | Returns |
+|---|---|---|
+| `get_my_clerk_id()` | `request.jwt.claims -> 'user_id'` | `text` (Clerk user ID) |
+| `get_my_profile_id()` | via `get_my_clerk_id()` → profiles lookup | `uuid` (profiles.id) |
+| `get_my_role()` | `request.jwt.claims -> 'user_role'` | `user_role` enum |
+| `is_admin()` | via `get_my_role()` | `boolean` |
+
+### Consequences
+
+**Benefits:**
+- All new policies use consistent, readable helper functions — no raw JWT path spelunking
+- Broken `auth.jwt() ->> 'sub'` policies are identified and scheduled for remediation
+- Defence-in-depth layer is fully mapped — no surprises if a future engineer introduces a non-service client
+
+**Risks:**
+- Pattern B tables currently have non-functional identity-matching policies (vacuous — they pass for admin role checks but fail for member-owned-row checks). This is acceptable today only because service-role bypasses all RLS. If a non-service client is ever introduced without fixing Pattern B first, member data isolation breaks silently.
+- `payments` SELECT/INSERT policies use inline `auth.jwt() ->> 'sub'` for profile_id resolution — this is also Pattern B and should be migrated to `get_my_profile_id()` in SEQ263.
+
+**Mitigations:**
+- SEQ261–265 (remediation tickets) are in the backlog and unblocked after this audit
+- The broken `sub`-based policy on `member_vital_signs` is explicitly called out above
+- A new hard rule is added to CLAUDE.md: new RLS policies MUST use Pattern A helper functions
