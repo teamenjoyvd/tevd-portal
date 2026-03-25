@@ -1,18 +1,16 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { auth } from '@clerk/nextjs/server'
 import Link from 'next/link'
-import dynamic from 'next/dynamic'
 import BentoGrid from '@/components/bento/BentoGrid'
 import BentoCard, { Eyebrow } from '@/components/bento/BentoCard'
 import ProfileTile from '@/components/bento/tiles/ProfileTile'
 import GuidesTile from '@/components/bento/tiles/GuidesTile'
+import LocationTile from '@/components/bento/tiles/LocationTileLazy'
 import ThemeTile from '@/components/bento/tiles/ThemeTile'
 import SocialsTile from '@/components/bento/tiles/SocialsTile'
 import { formatDate, formatTime, calDay, calMonth } from '@/lib/format'
 
 export const dynamic = 'force-dynamic'
-
-const LocationTile = dynamic(() => import('@/components/bento/tiles/LocationTile'), { ssr: false })
 
 type Announcement = {
   id: string; titles: Record<string, string>; contents: Record<string, string>
