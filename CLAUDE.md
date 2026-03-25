@@ -1,5 +1,5 @@
 # CLAUDE.md — teamenjoyVD Portal
-> Last updated: 2026-03-24 — v2.0.3. Latest stable commit: 2f7f0fd.
+> Last updated: 2026-03-25 — v2.0.4. Latest stable commit: 2f7f0fd.
 > Architecture docs live in `docs/architecture/`. Reference tables live in `docs/ai/LOOKUP.md`. Orienting context in `docs/ai/CONTEXT.md`.
 > **Neither CONTEXT.md nor LOOKUP.md is read at SSU. Read specific sections in GATHER/SHAPE only.**
 
@@ -123,33 +123,8 @@ Declare phase at opening of every work response: `PHASE: READ | SHAPE | CLAIM | 
 ### Airtable Reference
 
 **Base:** `app1n7KYX8i8xSiB7` — **Issues Table:** `tblUq45Wo3xngSf3w`
-
-| Field | ID |
-|---|---|
-| Issue ID | `fldE1F4ViLRQml5Hw` |
-| Seq (unique PK) | `fldnKdNxb4YjdHoIf` |
-| Name | `fldOSw4VEE9mXDpTm` |
-| Type | `fldQN5hAQoMFdXxyl` |
-| Status | `fldsTwNbtnh6SUuF0` |
-| Priority | `flde5GkbsiEi4jtwq` |
-| Blocked By | `fldRq9a57bHubveIx` |
-| Target Files | `fld2hLIPYvrhcyiMA` |
-| Definition of Done | `fld5U92AZuxpLHsuJ` |
-| Claude Notes | `fldYsznuq4tUt79o4` |
-| Commit Link | `fld0VWrOimUTolMIe` |
-| Duplicate | `fld2P6m5fMOsi1q3G` |
-
-| Status | Choice ID |
-|---|---|
-| To Do | `selO8Bg7VWY6E9sxB` |
-| In Progress | `sel4MPU6wsEW7uclv` |
-| Done | `selRTL4WT8qro1TnL` |
-| Not relevant | `sellrX5il5BmfBxm9` |
-| Needs Design | `sel98265UTlgLcw5r` |
-| Blocked | `sellZeVnRByP94606` |
-| Archived | `selfMrAD2qCxrMoXg` |
-
-Duplicate-safe: every READ must filter `Duplicate = false/empty`. Fetch all and discard `fld2P6m5fMOsi1q3G === true` if MCP can't filter checkboxes.
+→ Field IDs and Status choice IDs: see `docs/ai/LOOKUP.md §7`
+Duplicate-safe: always filter `Duplicate = false/empty`; discard `fld2P6m5fMOsi1q3G === true` if MCP can't filter checkboxes.
 
 ---
 
@@ -172,8 +147,6 @@ Duplicate-safe: every READ must filter `Duplicate = false/empty`. Fetch all and 
 | Topic | Rule |
 |---|---|
 | `middleware.ts` | NEVER. Use `proxy.ts`. |
-| `cookies()` | Must be `await`ed in Next.js 16. |
-| Tailwind v4 | No `@layer` + `@apply`. Inline utilities only. |
 | Mapbox | CDN only. Dupe guard on load. Logo/attribution hidden via globals.css. |
 | Mapbox theme swap | `map.setStyle()` + `styledata` event. MutationObserver on `data-theme`. |
 | Mapbox About tile style | `outdoors-v12` (light) / `dark-v11` (dark). |
@@ -181,7 +154,6 @@ Duplicate-safe: every READ must filter `Duplicate = false/empty`. Fetch all and 
 | Clerk v7 auth | `await auth()` → `{ userId }`. No sync auth. No JWT template. |
 | Role promotion | Every `profiles.role` update MUST also call `clerk.users.updateUserMetadata`. Routes: `/api/admin/verify`, `/api/admin/members/[id]` PATCH, `/api/admin/members/verify/[id]`. Pre-fix cohort (before commit 4b2d69c) has stale metadata — re-login to fix. |
 | `useLanguage` | Dispatches `window.dispatchEvent(new Event('language-changed'))` on toggle. |
-| `useParams()` | No type argument in Next.js 16. Cast result: `const id = params.id as string`. |
 | Profile page prerender | `/profile` prerenders. Guard ALL `validProfile!` accesses with `if (isLoading \|\| !validProfile) return <ProfileSkeleton />` before any JSX referencing profile fields. |
 | Seq is the true PK | `Issue ID` is NOT unique. `Seq` (autonumber) is the PK. Always target by Seq. Issue format: `SEQ<NNN>-ISS<NNN>`. Commit format: `[SEQ<NNN>-ISS<NNN>] Description`. |
 | `types/supabase.ts` | Always regenerate via `Supabase:generate_typescript_types` MCP tool after migrations — NOT the CLI. |

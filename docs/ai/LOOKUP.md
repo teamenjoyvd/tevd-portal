@@ -1,5 +1,5 @@
 # LOOKUP.md — teamenjoyVD Portal Reference Tables
-> Last updated: 2026-03-24
+> Last updated: 2026-03-25
 > **Read on demand in GATHER only. Never read at SSU or at GATHER start.**
 > Pull only the sections the ticket needs. See section map in CONTEXT.md header.
 
@@ -322,3 +322,34 @@ Every `profiles.role` update MUST also call `clerk.users.updateUserMetadata`. Se
 | `INSTAGRAM_ACCESS_TOKEN` | Meta Graph API | ⏳ Pending |
 | `FB_PAGE_ACCESS_TOKEN` | Meta Graph API | ⏳ Pending |
 | `FB_PAGE_ID` | Meta Graph API | ⏳ Pending |
+
+---
+
+## 7. Airtable Field IDs
+
+**Base:** `app1n7KYX8i8xSiB7` — **Issues Table:** `tblUq45Wo3xngSf3w`
+
+| Field | ID |
+|---|---|
+| Issue ID | `fldE1F4ViLRQml5Hw` |
+| Seq (unique PK) | `fldnKdNxb4YjdHoIf` |
+| Name | `fldOSw4VEE9mXDpTm` |
+| Type | `fldQN5hAQoMFdXxyl` |
+| Status | `fldsTwNbtnh6SUuF0` |
+| Priority | `flde5GkbsiEi4jtwq` |
+| Blocked By | `fldRq9a57bHubveIx` |
+| Target Files | `fld2hLIPYvrhcyiMA` |
+| Definition of Done | `fld5U92AZuxpLHsuJ` |
+| Claude Notes | `fldYsznuq4tUt79o4` |
+| Commit Link | `fld0VWrOimUTolMIe` |
+| Duplicate | `fld2P6m5fMOsi1q3G` |
+
+| Status | Choice ID |
+|---|---|
+| To Do | `selO8Bg7VWY6E9sxB` |
+| In Progress | `sel4MPU6wsEW7uclv` |
+| Done | `selRTL4WT8qro1TnL` |
+| Not relevant | `sellrX5il5BmfBxm9` |
+| Needs Design | `sel98265UTlgLcw5r` |
+| Blocked | `sellZeVnRByP94606` |
+| Archived | `selfMrAD2qCxrMoXg` |
