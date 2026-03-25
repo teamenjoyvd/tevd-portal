@@ -1,7 +1,7 @@
 'use client'
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState, useEffect, useRef, useCallback, forwardRef, type ReactNode } from 'react'
+import { useState, useEffect, useRef, useCallback, forwardRef, memo, type ReactNode } from 'react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { formatDate, formatCurrency } from '@/lib/format'
 import { getRoleColors } from '@/lib/role-colors'
@@ -469,6 +469,375 @@ function ProfileSkeleton() {
   )
 }
 
+// ── Memoized bento tile content components ────────────────────────────────────
+// Extracted at module scope so React.memo is effective across drags.
+// Each component receives only the props it renders — unrelated page state
+// changes (drag position, drawer open, form values) do not re-render these.
+
+const TripsContent = memo(function TripsContent({
+  tripsData,
+  onCancelTrip,
+  cancelTripPending,
+}: {
+  tripsData: TripEntry[]
+  onCancelTrip: (tripId: string) => void
+  cancelTripPending: boolean
+}) {
+  return (
+    <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+      <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-4 pr-16" style={{ color: 'var(--brand-crimson)' }}>
+        Trips
+      </p>
+      <div className="space-y-2">
+        {tripsData.map(entry => {
+          if (!entry.trip) return null
+          const isCancelled = !!entry.cancelled_at
+          const regStyle = isCancelled
+            ? REG_STATUS_STYLES.cancelled
+            : (REG_STATUS_STYLES[entry.registration_status] ?? REG_STATUS_STYLES.pending)
+          return (
+            <div
+              key={entry.registration_id}
+              className="rounded-xl p-3"
+              style={{
+                backgroundColor: 'var(--bg-global)',
+                border: '1px solid var(--border-default)',
+                opacity: isCancelled ? 0.7 : 1,
+              }}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                    {entry.trip.title}
+                  </p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                    {entry.trip.destination}
+                  </p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                    {formatDate(entry.trip.start_date)} – {formatDate(entry.trip.end_date)}
+                  </p>
+                </div>
+                <span
+                  className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: regStyle.bg, color: regStyle.color }}
+                >
+                  {isCancelled ? 'cancelled' : entry.registration_status}
+                </span>
+              </div>
+              {!isCancelled && (
+                <button
+                  onClick={() => {
+                    if (confirm('Cancel your participation in this trip? This cannot be undone.'))
+                      onCancelTrip(entry.trip!.id)
+                  }}
+                  disabled={cancelTripPending}
+                  className="mt-2 text-[11px] font-medium hover:opacity-70 transition-opacity disabled:opacity-40"
+                  style={{ color: 'var(--brand-crimson)' }}
+                >
+                  Cancel participation
+                </button>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+})
+
+const PaymentsContent = memo(function PaymentsContent({
+  paymentsByItem,
+  cancelledTripIds,
+  onOpenPayDrawer,
+}: {
+  paymentsByItem: Record<string, GenericPayment[]>
+  cancelledTripIds: Set<string>
+  onOpenPayDrawer: () => void
+}) {
+  return (
+    <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+      <div className="flex items-center justify-between mb-4 pr-16">
+        <p className="text-xs font-semibold tracking-[0.25em] uppercase" style={{ color: 'var(--brand-crimson)' }}>
+          Payments
+        </p>
+        <button
+          onClick={onOpenPayDrawer}
+          className="px-3 py-1.5 rounded-xl text-xs font-semibold text-white hover:opacity-90 transition-opacity flex-shrink-0"
+          style={{ backgroundColor: 'var(--brand-forest)' }}
+        >
+          + Submit payment
+        </button>
+      </div>
+      {Object.keys(paymentsByItem).length === 0 ? (
+        <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>No payments logged yet.</p>
+      ) : (
+        <div className="space-y-4">
+          {Object.entries(paymentsByItem).map(([itemTitle, itemPayments]) => (
+            <div key={itemTitle}>
+              <p className="text-[11px] font-semibold tracking-widest uppercase mb-1.5" style={{ color: 'var(--text-secondary)' }}>
+                {itemTitle}
+              </p>
+              <div className="space-y-1.5">
+                {itemPayments.map(pay => {
+                  const ps = PAYMENT_STATUS_STYLES[pay.status] ?? PAYMENT_STATUS_STYLES.pending
+                  const linkedTripCancelled = pay.payable_items?.item_type === 'trip' &&
+                    cancelledTripIds.size > 0
+                  return (
+                    <div
+                      key={pay.id}
+                      className="flex items-center gap-2 text-xs rounded-xl px-3 py-2"
+                      style={{ backgroundColor: 'var(--bg-global)' }}
+                    >
+                      <span className="font-semibold flex-shrink-0" style={{ color: 'var(--text-primary)' }}>
+                        {formatCurrency(pay.amount, pay.payable_items?.currency ?? 'EUR')}
+                      </span>
+                      <span style={{ color: 'var(--text-secondary)' }}>{formatDate(pay.transaction_date)}</span>
+                      {pay.payment_method && (
+                        <span style={{ color: 'var(--text-secondary)' }}>{pay.payment_method}</span>
+                      )}
+                      <span
+                        className="ml-auto font-semibold px-2 py-0.5 rounded-full flex-shrink-0 flex items-center gap-1"
+                        style={{ backgroundColor: ps.bg, color: ps.color }}
+                      >
+                        {pay.status}
+                        {(pay.admin_note || linkedTripCancelled) && (
+                          <span
+                            title={linkedTripCancelled ? 'Trip was cancelled' : (pay.admin_note ?? '')}
+                            style={{ cursor: 'help', fontSize: 10, lineHeight: 1 }}
+                          >
+                            ⓘ
+                          </span>
+                        )}
+                      </span>
+                      {pay.proof_url && (
+                        <a
+                          href={pay.proof_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-shrink-0 hover:underline"
+                          style={{ color: 'var(--brand-teal)' }}
+                        >
+                          proof ↗
+                        </a>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+})
+
+const VitalsContent = memo(function VitalsContent({ vitalsData }: { vitalsData: VitalSign[] }) {
+  return (
+    <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+      <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-6 pr-16" style={{ color: 'var(--brand-crimson)' }}>
+        Vital Signs
+      </p>
+      <div className="space-y-2">
+        {vitalsData.map(vs => {
+          const label = vs.vital_sign_definitions?.label ?? vs.definition_id
+          const category = vs.vital_sign_definitions?.category
+          return (
+            <div key={vs.id} className="flex items-center justify-between gap-3 text-xs py-1.5">
+              <div className="min-w-0">
+                <span style={{ color: 'var(--text-primary)' }}>{label}</span>
+                {category && (
+                  <span className="ml-2 text-[10px]" style={{ color: 'var(--text-secondary)' }}>{category}</span>
+                )}
+              </div>
+              <span
+                className="font-semibold px-2 py-0.5 rounded-full flex-shrink-0 text-[10px]"
+                style={{
+                  backgroundColor: vs.recorded_at ? 'rgba(188,71,73,0.12)' : 'var(--border-default)',
+                  color: vs.recorded_at ? 'var(--brand-crimson)' : 'var(--text-secondary)',
+                }}
+              >
+                {vs.recorded_at ? '✓ Recorded' : '○ Not recorded'}
+              </span>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+})
+
+const ParticipationContent = memo(function ParticipationContent({ eventRolesData }: { eventRolesData: EventRoleRequest[] }) {
+  return (
+    <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+      <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-6 pr-16" style={{ color: 'var(--brand-crimson)' }}>
+        Participation
+      </p>
+      <div className="space-y-2">
+        {eventRolesData.map(er => {
+          const rs = REG_STATUS_STYLES[er.status.toLowerCase()] ?? REG_STATUS_STYLES.pending
+          return (
+            <div key={er.id} className="flex items-start justify-between gap-3 text-xs py-1.5">
+              <div className="min-w-0">
+                <p className="font-medium truncate" style={{ color: 'var(--text-primary)' }}>
+                  {er.calendar_events?.title ?? '—'}
+                </p>
+                <p style={{ color: 'var(--text-secondary)' }}>{er.role_label}</p>
+              </div>
+              <span
+                className="font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
+                style={{ backgroundColor: rs.bg, color: rs.color }}
+              >
+                {er.status}
+              </span>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+})
+
+const CalendarContent = memo(function CalendarContent({
+  calUrl,
+  calCopied,
+  onCopy,
+  onRegenerate,
+  regeneratePending,
+  copyLabel,
+  copiedLabel,
+  subLabel,
+  subDesc,
+  subInstructions,
+  regenerateLabel,
+}: {
+  calUrl: string
+  calCopied: boolean
+  onCopy: () => void
+  onRegenerate: () => void
+  regeneratePending: boolean
+  copyLabel: string
+  copiedLabel: string
+  subLabel: string
+  subDesc: string
+  subInstructions: string
+  regenerateLabel: string
+}) {
+  return (
+    <div className="rounded-2xl p-6" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+      <p className="text-xs font-semibold tracking-widest uppercase mb-1" style={{ color: 'var(--text-secondary)' }}>
+        {subLabel}
+      </p>
+      <p className="text-xs mb-1 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+        {subDesc}
+      </p>
+      <p className="text-xs mb-3 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+        {subInstructions}
+      </p>
+      <div className="flex items-center gap-2">
+        <input
+          readOnly
+          value={calUrl}
+          placeholder="Generating…"
+          className="flex-1 border rounded-xl px-3 py-2 text-xs font-mono truncate"
+          style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)', backgroundColor: 'var(--bg-global)' }}
+        />
+        <button
+          onClick={onCopy}
+          disabled={!calUrl}
+          className="px-3 py-2 rounded-xl text-xs font-semibold transition-all disabled:opacity-40 hover:opacity-80 flex-shrink-0"
+          style={{ backgroundColor: 'var(--brand-forest)', color: 'var(--brand-parchment)' }}
+        >
+          {calCopied ? copiedLabel : copyLabel}
+        </button>
+        <button
+          onClick={onRegenerate}
+          disabled={regeneratePending}
+          className="px-3 py-2 rounded-xl text-xs font-semibold border transition-colors hover:bg-black/5 disabled:opacity-40 flex-shrink-0"
+          style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+        >
+          {regenerateLabel}
+        </button>
+      </div>
+    </div>
+  )
+})
+
+const StatsContent = memo(function StatsContent({
+  role,
+  losSummary,
+}: {
+  role: string
+  losSummary: LosSummaryData
+}) {
+  return (
+    <div className="rounded-2xl p-6" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+      <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-4 pr-16" style={{ color: 'var(--brand-crimson)' }}>
+        STATS
+      </p>
+      <div className="flex items-center gap-6">
+        <div>
+          <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Role</p>
+          <p className="text-sm font-semibold mt-0.5" style={{ color: 'var(--text-primary)' }}>
+            {ROLE_LABELS[role]}
+          </p>
+        </div>
+        {losSummary.depth !== null && losSummary.depth !== undefined && (
+          <div>
+            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Depth</p>
+            <p className="text-sm font-semibold mt-0.5" style={{ color: 'var(--text-primary)' }}>
+              Level {losSummary.depth}
+            </p>
+          </div>
+        )}
+        <div>
+          <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Direct downlines</p>
+          <p className="text-sm font-semibold mt-0.5" style={{ color: 'var(--text-primary)' }}>
+            {losSummary.direct_downline_count}
+          </p>
+        </div>
+        <a
+          href="/los"
+          className="ml-auto px-4 py-2 rounded-xl text-xs font-semibold hover:opacity-80 transition-opacity flex-shrink-0"
+          style={{ backgroundColor: 'var(--brand-forest)', color: 'var(--brand-parchment)' }}
+        >
+          VIEW LOS
+        </a>
+      </div>
+    </div>
+  )
+})
+
+const AdminContent = memo(function AdminContent() {
+  return (
+    <div className="rounded-2xl p-6" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+      <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-4 pr-16" style={{ color: 'var(--brand-teal)' }}>
+        Admin Tools
+      </p>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(8, minmax(0, 1fr))',
+          gap: '12px',
+        }}
+      >
+        <a
+          href="/admin"
+          style={{
+            gridColumn: 'span 2',
+            backgroundColor: 'var(--brand-forest)',
+            color: 'var(--brand-parchment)',
+          }}
+          className="rounded-xl px-4 py-3 flex flex-col gap-1 hover:opacity-80 transition-opacity"
+        >
+          <span className="text-xs font-bold tracking-widest uppercase" style={{ color: 'var(--brand-parchment)' }}>Admin</span>
+          <span className="text-[10px] opacity-60" style={{ color: 'var(--brand-parchment)' }}>Portal management</span>
+        </a>
+      </div>
+    </div>
+  )
+})
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function ProfilePage() {
@@ -767,6 +1136,27 @@ export default function ProfilePage() {
     },
   })
 
+  // ── Stable callbacks for memo'd tile components ───────────────────────────
+  const handleCancelTrip = useCallback((tripId: string) => {
+    cancelTrip.mutate(tripId)
+  }, [cancelTrip])
+
+  const handleOpenPayDrawer = useCallback(() => {
+    setPayDrawerOpen(true)
+  }, [])
+
+  const handleCalCopy = useCallback(() => {
+    if (calData?.url) {
+      navigator.clipboard.writeText(calData.url)
+      setCalCopied(true)
+      setTimeout(() => setCalCopied(false), 2000)
+    }
+  }, [calData?.url])
+
+  const handleCalRegenerate = useCallback(() => {
+    if (confirm('Regenerate your calendar link? Your old link will stop working.')) regenerateCal.mutate()
+  }, [regenerateCal])
+
   // ── Guard ─────────────────────────────────────────────────────────────────
   if (isLoading || !validProfile) {
     return <ProfileSkeleton />
@@ -799,52 +1189,6 @@ export default function ProfilePage() {
 
   const cancelledTripIds = new Set(
     (tripsData ?? []).filter(e => e.cancelled_at).map(e => e.trip?.id).filter(Boolean) as string[]
-  )
-
-  const calSubscriptionBlock = (
-    <div className="rounded-2xl p-6" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-      <p className="text-xs font-semibold tracking-widest uppercase mb-1"
-        style={{ color: 'var(--text-secondary)' }}>
-        {t('profile.calSub')}
-      </p>
-      <p className="text-xs mb-1 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-        {t('profile.calSubDesc')}
-      </p>
-      <p className="text-xs mb-3 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-        {t('profile.calSubInstructions')}
-      </p>
-      <div className="flex items-center gap-2">
-        <input
-          readOnly
-          value={calData?.url ?? ''}
-          placeholder="Generating…"
-          className="flex-1 border rounded-xl px-3 py-2 text-xs font-mono truncate"
-          style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)', backgroundColor: 'var(--bg-global)' }}
-        />
-        <button
-          onClick={() => {
-            if (calData?.url) {
-              navigator.clipboard.writeText(calData.url)
-              setCalCopied(true)
-              setTimeout(() => setCalCopied(false), 2000)
-            }
-          }}
-          disabled={!calData?.url}
-          className="px-3 py-2 rounded-xl text-xs font-semibold transition-all disabled:opacity-40 hover:opacity-80 flex-shrink-0"
-          style={{ backgroundColor: 'var(--brand-forest)', color: 'var(--brand-parchment)' }}
-        >
-          {calCopied ? t('profile.calSubCopied') : t('profile.calSubCopy')}
-        </button>
-        <button
-          onClick={() => { if (confirm('Regenerate your calendar link? Your old link will stop working.')) regenerateCal.mutate() }}
-          disabled={regenerateCal.isPending}
-          className="px-3 py-2 rounded-xl text-xs font-semibold border transition-colors hover:bg-black/5 disabled:opacity-40 flex-shrink-0"
-          style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
-        >
-          {t('profile.calSubRegenerate')}
-        </button>
-      </div>
-    </div>
   )
 
   // ── Personal Details drawer form ──────────────────────────────────────────
@@ -1205,64 +1549,11 @@ export default function ProfilePage() {
         ? {
             colSpan: 6,
             node: (
-              <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-                <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-4 pr-16" style={{ color: 'var(--brand-crimson)' }}>
-                  Trips
-                </p>
-                <div className="space-y-2">
-                  {tripsData!.map(entry => {
-                    if (!entry.trip) return null
-                    const isCancelled = !!entry.cancelled_at
-                    const regStyle = isCancelled
-                      ? REG_STATUS_STYLES.cancelled
-                      : (REG_STATUS_STYLES[entry.registration_status] ?? REG_STATUS_STYLES.pending)
-                    return (
-                      <div
-                        key={entry.registration_id}
-                        className="rounded-xl p-3"
-                        style={{
-                          backgroundColor: 'var(--bg-global)',
-                          border: '1px solid var(--border-default)',
-                          opacity: isCancelled ? 0.7 : 1,
-                        }}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
-                              {entry.trip.title}
-                            </p>
-                            <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                              {entry.trip.destination}
-                            </p>
-                            <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                              {formatDate(entry.trip.start_date)} – {formatDate(entry.trip.end_date)}
-                            </p>
-                          </div>
-                          <span
-                            className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
-                            style={{ backgroundColor: regStyle.bg, color: regStyle.color }}
-                          >
-                            {isCancelled ? 'cancelled' : entry.registration_status}
-                          </span>
-                        </div>
-                        {!isCancelled && (
-                          <button
-                            onClick={() => {
-                              if (confirm('Cancel your participation in this trip? This cannot be undone.'))
-                                cancelTrip.mutate(entry.trip!.id)
-                            }}
-                            disabled={cancelTrip.isPending}
-                            className="mt-2 text-[11px] font-medium hover:opacity-70 transition-opacity disabled:opacity-40"
-                            style={{ color: 'var(--brand-crimson)' }}
-                          >
-                            Cancel participation
-                          </button>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
+              <TripsContent
+                tripsData={tripsData!}
+                onCancelTrip={handleCancelTrip}
+                cancelTripPending={cancelTrip.isPending}
+              />
             ),
           }
         : null,
@@ -1272,80 +1563,11 @@ export default function ProfilePage() {
       : {
           colSpan: 6,
           node: (
-            <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-              <div className="flex items-center justify-between mb-4 pr-16">
-                <p className="text-xs font-semibold tracking-[0.25em] uppercase" style={{ color: 'var(--brand-crimson)' }}>
-                  Payments
-                </p>
-                <button
-                  onClick={() => setPayDrawerOpen(true)}
-                  className="px-3 py-1.5 rounded-xl text-xs font-semibold text-white hover:opacity-90 transition-opacity flex-shrink-0"
-                  style={{ backgroundColor: 'var(--brand-forest)' }}
-                >
-                  + Submit payment
-                </button>
-              </div>
-              {Object.keys(paymentsByItem).length === 0 ? (
-                <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>No payments logged yet.</p>
-              ) : (
-                <div className="space-y-4">
-                  {Object.entries(paymentsByItem).map(([itemTitle, itemPayments]) => (
-                    <div key={itemTitle}>
-                      <p className="text-[11px] font-semibold tracking-widest uppercase mb-1.5" style={{ color: 'var(--text-secondary)' }}>
-                        {itemTitle}
-                      </p>
-                      <div className="space-y-1.5">
-                        {itemPayments.map(pay => {
-                          const ps = PAYMENT_STATUS_STYLES[pay.status] ?? PAYMENT_STATUS_STYLES.pending
-                          const linkedTripCancelled = pay.payable_items?.item_type === 'trip' &&
-                            cancelledTripIds.size > 0
-                          return (
-                            <div
-                              key={pay.id}
-                              className="flex items-center gap-2 text-xs rounded-xl px-3 py-2"
-                              style={{ backgroundColor: 'var(--bg-global)' }}
-                            >
-                              <span className="font-semibold flex-shrink-0" style={{ color: 'var(--text-primary)' }}>
-                                {formatCurrency(pay.amount, pay.payable_items?.currency ?? 'EUR')}
-                              </span>
-                              <span style={{ color: 'var(--text-secondary)' }}>{formatDate(pay.transaction_date)}</span>
-                              {pay.payment_method && (
-                                <span style={{ color: 'var(--text-secondary)' }}>{pay.payment_method}</span>
-                              )}
-                              <span
-                                className="ml-auto font-semibold px-2 py-0.5 rounded-full flex-shrink-0 flex items-center gap-1"
-                                style={{ backgroundColor: ps.bg, color: ps.color }}
-                              >
-                                {pay.status}
-                                {(pay.admin_note || linkedTripCancelled) && (
-                                  <span
-                                    title={linkedTripCancelled ? 'Trip was cancelled' : (pay.admin_note ?? '')}
-                                    style={{ cursor: 'help', fontSize: 10, lineHeight: 1 }}
-                                  >
-                                    ⓘ
-                                  </span>
-                                )}
-                              </span>
-                              {pay.proof_url && (
-                                <a
-                                  href={pay.proof_url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="flex-shrink-0 hover:underline"
-                                  style={{ color: 'var(--brand-teal)' }}
-                                >
-                                  proof ↗
-                                </a>
-                              )}
-                            </div>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            <PaymentsContent
+              paymentsByItem={paymentsByItem}
+              cancelledTripIds={cancelledTripIds}
+              onOpenPayDrawer={handleOpenPayDrawer}
+            />
           ),
         },
 
@@ -1355,38 +1577,7 @@ export default function ProfilePage() {
       : hasVitals
         ? {
             colSpan: 6,
-            node: (
-              <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-                <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-6 pr-16" style={{ color: 'var(--brand-crimson)' }}>
-                  Vital Signs
-                </p>
-                <div className="space-y-2">
-                  {vitalsData!.map(vs => {
-                    const label = vs.vital_sign_definitions?.label ?? vs.definition_id
-                    const category = vs.vital_sign_definitions?.category
-                    return (
-                      <div key={vs.id} className="flex items-center justify-between gap-3 text-xs py-1.5">
-                        <div className="min-w-0">
-                          <span style={{ color: 'var(--text-primary)' }}>{label}</span>
-                          {category && (
-                            <span className="ml-2 text-[10px]" style={{ color: 'var(--text-secondary)' }}>{category}</span>
-                          )}
-                        </div>
-                        <span
-                          className="font-semibold px-2 py-0.5 rounded-full flex-shrink-0 text-[10px]"
-                          style={{
-                            backgroundColor: vs.recorded_at ? 'rgba(188,71,73,0.12)' : 'var(--border-default)',
-                            color: vs.recorded_at ? 'var(--brand-crimson)' : 'var(--text-secondary)',
-                          }}
-                        >
-                          {vs.recorded_at ? '✓ Recorded' : '○ Not recorded'}
-                        </span>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            ),
+            node: <VitalsContent vitalsData={vitalsData!} />,
           }
         : null,
 
@@ -1395,118 +1586,44 @@ export default function ProfilePage() {
       : hasEventRoles
         ? {
             colSpan: 6,
-            node: (
-              <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-                <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-6 pr-16" style={{ color: 'var(--brand-crimson)' }}>
-                  Participation
-                </p>
-                <div className="space-y-2">
-                  {eventRolesData!.map(er => {
-                    const rs = REG_STATUS_STYLES[er.status.toLowerCase()] ?? REG_STATUS_STYLES.pending
-                    return (
-                      <div key={er.id} className="flex items-start justify-between gap-3 text-xs py-1.5">
-                        <div className="min-w-0">
-                          <p className="font-medium truncate" style={{ color: 'var(--text-primary)' }}>
-                            {er.calendar_events?.title ?? '—'}
-                          </p>
-                          <p style={{ color: 'var(--text-secondary)' }}>{er.role_label}</p>
-                        </div>
-                        <span
-                          className="font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
-                          style={{ backgroundColor: rs.bg, color: rs.color }}
-                        >
-                          {er.status}
-                        </span>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            ),
+            node: <ParticipationContent eventRolesData={eventRolesData!} />,
           }
         : null,
 
     [BENTO_IDS.CALENDAR]: {
       colSpan: 12,
-      node: calSubscriptionBlock,
+      node: (
+        <CalendarContent
+          calUrl={calData?.url ?? ''}
+          calCopied={calCopied}
+          onCopy={handleCalCopy}
+          onRegenerate={handleCalRegenerate}
+          regeneratePending={regenerateCal.isPending}
+          copyLabel={t('profile.calSubCopy')}
+          copiedLabel={t('profile.calSubCopied')}
+          subLabel={t('profile.calSub')}
+          subDesc={t('profile.calSubDesc')}
+          subInstructions={t('profile.calSubInstructions')}
+          regenerateLabel={t('profile.calSubRegenerate')}
+        />
+      ),
     },
 
     [BENTO_IDS.STATS]: p.abo_number
       ? losSummaryLoading
         ? { colSpan: 12, node: <div className="rounded-2xl animate-pulse" style={{ height: 80, backgroundColor: 'var(--border-default)' }} /> }
-        : {
-            colSpan: 12,
-            node: (
-              <div className="rounded-2xl p-6" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-                <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-4 pr-16" style={{ color: 'var(--brand-crimson)' }}>
-                  STATS
-                </p>
-                <div className="flex items-center gap-6">
-                  <div>
-                    <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Role</p>
-                    <p className="text-sm font-semibold mt-0.5" style={{ color: 'var(--text-primary)' }}>
-                      {ROLE_LABELS[p.role]}
-                    </p>
-                  </div>
-                  {losSummary?.depth !== null && losSummary?.depth !== undefined && (
-                    <div>
-                      <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Depth</p>
-                      <p className="text-sm font-semibold mt-0.5" style={{ color: 'var(--text-primary)' }}>
-                        Level {losSummary.depth}
-                      </p>
-                    </div>
-                  )}
-                  {losSummary && (
-                    <div>
-                      <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Direct downlines</p>
-                      <p className="text-sm font-semibold mt-0.5" style={{ color: 'var(--text-primary)' }}>
-                        {losSummary.direct_downline_count}
-                      </p>
-                    </div>
-                  )}
-                  <a
-                    href="/los"
-                    className="ml-auto px-4 py-2 rounded-xl text-xs font-semibold hover:opacity-80 transition-opacity flex-shrink-0"
-                    style={{ backgroundColor: 'var(--brand-forest)', color: 'var(--brand-parchment)' }}
-                  >
-                    VIEW LOS
-                  </a>
-                </div>
-              </div>
-            ),
-          }
+        : losSummary
+          ? {
+              colSpan: 12,
+              node: <StatsContent role={p.role} losSummary={losSummary} />,
+            }
+          : null
       : null,
 
     [BENTO_IDS.ADMIN]: isAdmin
       ? {
           colSpan: 12,
-          node: (
-            <div className="rounded-2xl p-6" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-              <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-4 pr-16" style={{ color: 'var(--brand-teal)' }}>
-                Admin Tools
-              </p>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(8, minmax(0, 1fr))',
-                  gap: '12px',
-                }}
-              >
-                <a
-                  href="/admin"
-                  style={{
-                    gridColumn: 'span 2',
-                    backgroundColor: 'var(--brand-forest)',
-                    color: 'var(--brand-parchment)',
-                  }}
-                  className="rounded-xl px-4 py-3 flex flex-col gap-1 hover:opacity-80 transition-opacity"
-                >
-                  <span className="text-xs font-bold tracking-widest uppercase" style={{ color: 'var(--brand-parchment)' }}>Admin</span>
-                  <span className="text-[10px] opacity-60" style={{ color: 'var(--brand-parchment)' }}>Portal management</span>
-                </a>
-              </div>
-            </div>
-          ),
+          node: <AdminContent />,
         }
       : null,
   }
@@ -1708,7 +1825,19 @@ export default function ProfilePage() {
               </div>
 
               <div style={{ gridColumn: 'span 12' }}>
-                {calSubscriptionBlock}
+                <CalendarContent
+                  calUrl={calData?.url ?? ''}
+                  calCopied={calCopied}
+                  onCopy={handleCalCopy}
+                  onRegenerate={handleCalRegenerate}
+                  regeneratePending={regenerateCal.isPending}
+                  copyLabel={t('profile.calSubCopy')}
+                  copiedLabel={t('profile.calSubCopied')}
+                  subLabel={t('profile.calSub')}
+                  subDesc={t('profile.calSubDesc')}
+                  subInstructions={t('profile.calSubInstructions')}
+                  regenerateLabel={t('profile.calSubRegenerate')}
+                />
               </div>
             </>
           ) : (
