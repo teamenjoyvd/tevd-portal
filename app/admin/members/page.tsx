@@ -1,11 +1,23 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import {
+  useReactTable,
+  getCoreRowModel,
+  getSortedRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  createColumnHelper,
+  flexRender,
+  type SortingState,
+  type ColumnFiltersState,
+  type VisibilityState,
+} from '@tanstack/react-table'
 import { getRoleColors } from '@/lib/role-colors'
 import { formatDate } from '@/lib/format'
 
-// ── Shared types ───────────────────────────────────────────────────────
+// ── Shared types ─────────────────────────────────────────────────────
 
 // — Members tab —
 type LOSMember = {
@@ -113,7 +125,7 @@ type ImportResult = {
   manual_members_no_abo: ManualMemberNoAbo[]
 }
 
-// ── Members tab helpers ───────────────────────────────────────────────
+// ── Members tab helpers ─────────────────────────────────────────────────
 
 function formatNum(n: number) {
   return new Intl.NumberFormat('en-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)
@@ -134,7 +146,344 @@ const LEVEL_BG: Record<string, { bg: string; color: string }> = {
   '3': { bg: 'rgba(0,0,0,0.08)', color: 'var(--text-primary)' },
 }
 
-// ── LOS tab helpers ───────────────────────────────────────────────
+// ── LOS flat list — TanStack Table ────────────────────────────────────────────
+
+const colHelper = createColumnHelper<LOSMember>()
+
+function LosTable({
+  members,
+  isLoading,
+  onPromote,
+  promotePending,
+}: {
+  members: LOSMember[]
+  isLoading: boolean
+  onPromote: (profileId: string, role: string) => void
+  promotePending: boolean
+}) {
+  const [sorting, setSorting] = useState<SortingState>([])
+  const [globalFilter, setGlobalFilter] = useState('')
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({ sponsor_abo_number: false })
+  const [colsOpen, setColsOpen] = useState(false)
+  const colsRef = useRef<HTMLDivElement>(null)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [debouncedFilter, setDebouncedFilter] = useState('')
+
+  // Close column visibility dropdown on outside click
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (colsRef.current && !colsRef.current.contains(e.target as Node)) {
+        setColsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  const handleSearch = useCallback((value: string) => {
+    setGlobalFilter(value)
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => setDebouncedFilter(value), 300)
+  }, [])
+
+  const columns = [
+    colHelper.accessor(row => row.profile
+      ? `${row.profile.first_name} ${row.profile.last_name}`
+      : (row.name ?? row.abo_number), {
+      id: 'name',
+      header: 'Name',
+      enableSorting: true,
+      cell: ({ row }) => {
+        const m = row.original
+        const lvl = m.abo_level ?? '?'
+        const lc = LEVEL_BG[lvl] ?? LEVEL_BG['3']
+        const profileRc = m.profile ? getRoleColors(m.profile.role) : null
+        return (
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="w-6 h-6 flex items-center justify-center rounded-full text-[10px] font-bold flex-shrink-0"
+              style={{ backgroundColor: lc.bg, color: lc.color }}>{lvl}</span>
+            <div className="min-w-0">
+              <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
+                {m.profile ? `${m.profile.first_name} ${m.profile.last_name}` : (m.name ?? '—')}
+              </p>
+            </div>
+            {m.profile && profileRc && (
+              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0"
+                style={{ backgroundColor: profileRc.bg, color: profileRc.font }}>{m.profile.role}</span>
+            )}
+          </div>
+        )
+      },
+    }),
+    colHelper.accessor('abo_number', {
+      header: 'ABO',
+      enableSorting: false,
+      cell: ({ getValue }) => (
+        <span className="text-xs font-mono" style={{ color: 'var(--text-secondary)' }}>{getValue()}</span>
+      ),
+    }),
+    colHelper.accessor('sponsor_abo_number', {
+      id: 'sponsor_abo_number',
+      header: 'Sponsor ABO',
+      enableSorting: false,
+      cell: ({ getValue }) => (
+        <span className="text-xs font-mono" style={{ color: 'var(--text-secondary)' }}>{getValue() ?? '—'}</span>
+      ),
+    }),
+    colHelper.accessor('abo_level', {
+      header: 'Level',
+      enableSorting: true,
+      cell: ({ getValue }) => {
+        const lvl = getValue() ?? '?'
+        const lc = LEVEL_BG[lvl] ?? LEVEL_BG['3']
+        return (
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+            style={{ backgroundColor: lc.bg, color: lc.color }}>{lvl}</span>
+        )
+      },
+    }),
+    colHelper.accessor('gpv', {
+      header: 'GPV',
+      enableSorting: true,
+      cell: ({ getValue }) => (
+        <span className="text-xs tabular-nums font-semibold" style={{ color: 'var(--text-primary)' }}>
+          {formatNum(getValue())}
+        </span>
+      ),
+    }),
+    colHelper.accessor('bonus_percent', {
+      header: 'Bonus%',
+      enableSorting: true,
+      cell: ({ getValue }) => (
+        <span className="text-xs tabular-nums font-semibold"
+          style={{ color: Number(getValue()) > 0 ? 'var(--brand-teal)' : 'var(--text-secondary)' }}>
+          {getValue()}%
+        </span>
+      ),
+    }),
+    colHelper.accessor('group_size', {
+      header: 'Group',
+      enableSorting: true,
+      cell: ({ getValue }) => (
+        <span className="text-xs tabular-nums" style={{ color: 'var(--text-primary)' }}>{getValue()}</span>
+      ),
+    }),
+    colHelper.display({
+      id: 'actions',
+      header: '',
+      enableSorting: false,
+      cell: ({ row }) => {
+        const m = row.original
+        if (!m.profile || m.profile.role === 'admin') return null
+        return (
+          <div className="flex gap-1 justify-end">
+            {m.profile.role === 'member' && (
+              <button
+                onClick={() => onPromote(m.profile!.id, 'core')}
+                disabled={promotePending}
+                className="px-3 py-1 rounded-lg text-xs font-semibold disabled:opacity-40 hover:opacity-80 transition-opacity"
+                style={{ backgroundColor: 'var(--brand-crimson)', color: 'white' }}
+              >
+                → Core
+              </button>
+            )}
+            {m.profile.role === 'core' && (
+              <button
+                onClick={() => onPromote(m.profile!.id, 'member')}
+                disabled={promotePending}
+                className="px-3 py-1 rounded-lg text-xs font-semibold disabled:opacity-40 hover:opacity-80 transition-opacity"
+                style={{ backgroundColor: 'rgba(0,0,0,0.06)', color: 'var(--text-secondary)' }}
+              >
+                → Member
+              </button>
+            )}
+          </div>
+        )
+      },
+    }),
+  ]
+
+  const table = useReactTable({
+    data: members,
+    columns,
+    state: {
+      sorting,
+      globalFilter: debouncedFilter,
+      columnVisibility,
+    },
+    onSortingChange: setSorting,
+    onColumnVisibilityChange: setColumnVisibility,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    globalFilterFn: (row, _colId, filterValue: string) => {
+      const q = filterValue.toLowerCase()
+      const m = row.original
+      const name = m.profile
+        ? `${m.profile.first_name} ${m.profile.last_name}`.toLowerCase()
+        : (m.name ?? '').toLowerCase()
+      return name.includes(q) || m.abo_number.toLowerCase().includes(q)
+    },
+    initialState: { pagination: { pageSize: 25 } },
+  })
+
+  const TOGGLEABLE_COLS = ['abo_number', 'sponsor_abo_number', 'abo_level', 'gpv', 'bonus_percent', 'group_size']
+  const COL_LABELS: Record<string, string> = {
+    abo_number: 'ABO', sponsor_abo_number: 'Sponsor ABO', abo_level: 'Level',
+    gpv: 'GPV', bonus_percent: 'Bonus%', group_size: 'Group',
+  }
+  // Mobile-hidden columns — hidden via CSS, not column visibility toggle
+  const MOBILE_HIDDEN = new Set(['gpv', 'bonus_percent', 'group_size', 'sponsor_abo_number'])
+
+  if (isLoading) {
+    return (
+      <div className="space-y-2">
+        {[...Array(7)].map((_, i) => (
+          <div key={i} className="h-14 rounded-2xl animate-pulse" style={{ backgroundColor: 'rgba(0,0,0,0.05)' }} />
+        ))}
+      </div>
+    )
+  }
+
+  if (members.length === 0) {
+    return (
+      <div className="text-center py-16 bg-white rounded-2xl border border-black/5">
+        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No LOS data. Import a CSV in Data Center.</p>
+      </div>
+    )
+  }
+
+  const { pageIndex, pageSize } = table.getState().pagination
+  const totalPages = table.getPageCount()
+
+  return (
+    <div>
+      {/* Toolbar */}
+      <div className="flex items-center gap-3 mb-3 flex-wrap">
+        <input
+          value={globalFilter}
+          onChange={e => handleSearch(e.target.value)}
+          placeholder="Search name or ABO…"
+          className="flex-1 min-w-[180px] border rounded-xl px-3 py-2 text-sm"
+          style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
+        />
+        <div ref={colsRef} className="relative">
+          <button
+            onClick={() => setColsOpen(o => !o)}
+            className="px-3 py-2 rounded-xl text-xs font-semibold border hover:bg-black/5 transition-colors"
+            style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+          >
+            Columns
+          </button>
+          {colsOpen && (
+            <div
+              className="absolute right-0 top-full mt-1 z-20 rounded-xl border shadow-lg p-2 space-y-1 min-w-[140px]"
+              style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}
+            >
+              {TOGGLEABLE_COLS.map(colId => (
+                <label key={colId} className="flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer hover:bg-black/5">
+                  <input
+                    type="checkbox"
+                    checked={table.getColumn(colId)?.getIsVisible() ?? true}
+                    onChange={table.getColumn(colId)?.getToggleVisibilityHandler()}
+                    className="w-3.5 h-3.5 accent-[var(--brand-crimson)]"
+                  />
+                  <span className="text-xs" style={{ color: 'var(--text-primary)' }}>{COL_LABELS[colId]}</span>
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="bg-white rounded-2xl border border-black/5 shadow-sm overflow-hidden">
+        <table className="w-full border-collapse">
+          <thead>
+            {table.getHeaderGroups().map(hg => (
+              <tr key={hg.id} style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+                {hg.headers.map(header => {
+                  const isMobileHidden = MOBILE_HIDDEN.has(header.id)
+                  return (
+                    <th
+                      key={header.id}
+                      className={`px-4 py-3 text-left${isMobileHidden ? ' hidden lg:table-cell' : ''}`}
+                      style={{ color: 'var(--text-secondary)' }}
+                    >
+                      {header.isPlaceholder ? null : (
+                        <div
+                          className={`flex items-center gap-1 text-xs font-semibold tracking-widest uppercase select-none${header.column.getCanSort() ? ' cursor-pointer hover:opacity-70' : ''}`}
+                          onClick={header.column.getCanSort() ? header.column.getToggleSortingHandler() : undefined}
+                        >
+                          {flexRender(header.column.columnDef.header, header.getContext())}
+                          {header.column.getIsSorted() === 'asc' && <span className="text-[10px]">▲</span>}
+                          {header.column.getIsSorted() === 'desc' && <span className="text-[10px]">▼</span>}
+                          {header.column.getCanSort() && !header.column.getIsSorted() && (
+                            <span className="text-[10px] opacity-30">▲▼</span>
+                          )}
+                        </div>
+                      )}
+                    </th>
+                  )
+                })}
+              </tr>
+            ))}
+          </thead>
+          <tbody>
+            {table.getRowModel().rows.map((row, i) => (
+              <tr
+                key={row.id}
+                style={{ borderTop: i > 0 ? '1px solid rgba(0,0,0,0.05)' : 'none' }}
+              >
+                {row.getVisibleCells().map(cell => {
+                  const isMobileHidden = MOBILE_HIDDEN.has(cell.column.id)
+                  return (
+                    <td
+                      key={cell.id}
+                      className={`px-4 py-3${isMobileHidden ? ' hidden lg:table-cell' : ''}`}
+                    >
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </td>
+                  )
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between mt-3">
+          <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+            Page {pageIndex + 1} of {totalPages}
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold border disabled:opacity-40 hover:opacity-70 transition-opacity"
+              style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+            >
+              Prev
+            </button>
+            <button
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold border disabled:opacity-40 hover:opacity-70 transition-opacity"
+              style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── LOS tab helpers ─────────────────────────────────────────────────────────────
 
 function buildTree(nodes: TreeNode[]): TreeNode[] {
   if (!Array.isArray(nodes)) return []
@@ -151,7 +500,7 @@ function buildTree(nodes: TreeNode[]): TreeNode[] {
   return roots
 }
 
-// ── Vital Signs Config panel ──────────────────────────────────────────
+// ── Vital Signs Config panel ──────────────────────────────────────────────
 
 function VitalSignsConfig({ definitions, onRefetch }: {
   definitions: VitalSignDefinition[]
@@ -395,7 +744,7 @@ function NodeCard({
   )
 }
 
-// ── Data Center tab helpers ─────────────────────────────────────────────
+// ── Data Center tab helpers ───────────────────────────────────────────────────
 
 const HEADER_MAP: Record<string, string> = {
   'ABO Level': 'abo_level', 'Sponsor ABO Number': 'sponsor_abo_number',
@@ -605,7 +954,7 @@ function ReconciliationPanel({
   )
 }
 
-// ── Tab: Members ──────────────────────────────────────────────────────────────
+// ── Tab: Members ────────────────────────────────────────────────────────────────
 
 function MembersTab() {
   const qc = useQueryClient()
@@ -639,6 +988,10 @@ function MembersTab() {
       }).then(r => r.json()),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-members-full'] }),
   })
+
+  const handlePromote = useCallback((profileId: string, role: string) => {
+    promoteMutation.mutate({ profileId, role })
+  }, [promoteMutation])
 
   const losMembers = data?.los_members ?? []
   const pendingVerifications = data?.pending_verifications ?? []
@@ -750,80 +1103,18 @@ function MembersTab() {
         <p className="text-xs font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
           LOS map — {losMembers.length} members
         </p>
-        {isLoading ? (
-          <div className="space-y-2">
-            {[...Array(7)].map((_, i) => (
-              <div key={i} className="h-14 rounded-2xl animate-pulse" style={{ backgroundColor: 'rgba(0,0,0,0.05)' }} />
-            ))}
-          </div>
-        ) : losMembers.length === 0 ? (
-          <div className="text-center py-16 bg-white rounded-2xl border border-black/5">
-            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No LOS data. Import a CSV in Data Center.</p>
-          </div>
-        ) : (
-          <div className="bg-white rounded-2xl border border-black/5 shadow-sm overflow-hidden">
-            {losMembers.map((m, i) => {
-              const lvl = m.abo_level ?? '?'
-              const lc = LEVEL_BG[lvl] ?? LEVEL_BG['3']
-              const profileRc = m.profile ? getRoleColors(m.profile.role) : null
-              return (
-                <div key={m.abo_number} className="flex items-center gap-4 px-5 py-3.5"
-                  style={{ borderTop: i > 0 ? '1px solid rgba(0,0,0,0.05)' : 'none' }}>
-                  <span className="w-7 h-7 flex items-center justify-center rounded-full text-xs font-bold flex-shrink-0"
-                    style={{ backgroundColor: lc.bg, color: lc.color }}>{lvl}</span>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{m.name ?? '—'}</p>
-                      {m.profile && profileRc && (
-                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0"
-                          style={{ backgroundColor: profileRc.bg, color: profileRc.font }}>{m.profile.role}</span>
-                      )}
-                    </div>
-                    <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                      {m.abo_number}{m.sponsor_abo_number && ` · ↑ ${m.sponsor_abo_number}`}
-                    </p>
-                  </div>
-                  <div className="hidden md:flex items-center gap-6 text-xs tabular-nums flex-shrink-0" style={{ color: 'var(--text-secondary)' }}>
-                    <div className="text-right">
-                      <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>{formatNum(m.gpv)}</p>
-                      <p>GPV</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold" style={{ color: Number(m.bonus_percent) > 0 ? 'var(--brand-teal)' : 'var(--text-secondary)' }}>{m.bonus_percent}%</p>
-                      <p>Bonus</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>{m.group_size}</p>
-                      <p>Group</p>
-                    </div>
-                  </div>
-                  {m.profile && m.profile.role !== 'admin' && (
-                    <div className="flex gap-1 flex-shrink-0">
-                      {m.profile.role === 'member' && (
-                        <button onClick={() => promoteMutation.mutate({ profileId: m.profile!.id, role: 'core' })}
-                          disabled={promoteMutation.isPending}
-                          className="px-3 py-1 rounded-lg text-xs font-semibold disabled:opacity-40 hover:opacity-80 transition-opacity"
-                          style={{ backgroundColor: 'var(--brand-crimson)', color: 'white' }}>→ Core</button>
-                      )}
-                      {m.profile.role === 'core' && (
-                        <button onClick={() => promoteMutation.mutate({ profileId: m.profile!.id, role: 'member' })}
-                          disabled={promoteMutation.isPending}
-                          className="px-3 py-1 rounded-lg text-xs font-semibold disabled:opacity-40 hover:opacity-80 transition-opacity"
-                          style={{ backgroundColor: 'rgba(0,0,0,0.06)', color: 'var(--text-secondary)' }}>→ Member</button>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        )}
+        <LosTable
+          members={losMembers}
+          isLoading={isLoading}
+          onPromote={handlePromote}
+          promotePending={promoteMutation.isPending}
+        />
       </section>
     </div>
   )
 }
 
-// ── Tab: LOS Tree ─────────────────────────────────────────────────────────────
+// ── Tab: LOS Tree ─────────────────────────────────────────────────────────────────
 
 function LosTab() {
   const qc = useQueryClient()
@@ -916,7 +1207,7 @@ function LosTab() {
   )
 }
 
-// ── Tab: Data Center ─────────────────────────────────────────────────────
+// ── Tab: Data Center ───────────────────────────────────────────────────────────────
 
 function DataCenterTab() {
   const fileRef = useRef<HTMLInputElement>(null)
@@ -1081,7 +1372,7 @@ function DataCenterTab() {
   )
 }
 
-// ── Main page shell ────────────────────────────────────────────────────────────
+// ── Main page shell ─────────────────────────────────────────────────────────────────
 
 type TabKey = 'members' | 'los' | 'data-center'
 
