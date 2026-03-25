@@ -318,7 +318,7 @@ function SubmitPaymentDrawer({
   const qc = useQueryClient()
   const [amount, setAmount] = useState('')
   const [date, setDate] = useState('')
-  const [method, setMethod] = useState('')
+  const [method, setMethod] = useState<'cash' | 'bank_transfer'>('cash')
   const [file, setFile] = useState<File | null>(null)
   const [note, setNote] = useState('')
 
@@ -343,7 +343,7 @@ function SubmitPaymentDrawer({
           amount: parseFloat(amount),
           currency: 'EUR',
           transaction_date: date,
-          payment_method: method || null,
+          payment_method: method,
           proof_url,
           note: note || null,
         }),
@@ -354,7 +354,7 @@ function SubmitPaymentDrawer({
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['trip-payments', tripId] })
       onClose()
-      setAmount(''); setDate(''); setMethod(''); setFile(null); setNote('')
+      setAmount(''); setDate(''); setMethod('cash'); setFile(null); setNote('')
     },
   })
 
@@ -377,6 +377,17 @@ function SubmitPaymentDrawer({
     color: 'var(--text-secondary)',
   } as const
 
+  const pillBase: React.CSSProperties = {
+    flex: 1,
+    padding: '0.5rem 0',
+    borderRadius: '0.625rem',
+    fontSize: '0.875rem',
+    fontWeight: 600,
+    cursor: 'pointer',
+    transition: 'background-color 0.15s, color 0.15s',
+    border: 'none',
+  }
+
   return (
     <Drawer open={open} onClose={onClose} title="Submit Payment">
       <div className="space-y-5">
@@ -391,8 +402,32 @@ function SubmitPaymentDrawer({
         </div>
         <div>
           <label style={labelStyle}>Payment Method</label>
-          <input type="text" placeholder="Bank transfer, cash…"
-            value={method} onChange={e => setMethod(e.target.value)} style={inputStyle} />
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setMethod('cash')}
+              style={{
+                ...pillBase,
+                backgroundColor: method === 'cash' ? '#bc4749' : 'transparent',
+                color: method === 'cash' ? '#ffffff' : 'var(--text-secondary)',
+                border: method === 'cash' ? 'none' : '1px solid var(--border-default)',
+              }}
+            >
+              Cash
+            </button>
+            <button
+              type="button"
+              onClick={() => setMethod('bank_transfer')}
+              style={{
+                ...pillBase,
+                backgroundColor: method === 'bank_transfer' ? '#bc4749' : 'transparent',
+                color: method === 'bank_transfer' ? '#ffffff' : 'var(--text-secondary)',
+                border: method === 'bank_transfer' ? 'none' : '1px solid var(--border-default)',
+              }}
+            >
+              Bank Transfer
+            </button>
+          </div>
         </div>
         <div>
           <label style={labelStyle}>Note</label>
