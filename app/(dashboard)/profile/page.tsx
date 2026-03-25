@@ -247,6 +247,68 @@ const ROLE_LABELS: Record<string, string> = {
   admin: 'Admin', core: 'Core', member: 'Member', guest: 'Guest',
 }
 
+// ── Validation helper (module scope, pure) ────────────────────────────────────
+
+type PersonalFormFields = {
+  first_name?: string
+  last_name?: string
+  bg_first?: string
+  bg_last?: string
+  phone?: string
+  contact_email?: string
+  doc_number?: string
+  valid_through?: string
+  has_doc_type?: boolean
+}
+
+const LATIN_RE   = /^[A-Za-z\-']+$/
+const CYRILLIC_RE = /^[\u0400-\u04FF\-']+$/
+const PHONE_RE   = /^\+?\d{7,15}$/
+const EMAIL_RE   = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+function validatePersonalField(
+  field: keyof PersonalFormFields,
+  value: string,
+  context: { has_doc_type: boolean; doc_number: string }
+): string {
+  switch (field) {
+    case 'first_name':
+      if (!value.trim()) return 'Required'
+      if (!LATIN_RE.test(value.trim())) return 'Latin letters, hyphens and apostrophes only'
+      return ''
+    case 'last_name':
+      if (!value.trim()) return 'Required'
+      if (!LATIN_RE.test(value.trim())) return 'Latin letters, hyphens and apostrophes only'
+      return ''
+    case 'bg_first':
+      if (!value.trim()) return ''
+      if (!CYRILLIC_RE.test(value.trim())) return 'Cyrillic letters, hyphens and apostrophes only'
+      return ''
+    case 'bg_last':
+      if (!value.trim()) return ''
+      if (!CYRILLIC_RE.test(value.trim())) return 'Cyrillic letters, hyphens and apostrophes only'
+      return ''
+    case 'phone':
+      if (!value.trim()) return ''
+      if (!PHONE_RE.test(value.trim())) return 'Enter a valid phone number (7–15 digits, optional leading +)'
+      return ''
+    case 'contact_email':
+      if (!value.trim()) return ''
+      if (!EMAIL_RE.test(value.trim())) return 'Enter a valid email address'
+      return ''
+    case 'doc_number':
+      if (context.has_doc_type && !value.trim()) return 'Required when document type is set'
+      return ''
+    case 'valid_through':
+      if (!context.doc_number.trim()) return ''
+      if (!value.trim()) return 'Required when document number is filled'
+      if (isNaN(new Date(value).getTime())) return 'Enter a valid date'
+      return ''
+    default:
+      return ''
+  }
+}
+
 // ── Skeleton helper ───────────────────────────────────────────────────────────
 
 function SectionSkeleton({ height = 120 }: { height?: number }) {
@@ -851,6 +913,31 @@ export default function ProfilePage() {
   const [verificationMode, setVerificationMode] = useState<'standard' | 'manual'>('standard')
   const [calCopied, setCalCopied] = useState(false)
 
+  // ── Blur validation state ────────────────────────────────────────────────
+  const [formErrors, setFormErrors] = useState<Partial<Record<keyof PersonalFormFields, string>>>({})
+
+  function touchField(field: keyof PersonalFormFields, value: string, docNumber?: string, hasDocType?: boolean) {
+    const context = {
+      has_doc_type: hasDocType ?? !!(form.document_active_type),
+      doc_number: docNumber ?? getCurrentDocNumber(),
+    }
+    const error = validatePersonalField(field, value, context)
+    setFormErrors(prev => ({ ...prev, [field]: error }))
+  }
+
+  function clearFieldError(field: keyof PersonalFormFields) {
+    setFormErrors(prev => {
+      if (!prev[field]) return prev
+      const next = { ...prev }
+      delete next[field]
+      return next
+    })
+  }
+
+  function hasAnyError(): boolean {
+    return Object.values(formErrors).some(e => !!e)
+  }
+
   // Generic payment Drawer state
   const [payDrawerOpen, setPayDrawerOpen] = useState(false)
   const [payModalItemId, setPayModalItemId] = useState('')
@@ -873,6 +960,7 @@ export default function ProfilePage() {
 
   function closePersonalDrawer() {
     setPersonalDrawerOpen(false)
+    setFormErrors({})
     saveMutation.reset()
   }
 
@@ -1064,6 +1152,7 @@ export default function ProfilePage() {
       qc.setQueryData(['profile'], data)
       setSaved(true)
       setPersonalDrawerOpen(false)
+      setFormErrors({})
       setTimeout(() => setSaved(false), 2500)
     },
   })
@@ -1191,6 +1280,12 @@ export default function ProfilePage() {
     (tripsData ?? []).filter(e => e.cancelled_at).map(e => e.trip?.id).filter(Boolean) as string[]
   )
 
+  // Helper to get the current active doc number from form state
+  function getCurrentDocNumber(): string {
+    const docType = form.document_active_type ?? activeDocType
+    return (docType === 'passport' ? (form.passport_number ?? '') : (form.id_number ?? ''))
+  }
+
   // ── Personal Details drawer form ──────────────────────────────────────────
 
   const personalDrawerForm = (
@@ -1206,10 +1301,12 @@ export default function ProfilePage() {
             </label>
             <input
               value={form.first_name ?? ''}
-              onChange={e => setForm(f => ({ ...f, first_name: e.target.value }))}
+              onChange={e => { setForm(f => ({ ...f, first_name: e.target.value })); clearFieldError('first_name') }}
+              onBlur={e => touchField('first_name', e.target.value)}
               className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-              style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
+              style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)', borderColor: formErrors.first_name ? 'var(--brand-crimson)' : undefined }}
             />
+            {formErrors.first_name && <p className="text-[11px] mt-1" style={{ color: 'var(--brand-crimson)' }}>{formErrors.first_name}</p>}
           </div>
           <div>
             <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
@@ -1217,10 +1314,12 @@ export default function ProfilePage() {
             </label>
             <input
               value={form.last_name ?? ''}
-              onChange={e => setForm(f => ({ ...f, last_name: e.target.value }))}
+              onChange={e => { setForm(f => ({ ...f, last_name: e.target.value })); clearFieldError('last_name') }}
+              onBlur={e => touchField('last_name', e.target.value)}
               className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-              style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
+              style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)', borderColor: formErrors.last_name ? 'var(--brand-crimson)' : undefined }}
             />
+            {formErrors.last_name && <p className="text-[11px] mt-1" style={{ color: 'var(--brand-crimson)' }}>{formErrors.last_name}</p>}
           </div>
         </div>
       </div>
@@ -1232,10 +1331,12 @@ export default function ProfilePage() {
           </label>
           <input
             value={bgFirst}
-            onChange={e => setForm(f => ({ ...f, display_names: { ...((f.display_names ?? {}) as Record<string,string>), bg_first: e.target.value } }))}
+            onChange={e => { setForm(f => ({ ...f, display_names: { ...((f.display_names ?? {}) as Record<string,string>), bg_first: e.target.value } })); clearFieldError('bg_first') }}
+            onBlur={e => touchField('bg_first', e.target.value)}
             className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-            style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
+            style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)', borderColor: formErrors.bg_first ? 'var(--brand-crimson)' : undefined }}
           />
+          {formErrors.bg_first && <p className="text-[11px] mt-1" style={{ color: 'var(--brand-crimson)' }}>{formErrors.bg_first}</p>}
         </div>
         <div>
           <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
@@ -1243,10 +1344,12 @@ export default function ProfilePage() {
           </label>
           <input
             value={bgLast}
-            onChange={e => setForm(f => ({ ...f, display_names: { ...((f.display_names ?? {}) as Record<string,string>), bg_last: e.target.value } }))}
+            onChange={e => { setForm(f => ({ ...f, display_names: { ...((f.display_names ?? {}) as Record<string,string>), bg_last: e.target.value } })); clearFieldError('bg_last') }}
+            onBlur={e => touchField('bg_last', e.target.value)}
             className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-            style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
+            style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)', borderColor: formErrors.bg_last ? 'var(--brand-crimson)' : undefined }}
           />
+          {formErrors.bg_last && <p className="text-[11px] mt-1" style={{ color: 'var(--brand-crimson)' }}>{formErrors.bg_last}</p>}
         </div>
       </div>
 
@@ -1255,21 +1358,25 @@ export default function ProfilePage() {
           <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Phone</label>
           <input
             value={form.phone ?? ''}
-            onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
+            onChange={e => { setForm(f => ({ ...f, phone: e.target.value })); clearFieldError('phone') }}
+            onBlur={e => touchField('phone', e.target.value)}
             placeholder="+359 88 000 0000"
             className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-            style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
+            style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)', borderColor: formErrors.phone ? 'var(--brand-crimson)' : undefined }}
           />
+          {formErrors.phone && <p className="text-[11px] mt-1" style={{ color: 'var(--brand-crimson)' }}>{formErrors.phone}</p>}
         </div>
         <div>
           <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Contact email</label>
           <input
             value={form.contact_email ?? ''}
-            onChange={e => setForm(f => ({ ...f, contact_email: e.target.value }))}
+            onChange={e => { setForm(f => ({ ...f, contact_email: e.target.value })); clearFieldError('contact_email') }}
+            onBlur={e => touchField('contact_email', e.target.value)}
             placeholder="your@email.com"
             className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-            style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
+            style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)', borderColor: formErrors.contact_email ? 'var(--brand-crimson)' : undefined }}
           />
+          {formErrors.contact_email && <p className="text-[11px] mt-1" style={{ color: 'var(--brand-crimson)' }}>{formErrors.contact_email}</p>}
         </div>
       </div>
 
@@ -1305,13 +1412,18 @@ export default function ProfilePage() {
               value={activeDocType === 'passport'
                 ? (form.passport_number ?? '')
                 : (form.id_number ?? '')}
-              onChange={e => setForm(f => ({
-                ...f,
-                [activeDocType === 'passport' ? 'passport_number' : 'id_number']: e.target.value,
-              }))}
+              onChange={e => {
+                setForm(f => ({
+                  ...f,
+                  [activeDocType === 'passport' ? 'passport_number' : 'id_number']: e.target.value,
+                }))
+                clearFieldError('doc_number')
+              }}
+              onBlur={e => touchField('doc_number', e.target.value, e.target.value, !!(form.document_active_type))}
               className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm font-mono"
-              style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
+              style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)', borderColor: formErrors.doc_number ? 'var(--brand-crimson)' : undefined }}
             />
+            {formErrors.doc_number && <p className="text-[11px] mt-1" style={{ color: 'var(--brand-crimson)' }}>{formErrors.doc_number}</p>}
           </div>
           <div>
             <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
@@ -1320,10 +1432,12 @@ export default function ProfilePage() {
             <input
               type="date"
               value={form.valid_through ?? ''}
-              onChange={e => setForm(f => ({ ...f, valid_through: e.target.value }))}
+              onChange={e => { setForm(f => ({ ...f, valid_through: e.target.value })); clearFieldError('valid_through') }}
+              onBlur={e => touchField('valid_through', e.target.value, getCurrentDocNumber())}
               className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-              style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
+              style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)', borderColor: formErrors.valid_through ? 'var(--brand-crimson)' : undefined }}
             />
+            {formErrors.valid_through && <p className="text-[11px] mt-1" style={{ color: 'var(--brand-crimson)' }}>{formErrors.valid_through}</p>}
           </div>
         </div>
         {expiryState && (
@@ -1356,7 +1470,7 @@ export default function ProfilePage() {
         </button>
         <button
           onClick={() => saveMutation.mutate(form)}
-          disabled={saveMutation.isPending}
+          disabled={saveMutation.isPending || hasAnyError()}
           className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
           style={{ backgroundColor: 'var(--brand-crimson)' }}
         >
@@ -1658,10 +1772,12 @@ export default function ProfilePage() {
                         </label>
                         <input
                           value={form.first_name ?? ''}
-                          onChange={e => setForm(f => ({ ...f, first_name: e.target.value }))}
+                          onChange={e => { setForm(f => ({ ...f, first_name: e.target.value })); clearFieldError('first_name') }}
+                          onBlur={e => touchField('first_name', e.target.value)}
                           className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-                          style={{ color: 'var(--text-primary)' }}
+                          style={{ color: 'var(--text-primary)', borderColor: formErrors.first_name ? 'var(--brand-crimson)' : undefined }}
                         />
+                        {formErrors.first_name && <p className="text-[11px] mt-1" style={{ color: 'var(--brand-crimson)' }}>{formErrors.first_name}</p>}
                       </div>
                       <div>
                         <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
@@ -1669,10 +1785,12 @@ export default function ProfilePage() {
                         </label>
                         <input
                           value={form.last_name ?? ''}
-                          onChange={e => setForm(f => ({ ...f, last_name: e.target.value }))}
+                          onChange={e => { setForm(f => ({ ...f, last_name: e.target.value })); clearFieldError('last_name') }}
+                          onBlur={e => touchField('last_name', e.target.value)}
                           className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-                          style={{ color: 'var(--text-primary)' }}
+                          style={{ color: 'var(--text-primary)', borderColor: formErrors.last_name ? 'var(--brand-crimson)' : undefined }}
                         />
+                        {formErrors.last_name && <p className="text-[11px] mt-1" style={{ color: 'var(--brand-crimson)' }}>{formErrors.last_name}</p>}
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
@@ -1682,10 +1800,12 @@ export default function ProfilePage() {
                         </label>
                         <input
                           value={bgFirst}
-                          onChange={e => setForm(f => ({ ...f, display_names: { ...((f.display_names ?? {}) as Record<string,string>), bg_first: e.target.value } }))}
+                          onChange={e => { setForm(f => ({ ...f, display_names: { ...((f.display_names ?? {}) as Record<string,string>), bg_first: e.target.value } })); clearFieldError('bg_first') }}
+                          onBlur={e => touchField('bg_first', e.target.value)}
                           className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-                          style={{ color: 'var(--text-primary)' }}
+                          style={{ color: 'var(--text-primary)', borderColor: formErrors.bg_first ? 'var(--brand-crimson)' : undefined }}
                         />
+                        {formErrors.bg_first && <p className="text-[11px] mt-1" style={{ color: 'var(--brand-crimson)' }}>{formErrors.bg_first}</p>}
                       </div>
                       <div>
                         <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
@@ -1693,15 +1813,17 @@ export default function ProfilePage() {
                         </label>
                         <input
                           value={bgLast}
-                          onChange={e => setForm(f => ({ ...f, display_names: { ...((f.display_names ?? {}) as Record<string,string>), bg_last: e.target.value } }))}
+                          onChange={e => { setForm(f => ({ ...f, display_names: { ...((f.display_names ?? {}) as Record<string,string>), bg_last: e.target.value } })); clearFieldError('bg_last') }}
+                          onBlur={e => touchField('bg_last', e.target.value)}
                           className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-                          style={{ color: 'var(--text-primary)' }}
+                          style={{ color: 'var(--text-primary)', borderColor: formErrors.bg_last ? 'var(--brand-crimson)' : undefined }}
                         />
+                        {formErrors.bg_last && <p className="text-[11px] mt-1" style={{ color: 'var(--brand-crimson)' }}>{formErrors.bg_last}</p>}
                       </div>
                     </div>
                     <button
                       onClick={() => saveMutation.mutate({ first_name: form.first_name, last_name: form.last_name, display_names: form.display_names })}
-                      disabled={saveMutation.isPending}
+                      disabled={saveMutation.isPending || hasAnyError()}
                       className="w-full py-3 rounded-2xl text-sm font-semibold text-white disabled:opacity-50 transition-all hover:opacity-90 active:scale-[0.99]"
                       style={{ backgroundColor: 'var(--brand-crimson)' }}
                     >
