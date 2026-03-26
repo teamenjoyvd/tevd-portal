@@ -10,6 +10,7 @@ import { useLanguage } from '@/lib/hooks/useLanguage'
 import UserDropdown from '@/components/layout/UserDropdown'
 import UserPopup from '@/components/layout/UserPopup'
 import NotificationPopup from '@/components/notifications/NotificationPopup'
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import { PUBLIC_NAV, MEMBER_NAV } from '@/lib/nav'
 
 export default function Header() {
@@ -18,21 +19,9 @@ export default function Header() {
   const { data: unreadData } = useUnreadCount()
   const { lang } = useLanguage()
   const unread = unreadData?.count ?? 0
-  const [bellOpen, setBellOpen] = useState(false)
   const [guestPopupOpen, setGuestPopupOpen] = useState(false)
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
-  const bellRef = useRef<HTMLDivElement>(null)
   const guestRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    function handle(e: MouseEvent) {
-      if (bellRef.current && !bellRef.current.contains(e.target as Node)) {
-        setBellOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handle)
-    return () => document.removeEventListener('mousedown', handle)
-  }, [])
 
   useEffect(() => {
     function handle(e: KeyboardEvent) {
@@ -138,28 +127,34 @@ export default function Header() {
 
             {isSignedIn ? (
               <>
-                <div ref={bellRef} className="relative">
-                  <button
-                    onClick={() => setBellOpen(o => !o)}
-                    className="relative w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors"
-                  >
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
-                      stroke="var(--text-nav)" strokeWidth="1.8"
-                      strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                      <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                    </svg>
-                    {unread > 0 && (
-                      <span
-                        className="absolute top-0.5 right-0.5 min-w-[15px] h-[15px] text-white text-[9px] font-bold rounded-full flex items-center justify-center px-1"
-                        style={{ backgroundColor: 'var(--brand-crimson)' }}
-                      >
-                        {unread > 99 ? '99+' : unread}
-                      </span>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button
+                      className="relative w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors"
+                      aria-label="Notifications"
+                    >
+                      <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
+                        stroke="var(--text-nav)" strokeWidth="1.8"
+                        strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                      </svg>
+                      {unread > 0 && (
+                        <span
+                          className="absolute top-0.5 right-0.5 min-w-[15px] h-[15px] text-white text-[9px] font-bold rounded-full flex items-center justify-center px-1"
+                          style={{ backgroundColor: 'var(--brand-crimson)' }}
+                        >
+                          {unread > 99 ? '99+' : unread}
+                        </span>
+                      )}
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent>
+                    {({ close }: { close: () => void }) => (
+                      <NotificationPopup onClose={close} />
                     )}
-                  </button>
-                  {bellOpen && <NotificationPopup onClose={() => setBellOpen(false)} />}
-                </div>
+                  </PopoverContent>
+                </Popover>
                 <UserDropdown />
               </>
             ) : (

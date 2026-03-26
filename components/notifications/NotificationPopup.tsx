@@ -34,16 +34,7 @@ export default function NotificationPopup({ onClose }: Props) {
   }
 
   return (
-    <div
-      className="absolute right-0 top-full mt-2 rounded-2xl z-50 flex flex-col"
-      style={{
-        width: 320,
-        maxHeight: 420,
-        backgroundColor: 'var(--bg-global)',
-        border: '1px solid var(--border-default)',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)',
-      }}
-    >
+    <div className="flex flex-col" style={{ width: 320, maxHeight: 420 }}>
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b flex-shrink-0"
         style={{ borderColor: 'var(--border-default)' }}>
