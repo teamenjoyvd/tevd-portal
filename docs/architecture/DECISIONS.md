@@ -21,6 +21,7 @@
 | ADR-010 | 12-column CSS grid for BentoGrid (not a component library) | 2026-03 | Active |
 | ADR-011 | RLS as defence-in-depth layer; canonical policy pattern uses Clerk JWT helper functions | 2026-03 | Active |
 | ADR-012 | Feature-based folder structure: co-locate route-scoped components | 2026-03 | Active |
+| ADR-013 | shadcn/ui as the mandatory primitive library for interactive components | 2026-03 | Active |
 
 ---
 
@@ -500,3 +501,60 @@ The flat `/components` structure works until it doesn't. The tipping point is re
 - The rule is in CLAUDE.md: new components follow co-location from today. Migration is incremental.
 - The "2+ unrelated routes" promotion bar is explicit — no ambiguity about when to promote
 - `components/layout`, `components/bento`, and `components/ui` are permanently exempt and documented as such
+
+---
+
+## ADR-013 — shadcn/ui as the Mandatory Primitive Library for Interactive Components
+
+**Date:** 2026-03
+**Status:** Active
+
+### Context
+Before this decision, interactive primitives (drawers, dropdowns, popovers, dialogs, tooltips, selects) were hand-rolled components. Hand-rolled primitives consistently lack: correct focus trapping, Escape-key handling, ARIA attributes, scroll-lock on mobile, and portal rendering to avoid z-index collisions. These defects are non-obvious and do not cause test failures — they surface as accessibility regressions and mobile UX bugs.
+
+shadcn/ui was installed in SEQ247 (commit ff0da51). It wraps Radix UI primitives, which are headless and fully accessible by default. The component source is vended directly into `components/ui/` — it is owned code, not a runtime dependency.
+
+### Decision
+Any new interactive primitive — dialog, popover, dropdown menu, sheet, tooltip, select, combobox, alert dialog — **MUST** use the corresponding shadcn/ui component. Hand-rolling an equivalent is prohibited.
+
+Existing hand-rolled components (`Drawer.tsx`, `UserDropdown`, `UserPopup`, `NotificationPopup`, `EventPopup`) are scheduled for migration in SEQ267–271. Until migrated, they remain in place; do not extend them.
+
+### Why shadcn/ui over other options
+- **Radix UI primitives** (what shadcn wraps) handle focus trap, ARIA, keyboard nav, and scroll-lock correctly by default — these are non-trivial to implement correctly by hand.
+- **Owned source** — `npx shadcn@latest add <component>` copies the component source into `components/ui/`. There is no runtime dependency on shadcn; Radix UI packages are the only addition to `node_modules`. The component can be modified freely.
+- **Tailwind-styled** — styling uses the same Tailwind utility classes already in the project. No CSS module conflicts, no CSS-in-JS.
+- **Not a grid library** — ADR-010 explicitly excluded shadcn from layout primitives. This ADR applies only to interactive components. The BentoGrid is not affected.
+
+### Scope
+
+| Primitive | shadcn component | Install command |
+|---|---|---|
+| Modal/dialog | `Dialog` | `npx shadcn@latest add dialog` |
+| Slide-in panel | `Sheet` | `npx shadcn@latest add sheet` |
+| Anchored overlay | `Popover` | `npx shadcn@latest add popover` |
+| Dropdown menu | `DropdownMenu` | `npx shadcn@latest add dropdown-menu` |
+| Destructive confirm | `AlertDialog` | `npx shadcn@latest add alert-dialog` |
+| Option selector | `Select` | `npx shadcn@latest add select` |
+| Searchable selector | `Combobox` | `npx shadcn@latest add command` + popover |
+| Hover hint | `Tooltip` | `npx shadcn@latest add tooltip` |
+
+### Installation note
+`npx shadcn@latest init` was intentionally NOT run in SEQ247 — the CLI assumes Tailwind v3 and would have corrupted `globals.css`. Components are added individually via `npx shadcn@latest add <name>`, which only touches `components/ui/`. This is the correct workflow for this stack.
+
+### Consequences
+
+**Benefits:**
+- Focus trap, Escape-to-close, ARIA roles, and scroll-lock are correct by default on all new interactive components
+- Consistent keyboard navigation across all interactive surfaces
+- Reduced per-ticket scope — interactive behaviour is handled by Radix; only styling and props need attention
+- Mobile layout law (390px) is easier to satisfy — Sheet slides from bottom on mobile by default
+
+**Risks:**
+- shadcn components inject CSS variables into `globals.css` on install if not carefully reviewed — must be checked against `brand-tokens.css` after each `add`
+- Radix portals render outside the React tree, which can cause z-index conflicts with the Mapbox map canvas on pages that have both
+- The Tailwind v4 / shadcn CSS variable system has a known friction point: shadcn expects `--background`, `--foreground`, etc., which may conflict with existing `--bg-global`, `--text-primary` tokens
+
+**Mitigations:**
+- After every `npx shadcn@latest add`, review the diff in `globals.css` before committing — revert any injected `@layer base` blocks that conflict with `brand-tokens.css`
+- Z-index conflict with Mapbox: use `style={{ zIndex: 50 }}` on the portal container if a shadcn overlay appears behind the map canvas
+- CSS variable naming conflict: shadcn components in `components/ui/` can be edited post-install to reference project tokens (`var(--bg-card)` instead of `var(--card)`) — this is expected and permitted
