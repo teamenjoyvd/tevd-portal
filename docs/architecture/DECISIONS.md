@@ -20,6 +20,7 @@
 | ADR-009 | Dual-layout pattern (two complete layouts, not responsive) | 2026-03 | Active |
 | ADR-010 | 12-column CSS grid for BentoGrid (not a component library) | 2026-03 | Active |
 | ADR-011 | RLS as defence-in-depth layer; canonical policy pattern uses Clerk JWT helper functions | 2026-03 | Active |
+| ADR-012 | Feature-based folder structure: co-locate route-scoped components | 2026-03 | Active |
 
 ---
 
@@ -429,3 +430,73 @@ auth.jwt() ->> 'sub'                -- reads Supabase Auth subject (WRONG for Cl
 - SEQ261–265 (remediation tickets) are in the backlog and unblocked after this audit
 - The broken `sub`-based policy on `member_vital_signs` is explicitly called out above
 - A new hard rule is added to CLAUDE.md: new RLS policies MUST use Pattern A helper functions
+
+---
+
+## ADR-012 — Feature-Based Folder Structure: Co-locate Route-Scoped Components
+
+**Date:** 2026-03
+**Status:** Active
+
+### Context
+All React components currently live under `/components`, regardless of how many routes consume them. The directory has grown to include feature-specific subdirectories (`components/about`, `components/admin`, `components/trips`, `components/calendar`, `components/notifications`, `components/events`) that map 1:1 to a single route or route group. Only `components/layout`, `components/bento`, and `components/ui` contain genuinely shared, cross-route components.
+
+This creates two problems:
+1. **Navigation cost.** Finding the component for a given route requires knowing it lives in a sibling directory, not the route directory.
+2. **Implicit coupling.** A component in `components/trips` looks available to any route, even if extracting it would require significant interface changes.
+
+### Decision
+Components that are consumed by exactly one route (or route group) MUST live co-located inside that route's directory, in a `components/` subdirectory:
+
+```
+app/(dashboard)/trips/components/    # components only used in /trips routes
+app/(dashboard)/about/components/    # components only used in /about
+app/admin/members/components/        # components only used in /admin/members
+```
+
+Components used by two or more **unrelated** routes remain in `/components` under the appropriate subdirectory.
+
+**The rule, stated precisely:**
+> A new component MUST be created co-located with the route it belongs to. It MAY be promoted to `/components` only if it is subsequently consumed by a second unrelated route. No new files are added directly to `/components` or any of its subdirectories unless the component is used by 2+ unrelated routes at the time of creation.
+
+**Existing components are not migrated by this ticket.** Migration is a separate workstream, ticket-by-ticket, and will not be retroactively applied here.
+
+### Exempt from co-location (always in `/components`)
+
+| Directory | Reason |
+|---|---|
+| `components/layout` | Header, Footer, UserDropdown, UserPopup — consumed by the root layout, applies to all routes |
+| `components/bento` | BentoCard, BentoGrid — used on homepage and `/profile` (two unrelated routes) |
+| `components/ui` | Drawer, Skeleton, and any future primitive UI components — explicitly cross-feature |
+
+### Current state — directories flagged for migration in future tickets
+
+| Current path | Target path | Scope |
+|---|---|---|
+| `components/about` | `app/(dashboard)/about/components` | Single route |
+| `components/admin` | `app/admin/[subroute]/components` per subroute | Admin route group |
+| `components/trips` | `app/(dashboard)/trips/components` | Trips route group |
+| `components/calendar` | `app/(dashboard)/calendar/components` (if member-only) or stays shared | Check usage |
+| `components/events` | `app/(dashboard)/[route]/components` (check which routes use EventPopup) | Check usage |
+| `components/notifications` | `app/(dashboard)/[route]/components` or stays shared | Check usage |
+
+Migration tickets must verify import usage before moving any file.
+
+### Why not leave everything in `/components`
+The flat `/components` structure works until it doesn't. The tipping point is reached when the component count makes it unclear whether a given component is safe to modify (it might be used by more routes than expected) or where to look for a route-specific component. The `/components/admin` subdirectory already has multiple components that are admin-only — keeping them there provides no meaningful sharing benefit.
+
+### Consequences
+
+**Benefits:**
+- Route directory is self-contained — all code relevant to a route is in one place
+- Reduced surface area for unintended coupling between features
+- Deleting a route is now a single directory deletion, not a hunt across `/components`
+
+**Risks:**
+- Two locations for components until migration is complete — developers must know the rule to find the right place
+- Promoting a co-located component to `/components` requires a move + import update across all consumers
+
+**Mitigations:**
+- The rule is in CLAUDE.md: new components follow co-location from today. Migration is incremental.
+- The "2+ unrelated routes" promotion bar is explicit — no ambiguity about when to promote
+- `components/layout`, `components/bento`, and `components/ui` are permanently exempt and documented as such
