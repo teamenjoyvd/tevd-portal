@@ -1,7 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { redirect } from 'next/navigation'
-import AdminNav from '@/components/admin/AdminNav'
+import AdminNav from '@/app/admin/components/AdminNav'
 
 export const dynamic = 'force-dynamic'
 
