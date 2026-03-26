@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react'
+import { cn } from '@/lib/utils'
 
 export function Skeleton({
   className,
@@ -9,7 +10,7 @@ export function Skeleton({
 }) {
   return (
     <div
-      className={`animate-pulse${className ? ` ${className}` : ''}`}
+      className={cn('animate-pulse rounded-md', className)}
       style={{ backgroundColor: 'var(--border-default)', ...style }}
     />
   )
