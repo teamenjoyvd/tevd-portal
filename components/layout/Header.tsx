@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
@@ -22,7 +22,6 @@ export default function Header() {
   const [bellOpen, setBellOpen] = useState(false)
   const [guestPopupOpen, setGuestPopupOpen] = useState(false)
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
-  const guestRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     function handle(e: KeyboardEvent) {
@@ -157,23 +156,23 @@ export default function Header() {
                 <UserDropdown />
               </>
             ) : (
-              <div ref={guestRef} className="relative">
-                <button
-                  onClick={() => setGuestPopupOpen(o => !o)}
-                  aria-label="Sign in or change language"
-                  className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors"
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-                    stroke="var(--text-nav)" strokeWidth="1.8"
-                    strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="8" r="4"/>
-                    <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
-                  </svg>
-                </button>
-                {guestPopupOpen && (
-                  <UserPopup onClose={() => setGuestPopupOpen(false)} />
-                )}
-              </div>
+              <UserPopup
+                open={guestPopupOpen}
+                onOpenChange={setGuestPopupOpen}
+                trigger={
+                  <button
+                    aria-label="Sign in or change language"
+                    className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                      stroke="var(--text-nav)" strokeWidth="1.8"
+                      strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="8" r="4"/>
+                      <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+                    </svg>
+                  </button>
+                }
+              />
             )}
           </div>
 
