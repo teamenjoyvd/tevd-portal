@@ -1,12 +1,19 @@
 'use client'
 
-import { useRef, useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useUser, useClerk } from '@clerk/nextjs'
 import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { useTheme } from '@/lib/hooks/useTheme'
 import { getRoleColors } from '@/lib/role-colors'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu'
 
 const ROLE_LABELS: Record<string, string> = {
   admin:  'Admin',
@@ -29,7 +36,6 @@ export default function UserDropdown() {
   const { lang, toggle: toggleLang } = useLanguage()
   const { theme, mounted: themeMounted, toggle: toggleTheme } = useTheme()
   const [open, setOpen] = useState(false)
-  const containerRef = useRef<HTMLDivElement>(null)
 
   const role = (user?.publicMetadata?.role as string) ?? 'guest'
   const isAdmin = role === 'admin'
@@ -62,85 +68,58 @@ export default function UserDropdown() {
     !!verRequest &&
     (verRequest.status === 'pending' || verRequest.status === 'denied')
 
-  useEffect(() => {
-    function handle(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handle)
-    return () => document.removeEventListener('mousedown', handle)
-  }, [])
-
-  useEffect(() => {
-    function handle(e: KeyboardEvent) {
-      if (e.key === 'Escape') setOpen(false)
-    }
-    document.addEventListener('keydown', handle)
-    return () => document.removeEventListener('keydown', handle)
-  }, [])
-
   const roleColors = getRoleColors(role)
 
   return (
-    <div ref={containerRef} className="relative">
-      {/* Avatar button */}
-      <button
-        onClick={() => setOpen(o => !o)}
-        className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-white transition-opacity hover:opacity-80 active:opacity-60 flex-shrink-0"
-        style={{ backgroundColor: 'var(--brand-forest)', border: '1.5px solid rgba(0,0,0,0.1)' }}
-        aria-label="Account menu"
-      >
-        {initials}
-      </button>
-
-      {/* Dropdown — fully theme-aware via CSS variables */}
-      {open && (
-        <div
-          className="absolute right-0 top-full mt-2 rounded-2xl z-50 overflow-hidden"
-          style={{
-            width: 220,
-            backgroundColor: 'var(--bg-card)',
-            border: '1px solid var(--border-default)',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.16), 0 2px 8px rgba(0,0,0,0.08)',
-          }}
+    <DropdownMenu open={open} onOpenChange={setOpen}>
+      <DropdownMenuTrigger asChild>
+        <button
+          className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-white transition-opacity hover:opacity-80 active:opacity-60 flex-shrink-0"
+          style={{ backgroundColor: 'var(--brand-forest)', border: '1.5px solid rgba(0,0,0,0.1)' }}
+          aria-label="Account menu"
         >
-          {/* Identity block */}
-          <div className="px-4 py-4" style={{ borderBottom: '1px solid var(--border-default)' }}>
-            <div className="flex items-center gap-3">
-              <div
-                className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
-                style={{ backgroundColor: 'var(--brand-forest)' }}
-              >
-                {initials}
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
-                  {fullName}
-                </p>
-                <span
-                  className="text-[10px] font-semibold px-2 py-0.5 rounded-full mt-0.5 inline-block"
-                  style={{ backgroundColor: roleColors.bg, color: roleColors.font }}
-                >
-                  {isUnverified ? 'Unverified Member' : (ROLE_LABELS[role] ?? role)}
-                </span>
-              </div>
-            </div>
-            {uplineData?.upline_name && (
-              <p className="text-xs mt-3" style={{ color: 'var(--text-secondary)' }}>
-                <span className="font-medium">Upline</span>{' '}
-                {uplineData.upline_name}
-              </p>
-            )}
-          </div>
+          {initials}
+        </button>
+      </DropdownMenuTrigger>
 
-          {/* Actions */}
-          <div className="py-1.5">
-            {isAdmin && (
+      <DropdownMenuContent>
+        {/* Identity block */}
+        <div className="px-4 py-4" style={{ borderBottom: '1px solid var(--border-default)' }}>
+          <div className="flex items-center gap-3">
+            <div
+              className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
+              style={{ backgroundColor: 'var(--brand-forest)' }}
+            >
+              {initials}
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                {fullName}
+              </p>
+              <span
+                className="text-[10px] font-semibold px-2 py-0.5 rounded-full mt-0.5 inline-block"
+                style={{ backgroundColor: roleColors.bg, color: roleColors.font }}
+              >
+                {isUnverified ? 'Unverified Member' : (ROLE_LABELS[role] ?? role)}
+              </span>
+            </div>
+          </div>
+          {uplineData?.upline_name && (
+            <p className="text-xs mt-3" style={{ color: 'var(--text-secondary)' }}>
+              <span className="font-medium">Upline</span>{' '}
+              {uplineData.upline_name}
+            </p>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="py-1.5">
+          {isAdmin && (
+            <DropdownMenuItem asChild>
               <Link
                 href="/admin"
                 onClick={() => setOpen(false)}
-                className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors"
+                className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors cursor-pointer"
                 style={{ color: 'var(--text-primary)' }}
                 onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--bg-global)')}
                 onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
@@ -154,50 +133,54 @@ export default function UserDropdown() {
                 </svg>
                 Admin
               </Link>
-            )}
+            </DropdownMenuItem>
+          )}
 
-            {/* Language */}
-            <div
-              className="flex items-center justify-between px-4 py-2.5"
-              style={{ borderTop: '1px solid var(--border-default)' }}
+          {/* Language */}
+          <DropdownMenuItem
+            onSelect={e => e.preventDefault()}
+            className="flex items-center justify-between px-4 py-2.5"
+            style={{ borderTop: '1px solid var(--border-default)', cursor: 'default' }}
+          >
+            <span className="text-sm font-body" style={{ color: 'var(--text-secondary)' }}>
+              {lang === 'en' ? 'Language' : '\u0415\u0437\u0438\u043a'}
+            </span>
+            <button
+              onClick={toggleLang}
+              className="px-2.5 py-1 rounded-lg text-xs font-bold tracking-widest uppercase transition-colors"
+              style={{ color: 'var(--text-secondary)', backgroundColor: 'var(--bg-global)' }}
+              onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--border-default)')}
+              onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'var(--bg-global)')}
             >
-              <span className="text-sm font-body" style={{ color: 'var(--text-secondary)' }}>
-                {lang === 'en' ? 'Language' : '\u0415\u0437\u0438\u043a'}
-              </span>
-              <button
-                onClick={toggleLang}
-                className="px-2.5 py-1 rounded-lg text-xs font-bold tracking-widest uppercase transition-colors"
-                style={{ color: 'var(--text-secondary)', backgroundColor: 'var(--bg-global)' }}
-                onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--border-default)')}
-                onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'var(--bg-global)')}
-              >
-                {lang === 'en' ? '\u0411\u0413' : 'EN'}
-              </button>
-            </div>
+              {lang === 'en' ? '\u0411\u0413' : 'EN'}
+            </button>
+          </DropdownMenuItem>
 
-            {/* Theme */}
-            <div
-              className="flex items-center justify-between px-4 py-2.5"
-              style={{ borderTop: '1px solid var(--border-default)' }}
+          {/* Theme */}
+          <DropdownMenuItem
+            onSelect={e => e.preventDefault()}
+            className="flex items-center justify-between px-4 py-2.5"
+            style={{ borderTop: '1px solid var(--border-default)', cursor: 'default' }}
+          >
+            <span className="text-sm font-body" style={{ color: 'var(--text-secondary)' }}>
+              {themeMounted ? (theme === 'light' ? 'Light mode' : 'Dark mode') : 'Theme'}
+            </span>
+            <button
+              onClick={toggleTheme}
+              className="px-2.5 py-1 rounded-lg text-xs font-bold tracking-widest uppercase transition-colors"
+              style={{ color: 'var(--text-secondary)', backgroundColor: 'var(--bg-global)' }}
+              onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--border-default)')}
+              onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'var(--bg-global)')}
             >
-              <span className="text-sm font-body" style={{ color: 'var(--text-secondary)' }}>
-                {themeMounted ? (theme === 'light' ? 'Light mode' : 'Dark mode') : 'Theme'}
-              </span>
-              <button
-                onClick={toggleTheme}
-                className="px-2.5 py-1 rounded-lg text-xs font-bold tracking-widest uppercase transition-colors"
-                style={{ color: 'var(--text-secondary)', backgroundColor: 'var(--bg-global)' }}
-                onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--border-default)')}
-                onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'var(--bg-global)')}
-              >
-                {!themeMounted ? '\u2026' : theme === 'light' ? '\uD83C\uDF19' : '\u2600\uFE0F'}
-              </button>
-            </div>
+              {!themeMounted ? '\u2026' : theme === 'light' ? '\uD83C\uDF19' : '\u2600\uFE0F'}
+            </button>
+          </DropdownMenuItem>
 
-            {/* Sign out */}
+          {/* Sign out */}
+          <DropdownMenuItem asChild>
             <button
               onClick={() => signOut({ redirectUrl: '/' })}
-              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors"
+              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors cursor-pointer"
               style={{ color: 'var(--brand-crimson)', borderTop: '1px solid var(--border-default)', backgroundColor: 'transparent' }}
               onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--bg-global)')}
               onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
@@ -210,9 +193,9 @@ export default function UserDropdown() {
               </svg>
               Sign out
             </button>
-          </div>
+          </DropdownMenuItem>
         </div>
-      )}
-    </div>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }
