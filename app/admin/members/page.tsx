@@ -353,7 +353,7 @@ function LosTable({
     )
   }
 
-  const { pageIndex, pageSize } = table.getState().pagination
+  const { pageIndex } = table.getState().pagination
   const totalPages = table.getPageCount()
 
   return (
@@ -1129,7 +1129,7 @@ function LosTab() {
     staleTime: 5 * 60 * 1000,
   })
 
-  const flatNodes = Array.isArray(treeResponse?.nodes) ? treeResponse.nodes : []
+  const flatNodes = treeResponse?.nodes ?? []
   const allDefinitions = Array.isArray(definitionsRaw) ? definitionsRaw : []
   const definitions = allDefinitions.filter(d => d.is_active)
 
@@ -1141,7 +1141,6 @@ function LosTab() {
         body: JSON.stringify({ definition_id: definitionId }),
       }).then(r => r.json()),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['los-tree'] }),
-    onError: (err) => console.error('[vital-signs] check failed:', err),
   })
 
   const uncheckMutation = useMutation({
@@ -1150,7 +1149,6 @@ function LosTab() {
         method: 'DELETE',
       }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['los-tree'] }),
-    onError: (err) => console.error('[vital-signs] uncheck failed:', err),
   })
 
   const isPending = checkMutation.isPending || uncheckMutation.isPending
