@@ -11,7 +11,6 @@ import {
   createColumnHelper,
   flexRender,
   type SortingState,
-  type ColumnFiltersState,
   type VisibilityState,
 } from '@tanstack/react-table'
 import { getRoleColors } from '@/lib/role-colors'
@@ -317,8 +316,8 @@ function LosTable({
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    globalFilterFn: (row, _colId, filterValue: string) => {
-      const q = filterValue.toLowerCase()
+    globalFilterFn: (row, _colId, filterValue: unknown) => {
+      const q = typeof filterValue === 'string' ? filterValue.toLowerCase() : ''
       const m = row.original
       const name = m.profile
         ? `${m.profile.first_name} ${m.profile.last_name}`.toLowerCase()
@@ -386,7 +385,7 @@ function LosTable({
                   <input
                     type="checkbox"
                     checked={table.getColumn(colId)?.getIsVisible() ?? true}
-                    onChange={table.getColumn(colId)?.getToggleVisibilityHandler()}
+                    onChange={e => table.getColumn(colId)?.getToggleVisibilityHandler()(e)}
                     className="w-3.5 h-3.5 accent-[var(--brand-crimson)]"
                   />
                   <span className="text-xs" style={{ color: 'var(--text-primary)' }}>{COL_LABELS[colId]}</span>
