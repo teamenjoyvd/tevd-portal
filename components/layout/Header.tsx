@@ -19,6 +19,7 @@ export default function Header() {
   const { data: unreadData } = useUnreadCount()
   const { lang } = useLanguage()
   const unread = unreadData?.count ?? 0
+  const [bellOpen, setBellOpen] = useState(false)
   const [guestPopupOpen, setGuestPopupOpen] = useState(false)
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const guestRef = useRef<HTMLDivElement>(null)
@@ -127,7 +128,7 @@ export default function Header() {
 
             {isSignedIn ? (
               <>
-                <Popover>
+                <Popover open={bellOpen} onOpenChange={setBellOpen}>
                   <PopoverTrigger asChild>
                     <button
                       className="relative w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors"
@@ -150,9 +151,7 @@ export default function Header() {
                     </button>
                   </PopoverTrigger>
                   <PopoverContent>
-                    {({ close }: { close: () => void }) => (
-                      <NotificationPopup onClose={close} />
-                    )}
+                    <NotificationPopup onClose={() => setBellOpen(false)} />
                   </PopoverContent>
                 </Popover>
                 <UserDropdown />
