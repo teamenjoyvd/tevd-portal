@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Playfair_Display, Montserrat, Cormorant_Garamond, DM_Sans } from 'next/font/google'
 import { ClerkProvider } from '@clerk/nextjs'
+import { cookies } from 'next/headers'
 import Providers from './providers'
 import './globals.css'
 import '../styles/brand-tokens.css'
@@ -35,10 +36,24 @@ export const metadata: Metadata = {
   description: 'Team Portal for teamenjoyVD',
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+const ALLOWED_FONT_SIZES = ['sm', 'md', 'lg'] as const
+type FontSizeCookie = typeof ALLOWED_FONT_SIZES[number]
+
+function resolveFont(raw: string | undefined): FontSizeCookie {
+  return (ALLOWED_FONT_SIZES as readonly string[]).includes(raw ?? '') ? (raw as FontSizeCookie) : 'md'
+}
+
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const cookieStore = await cookies()
+  const fontSizeCookie = resolveFont(cookieStore.get('tevd-font-size')?.value)
+
   return (
     <ClerkProvider afterSignOutUrl="/">
-      <html lang="en" className={`${playfair.variable} ${montserrat.variable} ${cormorant.variable} ${dmSans.variable}`}>
+      <html
+        lang="en"
+        data-font-size={fontSizeCookie}
+        className={`${playfair.variable} ${montserrat.variable} ${cormorant.variable} ${dmSans.variable}`}
+      >
         <head>
           {/*
             Blocking inline script: apply stored theme BEFORE first paint.

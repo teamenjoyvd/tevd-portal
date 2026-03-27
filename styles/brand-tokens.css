@@ -33,7 +33,16 @@
   --bento-border-hover: rgba(188, 71, 73, 0.30);
   --bento-accent-edge:  4px;
   --bento-padding:      20px;
+
+  /* ── Font scale (SEQ272) ── */
+  --font-scale: 1;
 }
+
+[data-font-size='sm'] { --font-scale: 0.875; }
+[data-font-size='md'] { --font-scale: 1; }
+[data-font-size='lg'] { --font-scale: 1.125; }
+
+html { font-size: calc(var(--font-scale) * 16px); }
 
 [data-theme="dark"] {
   --bg-global-rgb:  26, 31, 24;   /* #1A1F18 — required for rgba() header backdrop */
