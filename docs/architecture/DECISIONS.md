@@ -1,5 +1,5 @@
 # DECISIONS.md — Architecture Decision Records
-> tevd-portal · Last updated: 2026-03-26
+> tevd-portal · Last updated: 2026-03-28
 > Format: Context | Decision | Consequences (Benefits / Risks / Mitigations)
 > Records are never deleted. Superseded records are marked and linked to their replacement.
 
@@ -22,6 +22,7 @@
 | ADR-011 | RLS as defence-in-depth layer; canonical policy pattern uses Clerk JWT helper functions | 2026-03 | Active |
 | ADR-012 | Feature-based folder structure: co-locate route-scoped components | 2026-03 | Active |
 | ADR-013 | shadcn/ui as the mandatory primitive library for interactive components | 2026-03 | Active |
+| ADR-014 | Cookie-based transport for UI preference synchronisation | 2026-03-28 | Active |
 
 ---
 
@@ -539,7 +540,7 @@ Existing hand-rolled components (`Drawer.tsx`, `UserDropdown`, `UserPopup`, `Not
 | Hover hint | `Tooltip` | `npx shadcn@latest add tooltip` |
 
 ### Installation note
-`npx shadcn@latest init` was intentionally NOT run in SEQ247 — the CLI assumes Tailwind v3 and would have corrupted `globals.css`. Components are added individually via `npx shadcn@latest add <name>`, which only touches `components/ui/`. This is the correct workflow for this stack.
+`npx shadcn@latest init` was intentionally NOT run in SEQ247 — the CLI assumes Tailwind v3 and would have corrupted `globals.css`. Components are added individually via `npx shadcn@latest add <n>`, which only touches `components/ui/`. This is the correct workflow for this stack.
 
 ### Consequences
 
@@ -558,3 +559,78 @@ Existing hand-rolled components (`Drawer.tsx`, `UserDropdown`, `UserPopup`, `Not
 - After every `npx shadcn@latest add`, review the diff in `globals.css` before committing — revert any injected `@layer base` blocks that conflict with `brand-tokens.css`
 - Z-index conflict with Mapbox: use `style={{ zIndex: 50 }}` on the portal container if a shadcn overlay appears behind the map canvas
 - CSS variable naming conflict: shadcn components in `components/ui/` can be edited post-install to reference project tokens (`var(--bg-card)` instead of `var(--card)`) — this is expected and permitted
+
+---
+
+## ADR-014 — Cookie-Based Transport for UI Preference Synchronisation
+
+**Date:** 2026-03-28
+**Status:** Active
+
+### Context
+The font-size scaling feature (SEQ272–274) requires UI preferences to be applied before first paint to avoid a flash of unstyled/wrong-size content (FOUC). Two approaches were evaluated:
+
+**Option A — `localStorage` + inline blocking script:**
+Write the preference to `localStorage` on mutation. On every page load, inject a synchronous `<script>` in `<head>` that reads `localStorage` and applies the `data-font-size` attribute to `<html>` before the browser paints. Requires `suppressHydrationWarning` on `<html>` because the server renders a different attribute value than the client script sets.
+
+**Option B — Cookie as boot transport (chosen):**
+Write a lightweight cookie (`tevd-font-size`) on mutation. `app/layout.tsx` reads the cookie server-side via `cookies()` from `next/headers` and applies `data-font-size` directly to `<html>` in the server-rendered HTML. No inline script needed. No hydration mismatch — server and client render identical HTML.
+
+### The flaw in Option A
+`localStorage` is device-local and not available on the server. This means:
+- A user with preference `lg` who logs in on a new device gets no cookie, no `localStorage` entry, and no inline script value — the page renders `md`, then shifts to `lg` after `useFontSize` mounts and fetches `ui_prefs`. This is a FOUC on every new device, every incognito session, and every cache clear.
+- More critically: the tevd-portal root layout is already dynamic because `clerkMiddleware` in `proxy.ts` reads session cookies on every request. Avoiding a server-side cookie read to "prevent making the layout dynamic" is a false optimisation — the layout is already dynamic. Option A pays the dynamic rendering tax without the UX benefit.
+
+### Decision
+UI preferences that affect the initial render (font size, and any future cosmetic preferences) use a cookie as the boot transport layer:
+
+1. **Source of truth:** `profiles.ui_prefs` (JSONB). Cross-device, persisted in the database.
+2. **Boot transport:** A named cookie (e.g., `tevd-font-size=lg`). Device-local. Set by the client on mutation. Read by `app/layout.tsx` on every request.
+3. **SSR execution:** `app/layout.tsx` reads the cookie via `cookies()` and applies the `data-*` attribute to `<html>`. Server and client render identical HTML. No `suppressHydrationWarning`.
+4. **Mutation:** Client updates DOM attribute → writes cookie → PATCHes `/api/profile` (fire and forget).
+5. **Cross-device reconciliation:** `useFontSize` hook reads `ui_prefs` from the profile API on mount. If it differs from the current DOM attribute (which reflects the cookie), it reconciles: updates DOM and overwrites the cookie. This is the one-time sync path for new devices.
+
+**Do not use `localStorage` for any preference that needs to be applied at SSR time.** See Consequences.
+
+### FOUC Contract
+
+| Scenario | Outcome |
+|---|---|
+| Returning user, same device | ✅ Zero FOUC. Cookie present → server renders correct attribute. |
+| Returning user, new device / incognito | ⚠️ One-time FOUC on first load only. Server renders `md` (no cookie) → hook reconciles after profile fetch → cookie set → all subsequent loads FOUC-free. |
+| Mutation | ✅ Immediate DOM update (optimistic). Cookie written synchronously. |
+| Cookie tampered / invalid value | ✅ `app/layout.tsx` validates and falls back to `'md'`. |
+
+The one-time new-device FOUC is an **accepted engineering tradeoff**. Eliminating it would require a blocking DB read in the root layout on every request to resolve `ui_prefs` without a client round-trip — an anti-pattern for a purely cosmetic preference.
+
+### Responsibility Boundaries
+
+| Layer | Owns |
+|---|---|
+| `app/layout.tsx` | Reads cookie. Applies `data-*` attribute to `<html>`. Validates value. |
+| `useFontSize` hook | Reads `ui_prefs` from API. Reconciles DOM on mount if cookie differs. Writes cookie on mutation. PATCHes `/api/profile`. |
+| `/api/profile` PATCH | Merges preference key into `ui_prefs` JSONB without clobbering other keys. |
+
+Full sequence diagram: `docs/architecture/ui-state-sync.md`.
+
+### Extending This Pattern
+Any future cosmetic preference that must be applied at SSR time follows this same pattern: named cookie + `app/layout.tsx` read + dedicated hook. Do not use `localStorage`. Do not use inline `<script>` tags in `<head>`.
+
+### Consequences
+
+**Benefits:**
+- Zero FOUC for all returning sessions on any device
+- No inline script tag in `<head>` — no HTML parser blocking
+- No `suppressHydrationWarning` — server and client agree on the rendered HTML
+- Pattern is straightforward to extend to future preferences
+- Exploits the existing dynamic rendering cost of Clerk auth — no additional infrastructure cost
+
+**Risks:**
+- One-time FOUC on first login per device is unavoidable without a blocking DB read (accepted)
+- Cookie is device-local — cross-device sync depends on `useFontSize` reconciliation after profile load
+- Cookie can be cleared by the user; the next load will FOUC once and re-sync (acceptable — same as new device)
+
+**Mitigations:**
+- The one-time FOUC is documented as accepted in this ADR and in `docs/architecture/ui-state-sync.md`
+- Cookie validation in `app/layout.tsx` prevents injection of arbitrary `data-font-size` values
+- `useFontSize` reconciliation on mount ensures `ui_prefs` always wins over a stale or missing cookie
