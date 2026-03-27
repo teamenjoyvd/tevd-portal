@@ -22,12 +22,12 @@ export async function GET() {
   return Response.json(data)
 }
 
-export async function PATCH(req: Request) {
+export async function PATCH(req: Request): Promise<Response> {
   const { userId } = await auth()
   if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
   const supabase = createServiceClient()
-  const body = await req.json()
+  const body = await req.json() as Record<string, unknown>
 
   // Whitelist updatable fields — clerk_id, role, abo_number not patchable here
   const allowed = [
@@ -40,6 +40,23 @@ export async function PATCH(req: Request) {
   const patch = Object.fromEntries(
     Object.entries(body).filter(([k]) => allowed.includes(k))
   )
+
+  // ui_prefs must be merged, not replaced — callers send partial shapes
+  // (e.g. { font_size: 'lg' }) and must not clobber bento_order / bento_collapsed.
+  if (patch.ui_prefs !== undefined) {
+    const { data: existing, error: fetchError } = await supabase
+      .from('profiles')
+      .select('ui_prefs')
+      .eq('clerk_id', userId)
+      .single()
+
+    if (fetchError) return Response.json({ error: fetchError.message }, { status: 500 })
+
+    patch.ui_prefs = {
+      ...(existing?.ui_prefs as Record<string, unknown> ?? {}),
+      ...(patch.ui_prefs as Record<string, unknown>),
+    }
+  }
 
   const { data, error } = await supabase
     .from('profiles')
