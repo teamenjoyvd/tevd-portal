@@ -3,7 +3,14 @@
 import Link from 'next/link'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { useTheme } from '@/lib/hooks/useTheme'
+import { useFontSize, type FontSize } from '@/lib/hooks/useFontSize'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
+
+const FONT_STEPS: { value: FontSize; label: string }[] = [
+  { value: 'sm', label: 'A-' },
+  { value: 'md', label: 'A' },
+  { value: 'lg', label: 'A+' },
+]
 
 export default function UserPopup({
   open,
@@ -16,6 +23,7 @@ export default function UserPopup({
 }) {
   const { lang, toggle: toggleLang, t } = useLanguage()
   const { theme, mounted: themeMounted, toggle: toggleTheme } = useTheme()
+  const { fontSize, setFontSize, resetFontSize } = useFontSize()
 
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
@@ -75,6 +83,39 @@ export default function UserPopup({
             {!themeMounted ? '\u2026' : theme === 'light' ? '\uD83C\uDF19' : '\u2600\uFE0F'}
           </span>
         </button>
+
+        {/* Font size */}
+        <div className="flex items-center justify-between px-3 py-1">
+          <span style={{ color: 'var(--text-secondary)' }} className="text-xs uppercase tracking-widest">
+            Text size
+          </span>
+          <div className="flex items-center gap-1">
+            {FONT_STEPS.map(({ value, label }) => (
+              <button
+                key={value}
+                onClick={() => void setFontSize(value)}
+                className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-xs font-bold transition-colors"
+                style={{
+                  backgroundColor: fontSize === value ? 'var(--brand-crimson)' : 'var(--bg-global)',
+                  color: fontSize === value ? 'var(--brand-parchment)' : 'var(--text-secondary)',
+                }}
+                aria-pressed={fontSize === value}
+                aria-label={`Font size ${label}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+        {fontSize !== 'md' && (
+          <button
+            onClick={() => void resetFontSize()}
+            className="text-xs text-center transition-opacity hover:opacity-70"
+            style={{ color: 'var(--brand-crimson)' }}
+          >
+            Reset text size
+          </button>
+        )}
       </PopoverContent>
     </Popover>
   )
