@@ -4,9 +4,10 @@ import Link from 'next/link'
 import BentoGrid from '@/components/bento/BentoGrid'
 import BentoCard, { Eyebrow } from '@/components/bento/BentoCard'
 import ProfileTile from '@/app/(dashboard)/components/tiles/ProfileTile'
-import GuidesTile from '@/app/(dashboard)/components/tiles/GuidesTile'
+import LinksGuidesTile from '@/app/(dashboard)/components/tiles/LinksGuidesTile'
 import LocationTile from '@/app/(dashboard)/components/tiles/LocationTileLazy'
 import ThemeTile from '@/app/(dashboard)/components/tiles/ThemeTile'
+import FontSizeTile from '@/app/(dashboard)/components/tiles/FontSizeTile'
 import SocialsTile from '@/app/(dashboard)/components/tiles/SocialsTile'
 import { formatDate, formatTime, calDay, calMonth } from '@/lib/format'
 
@@ -25,9 +26,6 @@ const EVENT_TYPE_LABELS: Record<string, string> = {
   'hybrid': 'Hybrid',
 }
 
-/** Normalise any user-entered URL to a fully-qualified https:// href.
- *  Handles: domain.com | www.domain.com | http://... | https://...
- */
 function normaliseUrl(raw: string): string {
   const trimmed = raw.trim()
   if (!trimmed) return '#'
@@ -35,7 +33,6 @@ function normaliseUrl(raw: string): string {
   return `https://${trimmed}`
 }
 
-/** Return event duration as a human-readable string, e.g. "1h 30m" or "45m" */
 function eventDuration(startIso: string, endIso: string | null | undefined): string {
   if (!endIso) return ''
   const diffMs = new Date(endIso).getTime() - new Date(startIso).getTime()
@@ -62,7 +59,7 @@ export default async function HomePage() {
   const [announcementsRes, quickLinksRes, eventsRes, tripsRes] = await Promise.all([
     supabase.from('announcements').select('*').eq('is_active', true)
       .contains('access_level', [role]).order('created_at', { ascending: false }).limit(5),
-    supabase.from('quick_links').select('*').contains('access_level', [role]).order('sort_order').limit(4),
+    supabase.from('quick_links').select('*').contains('access_level', [role]).order('sort_order').limit(6),
     supabase.from('calendar_events').select('id, title, start_time, end_time, week_number, event_type')
       .contains('visibility_roles', [role]).gte('start_time', new Date().toISOString()).order('start_time').limit(3),
     supabase.from('trips').select('id, title, destination, start_date, image_url')
@@ -127,7 +124,6 @@ export default async function HomePage() {
                       </p>
                     )}
                   </div>
-                  {/* Date box: 33% month / 67% date number */}
                   <div className="flex flex-col items-center flex-shrink-0 rounded-lg overflow-hidden" style={{ width: 40 }}>
                     <div className="w-full text-center py-0.5" style={{ backgroundColor: 'var(--brand-crimson)', flex: '0 0 33%' }}>
                       <span className="text-[8px] font-bold tracking-widest uppercase" style={{ color: 'rgba(255,255,255,0.9)' }}>
@@ -149,11 +145,10 @@ export default async function HomePage() {
 
         <ProfileTile colSpan={2} rowSpan={2} halfWidthMobile />
 
-        {/* ── ROW 2: Trips col-3 | Announcements col-6 | Links col-3 ── */}
+        {/* ── ROW 2: Trips col-3 | Announcements col-6 | Theme col-1 | FontSize col-2 ── */}
 
         {nextTrip && (
         <BentoCard variant="crimson" colSpan={3} rowSpan={2} halfWidthMobile className="bento-tile relative overflow-hidden p-0" style={{ animationDelay: '200ms' }}>
-          {/* Full-bleed background image */}
           {nextTrip.image_url && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -166,7 +161,6 @@ export default async function HomePage() {
               }}
             />
           )}
-          {/* Top row: destination badge (left) + link (right) */}
           <div className="absolute top-0 left-0 right-0 flex items-start justify-between px-5 pt-5 z-10">
             <span
               className="font-body text-[11px] font-bold px-2.5 py-1 rounded-full"
@@ -182,7 +176,6 @@ export default async function HomePage() {
               View trips →
             </Link>
           </div>
-          {/* Bottom block: title + date */}
           <div className="absolute bottom-0 left-0 right-0 px-5 pb-5 z-10">
             <h3
               className="font-display text-2xl font-semibold leading-tight"
@@ -212,7 +205,7 @@ export default async function HomePage() {
               <span style={{ color: 'var(--brand-crimson)' }}>{announcementTitle!.split(' ').slice(-1)[0]}</span>
             </h2>
             {announcementContent && (
-              <p className="font-body text-sm leading-relaxed" style={{ color: 'var(--text-secondary)', display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+              <p className="font-body text-sm leading-relaxed" style={{ color: 'var(--text-secondary)', display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' } as React.CSSProperties}>
                 {announcementContent}
               </p>
             )}
@@ -220,49 +213,29 @@ export default async function HomePage() {
         </BentoCard>
         )}
 
-        {quickLinks.length > 0 && (
-        <BentoCard variant="teal" colSpan={3} rowSpan={2} halfWidthMobile className="bento-tile flex flex-col" style={{ animationDelay: '300ms' }}>
-          <div className="flex items-center justify-between mb-4">
-            <Eyebrow style={{ color: 'var(--brand-parchment)' }}>Quick Access</Eyebrow>
-            <Link href="/links" className="font-body text-[11px] font-bold tracking-widest uppercase hover:underline" style={{ color: 'var(--brand-parchment)', opacity: 0.7 }}>All →</Link>
-          </div>
-          <div className="flex flex-col gap-1.5 flex-1">
-            {quickLinks.map(link => (
-              <a key={link.id} href={normaliseUrl(link.url)} target="_blank" rel="noopener noreferrer"
-                className="font-body flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium truncate hover:opacity-80 transition-opacity"
-                style={{ backgroundColor: 'rgba(255,255,255,0.12)', color: 'var(--brand-parchment)' }}>
-                <span style={{ flexShrink: 0, opacity: 0.7 }}>→</span>
-                <span className="truncate">{link.label}</span>
-              </a>
-            ))}
-          </div>
-        </BentoCard>
-        )}
+        <ThemeTile colSpan={1} rowSpan={2} halfWidthMobile />
+        <FontSizeTile colSpan={2} rowSpan={2} halfWidthMobile />
 
-        {/* ── ROW 3: Socials col-4 | Theme col-2 | Map col-3 | About Us col-3 ── */}
+        {/* ── ROW 3: Socials col-4 | Map col-3 | About Us col-2 | LinksGuides col-3 ── */}
 
         <SocialsTile colSpan={4} rowSpan={2} halfWidthMobile />
 
-        <ThemeTile colSpan={2} rowSpan={2} halfWidthMobile />
-
         <LocationTile colSpan={3} rowSpan={2} halfWidthMobile />
 
-        <BentoCard variant="default" colSpan={3} rowSpan={2} halfWidthMobile className="bento-tile flex flex-col" style={{ animationDelay: '450ms' }}>
+        <BentoCard variant="default" colSpan={2} rowSpan={2} halfWidthMobile className="bento-tile flex flex-col" style={{ animationDelay: '450ms' }}>
           <div className="flex items-center justify-between mb-4">
             <Eyebrow>About Us</Eyebrow>
             <Link href="/about" className="font-body text-[11px] font-bold tracking-widest uppercase hover:underline" style={{ color: 'var(--brand-crimson)' }}>Our story →</Link>
           </div>
           <div className="flex-1">
             <h2 className="font-display text-xl font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>Hey there!</h2>
-            <p className="font-body text-sm leading-relaxed" style={{ color: 'var(--text-secondary)', display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+            <p className="font-body text-sm leading-relaxed" style={{ color: 'var(--text-secondary)', display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' } as React.CSSProperties}>
               We&apos;re Vera &amp; Deniz, two folks living it up in Sofia, Bulgaria. All about good vibes, meaningful connections, and building rock-solid relationships.
             </p>
           </div>
         </BentoCard>
 
-        {/* ── ROW 4: Guides col-3 ── */}
-
-        <GuidesTile colSpan={3} rowSpan={2} halfWidthMobile />
+        <LinksGuidesTile quickLinks={quickLinks} colSpan={3} rowSpan={2} halfWidthMobile />
 
       </BentoGrid>
     </div>

@@ -6,10 +6,11 @@ import { useTheme } from '@/lib/hooks/useTheme'
 import { useFontSize, type FontSize } from '@/lib/hooks/useFontSize'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 
+// Exposed font sizes — sm is legacy (kept in type/cookie for compat) but not offered in UI
 const FONT_STEPS: { value: FontSize; label: string }[] = [
-  { value: 'sm', label: 'A-' },
-  { value: 'md', label: 'A' },
-  { value: 'lg', label: 'A+' },
+  { value: 'md', label: 'Default' },
+  { value: 'lg', label: '+1' },
+  { value: 'xl', label: '+2' },
 ]
 
 export default function UserPopup({
