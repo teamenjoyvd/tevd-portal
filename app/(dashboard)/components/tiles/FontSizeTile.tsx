@@ -36,9 +36,11 @@ function LetterAIcon({ size, color }: { size: number; color: string }) {
 export default function FontSizeTile({
   colSpan = 2,
   rowSpan,
+  halfWidthMobile = false,
 }: {
   colSpan?: number
   rowSpan?: number
+  halfWidthMobile?: boolean
 }) {
   const { fontSize, setFontSize } = useFontSize()
 
@@ -47,6 +49,7 @@ export default function FontSizeTile({
       variant="default"
       colSpan={colSpan}
       rowSpan={rowSpan}
+      halfWidthMobile={halfWidthMobile}
       className="flex flex-col"
       style={{ minHeight: 120 }}
     >
@@ -71,7 +74,7 @@ export default function FontSizeTile({
                 color={active ? 'var(--brand-parchment)' : 'var(--text-primary)'}
               />
               <span
-                className="font-body text-[10px] font-semibold tracking-wide"
+                className="hidden lg:block font-body text-[10px] font-semibold tracking-wide"
                 style={{
                   color: active ? 'rgba(250,248,243,0.85)' : 'var(--text-secondary)',
                 }}

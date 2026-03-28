@@ -217,8 +217,8 @@ export default async function HomePage() {
 
         {/* Theme: col-3 (quarter of 12-col grid). halfWidthMobile = span 6 on mobile. */}
         <ThemeTile colSpan={3} rowSpan={2} halfWidthMobile />
-        {/* FontSize: col-3 (quarter). No halfWidthMobile — holds span 3 on mobile to stay on same row as ThemeTile. */}
-        <FontSizeTile colSpan={3} rowSpan={2} />
+        {/* FontSize: col-3 (quarter). halfWidthMobile = span 6 on mobile, pairs with ThemeTile. */}
+        <FontSizeTile colSpan={3} rowSpan={2} halfWidthMobile />
 
         {/* ── ROW 3: Socials col-4 | Map col-3 | About Us col-2 | LinksGuides col-3 ── */}
 
