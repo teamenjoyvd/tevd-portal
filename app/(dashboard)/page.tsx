@@ -145,7 +145,9 @@ export default async function HomePage() {
 
         <ProfileTile colSpan={2} rowSpan={2} halfWidthMobile />
 
-        {/* ── ROW 2: Trips col-3 | Announcements col-6 | Theme col-1 | FontSize col-2 ── */}
+        {/* ── ROW 2: Trips col-3 | Announcements col-6 | Theme col-3 | FontSize col-3 ──
+             Desktop: 3+6+3 = 12 (trips absent) | 3+6+3+3 = 15 — trips present overflows.
+             With trips: 3 (trips) + 6 (ann) + 3 (theme) = 12 — FontSize wraps to next row. Intentional. */}
 
         {nextTrip && (
         <BentoCard variant="crimson" colSpan={3} rowSpan={2} halfWidthMobile className="bento-tile relative overflow-hidden p-0" style={{ animationDelay: '200ms' }}>
@@ -213,8 +215,10 @@ export default async function HomePage() {
         </BentoCard>
         )}
 
-        <ThemeTile colSpan={1} rowSpan={2} halfWidthMobile />
-        <FontSizeTile colSpan={2} rowSpan={2} />
+        {/* Theme: col-3 (quarter of 12-col grid). halfWidthMobile = span 6 on mobile. */}
+        <ThemeTile colSpan={3} rowSpan={2} halfWidthMobile />
+        {/* FontSize: col-3 (quarter). No halfWidthMobile — holds span 3 on mobile to stay on same row as ThemeTile. */}
+        <FontSizeTile colSpan={3} rowSpan={2} />
 
         {/* ── ROW 3: Socials col-4 | Map col-3 | About Us col-2 | LinksGuides col-3 ── */}
 
