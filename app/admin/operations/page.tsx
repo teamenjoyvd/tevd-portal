@@ -7,6 +7,16 @@ import Link from 'next/link'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { formatDate, formatCurrency } from '@/lib/format'
 import { Drawer } from '@/components/ui/Drawer'
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from '@/components/ui/alert-dialog'
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -111,6 +121,7 @@ function TripsTab({ trips, isLoading }: { trips: Trip[]; isLoading: boolean }) {
   const [form, setForm] = useState<Omit<Trip, 'id' | 'currency'>>(emptyTrip())
   const [milestoneInput, setMilestoneInput] = useState({ label: '', amount: '', due_date: '' })
   const [error, setError] = useState<string | null>(null)
+  const [alertTarget, setAlertTarget] = useState<{ id: string; name: string } | null>(null)
 
   function openCreate() {
     setEditing(null)
@@ -226,7 +237,7 @@ function TripsTab({ trips, isLoading }: { trips: Trip[]; isLoading: boolean }) {
               <div className="flex items-center gap-3 flex-shrink-0">
                 <button onClick={() => openEdit(trip)} className="text-xs hover:opacity-70 transition-opacity" style={{ color: 'var(--text-secondary)' }}>Edit</button>
                 <button
-                  onClick={() => { if (window.confirm(`Delete "${trip.title}"?`)) deleteMutation.mutate(trip.id) }}
+                  onClick={() => setAlertTarget({ id: trip.id, name: trip.title })}
                   className="text-xs hover:opacity-70 transition-opacity"
                   style={{ color: 'var(--brand-crimson)' }}
                 >Delete</button>
@@ -367,6 +378,28 @@ function TripsTab({ trips, isLoading }: { trips: Trip[]; isLoading: boolean }) {
           </div>
         </div>
       </Drawer>
+
+      <AlertDialog open={!!alertTarget} onOpenChange={open => { if (!open) setAlertTarget(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete trip</AlertDialogTitle>
+            <AlertDialogDescription>
+              Delete &ldquo;{alertTarget?.name}&rdquo;? This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (alertTarget) deleteMutation.mutate(alertTarget.id)
+                setAlertTarget(null)
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </section>
   )
 }
