@@ -15,7 +15,7 @@ type Guide = {
   emoji: string | null
 }
 
-export default function GuidesTile({ colSpan = 6, rowSpan, halfWidthMobile }: { colSpan?: number; rowSpan?: number; halfWidthMobile?: boolean }) {
+export default function GuidesTile({ colSpan = 6, rowSpan, mobileColSpan }: { colSpan?: number; rowSpan?: number; mobileColSpan?: number }) {
   const { isLoaded } = useUser()
   const { lang } = useLanguage()
   const maxItems = useTileMaxItems('guides', 4)
@@ -30,7 +30,7 @@ export default function GuidesTile({ colSpan = 6, rowSpan, halfWidthMobile }: { 
   if (guides.length === 0) return null
 
   return (
-    <BentoCard variant="default" colSpan={colSpan} rowSpan={rowSpan} halfWidthMobile={halfWidthMobile} className="flex flex-col">
+    <BentoCard variant="default" colSpan={colSpan} rowSpan={rowSpan} mobileColSpan={mobileColSpan} className="flex flex-col">
       <div className="flex items-center justify-between mb-4">
         <Eyebrow>Guides</Eyebrow>
         <Link
