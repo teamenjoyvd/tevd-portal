@@ -2,8 +2,7 @@
 
 import { Suspense, useEffect } from 'react'
 import { useState } from 'react'
-import { useSearchParams } from 'next/navigation'
-import Link from 'next/link'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useBentoConfig, type BentoConfigEntry } from '@/lib/hooks/useBentoConfig'
 import type { Dispatch, SetStateAction } from 'react'
@@ -18,6 +17,7 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
 } from '@/components/ui/alert-dialog'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 
 // ── Shared drag handle ───────────────────────────────────────────────
 
@@ -556,6 +556,7 @@ type TabKey = typeof TABS[number]['key']
 
 function ContentPageInner() {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const tab = (searchParams.get('tab') ?? 'announcements') as TabKey
   const qc = useQueryClient()
 
@@ -904,28 +905,18 @@ function ContentPageInner() {
         </h1>
       </div>
 
-      {/* ── Tabs ── */}
-      <div>
-        <div className="flex gap-1 border-b mb-6" style={{ borderColor: 'var(--border-default)' }}>
+      <Tabs
+        value={tab}
+        onValueChange={(val) => router.replace(`?tab=${val}`, { scroll: false })}
+      >
+        <TabsList className="mb-6 flex-wrap h-auto gap-1">
           {TABS.map(t => (
-            <Link
-              key={t.key}
-              href={`/admin/content?tab=${t.key}`}
-              scroll={false}
-              className="px-4 py-2.5 text-sm font-semibold transition-colors relative"
-              style={{
-                color: tab === t.key ? 'var(--text-primary)' : 'var(--text-secondary)',
-                borderBottom: tab === t.key ? '2px solid var(--brand-crimson)' : '2px solid transparent',
-                marginBottom: '-1px',
-              }}
-            >
-              {t.label}
-            </Link>
+            <TabsTrigger key={t.key} value={t.key}>{t.label}</TabsTrigger>
           ))}
-        </div>
+        </TabsList>
 
         {/* ── Announcements tab ── */}
-        {tab === 'announcements' && (
+        <TabsContent value="announcements">
           <section>
             <div className="flex gap-2 mb-4">
               {LANGS.map(l => (
@@ -1057,10 +1048,10 @@ function ContentPageInner() {
               </div>
             </Drawer>
           </section>
-        )}
+        </TabsContent>
 
         {/* ── Quick Links tab ── */}
-        {tab === 'links' && (
+        <TabsContent value="links">
           <section>
             <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-6 mb-4">
               <div className="grid grid-cols-4 gap-3 mb-4">
@@ -1164,10 +1155,10 @@ function ContentPageInner() {
               </div>
             </Drawer>
           </section>
-        )}
+        </TabsContent>
 
         {/* ── Guides tab ── */}
-        {tab === 'guides' && (
+        <TabsContent value="guides">
           <section className="space-y-6">
             <div className="flex items-center justify-between">
               <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
@@ -1278,10 +1269,10 @@ function ContentPageInner() {
               </AlertDialogContent>
             </AlertDialog>
           </section>
-        )}
+        </TabsContent>
 
         {/* ── Social Posts tab ── */}
-        {tab === 'socials' && (
+        <TabsContent value="socials">
           <section className="space-y-6">
             <div className="rounded-2xl border p-6 space-y-4" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
               <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--brand-crimson)' }}>Add post</p>
@@ -1415,11 +1406,13 @@ function ContentPageInner() {
               </AlertDialogContent>
             </AlertDialog>
           </section>
-        )}
+        </TabsContent>
 
         {/* ── Bento tab ── */}
-        {tab === 'bento' && <BentoSettings />}
-      </div>
+        <TabsContent value="bento">
+          <BentoSettings />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

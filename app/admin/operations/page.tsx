@@ -2,8 +2,7 @@
 
 import { Suspense } from 'react'
 import { useState } from 'react'
-import { useSearchParams } from 'next/navigation'
-import Link from 'next/link'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { formatDate, formatCurrency } from '@/lib/format'
 import { Drawer } from '@/components/ui/Drawer'
@@ -27,6 +26,7 @@ import {
   SelectSeparator,
   SelectGroup,
 } from '@/components/ui/select'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -979,6 +979,7 @@ function PaymentsTab({ trips }: { trips: Trip[] }) {
 
 function OperationsInner() {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const tab = (searchParams.get('tab') ?? 'trips') as TabKey
 
   const { data: trips = [], isLoading: tripsLoading } = useQuery<Trip[]>({
@@ -994,30 +995,26 @@ function OperationsInner() {
         </h1>
       </div>
 
-      {/* Tabs */}
-      <div>
-        <div className="flex gap-1 border-b mb-6" style={{ borderColor: 'var(--border-default)' }}>
+      <Tabs
+        value={tab}
+        onValueChange={(val) => router.replace(`?tab=${val}`, { scroll: false })}
+      >
+        <TabsList className="mb-6">
           {TABS.map(t => (
-            <Link
-              key={t.key}
-              href={`/admin/operations?tab=${t.key}`}
-              scroll={false}
-              className="px-4 py-2.5 text-sm font-semibold transition-colors relative"
-              style={{
-                color: tab === t.key ? 'var(--text-primary)' : 'var(--text-secondary)',
-                borderBottom: tab === t.key ? '2px solid var(--brand-crimson)' : '2px solid transparent',
-                marginBottom: '-1px',
-              }}
-            >
-              {t.label}
-            </Link>
+            <TabsTrigger key={t.key} value={t.key}>{t.label}</TabsTrigger>
           ))}
-        </div>
+        </TabsList>
 
-        {tab === 'trips' && <TripsTab trips={trips} isLoading={tripsLoading} />}
-        {tab === 'items' && <ItemsTab trips={trips} />}
-        {tab === 'payments' && <PaymentsTab trips={trips} />}
-      </div>
+        <TabsContent value="trips">
+          <TripsTab trips={trips} isLoading={tripsLoading} />
+        </TabsContent>
+        <TabsContent value="items">
+          <ItemsTab trips={trips} />
+        </TabsContent>
+        <TabsContent value="payments">
+          <PaymentsTab trips={trips} />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
