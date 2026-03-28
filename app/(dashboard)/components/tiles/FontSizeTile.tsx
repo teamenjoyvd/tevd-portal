@@ -24,7 +24,7 @@ function LetterAIcon({ size, color }: { size: number; color: string }) {
         textAnchor="middle"
         fontSize="28"
         fontWeight="600"
-        fontFamily="Georgia, serif"
+        style={{ fontFamily: 'var(--font-cormorant)' }}
         fill={color}
       >
         A
