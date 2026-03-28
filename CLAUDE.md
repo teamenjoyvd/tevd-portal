@@ -1,5 +1,5 @@
 # CLAUDE.md — teamenjoyVD Portal
-> Last updated: 2026-03-26 — v2.0.7. Latest stable commit: 2f7f0fd.
+> Last updated: 2026-03-28 — v2.0.8. Latest stable commit: e86a7e7.
 > Architecture docs live in `docs/architecture/`. Reference tables live in `docs/ai/LOOKUP.md`. Orienting context in `docs/ai/CONTEXT.md`.
 > **Neither CONTEXT.md nor LOOKUP.md is read at SSU or at GATHER start.**
 
@@ -60,7 +60,7 @@ If any ❌ — stop. Do not proceed to task work.
 | State | TanStack Query v5 | `QueryClientProvider` in `app/providers.tsx`. |
 | Styling | Tailwind CSS v4 | No `@layer` + `@apply`. Inline utilities only. Exceptions: `globals.css`, `styles/brand-tokens.css`. |
 | Maps | Mapbox GL JS v2.15.0 | CDN only — never npm. Token: `NEXT_PUBLIC_MAPBOX_TOKEN`. |
-| UI Primitives | shadcn/ui | Installed manually (no `npx init` — Tailwind v4 incompatible). Add components via `npx shadcn@latest add <name>`. Source vended into `components/ui/`. |
+| UI Primitives | shadcn/ui | Installed manually (no `npx init` — Tailwind v4 incompatible). Add components via `npx shadcn@latest add <n>`. Source vended into `components/ui/`. |
 | Middleware | `proxy.ts` | **NEVER create `middleware.ts`.** |
 | Deployment | Vercel | Team: `teamenjoyvd`. Project: `prj_HFZJZg2vkLtpX8XvjJlo3mDkSCyn`. |
 | Repo | `teamenjoyvd/tevd-portal` | Private, `main` only. Never ask user for repo — always use this. |
@@ -174,8 +174,9 @@ Duplicate-safe: always filter `Duplicate = false/empty`; discard `fld2P6m5fMOsi1
 | `TeamAttendee` type | Exported from `app/(dashboard)/trips/[id]/page.tsx`. Do not redeclare. |
 | RLS pattern | New policies MUST use Pattern A helpers: `is_admin()`, `get_my_role()`, `get_my_profile_id()`, `get_my_clerk_id()`. Never `auth.jwt() ->> 'sub'` (resolves to Supabase Auth UUID, not Clerk user — silently non-functional). See ADR-011. |
 | Component co-location | New components scoped to a single route live in `app/[route]/components/`. Only promote to `/components` when used by 2+ unrelated routes. Exempt: `components/layout`, `components/bento`, `components/ui`. See ADR-012. |
-| shadcn/ui install method | NEVER run `npx shadcn@latest init` — it assumes Tailwind v3 and corrupts `globals.css`. Add components individually: `npx shadcn@latest add <name>`. After each add, review the `globals.css` diff and revert any injected `@layer base` blocks. |
+| shadcn/ui install method | NEVER run `npx shadcn@latest init` — it assumes Tailwind v3 and corrupts `globals.css`. Add components individually: `npx shadcn@latest add <n>`. After each add, review the `globals.css` diff and revert any injected `@layer base` blocks. |
 | shadcn CSS variable conflicts | shadcn components reference `--background`, `--foreground`, etc. Edit the vended component source in `components/ui/` to use project tokens (`--bg-card`, `--text-primary`) instead. |
+| shadcn Tabs — MUST be controlled | NEVER use `defaultValue` on `<Tabs>`. Mobile users rely on hardware back/swipe; uncontrolled tabs break navigation. Always use `value={tab}` (from `useSearchParams`) + `onValueChange={(val) => router.replace(`?tab=${val}`, { scroll: false })}`. The `scroll: false` option is mandatory — without it, tab switches scroll the page to top on mobile. Wrap the component calling `useSearchParams()` in `<Suspense>` (server shell pattern). |
 
 ---
 
