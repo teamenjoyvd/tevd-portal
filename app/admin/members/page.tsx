@@ -15,6 +15,14 @@ import {
 } from '@tanstack/react-table'
 import { getRoleColors } from '@/lib/role-colors'
 import { formatDate } from '@/lib/format'
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '@/components/ui/table'
 
 // ── Shared types ─────────────────────────────────────────────────────
 
@@ -398,16 +406,16 @@ function LosTable({
 
       {/* Table */}
       <div className="bg-white rounded-2xl border border-black/5 shadow-sm overflow-hidden">
-        <table className="w-full border-collapse">
-          <thead>
+        <Table className="border-collapse">
+          <TableHeader>
             {table.getHeaderGroups().map(hg => (
-              <tr key={hg.id} style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+              <TableRow key={hg.id} style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }} className="border-0 hover:bg-transparent">
                 {hg.headers.map(header => {
                   const isMobileHidden = MOBILE_HIDDEN.has(header.id)
                   return (
-                    <th
+                    <TableHead
                       key={header.id}
-                      className={`px-4 py-3 text-left${isMobileHidden ? ' hidden lg:table-cell' : ''}`}
+                      className={`py-3${isMobileHidden ? ' hidden lg:table-cell' : ''}`}
                       style={{ color: 'var(--text-secondary)' }}
                     >
                       {header.isPlaceholder ? null : (
@@ -423,33 +431,34 @@ function LosTable({
                           )}
                         </div>
                       )}
-                    </th>
+                    </TableHead>
                   )
                 })}
-              </tr>
+              </TableRow>
             ))}
-          </thead>
-          <tbody>
+          </TableHeader>
+          <TableBody>
             {table.getRowModel().rows.map((row, i) => (
-              <tr
+              <TableRow
                 key={row.id}
+                className="border-0 hover:bg-transparent"
                 style={{ borderTop: i > 0 ? '1px solid rgba(0,0,0,0.05)' : 'none' }}
               >
                 {row.getVisibleCells().map(cell => {
                   const isMobileHidden = MOBILE_HIDDEN.has(cell.column.id)
                   return (
-                    <td
+                    <TableCell
                       key={cell.id}
-                      className={`px-4 py-3${isMobileHidden ? ' hidden lg:table-cell' : ''}`}
+                      className={`py-3${isMobileHidden ? ' hidden lg:table-cell' : ''}`}
                     >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
+                    </TableCell>
                   )
                 })}
-              </tr>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
 
       {/* Pagination */}
