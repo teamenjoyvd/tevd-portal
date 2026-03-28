@@ -8,6 +8,16 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useBentoConfig, type BentoConfigEntry } from '@/lib/hooks/useBentoConfig'
 import type { Dispatch, SetStateAction } from 'react'
 import { Drawer } from '@/components/ui/Drawer'
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from '@/components/ui/alert-dialog'
 
 // ── Shared drag handle ───────────────────────────────────────────────
 
@@ -549,13 +559,16 @@ function ContentPageInner() {
   const tab = (searchParams.get('tab') ?? 'announcements') as TabKey
   const qc = useQueryClient()
 
+  // ── Alert dialog state (SEQ268) ────────────────────
+  const [guideAlertTarget, setGuideAlertTarget] = useState<{ id: string; name: string } | null>(null)
+  const [socialAlertTarget, setSocialAlertTarget] = useState<{ id: string; name: string } | null>(null)
+
   // ── Announcements ───────────────────────────────────
   const { data: announcementsRaw = [] } = useQuery<Announcement[]>({
     queryKey: ['announcements'],
     queryFn: () => fetch('/api/admin/announcements').then(r => r.json()),
   })
   const [localAnnouncements, setLocalAnnouncements] = useState<Announcement[]>([])
-  // Sync on any data change (including in-place field updates, not just add/remove)
   useEffect(() => { setLocalAnnouncements([...announcementsRaw]) }, [announcementsRaw])
   const [aDragging, setADragging] = useState<string | null>(null)
 
@@ -1231,7 +1244,8 @@ function ContentPageInner() {
                       <button onClick={() => { setGuidesEditing(guide); setGuidesCreating(false); setGuidesMutError(null) }}
                         className="px-3 py-1 rounded-lg text-xs font-semibold border transition-colors hover:bg-black/5"
                         style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>Edit</button>
-                      <button onClick={() => { if (confirm(`Delete "${guide.title.en}"?`)) deleteGuide.mutate(guide.id) }}
+                      <button
+                        onClick={() => setGuideAlertTarget({ id: guide.id, name: guide.title.en || guide.slug })}
                         disabled={deleteGuide.isPending}
                         className="px-3 py-1 rounded-lg text-xs font-semibold transition-colors hover:bg-red-50 disabled:opacity-50"
                         style={{ color: 'var(--brand-crimson)' }}>Delete</button>
@@ -1240,6 +1254,29 @@ function ContentPageInner() {
                 ))}
               </div>
             )}
+
+            {/* Guide delete confirmation */}
+            <AlertDialog open={!!guideAlertTarget} onOpenChange={open => { if (!open) setGuideAlertTarget(null) }}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete guide</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Delete &ldquo;{guideAlertTarget?.name}&rdquo;? This cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => {
+                      if (guideAlertTarget) deleteGuide.mutate(guideAlertTarget.id)
+                      setGuideAlertTarget(null)
+                    }}
+                  >
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </section>
         )}
 
@@ -1345,13 +1382,38 @@ function ContentPageInner() {
                       style={{ borderColor: 'var(--border-default)', color: post.is_pinned ? 'var(--brand-crimson)' : 'var(--text-secondary)' }}>
                       {post.is_pinned ? 'Unpin' : 'Pin'}
                     </button>
-                    <button onClick={() => { if (window.confirm('Delete this post?')) deleteSocialPost.mutate(post.id) }} disabled={deleteSocialPost.isPending}
+                    <button
+                      onClick={() => setSocialAlertTarget({ id: post.id, name: post.caption ?? post.post_url })}
+                      disabled={deleteSocialPost.isPending}
                       className="text-xs font-medium hover:opacity-70 transition-opacity disabled:opacity-40"
                       style={{ color: 'var(--brand-crimson)' }}>Delete</button>
                   </div>
                 </div>
               ))}
             </div>
+
+            {/* Social post delete confirmation */}
+            <AlertDialog open={!!socialAlertTarget} onOpenChange={open => { if (!open) setSocialAlertTarget(null) }}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete post</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Delete this post? This cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => {
+                      if (socialAlertTarget) deleteSocialPost.mutate(socialAlertTarget.id)
+                      setSocialAlertTarget(null)
+                    }}
+                  >
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </section>
         )}
 
