@@ -50,21 +50,21 @@ export default function FontSizeTile({
       colSpan={colSpan}
       rowSpan={rowSpan}
       halfWidthMobile={halfWidthMobile}
-      className="flex flex-col"
+      className="flex flex-col items-center justify-center"
       style={{ minHeight: 120 }}
     >
       <Eyebrow style={{ marginBottom: '0.75rem' }}>Text Size</Eyebrow>
-      <div className="flex gap-2 flex-1">
+      <div className="flex items-center justify-center gap-2">
         {STEPS.map(({ value, label, iconSize }) => {
           const active = fontSize === value
           return (
             <button
               key={value}
               onClick={() => void setFontSize(value)}
-              className="flex-1 flex flex-col items-center justify-center gap-1.5 rounded-xl transition-colors"
+              className="w-11 h-11 flex flex-col items-center justify-center rounded-xl transition-colors"
               style={{
                 backgroundColor: active ? 'var(--brand-crimson)' : 'var(--bg-global)',
-                minHeight: 72,
+                border: active ? '1px solid transparent' : '1px solid var(--border-default)',
               }}
               aria-pressed={active}
               aria-label={`Font size: ${label}`}
@@ -73,14 +73,6 @@ export default function FontSizeTile({
                 size={iconSize}
                 color={active ? 'var(--brand-parchment)' : 'var(--text-primary)'}
               />
-              <span
-                className="hidden lg:block font-body text-[10px] font-semibold tracking-wide"
-                style={{
-                  color: active ? 'rgba(250,248,243,0.85)' : 'var(--text-secondary)',
-                }}
-              >
-                {label}
-              </span>
             </button>
           )
         })}
