@@ -214,7 +214,7 @@ export default async function HomePage() {
         )}
 
         <ThemeTile colSpan={1} rowSpan={2} halfWidthMobile />
-        <FontSizeTile colSpan={2} rowSpan={2} halfWidthMobile />
+        <FontSizeTile colSpan={2} rowSpan={2} />
 
         {/* ── ROW 3: Socials col-4 | Map col-3 | About Us col-2 | LinksGuides col-3 ── */}
 
