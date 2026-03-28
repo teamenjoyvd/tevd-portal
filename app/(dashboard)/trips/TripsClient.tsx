@@ -9,7 +9,6 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { formatDate, formatCurrency } from '@/lib/format'
 import type { Trip } from './page'
 
-// Shape returned by GET /api/profile/payments
 type ProfilePaymentRow = {
   registration_id: string
   registration_status: 'pending' | 'approved' | 'denied'
@@ -81,7 +80,11 @@ function TripCard({
   return (
     <div
       className="rounded-2xl overflow-hidden flex flex-col h-full"
-      style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}
+      style={{
+        backgroundColor: 'var(--bg-card)',
+        border: '1px solid var(--border-default)',
+        minHeight: 280,
+      }}
     >
       {trip.image_url && (
         // eslint-disable-next-line @next/next/no-img-element
@@ -94,11 +97,11 @@ function TripCard({
         />
       )}
 
-      <div className="px-5 pt-4 pb-5 flex flex-col gap-3 flex-1">
+      <div className="px-5 pt-5 pb-5 flex flex-col gap-3 flex-1">
         {/* Title row */}
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
-            <div className="flex flex-wrap items-center gap-1.5 mb-1">
+            <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
               <span
                 className="text-xs font-semibold px-2 py-0.5 rounded-full"
                 style={{ backgroundColor: 'var(--brand-forest)', color: 'rgba(255,255,255,0.85)' }}
@@ -115,7 +118,7 @@ function TripCard({
               )}
             </div>
             <h3
-              className="font-display text-lg font-semibold leading-snug"
+              className="font-display text-xl font-semibold leading-snug"
               style={{ color: 'var(--text-primary)' }}
             >
               {trip.title}
@@ -143,10 +146,36 @@ function TripCard({
           {formatDate(trip.start_date)} – {formatDate(trip.end_date)}
         </div>
 
-        {/* Registration status or CTA — always at bottom, no layout shift */}
+        {/* Desktop-only: description + location give the card body on larger screens */}
+        {trip.description && (
+          <p
+            className="hidden md:block text-sm leading-relaxed"
+            style={{
+              color: 'var(--text-secondary)',
+              display: '-webkit-box',
+              WebkitLineClamp: 3,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+            } as React.CSSProperties}
+          >
+            {trip.description}
+          </p>
+        )}
+
+        {trip.location && (
+          <div className="hidden md:flex items-center gap-1.5 text-xs" style={{ color: 'var(--text-secondary)' }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+              <circle cx="12" cy="10" r="3" />
+            </svg>
+            {trip.location}
+          </div>
+        )}
+
+        {/* CTA — always at bottom, skeleton holds space while reg data loads */}
         <div className="mt-auto flex flex-col gap-2">
           {regLoading && userRole !== 'guest' ? (
-            // Placeholder holds the space while registration data loads — prevents shift
             <Skeleton className="rounded-xl" style={{ height: 44 }} />
           ) : isRegistered && registrationStatus ? (
             <>
@@ -166,7 +195,7 @@ function TripCard({
             </>
           ) : userRole === 'guest' ? (
             <p
-              className="text-xs text-center py-2 rounded-xl"
+              className="text-xs text-center py-2.5 rounded-xl"
               style={{ color: 'var(--text-secondary)', backgroundColor: 'var(--border-default)' }}
             >
               {t('trips.memberOnly')}
@@ -191,19 +220,14 @@ export default function TripsClient({ initialTrips }: { initialTrips: Trip[] }) 
     enabled: !!isSignedIn,
   })
 
-  // Hydrate TanStack cache with server-prefetched trips so no client fetch needed on first render.
-  // Signed-in users may get a stale role-filtered list; the refetch below corrects it silently.
   const { data: trips = initialTrips } = useQuery<Trip[]>({
     queryKey: ['trips'],
     queryFn: () => fetch('/api/trips').then(r => r.json()),
     initialData: initialTrips,
-    // Re-fetch in background once auth is resolved so role-filtered results are fresh
     enabled: isLoaded,
     staleTime: 30_000,
   })
 
-  // profile-payments: fetch as soon as the user is signed in — no longer gated on profile.id
-  // The API resolves the profile server-side from the session cookie.
   const { data: profilePayments = [], isLoading: regLoading } = useQuery<ProfilePaymentRow[]>({
     queryKey: ['profile-payments'],
     queryFn: () => fetch('/api/profile/payments').then(r => r.json()),
@@ -226,93 +250,77 @@ export default function TripsClient({ initialTrips }: { initialTrips: Trip[] }) 
   })
 
   const userRole = profile?.role ?? (isSignedIn ? undefined : 'guest')
+  const isSingle = trips.length === 1
+
+  const emptyState = (
+    <div
+      className="rounded-2xl flex flex-col items-center justify-center py-16"
+      style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}
+    >
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
+        stroke="var(--text-secondary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+        className="mb-4">
+        <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+        <circle cx="12" cy="10" r="3" />
+      </svg>
+      <p className="font-medium" style={{ color: 'var(--text-primary)' }}>{t('trips.noTrips')}</p>
+      <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>{t('trips.noTripsDesc')}</p>
+    </div>
+  )
+
+  const cardProps = (trip: Trip) => {
+    const row = regByTripId[trip.id]
+    return {
+      trip,
+      registrationStatus: row?.registration_status,
+      isCancelled: !!row?.cancelled_at,
+      regLoading: regLoading && !!isSignedIn,
+      profileId: profile?.id ?? null,
+      onCancel: (id: string) => cancelMutation.mutate(id),
+      isCancelling: cancelMutation.isPending,
+      t,
+      userRole: userRole ?? 'guest',
+    }
+  }
 
   return (
     <div className="py-8 pb-16">
       <div className="max-w-[860px] mx-auto px-4 sm:px-6 xl:px-8">
 
-        {/* Mobile: single-column stack */}
+        {/* Mobile */}
         <div className="md:hidden flex flex-col gap-3">
-          {trips.length === 0 ? (
+          {trips.length === 0 ? emptyState : trips.map(trip => (
+            <TripCard key={trip.id} {...cardProps(trip)} />
+          ))}
+        </div>
+
+        {/* Desktop */}
+        <div className="hidden md:block">
+          {trips.length === 0 ? emptyState : (
             <div
-              className="rounded-2xl flex flex-col items-center justify-center py-16"
-              style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
+                gap: '12px',
+              }}
             >
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
-                stroke="var(--text-secondary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
-                className="mb-4">
-                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" />
-              </svg>
-              <p className="font-medium" style={{ color: 'var(--text-primary)' }}>{t('trips.noTrips')}</p>
-              <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>{t('trips.noTripsDesc')}</p>
-            </div>
-          ) : (
-            trips.map(trip => {
-              const row = regByTripId[trip.id]
-              return (
-                <TripCard
+              {trips.map((trip, i) => (
+                <div
                   key={trip.id}
-                  trip={trip}
-                  registrationStatus={row?.registration_status}
-                  isCancelled={!!row?.cancelled_at}
-                  regLoading={regLoading && !!isSignedIn}
-                  profileId={profile?.id ?? null}
-                  onCancel={id => cancelMutation.mutate(id)}
-                  isCancelling={cancelMutation.isPending}
-                  t={t}
-                  userRole={userRole ?? 'guest'}
-                />
-              )
-            })
+                  style={{
+                    // Single card: span 8 centred (col 3–10). Two-up: span 6 each.
+                    gridColumn: isSingle
+                      ? '3 / span 8'
+                      : 'span 6',
+                  }}
+                >
+                  <TripCard {...cardProps(trip)} />
+                </div>
+              ))}
+            </div>
           )}
         </div>
 
-        {/* Desktop: 2-up grid */}
-        <div
-          className="hidden md:grid"
-          style={{
-            gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
-            gap: '12px',
-          }}
-        >
-          {trips.length === 0 ? (
-            <div
-              style={{
-                gridColumn: 'span 12',
-                backgroundColor: 'var(--bg-card)',
-                border: '1px solid var(--border-default)',
-              }}
-              className="rounded-2xl flex flex-col items-center justify-center py-16"
-            >
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
-                stroke="var(--text-secondary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
-                className="mb-4">
-                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" />
-              </svg>
-              <p className="font-medium" style={{ color: 'var(--text-primary)' }}>{t('trips.noTrips')}</p>
-              <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>{t('trips.noTripsDesc')}</p>
-            </div>
-          ) : (
-            trips.map(trip => {
-              const row = regByTripId[trip.id]
-              return (
-                <div key={trip.id} style={{ gridColumn: 'span 6' }}>
-                  <TripCard
-                    trip={trip}
-                    registrationStatus={row?.registration_status}
-                    isCancelled={!!row?.cancelled_at}
-                    regLoading={regLoading && !!isSignedIn}
-                    profileId={profile?.id ?? null}
-                    onCancel={id => cancelMutation.mutate(id)}
-                    isCancelling={cancelMutation.isPending}
-                    t={t}
-                    userRole={userRole ?? 'guest'}
-                  />
-                </div>
-              )
-            })
-          )}
-        </div>
       </div>
     </div>
   )
