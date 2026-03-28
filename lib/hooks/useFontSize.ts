@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useCallback } from 'react'
+import { useSyncExternalStore, useEffect, useCallback } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 export type FontSize = 'sm' | 'md' | 'lg' | 'xl'
@@ -29,12 +29,31 @@ function applyToDOM(value: FontSize): void {
   document.documentElement.setAttribute('data-font-size', value)
 }
 
+// External store: subscribe to the tevd-font-size-change window event.
+function subscribe(callback: () => void): () => void {
+  window.addEventListener(DOM_EVENT, callback)
+  return () => window.removeEventListener(DOM_EVENT, callback)
+}
+
+// getSnapshot: read DOM attribute, fall back to cookie.
+function getSnapshot(): FontSize {
+  const attr = document.documentElement.getAttribute('data-font-size')
+  return isValidFontSize(attr) ? attr : readCookie()
+}
+
+// getServerSnapshot: no DOM access permitted on the server.
+function getServerSnapshot(): FontSize {
+  return DEFAULT
+}
+
 export function useFontSize(): {
   fontSize: FontSize
   setFontSize: (value: FontSize) => Promise<void>
   resetFontSize: () => Promise<void>
 } {
   const queryClient = useQueryClient()
+
+  const fontSize = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
 
   const { data: profileUiPrefs } = useQuery<{ font_size?: FontSize } | undefined>({
     queryKey: ['profile-ui-prefs-font-size'],
@@ -47,6 +66,8 @@ export function useFontSize(): {
     staleTime: Infinity,
   })
 
+  // Profile sync: when the server value differs from the local cookie, apply it
+  // and notify all store subscribers so useSyncExternalStore re-reads.
   useEffect(() => {
     const cookieVal = readCookie()
     const profileVal = profileUiPrefs?.font_size
@@ -55,6 +76,7 @@ export function useFontSize(): {
     if (profileVal !== cookieVal) {
       applyToDOM(profileVal)
       writeCookie(profileVal)
+      window.dispatchEvent(new Event(DOM_EVENT))
     }
   }, [profileUiPrefs])
 
@@ -82,12 +104,6 @@ export function useFontSize(): {
   const resetFontSize = useCallback((): Promise<void> => {
     return setFontSize(DEFAULT)
   }, [setFontSize])
-
-  const fontSize: FontSize = (() => {
-    if (typeof document === 'undefined') return DEFAULT
-    const attr = document.documentElement.getAttribute('data-font-size')
-    return isValidFontSize(attr) ? attr : readCookie()
-  })()
 
   return { fontSize, setFontSize, resetFontSize }
 }
