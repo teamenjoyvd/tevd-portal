@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useSearchParams } from 'next/navigation'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { DAYS_I18N, MONTHS_I18N } from '@/lib/i18n/translations'
-import EventPopup from '@/components/events/EventPopup'
+import EventPopup from '@/app/(dashboard)/calendar/components/EventPopup'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -31,7 +31,7 @@ type Props = {
   isAuthenticated: boolean
 }
 
-// ── Constants ──────────────────────────────────────────────────────────
+// ── Constants ────────────────────────────────────────────────────────
 
 const HOURS  = Array.from({ length: 24 }, (_, i) => i)
 const HOUR_HEIGHT = 60
@@ -41,7 +41,7 @@ const CATEGORY_COLOR: Record<string, { bg: string; text: string }> = {
   Personal: { bg: 'var(--sienna)', text: 'rgba(255,255,255,0.95)' },
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────
+// ── Helpers ──────────────────────────────────────────────────────────────────
 
 function isoWeek(date: Date): number {
   const d = new Date(date)
@@ -92,7 +92,7 @@ function eventDurationMinutes(start: string, end: string): number {
   return Math.max(30, (new Date(end).getTime() - new Date(start).getTime()) / 60000)
 }
 
-// ── Event pill ────────────────────────────────────────────────────────────────────
+// ── Event pill ────────────────────────────────────────────────────────────────────────
 
 function EventPill({
   event, onClick, compact = false,
@@ -128,7 +128,7 @@ function EventPill({
   )
 }
 
-// ── Month View ─────────────────────────────────────────────────────────────────────
+// ── Month View ────────────────────────────────────────────────────────────────────────
 
 function MonthView({
   current, events, onEventClick, onDayClick,
@@ -221,7 +221,7 @@ function MonthView({
   )
 }
 
-// ── Agenda View ─────────────────────────────────────────────────────────────────────────
+// ── Agenda View ────────────────────────────────────────────────────────────────────────────
 
 function AgendaView({
   events, onEventClick, isLoading, highlightId,
@@ -350,7 +350,7 @@ function AgendaView({
   )
 }
 
-// ── Main ───────────────────────────────────────────────────────────────────────────
+// ── Main ─────────────────────────────────────────────────────────────────────────────
 
 export default function CalendarClient({
   initialEvents,
