@@ -29,7 +29,7 @@ export default function FontSizeTile({
       className="flex flex-col"
       style={{ minHeight: 120 }}
     >
-      <Eyebrow className="mb-3">Text</Eyebrow>
+      <Eyebrow style={{ marginBottom: '0.75rem' }}>Text</Eyebrow>
       <div className="flex flex-col gap-1.5 flex-1 justify-center">
         {STEPS.map(({ value, label, sublabel }) => {
           const active = fontSize === value
