@@ -6,7 +6,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { formatDate, formatCurrency } from '@/lib/format'
 import { getRoleColors } from '@/lib/role-colors'
 import { Drawer } from '@/components/ui/Drawer'
-import RegisterButton from '@/components/trips/RegisterButton'
+import RegisterButton from './components/RegisterButton'
 import type { Tables } from '@/types/supabase'
 import type { TripState, TripProfile, TripPayment, TeamAttendee } from './page'
 
