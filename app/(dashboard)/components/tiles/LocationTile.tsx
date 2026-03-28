@@ -14,9 +14,17 @@ function getMapStyle(): string {
     : 'mapbox://styles/mapbox/light-v11'
 }
 
-function LocationFallback({ colSpan, rowSpan, halfWidthMobile }: { colSpan: number; rowSpan?: number; halfWidthMobile?: boolean }) {
+function LocationFallback({
+  colSpan,
+  mobileColSpan,
+  rowSpan,
+}: {
+  colSpan: number
+  mobileColSpan?: number
+  rowSpan?: number
+}) {
   return (
-    <BentoCard variant="forest" colSpan={colSpan} rowSpan={rowSpan} halfWidthMobile={halfWidthMobile}
+    <BentoCard variant="forest" colSpan={colSpan} mobileColSpan={mobileColSpan} rowSpan={rowSpan}
       className="relative flex items-end"
       style={{ border: 'none' }}>
       <div className="absolute inset-0 flex items-center justify-center opacity-10">
@@ -40,7 +48,15 @@ function LocationFallback({ colSpan, rowSpan, halfWidthMobile }: { colSpan: numb
   )
 }
 
-export default function LocationTile({ colSpan = 6, rowSpan, halfWidthMobile }: { colSpan?: number; rowSpan?: number; halfWidthMobile?: boolean }) {
+export default function LocationTile({
+  colSpan = 6,
+  mobileColSpan = 12,
+  rowSpan,
+}: {
+  colSpan?: number
+  mobileColSpan?: number
+  rowSpan?: number
+}) {
   const mapContainer = useRef<HTMLDivElement>(null)
   const mapRef = useRef<{ remove: () => void; setStyle: (s: string) => void; once: (e: string, cb: () => void) => void } | null>(null)
   const [ready, setReady] = useState(false)
@@ -110,15 +126,14 @@ export default function LocationTile({ colSpan = 6, rowSpan, halfWidthMobile }: 
     }
   }, [])
 
-  if (!TOKEN) return <LocationFallback colSpan={colSpan} rowSpan={rowSpan} halfWidthMobile={halfWidthMobile} />
+  if (!TOKEN) return <LocationFallback colSpan={colSpan} mobileColSpan={mobileColSpan} rowSpan={rowSpan} />
 
   return (
-    <BentoCard variant="forest" colSpan={colSpan} rowSpan={rowSpan} halfWidthMobile={halfWidthMobile}
+    <BentoCard variant="forest" colSpan={colSpan} mobileColSpan={mobileColSpan} rowSpan={rowSpan}
       className="relative overflow-hidden p-0"
       style={{ minHeight: 200, border: 'none' }}>
       <div ref={mapContainer} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} />
 
-      {/* Sofia label overlay */}
       <div className="absolute bottom-4 left-4 z-10 flex items-center gap-2 px-3 py-1.5 rounded-full"
         style={{ backgroundColor: 'rgba(26,31,24,0.75)', backdropFilter: 'blur(4px)' }}>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none"

@@ -24,13 +24,13 @@ function normaliseUrl(raw: string): string {
 export default function LinksGuidesTile({
   quickLinks,
   colSpan = 3,
+  mobileColSpan = 12,
   rowSpan,
-  halfWidthMobile,
 }: {
   quickLinks: QuickLink[]
   colSpan?: number
+  mobileColSpan?: number
   rowSpan?: number
-  halfWidthMobile?: boolean
 }) {
   const { isLoaded } = useUser()
   const { lang } = useLanguage()
@@ -51,11 +51,10 @@ export default function LinksGuidesTile({
     <BentoCard
       variant="default"
       colSpan={colSpan}
+      mobileColSpan={mobileColSpan}
       rowSpan={rowSpan}
-      halfWidthMobile={halfWidthMobile}
       className="flex flex-col gap-4"
     >
-      {/* Quick links section */}
       {hasLinks && (
         <div>
           <div className="flex items-center justify-between mb-2">
@@ -82,12 +81,10 @@ export default function LinksGuidesTile({
         </div>
       )}
 
-      {/* Divider between sections */}
       {hasLinks && hasGuides && (
         <div className="h-px w-full" style={{ backgroundColor: 'var(--border-default)' }} />
       )}
 
-      {/* Guides section */}
       {hasGuides && (
         <div className="flex flex-col flex-1">
           <div className="flex items-center justify-between mb-2">

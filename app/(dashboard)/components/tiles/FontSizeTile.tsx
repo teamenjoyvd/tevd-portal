@@ -35,12 +35,12 @@ function LetterAIcon({ size, color }: { size: number; color: string }) {
 
 export default function FontSizeTile({
   colSpan = 2,
+  mobileColSpan = 12,
   rowSpan,
-  halfWidthMobile = false,
 }: {
   colSpan?: number
+  mobileColSpan?: number
   rowSpan?: number
-  halfWidthMobile?: boolean
 }) {
   const { fontSize, setFontSize } = useFontSize()
 
@@ -48,8 +48,8 @@ export default function FontSizeTile({
     <BentoCard
       variant="default"
       colSpan={colSpan}
+      mobileColSpan={mobileColSpan}
       rowSpan={rowSpan}
-      halfWidthMobile={halfWidthMobile}
       className="flex flex-col items-center justify-center"
       style={{ minHeight: 120 }}
     >

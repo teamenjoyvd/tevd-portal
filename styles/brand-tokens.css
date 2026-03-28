@@ -117,15 +117,7 @@ html { font-size: calc(var(--font-scale) * 16px); }
 }
 
 @media (max-width: 767px) {
-  .bento-grid {
-    grid-template-columns: repeat(12, minmax(0, 1fr));
-  }
-
-  .bento-mobile-full {
-    grid-column: 1 / -1 !important;
-  }
-
-  .bento-mobile-half {
-    grid-column: span 6 !important;
+  .bento-grid > * {
+    grid-column: span var(--mobile-col-span, 12);
   }
 }

@@ -19,7 +19,15 @@ const ROLE_STYLES: Record<string, { bg: string; color: string }> = {
   guest:  { bg: 'rgba(0,0,0,0.06)',     color: 'var(--text-secondary)'  },
 }
 
-export default function ProfileTile({ colSpan = 3, rowSpan, halfWidthMobile }: { colSpan?: number; rowSpan?: number; halfWidthMobile?: boolean }) {
+export default function ProfileTile({
+  colSpan = 3,
+  mobileColSpan = 12,
+  rowSpan,
+}: {
+  colSpan?: number
+  mobileColSpan?: number
+  rowSpan?: number
+}) {
   const { isLoaded, isSignedIn, user } = useUser()
 
   const { data: profile } = useQuery<Profile>({
@@ -60,7 +68,7 @@ export default function ProfileTile({ colSpan = 3, rowSpan, halfWidthMobile }: {
   // Loading state
   if (!isLoaded) {
     return (
-      <BentoCard variant="default" colSpan={colSpan} rowSpan={rowSpan} halfWidthMobile={halfWidthMobile} className="flex flex-col justify-between">
+      <BentoCard variant="default" colSpan={colSpan} mobileColSpan={mobileColSpan} rowSpan={rowSpan} className="flex flex-col justify-between">
         <div className="h-6 w-24 rounded-lg animate-pulse" style={{ backgroundColor: 'var(--border-default)' }} />
         <div className="h-4 w-16 rounded-lg animate-pulse mt-3" style={{ backgroundColor: 'var(--border-default)' }} />
       </BentoCard>
@@ -70,7 +78,7 @@ export default function ProfileTile({ colSpan = 3, rowSpan, halfWidthMobile }: {
   // Unauthenticated guest
   if (!isSignedIn) {
     return (
-      <BentoCard variant="default" colSpan={colSpan} rowSpan={rowSpan} halfWidthMobile={halfWidthMobile} className="flex flex-col justify-between">
+      <BentoCard variant="default" colSpan={colSpan} mobileColSpan={mobileColSpan} rowSpan={rowSpan} className="flex flex-col justify-between">
         <div>
           <Eyebrow>{t('profile.eyebrow')}</Eyebrow>
           <h2 className="font-display text-2xl font-semibold mt-3"
@@ -95,7 +103,7 @@ export default function ProfileTile({ colSpan = 3, rowSpan, halfWidthMobile }: {
   // Unverified Member
   if (isUnverified) {
     return (
-      <BentoCard variant="default" colSpan={colSpan} rowSpan={rowSpan} halfWidthMobile={halfWidthMobile} className="flex flex-col justify-between">
+      <BentoCard variant="default" colSpan={colSpan} mobileColSpan={mobileColSpan} rowSpan={rowSpan} className="flex flex-col justify-between">
         <div>
           <Eyebrow>{t('profile.eyebrow')}</Eyebrow>
           <h2 className="font-display text-2xl font-semibold mt-3"
@@ -125,7 +133,7 @@ export default function ProfileTile({ colSpan = 3, rowSpan, halfWidthMobile }: {
 
   // Authenticated member+
   return (
-    <BentoCard variant="default" colSpan={colSpan} rowSpan={rowSpan} halfWidthMobile={halfWidthMobile} className="flex flex-col justify-between">
+    <BentoCard variant="default" colSpan={colSpan} mobileColSpan={mobileColSpan} rowSpan={rowSpan} className="flex flex-col justify-between">
       <div>
         <Eyebrow>{t('profile.eyebrow')}</Eyebrow>
         <h2 className="font-display text-2xl font-semibold mt-3"

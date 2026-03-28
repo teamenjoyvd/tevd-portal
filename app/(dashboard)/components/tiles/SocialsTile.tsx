@@ -49,7 +49,15 @@ function FacebookIcon() {
   )
 }
 
-export default function SocialsTile({ colSpan = 4, rowSpan, halfWidthMobile }: { colSpan?: number; rowSpan?: number; halfWidthMobile?: boolean }) {
+export default function SocialsTile({
+  colSpan = 4,
+  mobileColSpan = 12,
+  rowSpan,
+}: {
+  colSpan?: number
+  mobileColSpan?: number
+  rowSpan?: number
+}) {
   const { data, isLoading } = useQuery<SocialsData>({
     queryKey: ['socials'],
     queryFn: () => fetch('/api/socials').then(r => r.json()),
@@ -62,8 +70,8 @@ export default function SocialsTile({ colSpan = 4, rowSpan, halfWidthMobile }: {
     <BentoCard
       variant="default"
       colSpan={colSpan}
+      mobileColSpan={mobileColSpan}
       rowSpan={rowSpan}
-      halfWidthMobile={halfWidthMobile}
       className="bento-tile flex flex-col relative overflow-hidden"
       style={{ animationDelay: '350ms' }}
     >
@@ -110,7 +118,6 @@ export default function SocialsTile({ colSpan = 4, rowSpan, halfWidthMobile }: {
             className="flex gap-3 group mt-3 flex-1"
             style={{ textDecoration: 'none' }}
           >
-            {/* Caption + platform meta — grows to fill */}
             <div className="flex-1 min-w-0 flex flex-col justify-between">
               <div className="flex items-center gap-1.5 mb-1.5" style={{ color: 'var(--text-secondary)' }}>
                 {post.platform === 'instagram' ? <InstagramIcon /> : <FacebookIcon />}
@@ -135,7 +142,6 @@ export default function SocialsTile({ colSpan = 4, rowSpan, halfWidthMobile }: {
               )}
             </div>
 
-            {/* Thumbnail — right-aligned, 64×64, proxied to bypass CDN CORS block */}
             {post.thumbnail_url && (
               <div
                 className="flex-shrink-0 rounded-lg overflow-hidden self-start"

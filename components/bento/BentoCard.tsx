@@ -8,11 +8,11 @@ type BentoCardProps = {
   children: React.ReactNode
   variant?: CardVariant
   colSpan?: number
+  mobileColSpan?: number
   rowSpan?: number
-  fullWidthMobile?: boolean
-  halfWidthMobile?: boolean
   className?: string
   style?: React.CSSProperties
+  onClick?: React.MouseEventHandler<HTMLDivElement>
 }
 
 // ── KPI sub-component ──────────────────────────────────────────────────────
@@ -47,11 +47,11 @@ export default function BentoCard({
   children,
   variant = 'default',
   colSpan,
+  mobileColSpan = 12,
   rowSpan,
-  fullWidthMobile = false,
-  halfWidthMobile = false,
   className = '',
   style,
+  onClick,
 }: BentoCardProps) {
   const variantClass =
     variant === 'default'     ? 'card' :
@@ -62,14 +62,19 @@ export default function BentoCard({
     variant === 'edge-alert'  ? 'card card--edge-alert' :
     'card'
 
-  const spanStyle: React.CSSProperties = {}
-  if (colSpan) spanStyle.gridColumn = `span ${colSpan}`
-  if (rowSpan)  spanStyle.gridRow    = `span ${rowSpan}`
-
-  const mobileClass = fullWidthMobile ? ' bento-mobile-full' : halfWidthMobile ? ' bento-mobile-half' : ''
+  const spanStyle: React.CSSProperties = {
+    '--col-span': colSpan ?? 12,
+    '--mobile-col-span': mobileColSpan,
+    gridColumn: 'span var(--col-span)',
+    ...(rowSpan ? { gridRow: `span ${rowSpan}` } : {}),
+  } as React.CSSProperties
 
   return (
-  <div className={`${variantClass}${mobileClass} ${className}`} style={{ ...spanStyle, ...style }}>
+    <div
+      className={`${variantClass} ${className}`}
+      style={{ ...spanStyle, ...style }}
+      onClick={onClick}
+    >
       {children}
     </div>
   )
