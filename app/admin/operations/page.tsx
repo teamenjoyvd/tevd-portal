@@ -17,6 +17,16 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
 } from '@/components/ui/alert-dialog'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+  SelectLabel,
+  SelectSeparator,
+  SelectGroup,
+} from '@/components/ui/select'
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -554,11 +564,19 @@ function ItemsTab({ trips }: { trips: Trip[] }) {
             </div>
             <div>
               <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Type *</label>
-              <select value={form.item_type} onChange={e => setForm(f => ({ ...f, item_type: e.target.value as ItemForm['item_type'] }))}
-                className="w-full border rounded-xl px-3 py-2.5 text-sm"
-                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}>
-                {ITEM_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
+              <Select
+                value={form.item_type}
+                onValueChange={val => setForm(f => ({ ...f, item_type: val as ItemForm['item_type'] }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ITEM_TYPES.map(t => (
+                    <SelectItem key={t} value={t}>{t}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <div>
@@ -844,35 +862,46 @@ function PaymentsTab({ trips }: { trips: Trip[] }) {
         <div className="space-y-4">
           <div>
             <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Entity *</label>
-            <select value={entity} onChange={e => setEntity(e.target.value)}
-              className="w-full border rounded-xl px-3 py-2.5 text-sm"
-              style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}>
-              <option value="">Select entity…</option>
-              {trips.length > 0 && (
-                <optgroup label="Trips">
-                  {trips.map(t => <option key={t.id} value={`trip::${t.id}`}>{t.title}</option>)}
-                </optgroup>
-              )}
-              {activeItems.length > 0 && (
-                <optgroup label="Items">
-                  {activeItems.map(it => <option key={it.id} value={`item::${it.id}`}>{it.title}</option>)}
-                </optgroup>
-              )}
-            </select>
+            <Select value={entity} onValueChange={setEntity}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select entity…" />
+              </SelectTrigger>
+              <SelectContent>
+                {trips.length > 0 && (
+                  <SelectGroup>
+                    <SelectLabel>Trips</SelectLabel>
+                    {trips.map(t => (
+                      <SelectItem key={t.id} value={`trip::${t.id}`}>{t.title}</SelectItem>
+                    ))}
+                  </SelectGroup>
+                )}
+                {trips.length > 0 && activeItems.length > 0 && <SelectSeparator />}
+                {activeItems.length > 0 && (
+                  <SelectGroup>
+                    <SelectLabel>Items</SelectLabel>
+                    {activeItems.map(it => (
+                      <SelectItem key={it.id} value={`item::${it.id}`}>{it.title}</SelectItem>
+                    ))}
+                  </SelectGroup>
+                )}
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
             <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Member *</label>
-            <select value={profileId} onChange={e => setProfileId(e.target.value)}
-              className="w-full border rounded-xl px-3 py-2.5 text-sm"
-              style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}>
-              <option value="">Select member…</option>
-              {allMembers.map(m => (
-                <option key={m.id} value={m.id}>
-                  {m.last_name}, {m.first_name}{m.abo_number ? ` · ${m.abo_number}` : ''}
-                </option>
-              ))}
-            </select>
+            <Select value={profileId} onValueChange={setProfileId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select member…" />
+              </SelectTrigger>
+              <SelectContent>
+                {allMembers.map(m => (
+                  <SelectItem key={m.id} value={m.id}>
+                    {m.last_name}, {m.first_name}{m.abo_number ? ` · ${m.abo_number}` : ''}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -908,12 +937,15 @@ function PaymentsTab({ trips }: { trips: Trip[] }) {
 
           <div>
             <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Status</label>
-            <select value={payStatus} onChange={e => setPayStatus(e.target.value as 'approved' | 'pending')}
-              className="w-full border rounded-xl px-3 py-2.5 text-sm"
-              style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}>
-              <option value="approved">Approved</option>
-              <option value="pending">Pending</option>
-            </select>
+            <Select value={payStatus} onValueChange={val => setPayStatus(val as 'approved' | 'pending')}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="approved">Approved</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
