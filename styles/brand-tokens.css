@@ -62,6 +62,7 @@ html { font-size: calc(var(--font-scale) * 16px); }
   grid-template-columns: repeat(12, minmax(0, 1fr));
   gap: var(--bento-gap);
   grid-auto-rows: minmax(120px, auto);
+  grid-auto-flow: dense;
 }
 
 .card {
@@ -119,5 +120,6 @@ html { font-size: calc(var(--font-scale) * 16px); }
 @media (max-width: 767px) {
   .bento-grid > * {
     grid-column: span var(--mobile-col-span, 12);
+    grid-row: span 1;
   }
 }
