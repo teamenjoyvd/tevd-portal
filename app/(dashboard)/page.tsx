@@ -82,7 +82,12 @@ export default async function HomePage() {
           </div>
         </BentoCard>
 
-        <CalendarTile colSpan={3} mobileColSpan={12} rowSpan={2} />
+        <CalendarTile
+          colSpan={3}
+          mobileColSpan={12}
+          rowSpan={2}
+          style={{ gridColumn: '10 / span 3', gridRow: '1 / span 2' }}
+        />
 
         {/* ── ROW 2: Trip·3 | Announcement·3 | LinksGuides·3 (rowSpan=2) | Calendar* ── */}
 
@@ -152,7 +157,13 @@ export default async function HomePage() {
         </BentoCard>
         )}
 
-        <LinksGuidesTile quickLinks={quickLinks} colSpan={3} mobileColSpan={12} rowSpan={2} />
+        <LinksGuidesTile
+          quickLinks={quickLinks}
+          colSpan={3}
+          mobileColSpan={12}
+          rowSpan={2}
+          style={{ gridColumn: '7 / span 3', gridRow: '2 / span 2' }}
+        />
 
         {/* ── ROW 3: Theme·2 | FontSize·2 | Map·2 | LinksGuides* | Socials·3 ── */}
 
