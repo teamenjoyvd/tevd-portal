@@ -36,9 +36,10 @@ type Props = {
   colSpan?: number
   mobileColSpan?: number
   rowSpan?: number
+  style?: React.CSSProperties
 }
 
-export default function CalendarTile({ colSpan, mobileColSpan, rowSpan }: Props) {
+export default function CalendarTile({ colSpan, mobileColSpan, rowSpan, style }: Props) {
   const { isLoaded } = useUser()
 
   const { data: events = [] } = useQuery<CalendarEvent[]>({
@@ -60,7 +61,7 @@ export default function CalendarTile({ colSpan, mobileColSpan, rowSpan }: Props)
       mobileColSpan={mobileColSpan}
       rowSpan={rowSpan}
       className="bento-tile flex flex-col"
-      style={{ animationDelay: '150ms' }}
+      style={{ animationDelay: '150ms', ...style }}
     >
       <div className="flex items-center justify-between mb-4">
         <Eyebrow>Events</Eyebrow>

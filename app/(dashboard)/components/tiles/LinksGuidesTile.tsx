@@ -26,11 +26,13 @@ export default function LinksGuidesTile({
   colSpan = 3,
   mobileColSpan = 12,
   rowSpan,
+  style,
 }: {
   quickLinks: QuickLink[]
   colSpan?: number
   mobileColSpan?: number
   rowSpan?: number
+  style?: React.CSSProperties
 }) {
   const { isLoaded } = useUser()
   const { lang } = useLanguage()
@@ -54,6 +56,7 @@ export default function LinksGuidesTile({
       mobileColSpan={mobileColSpan}
       rowSpan={rowSpan}
       className="flex flex-col gap-4"
+      style={style}
     >
       {hasLinks && (
         <div>
