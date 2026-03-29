@@ -11,14 +11,6 @@ export function formatDate(iso: string): string {
   })
 }
 
-/** 18.03. (day + month, no year — for compact displays) */
-export function formatShortDate(iso: string): string {
-  const d = new Date(iso)
-  const day   = String(d.getDate()).padStart(2, '0')
-  const month = String(d.getMonth() + 1).padStart(2, '0')
-  return `${day}.${month}.`
-}
-
 /** Сряда, 18.03.2026 (weekday + full date, for event popups) */
 export function formatLongDate(iso: string): string {
   return new Date(iso).toLocaleDateString('bg-BG', {
