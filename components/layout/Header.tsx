@@ -63,7 +63,7 @@ export default function Header() {
             border: '1px solid var(--nav-border)',
           }}>
 
-          <Link href="/" className="flex items-center gap-2.5 flex-shrink-0">
+          <Link href="/" className="flex items-center gap-2.5 flex-shrink-0 interactive">
             <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0"
               style={{ border: '1px solid rgba(0,0,0,0.08)' }}>
               <Image
@@ -88,7 +88,7 @@ export default function Header() {
               <Link
                 key={href}
                 href={href}
-                className="px-3.5 py-1.5 rounded-lg text-xs font-semibold tracking-widest uppercase transition-colors"
+                className="interactive px-3.5 py-1.5 rounded-lg text-xs font-semibold tracking-widest uppercase transition-colors"
                 style={{
                   color: isActive(href) ? 'var(--brand-crimson)' : 'var(--text-nav)',
                   backgroundColor: isActive(href) ? 'rgba(188,71,73,0.06)' : 'transparent',
@@ -102,7 +102,7 @@ export default function Header() {
           <div className="flex items-center gap-2 ml-auto">
             {/* Hamburger — visible below lg (covers portrait + landscape phones, portrait tablet) */}
             <button
-              className="lg:hidden w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors"
+              className="interactive lg:hidden w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors"
               onClick={() => setMobileNavOpen(o => !o)}
               aria-label="Toggle navigation"
               aria-expanded={mobileNavOpen}
@@ -130,7 +130,7 @@ export default function Header() {
                 <Popover open={bellOpen} onOpenChange={setBellOpen}>
                   <PopoverTrigger asChild>
                     <button
-                      className="relative w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors"
+                      className="interactive relative w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors"
                       aria-label="Notifications"
                     >
                       <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
@@ -162,7 +162,7 @@ export default function Header() {
                 trigger={
                   <button
                     aria-label="Sign in or change language"
-                    className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors"
+                    className="interactive w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors"
                   >
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
                       stroke="var(--text-nav)" strokeWidth="1.8"
@@ -194,7 +194,7 @@ export default function Header() {
                 key={href}
                 href={href}
                 onClick={() => setMobileNavOpen(false)}
-                className="flex items-center px-3 py-2.5 rounded-xl text-xs font-semibold tracking-widest uppercase transition-colors"
+                className="interactive flex items-center px-3 py-2.5 rounded-xl text-xs font-semibold tracking-widest uppercase transition-colors"
                 style={{
                   color: isActive(href) ? 'var(--brand-crimson)' : 'var(--text-nav)',
                   backgroundColor: isActive(href) ? 'rgba(188,71,73,0.06)' : 'transparent',
