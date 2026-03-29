@@ -18,15 +18,17 @@ function LocationFallback({
   colSpan,
   mobileColSpan,
   rowSpan,
+  style,
 }: {
   colSpan: number
   mobileColSpan?: number
   rowSpan?: number
+  style?: React.CSSProperties
 }) {
   return (
     <BentoCard variant="forest" colSpan={colSpan} mobileColSpan={mobileColSpan} rowSpan={rowSpan}
       className="relative flex items-end"
-      style={{ border: 'none' }}>
+      style={{ border: 'none', ...style }}>
       <div className="absolute inset-0 flex items-center justify-center opacity-10">
         <svg width="80" height="80" viewBox="0 0 24 24" fill="none"
           stroke="var(--brand-parchment)" strokeWidth="0.5">
@@ -52,10 +54,12 @@ export default function LocationTile({
   colSpan = 6,
   mobileColSpan = 12,
   rowSpan,
+  style,
 }: {
   colSpan?: number
   mobileColSpan?: number
   rowSpan?: number
+  style?: React.CSSProperties
 }) {
   const mapContainer = useRef<HTMLDivElement>(null)
   const mapRef = useRef<{ remove: () => void; setStyle: (s: string) => void; once: (e: string, cb: () => void) => void } | null>(null)
@@ -126,12 +130,12 @@ export default function LocationTile({
     }
   }, [])
 
-  if (!TOKEN) return <LocationFallback colSpan={colSpan} mobileColSpan={mobileColSpan} rowSpan={rowSpan} />
+  if (!TOKEN) return <LocationFallback colSpan={colSpan} mobileColSpan={mobileColSpan} rowSpan={rowSpan} style={style} />
 
   return (
     <BentoCard variant="forest" colSpan={colSpan} mobileColSpan={mobileColSpan} rowSpan={rowSpan}
       className="relative overflow-hidden p-0"
-      style={{ minHeight: 200, border: 'none' }}>
+      style={{ minHeight: 200, border: 'none', ...style }}>
       <div ref={mapContainer} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} />
 
       <div className="absolute bottom-4 left-4 z-10 flex items-center gap-2 px-3 py-1.5 rounded-full"

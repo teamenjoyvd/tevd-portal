@@ -37,10 +37,12 @@ export default function FontSizeTile({
   colSpan = 2,
   mobileColSpan = 12,
   rowSpan,
+  style,
 }: {
   colSpan?: number
   mobileColSpan?: number
   rowSpan?: number
+  style?: React.CSSProperties
 }) {
   const { fontSize, setFontSize } = useFontSize()
 
@@ -51,7 +53,7 @@ export default function FontSizeTile({
       mobileColSpan={mobileColSpan}
       rowSpan={rowSpan}
       className="flex flex-col items-center justify-center"
-      style={{ minHeight: 120 }}
+      style={{ minHeight: 120, ...style }}
     >
       <Eyebrow style={{ marginBottom: '0.75rem' }}>Text Size</Eyebrow>
       <div className="flex items-center justify-center gap-2">

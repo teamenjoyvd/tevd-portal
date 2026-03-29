@@ -53,10 +53,12 @@ export default function SocialsTile({
   colSpan = 4,
   mobileColSpan = 12,
   rowSpan,
+  style,
 }: {
   colSpan?: number
   mobileColSpan?: number
   rowSpan?: number
+  style?: React.CSSProperties
 }) {
   const { data, isLoading } = useQuery<SocialsData>({
     queryKey: ['socials'],
@@ -73,7 +75,7 @@ export default function SocialsTile({
       mobileColSpan={mobileColSpan}
       rowSpan={rowSpan}
       className="bento-tile flex flex-col relative overflow-hidden"
-      style={{ animationDelay: '350ms' }}
+      style={{ animationDelay: '350ms', ...style }}
     >
       {/* Decorative background image */}
       {/* eslint-disable-next-line @next/next/no-img-element */}

@@ -8,10 +8,12 @@ export default function ThemeTile({
   colSpan = 2,
   mobileColSpan = 12,
   rowSpan,
+  style,
 }: {
   colSpan?: number
   mobileColSpan?: number
   rowSpan?: number
+  style?: React.CSSProperties
 }) {
   const { theme, mounted, toggle } = useTheme()
 
@@ -22,7 +24,7 @@ export default function ThemeTile({
       mobileColSpan={mobileColSpan}
       rowSpan={rowSpan}
       className="cursor-pointer select-none hover:brightness-95 active:scale-[0.98] transition-all flex flex-col items-center justify-center text-center"
-      style={{ minHeight: 120 }}
+      style={{ minHeight: 120, ...style }}
       onClick={toggle}
     >
       <div className="mb-3">

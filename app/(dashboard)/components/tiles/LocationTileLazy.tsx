@@ -5,7 +5,7 @@
 import dynamic from 'next/dynamic'
 import { Skeleton } from '@/components/ui/Skeleton'
 
-const LocationTileLazy = dynamic(
+const LocationTileDynamic = dynamic(
   () => import('@/app/(dashboard)/components/tiles/LocationTile'),
   {
     ssr: false,
@@ -15,4 +15,11 @@ const LocationTileLazy = dynamic(
   },
 )
 
-export default LocationTileLazy
+export default function LocationTileLazy(props: {
+  colSpan?: number
+  mobileColSpan?: number
+  rowSpan?: number
+  style?: React.CSSProperties
+}) {
+  return <LocationTileDynamic {...props} />
+}
