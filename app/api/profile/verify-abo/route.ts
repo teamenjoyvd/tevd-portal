@@ -10,6 +10,7 @@ export async function POST(req: Request) {
     .from('profiles').select('id, role, abo_number').eq('clerk_id', userId).single()
   if (!profile) return Response.json({ error: 'Profile not found' }, { status: 404 })
   if (profile.abo_number) return Response.json({ error: 'ABO already verified' }, { status: 409 })
+  if (profile.role !== 'guest') return Response.json({ error: 'Already verified' }, { status: 409 })
 
   const body = await req.json()
   const request_type: 'standard' | 'manual' = body.request_type === 'manual' ? 'manual' : 'standard'
