@@ -19,15 +19,6 @@ type SiteLink = {
   url: string
 }
 
-function BackChevron() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="15 18 9 12 15 6" />
-    </svg>
-  )
-}
-
 export default function GuidesPage() {
   const { lang } = useLanguage()
 
@@ -115,7 +106,7 @@ export default function GuidesPage() {
                 <Skeleton
                   key={`gs-${i}`}
                   className="rounded-2xl"
-                  style={{ gridColumn: '7 / span 4', gridRow: `span 2`, minHeight: 240 }}
+                  style={{ gridColumn: '7 / span 4', minHeight: 240 }}
                 />
               ))}
             </>
@@ -142,11 +133,15 @@ export default function GuidesPage() {
                 )}
               </div>
 
-              {/* Guides column: col 7–10, each card spans 2 rows */}
+              {/* Guides column: col 7–10, 2-up grid */}
               <div
-                style={{ gridColumn: '7 / span 4', gridRow: '1' }}
-                className="grid gap-3"
-                style2={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}
+                style={{
+                  gridColumn: '7 / span 4',
+                  gridRow: '1',
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                  gap: '12px',
+                }}
               >
                 {guides.map(g => (
                   <Link
