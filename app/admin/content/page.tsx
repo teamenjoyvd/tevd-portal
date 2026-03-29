@@ -42,7 +42,7 @@ const TILE_LABELS: Record<string, string> = {
   trips:         'Trips tile',
   announcements: 'Announcements tile',
   howtos:        'Howtos tile',
-  links:         'Quick Links tile',
+  links:         'Links & Guides tile',
 }
 
 function BentoSettings() {
@@ -127,10 +127,15 @@ type Announcement = {
   id: string; titles: Record<string,string>; contents: Record<string,string>
   access_level: string[]; is_active: boolean; created_at: string; sort_order: number
 }
-type QuickLink = {
-  id: string; label: string; url: string; icon_name: string
-  access_level: string[]; sort_order: number
+
+type SiteLink = {
+  id: string
+  label: { en: string; bg: string }
+  url: string
+  access_roles: string[]
+  sort_order: number
 }
+
 type SocialPost = {
   id: string
   platform: 'instagram' | 'facebook'
@@ -544,7 +549,7 @@ function GuideForm({
 
 const TABS = [
   { key: 'announcements', label: 'Announcements' },
-  { key: 'links',         label: 'Quick Links'   },
+  { key: 'links',         label: 'Links'         },
   { key: 'guides',        label: 'Guides'        },
   { key: 'socials',       label: 'Social Posts'  },
   { key: 'bento',         label: 'Bento'         },
@@ -560,7 +565,7 @@ function ContentPageInner() {
   const tab = (searchParams.get('tab') ?? 'announcements') as TabKey
   const qc = useQueryClient()
 
-  // ── Alert dialog state (SEQ268) ────────────────────
+  // ── Alert dialog state ────────────────────
   const [guideAlertTarget, setGuideAlertTarget] = useState<{ id: string; name: string } | null>(null)
   const [socialAlertTarget, setSocialAlertTarget] = useState<{ id: string; name: string } | null>(null)
 
@@ -650,67 +655,81 @@ function ContentPageInner() {
     setEditingAnnouncement(a)
   }
 
-  // ── Quick Links ────────────────────────────────────
-  const { data: linksRaw = [] } = useQuery<QuickLink[]>({
-    queryKey: ['quick-links'],
-    queryFn: () => fetch('/api/admin/quick-links').then(r => r.json()),
+  // ── Links ────────────────────────────────────────────
+  const { data: linksRaw = [] } = useQuery<SiteLink[]>({
+    queryKey: ['admin-links'],
+    queryFn: () => fetch('/api/admin/links').then(r => r.json()),
   })
-  const [localLinks, setLocalLinks] = useState<QuickLink[]>([])
+  const [localLinks, setLocalLinks] = useState<SiteLink[]>([])
   useEffect(() => { setLocalLinks([...linksRaw]) }, [linksRaw])
   const [lDragging, setLDragging] = useState<string | null>(null)
 
   const reorderLinks = useMutation({
     mutationFn: (items: { id: string; sort_order: number }[]) =>
-      fetch('/api/admin/quick-links', {
+      fetch('/api/admin/links', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ items }),
       }).then(r => r.json()),
     onError: () => setLocalLinks([...linksRaw]),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['quick-links'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-links'] }),
   })
 
-  const [lForm, setLForm] = useState({ label: '', url: '', icon_name: 'link', sort_order: 0, access_level: ['guest','member','core','admin'] as string[] })
+  const [lForm, setLForm] = useState({
+    label: { en: '', bg: '' },
+    url: '',
+    access_roles: ['guest', 'member', 'core', 'admin'] as string[],
+    sort_order: 0,
+  })
 
   const createLink = useMutation({
     mutationFn: (body: typeof lForm) =>
-      fetch('/api/admin/quick-links', {
+      fetch('/api/admin/links', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       }).then(r => r.json()),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['quick-links'] })
-      setLForm({ label: '', url: '', icon_name: 'link', sort_order: 0, access_level: ['guest','member','core','admin'] })
+      qc.invalidateQueries({ queryKey: ['admin-links'] })
+      qc.invalidateQueries({ queryKey: ['links', 'list'] })
+      setLForm({ label: { en: '', bg: '' }, url: '', access_roles: ['guest','member','core','admin'], sort_order: 0 })
     },
   })
 
   const deleteLink = useMutation({
     mutationFn: (id: string) =>
-      fetch(`/api/admin/quick-links/${id}`, { method: 'DELETE' }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['quick-links'] }),
+      fetch(`/api/admin/links/${id}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-links'] })
+      qc.invalidateQueries({ queryKey: ['links', 'list'] })
+    },
   })
 
-  const [editingLink, setEditingLink] = useState<QuickLink | null>(null)
-  const [editLForm, setEditLForm] = useState({ label: '', url: '', icon_name: 'link', sort_order: 0, access_level: ['guest','member','core','admin'] as string[] })
+  const [editingLink, setEditingLink] = useState<SiteLink | null>(null)
+  const [editLForm, setEditLForm] = useState({
+    label: { en: '', bg: '' },
+    url: '',
+    access_roles: ['guest', 'member', 'core', 'admin'] as string[],
+    sort_order: 0,
+  })
 
   const updateLink = useMutation({
     mutationFn: ({ id, ...body }: { id: string } & typeof editLForm) =>
-      fetch(`/api/admin/quick-links/${id}`, {
+      fetch(`/api/admin/links/${id}`, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       }).then(r => r.json()),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['quick-links'] })
+      qc.invalidateQueries({ queryKey: ['admin-links'] })
+      qc.invalidateQueries({ queryKey: ['links', 'list'] })
       setEditingLink(null)
     },
   })
 
-  function startEditingLink(l: QuickLink) {
+  function startEditingLink(l: SiteLink) {
     setEditLForm({
-      label: l.label,
+      label: { en: l.label.en ?? '', bg: l.label.bg ?? '' },
       url: l.url,
-      icon_name: l.icon_name,
+      access_roles: Array.isArray(l.access_roles) ? l.access_roles : ['guest','member','core','admin'],
       sort_order: l.sort_order,
-      access_level: Array.isArray(l.access_level) ? l.access_level : ['guest','member','core','admin'],
     })
     setEditingLink(l)
   }
@@ -997,12 +1016,7 @@ function ContentPageInner() {
               ))}
             </div>
 
-            {/* Edit announcement Drawer */}
-            <Drawer
-              open={!!editingAnnouncement}
-              onClose={() => setEditingAnnouncement(null)}
-              title="Edit announcement"
-            >
+            <Drawer open={!!editingAnnouncement} onClose={() => setEditingAnnouncement(null)} title="Edit announcement">
               <div className="space-y-3">
                 <div className="flex gap-2 mb-2">
                   {LANGS.map(l => (
@@ -1050,27 +1064,45 @@ function ContentPageInner() {
           </section>
         </TabsContent>
 
-        {/* ── Quick Links tab ── */}
+        {/* ── Links tab ── */}
         <TabsContent value="links">
           <section>
-            <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-6 mb-4">
-              <div className="grid grid-cols-4 gap-3 mb-4">
-                <input value={lForm.label} onChange={e => setLForm(f => ({ ...f, label: e.target.value }))} placeholder="Label" className="border border-black/10 rounded-xl px-3 py-2.5 text-sm" style={{ color: 'var(--text-primary)' }} />
-                <input value={lForm.url} onChange={e => setLForm(f => ({ ...f, url: e.target.value }))} placeholder="URL" className="border border-black/10 rounded-xl px-3 py-2.5 text-sm col-span-2" style={{ color: 'var(--text-primary)' }} />
-                <input value={lForm.icon_name} onChange={e => setLForm(f => ({ ...f, icon_name: e.target.value }))} placeholder="Icon name" className="border border-black/10 rounded-xl px-3 py-2.5 text-sm" style={{ color: 'var(--text-primary)' }} />
+            <div className="rounded-2xl border border-black/5 shadow-sm p-6 mb-4 space-y-4" style={{ backgroundColor: 'var(--bg-card)' }}>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold uppercase tracking-widest mb-1 block" style={{ color: 'var(--text-secondary)' }}>Label (EN)</label>
+                  <input value={lForm.label.en} onChange={e => setLForm(f => ({ ...f, label: { ...f.label, en: e.target.value } }))}
+                    placeholder="Label in English"
+                    className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+                    style={{ color: 'var(--text-primary)' }} />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold uppercase tracking-widest mb-1 block" style={{ color: 'var(--text-secondary)' }}>Label (BG)</label>
+                  <input value={lForm.label.bg} onChange={e => setLForm(f => ({ ...f, label: { ...f.label, bg: e.target.value } }))}
+                    placeholder="Етикет на български"
+                    className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+                    style={{ color: 'var(--text-primary)' }} />
+                </div>
               </div>
-              <div className="flex gap-2 flex-wrap mb-4">
-                {['guest','member','core','admin'].map(role => (
+              <div>
+                <label className="text-xs font-semibold uppercase tracking-widest mb-1 block" style={{ color: 'var(--text-secondary)' }}>URL</label>
+                <input value={lForm.url} onChange={e => setLForm(f => ({ ...f, url: e.target.value }))}
+                  placeholder="https://…"
+                  className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+                  style={{ color: 'var(--text-primary)' }} />
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                {ALL_ROLES.map(role => (
                   <button key={role}
-                    onClick={() => setLForm(f => ({ ...f, access_level: f.access_level.includes(role) ? f.access_level.filter(r => r !== role) : [...f.access_level, role] }))}
+                    onClick={() => setLForm(f => ({ ...f, access_roles: f.access_roles.includes(role) ? f.access_roles.filter(r => r !== role) : [...f.access_roles, role] }))}
                     className="px-3 py-1 rounded-full text-xs font-semibold transition-all"
-                    style={{ backgroundColor: lForm.access_level.includes(role) ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)', color: lForm.access_level.includes(role) ? 'var(--brand-parchment)' : 'var(--text-secondary)' }}>
+                    style={{ backgroundColor: lForm.access_roles.includes(role) ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)', color: lForm.access_roles.includes(role) ? 'var(--brand-parchment)' : 'var(--text-secondary)' }}>
                     {role}
                   </button>
                 ))}
               </div>
               <button onClick={() => createLink.mutate(lForm)}
-                disabled={createLink.isPending || !lForm.label || !lForm.url}
+                disabled={createLink.isPending || !lForm.label.en || !lForm.url}
                 className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
                 style={{ backgroundColor: 'var(--brand-crimson)' }}>
                 {createLink.isPending ? 'Adding…' : 'Add link'}
@@ -1085,11 +1117,11 @@ function ContentPageInner() {
                   onDragOver={e => lDrag.onDragOver(e, l.id)}
                   onDrop={lDrag.onDrop}
                   onDragEnd={lDrag.onDragEnd}
-                  className="bg-white rounded-2xl border border-black/5 shadow-sm p-4 flex items-center gap-3"
-                  style={{ opacity: lDrag.isDragging(l.id) ? 0.5 : 1 }}>
+                  className="rounded-2xl border border-black/5 shadow-sm p-4 flex items-center gap-3"
+                  style={{ backgroundColor: 'var(--bg-card)', opacity: lDrag.isDragging(l.id) ? 0.5 : 1 }}>
                   <GripHandle />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{l.label}</p>
+                    <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{l.label.en}</p>
                     <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>{l.url}</p>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
@@ -1102,48 +1134,52 @@ function ContentPageInner() {
                   </div>
                 </div>
               ))}
+              {localLinks.length === 0 && (
+                <div className="rounded-2xl border px-6 py-10 text-center" style={{ borderColor: 'var(--border-default)' }}>
+                  <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No links yet. Add one above.</p>
+                </div>
+              )}
             </div>
 
-            {/* Edit link Drawer */}
             <Drawer
               open={!!editingLink}
               onClose={() => setEditingLink(null)}
-              title={editingLink ? `Edit: ${editingLink.label}` : 'Edit link'}
+              title={editingLink ? `Edit: ${editingLink.label.en}` : 'Edit link'}
             >
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Label</label>
-                    <input value={editLForm.label} onChange={e => setEditLForm(f => ({ ...f, label: e.target.value }))} placeholder="Label"
+                    <label className="text-xs font-semibold uppercase tracking-widest mb-1 block" style={{ color: 'var(--text-secondary)' }}>Label (EN)</label>
+                    <input value={editLForm.label.en} onChange={e => setEditLForm(f => ({ ...f, label: { ...f.label, en: e.target.value } }))}
                       className="w-full border rounded-xl px-3 py-2.5 text-sm"
                       style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
                   </div>
                   <div>
-                    <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Icon name</label>
-                    <input value={editLForm.icon_name} onChange={e => setEditLForm(f => ({ ...f, icon_name: e.target.value }))} placeholder="Icon name"
+                    <label className="text-xs font-semibold uppercase tracking-widest mb-1 block" style={{ color: 'var(--text-secondary)' }}>Label (BG)</label>
+                    <input value={editLForm.label.bg} onChange={e => setEditLForm(f => ({ ...f, label: { ...f.label, bg: e.target.value } }))}
                       className="w-full border rounded-xl px-3 py-2.5 text-sm"
                       style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>URL</label>
-                  <input value={editLForm.url} onChange={e => setEditLForm(f => ({ ...f, url: e.target.value }))} placeholder="URL"
+                  <label className="text-xs font-semibold uppercase tracking-widest mb-1 block" style={{ color: 'var(--text-secondary)' }}>URL</label>
+                  <input value={editLForm.url} onChange={e => setEditLForm(f => ({ ...f, url: e.target.value }))}
                     className="w-full border rounded-xl px-3 py-2.5 text-sm"
                     style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
                 </div>
                 <div className="flex gap-2 flex-wrap">
-                  {['guest','member','core','admin'].map(role => (
+                  {ALL_ROLES.map(role => (
                     <button key={role}
-                      onClick={() => setEditLForm(f => ({ ...f, access_level: f.access_level.includes(role) ? f.access_level.filter(r => r !== role) : [...f.access_level, role] }))}
+                      onClick={() => setEditLForm(f => ({ ...f, access_roles: f.access_roles.includes(role) ? f.access_roles.filter(r => r !== role) : [...f.access_roles, role] }))}
                       className="px-3 py-1 rounded-full text-xs font-semibold transition-all"
-                      style={{ backgroundColor: editLForm.access_level.includes(role) ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)', color: editLForm.access_level.includes(role) ? 'var(--brand-parchment)' : 'var(--text-secondary)' }}>
+                      style={{ backgroundColor: editLForm.access_roles.includes(role) ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)', color: editLForm.access_roles.includes(role) ? 'var(--brand-parchment)' : 'var(--text-secondary)' }}>
                       {role}
                     </button>
                   ))}
                 </div>
                 <div className="flex gap-3 pt-2">
                   <button onClick={() => editingLink && updateLink.mutate({ id: editingLink.id, ...editLForm })}
-                    disabled={updateLink.isPending || !editLForm.label || !editLForm.url}
+                    disabled={updateLink.isPending || !editLForm.label.en || !editLForm.url}
                     className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
                     style={{ backgroundColor: 'var(--brand-crimson)' }}>
                     {updateLink.isPending ? 'Saving…' : 'Save changes'}
@@ -1169,7 +1205,6 @@ function ContentPageInner() {
                 style={{ backgroundColor: 'var(--brand-crimson)' }}>+ New Guide</button>
             </div>
 
-            {/* Guides create + edit Drawer */}
             <Drawer
               open={guidesCreating || !!guidesEditing}
               onClose={() => { setGuidesCreating(false); setGuidesEditing(null); setGuidesMutError(null) }}
@@ -1246,7 +1281,6 @@ function ContentPageInner() {
               </div>
             )}
 
-            {/* Guide delete confirmation */}
             <AlertDialog open={!!guideAlertTarget} onOpenChange={open => { if (!open) setGuideAlertTarget(null) }}>
               <AlertDialogContent>
                 <AlertDialogHeader>
@@ -1383,7 +1417,6 @@ function ContentPageInner() {
               ))}
             </div>
 
-            {/* Social post delete confirmation */}
             <AlertDialog open={!!socialAlertTarget} onOpenChange={open => { if (!open) setSocialAlertTarget(null) }}>
               <AlertDialogContent>
                 <AlertDialogHeader>
