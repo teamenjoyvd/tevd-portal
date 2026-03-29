@@ -13,128 +13,169 @@ type Guide = {
   cover_image_url: string | null
 }
 
+type SiteLink = {
+  id: string
+  label: { en: string; bg: string }
+  url: string
+}
+
+function BackChevron() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="15 18 9 12 15 6" />
+    </svg>
+  )
+}
+
 export default function GuidesPage() {
   const { lang } = useLanguage()
 
-  const { data: guides = [], isLoading } = useQuery<Guide[]>({
+  const { data: guides = [], isLoading: guidesLoading } = useQuery<Guide[]>({
     queryKey: ['guides', 'list'],
     queryFn: () => fetch('/api/guides').then(r => r.json()),
   })
 
+  const { data: links = [], isLoading: linksLoading } = useQuery<SiteLink[]>({
+    queryKey: ['links', 'list'],
+    queryFn: () => fetch('/api/links').then(r => r.json()),
+  })
+
+  const isLoading = guidesLoading || linksLoading
+
+  function guideTitle(g: Guide) {
+    return (g.title as Record<string, string>)[lang] ?? g.title.en ?? ''
+  }
+  function linkLabel(l: SiteLink) {
+    return (l.label as Record<string, string>)[lang] ?? l.label.en ?? ''
+  }
+
   return (
     <div className="py-8 pb-16">
       <div className="max-w-[860px] mx-auto px-4 sm:px-6 xl:px-8">
-        {/* Mobile: single-column stack */}
+
+        {/* ── MOBILE: links then guides, single column ── */}
         <div className="md:hidden flex flex-col gap-3">
           {isLoading ? (
             [...Array(4)].map((_, i) => (
-              <Skeleton key={i} className="rounded-2xl" style={{ height: 240 }} />
+              <Skeleton key={i} className="rounded-2xl" style={{ height: 56 }} />
             ))
-          ) : guides.length === 0 ? (
-            <div
-              className="rounded-2xl flex items-center justify-center py-16"
-              style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}
-            >
-              <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                No guides available yet.
-              </p>
-            </div>
           ) : (
-            guides.map(g => {
-              const title = (g.title as Record<string, string>)[lang]
-                ?? (g.title as Record<string, string>).en ?? ''
-              return (
+            <>
+              {links.map(l => (
+                <a
+                  key={l.id}
+                  href={l.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block px-5 py-4 rounded-2xl transition-colors hover:border-[var(--border-hover)]"
+                  style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}
+                >
+                  <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                    {linkLabel(l)}
+                  </p>
+                </a>
+              ))}
+              {guides.map(g => (
                 <Link key={g.id} href={`/guides/${g.slug}`} className="group block">
                   <div
-                    className="rounded-2xl p-6 flex flex-col justify-between transition-shadow duration-150 hover:shadow-sm group-hover:border-[var(--border-hover)]"
+                    className="rounded-2xl p-6 flex flex-col justify-between transition-shadow duration-150 group-hover:border-[var(--border-hover)]"
                     style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)', minHeight: 160 }}
                   >
                     <span className="text-4xl">{g.emoji ?? '📄'}</span>
-                    <div className="flex items-end justify-between gap-3 mt-4">
-                      <p className="font-display text-xl font-semibold leading-snug"
-                        style={{ color: 'var(--text-primary)' }}>
-                        {title}
-                      </p>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="var(--text-secondary)" strokeWidth="2"
-                        strokeLinecap="round" strokeLinejoin="round"
-                        className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <polyline points="9 18 15 12 9 6"/>
-                      </svg>
-                    </div>
+                    <p className="font-display text-xl font-semibold leading-snug mt-4"
+                      style={{ color: 'var(--text-primary)' }}>
+                      {guideTitle(g)}
+                    </p>
                   </div>
                 </Link>
-              )
-            })
+              ))}
+            </>
           )}
         </div>
 
-        {/* Desktop: 12-col grid, cards span 4 each (3-up layout) */}
+        {/* ── DESKTOP: 12-col grid, col-4 empty | col-2 links | col-4 guides | col-2 empty ── */}
         <div
           className="hidden md:grid"
           style={{
             gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
             gap: '12px',
-            gridAutoRows: 'minmax(120px, auto)',
           }}
         >
           {isLoading ? (
-            [...Array(4)].map((_, i) => (
-              <Skeleton
-                key={i}
-                className="rounded-2xl"
-                style={{
-                  gridColumn: 'span 4',
-                  gridRow: 'span 2',
-                  minHeight: 240,
-                }}
-              />
-            ))
-          ) : guides.length === 0 ? (
-            <div
-              style={{
-                gridColumn: 'span 12',
-                backgroundColor: 'var(--bg-card)',
-                border: '1px solid var(--border-default)',
-              }}
-              className="rounded-2xl flex items-center justify-center py-16"
-            >
-              <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                No guides available yet.
-              </p>
-            </div>
+            <>
+              {[...Array(3)].map((_, i) => (
+                <Skeleton
+                  key={`ls-${i}`}
+                  className="rounded-2xl"
+                  style={{ gridColumn: '5 / span 2', height: 48 }}
+                />
+              ))}
+              {[...Array(3)].map((_, i) => (
+                <Skeleton
+                  key={`gs-${i}`}
+                  className="rounded-2xl"
+                  style={{ gridColumn: '7 / span 4', gridRow: `span 2`, minHeight: 240 }}
+                />
+              ))}
+            </>
           ) : (
-            guides.map(g => {
-              const title = (g.title as Record<string, string>)[lang]
-                ?? (g.title as Record<string, string>).en ?? ''
-              return (
-                <Link
-                  key={g.id}
-                  href={`/guides/${g.slug}`}
-                  style={{ gridColumn: 'span 4', gridRow: 'span 2', display: 'block', minHeight: 240 }}
-                  className="group"
-                >
-                  <div
-                    className="h-full rounded-2xl p-6 flex flex-col justify-between transition-shadow duration-150 hover:shadow-sm group-hover:border-[var(--border-hover)]"
+            <>
+              {/* Links column: col 5–6 */}
+              <div style={{ gridColumn: '5 / span 2', gridRow: '1' }} className="flex flex-col gap-2">
+                {links.map(l => (
+                  <a
+                    key={l.id}
+                    href={l.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block px-4 py-3 rounded-2xl transition-colors hover:border-[var(--border-hover)]"
                     style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}
                   >
-                    <span className="text-4xl">{g.emoji ?? '📄'}</span>
-                    <div className="flex items-end justify-between gap-3">
-                      <p className="font-display text-xl font-semibold leading-snug"
+                    <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
+                      {linkLabel(l)}
+                    </p>
+                  </a>
+                ))}
+                {links.length === 0 && (
+                  <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>No links yet.</p>
+                )}
+              </div>
+
+              {/* Guides column: col 7–10, each card spans 2 rows */}
+              <div
+                style={{ gridColumn: '7 / span 4', gridRow: '1' }}
+                className="grid gap-3"
+                style2={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}
+              >
+                {guides.map(g => (
+                  <Link
+                    key={g.id}
+                    href={`/guides/${g.slug}`}
+                    className="group block"
+                  >
+                    <div
+                      className="h-full rounded-2xl p-6 flex flex-col justify-between transition-shadow duration-150 group-hover:border-[var(--border-hover)]"
+                      style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)', minHeight: 240 }}
+                    >
+                      <span className="text-4xl">{g.emoji ?? '📄'}</span>
+                      <p className="font-display text-xl font-semibold leading-snug mt-4"
                         style={{ color: 'var(--text-primary)' }}>
-                        {title}
+                        {guideTitle(g)}
                       </p>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="var(--text-secondary)" strokeWidth="2"
-                        strokeLinecap="round" strokeLinejoin="round"
-                        className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <polyline points="9 18 15 12 9 6"/>
-                      </svg>
                     </div>
+                  </Link>
+                ))}
+                {guides.length === 0 && (
+                  <div
+                    className="rounded-2xl flex items-center justify-center py-16"
+                    style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}
+                  >
+                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No guides yet.</p>
                   </div>
-                </Link>
-              )
-            })
+                )}
+              </div>
+            </>
           )}
         </div>
       </div>

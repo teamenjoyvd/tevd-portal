@@ -18,7 +18,7 @@ type Announcement = {
   id: string; titles: Record<string, string>; contents: Record<string, string>
   is_active: boolean
 }
-type QuickLink = { id: string; label: string; url: string; icon_name: string }
+type SiteLink = { id: string; label: { en: string; bg: string }; url: string }
 type Trip = { id: string; title: string; destination: string; start_date: string; image_url: string | null }
 
 export default async function HomePage() {
@@ -32,16 +32,16 @@ export default async function HomePage() {
     if (profile?.role) role = profile.role
   }
 
-  const [announcementsRes, quickLinksRes, tripsRes] = await Promise.all([
+  const [announcementsRes, linksRes, tripsRes] = await Promise.all([
     supabase.from('announcements').select('*').eq('is_active', true)
       .contains('access_level', [role]).order('created_at', { ascending: false }).limit(5),
-    supabase.from('quick_links').select('*').contains('access_level', [role]).order('sort_order').limit(6),
+    supabase.from('links').select('id, label, url').contains('access_roles', [role]).order('sort_order').limit(4),
     supabase.from('trips').select('id, title, destination, start_date, image_url')
       .contains('visibility_roles', [role]).order('start_date').limit(3),
   ])
 
   const announcements = (announcementsRes.data ?? []) as unknown as Announcement[]
-  const quickLinks    = (quickLinksRes.data ?? []) as unknown as QuickLink[]
+  const links         = (linksRes.data ?? []) as unknown as SiteLink[]
   const trips         = (tripsRes.data ?? []) as unknown as Trip[]
 
   const featuredAnnouncement = announcements[0] ?? null
@@ -166,7 +166,7 @@ export default async function HomePage() {
           {/* ROW 2: Hero cont. | LinksGuides·3(rows2–3) | Events cont. */}
 
           <LinksGuidesTile
-            quickLinks={quickLinks}
+            links={links}
             colSpan={3}
             rowSpan={2}
             style={{ gridColumn: '7 / span 3', gridRow: '2 / span 2' }}
@@ -263,7 +263,7 @@ export default async function HomePage() {
         )}
 
         {/* Links & Guides */}
-        <LinksGuidesTile quickLinks={quickLinks} />
+        <LinksGuidesTile links={links} />
 
         {/* About */}
         <BentoCard variant="default" className="flex flex-col">

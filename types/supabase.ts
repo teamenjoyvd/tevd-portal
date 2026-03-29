@@ -290,6 +290,33 @@ export type Database = {
           },
         ]
       }
+      links: {
+        Row: {
+          access_roles: string[]
+          created_at: string
+          id: string
+          label: Json
+          sort_order: number
+          url: string
+        }
+        Insert: {
+          access_roles?: string[]
+          created_at?: string
+          id?: string
+          label?: Json
+          sort_order?: number
+          url: string
+        }
+        Update: {
+          access_roles?: string[]
+          created_at?: string
+          id?: string
+          label?: Json
+          sort_order?: number
+          url?: string
+        }
+        Relationships: []
+      }
       los_members: {
         Row: {
           abo_level: string | null
@@ -676,36 +703,6 @@ export type Database = {
           ui_prefs?: Json
           upline_abo_number?: string | null
           valid_through?: string | null
-        }
-        Relationships: []
-      }
-      quick_links: {
-        Row: {
-          access_level: Database["public"]["Enums"]["user_role"][]
-          created_at: string
-          icon_name: string
-          id: string
-          label: string
-          sort_order: number
-          url: string
-        }
-        Insert: {
-          access_level?: Database["public"]["Enums"]["user_role"][]
-          created_at?: string
-          icon_name?: string
-          id?: string
-          label: string
-          sort_order?: number
-          url: string
-        }
-        Update: {
-          access_level?: Database["public"]["Enums"]["user_role"][]
-          created_at?: string
-          icon_name?: string
-          id?: string
-          label?: string
-          sort_order?: number
-          url?: string
         }
         Relationships: []
       }
