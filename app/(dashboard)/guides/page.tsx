@@ -64,19 +64,10 @@ function IconBook({ size = 16 }: { size?: number }) {
   )
 }
 
-// ── Shared card shell styles ──────────────────────────────────────────────
-
-const cardBase: React.CSSProperties = {
+const cardStyle: React.CSSProperties = {
   backgroundColor: 'var(--bg-card)',
   border: '1px solid var(--border-default)',
-  transition: 'border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease',
 }
-
-const cardHoverClass = [
-  'group',
-  '[&:hover]:shadow-md',
-  '[&:hover]:-translate-y-px',
-].join(' ')
 
 export default function GuidesPage() {
   const { lang } = useLanguage()
@@ -124,14 +115,13 @@ export default function GuidesPage() {
   // ── Link card ─────────────────────────────────────────────────────────────
 
   function LinkCard({ l }: { l: SiteLink }) {
-    const href = normaliseUrl(l.url)
     return (
       <a
-        href={href}
+        href={normaliseUrl(l.url)}
         target="_blank"
         rel="noopener noreferrer"
-        className={`${cardHoverClass} flex items-center gap-3 px-4 py-3 rounded-2xl`}
-        style={{ ...cardBase, minHeight: 68 }}
+        className="flex items-center gap-3 px-4 py-3 rounded-2xl hover:brightness-95 active:scale-[0.98] transition-all"
+        style={{ ...cardStyle, minHeight: 68 }}
       >
         <span className="shrink-0" style={{ color: 'var(--brand-crimson)', opacity: 0.7 }}>
           <IconLink size={16} />
@@ -153,24 +143,23 @@ export default function GuidesPage() {
   function GuideCard({ g }: { g: Guide }) {
     const excerpt = excerptFromBody(g.body)
     return (
-      <Link href={`/guides/${g.slug}`} className={`${cardHoverClass} block`}>
-        <div
-          className="flex items-start gap-4 px-5 py-4 rounded-2xl"
-          style={{ ...cardBase, minHeight: 88 }}
-        >
-          <span className="shrink-0 mt-0.5" style={{ color: 'var(--brand-crimson)', opacity: 0.75 }}>
-            <IconBook size={18} />
-          </span>
-          <div className="flex flex-col min-w-0">
-            <p className="font-display text-base font-semibold leading-snug" style={{ color: 'var(--text-primary)' }}>
-              {guideTitle(g)}
+      <Link
+        href={`/guides/${g.slug}`}
+        className="flex items-start gap-4 px-5 py-4 rounded-2xl hover:brightness-95 active:scale-[0.98] transition-all"
+        style={{ ...cardStyle, minHeight: 88 }}
+      >
+        <span className="shrink-0 mt-0.5" style={{ color: 'var(--brand-crimson)', opacity: 0.75 }}>
+          <IconBook size={18} />
+        </span>
+        <div className="flex flex-col min-w-0">
+          <p className="font-display text-base font-semibold leading-snug" style={{ color: 'var(--text-primary)' }}>
+            {guideTitle(g)}
+          </p>
+          {excerpt && (
+            <p className="font-body text-xs leading-relaxed mt-1 line-clamp-2" style={{ color: 'var(--text-secondary)' }}>
+              {excerpt}
             </p>
-            {excerpt && (
-              <p className="font-body text-xs leading-relaxed mt-1 line-clamp-2" style={{ color: 'var(--text-secondary)' }}>
-                {excerpt}
-              </p>
-            )}
-          </div>
+          )}
         </div>
       </Link>
     )
