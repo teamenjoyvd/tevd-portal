@@ -3,6 +3,7 @@ import { Playfair_Display, Montserrat, Cormorant_Garamond, DM_Sans } from 'next/
 import { ClerkProvider } from '@clerk/nextjs'
 import { cookies } from 'next/headers'
 import Providers from './providers'
+import PageTransition from '@/components/layout/PageTransition'
 import './globals.css'
 import '../styles/brand-tokens.css'
 
@@ -68,7 +69,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         </head>
         <body className="font-body" style={{ backgroundColor: 'var(--bg-global)', color: 'var(--text-primary)' }}>
           <Providers>
-            {children}
+            <PageTransition>
+              {children}
+            </PageTransition>
           </Providers>
         </body>
       </html>
