@@ -22,6 +22,12 @@ type SiteLink = {
   url: string
 }
 
+/** Ensure URL has a protocol prefix so browsers don't treat it as a relative path. */
+function normaliseUrl(raw: string): string {
+  if (/^https?:\/\//i.test(raw)) return raw
+  return `https://${raw}`
+}
+
 /** Extract up to `maxChars` of plain text from a block-editor body array. */
 function excerptFromBody(body: Block[] | null, maxChars = 140): string {
   if (!body || body.length === 0) return ''
@@ -34,10 +40,10 @@ function excerptFromBody(body: Block[] | null, maxChars = 140): string {
     if (text) { chunks.push(text); total += text.length }
   }
   const joined = chunks.join(' ').slice(0, maxChars)
-  return joined.length < chunks.join(' ').length ? joined + '…' : joined
+  return joined.length < chunks.join(' ').length ? joined + '\u2026' : joined
 }
 
-// ── SVG icons — all render in currentColor, caller sets color via style ──
+// ── SVG icons — render in currentColor ───────────────────────────────────
 
 function IconLink({ size = 16 }: { size?: number }) {
   return (
@@ -57,6 +63,20 @@ function IconBook({ size = 16 }: { size?: number }) {
     </svg>
   )
 }
+
+// ── Shared card shell styles ──────────────────────────────────────────────
+
+const cardBase: React.CSSProperties = {
+  backgroundColor: 'var(--bg-card)',
+  border: '1px solid var(--border-default)',
+  transition: 'border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease',
+}
+
+const cardHoverClass = [
+  'group',
+  '[&:hover]:shadow-md',
+  '[&:hover]:-translate-y-px',
+].join(' ')
 
 export default function GuidesPage() {
   const { lang } = useLanguage()
@@ -104,22 +124,16 @@ export default function GuidesPage() {
   // ── Link card ─────────────────────────────────────────────────────────────
 
   function LinkCard({ l }: { l: SiteLink }) {
+    const href = normaliseUrl(l.url)
     return (
       <a
-        href={l.url}
+        href={href}
         target="_blank"
         rel="noopener noreferrer"
-        className="group flex items-center gap-3 px-4 py-3 rounded-2xl transition-colors hover:border-[var(--border-hover)]"
-        style={{
-          backgroundColor: 'var(--bg-card)',
-          border: '1px solid var(--border-default)',
-          minHeight: 68,
-        }}
+        className={`${cardHoverClass} flex items-center gap-3 px-4 py-3 rounded-2xl`}
+        style={{ ...cardBase, minHeight: 68 }}
       >
-        <span
-          className="shrink-0"
-          style={{ color: 'var(--brand-crimson)', opacity: 0.7 }}
-        >
+        <span className="shrink-0" style={{ color: 'var(--brand-crimson)', opacity: 0.7 }}>
           <IconLink size={16} />
         </span>
         <div className="flex flex-col min-w-0">
@@ -139,19 +153,12 @@ export default function GuidesPage() {
   function GuideCard({ g }: { g: Guide }) {
     const excerpt = excerptFromBody(g.body)
     return (
-      <Link href={`/guides/${g.slug}`} className="group block">
+      <Link href={`/guides/${g.slug}`} className={`${cardHoverClass} block`}>
         <div
-          className="flex items-start gap-4 px-5 py-4 rounded-2xl transition-colors group-hover:border-[var(--border-hover)]"
-          style={{
-            backgroundColor: 'var(--bg-card)',
-            border: '1px solid var(--border-default)',
-            minHeight: 88,
-          }}
+          className="flex items-start gap-4 px-5 py-4 rounded-2xl"
+          style={{ ...cardBase, minHeight: 88 }}
         >
-          <span
-            className="shrink-0 mt-0.5"
-            style={{ color: 'var(--brand-crimson)', opacity: 0.75 }}
-          >
+          <span className="shrink-0 mt-0.5" style={{ color: 'var(--brand-crimson)', opacity: 0.75 }}>
             <IconBook size={18} />
           </span>
           <div className="flex flex-col min-w-0">
