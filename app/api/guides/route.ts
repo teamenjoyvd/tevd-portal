@@ -1,7 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
 
-export async function GET(req: Request) {
+export async function GET(req: Request): Promise<Response> {
   const supabase = createServiceClient()
   const { searchParams } = new URL(req.url)
   const limit = Number(searchParams.get('limit') ?? 100)
@@ -18,7 +18,7 @@ export async function GET(req: Request) {
 
   const { data, error } = await supabase
     .from('guides')
-    .select('id, slug, title, emoji, cover_image_url, access_roles, created_at')
+    .select('id, slug, title, emoji, cover_image_url, body, access_roles, created_at')
     .eq('is_published', true)
     .contains('access_roles', [role])
     .order('created_at', { ascending: false })

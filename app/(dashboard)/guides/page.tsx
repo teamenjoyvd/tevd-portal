@@ -5,18 +5,40 @@ import { useQuery } from '@tanstack/react-query'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { Skeleton } from '@/components/ui/Skeleton'
 
+type Block = { type: string; content?: unknown }
+
 type Guide = {
   id: string
   slug: string
   title: { en: string; bg: string }
   emoji: string | null
   cover_image_url: string | null
+  body: Block[] | null
 }
 
 type SiteLink = {
   id: string
   label: { en: string; bg: string }
   url: string
+}
+
+/** Extract up to `maxChars` of plain text from a block-editor body array. */
+function excerptFromBody(body: Block[] | null, maxChars = 160): string {
+  if (!body || body.length === 0) return ''
+  const chunks: string[] = []
+  let total = 0
+  for (const block of body) {
+    if (total >= maxChars) break
+    const raw = JSON.stringify(block.content ?? '')
+    // strip JSON punctuation and quotes to get readable words
+    const text = raw.replace(/["{}\[\]]/g, ' ').replace(/\\n/g, ' ').replace(/\s+/g, ' ').trim()
+    if (text) {
+      chunks.push(text)
+      total += text.length
+    }
+  }
+  const joined = chunks.join(' ').slice(0, maxChars)
+  return joined.length < chunks.join(' ').length ? joined + '…' : joined
 }
 
 export default function GuidesPage() {
@@ -41,138 +63,107 @@ export default function GuidesPage() {
     return (l.label as Record<string, string>)[lang] ?? l.label.en ?? ''
   }
 
-  return (
-    <div className="py-8 pb-16">
-      <div className="max-w-[860px] mx-auto px-4 sm:px-6 xl:px-8">
+  const skeletons = (
+    <div className="flex flex-col gap-3">
+      {[...Array(5)].map((_, i) => (
+        <Skeleton key={i} className="rounded-2xl" style={{ height: 80 }} />
+      ))}
+    </div>
+  )
 
-        {/* ── MOBILE: links then guides, single column ── */}
-        <div className="md:hidden flex flex-col gap-3">
-          {isLoading ? (
-            [...Array(4)].map((_, i) => (
-              <Skeleton key={i} className="rounded-2xl" style={{ height: 56 }} />
-            ))
-          ) : (
-            <>
-              {links.map(l => (
-                <a
-                  key={l.id}
-                  href={l.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block px-5 py-4 rounded-2xl transition-colors hover:border-[var(--border-hover)]"
-                  style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}
-                >
-                  <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                    {linkLabel(l)}
-                  </p>
-                </a>
-              ))}
-              {guides.map(g => (
-                <Link key={g.id} href={`/guides/${g.slug}`} className="group block">
-                  <div
-                    className="rounded-2xl p-6 flex flex-col justify-between transition-shadow duration-150 group-hover:border-[var(--border-hover)]"
-                    style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)', minHeight: 160 }}
-                  >
-                    <span className="text-4xl">{g.emoji ?? '📄'}</span>
-                    <p className="font-display text-xl font-semibold leading-snug mt-4"
-                      style={{ color: 'var(--text-primary)' }}>
-                      {guideTitle(g)}
-                    </p>
-                  </div>
-                </Link>
-              ))}
-            </>
-          )}
-        </div>
+  const content = (
+    <div className="flex flex-col gap-3">
 
-        {/* ── DESKTOP: 12-col grid, col-4 empty | col-2 links | col-4 guides | col-2 empty ── */}
-        <div
-          className="hidden md:grid"
+      {/* ── Links ── */}
+      {links.map(l => (
+        <a
+          key={l.id}
+          href={l.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group flex items-center gap-4 px-6 rounded-2xl transition-colors hover:border-[var(--border-hover)]"
           style={{
-            gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
-            gap: '12px',
+            backgroundColor: 'var(--bg-card)',
+            border: '1px solid var(--border-default)',
+            minHeight: 72,
           }}
         >
-          {isLoading ? (
-            <>
-              {[...Array(3)].map((_, i) => (
-                <Skeleton
-                  key={`ls-${i}`}
-                  className="rounded-2xl"
-                  style={{ gridColumn: '5 / span 2', height: 48 }}
-                />
-              ))}
-              {[...Array(3)].map((_, i) => (
-                <Skeleton
-                  key={`gs-${i}`}
-                  className="rounded-2xl"
-                  style={{ gridColumn: '7 / span 4', minHeight: 240 }}
-                />
-              ))}
-            </>
-          ) : (
-            <>
-              {/* Links column: col 5–6 */}
-              <div style={{ gridColumn: '5 / span 2', gridRow: '1' }} className="flex flex-col gap-2">
-                {links.map(l => (
-                  <a
-                    key={l.id}
-                    href={l.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block px-4 py-3 rounded-2xl transition-colors hover:border-[var(--border-hover)]"
-                    style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}
-                  >
-                    <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
-                      {linkLabel(l)}
-                    </p>
-                  </a>
-                ))}
-                {links.length === 0 && (
-                  <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>No links yet.</p>
-                )}
-              </div>
+          <span
+            className="shrink-0 flex items-center justify-center rounded-xl text-base font-bold"
+            style={{
+              width: 36,
+              height: 36,
+              backgroundColor: 'rgba(var(--brand-crimson-rgb, 188,71,73), 0.12)',
+              color: 'var(--brand-crimson)',
+            }}
+          >
+            ↗
+          </span>
+          <div className="flex flex-col min-w-0">
+            <p
+              className="font-body text-sm font-semibold leading-snug"
+              style={{ color: 'var(--text-primary)' }}
+            >
+              {linkLabel(l)}
+            </p>
+            <p
+              className="font-body text-xs mt-0.5 truncate"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              {l.url}
+            </p>
+          </div>
+        </a>
+      ))}
 
-              {/* Guides column: col 7–10, 2-up grid */}
-              <div
-                style={{
-                  gridColumn: '7 / span 4',
-                  gridRow: '1',
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-                  gap: '12px',
-                }}
-              >
-                {guides.map(g => (
-                  <Link
-                    key={g.id}
-                    href={`/guides/${g.slug}`}
-                    className="group block"
+      {/* ── Guides ── */}
+      {guides.map(g => {
+        const excerpt = excerptFromBody(g.body)
+        return (
+          <Link key={g.id} href={`/guides/${g.slug}`} className="group block">
+            <div
+              className="flex items-start gap-4 px-6 py-5 rounded-2xl transition-colors group-hover:border-[var(--border-hover)]"
+              style={{
+                backgroundColor: 'var(--bg-card)',
+                border: '1px solid var(--border-default)',
+                minHeight: 88,
+              }}
+            >
+              <span className="shrink-0 text-3xl leading-none mt-0.5">
+                {g.emoji ?? '📄'}
+              </span>
+              <div className="flex flex-col min-w-0">
+                <p
+                  className="font-display text-base font-semibold leading-snug"
+                  style={{ color: 'var(--text-primary)' }}
+                >
+                  {guideTitle(g)}
+                </p>
+                {excerpt && (
+                  <p
+                    className="font-body text-xs leading-relaxed mt-1 line-clamp-2"
+                    style={{ color: 'var(--text-secondary)' }}
                   >
-                    <div
-                      className="h-full rounded-2xl p-6 flex flex-col justify-between transition-shadow duration-150 group-hover:border-[var(--border-hover)]"
-                      style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)', minHeight: 240 }}
-                    >
-                      <span className="text-4xl">{g.emoji ?? '📄'}</span>
-                      <p className="font-display text-xl font-semibold leading-snug mt-4"
-                        style={{ color: 'var(--text-primary)' }}>
-                        {guideTitle(g)}
-                      </p>
-                    </div>
-                  </Link>
-                ))}
-                {guides.length === 0 && (
-                  <div
-                    className="rounded-2xl flex items-center justify-center py-16"
-                    style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}
-                  >
-                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No guides yet.</p>
-                  </div>
+                    {excerpt}
+                  </p>
                 )}
               </div>
-            </>
-          )}
-        </div>
+            </div>
+          </Link>
+        )
+      })}
+
+      {links.length === 0 && guides.length === 0 && (
+        <p className="text-sm px-1" style={{ color: 'var(--text-secondary)' }}>Nothing here yet.</p>
+      )}
+
+    </div>
+  )
+
+  return (
+    <div className="py-8 pb-24">
+      <div className="max-w-[640px] mx-auto px-4 sm:px-6">
+        {isLoading ? skeletons : content}
       </div>
     </div>
   )
