@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import BentoCard from '@/components/bento/BentoCard'
 import AboutMapTile from '@/components/about/AboutMapTile'
+import MailtoTile from './components/MailtoTile'
 
 // ── Shared content blocks ─────────────────────────────────────────────────
 
@@ -46,8 +47,8 @@ export default function AboutPage() {
           DESKTOP layout (md+)
           12-col CSS grid, explicit placement
           Row 1: [col 1–3 empty][col 4–6 heading][col 7–9 text rowspan 2][col 10–12 empty]
-          Row 2: [col 1–6 empty]              [col 7–9 text cont.]   [col 10–12 empty]
-          Row 3: [col 1–3 hero][col 4–6 empty][col 7–9 mailto]       [col 10–12 map]
+          Row 2: [col 1–6 empty]               [col 7–9 text cont.]    [col 10–12 empty]
+          Row 3: [col 1–3 hero][col 4–6 empty] [col 7–9 mailto]        [col 10–12 map]
           ════════════════════════════════════════════════════════════════════ */}
       <div className="hidden md:block max-w-[1280px] mx-auto px-4 sm:px-6 xl:px-8">
         <div
@@ -58,10 +59,10 @@ export default function AboutPage() {
             gridAutoRows: 'minmax(120px, auto)',
           }}
         >
-          {/* Row 1 col 1–3: empty spacer */}
+          {/* Row 1 col 1–3: empty */}
           <div style={{ gridColumn: '1 / span 3', gridRow: '1' }} />
 
-          {/* Row 1 col 4–6: heading — transparent card */}
+          {/* Row 1 col 4–6: heading — transparent */}
           <div
             style={{
               gridColumn: '4 / span 3',
@@ -73,7 +74,7 @@ export default function AboutPage() {
             {HEADING}
           </div>
 
-          {/* Row 1–2 col 7–9: body text — transparent card */}
+          {/* Row 1–2 col 7–9: body text — transparent, rowspan 2 */}
           <div
             style={{
               gridColumn: '7 / span 3',
@@ -85,13 +86,13 @@ export default function AboutPage() {
             {BODY}
           </div>
 
-          {/* Row 1 col 10–12: empty spacer */}
+          {/* Row 1 col 10–12: empty */}
           <div style={{ gridColumn: '10 / span 3', gridRow: '1' }} />
 
-          {/* Row 2 col 1–6: empty spacer */}
+          {/* Row 2 col 1–6: empty */}
           <div style={{ gridColumn: '1 / span 6', gridRow: '2' }} />
 
-          {/* Row 2 col 10–12: empty spacer */}
+          {/* Row 2 col 10–12: empty */}
           <div style={{ gridColumn: '10 / span 3', gridRow: '2' }} />
 
           {/* Row 3 col 1–3: square hero image */}
@@ -115,52 +116,20 @@ export default function AboutPage() {
           {/* Row 3 col 4–6: empty */}
           <div style={{ gridColumn: '4 / span 3', gridRow: '3' }} />
 
-          {/* Row 3 col 7–9: mailto — crimson card with interactive-lift */}
-          <BentoCard
-            variant="crimson"
-            className="flex flex-col items-center justify-center gap-2"
-            style={{ gridColumn: '7 / span 3', gridRow: '3' }}
-            onClick={() => { window.location.href = 'mailto:teamenjoyvd@gmail.com' }}
-          >
-            <a
-              href="mailto:teamenjoyvd@gmail.com"
-              aria-label="Email us"
-              className="flex flex-col items-center gap-2"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <svg
-                width="48"
-                height="48"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="var(--brand-parchment)"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <rect width="20" height="16" x="2" y="4" rx="2" />
-                <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
-              </svg>
-              <span
-                className="text-[10px] font-semibold tracking-widest uppercase"
-                style={{ color: 'var(--brand-parchment)', opacity: 0.7 }}
-              >
-                Email
-              </span>
-            </a>
-          </BentoCard>
+          {/* Row 3 col 7–9: mailto tile (client component — interactive-lift) */}
+          <MailtoTile style={{ gridColumn: '7 / span 3', gridRow: '3' }} />
 
           {/* Row 3 col 10–12: map */}
           <AboutMapTile
             gridColumn="10 / span 3"
-            style={{ gridColumn: '10 / span 3', gridRow: '3', minHeight: 120, backgroundColor: 'var(--brand-teal)' }}
+            style={{ gridColumn: '10 / span 3', gridRow: '3', minHeight: 120 }}
           />
 
         </div>
       </div>
 
       {/* ════════════════════════════════════════════════════════════════════
-          MOBILE layout (< md) — unchanged
+          MOBILE layout (< md)
           ════════════════════════════════════════════════════════════════════ */}
       <div className="md:hidden flex flex-col gap-3 px-4">
 
@@ -196,40 +165,8 @@ export default function AboutPage() {
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <BentoCard
-            variant="crimson"
-            className="flex flex-col items-center justify-center gap-2"
-            style={{ minHeight: 96 }}
-            onClick={() => { window.location.href = 'mailto:teamenjoyvd@gmail.com' }}
-          >
-            <a
-              href="mailto:teamenjoyvd@gmail.com"
-              aria-label="Email us"
-              className="flex flex-col items-center gap-2"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <svg
-                width="32"
-                height="32"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="var(--brand-parchment)"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <rect width="20" height="16" x="2" y="4" rx="2" />
-                <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
-              </svg>
-              <span
-                className="text-[10px] font-semibold tracking-widest uppercase"
-                style={{ color: 'var(--brand-parchment)', opacity: 0.7 }}
-              >
-                Email
-              </span>
-            </a>
-          </BentoCard>
-          <AboutMapTile style={{ minHeight: 96, backgroundColor: 'var(--brand-teal)' }} />
+          <MailtoTile style={{ minHeight: 96 }} />
+          <AboutMapTile style={{ minHeight: 96 }} />
         </div>
 
       </div>
