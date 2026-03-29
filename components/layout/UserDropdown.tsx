@@ -23,10 +23,11 @@ const ROLE_LABELS: Record<string, string> = {
   guest:  'Guest',
 }
 
+// SEQ277: 'sm' removed — matches useFontSize ALLOWED and UserPopup/FontSizeTile
 const FONT_STEPS: { value: FontSize; label: string }[] = [
-  { value: 'sm', label: 'A-' },
   { value: 'md', label: 'A' },
   { value: 'lg', label: 'A+' },
+  { value: 'xl', label: 'A++' },
 ]
 
 type ProfileData = {
@@ -151,7 +152,7 @@ export default function UserDropdown() {
             style={{ borderTop: '1px solid var(--border-default)', cursor: 'default' }}
           >
             <span className="text-sm font-body" style={{ color: 'var(--text-secondary)' }}>
-              {lang === 'en' ? 'Language' : '\u0415\u0437\u0438\u043a'}
+              {lang === 'en' ? 'Language' : 'Език'}
             </span>
             <button
               onClick={toggleLang}
@@ -160,7 +161,7 @@ export default function UserDropdown() {
               onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--border-default)')}
               onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'var(--bg-global)')}
             >
-              {lang === 'en' ? '\u0411\u0413' : 'EN'}
+              {lang === 'en' ? 'БГ' : 'EN'}
             </button>
           </DropdownMenuItem>
 
@@ -180,7 +181,7 @@ export default function UserDropdown() {
               onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--border-default)')}
               onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'var(--bg-global)')}
             >
-              {!themeMounted ? '\u2026' : theme === 'light' ? '\uD83C\uDF19' : '\u2600\uFE0F'}
+              {!themeMounted ? '…' : theme === 'light' ? '🌙' : '☀️'}
             </button>
           </DropdownMenuItem>
 
