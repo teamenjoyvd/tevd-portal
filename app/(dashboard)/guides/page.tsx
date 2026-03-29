@@ -37,6 +37,27 @@ function excerptFromBody(body: Block[] | null, maxChars = 140): string {
   return joined.length < chunks.join(' ').length ? joined + '…' : joined
 }
 
+// ── SVG icons — all render in currentColor, caller sets color via style ──
+
+function IconLink({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M6 10L10 6M10 6H7M10 6V9" />
+      <path d="M3 13L2 14M13 3L14 2M8.5 2.5L10 1H15v5l-1.5 1.5" opacity="0.4" />
+      <rect x="1" y="5" width="9" height="9" rx="1.5" />
+    </svg>
+  )
+}
+
+function IconBook({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M8 13.5C8 13.5 3 11 3 5V2.5L8 1l5 1.5V5c0 6-5 8.5-5 8.5Z" />
+      <path d="M8 4v5M6 6l2-2 2 2" opacity="0.5" />
+    </svg>
+  )
+}
+
 export default function GuidesPage() {
   const { lang } = useLanguage()
 
@@ -59,30 +80,28 @@ export default function GuidesPage() {
     return (l.label as Record<string, string>)[lang] ?? l.label.en ?? ''
   }
 
-  // ── Skeletons ────────────────────────────────────────────────────────────
+  // ── Skeletons ─────────────────────────────────────────────────────────────
 
   const skeletons = (
     <>
-      {/* Mobile skeleton */}
       <div className="md:hidden flex flex-col gap-3">
         {[...Array(5)].map((_, i) => (
           <Skeleton key={i} className="rounded-2xl" style={{ height: 76 }} />
         ))}
       </div>
-      {/* Desktop skeleton */}
       <div className="hidden md:flex gap-0" style={{ alignItems: 'flex-start' }}>
         <div className="flex flex-col gap-3" style={{ width: '38%' }}>
-          {[...Array(3)].map((_, i) => <Skeleton key={i} className="rounded-2xl" style={{ height: 76 }} />)}
+          {[...Array(3)].map((_, i) => <Skeleton key={i} className="rounded-2xl" style={{ height: 68 }} />)}
         </div>
         <div className="shrink-0" style={{ width: 1, alignSelf: 'stretch', backgroundColor: 'var(--border-default)', margin: '0 28px' }} />
         <div className="flex flex-col gap-3" style={{ flex: 1 }}>
-          {[...Array(3)].map((_, i) => <Skeleton key={i} className="rounded-2xl" style={{ height: 96 }} />)}
+          {[...Array(3)].map((_, i) => <Skeleton key={i} className="rounded-2xl" style={{ height: 88 }} />)}
         </div>
       </div>
     </>
   )
 
-  // ── Link card ────────────────────────────────────────────────────────────
+  // ── Link card ─────────────────────────────────────────────────────────────
 
   function LinkCard({ l }: { l: SiteLink }) {
     return (
@@ -98,15 +117,10 @@ export default function GuidesPage() {
         }}
       >
         <span
-          className="shrink-0 flex items-center justify-center rounded-lg text-sm font-bold"
-          style={{
-            width: 32,
-            height: 32,
-            backgroundColor: 'color-mix(in srgb, var(--brand-crimson) 12%, transparent)',
-            color: 'var(--brand-crimson)',
-          }}
+          className="shrink-0"
+          style={{ color: 'var(--brand-crimson)', opacity: 0.7 }}
         >
-          ↗
+          <IconLink size={16} />
         </span>
         <div className="flex flex-col min-w-0">
           <p className="font-body text-sm font-semibold leading-snug truncate" style={{ color: 'var(--text-primary)' }}>
@@ -120,7 +134,7 @@ export default function GuidesPage() {
     )
   }
 
-  // ── Guide card ───────────────────────────────────────────────────────────
+  // ── Guide card ────────────────────────────────────────────────────────────
 
   function GuideCard({ g }: { g: Guide }) {
     const excerpt = excerptFromBody(g.body)
@@ -134,7 +148,12 @@ export default function GuidesPage() {
             minHeight: 88,
           }}
         >
-          <span className="shrink-0 text-3xl leading-none mt-0.5">{g.emoji ?? '📄'}</span>
+          <span
+            className="shrink-0 mt-0.5"
+            style={{ color: 'var(--brand-crimson)', opacity: 0.75 }}
+          >
+            <IconBook size={18} />
+          </span>
           <div className="flex flex-col min-w-0">
             <p className="font-display text-base font-semibold leading-snug" style={{ color: 'var(--text-primary)' }}>
               {guideTitle(g)}
@@ -150,7 +169,7 @@ export default function GuidesPage() {
     )
   }
 
-  // ── Layout ───────────────────────────────────────────────────────────────
+  // ── Layout ────────────────────────────────────────────────────────────────
 
   return (
     <div className="py-8 pb-24">
@@ -170,7 +189,6 @@ export default function GuidesPage() {
             {/* ── DESKTOP: links left | divider | guides right ── */}
             <div className="hidden md:flex gap-0" style={{ alignItems: 'flex-start' }}>
 
-              {/* Links column — narrower */}
               <div className="flex flex-col gap-3" style={{ width: '38%' }}>
                 {links.map(l => <LinkCard key={l.id} l={l} />)}
                 {links.length === 0 && (
@@ -178,7 +196,6 @@ export default function GuidesPage() {
                 )}
               </div>
 
-              {/* Vertical divider */}
               <div
                 className="shrink-0"
                 style={{
@@ -190,7 +207,6 @@ export default function GuidesPage() {
                 }}
               />
 
-              {/* Guides column — wider */}
               <div className="flex flex-col gap-3" style={{ flex: 1 }}>
                 {guides.map(g => <GuideCard key={g.id} g={g} />)}
                 {guides.length === 0 && (
