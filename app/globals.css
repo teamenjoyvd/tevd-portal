@@ -64,23 +64,26 @@ body {
 .mapboxgl-ctrl-logo { display: none !important; }
 .mapboxgl-ctrl-attrib { display: none !important; }
 
-/* ── Page transitions — View Transitions API — SEQ282 ── */
-/* Outgoing page: fade out + slide up slightly */
-@keyframes page-fade-out {
-  from { opacity: 1; transform: translateY(0); }
-  to   { opacity: 0; transform: translateY(-6px); }
+/* ── Page transitions — View Transitions API — SEQ283 ── */
+/* Root: scale-fade — old page scales out, new page scales in */
+@keyframes vt-scale-out {
+  to {
+    opacity: 0;
+    transform: scale(0.98);
+  }
 }
 
-/* Incoming page: fade in + slide up from below */
-@keyframes page-fade-in {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
+@keyframes vt-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(1.02);
+  }
 }
 
 ::view-transition-old(root) {
-  animation: page-fade-out 150ms ease-out both;
+  animation: vt-scale-out 200ms ease-out both;
 }
 
 ::view-transition-new(root) {
-  animation: page-fade-in 200ms ease-out both;
+  animation: vt-scale-in 250ms ease-out both;
 }

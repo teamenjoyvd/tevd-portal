@@ -3,11 +3,15 @@
 import { useEffect, useRef } from 'react'
 import { usePathname } from 'next/navigation'
 
-// SEQ282 — View Transitions API page transition wrapper.
-// Wraps app children and triggers a cross-fade + subtle Y-slide on route change.
+// SEQ283 — View Transitions API page transition wrapper.
+// Triggers a scale-fade on route change with shared element support for the
+// trips flow (trip-image-{id} morph on available/pending states).
 // Graceful degradation: browsers without startViewTransition run the update
 // callback directly with no error or flash.
-// Admin routes are excluded — they have heavy state mutation that fights transitions.
+// Exclusions:
+//   - Initial mount (no animation on first load)
+//   - /admin routes (heavy state mutation fights transitions)
+//   - Landscape mobile <1024px (jank risk on low-end devices)
 
 export default function PageTransition({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -23,11 +27,15 @@ export default function PageTransition({ children }: { children: React.ReactNode
     // Skip admin routes — they manage their own re-render cycles
     if (pathname?.startsWith('/admin')) return
 
+    // Skip landscape mobile — low-end devices struggle with the screenshot
+    // buffer in landscape; fall through to instant render instead
+    if (
+      window.innerWidth < 1024 &&
+      window.matchMedia('(orientation: landscape)').matches
+    ) return
+
     if (!document.startViewTransition) return
 
-    // The DOM update has already happened by the time this effect fires.
-    // startViewTransition here captures the new state; the browser diffs with
-    // the previous paint automatically.
     document.startViewTransition(() => {})
   }, [pathname])
 

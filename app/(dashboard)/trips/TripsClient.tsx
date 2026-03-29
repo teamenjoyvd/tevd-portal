@@ -68,7 +68,7 @@ function Cta({ trip, registrationStatus, isCancelled, regLoading, profileId, onC
       <>
         <StatusBadge status={registrationStatus} onCancel={() => onCancel(trip.id)} isCancelling={isCancelling} t={t} />
         <button
-          onClick={() => router.push(`/trips/${trip.id}`)}
+          onClick={e => { e.stopPropagation(); router.push(`/trips/${trip.id}`) }}
           className="w-full py-3 rounded-xl text-sm font-semibold text-white hover:opacity-90 active:opacity-70 transition-opacity"
           style={{ backgroundColor: 'var(--brand-forest)' }}
         >
@@ -92,14 +92,21 @@ function Cta({ trip, registrationStatus, isCancelled, regLoading, profileId, onC
 
 function TripCardMobile(props: CardProps) {
   const { trip, userRole } = props
+  const router = useRouter()
   return (
-    <div className="rounded-2xl overflow-hidden flex flex-col"
-      style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-      {trip.image_url && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={trip.image_url} alt="" aria-hidden="true"
-          className="w-full object-cover flex-shrink-0" style={{ height: 140 }} />
-      )}
+    <div
+      className="rounded-2xl overflow-hidden flex flex-col cursor-pointer"
+      style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}
+      onClick={() => router.push(`/trips/${trip.id}`)}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={trip.image_url!}
+        alt=""
+        aria-hidden="true"
+        className="w-full object-cover flex-shrink-0"
+        style={{ height: 140, viewTransitionName: `trip-image-${trip.id}` } as React.CSSProperties}
+      />
       <div className="px-5 pt-4 pb-5 flex flex-col gap-3 flex-1">
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
@@ -132,7 +139,7 @@ function TripCardMobile(props: CardProps) {
           </svg>
           {formatDate(trip.start_date)} – {formatDate(trip.end_date)}
         </div>
-        <div className="mt-auto flex flex-col gap-2">
+        <div className="mt-auto flex flex-col gap-2" onClick={e => e.stopPropagation()}>
           <Cta {...props} />
         </div>
       </div>
@@ -144,14 +151,21 @@ function TripCardMobile(props: CardProps) {
 
 function TripCardDesktop(props: CardProps) {
   const { trip, userRole } = props
+  const router = useRouter()
   return (
-    <div className="rounded-2xl overflow-hidden flex flex-col h-full"
-      style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)', minHeight: 300 }}>
-      {trip.image_url && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={trip.image_url} alt="" aria-hidden="true"
-          className="w-full object-cover flex-shrink-0" style={{ height: 180 }} />
-      )}
+    <div
+      className="rounded-2xl overflow-hidden flex flex-col h-full cursor-pointer"
+      style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)', minHeight: 300 }}
+      onClick={() => router.push(`/trips/${trip.id}`)}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={trip.image_url!}
+        alt=""
+        aria-hidden="true"
+        className="w-full object-cover flex-shrink-0"
+        style={{ height: 180, viewTransitionName: `trip-image-${trip.id}` } as React.CSSProperties}
+      />
       <div className="px-6 pt-5 pb-6 flex flex-col gap-3 flex-1">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
@@ -203,7 +217,7 @@ function TripCardDesktop(props: CardProps) {
             {trip.location}
           </div>
         )}
-        <div className="mt-auto flex flex-col gap-2">
+        <div className="mt-auto flex flex-col gap-2" onClick={e => e.stopPropagation()}>
           <Cta {...props} />
         </div>
       </div>

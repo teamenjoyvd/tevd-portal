@@ -42,7 +42,7 @@ function BackButton() {
   )
 }
 
-function TripHero({ trip, profile }: { trip: Trip; profile: TripProfile }) {
+function TripHero({ trip, profile, enableMorph }: { trip: Trip; profile: TripProfile; enableMorph?: boolean }) {
   const milestones: Milestone[] = Array.isArray(trip.milestones)
     ? (trip.milestones as Milestone[])
     : []
@@ -55,8 +55,16 @@ function TripHero({ trip, profile }: { trip: Trip; profile: TripProfile }) {
       style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
       {trip.image_url && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={trip.image_url} alt="" aria-hidden="true"
-          className="w-full object-cover" style={{ height: 240 }} />
+        <img
+          src={trip.image_url}
+          alt=""
+          aria-hidden="true"
+          className="w-full object-cover"
+          style={{
+            height: 240,
+            ...(enableMorph ? { viewTransitionName: `trip-image-${trip.id}` } : {}),
+          } as React.CSSProperties}
+        />
       )}
       <div className="px-6 pt-6 pb-8">
         <div className="flex items-start justify-between gap-4 mb-4">
@@ -219,7 +227,7 @@ function AvailableView({ trip, profile }: { trip: Trip; profile: TripProfile }) 
     <div className="py-8 pb-16">
       <div className="max-w-[720px] mx-auto px-4">
         <BackButton />
-        <TripHero trip={trip} profile={profile} />
+        <TripHero trip={trip} profile={profile} enableMorph />
         <div className="mt-4">
           <RegisterButton tripId={trip.id} profileId={profile.id} />
         </div>
@@ -249,7 +257,7 @@ function PendingView({
       <div className="py-8 pb-16">
         <div className="max-w-[720px] mx-auto px-4">
           <BackButton />
-          <TripHero trip={trip} profile={profile} />
+          <TripHero trip={trip} profile={profile} enableMorph />
           <div className="mt-4 rounded-2xl px-6 py-5"
             style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
             <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
@@ -265,7 +273,7 @@ function PendingView({
     <div className="py-8 pb-16">
       <div className="max-w-[720px] mx-auto px-4">
         <BackButton />
-        <TripHero trip={trip} profile={profile} />
+        <TripHero trip={trip} profile={profile} enableMorph />
         <div className="mt-4 rounded-2xl px-6 py-6"
           style={{ backgroundColor: 'rgba(180,138,60,0.08)', border: '1px solid rgba(180,138,60,0.25)' }}>
           <div className="flex items-start gap-4">
@@ -463,9 +471,6 @@ function SubmitPaymentDrawer({
 // ── SEQ227: WHO'S GOING TILE ─────────────────────────────────────────────────
 
 function WhosGoingTile({ attendees }: { attendees: TeamAttendee[] }) {
-  // Hidden when attendees is empty array AND the RPC returned nothing meaningful.
-  // The server only calls the RPC when state === 'attendee'; an empty array means
-  // the viewer has no tree_node (no ABO path) or genuinely no downline attendees.
   if (attendees.length === 0) return null
 
   return (
@@ -523,20 +528,17 @@ function AttendeeView({
     ? (trip.milestones as Milestone[])
     : []
 
-  // Countdown
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const start = new Date(trip.start_date)
   start.setHours(0, 0, 0, 0)
   const daysToGo = Math.max(0, Math.round((start.getTime() - today.getTime()) / 86400000))
 
-  // Payment arithmetic
   const approvedTotal = payments
     .filter(p => p.admin_status === 'approved')
     .reduce((sum, p) => sum + p.amount, 0)
   const remaining = Math.max(0, trip.total_cost - approvedTotal)
 
-  // Milestone coverage: milestone i is covered if cumulative sum of milestones 0..i <= approvedTotal
   const cumulativeMilestones = milestones.reduce<number[]>((acc, m) => {
     acc.push((acc[acc.length - 1] ?? 0) + m.amount)
     return acc
@@ -583,7 +585,6 @@ function AttendeeView({
             </p>
           </div>
 
-          {/* Milestone checklist */}
           {milestones.length > 0 && (
             <div className="px-6 pb-4">
               <div className="space-y-2 mt-1">
@@ -625,7 +626,6 @@ function AttendeeView({
             </div>
           )}
 
-          {/* Payment history */}
           {payments.length > 0 && (
             <div className="border-t px-6 pt-4 pb-4" style={{ borderColor: 'var(--border-default)' }}>
               <p className="text-xs font-semibold tracking-widest uppercase mb-3"
@@ -669,7 +669,6 @@ function AttendeeView({
             </div>
           )}
 
-          {/* Balance + submit */}
           <div className="px-6 pt-3 pb-5 border-t" style={{ borderColor: 'var(--border-default)' }}>
             <div className="flex items-center justify-between mb-4">
               <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
@@ -693,7 +692,7 @@ function AttendeeView({
         {/* Who's Going */}
         <WhosGoingTile attendees={teamAttendees} />
 
-        {/* Trip info (read-only) */}
+        {/* Trip info (read-only) — no morph: TripHero is below the fold */}
         <TripHero trip={trip} profile={profile} />
       </div>
 
@@ -720,7 +719,6 @@ function ArchivedView({
       <div className="max-w-[720px] mx-auto px-4 space-y-4">
         <BackButton />
 
-        {/* Muted hero header */}
         <div className="rounded-2xl overflow-hidden"
           style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
           {trip.image_url && (
@@ -752,7 +750,6 @@ function ArchivedView({
           </div>
         </div>
 
-        {/* Final ledger — read-only */}
         <div className="rounded-2xl overflow-hidden"
           style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
           <div className="px-6 pt-5 pb-2">
@@ -832,7 +829,6 @@ function TripDetailContent(props: TripDetailClientProps) {
   if (state === 'archived')
     return <ArchivedView trip={trip} profile={profile} payments={payments} />
 
-  // Fallback — should not be reached
   return (
     <div className="py-8 pb-16">
       <div className="max-w-[720px] mx-auto px-4">
