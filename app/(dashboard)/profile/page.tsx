@@ -966,6 +966,12 @@ export default function ProfilePage() {
     if (confirm('Regenerate your calendar link? Your old link will stop working.')) regenerateCal.mutate()
   }, [regenerateCal])
 
+  // ── Sensors — must be above guard; hooks must never be conditional ────────
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
+  )
+
   function closePayDrawer() {
     setPayDrawerOpen(false)
     setPayModalItemId(''); setPayModalAmount(''); setPayModalDate('')
@@ -1163,11 +1169,6 @@ export default function ProfilePage() {
   const orderedBentos = bentoOrder
     .map(id => ({ id, entry: bentoMap[id] ?? null }))
     .filter((b): b is { id: string; entry: BentoEntry } => b.entry !== null)
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
-  )
 
   return (
     <div className="py-8 pb-16">
