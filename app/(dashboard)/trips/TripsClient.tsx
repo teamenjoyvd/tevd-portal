@@ -32,6 +32,14 @@ type CardProps = {
   userRole: string
 }
 
+function navigateWithTransition(push: (url: string) => void, url: string) {
+  if (typeof document !== 'undefined' && 'startViewTransition' in document) {
+    document.startViewTransition(() => push(url))
+  } else {
+    push(url)
+  }
+}
+
 function StatusBadge({ status, onCancel, isCancelling, t }: {
   status: 'pending' | 'approved' | 'denied'
   onCancel?: () => void
@@ -68,7 +76,7 @@ function Cta({ trip, registrationStatus, isCancelled, regLoading, profileId, onC
       <>
         <StatusBadge status={registrationStatus} onCancel={() => onCancel(trip.id)} isCancelling={isCancelling} t={t} />
         <button
-          onClick={e => { e.stopPropagation(); router.push(`/trips/${trip.id}`) }}
+          onClick={e => { e.stopPropagation(); navigateWithTransition(router.push, `/trips/${trip.id}`) }}
           className="w-full py-3 rounded-xl text-sm font-semibold text-white hover:opacity-90 active:opacity-70 transition-opacity"
           style={{ backgroundColor: 'var(--brand-forest)' }}
         >
@@ -97,7 +105,7 @@ function TripCardMobile(props: CardProps) {
     <div
       className="rounded-2xl overflow-hidden flex flex-col cursor-pointer"
       style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}
-      onClick={() => router.push(`/trips/${trip.id}`)}
+      onClick={() => navigateWithTransition(router.push, `/trips/${trip.id}`)}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
@@ -156,7 +164,7 @@ function TripCardDesktop(props: CardProps) {
     <div
       className="rounded-2xl overflow-hidden flex flex-col h-full cursor-pointer"
       style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)', minHeight: 300 }}
-      onClick={() => router.push(`/trips/${trip.id}`)}
+      onClick={() => navigateWithTransition(router.push, `/trips/${trip.id}`)}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img

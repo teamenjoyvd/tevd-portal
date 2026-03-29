@@ -23,13 +23,21 @@ interface TripDetailClientProps {
   teamAttendees: TeamAttendee[]
 }
 
-// ── Shared primitives ────────────────────────────────────────────────────────
+function navigateWithTransition(push: (url: string) => void, url: string) {
+  if (typeof document !== 'undefined' && 'startViewTransition' in document) {
+    document.startViewTransition(() => push(url))
+  } else {
+    push(url)
+  }
+}
+
+// ── Shared primitives ────────────────────────────────────────────
 
 function BackButton() {
   const router = useRouter()
   return (
     <button
-      onClick={() => router.push('/trips')}
+      onClick={() => navigateWithTransition(router.push, '/trips')}
       className="flex items-center gap-1.5 text-sm font-medium mb-6 hover:opacity-70 transition-opacity"
       style={{ color: 'var(--text-secondary)' }}
     >
@@ -63,7 +71,7 @@ function TripHero({ trip, profile, enableMorph }: { trip: Trip; profile: TripPro
           style={{
             height: 240,
             ...(enableMorph ? { viewTransitionName: `trip-image-${trip.id}` } : {}),
-          } as React.CSSProperties}
+          }}
         />
       )}
       <div className="px-6 pt-6 pb-8">
@@ -173,7 +181,7 @@ function TripHero({ trip, profile, enableMorph }: { trip: Trip; profile: TripPro
   )
 }
 
-// ── SEQ224: LOCKED ───────────────────────────────────────────────────────────
+// ── SEQ224: LOCKED ────────────────────────────────────────────
 
 function LockedView({ profile }: { profile: TripProfile }) {
   const router = useRouter()
@@ -220,7 +228,7 @@ function LockedView({ profile }: { profile: TripProfile }) {
   )
 }
 
-// ── SEQ224: AVAILABLE ────────────────────────────────────────────────────────
+// ── SEQ224: AVAILABLE ──────────────────────────────────────────
 
 function AvailableView({ trip, profile }: { trip: Trip; profile: TripProfile }) {
   return (
@@ -236,7 +244,7 @@ function AvailableView({ trip, profile }: { trip: Trip; profile: TripProfile }) 
   )
 }
 
-// ── SEQ225: PENDING ──────────────────────────────────────────────────────────
+// ── SEQ225: PENDING ────────────────────────────────────────────
 
 function PendingView({
   trip, profile, registration,
@@ -249,7 +257,7 @@ function PendingView({
         if (!r.ok) throw new Error((await r.json()).error ?? 'Cancel failed')
         return r.json()
       }),
-    onSuccess: () => router.push('/trips'),
+    onSuccess: () => navigateWithTransition(router.push, '/trips'),
   })
 
   if (registration.cancelled_at) {
@@ -312,7 +320,7 @@ function PendingView({
   )
 }
 
-// ── SEQ226: ATTENDEE ─────────────────────────────────────────────────────────
+// ── SEQ226: ATTENDEE ─────────────────────────────────────────────
 
 function SubmitPaymentDrawer({
   tripId,
@@ -468,7 +476,7 @@ function SubmitPaymentDrawer({
   )
 }
 
-// ── SEQ227: WHO'S GOING TILE ─────────────────────────────────────────────────
+// ── SEQ227: WHO'S GOING TILE ───────────────────────────────────────
 
 function WhosGoingTile({ attendees }: { attendees: TeamAttendee[] }) {
   if (attendees.length === 0) return null
@@ -705,7 +713,7 @@ function AttendeeView({
   )
 }
 
-// ── SEQ228: ARCHIVED ─────────────────────────────────────────────────────────
+// ── SEQ228: ARCHIVED ────────────────────────────────────────────
 
 function ArchivedView({
   trip, profile, payments,
@@ -815,7 +823,7 @@ function ArchivedView({
   )
 }
 
-// ── Root export ──────────────────────────────────────────────────────────────
+// ── Root export ──────────────────────────────────────────────────
 
 function TripDetailContent(props: TripDetailClientProps) {
   const { trip, state, registration, payments, profile, teamAttendees } = props
