@@ -53,7 +53,7 @@ export default async function HomePage() {
     <div style={{ backgroundColor: 'var(--bg-global)' }}>
       <BentoGrid className="py-4 pb-16">
 
-        {/* ── ROW 1–2: Hero·5 | Profile·2 | About·2 | Calendar·3 ── */}
+        {/* ── ROW 1–2: Hero·5 | Profile·2 | About·2 | Calendar·3 (rows 1–4) ── */}
 
         <BentoCard
           variant="forest"
@@ -101,14 +101,15 @@ export default async function HomePage() {
           </div>
         </BentoCard>
 
+        {/* Calendar spans rows 1–4, col 10–12 */}
         <CalendarTile
           colSpan={3}
           mobileColSpan={12}
-          rowSpan={2}
-          style={{ gridColumn: '10 / span 3', gridRow: '1 / span 2' }}
+          rowSpan={4}
+          style={{ gridColumn: '10 / span 3', gridRow: '1 / span 4' }}
         />
 
-        {/* ── ROW 3–4: Trip·3 | Announcement·3 | LinksGuides·3 | [empty·3] ── */}
+        {/* ── ROW 3–4: Trip·3 | Announcement·3 | LinksGuides·3 (rows 3–6) ── */}
 
         {nextTrip && (
         <BentoCard
@@ -190,15 +191,16 @@ export default async function HomePage() {
         </BentoCard>
         )}
 
+        {/* LinksGuides spans rows 3–6, col 7–9 */}
         <LinksGuidesTile
           quickLinks={quickLinks}
           colSpan={3}
           mobileColSpan={12}
-          rowSpan={2}
-          style={{ gridColumn: '7 / span 3', gridRow: '3 / span 2' }}
+          rowSpan={4}
+          style={{ gridColumn: '7 / span 3', gridRow: '3 / span 4' }}
         />
 
-        {/* ── ROW 5–6: Theme·2 | FontSize·2 | Map·2 | Socials·3 ── */}
+        {/* ── ROW 5–6: Theme·2 | FontSize·2 | Map·2 | Socials·3 (col 10–12) ── */}
 
         <ThemeTile
           colSpan={2}
@@ -220,11 +222,12 @@ export default async function HomePage() {
           style={{ gridColumn: '5 / span 2', gridRow: '5 / span 2' }}
         />
 
+        {/* Socials: bottom right, col 10–12 rows 5–6, under Calendar */}
         <SocialsTile
           colSpan={3}
           mobileColSpan={12}
           rowSpan={2}
-          style={{ gridColumn: '7 / span 3', gridRow: '5 / span 2' }}
+          style={{ gridColumn: '10 / span 3', gridRow: '5 / span 2' }}
         />
 
       </BentoGrid>
