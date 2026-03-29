@@ -61,7 +61,7 @@ export default async function HomePage() {
           mobileColSpan={12}
           rowSpan={2}
           className="bento-tile relative overflow-hidden"
-          style={{ gridColumn: '1 / span 5', gridRow: '1 / span 2', animationDelay: '0ms', minHeight: 320 }}
+          style={{ gridColumn: '1 / span 5', gridRow: '1 / span 2', animationDelay: '0ms' }}
         >
           <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 40% 50%, rgba(188,71,73,0.18) 0%, transparent 70%)' }} />
           <div className="absolute inset-0 flex flex-col justify-end px-8 py-10 z-10">
