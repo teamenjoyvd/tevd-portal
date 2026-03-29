@@ -23,6 +23,41 @@ function normaliseUrl(raw: string): string {
   return `https://${trimmed}`
 }
 
+function ExternalLinkIcon() {
+  return (
+    <span
+      className="flex-shrink-0 flex items-center justify-center rounded-[6px]"
+      style={{ width: 22, height: 22, background: '#bc474914' }}
+    >
+      <svg
+        width="11"
+        height="11"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="#bc4749"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+        <polyline points="15 3 21 3 21 9" />
+        <line x1="10" y1="14" x2="21" y2="3" />
+      </svg>
+    </span>
+  )
+}
+
+function GuideEmojiIcon({ emoji }: { emoji: string | null }) {
+  return (
+    <span
+      className="flex-shrink-0 flex items-center justify-center"
+      style={{ width: 22, height: 22, fontSize: 14 }}
+    >
+      {emoji ?? '📄'}
+    </span>
+  )
+}
+
 export default function LinksGuidesTile({
   quickLinks,
   colSpan = 3,
@@ -72,12 +107,7 @@ export default function LinksGuidesTile({
           rel="noopener noreferrer"
           className="flex items-center gap-2.5 px-2 py-[7px] rounded-lg hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
         >
-          <span
-            className="flex-shrink-0 w-[22px] text-center text-[10px]"
-            style={{ color: 'var(--text-secondary)', opacity: 0.45 }}
-          >
-            •
-          </span>
+          <ExternalLinkIcon />
           <span
             className="flex-1 text-[13px] font-medium truncate"
             style={{ color: 'var(--text-primary)' }}
@@ -109,12 +139,7 @@ export default function LinksGuidesTile({
               href={`/guides/${g.slug}`}
               className="flex items-center gap-2.5 px-2 py-[7px] rounded-lg hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
             >
-              <span
-                className="flex-shrink-0 w-[22px] text-center text-[10px]"
-                style={{ color: 'var(--text-secondary)', opacity: 0.45 }}
-              >
-                •
-              </span>
+              <GuideEmojiIcon emoji={g.emoji} />
               <span
                 className="flex-1 text-[13px] font-medium truncate"
                 style={{ color: 'var(--text-primary)' }}
