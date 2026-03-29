@@ -386,7 +386,7 @@ function SortableBento({
   )
 }
 
-// ── Memo'd tile components (unchanged from old page, hoisted to module scope) ──
+// ── Memo'd tile components ────────────────────────────────────────────────────
 
 const TripsContent = memo(function TripsContent({
   tripsData, onCancelTrip, cancelTripPending,
@@ -554,7 +554,7 @@ const CalendarContent = memo(function CalendarContent({
   subLabel: string; subDesc: string; subInstructions: string; regenerateLabel: string
 }) {
   return (
-    <div className="rounded-2xl p-6" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+    <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
       <p className="text-xs font-semibold tracking-widest uppercase mb-1" style={{ color: 'var(--text-secondary)' }}>{subLabel}</p>
       <p className="text-xs mb-1 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{subDesc}</p>
       <p className="text-xs mb-3 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{subInstructions}</p>
@@ -606,7 +606,7 @@ const StatsContent = memo(function StatsContent({ role, losSummary }: { role: st
 
 const AdminContent = memo(function AdminContent() {
   return (
-    <div className="rounded-2xl p-6" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+    <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
       <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-4 pr-16" style={{ color: 'var(--brand-teal)' }}>Admin Tools</p>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, minmax(0, 1fr))', gap: '12px' }}>
         <a href="/admin"
@@ -684,7 +684,7 @@ export default function ProfilePage() {
   const [calCopied, setCalCopied] = useState(false)
 
   // ── Drag/drop + collapse state ───────────────────────────────────────────
-  const [bentoOrder, setBentoOrder]       = useState<string[]>(DEFAULT_ORDER)
+  const [bentoOrder, setBentoOrder]         = useState<string[]>(DEFAULT_ORDER)
   const [bentoCollapsed, setBentoCollapsed] = useState<Record<string, boolean>>({})
   const persistDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -953,9 +953,9 @@ export default function ProfilePage() {
   }, [persistPrefs])
 
   // ── Stable callbacks for memo'd tiles ───────────────────────────────────
-  const handleCancelTrip = useCallback((tripId: string) => { cancelTrip.mutate(tripId) }, [cancelTrip])
+  const handleCancelTrip    = useCallback((tripId: string) => { cancelTrip.mutate(tripId) }, [cancelTrip])
   const handleOpenPayDrawer = useCallback(() => { setPayDrawerOpen(true) }, [])
-  const handleCalCopy = useCallback(() => {
+  const handleCalCopy       = useCallback(() => {
     if (calData?.url) {
       navigator.clipboard.writeText(calData.url)
       setCalCopied(true)
@@ -1125,9 +1125,9 @@ export default function ProfilePage() {
           : null
       : null,
 
-    // Calendar: always
+    // Calendar: col-6 (was col-12)
     [BENTO_IDS.CALENDAR]: {
-      colSpan: 12,
+      colSpan: 6,
       node: (
         <CalendarContent
           calUrl={calData?.url ?? ''}
@@ -1145,7 +1145,7 @@ export default function ProfilePage() {
       ),
     },
 
-    // Stats: abo_number present
+    // Stats: abo_number present — col-12 (spans full row, wide content)
     [BENTO_IDS.STATS]: p.abo_number
       ? losSummaryLoading
         ? { colSpan: 12, node: <div className="rounded-2xl animate-pulse" style={{ height: 80, backgroundColor: 'var(--border-default)' }} /> }
@@ -1154,9 +1154,9 @@ export default function ProfilePage() {
           : null
       : null,
 
-    // Admin: admin role only
+    // Admin: admin role only — col-6 (was col-12)
     [BENTO_IDS.ADMIN]: isAdmin
-      ? { colSpan: 12, node: <AdminContent /> }
+      ? { colSpan: 6, node: <AdminContent /> }
       : null,
   }
 
