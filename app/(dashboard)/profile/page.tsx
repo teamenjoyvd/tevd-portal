@@ -225,6 +225,22 @@ function validateDocField(
   return ''
 }
 
+// ── Height tier constants ─────────────────────────────────────────────────────
+
+const BENTO_HEIGHT = {
+  S: 160,   // Travel Doc, Calendar, Stats, Admin
+  M: 280,   // Personal Details, ABO Info, Settings; variable tiles at 1–2 items
+  L: 400,   // Variable tiles at 3–5 items
+} as const
+
+const VARIABLE_CAP = 5
+
+function bentoMinHeight(itemCount: number): number {
+  if (itemCount <= 2) return BENTO_HEIGHT.M
+  if (itemCount <= VARIABLE_CAP) return BENTO_HEIGHT.L
+  return BENTO_HEIGHT.L
+}
+
 // ── Status style maps ─────────────────────────────────────────────────────────
 
 const PAYMENT_STATUS_STYLES: Record<string, { bg: string; color: string }> = {
@@ -295,19 +311,128 @@ const BENTO_IDS = {
   ADMIN:            'admin',
 }
 
+// Default order tuned for gap-free pairing:
+// Row 1: Personal Details (M) | ABO Info (M)
+// Row 2: Trips (M/L)          | Payments (M/L)
+// Row 3: Vitals (M/L)         | Participation (M/L)
+// Row 4: Settings (M)         | Travel Doc (S) — Settings taller, Travel Doc shorter
+// Row 5: Calendar (S)         | Stats (S)
+// Row 6: Admin (S)            | —
 const DEFAULT_ORDER: string[] = [
   BENTO_IDS.PERSONAL_DETAILS,
   BENTO_IDS.ABO_INFO,
-  BENTO_IDS.TRAVEL_DOC,
-  BENTO_IDS.SETTINGS,
   BENTO_IDS.TRIPS,
   BENTO_IDS.PAYMENTS,
   BENTO_IDS.VITALS,
   BENTO_IDS.PARTICIPATION,
+  BENTO_IDS.SETTINGS,
+  BENTO_IDS.TRAVEL_DOC,
   BENTO_IDS.CALENDAR,
   BENTO_IDS.STATS,
   BENTO_IDS.ADMIN,
 ]
+
+// ── Show-more button ──────────────────────────────────────────────────────────
+
+function ShowMoreButton({ count, onClick }: { count: number; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="mt-3 text-xs font-semibold hover:opacity-70 transition-opacity"
+      style={{ color: 'var(--brand-crimson)' }}
+    >
+      +{count} more
+    </button>
+  )
+}
+
+// ── Trip row (shared between tile and drawer) ─────────────────────────────────
+
+function TripRow({
+  entry,
+  onCancel,
+  cancelPending,
+}: {
+  entry: TripEntry
+  onCancel: (tripId: string) => void
+  cancelPending: boolean
+}) {
+  if (!entry.trip) return null
+  const isCancelled = !!entry.cancelled_at
+  const regStyle = isCancelled
+    ? REG_STATUS_STYLES.cancelled
+    : (REG_STATUS_STYLES[entry.registration_status] ?? REG_STATUS_STYLES.pending)
+  return (
+    <div
+      className="rounded-xl p-3"
+      style={{ backgroundColor: 'var(--bg-global)', border: '1px solid var(--border-default)', opacity: isCancelled ? 0.7 : 1 }}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{entry.trip.title}</p>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>{entry.trip.destination}</p>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+            {formatDate(entry.trip.start_date)} – {formatDate(entry.trip.end_date)}
+          </p>
+        </div>
+        <span
+          className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
+          style={{ backgroundColor: regStyle.bg, color: regStyle.color }}
+        >
+          {isCancelled ? 'cancelled' : entry.registration_status}
+        </span>
+      </div>
+      {!isCancelled && (
+        <button
+          onClick={() => { if (confirm('Cancel your participation in this trip? This cannot be undone.')) onCancel(entry.trip!.id) }}
+          disabled={cancelPending}
+          className="mt-2 text-[11px] font-medium hover:opacity-70 transition-opacity disabled:opacity-40"
+          style={{ color: 'var(--brand-crimson)' }}
+        >
+          Cancel participation
+        </button>
+      )}
+    </div>
+  )
+}
+
+// ── Payment row (shared between tile and drawer) ──────────────────────────────
+
+function PaymentRow({
+  pay,
+  cancelledTripIds,
+}: {
+  pay: GenericPayment
+  cancelledTripIds: Set<string>
+}) {
+  const ps = PAYMENT_STATUS_STYLES[pay.status] ?? PAYMENT_STATUS_STYLES.pending
+  const linkedTripCancelled = pay.payable_items?.item_type === 'trip' && cancelledTripIds.size > 0
+  return (
+    <div
+      className="flex items-center gap-2 text-xs rounded-xl px-3 py-2"
+      style={{ backgroundColor: 'var(--bg-global)' }}
+    >
+      <span className="font-semibold flex-shrink-0" style={{ color: 'var(--text-primary)' }}>
+        {formatCurrency(pay.amount, pay.payable_items?.currency ?? 'EUR')}
+      </span>
+      <span style={{ color: 'var(--text-secondary)' }}>{formatDate(pay.transaction_date)}</span>
+      {pay.payment_method && <span style={{ color: 'var(--text-secondary)' }}>{pay.payment_method}</span>}
+      <span
+        className="ml-auto font-semibold px-2 py-0.5 rounded-full flex-shrink-0 flex items-center gap-1"
+        style={{ backgroundColor: ps.bg, color: ps.color }}
+      >
+        {pay.status}
+        {(pay.admin_note || linkedTripCancelled) && (
+          <span title={linkedTripCancelled ? 'Trip was cancelled' : (pay.admin_note ?? '')} style={{ cursor: 'help', fontSize: 10, lineHeight: 1 }}>ⓘ</span>
+        )}
+      </span>
+      {pay.proof_url && (
+        <a href={pay.proof_url} target="_blank" rel="noopener noreferrer"
+          className="flex-shrink-0 hover:underline" style={{ color: 'var(--brand-teal)' }}>proof ↗</a>
+      )}
+    </div>
+  )
+}
 
 // ── Sortable bento wrapper ────────────────────────────────────────────────────
 
@@ -316,12 +441,14 @@ function SortableBento({
   collapsed,
   onToggleCollapse,
   colSpan,
+  minHeight,
   children,
 }: {
   id: string
   collapsed: boolean
   onToggleCollapse: () => void
   colSpan: number
+  minHeight: number
   children: ReactNode
 }) {
   const {
@@ -340,6 +467,7 @@ function SortableBento({
     transition,
     opacity: isDragging ? 0.5 : 1,
     position: 'relative',
+    minHeight: collapsed ? undefined : minHeight,
   }
 
   return (
@@ -379,7 +507,7 @@ function SortableBento({
               ▾
             </button>
           </div>
-          <div style={{ overflow: 'hidden' }}>{children}</div>
+          <div style={{ overflow: 'hidden', height: '100%' }}>{children}</div>
         </>
       )}
     </div>
@@ -389,63 +517,49 @@ function SortableBento({
 // ── Memo'd tile components ────────────────────────────────────────────────────
 
 const TripsContent = memo(function TripsContent({
-  tripsData, onCancelTrip, cancelTripPending,
+  tripsData, onCancelTrip, cancelTripPending, onShowMore,
 }: {
   tripsData: TripEntry[]
   onCancelTrip: (tripId: string) => void
   cancelTripPending: boolean
+  onShowMore: () => void
 }) {
+  const visible = tripsData.slice(0, VARIABLE_CAP)
+  const overflow = tripsData.length - VARIABLE_CAP
   return (
     <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
       <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-4 pr-16" style={{ color: 'var(--brand-crimson)' }}>Trips</p>
       <div className="space-y-2">
-        {tripsData.map(entry => {
-          if (!entry.trip) return null
-          const isCancelled = !!entry.cancelled_at
-          const regStyle = isCancelled
-            ? REG_STATUS_STYLES.cancelled
-            : (REG_STATUS_STYLES[entry.registration_status] ?? REG_STATUS_STYLES.pending)
-          return (
-            <div key={entry.registration_id} className="rounded-xl p-3"
-              style={{ backgroundColor: 'var(--bg-global)', border: '1px solid var(--border-default)', opacity: isCancelled ? 0.7 : 1 }}>
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{entry.trip.title}</p>
-                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>{entry.trip.destination}</p>
-                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                    {formatDate(entry.trip.start_date)} – {formatDate(entry.trip.end_date)}
-                  </p>
-                </div>
-                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: regStyle.bg, color: regStyle.color }}>
-                  {isCancelled ? 'cancelled' : entry.registration_status}
-                </span>
-              </div>
-              {!isCancelled && (
-                <button
-                  onClick={() => { if (confirm('Cancel your participation in this trip? This cannot be undone.')) onCancelTrip(entry.trip!.id) }}
-                  disabled={cancelTripPending}
-                  className="mt-2 text-[11px] font-medium hover:opacity-70 transition-opacity disabled:opacity-40"
-                  style={{ color: 'var(--brand-crimson)' }}
-                >
-                  Cancel participation
-                </button>
-              )}
-            </div>
-          )
-        })}
+        {visible.map(entry => (
+          <TripRow key={entry.registration_id} entry={entry} onCancel={onCancelTrip} cancelPending={cancelTripPending} />
+        ))}
       </div>
+      {overflow > 0 && <ShowMoreButton count={overflow} onClick={onShowMore} />}
     </div>
   )
 })
 
 const PaymentsContent = memo(function PaymentsContent({
-  paymentsByItem, cancelledTripIds, onOpenPayDrawer,
+  paymentsByItem, allPayments, cancelledTripIds, onOpenPayDrawer, onShowMore,
 }: {
   paymentsByItem: Record<string, GenericPayment[]>
+  allPayments: GenericPayment[]
   cancelledTripIds: Set<string>
   onOpenPayDrawer: () => void
+  onShowMore: () => void
 }) {
+  const totalCount = allPayments.length
+  const visiblePayments = allPayments.slice(0, VARIABLE_CAP)
+  const overflow = totalCount - VARIABLE_CAP
+
+  // Re-group visible slice by item title
+  const visibleByItem: Record<string, GenericPayment[]> = {}
+  for (const pay of visiblePayments) {
+    const key = pay.payable_items?.title ?? 'Unknown'
+    if (!visibleByItem[key]) visibleByItem[key] = []
+    visibleByItem[key].push(pay)
+  }
+
   return (
     <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
       <div className="flex items-center justify-between mb-4 pr-16">
@@ -454,54 +568,40 @@ const PaymentsContent = memo(function PaymentsContent({
           className="px-3 py-1.5 rounded-xl text-xs font-semibold text-white hover:opacity-90 transition-opacity flex-shrink-0"
           style={{ backgroundColor: 'var(--brand-forest)' }}>+ Submit payment</button>
       </div>
-      {Object.keys(paymentsByItem).length === 0 ? (
+      {Object.keys(visibleByItem).length === 0 ? (
         <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>No payments logged yet.</p>
       ) : (
         <div className="space-y-4">
-          {Object.entries(paymentsByItem).map(([itemTitle, itemPayments]) => (
+          {Object.entries(visibleByItem).map(([itemTitle, itemPayments]) => (
             <div key={itemTitle}>
               <p className="text-[11px] font-semibold tracking-widest uppercase mb-1.5" style={{ color: 'var(--text-secondary)' }}>{itemTitle}</p>
               <div className="space-y-1.5">
-                {itemPayments.map(pay => {
-                  const ps = PAYMENT_STATUS_STYLES[pay.status] ?? PAYMENT_STATUS_STYLES.pending
-                  const linkedTripCancelled = pay.payable_items?.item_type === 'trip' && cancelledTripIds.size > 0
-                  return (
-                    <div key={pay.id} className="flex items-center gap-2 text-xs rounded-xl px-3 py-2"
-                      style={{ backgroundColor: 'var(--bg-global)' }}>
-                      <span className="font-semibold flex-shrink-0" style={{ color: 'var(--text-primary)' }}>
-                        {formatCurrency(pay.amount, pay.payable_items?.currency ?? 'EUR')}
-                      </span>
-                      <span style={{ color: 'var(--text-secondary)' }}>{formatDate(pay.transaction_date)}</span>
-                      {pay.payment_method && <span style={{ color: 'var(--text-secondary)' }}>{pay.payment_method}</span>}
-                      <span className="ml-auto font-semibold px-2 py-0.5 rounded-full flex-shrink-0 flex items-center gap-1"
-                        style={{ backgroundColor: ps.bg, color: ps.color }}>
-                        {pay.status}
-                        {(pay.admin_note || linkedTripCancelled) && (
-                          <span title={linkedTripCancelled ? 'Trip was cancelled' : (pay.admin_note ?? '')} style={{ cursor: 'help', fontSize: 10, lineHeight: 1 }}>ⓘ</span>
-                        )}
-                      </span>
-                      {pay.proof_url && (
-                        <a href={pay.proof_url} target="_blank" rel="noopener noreferrer"
-                          className="flex-shrink-0 hover:underline" style={{ color: 'var(--brand-teal)' }}>proof ↗</a>
-                      )}
-                    </div>
-                  )
-                })}
+                {itemPayments.map(pay => (
+                  <PaymentRow key={pay.id} pay={pay} cancelledTripIds={cancelledTripIds} />
+                ))}
               </div>
             </div>
           ))}
         </div>
       )}
+      {overflow > 0 && <ShowMoreButton count={overflow} onClick={onShowMore} />}
     </div>
   )
 })
 
-const VitalsContent = memo(function VitalsContent({ vitalsData }: { vitalsData: VitalSign[] }) {
+const VitalsContent = memo(function VitalsContent({
+  vitalsData, onShowMore,
+}: {
+  vitalsData: VitalSign[]
+  onShowMore: () => void
+}) {
+  const visible = vitalsData.slice(0, VARIABLE_CAP)
+  const overflow = vitalsData.length - VARIABLE_CAP
   return (
     <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
       <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-6 pr-16" style={{ color: 'var(--brand-crimson)' }}>Vital Signs</p>
       <div className="space-y-2">
-        {vitalsData.map(vs => {
+        {visible.map(vs => {
           const label = vs.vital_sign_definitions?.label ?? vs.definition_id
           const category = vs.vital_sign_definitions?.category
           return (
@@ -518,16 +618,24 @@ const VitalsContent = memo(function VitalsContent({ vitalsData }: { vitalsData: 
           )
         })}
       </div>
+      {overflow > 0 && <ShowMoreButton count={overflow} onClick={onShowMore} />}
     </div>
   )
 })
 
-const ParticipationContent = memo(function ParticipationContent({ eventRolesData }: { eventRolesData: EventRoleRequest[] }) {
+const ParticipationContent = memo(function ParticipationContent({
+  eventRolesData, onShowMore,
+}: {
+  eventRolesData: EventRoleRequest[]
+  onShowMore: () => void
+}) {
+  const visible = eventRolesData.slice(0, VARIABLE_CAP)
+  const overflow = eventRolesData.length - VARIABLE_CAP
   return (
     <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
       <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-6 pr-16" style={{ color: 'var(--brand-crimson)' }}>Participation</p>
       <div className="space-y-2">
-        {eventRolesData.map(er => {
+        {visible.map(er => {
           const rs = REG_STATUS_STYLES[er.status.toLowerCase()] ?? REG_STATUS_STYLES.pending
           return (
             <div key={er.id} className="flex items-start justify-between gap-3 text-xs py-1.5">
@@ -541,6 +649,7 @@ const ParticipationContent = memo(function ParticipationContent({ eventRolesData
           )
         })}
       </div>
+      {overflow > 0 && <ShowMoreButton count={overflow} onClick={onShowMore} />}
     </div>
   )
 })
@@ -628,8 +737,8 @@ function ProfileSkeleton() {
       <div className="max-w-[1280px] mx-auto px-4 sm:px-6 xl:px-8">
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: '12px' }}>
           {[...Array(4)].map((_, i) => (
-            <div key={i} style={{ gridColumn: 'span 6' }} className="bento-mobile-full">
-              <div className="h-48 rounded-2xl animate-pulse" style={{ backgroundColor: 'var(--border-default)' }} />
+            <div key={i} style={{ gridColumn: 'span 6', minHeight: BENTO_HEIGHT.M }} className="bento-mobile-full">
+              <div className="h-full rounded-2xl animate-pulse" style={{ backgroundColor: 'var(--border-default)' }} />
             </div>
           ))}
         </div>
@@ -645,9 +754,13 @@ export default function ProfilePage() {
   const { t } = useLanguage()
 
   // ── Drawer open states ───────────────────────────────────────────────────
-  const [personalDrawerOpen, setPersonalDrawerOpen]   = useState(false)
-  const [travelDocDrawerOpen, setTravelDocDrawerOpen] = useState(false)
-  const [payDrawerOpen, setPayDrawerOpen]             = useState(false)
+  const [personalDrawerOpen, setPersonalDrawerOpen]     = useState(false)
+  const [travelDocDrawerOpen, setTravelDocDrawerOpen]   = useState(false)
+  const [payDrawerOpen, setPayDrawerOpen]               = useState(false)
+  const [tripsDrawerOpen, setTripsDrawerOpen]           = useState(false)
+  const [paymentsDrawerOpen, setPaymentsDrawerOpen]     = useState(false)
+  const [vitalsDrawerOpen, setVitalsDrawerOpen]         = useState(false)
+  const [participationDrawerOpen, setParticipationDrawerOpen] = useState(false)
 
   // ── Saved flash ──────────────────────────────────────────────────────────
   const [savedPersonal, setSavedPersonal]     = useState(false)
@@ -966,7 +1079,12 @@ export default function ProfilePage() {
     if (confirm('Regenerate your calendar link? Your old link will stop working.')) regenerateCal.mutate()
   }, [regenerateCal])
 
-  // ── Sensors — must be above guard; hooks must never be conditional ────────
+  const handleShowMoreTrips         = useCallback(() => setTripsDrawerOpen(true), [])
+  const handleShowMorePayments      = useCallback(() => setPaymentsDrawerOpen(true), [])
+  const handleShowMoreVitals        = useCallback(() => setVitalsDrawerOpen(true), [])
+  const handleShowMoreParticipation = useCallback(() => setParticipationDrawerOpen(true), [])
+
+  // ── Sensors ──────────────────────────────────────────────────────────────
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
@@ -1028,7 +1146,6 @@ export default function ProfilePage() {
   const hasVitals     = Array.isArray(vitalsData) && vitalsData.length > 0
   const hasEventRoles = Array.isArray(eventRolesData) && eventRolesData.length > 0
 
-  // Derive ABO info mode
   type AboMode = 'form' | 'pending' | 'confirmed'
   let aboMode: AboMode = 'form'
   if (p.abo_number) {
@@ -1037,8 +1154,9 @@ export default function ProfilePage() {
     aboMode = 'pending'
   }
 
+  const allPayments = paymentsData ?? []
   const paymentsByItem: Record<string, GenericPayment[]> = {}
-  for (const pay of (paymentsData ?? [])) {
+  for (const pay of allPayments) {
     const key = pay.payable_items?.title ?? 'Unknown'
     if (!paymentsByItem[key]) paymentsByItem[key] = []
     paymentsByItem[key].push(pay)
@@ -1048,11 +1166,12 @@ export default function ProfilePage() {
   )
 
   // ── Bento map ─────────────────────────────────────────────────────────────
-  type BentoEntry = { colSpan: number; node: ReactNode }
+  type BentoEntry = { colSpan: number; minHeight: number; node: ReactNode }
 
   const bentoMap: Record<string, BentoEntry | null> = {
     [BENTO_IDS.PERSONAL_DETAILS]: {
       colSpan: 6,
+      minHeight: BENTO_HEIGHT.M,
       node: (
         <PersonalDetailsContent
           profile={p}
@@ -1064,6 +1183,7 @@ export default function ProfilePage() {
 
     [BENTO_IDS.ABO_INFO]: {
       colSpan: 6,
+      minHeight: BENTO_HEIGHT.M,
       node: (
         <AboInfoContent
           mode={aboMode}
@@ -1080,9 +1200,9 @@ export default function ProfilePage() {
       ),
     },
 
-    // Travel doc: only for non-guest
     [BENTO_IDS.TRAVEL_DOC]: !isGuest ? {
       colSpan: 6,
+      minHeight: BENTO_HEIGHT.S,
       node: (
         <TravelDocContent
           profile={p}
@@ -1091,49 +1211,61 @@ export default function ProfilePage() {
       ),
     } : null,
 
-    // Settings: always
     [BENTO_IDS.SETTINGS]: {
       colSpan: 6,
+      minHeight: BENTO_HEIGHT.M,
       node: <UserSettingsContent />,
     },
 
-    // Trips: member+ only, only if data exists
     [BENTO_IDS.TRIPS]: !isGuest
       ? tripsLoading
-        ? { colSpan: 6, node: <div className="rounded-2xl animate-pulse" style={{ height: 160, backgroundColor: 'var(--border-default)' }} /> }
+        ? { colSpan: 6, minHeight: BENTO_HEIGHT.M, node: <div className="rounded-2xl animate-pulse h-full" style={{ backgroundColor: 'var(--border-default)' }} /> }
         : hasTrips
-          ? { colSpan: 6, node: <TripsContent tripsData={tripsData!} onCancelTrip={handleCancelTrip} cancelTripPending={cancelTrip.isPending} /> }
+          ? {
+              colSpan: 6,
+              minHeight: bentoMinHeight(tripsData!.length),
+              node: <TripsContent tripsData={tripsData!} onCancelTrip={handleCancelTrip} cancelTripPending={cancelTrip.isPending} onShowMore={handleShowMoreTrips} />,
+            }
           : null
       : null,
 
-    // Payments: member+ only
     [BENTO_IDS.PAYMENTS]: !isGuest
       ? paymentsLoading
-        ? { colSpan: 6, node: <div className="rounded-2xl animate-pulse" style={{ height: 160, backgroundColor: 'var(--border-default)' }} /> }
-        : { colSpan: 6, node: <PaymentsContent paymentsByItem={paymentsByItem} cancelledTripIds={cancelledTripIds} onOpenPayDrawer={handleOpenPayDrawer} /> }
+        ? { colSpan: 6, minHeight: BENTO_HEIGHT.M, node: <div className="rounded-2xl animate-pulse h-full" style={{ backgroundColor: 'var(--border-default)' }} /> }
+        : {
+            colSpan: 6,
+            minHeight: bentoMinHeight(allPayments.length),
+            node: <PaymentsContent paymentsByItem={paymentsByItem} allPayments={allPayments} cancelledTripIds={cancelledTripIds} onOpenPayDrawer={handleOpenPayDrawer} onShowMore={handleShowMorePayments} />,
+          }
       : null,
 
-    // Vitals: member+ only, only if data exists
     [BENTO_IDS.VITALS]: !isGuest
       ? vitalsLoading
-        ? { colSpan: 6, node: <div className="rounded-2xl animate-pulse" style={{ height: 120, backgroundColor: 'var(--border-default)' }} /> }
+        ? { colSpan: 6, minHeight: BENTO_HEIGHT.M, node: <div className="rounded-2xl animate-pulse h-full" style={{ backgroundColor: 'var(--border-default)' }} /> }
         : hasVitals
-          ? { colSpan: 6, node: <VitalsContent vitalsData={vitalsData!} /> }
+          ? {
+              colSpan: 6,
+              minHeight: bentoMinHeight(vitalsData!.length),
+              node: <VitalsContent vitalsData={vitalsData!} onShowMore={handleShowMoreVitals} />,
+            }
           : null
       : null,
 
-    // Participation: member+ only, only if data exists
     [BENTO_IDS.PARTICIPATION]: !isGuest
       ? eventRolesLoading
-        ? { colSpan: 6, node: <div className="rounded-2xl animate-pulse" style={{ height: 120, backgroundColor: 'var(--border-default)' }} /> }
+        ? { colSpan: 6, minHeight: BENTO_HEIGHT.M, node: <div className="rounded-2xl animate-pulse h-full" style={{ backgroundColor: 'var(--border-default)' }} /> }
         : hasEventRoles
-          ? { colSpan: 6, node: <ParticipationContent eventRolesData={eventRolesData!} /> }
+          ? {
+              colSpan: 6,
+              minHeight: bentoMinHeight(eventRolesData!.length),
+              node: <ParticipationContent eventRolesData={eventRolesData!} onShowMore={handleShowMoreParticipation} />,
+            }
           : null
       : null,
 
-    // Calendar: col-6
     [BENTO_IDS.CALENDAR]: {
       colSpan: 6,
+      minHeight: BENTO_HEIGHT.S,
       node: (
         <CalendarContent
           calUrl={calData?.url ?? ''}
@@ -1151,18 +1283,16 @@ export default function ProfilePage() {
       ),
     },
 
-    // Stats: abo_number present — col-6
     [BENTO_IDS.STATS]: p.abo_number
       ? losSummaryLoading
-        ? { colSpan: 6, node: <div className="rounded-2xl animate-pulse" style={{ height: 80, backgroundColor: 'var(--border-default)' }} /> }
+        ? { colSpan: 6, minHeight: BENTO_HEIGHT.S, node: <div className="rounded-2xl animate-pulse h-full" style={{ backgroundColor: 'var(--border-default)' }} /> }
         : losSummary
-          ? { colSpan: 6, node: <StatsContent role={p.role} losSummary={losSummary} /> }
+          ? { colSpan: 6, minHeight: BENTO_HEIGHT.S, node: <StatsContent role={p.role} losSummary={losSummary} /> }
           : null
       : null,
 
-    // Admin: admin role only — col-6
     [BENTO_IDS.ADMIN]: isAdmin
-      ? { colSpan: 6, node: <AdminContent /> }
+      ? { colSpan: 6, minHeight: BENTO_HEIGHT.S, node: <AdminContent /> }
       : null,
   }
 
@@ -1195,6 +1325,7 @@ export default function ProfilePage() {
                   collapsed={!!bentoCollapsed[id]}
                   onToggleCollapse={() => toggleCollapse(id)}
                   colSpan={entry.colSpan}
+                  minHeight={entry.minHeight}
                 >
                   {entry.node}
                 </SortableBento>
@@ -1303,6 +1434,98 @@ export default function ProfilePage() {
               {submitGenericPayment.isPending ? 'Submitting…' : 'Submit'}
             </button>
           </div>
+        </div>
+      </Drawer>
+
+      {/* ── Trips full-list Drawer ──────────────────────────────────────── */}
+      <Drawer open={tripsDrawerOpen} onClose={() => setTripsDrawerOpen(false)} title="All Trips">
+        <div className="space-y-2">
+          {(tripsData ?? []).map(entry => (
+            <TripRow
+              key={entry.registration_id}
+              entry={entry}
+              onCancel={handleCancelTrip}
+              cancelPending={cancelTrip.isPending}
+            />
+          ))}
+        </div>
+      </Drawer>
+
+      {/* ── Payments full-list Drawer ───────────────────────────────────── */}
+      <Drawer open={paymentsDrawerOpen} onClose={() => setPaymentsDrawerOpen(false)} title="All Payments">
+        <div className="space-y-4 mb-6">
+          {Object.entries(paymentsByItem).map(([itemTitle, itemPayments]) => (
+            <div key={itemTitle}>
+              <p className="text-[11px] font-semibold tracking-widest uppercase mb-1.5" style={{ color: 'var(--text-secondary)' }}>{itemTitle}</p>
+              <div className="space-y-1.5">
+                {itemPayments.map(pay => (
+                  <PaymentRow key={pay.id} pay={pay} cancelledTripIds={cancelledTripIds} />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="border-t pt-4" style={{ borderColor: 'var(--border-default)' }}>
+          <button
+            onClick={() => { setPaymentsDrawerOpen(false); setPayDrawerOpen(true) }}
+            className="w-full py-2.5 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-opacity"
+            style={{ backgroundColor: 'var(--brand-forest)' }}
+          >
+            + Submit payment
+          </button>
+        </div>
+      </Drawer>
+
+      {/* ── Vitals full-list Drawer ─────────────────────────────────────── */}
+      <Drawer open={vitalsDrawerOpen} onClose={() => setVitalsDrawerOpen(false)} title="All Vital Signs">
+        <div className="space-y-2">
+          {(vitalsData ?? []).map(vs => {
+            const label = vs.vital_sign_definitions?.label ?? vs.definition_id
+            const category = vs.vital_sign_definitions?.category
+            return (
+              <div key={vs.id} className="flex items-center justify-between gap-3 text-xs py-1.5">
+                <div className="min-w-0">
+                  <span style={{ color: 'var(--text-primary)' }}>{label}</span>
+                  {category && <span className="ml-2 text-[10px]" style={{ color: 'var(--text-secondary)' }}>{category}</span>}
+                </div>
+                <span
+                  className="font-semibold px-2 py-0.5 rounded-full flex-shrink-0 text-[10px]"
+                  style={{ backgroundColor: vs.recorded_at ? 'rgba(188,71,73,0.12)' : 'var(--border-default)', color: vs.recorded_at ? 'var(--brand-crimson)' : 'var(--text-secondary)' }}
+                >
+                  {vs.recorded_at ? '✓ Recorded' : '○ Not recorded'}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+      </Drawer>
+
+      {/* ── Participation full-list Drawer ──────────────────────────────── */}
+      <Drawer open={participationDrawerOpen} onClose={() => setParticipationDrawerOpen(false)} title="All Participation">
+        <div className="space-y-2">
+          {(eventRolesData ?? []).map(er => {
+            const rs = REG_STATUS_STYLES[er.status.toLowerCase()] ?? REG_STATUS_STYLES.pending
+            return (
+              <div key={er.id} className="flex items-start justify-between gap-3 text-xs py-1.5">
+                <div className="min-w-0">
+                  <p className="font-medium truncate" style={{ color: 'var(--text-primary)' }}>{er.calendar_events?.title ?? '—'}</p>
+                  <p style={{ color: 'var(--text-secondary)' }}>
+                    {er.role_label}
+                    {er.calendar_events?.start_time && (
+                      <span className="ml-2">{formatDate(er.calendar_events.start_time)}</span>
+                    )}
+                  </p>
+                  {er.note && <p className="mt-0.5 italic" style={{ color: 'var(--text-secondary)' }}>{er.note}</p>}
+                </div>
+                <span
+                  className="font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: rs.bg, color: rs.color }}
+                >
+                  {er.status}
+                </span>
+              </div>
+            )
+          })}
         </div>
       </Drawer>
     </div>
