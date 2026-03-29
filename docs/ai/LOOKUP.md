@@ -1,5 +1,5 @@
 # LOOKUP.md — teamenjoyVD Portal Reference Tables
-> Last updated: 2026-03-25
+> Last updated: 2026-03-29
 > **Read on demand in GATHER only. Never read at SSU or at GATHER start.**
 > Pull only the sections the ticket needs. See section map in CONTEXT.md header.
 
@@ -15,6 +15,15 @@
     /trips/page.tsx
     /trips/[id]/page.tsx         # Trip detail — auth-gated, registered users only
     /profile/page.tsx            # Multi-bento layout, drag/drop reorder + collapsible
+    /components/tiles/
+      CalendarTile.tsx           # 'use client' — useQuery /api/calendar, isLoaded gate, never null
+      FontSizeTile.tsx
+      GuidesTile.tsx
+      LinksGuidesTile.tsx
+      LocationTileLazy.tsx
+      ProfileTile.tsx
+      SocialsTile.tsx
+      ThemeTile.tsx
   /admin
     /approval-hub/page.tsx
     /calendar/page.tsx
@@ -44,6 +53,7 @@
     /admin/guides/[id]/route.ts
     /admin/guides/upload/route.ts
     /api/guides/route.ts                 # Public GET (published only, respects access_roles)
+    /calendar/route.ts                   # Member-facing GET — role-filtered, agenda default
     /payable-items/route.ts
     /payments/route.ts
     /profile/payments/route.ts
@@ -187,6 +197,7 @@
 | `/api/payable-items` | GET | List active payable items |
 | `/api/payments` | GET, POST | Unified payment read/submit |
 | `/api/trips/[id]/payments` | GET | Payments for a specific trip |
+| `/api/calendar` | GET | Role-filtered events; no `?month` → agenda from today |
 | `/api/guides` | GET | Public guides (published, access_roles respected) |
 | `/api/socials` | GET | Social posts |
 | `/api/webhooks/clerk` | POST | Clerk user lifecycle webhook |
@@ -274,11 +285,11 @@ All tokens: `styles/brand-tokens.css`. Role colors: always `getRoleColors(role)`
 
 ### Homepage Grid
 ```
-ROW 1: Hero(col-6,forest) | Profile(col-2,default) | Events(col-4,default)*
-ROW 2: Trips(col-3,crimson)* | Announcements(col-6,default)* | Links(col-3,teal)*
-ROW 3: Socials(col-4,default) | Theme(col-2,default) | Map(col-3,forest) | About Us(col-3,default)
-ROW 4: Guides(col-12,default)
-* = conditionally rendered — return null when empty.
+ROW 1: Hero(col-5,forest) | Profile(col-2,default) | About(col-2,default) | Calendar(col-3,default,rowSpan=2)
+ROW 2: Trip(col-3,crimson)* | Announcement(col-3,default)* | LinksGuides(col-3,teal,rowSpan=2) | Calendar*
+ROW 3: Theme(col-2,default) | FontSize(col-2,default) | Map(col-2,forest) | LinksGuides* | Socials(col-3,default)
+* = conditionally rendered — return null when empty. Calendar never returns null (empty state shown).
+Mobile order: Hero→Announcement→Profile→Calendar→Trip→Theme→FontSize→Map→Socials→About→LinksGuides
 ```
 
 ### Calendar CSS
