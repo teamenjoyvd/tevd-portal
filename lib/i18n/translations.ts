@@ -62,6 +62,7 @@ export const translations = {
   'profile.saveChanges':       { en: 'Save changes',            bg: 'Запази промените'         },
   'profile.saving':            { en: 'Saving…',                 bg: 'Запазване…'               },
   'profile.saved':             { en: 'Saved ✓',                 bg: 'Запазено ✓'               },
+  'profile.edit':              { en: 'Edit',                    bg: 'Редактирай'               },
   'profile.calSub':            { en: 'Calendar Subscription',   bg: 'Абонамент за календар'    },
   'profile.calSubDesc':        { en: 'Subscribe to your personalised calendar feed on your phone or any calendar app.', bg: 'Абонирайте се за персонализирания си календар на телефона или в приложение за календар.' },
   'profile.calSubInstructions': { en: 'Open your phone calendar app → Add calendar → From URL → Paste the link below. Your calendar will update automatically.', bg: 'Отворете приложението за календар → Добавяне на календар → По URL → Поставете линка по-долу. Календарът ви ще се обновява автоматично.' },
@@ -75,6 +76,13 @@ export const translations = {
   'profile.role.desc.member':  { en: 'Verified member.',        bg: 'Верифициран член.'        },
   'profile.role.desc.core':    { en: 'Core team member.',       bg: 'Член на основния екип.'   },
   'profile.role.desc.admin':   { en: 'Administrator.',          bg: 'Администратор.'           },
+  'profile.incompleteHint':    { en: 'Complete your profile to get started.', bg: 'Попълнете профила си, за да започнете.' },
+  'profile.resetLayout':       { en: 'Reset layout',            bg: 'Нулирай оформлението'     },
+
+  // Tile eyebrows
+  'profile.tile.personalDetails': { en: 'Personal Details', bg: 'Лични данни'           },
+  'profile.tile.aboInfo':         { en: 'ABO Information',  bg: 'ABO Информация'        },
+  'profile.tile.travelDoc':       { en: 'Travel Document',  bg: 'Документ за пътуване'  },
 
   // ProfileTile (ISS-0110)
   'profile.eyebrow':          { en: 'Profile',                                                  bg: 'Профил'                                                        },

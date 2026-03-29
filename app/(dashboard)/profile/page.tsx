@@ -22,69 +22,14 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { PersonalDetailsContent } from './components/PersonalDetailsContent'
+import { AboInfoContent } from './components/AboInfoContent'
+import { TravelDocContent } from './components/TravelDocContent'
+import { UserSettingsContent } from './components/UserSettingsContent'
+import { PersonalDrawerForm } from './components/PersonalDrawerForm'
+import { TravelDocDrawerForm } from './components/TravelDocDrawerForm'
 
-// ── LOS subtree types + components ───────────────────────────────────────────
-
-type LOSNode = {
-  profile_id: string; abo_number: string; name: string | null
-  first_name: string; last_name: string; role: string
-  abo_level: string | null; depth: number; sponsor_abo_number: string | null
-  vital_signs: { event_key: string; event_label: string; has_ticket: boolean }[]
-  children?: LOSNode[]
-}
-
-function buildSubtree(nodes: LOSNode[], rootProfileId: string): LOSNode | null {
-  const byAbo: Record<string, LOSNode> = {}
-  for (const n of nodes) byAbo[n.abo_number] = { ...n, children: [] }
-  for (const n of Object.values(byAbo)) {
-    if (n.sponsor_abo_number && byAbo[n.sponsor_abo_number]) {
-      byAbo[n.sponsor_abo_number].children!.push(n)
-    }
-  }
-  return Object.values(byAbo).find(n => n.profile_id === rootProfileId) ?? null
-}
-
-function LOSNodeRow({ node, depth = 0 }: { node: LOSNode; depth?: number }) {
-  const rc = getRoleColors(node.role)
-  const displayName = node.first_name ? `${node.first_name} ${node.last_name}` : node.name ?? node.abo_number
-  return (
-    <div>
-      <div className="flex items-center gap-3 py-2.5 px-3 rounded-xl"
-        style={{ backgroundColor: depth === 0 ? 'rgba(188,71,73,0.06)' : 'transparent' }}>
-        {depth > 0 && <div className="flex-shrink-0" style={{ width: depth * 16 }} />}
-        <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
-          <span className="text-sm font-semibold font-body truncate" style={{ color: 'var(--text-primary)' }}>
-            {displayName}
-          </span>
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0"
-            style={{ backgroundColor: rc.bg, color: rc.font }}>{node.role}</span>
-          {node.abo_level && (
-            <span className="text-[10px] font-body flex-shrink-0" style={{ color: 'var(--text-secondary)' }}>
-              {node.abo_level}
-            </span>
-          )}
-        </div>
-        <div className="flex gap-1.5 flex-shrink-0 flex-wrap justify-end">
-          {node.vital_signs.map(vs => (
-            <span key={vs.event_key}
-              className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
-              style={{
-                backgroundColor: vs.has_ticket ? 'rgba(188,71,73,0.12)' : 'var(--border-default)',
-                color: vs.has_ticket ? 'var(--brand-crimson)' : 'var(--text-secondary)',
-              }}>
-              {vs.has_ticket ? '✓' : '○'} {vs.event_label}
-            </span>
-          ))}
-        </div>
-      </div>
-      {(node.children ?? []).map(child => (
-        <LOSNodeRow key={child.abo_number} node={child} depth={depth + 1} />
-      ))}
-    </div>
-  )
-}
-
-// ── Profile types ─────────────────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 type UiPrefs = {
   bento_order?: string[]
@@ -181,7 +126,6 @@ type GenericPayment = {
   } | null
 }
 
-// API shape from /api/profile/vitals: member_vital_signs joined with vital_sign_definitions
 type VitalSign = {
   id: string
   definition_id: string
@@ -213,41 +157,7 @@ type LosSummaryData = {
   direct_downline_count: number
 }
 
-const PAYMENT_STATUS_STYLES: Record<string, { bg: string; color: string }> = {
-  pending:   { bg: '#f2cc8f33', color: '#7a5c00' },
-  completed: { bg: 'rgba(129,178,154,0.15)', color: '#2d6a4f' },
-  approved:  { bg: 'rgba(129,178,154,0.15)', color: '#2d6a4f' },
-  failed:    { bg: 'rgba(188,71,73,0.10)', color: '#bc4749' },
-  denied:    { bg: 'rgba(188,71,73,0.10)', color: '#bc4749' },
-}
-
-const REG_STATUS_STYLES: Record<string, { bg: string; color: string }> = {
-  pending:   { bg: '#f2cc8f33', color: '#7a5c00' },
-  approved:  { bg: 'rgba(129,178,154,0.15)', color: '#2d6a4f' },
-  denied:    { bg: 'rgba(188,71,73,0.10)', color: '#bc4749' },
-  cancelled: { bg: 'rgba(138,133,119,0.15)', color: '#5c5950' },
-}
-
-function getExpiryState(validThrough: string | null): 'ok' | 'warning' | 'critical' | null {
-  if (!validThrough) return null
-  const diffDays = (new Date(validThrough).getTime() - Date.now()) / 86400000
-  if (diffDays < 0)   return 'critical'
-  if (diffDays < 90)  return 'critical'
-  if (diffDays < 180) return 'warning'
-  return 'ok'
-}
-
-const EXPIRY_STYLES = {
-  ok:       'bg-[#81b29a]/10 border-[#81b29a]/30 text-[#2d6a4f]',
-  warning:  'bg-[#f2cc8f]/20 border-[#f2cc8f] text-[#7a5c00]',
-  critical: 'bg-[#bc4749]/10 border-[#bc4749]/40 text-[var(--brand-crimson)]',
-}
-
-const ROLE_LABELS: Record<string, string> = {
-  admin: 'Admin', core: 'Core', member: 'Member', guest: 'Guest',
-}
-
-// ── Validation helper (module scope, pure) ────────────────────────────────────
+// ── Validation ────────────────────────────────────────────────────────────────
 
 type PersonalFormFields = {
   first_name?: string
@@ -256,20 +166,16 @@ type PersonalFormFields = {
   bg_last?: string
   phone?: string
   contact_email?: string
-  doc_number?: string
-  valid_through?: string
-  has_doc_type?: boolean
 }
 
-const LATIN_RE   = /^[A-Za-z\-']+$/
+const LATIN_RE    = /^[A-Za-z\-']+$/
 const CYRILLIC_RE = /^[\u0400-\u04FF\-']+$/
-const PHONE_RE   = /^\+?\d{7,15}$/
-const EMAIL_RE   = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const PHONE_RE    = /^\+?\d{7,15}$/
+const EMAIL_RE    = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 function validatePersonalField(
   field: keyof PersonalFormFields,
   value: string,
-  context: { has_doc_type: boolean; doc_number: string }
 ): string {
   switch (field) {
     case 'first_name':
@@ -296,43 +202,51 @@ function validatePersonalField(
       if (!value.trim()) return ''
       if (!EMAIL_RE.test(value.trim())) return 'Enter a valid email address'
       return ''
-    case 'doc_number':
-      if (context.has_doc_type && !value.trim()) return 'Required when document type is set'
-      return ''
-    case 'valid_through':
-      if (!context.doc_number.trim()) return ''
-      if (!value.trim()) return 'Required when document number is filled'
-      if (isNaN(new Date(value).getTime())) return 'Enter a valid date'
-      return ''
     default:
       return ''
   }
 }
 
-// ── Skeleton helper ───────────────────────────────────────────────────────────
-
-function SectionSkeleton({ height = 120 }: { height?: number }) {
-  return (
-    <div style={{ gridColumn: 'span 12' }}>
-      <div
-        className="rounded-2xl animate-pulse"
-        style={{ height, backgroundColor: 'var(--border-default)' }}
-      />
-    </div>
-  )
+function validateDocField(
+  field: 'doc_number' | 'valid_through',
+  value: string,
+  context: { has_doc_type: boolean; doc_number: string },
+): string {
+  if (field === 'doc_number') {
+    if (context.has_doc_type && !value.trim()) return 'Required when document type is set'
+    return ''
+  }
+  if (field === 'valid_through') {
+    if (!context.doc_number.trim()) return ''
+    if (!value.trim()) return 'Required when document number is filled'
+    if (isNaN(new Date(value).getTime())) return 'Enter a valid date'
+    return ''
+  }
+  return ''
 }
 
-// ── Mobile-aware col-6 bento wrapper ─────────────────────────────────────────
+// ── Status style maps ─────────────────────────────────────────────────────────
 
-function Col6Bento({ children }: { children: ReactNode }) {
-  return (
-    <div className="bento-mobile-full" style={{ gridColumn: 'span 6' }}>
-      {children}
-    </div>
-  )
+const PAYMENT_STATUS_STYLES: Record<string, { bg: string; color: string }> = {
+  pending:   { bg: '#f2cc8f33', color: '#7a5c00' },
+  completed: { bg: 'rgba(129,178,154,0.15)', color: '#2d6a4f' },
+  approved:  { bg: 'rgba(129,178,154,0.15)', color: '#2d6a4f' },
+  failed:    { bg: 'rgba(188,71,73,0.10)', color: '#bc4749' },
+  denied:    { bg: 'rgba(188,71,73,0.10)', color: '#bc4749' },
 }
 
-// ── Drag handle icon ──────────────────────────────────────────────────────────
+const REG_STATUS_STYLES: Record<string, { bg: string; color: string }> = {
+  pending:   { bg: '#f2cc8f33', color: '#7a5c00' },
+  approved:  { bg: 'rgba(129,178,154,0.15)', color: '#2d6a4f' },
+  denied:    { bg: 'rgba(188,71,73,0.10)', color: '#bc4749' },
+  cancelled: { bg: 'rgba(138,133,119,0.15)', color: '#5c5950' },
+}
+
+const ROLE_LABELS: Record<string, string> = {
+  admin: 'Admin', core: 'Core', member: 'Member', guest: 'Guest',
+}
+
+// ── Drag handle ───────────────────────────────────────────────────────────────
 
 const DragHandle = forwardRef<HTMLSpanElement, React.HTMLAttributes<HTMLSpanElement>>(
   function DragHandle(props, ref) {
@@ -352,28 +266,59 @@ const DragHandle = forwardRef<HTMLSpanElement, React.HTMLAttributes<HTMLSpanElem
 // ── Bento label map ───────────────────────────────────────────────────────────
 
 const BENTO_LABELS: Record<string, string> = {
-  personal:      'Personal Details',
-  trips:         'Trips',
-  payments:      'Payments',
-  vitals:        'Vital Signs',
-  participation: 'Participation',
-  calendar:      'Calendar',
-  stats:         'Stats',
-  admin:         'Admin Tools',
+  'personal-details': 'Personal Details',
+  'abo-info':         'ABO Information',
+  'travel-doc':       'Travel Document',
+  'settings':         'Settings',
+  'trips':            'Trips',
+  'payments':         'Payments',
+  'vitals':           'Vital Signs',
+  'participation':    'Participation',
+  'calendar':         'Calendar',
+  'stats':            'Stats',
+  'admin':            'Admin Tools',
 }
+
+// ── Bento ID constants ────────────────────────────────────────────────────────
+
+const BENTO_IDS = {
+  PERSONAL_DETAILS: 'personal-details',
+  ABO_INFO:         'abo-info',
+  TRAVEL_DOC:       'travel-doc',
+  SETTINGS:         'settings',
+  TRIPS:            'trips',
+  PAYMENTS:         'payments',
+  VITALS:           'vitals',
+  PARTICIPATION:    'participation',
+  CALENDAR:         'calendar',
+  STATS:            'stats',
+  ADMIN:            'admin',
+}
+
+const DEFAULT_ORDER: string[] = [
+  BENTO_IDS.PERSONAL_DETAILS,
+  BENTO_IDS.ABO_INFO,
+  BENTO_IDS.TRAVEL_DOC,
+  BENTO_IDS.SETTINGS,
+  BENTO_IDS.TRIPS,
+  BENTO_IDS.PAYMENTS,
+  BENTO_IDS.VITALS,
+  BENTO_IDS.PARTICIPATION,
+  BENTO_IDS.CALENDAR,
+  BENTO_IDS.STATS,
+  BENTO_IDS.ADMIN,
+]
 
 // ── Sortable bento wrapper ────────────────────────────────────────────────────
 
 function SortableBento({
   id,
-  disabled,
   collapsed,
   onToggleCollapse,
   colSpan,
   children,
 }: {
   id: string
-  disabled?: boolean
   collapsed: boolean
   onToggleCollapse: () => void
   colSpan: number
@@ -387,7 +332,7 @@ function SortableBento({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id, disabled })
+  } = useSortable({ id })
 
   const style: React.CSSProperties = {
     gridColumn: `span ${colSpan}`,
@@ -409,13 +354,7 @@ function SortableBento({
           style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}
         >
           <div className="flex items-center gap-3">
-            {!disabled && (
-              <DragHandle
-                ref={setActivatorNodeRef}
-                {...attributes}
-                {...listeners}
-              />
-            )}
+            <DragHandle ref={setActivatorNodeRef} {...attributes} {...listeners} />
             <span className="text-xs font-semibold tracking-[0.2em] uppercase" style={{ color: 'var(--text-secondary)' }}>
               {BENTO_LABELS[id] ?? id}
             </span>
@@ -423,123 +362,34 @@ function SortableBento({
           <button
             onClick={onToggleCollapse}
             title="Expand"
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              padding: 0,
-              fontSize: 12,
-              lineHeight: 1,
-              color: 'var(--text-secondary)',
-              opacity: 0.5,
-              flexShrink: 0,
-            }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 12, lineHeight: 1, color: 'var(--text-secondary)', opacity: 0.5, flexShrink: 0 }}
           >
             ▸
           </button>
         </div>
       ) : (
         <>
-          <div
-            style={{
-              position: 'absolute',
-              top: 18,
-              right: 16,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              zIndex: 10,
-            }}
-          >
-            {!disabled && (
-              <DragHandle
-                ref={setActivatorNodeRef}
-                {...attributes}
-                {...listeners}
-              />
-            )}
+          <div style={{ position: 'absolute', top: 18, right: 16, display: 'flex', alignItems: 'center', gap: 6, zIndex: 10 }}>
+            <DragHandle ref={setActivatorNodeRef} {...attributes} {...listeners} />
             <button
               onClick={onToggleCollapse}
               title="Collapse"
-              style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                padding: 0,
-                fontSize: 12,
-                lineHeight: 1,
-                color: 'var(--text-secondary)',
-                opacity: 0.5,
-                flexShrink: 0,
-              }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 12, lineHeight: 1, color: 'var(--text-secondary)', opacity: 0.5, flexShrink: 0 }}
             >
               ▾
             </button>
           </div>
-
-          <div style={{ overflow: 'hidden' }}>
-            {children}
-          </div>
+          <div style={{ overflow: 'hidden' }}>{children}</div>
         </>
       )}
     </div>
   )
 }
 
-// ── Bento ID constants ────────────────────────────────────────────────────────
-
-const BENTO_IDS = {
-  PERSONAL:      'personal',
-  TRIPS:         'trips',
-  PAYMENTS:      'payments',
-  VITALS:        'vitals',
-  PARTICIPATION: 'participation',
-  CALENDAR:      'calendar',
-  STATS:         'stats',
-  ADMIN:         'admin',
-}
-
-const DEFAULT_ORDER: string[] = [
-  BENTO_IDS.PERSONAL,
-  BENTO_IDS.TRIPS,
-  BENTO_IDS.PAYMENTS,
-  BENTO_IDS.VITALS,
-  BENTO_IDS.PARTICIPATION,
-  BENTO_IDS.CALENDAR,
-  BENTO_IDS.STATS,
-  BENTO_IDS.ADMIN,
-]
-
-// ── Loading skeleton ──────────────────────────────────────────────────────────
-
-function ProfileSkeleton() {
-  return (
-    <div className="py-8 pb-16">
-      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 xl:px-8">
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: '12px' }}>
-          <div style={{ gridColumn: 'span 12' }}>
-            <div className="space-y-3">
-              {[...Array(2)].map((_, i) => (
-                <div key={i} className="h-48 rounded-2xl animate-pulse"
-                  style={{ backgroundColor: 'var(--border-default)' }} />
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ── Memoized bento tile content components ────────────────────────────────────
-// Extracted at module scope so React.memo is effective across drags.
-// Each component receives only the props it renders — unrelated page state
-// changes (drag position, drawer open, form values) do not re-render these.
+// ── Memo'd tile components (unchanged from old page, hoisted to module scope) ──
 
 const TripsContent = memo(function TripsContent({
-  tripsData,
-  onCancelTrip,
-  cancelTripPending,
+  tripsData, onCancelTrip, cancelTripPending,
 }: {
   tripsData: TripEntry[]
   onCancelTrip: (tripId: string) => void
@@ -547,9 +397,7 @@ const TripsContent = memo(function TripsContent({
 }) {
   return (
     <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-      <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-4 pr-16" style={{ color: 'var(--brand-crimson)' }}>
-        Trips
-      </p>
+      <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-4 pr-16" style={{ color: 'var(--brand-crimson)' }}>Trips</p>
       <div className="space-y-2">
         {tripsData.map(entry => {
           if (!entry.trip) return null
@@ -558,40 +406,24 @@ const TripsContent = memo(function TripsContent({
             ? REG_STATUS_STYLES.cancelled
             : (REG_STATUS_STYLES[entry.registration_status] ?? REG_STATUS_STYLES.pending)
           return (
-            <div
-              key={entry.registration_id}
-              className="rounded-xl p-3"
-              style={{
-                backgroundColor: 'var(--bg-global)',
-                border: '1px solid var(--border-default)',
-                opacity: isCancelled ? 0.7 : 1,
-              }}
-            >
+            <div key={entry.registration_id} className="rounded-xl p-3"
+              style={{ backgroundColor: 'var(--bg-global)', border: '1px solid var(--border-default)', opacity: isCancelled ? 0.7 : 1 }}>
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
-                    {entry.trip.title}
-                  </p>
-                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                    {entry.trip.destination}
-                  </p>
+                  <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{entry.trip.title}</p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>{entry.trip.destination}</p>
                   <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
                     {formatDate(entry.trip.start_date)} – {formatDate(entry.trip.end_date)}
                   </p>
                 </div>
-                <span
-                  className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: regStyle.bg, color: regStyle.color }}
-                >
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: regStyle.bg, color: regStyle.color }}>
                   {isCancelled ? 'cancelled' : entry.registration_status}
                 </span>
               </div>
               {!isCancelled && (
                 <button
-                  onClick={() => {
-                    if (confirm('Cancel your participation in this trip? This cannot be undone.'))
-                      onCancelTrip(entry.trip!.id)
-                  }}
+                  onClick={() => { if (confirm('Cancel your participation in this trip? This cannot be undone.')) onCancelTrip(entry.trip!.id) }}
                   disabled={cancelTripPending}
                   className="mt-2 text-[11px] font-medium hover:opacity-70 transition-opacity disabled:opacity-40"
                   style={{ color: 'var(--brand-crimson)' }}
@@ -608,9 +440,7 @@ const TripsContent = memo(function TripsContent({
 })
 
 const PaymentsContent = memo(function PaymentsContent({
-  paymentsByItem,
-  cancelledTripIds,
-  onOpenPayDrawer,
+  paymentsByItem, cancelledTripIds, onOpenPayDrawer,
 }: {
   paymentsByItem: Record<string, GenericPayment[]>
   cancelledTripIds: Set<string>
@@ -619,16 +449,10 @@ const PaymentsContent = memo(function PaymentsContent({
   return (
     <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
       <div className="flex items-center justify-between mb-4 pr-16">
-        <p className="text-xs font-semibold tracking-[0.25em] uppercase" style={{ color: 'var(--brand-crimson)' }}>
-          Payments
-        </p>
-        <button
-          onClick={onOpenPayDrawer}
+        <p className="text-xs font-semibold tracking-[0.25em] uppercase" style={{ color: 'var(--brand-crimson)' }}>Payments</p>
+        <button onClick={onOpenPayDrawer}
           className="px-3 py-1.5 rounded-xl text-xs font-semibold text-white hover:opacity-90 transition-opacity flex-shrink-0"
-          style={{ backgroundColor: 'var(--brand-forest)' }}
-        >
-          + Submit payment
-        </button>
+          style={{ backgroundColor: 'var(--brand-forest)' }}>+ Submit payment</button>
       </div>
       {Object.keys(paymentsByItem).length === 0 ? (
         <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>No payments logged yet.</p>
@@ -636,51 +460,29 @@ const PaymentsContent = memo(function PaymentsContent({
         <div className="space-y-4">
           {Object.entries(paymentsByItem).map(([itemTitle, itemPayments]) => (
             <div key={itemTitle}>
-              <p className="text-[11px] font-semibold tracking-widest uppercase mb-1.5" style={{ color: 'var(--text-secondary)' }}>
-                {itemTitle}
-              </p>
+              <p className="text-[11px] font-semibold tracking-widest uppercase mb-1.5" style={{ color: 'var(--text-secondary)' }}>{itemTitle}</p>
               <div className="space-y-1.5">
                 {itemPayments.map(pay => {
                   const ps = PAYMENT_STATUS_STYLES[pay.status] ?? PAYMENT_STATUS_STYLES.pending
-                  const linkedTripCancelled = pay.payable_items?.item_type === 'trip' &&
-                    cancelledTripIds.size > 0
+                  const linkedTripCancelled = pay.payable_items?.item_type === 'trip' && cancelledTripIds.size > 0
                   return (
-                    <div
-                      key={pay.id}
-                      className="flex items-center gap-2 text-xs rounded-xl px-3 py-2"
-                      style={{ backgroundColor: 'var(--bg-global)' }}
-                    >
+                    <div key={pay.id} className="flex items-center gap-2 text-xs rounded-xl px-3 py-2"
+                      style={{ backgroundColor: 'var(--bg-global)' }}>
                       <span className="font-semibold flex-shrink-0" style={{ color: 'var(--text-primary)' }}>
                         {formatCurrency(pay.amount, pay.payable_items?.currency ?? 'EUR')}
                       </span>
                       <span style={{ color: 'var(--text-secondary)' }}>{formatDate(pay.transaction_date)}</span>
-                      {pay.payment_method && (
-                        <span style={{ color: 'var(--text-secondary)' }}>{pay.payment_method}</span>
-                      )}
-                      <span
-                        className="ml-auto font-semibold px-2 py-0.5 rounded-full flex-shrink-0 flex items-center gap-1"
-                        style={{ backgroundColor: ps.bg, color: ps.color }}
-                      >
+                      {pay.payment_method && <span style={{ color: 'var(--text-secondary)' }}>{pay.payment_method}</span>}
+                      <span className="ml-auto font-semibold px-2 py-0.5 rounded-full flex-shrink-0 flex items-center gap-1"
+                        style={{ backgroundColor: ps.bg, color: ps.color }}>
                         {pay.status}
                         {(pay.admin_note || linkedTripCancelled) && (
-                          <span
-                            title={linkedTripCancelled ? 'Trip was cancelled' : (pay.admin_note ?? '')}
-                            style={{ cursor: 'help', fontSize: 10, lineHeight: 1 }}
-                          >
-                            ⓘ
-                          </span>
+                          <span title={linkedTripCancelled ? 'Trip was cancelled' : (pay.admin_note ?? '')} style={{ cursor: 'help', fontSize: 10, lineHeight: 1 }}>ⓘ</span>
                         )}
                       </span>
                       {pay.proof_url && (
-                        <a
-                          href={pay.proof_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex-shrink-0 hover:underline"
-                          style={{ color: 'var(--brand-teal)' }}
-                        >
-                          proof ↗
-                        </a>
+                        <a href={pay.proof_url} target="_blank" rel="noopener noreferrer"
+                          className="flex-shrink-0 hover:underline" style={{ color: 'var(--brand-teal)' }}>proof ↗</a>
                       )}
                     </div>
                   )
@@ -697,9 +499,7 @@ const PaymentsContent = memo(function PaymentsContent({
 const VitalsContent = memo(function VitalsContent({ vitalsData }: { vitalsData: VitalSign[] }) {
   return (
     <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-      <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-6 pr-16" style={{ color: 'var(--brand-crimson)' }}>
-        Vital Signs
-      </p>
+      <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-6 pr-16" style={{ color: 'var(--brand-crimson)' }}>Vital Signs</p>
       <div className="space-y-2">
         {vitalsData.map(vs => {
           const label = vs.vital_sign_definitions?.label ?? vs.definition_id
@@ -708,17 +508,10 @@ const VitalsContent = memo(function VitalsContent({ vitalsData }: { vitalsData: 
             <div key={vs.id} className="flex items-center justify-between gap-3 text-xs py-1.5">
               <div className="min-w-0">
                 <span style={{ color: 'var(--text-primary)' }}>{label}</span>
-                {category && (
-                  <span className="ml-2 text-[10px]" style={{ color: 'var(--text-secondary)' }}>{category}</span>
-                )}
+                {category && <span className="ml-2 text-[10px]" style={{ color: 'var(--text-secondary)' }}>{category}</span>}
               </div>
-              <span
-                className="font-semibold px-2 py-0.5 rounded-full flex-shrink-0 text-[10px]"
-                style={{
-                  backgroundColor: vs.recorded_at ? 'rgba(188,71,73,0.12)' : 'var(--border-default)',
-                  color: vs.recorded_at ? 'var(--brand-crimson)' : 'var(--text-secondary)',
-                }}
-              >
+              <span className="font-semibold px-2 py-0.5 rounded-full flex-shrink-0 text-[10px]"
+                style={{ backgroundColor: vs.recorded_at ? 'rgba(188,71,73,0.12)' : 'var(--border-default)', color: vs.recorded_at ? 'var(--brand-crimson)' : 'var(--text-secondary)' }}>
                 {vs.recorded_at ? '✓ Recorded' : '○ Not recorded'}
               </span>
             </div>
@@ -732,26 +525,18 @@ const VitalsContent = memo(function VitalsContent({ vitalsData }: { vitalsData: 
 const ParticipationContent = memo(function ParticipationContent({ eventRolesData }: { eventRolesData: EventRoleRequest[] }) {
   return (
     <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-      <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-6 pr-16" style={{ color: 'var(--brand-crimson)' }}>
-        Participation
-      </p>
+      <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-6 pr-16" style={{ color: 'var(--brand-crimson)' }}>Participation</p>
       <div className="space-y-2">
         {eventRolesData.map(er => {
           const rs = REG_STATUS_STYLES[er.status.toLowerCase()] ?? REG_STATUS_STYLES.pending
           return (
             <div key={er.id} className="flex items-start justify-between gap-3 text-xs py-1.5">
               <div className="min-w-0">
-                <p className="font-medium truncate" style={{ color: 'var(--text-primary)' }}>
-                  {er.calendar_events?.title ?? '—'}
-                </p>
+                <p className="font-medium truncate" style={{ color: 'var(--text-primary)' }}>{er.calendar_events?.title ?? '—'}</p>
                 <p style={{ color: 'var(--text-secondary)' }}>{er.role_label}</p>
               </div>
-              <span
-                className="font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
-                style={{ backgroundColor: rs.bg, color: rs.color }}
-              >
-                {er.status}
-              </span>
+              <span className="font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
+                style={{ backgroundColor: rs.bg, color: rs.color }}>{er.status}</span>
             </div>
           )
         })}
@@ -761,63 +546,30 @@ const ParticipationContent = memo(function ParticipationContent({ eventRolesData
 })
 
 const CalendarContent = memo(function CalendarContent({
-  calUrl,
-  calCopied,
-  onCopy,
-  onRegenerate,
-  regeneratePending,
-  copyLabel,
-  copiedLabel,
-  subLabel,
-  subDesc,
-  subInstructions,
-  regenerateLabel,
+  calUrl, calCopied, onCopy, onRegenerate, regeneratePending,
+  copyLabel, copiedLabel, subLabel, subDesc, subInstructions, regenerateLabel,
 }: {
-  calUrl: string
-  calCopied: boolean
-  onCopy: () => void
-  onRegenerate: () => void
-  regeneratePending: boolean
-  copyLabel: string
-  copiedLabel: string
-  subLabel: string
-  subDesc: string
-  subInstructions: string
-  regenerateLabel: string
+  calUrl: string; calCopied: boolean; onCopy: () => void; onRegenerate: () => void
+  regeneratePending: boolean; copyLabel: string; copiedLabel: string
+  subLabel: string; subDesc: string; subInstructions: string; regenerateLabel: string
 }) {
   return (
     <div className="rounded-2xl p-6" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-      <p className="text-xs font-semibold tracking-widest uppercase mb-1" style={{ color: 'var(--text-secondary)' }}>
-        {subLabel}
-      </p>
-      <p className="text-xs mb-1 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-        {subDesc}
-      </p>
-      <p className="text-xs mb-3 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-        {subInstructions}
-      </p>
+      <p className="text-xs font-semibold tracking-widest uppercase mb-1" style={{ color: 'var(--text-secondary)' }}>{subLabel}</p>
+      <p className="text-xs mb-1 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{subDesc}</p>
+      <p className="text-xs mb-3 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{subInstructions}</p>
       <div className="flex items-center gap-2">
-        <input
-          readOnly
-          value={calUrl}
-          placeholder="Generating…"
+        <input readOnly value={calUrl} placeholder="Generating…"
           className="flex-1 border rounded-xl px-3 py-2 text-xs font-mono truncate"
-          style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)', backgroundColor: 'var(--bg-global)' }}
-        />
-        <button
-          onClick={onCopy}
-          disabled={!calUrl}
+          style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)', backgroundColor: 'var(--bg-global)' }} />
+        <button onClick={onCopy} disabled={!calUrl}
           className="px-3 py-2 rounded-xl text-xs font-semibold transition-all disabled:opacity-40 hover:opacity-80 flex-shrink-0"
-          style={{ backgroundColor: 'var(--brand-forest)', color: 'var(--brand-parchment)' }}
-        >
+          style={{ backgroundColor: 'var(--brand-forest)', color: 'var(--brand-parchment)' }}>
           {calCopied ? copiedLabel : copyLabel}
         </button>
-        <button
-          onClick={onRegenerate}
-          disabled={regeneratePending}
+        <button onClick={onRegenerate} disabled={regeneratePending}
           className="px-3 py-2 rounded-xl text-xs font-semibold border transition-colors hover:bg-black/5 disabled:opacity-40 flex-shrink-0"
-          style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
-        >
+          style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
           {regenerateLabel}
         </button>
       </div>
@@ -825,46 +577,28 @@ const CalendarContent = memo(function CalendarContent({
   )
 })
 
-const StatsContent = memo(function StatsContent({
-  role,
-  losSummary,
-}: {
-  role: string
-  losSummary: LosSummaryData
-}) {
+const StatsContent = memo(function StatsContent({ role, losSummary }: { role: string; losSummary: LosSummaryData }) {
   return (
     <div className="rounded-2xl p-6" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-      <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-4 pr-16" style={{ color: 'var(--brand-crimson)' }}>
-        STATS
-      </p>
+      <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-4 pr-16" style={{ color: 'var(--brand-crimson)' }}>STATS</p>
       <div className="flex items-center gap-6">
         <div>
           <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Role</p>
-          <p className="text-sm font-semibold mt-0.5" style={{ color: 'var(--text-primary)' }}>
-            {ROLE_LABELS[role]}
-          </p>
+          <p className="text-sm font-semibold mt-0.5" style={{ color: 'var(--text-primary)' }}>{ROLE_LABELS[role]}</p>
         </div>
         {losSummary.depth !== null && losSummary.depth !== undefined && (
           <div>
             <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Depth</p>
-            <p className="text-sm font-semibold mt-0.5" style={{ color: 'var(--text-primary)' }}>
-              Level {losSummary.depth}
-            </p>
+            <p className="text-sm font-semibold mt-0.5" style={{ color: 'var(--text-primary)' }}>Level {losSummary.depth}</p>
           </div>
         )}
         <div>
           <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Direct downlines</p>
-          <p className="text-sm font-semibold mt-0.5" style={{ color: 'var(--text-primary)' }}>
-            {losSummary.direct_downline_count}
-          </p>
+          <p className="text-sm font-semibold mt-0.5" style={{ color: 'var(--text-primary)' }}>{losSummary.direct_downline_count}</p>
         </div>
-        <a
-          href="/los"
+        <a href="/los"
           className="ml-auto px-4 py-2 rounded-xl text-xs font-semibold hover:opacity-80 transition-opacity flex-shrink-0"
-          style={{ backgroundColor: 'var(--brand-forest)', color: 'var(--brand-parchment)' }}
-        >
-          VIEW LOS
-        </a>
+          style={{ backgroundColor: 'var(--brand-forest)', color: 'var(--brand-parchment)' }}>VIEW LOS</a>
       </div>
     </div>
   )
@@ -873,25 +607,11 @@ const StatsContent = memo(function StatsContent({
 const AdminContent = memo(function AdminContent() {
   return (
     <div className="rounded-2xl p-6" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-      <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-4 pr-16" style={{ color: 'var(--brand-teal)' }}>
-        Admin Tools
-      </p>
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(8, minmax(0, 1fr))',
-          gap: '12px',
-        }}
-      >
-        <a
-          href="/admin"
-          style={{
-            gridColumn: 'span 2',
-            backgroundColor: 'var(--brand-forest)',
-            color: 'var(--brand-parchment)',
-          }}
-          className="rounded-xl px-4 py-3 flex flex-col gap-1 hover:opacity-80 transition-opacity"
-        >
+      <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-4 pr-16" style={{ color: 'var(--brand-teal)' }}>Admin Tools</p>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, minmax(0, 1fr))', gap: '12px' }}>
+        <a href="/admin"
+          style={{ gridColumn: 'span 2', backgroundColor: 'var(--brand-forest)', color: 'var(--brand-parchment)' }}
+          className="rounded-xl px-4 py-3 flex flex-col gap-1 hover:opacity-80 transition-opacity">
           <span className="text-xs font-bold tracking-widest uppercase" style={{ color: 'var(--brand-parchment)' }}>Admin</span>
           <span className="text-[10px] opacity-60" style={{ color: 'var(--brand-parchment)' }}>Portal management</span>
         </a>
@@ -900,88 +620,75 @@ const AdminContent = memo(function AdminContent() {
   )
 })
 
+// ── Skeleton ──────────────────────────────────────────────────────────────────
+
+function ProfileSkeleton() {
+  return (
+    <div className="py-8 pb-16">
+      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 xl:px-8">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: '12px' }}>
+          {[...Array(4)].map((_, i) => (
+            <div key={i} style={{ gridColumn: 'span 6' }} className="bento-mobile-full">
+              <div className="h-48 rounded-2xl animate-pulse" style={{ backgroundColor: 'var(--border-default)' }} />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function ProfilePage() {
   const qc = useQueryClient()
   const { t } = useLanguage()
-  const [form, setForm] = useState<Partial<Profile>>({})
-  const [saved, setSaved] = useState(false)
-  const [personalDrawerOpen, setPersonalDrawerOpen] = useState(false)
-  const [aboInput, setAboInput] = useState('')
-  const [uplineInput, setUplineInput] = useState('')
-  const [verificationMode, setVerificationMode] = useState<'standard' | 'manual'>('standard')
+
+  // ── Drawer open states ───────────────────────────────────────────────────
+  const [personalDrawerOpen, setPersonalDrawerOpen]   = useState(false)
+  const [travelDocDrawerOpen, setTravelDocDrawerOpen] = useState(false)
+  const [payDrawerOpen, setPayDrawerOpen]             = useState(false)
+
+  // ── Saved flash ──────────────────────────────────────────────────────────
+  const [savedPersonal, setSavedPersonal]     = useState(false)
+  const [savedTravelDoc, setSavedTravelDoc]   = useState(false)
+
+  // ── Personal form state ──────────────────────────────────────────────────
+  const [personalForm, setPersonalForm] = useState<{
+    first_name?: string
+    last_name?: string
+    display_names?: Record<string, string>
+    phone?: string
+    contact_email?: string
+  }>({})
+  const [personalErrors, setPersonalErrors] = useState<Partial<Record<keyof PersonalFormFields, string>>>({})
+
+  // ── Travel doc form state ────────────────────────────────────────────────
+  const [docForm, setDocForm] = useState<{
+    document_active_type?: 'id' | 'passport'
+    id_number?: string
+    passport_number?: string
+    valid_through?: string
+  }>({})
+  const [docErrors, setDocErrors] = useState<{ doc_number?: string; valid_through?: string }>({})
+
+  // ── Payment drawer state ─────────────────────────────────────────────────
+  const [payModalItemId, setPayModalItemId]   = useState('')
+  const [payModalAmount, setPayModalAmount]   = useState('')
+  const [payModalDate, setPayModalDate]       = useState('')
+  const [payModalMethod, setPayModalMethod]   = useState('')
+  const [payModalNote, setPayModalNote]       = useState('')
+  const [payModalFile, setPayModalFile]       = useState<File | null>(null)
+
+  // ── Cal copy state ───────────────────────────────────────────────────────
   const [calCopied, setCalCopied] = useState(false)
 
-  // ── Blur validation state ────────────────────────────────────────────────
-  const [formErrors, setFormErrors] = useState<Partial<Record<keyof PersonalFormFields, string>>>({})
-
-  function touchField(field: keyof PersonalFormFields, value: string, docNumber?: string, hasDocType?: boolean) {
-    const context = {
-      has_doc_type: hasDocType ?? !!(form.document_active_type),
-      doc_number: docNumber ?? getCurrentDocNumber(),
-    }
-    const error = validatePersonalField(field, value, context)
-    setFormErrors(prev => ({ ...prev, [field]: error }))
-  }
-
-  function clearFieldError(field: keyof PersonalFormFields) {
-    setFormErrors(prev => {
-      if (!prev[field]) return prev
-      const next = { ...prev }
-      delete next[field]
-      return next
-    })
-  }
-
-  function hasAnyError(): boolean {
-    return Object.values(formErrors).some(e => !!e)
-  }
-
-  // Generic payment Drawer state
-  const [payDrawerOpen, setPayDrawerOpen] = useState(false)
-  const [payModalItemId, setPayModalItemId] = useState('')
-  const [payModalAmount, setPayModalAmount] = useState('')
-  const [payModalDate, setPayModalDate] = useState('')
-  const [payModalMethod, setPayModalMethod] = useState('')
-  const [payModalNote, setPayModalNote] = useState('')
-  const [payModalFile, setPayModalFile] = useState<File | null>(null)
-
-  function closePayDrawer() {
-    setPayDrawerOpen(false)
-    setPayModalItemId('')
-    setPayModalAmount('')
-    setPayModalDate('')
-    setPayModalMethod('')
-    setPayModalNote('')
-    setPayModalFile(null)
-    submitGenericPayment.reset()
-  }
-
-  function closePersonalDrawer() {
-    setPersonalDrawerOpen(false)
-    setFormErrors({})
-    saveMutation.reset()
-  }
-
   // ── Drag/drop + collapse state ───────────────────────────────────────────
-  const [bentoOrder, setBentoOrder] = useState<string[]>(DEFAULT_ORDER)
+  const [bentoOrder, setBentoOrder]       = useState<string[]>(DEFAULT_ORDER)
   const [bentoCollapsed, setBentoCollapsed] = useState<Record<string, boolean>>({})
   const persistDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const EXPIRY_LABELS = {
-    ok:       t('profile.expiry.ok'),
-    warning:  t('profile.expiry.warning'),
-    critical: t('profile.expiry.critical'),
-  }
-
-  const ROLE_DESCRIPTIONS: Record<string, string> = {
-    guest:  t('profile.role.desc.guest'),
-    member: t('profile.role.desc.member'),
-    core:   t('profile.role.desc.core'),
-    admin:  t('profile.role.desc.admin'),
-  }
-
+  // ── Queries ──────────────────────────────────────────────────────────────
   const { data: profile, isLoading } = useQuery<Profile>({
     queryKey: ['profile'],
     queryFn: () => fetch('/api/profile').then(r => r.json()),
@@ -989,6 +696,7 @@ export default function ProfilePage() {
 
   const validProfile = profile?.id ? profile : null
 
+  // Restore persisted bento layout
   useEffect(() => {
     if (!validProfile) return
     const prefs = validProfile.ui_prefs ?? {}
@@ -1006,53 +714,28 @@ export default function ProfilePage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [validProfile?.id])
 
-  const persistPrefs = useCallback((order: string[], collapsed: Record<string, boolean>) => {
-    if (persistDebounceRef.current) clearTimeout(persistDebounceRef.current)
-    persistDebounceRef.current = setTimeout(() => {
-      fetch('/api/profile', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ui_prefs: { bento_order: order, bento_collapsed: collapsed } }),
-      }).catch(() => { /* silent */ })
-    }, 500)
-  }, [])
-
-  const handleDragEnd = useCallback((event: DragEndEvent) => {
-    const { active, over } = event
-    if (!over || active.id === over.id) return
-    setBentoOrder(prev => {
-      const oldIndex = prev.indexOf(active.id as string)
-      const newIndex = prev.indexOf(over.id as string)
-      const next = arrayMove(prev, oldIndex, newIndex)
-      const withPin = [
-        BENTO_IDS.PERSONAL,
-        ...next.filter(id => id !== BENTO_IDS.PERSONAL),
-      ]
-      persistPrefs(withPin, bentoCollapsed)
-      return withPin
+  // Seed form state when profile loads
+  useEffect(() => {
+    if (!validProfile) return
+    setPersonalForm({
+      first_name:    validProfile.first_name,
+      last_name:     validProfile.last_name,
+      display_names: validProfile.display_names ?? {},
+      phone:         validProfile.phone ?? '',
+      contact_email: validProfile.contact_email ?? '',
     })
-  }, [bentoCollapsed, persistPrefs])
-
-  const toggleCollapse = useCallback((id: string) => {
-    setBentoCollapsed(prev => {
-      const next = { ...prev, [id]: !prev[id] }
-      setBentoOrder(order => {
-        persistPrefs(order, next)
-        return order
-      })
-      return next
+    setDocForm({
+      document_active_type: validProfile.document_active_type,
+      id_number:            validProfile.id_number ?? '',
+      passport_number:      validProfile.passport_number ?? '',
+      valid_through:        validProfile.valid_through ?? '',
     })
-  }, [persistPrefs])
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
-  )
+  }, [validProfile])
 
   const { data: verRequest } = useQuery<VerificationRequest | null>({
     queryKey: ['verify-abo'],
     queryFn: () => fetch('/api/profile/verify-abo').then(r => r.json()),
-    enabled: validProfile?.role === 'guest' && !validProfile?.abo_number,
+    enabled: !!validProfile && validProfile.role === 'guest',
   })
 
   const { data: uplineData } = useQuery<UplineData>({
@@ -1111,34 +794,16 @@ export default function ProfilePage() {
     staleTime: Infinity,
   })
 
-  const regenerateCal = useMutation({
-    mutationFn: () => fetch('/api/calendar/feed-token', { method: 'POST' }).then(r => r.json()),
-    onSuccess: () => refetchCal(),
-  })
+  // ── Mutations ────────────────────────────────────────────────────────────
 
-  useEffect(() => {
-    if (validProfile) setForm({
-      first_name:           validProfile.first_name,
-      last_name:            validProfile.last_name,
-      document_active_type: validProfile.document_active_type,
-      id_number:            validProfile.id_number ?? '',
-      passport_number:      validProfile.passport_number ?? '',
-      valid_through:        validProfile.valid_through ?? '',
-      phone:                validProfile.phone ?? '',
-      contact_email:        validProfile.contact_email ?? '',
-      display_names:        validProfile.display_names ?? {},
-    })
-  }, [validProfile])
-
-  const saveMutation = useMutation({
-    mutationFn: async (body: Partial<Profile>) => {
+  const savePersonal = useMutation({
+    mutationFn: async () => {
       const payload = {
-        ...body,
-        id_number:       body.id_number       || null,
-        passport_number: body.passport_number || null,
-        valid_through:   body.valid_through   || null,
-        phone:           body.phone           || null,
-        contact_email:   body.contact_email   || null,
+        first_name:    personalForm.first_name,
+        last_name:     personalForm.last_name,
+        display_names: personalForm.display_names,
+        phone:         personalForm.phone || null,
+        contact_email: personalForm.contact_email || null,
       }
       const r = await fetch('/api/profile', {
         method: 'PATCH',
@@ -1146,41 +811,61 @@ export default function ProfilePage() {
         body: JSON.stringify(payload),
       })
       if (!r.ok) throw new Error((await r.json()).error ?? 'Save failed')
-      return r.json()
+      return r.json() as Promise<Profile>
     },
     onSuccess: (data) => {
       qc.setQueryData(['profile'], data)
-      setSaved(true)
+      setSavedPersonal(true)
       setPersonalDrawerOpen(false)
-      setFormErrors({})
-      setTimeout(() => setSaved(false), 2500)
+      setPersonalErrors({})
+      setTimeout(() => setSavedPersonal(false), 2500)
+    },
+  })
+
+  const saveTravelDoc = useMutation({
+    mutationFn: async () => {
+      const payload = {
+        document_active_type: docForm.document_active_type,
+        id_number:       docForm.id_number       || null,
+        passport_number: docForm.passport_number || null,
+        valid_through:   docForm.valid_through   || null,
+      }
+      const r = await fetch('/api/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      if (!r.ok) throw new Error((await r.json()).error ?? 'Save failed')
+      return r.json() as Promise<Profile>
+    },
+    onSuccess: (data) => {
+      qc.setQueryData(['profile'], data)
+      setSavedTravelDoc(true)
+      setTravelDocDrawerOpen(false)
+      setDocErrors({})
+      setTimeout(() => setSavedTravelDoc(false), 2500)
     },
   })
 
   const submitVerification = useMutation({
-    mutationFn: () =>
+    mutationFn: (params: { claimed_abo?: string; claimed_upline_abo: string; request_type: 'standard' | 'manual' }) =>
       fetch('/api/profile/verify-abo', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(
-          verificationMode === 'manual'
-            ? { request_type: 'manual', claimed_upline_abo: uplineInput.trim() }
-            : { claimed_abo: aboInput.trim(), claimed_upline_abo: uplineInput.trim() }
+          params.request_type === 'manual'
+            ? { request_type: 'manual', claimed_upline_abo: params.claimed_upline_abo }
+            : { claimed_abo: params.claimed_abo, claimed_upline_abo: params.claimed_upline_abo }
         ),
       }).then(async r => {
         if (!r.ok) throw new Error((await r.json()).error)
         return r.json()
       }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['verify-abo'] })
-      setAboInput('')
-      setUplineInput('')
-    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['verify-abo'] }),
   })
 
   const cancelVerification = useMutation({
-    mutationFn: () =>
-      fetch('/api/profile/verify-abo', { method: 'DELETE' }).then(r => r.json()),
+    mutationFn: () => fetch('/api/profile/verify-abo', { method: 'DELETE' }).then(r => r.json()),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['verify-abo'] }),
   })
 
@@ -1193,6 +878,11 @@ export default function ProfilePage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['profile-trips'] }),
   })
 
+  const regenerateCal = useMutation({
+    mutationFn: () => fetch('/api/calendar/feed-token', { method: 'POST' }).then(r => r.json()),
+    onSuccess: () => refetchCal(),
+  })
+
   const submitGenericPayment = useMutation({
     mutationFn: async () => {
       let proofUrl: string | null = null
@@ -1201,8 +891,7 @@ export default function ProfilePage() {
         fd.append('file', payModalFile)
         const uploadRes = await fetch('/api/profile/payments/upload', { method: 'POST', body: fd })
         if (!uploadRes.ok) throw new Error('File upload failed')
-        const uploadData = await uploadRes.json()
-        proofUrl = uploadData.url
+        proofUrl = (await uploadRes.json()).url
       }
       const res = await fetch('/api/payments', {
         method: 'POST',
@@ -1225,15 +914,47 @@ export default function ProfilePage() {
     },
   })
 
-  // ── Stable callbacks for memo'd tile components ───────────────────────────
-  const handleCancelTrip = useCallback((tripId: string) => {
-    cancelTrip.mutate(tripId)
-  }, [cancelTrip])
-
-  const handleOpenPayDrawer = useCallback(() => {
-    setPayDrawerOpen(true)
+  // ── Persist bento prefs ──────────────────────────────────────────────────
+  const persistPrefs = useCallback((order: string[], collapsed: Record<string, boolean>) => {
+    if (persistDebounceRef.current) clearTimeout(persistDebounceRef.current)
+    persistDebounceRef.current = setTimeout(() => {
+      fetch('/api/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ui_prefs: { bento_order: order, bento_collapsed: collapsed } }),
+      }).catch(() => { /* silent */ })
+    }, 500)
   }, [])
 
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    setBentoOrder(prev => {
+      const oldIndex = prev.indexOf(active.id as string)
+      const newIndex = prev.indexOf(over.id as string)
+      const next = arrayMove(prev, oldIndex, newIndex)
+      persistPrefs(next, bentoCollapsed)
+      return next
+    })
+  }, [bentoCollapsed, persistPrefs])
+
+  const toggleCollapse = useCallback((id: string) => {
+    setBentoCollapsed(prev => {
+      const next = { ...prev, [id]: !prev[id] }
+      setBentoOrder(order => { persistPrefs(order, next); return order })
+      return next
+    })
+  }, [persistPrefs])
+
+  const resetLayout = useCallback(() => {
+    setBentoOrder(DEFAULT_ORDER)
+    setBentoCollapsed({})
+    persistPrefs(DEFAULT_ORDER, {})
+  }, [persistPrefs])
+
+  // ── Stable callbacks for memo'd tiles ───────────────────────────────────
+  const handleCancelTrip = useCallback((tripId: string) => { cancelTrip.mutate(tripId) }, [cancelTrip])
+  const handleOpenPayDrawer = useCallback(() => { setPayDrawerOpen(true) }, [])
   const handleCalCopy = useCallback(() => {
     if (calData?.url) {
       navigator.clipboard.writeText(calData.url)
@@ -1241,33 +962,74 @@ export default function ProfilePage() {
       setTimeout(() => setCalCopied(false), 2000)
     }
   }, [calData?.url])
-
   const handleCalRegenerate = useCallback(() => {
     if (confirm('Regenerate your calendar link? Your old link will stop working.')) regenerateCal.mutate()
   }, [regenerateCal])
 
-  // ── Guard ─────────────────────────────────────────────────────────────────
-  if (isLoading || !validProfile) {
-    return <ProfileSkeleton />
+  function closePayDrawer() {
+    setPayDrawerOpen(false)
+    setPayModalItemId(''); setPayModalAmount(''); setPayModalDate('')
+    setPayModalMethod(''); setPayModalNote(''); setPayModalFile(null)
+    submitGenericPayment.reset()
   }
 
+  // ── Personal form helpers ────────────────────────────────────────────────
+  function handlePersonalChange(field: keyof PersonalFormFields, value: string) {
+    if (field === 'bg_first' || field === 'bg_last') {
+      const dnKey = field === 'bg_first' ? 'bg_first' : 'bg_last'
+      setPersonalForm(f => ({ ...f, display_names: { ...((f.display_names ?? {}) as Record<string,string>), [dnKey]: value } }))
+    } else {
+      setPersonalForm(f => ({ ...f, [field]: value }))
+    }
+  }
+  function handlePersonalBlur(field: keyof PersonalFormFields, value: string) {
+    const err = validatePersonalField(field, value)
+    setPersonalErrors(prev => ({ ...prev, [field]: err }))
+  }
+  function clearPersonalError(field: keyof PersonalFormFields) {
+    setPersonalErrors(prev => { if (!prev[field]) return prev; const n = { ...prev }; delete n[field]; return n })
+  }
+
+  // ── Travel doc form helpers ──────────────────────────────────────────────
+  function handleDocTypeChange(dt: 'id' | 'passport') {
+    setDocForm(f => ({ ...f, document_active_type: dt }))
+  }
+  function handleDocNumberChange(v: string) {
+    const field = docForm.document_active_type === 'passport' ? 'passport_number' : 'id_number'
+    setDocForm(f => ({ ...f, [field]: v }))
+  }
+  function handleDocNumberBlur(v: string) {
+    const err = validateDocField('doc_number', v, { has_doc_type: !!(docForm.document_active_type), doc_number: v })
+    setDocErrors(prev => ({ ...prev, doc_number: err }))
+  }
+  function handleValidThroughBlur(v: string) {
+    const docNumber = docForm.document_active_type === 'passport' ? (docForm.passport_number ?? '') : (docForm.id_number ?? '')
+    const err = validateDocField('valid_through', v, { has_doc_type: true, doc_number: docNumber })
+    setDocErrors(prev => ({ ...prev, valid_through: err }))
+  }
+  function clearDocError(f: 'doc_number' | 'valid_through') {
+    setDocErrors(prev => { const n = { ...prev }; delete n[f]; return n })
+  }
+
+  // ── Guard ─────────────────────────────────────────────────────────────────
+  if (isLoading || !validProfile) return <ProfileSkeleton />
+
   const p = validProfile
+  const isGuest = p.role === 'guest' && !p.abo_number
+  const isAdmin = p.role === 'admin'
 
-  const activeDocType = form.document_active_type ?? p.document_active_type ?? 'id'
-  const expiryState   = getExpiryState(form.valid_through ?? p.valid_through ?? null)
-  const isGuest       = p.role === 'guest' && !p.abo_number
-  const isUnverified  = p.role === 'guest' &&
-    !!verRequest && (verRequest.status === 'pending' || verRequest.status === 'denied')
-  const isAdmin       = p.role === 'admin'
-
-  const hasTrips = Array.isArray(tripsData) && tripsData.length > 0
-  // hasVitals: API returns member_vital_signs rows — any row means data exists
-  const hasVitals = Array.isArray(vitalsData) && vitalsData.length > 0
+  const hasTrips      = Array.isArray(tripsData) && tripsData.length > 0
+  const hasVitals     = Array.isArray(vitalsData) && vitalsData.length > 0
   const hasEventRoles = Array.isArray(eventRolesData) && eventRolesData.length > 0
 
-  const dnMap = ((form.display_names ?? {}) as Record<string, string>)
-  const bgFirst = dnMap.bg_first ?? ''
-  const bgLast  = dnMap.bg_last ?? ''
+  // Derive ABO info mode
+  type AboMode = 'form' | 'pending' | 'confirmed'
+  let aboMode: AboMode = 'form'
+  if (p.abo_number) {
+    aboMode = 'confirmed'
+  } else if (verRequest && (verRequest.status === 'pending' || verRequest.status === 'denied')) {
+    aboMode = 'pending'
+  }
 
   const paymentsByItem: Record<string, GenericPayment[]> = {}
   for (const pay of (paymentsData ?? [])) {
@@ -1275,435 +1037,95 @@ export default function ProfilePage() {
     if (!paymentsByItem[key]) paymentsByItem[key] = []
     paymentsByItem[key].push(pay)
   }
-
   const cancelledTripIds = new Set(
     (tripsData ?? []).filter(e => e.cancelled_at).map(e => e.trip?.id).filter(Boolean) as string[]
   )
 
-  // Helper to get the current active doc number from form state
-  function getCurrentDocNumber(): string {
-    const docType = form.document_active_type ?? activeDocType
-    return (docType === 'passport' ? (form.passport_number ?? '') : (form.id_number ?? ''))
-  }
-
-  // ── Personal Details drawer form ──────────────────────────────────────────
-
-  const personalDrawerForm = (
-    <div className="space-y-4">
-      <div>
-        <p className="text-[10px] font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
-          Details
-        </p>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
-              {t('profile.firstName')}
-            </label>
-            <input
-              value={form.first_name ?? ''}
-              onChange={e => { setForm(f => ({ ...f, first_name: e.target.value })); clearFieldError('first_name') }}
-              onBlur={e => touchField('first_name', e.target.value)}
-              className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-              style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)', borderColor: formErrors.first_name ? 'var(--brand-crimson)' : undefined }}
-            />
-            {formErrors.first_name && <p className="text-[11px] mt-1" style={{ color: 'var(--brand-crimson)' }}>{formErrors.first_name}</p>}
-          </div>
-          <div>
-            <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
-              {t('profile.lastName')}
-            </label>
-            <input
-              value={form.last_name ?? ''}
-              onChange={e => { setForm(f => ({ ...f, last_name: e.target.value })); clearFieldError('last_name') }}
-              onBlur={e => touchField('last_name', e.target.value)}
-              className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-              style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)', borderColor: formErrors.last_name ? 'var(--brand-crimson)' : undefined }}
-            />
-            {formErrors.last_name && <p className="text-[11px] mt-1" style={{ color: 'var(--brand-crimson)' }}>{formErrors.last_name}</p>}
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
-            {t('profile.firstName')} (БГ)
-          </label>
-          <input
-            value={bgFirst}
-            onChange={e => { setForm(f => ({ ...f, display_names: { ...((f.display_names ?? {}) as Record<string,string>), bg_first: e.target.value } })); clearFieldError('bg_first') }}
-            onBlur={e => touchField('bg_first', e.target.value)}
-            className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-            style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)', borderColor: formErrors.bg_first ? 'var(--brand-crimson)' : undefined }}
-          />
-          {formErrors.bg_first && <p className="text-[11px] mt-1" style={{ color: 'var(--brand-crimson)' }}>{formErrors.bg_first}</p>}
-        </div>
-        <div>
-          <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
-            {t('profile.lastName')} (БГ)
-          </label>
-          <input
-            value={bgLast}
-            onChange={e => { setForm(f => ({ ...f, display_names: { ...((f.display_names ?? {}) as Record<string,string>), bg_last: e.target.value } })); clearFieldError('bg_last') }}
-            onBlur={e => touchField('bg_last', e.target.value)}
-            className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-            style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)', borderColor: formErrors.bg_last ? 'var(--brand-crimson)' : undefined }}
-          />
-          {formErrors.bg_last && <p className="text-[11px] mt-1" style={{ color: 'var(--brand-crimson)' }}>{formErrors.bg_last}</p>}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Phone</label>
-          <input
-            value={form.phone ?? ''}
-            onChange={e => { setForm(f => ({ ...f, phone: e.target.value })); clearFieldError('phone') }}
-            onBlur={e => touchField('phone', e.target.value)}
-            placeholder="+359 88 000 0000"
-            className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-            style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)', borderColor: formErrors.phone ? 'var(--brand-crimson)' : undefined }}
-          />
-          {formErrors.phone && <p className="text-[11px] mt-1" style={{ color: 'var(--brand-crimson)' }}>{formErrors.phone}</p>}
-        </div>
-        <div>
-          <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Contact email</label>
-          <input
-            value={form.contact_email ?? ''}
-            onChange={e => { setForm(f => ({ ...f, contact_email: e.target.value })); clearFieldError('contact_email') }}
-            onBlur={e => touchField('contact_email', e.target.value)}
-            placeholder="your@email.com"
-            className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-            style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)', borderColor: formErrors.contact_email ? 'var(--brand-crimson)' : undefined }}
-          />
-          {formErrors.contact_email && <p className="text-[11px] mt-1" style={{ color: 'var(--brand-crimson)' }}>{formErrors.contact_email}</p>}
-        </div>
-      </div>
-
-      <div style={{ borderTop: '1px solid var(--border-default)', paddingTop: 16 }}>
-        <p className="text-[10px] font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
-          {t('profile.travelDoc')}
-        </p>
-        <div className="flex gap-2 mb-4">
-          {(['id', 'passport'] as const).map(dt => (
-            <button
-              key={dt}
-              onClick={() => setForm(f => ({ ...f, document_active_type: dt }))}
-              className="flex-1 py-2 rounded-xl text-xs font-semibold tracking-widest uppercase transition-all"
-              style={{
-                backgroundColor: (form.document_active_type ?? activeDocType) === dt
-                  ? 'var(--text-primary)' : 'transparent',
-                color: (form.document_active_type ?? activeDocType) === dt
-                  ? 'var(--bg-card)' : 'var(--text-secondary)',
-                border: '1px solid var(--border-default)',
-                cursor: 'pointer',
-              }}
-            >
-              {dt === 'id' ? 'PERSONAL ID' : 'PASSPORT'}
-            </button>
-          ))}
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
-              {activeDocType === 'passport' ? t('profile.passportNumber') : t('profile.idNumber')}
-            </label>
-            <input
-              value={activeDocType === 'passport'
-                ? (form.passport_number ?? '')
-                : (form.id_number ?? '')}
-              onChange={e => {
-                setForm(f => ({
-                  ...f,
-                  [activeDocType === 'passport' ? 'passport_number' : 'id_number']: e.target.value,
-                }))
-                clearFieldError('doc_number')
-              }}
-              onBlur={e => touchField('doc_number', e.target.value, e.target.value, !!(form.document_active_type))}
-              className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm font-mono"
-              style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)', borderColor: formErrors.doc_number ? 'var(--brand-crimson)' : undefined }}
-            />
-            {formErrors.doc_number && <p className="text-[11px] mt-1" style={{ color: 'var(--brand-crimson)' }}>{formErrors.doc_number}</p>}
-          </div>
-          <div>
-            <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
-              {t('profile.validThrough')}
-            </label>
-            <input
-              type="date"
-              value={form.valid_through ?? ''}
-              onChange={e => { setForm(f => ({ ...f, valid_through: e.target.value })); clearFieldError('valid_through') }}
-              onBlur={e => touchField('valid_through', e.target.value, getCurrentDocNumber())}
-              className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-              style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)', borderColor: formErrors.valid_through ? 'var(--brand-crimson)' : undefined }}
-            />
-            {formErrors.valid_through && <p className="text-[11px] mt-1" style={{ color: 'var(--brand-crimson)' }}>{formErrors.valid_through}</p>}
-          </div>
-        </div>
-        {expiryState && (
-          <div className={`mt-3 rounded-xl border px-4 py-3 text-sm font-medium ${EXPIRY_STYLES[expiryState]}`}>
-            {EXPIRY_LABELS[expiryState]}
-            {form.valid_through && (
-              <span className="font-normal ml-1 opacity-70">
-                · {new Date(form.valid_through).toLocaleDateString('en-GB', {
-                  day: 'numeric', month: 'long', year: 'numeric',
-                })}
-              </span>
-            )}
-          </div>
-        )}
-      </div>
-
-      {saveMutation.isError && (
-        <p className="text-xs" style={{ color: 'var(--brand-crimson)' }}>
-          {(saveMutation.error as Error).message}
-        </p>
-      )}
-
-      <div className="flex gap-3 pt-2">
-        <button
-          onClick={closePersonalDrawer}
-          className="flex-1 py-2.5 rounded-xl text-sm font-semibold border hover:bg-black/5 transition-colors"
-          style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
-        >
-          Cancel
-        </button>
-        <button
-          onClick={() => saveMutation.mutate(form)}
-          disabled={saveMutation.isPending || hasAnyError()}
-          className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
-          style={{ backgroundColor: 'var(--brand-crimson)' }}
-        >
-          {saveMutation.isPending ? t('profile.saving') : saved ? t('profile.saved') : t('profile.saveChanges')}
-        </button>
-      </div>
-    </div>
-  )
-
+  // ── Bento map ─────────────────────────────────────────────────────────────
   type BentoEntry = { colSpan: number; node: ReactNode }
 
   const bentoMap: Record<string, BentoEntry | null> = {
-    [BENTO_IDS.PERSONAL]: {
-      colSpan: 12,
+    [BENTO_IDS.PERSONAL_DETAILS]: {
+      colSpan: 6,
       node: (
-        <div className="rounded-2xl p-6" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-
-          <div className="flex items-center justify-between mb-6 pr-20">
-            <p className="text-xs font-semibold tracking-[0.25em] uppercase" style={{ color: 'var(--brand-crimson)' }}>
-              Personal Details
-            </p>
-            <button
-              onClick={() => setPersonalDrawerOpen(true)}
-              className="text-xs font-semibold hover:opacity-70 transition-opacity px-3 py-1.5 rounded-xl border"
-              style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
-            >
-              Edit
-            </button>
-          </div>
-
-          {/* Read-only summary */}
-          <div className="flex flex-col md:flex-row gap-0">
-
-            <div className="flex-1 space-y-4 md:pr-6">
-              <p className="text-[10px] font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
-                Details
-              </p>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
-                    {t('profile.firstName')}
-                  </label>
-                  <p className="text-sm font-medium py-2.5" style={{ color: 'var(--text-primary)' }}>
-                    {p.first_name || '—'}
-                  </p>
-                </div>
-                <div>
-                  <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
-                    {t('profile.lastName')}
-                  </label>
-                  <p className="text-sm font-medium py-2.5" style={{ color: 'var(--text-primary)' }}>
-                    {p.last_name || '—'}
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
-                    {t('profile.firstName')} (БГ)
-                  </label>
-                  <p className="text-sm font-medium py-2.5" style={{ color: 'var(--text-primary)' }}>
-                    {((p.display_names ?? {}) as Record<string,string>).bg_first || '—'}
-                  </p>
-                </div>
-                <div>
-                  <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
-                    {t('profile.lastName')} (БГ)
-                  </label>
-                  <p className="text-sm font-medium py-2.5" style={{ color: 'var(--text-primary)' }}>
-                    {((p.display_names ?? {}) as Record<string,string>).bg_last || '—'}
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Phone</label>
-                  <p className="text-sm py-2.5" style={{ color: p.phone ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
-                    {p.phone || '—'}
-                  </p>
-                </div>
-                <div>
-                  <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Contact email</label>
-                  <p className="text-sm py-2.5" style={{ color: p.contact_email ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
-                    {p.contact_email || '—'}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div
-              className="hidden md:block flex-shrink-0"
-              style={{ width: 1, backgroundColor: 'var(--border-default)', margin: '0 0' }}
-            />
-
-            <div className="flex-1 space-y-3 md:pl-6 mt-6 md:mt-0">
-              <p className="text-[10px] font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
-                ABO Verification
-              </p>
-
-              {(() => {
-                const rc = getRoleColors(p.role)
-                return (
-                  <div className="grid grid-cols-2 gap-4">
-                    <p className="text-xs py-1" style={{ color: 'var(--text-secondary)' }}>Access</p>
-                    <span
-                      className="text-xs font-semibold px-2.5 py-1 rounded-full self-start"
-                      style={{ backgroundColor: rc.bg, color: rc.font }}
-                    >
-                      {isUnverified ? 'Unverified' : ROLE_LABELS[p.role]}
-                    </span>
-                  </div>
-                )
-              })()}
-
-              <div className="grid grid-cols-2 gap-4">
-                <p className="text-xs py-1" style={{ color: 'var(--text-secondary)' }}>ABO #</p>
-                {p.abo_number ? (
-                  <p className="text-xs font-medium font-mono py-1" style={{ color: 'var(--text-primary)' }}>
-                    {p.abo_number}{' '}
-                    <span style={{ color: '#2d6a4f' }}>✓</span>
-                  </p>
-                ) : (
-                  <p className="text-xs py-1" style={{ color: 'var(--text-secondary)' }}>—</p>
-                )}
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <p className="text-xs py-1" style={{ color: 'var(--text-secondary)' }}>Upline</p>
-                <p className="text-xs font-medium py-1" style={{ color: 'var(--text-primary)' }}>
-                  {uplineData?.upline_name ?? '—'}
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <p className="text-xs py-1" style={{ color: 'var(--text-secondary)' }}>Upline #</p>
-                <p className="text-xs font-mono py-1" style={{ color: 'var(--text-secondary)' }}>
-                  {uplineData?.upline_abo_number ?? '—'}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Travel doc read-only summary */}
-          <>
-            <div style={{ borderTop: '1px solid var(--border-default)', margin: '20px 0 16px' }} />
-            <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-4" style={{ color: 'var(--text-secondary)' }}>
-              {t('profile.travelDoc')}
-            </p>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
-                  {p.document_active_type === 'passport' ? t('profile.passportNumber') : t('profile.idNumber')}
-                </label>
-                <p className="text-sm font-mono py-2.5" style={{ color: 'var(--text-primary)' }}>
-                  {(p.document_active_type === 'passport' ? p.passport_number : p.id_number) || '—'}
-                </p>
-              </div>
-              <div>
-                <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
-                  {t('profile.validThrough')}
-                </label>
-                <p className="text-sm py-2.5" style={{ color: 'var(--text-primary)' }}>
-                  {p.valid_through ? formatDate(p.valid_through) : '—'}
-                </p>
-              </div>
-            </div>
-            {getExpiryState(p.valid_through) && (
-              <div className={`mt-3 rounded-xl border px-4 py-3 text-sm font-medium ${EXPIRY_STYLES[getExpiryState(p.valid_through)!]}`}>
-                {EXPIRY_LABELS[getExpiryState(p.valid_through)!]}
-                {p.valid_through && (
-                  <span className="font-normal ml-1 opacity-70">
-                    · {new Date(p.valid_through).toLocaleDateString('en-GB', {
-                      day: 'numeric', month: 'long', year: 'numeric',
-                    })}
-                  </span>
-                )}
-              </div>
-            )}
-          </>
-        </div>
+        <PersonalDetailsContent
+          profile={p}
+          incomplete={!p.first_name}
+          onEdit={() => setPersonalDrawerOpen(true)}
+        />
       ),
     },
 
-    [BENTO_IDS.TRIPS]: tripsLoading
-      ? { colSpan: 6, node: <div className="rounded-2xl animate-pulse" style={{ height: 160, backgroundColor: 'var(--border-default)' }} /> }
-      : hasTrips
-        ? {
-            colSpan: 6,
-            node: (
-              <TripsContent
-                tripsData={tripsData!}
-                onCancelTrip={handleCancelTrip}
-                cancelTripPending={cancelTrip.isPending}
-              />
-            ),
-          }
-        : null,
+    [BENTO_IDS.ABO_INFO]: {
+      colSpan: 6,
+      node: (
+        <AboInfoContent
+          mode={aboMode}
+          role={p.role}
+          aboNumber={p.abo_number}
+          uplineData={uplineData}
+          verRequest={verRequest}
+          onSubmitVerification={params => submitVerification.mutate(params)}
+          onCancelVerification={() => cancelVerification.mutate()}
+          submitPending={submitVerification.isPending}
+          cancelPending={cancelVerification.isPending}
+          submitError={submitVerification.isError ? (submitVerification.error as Error).message : null}
+        />
+      ),
+    },
 
-    [BENTO_IDS.PAYMENTS]: paymentsLoading
-      ? { colSpan: 6, node: <div className="rounded-2xl animate-pulse" style={{ height: 160, backgroundColor: 'var(--border-default)' }} /> }
-      : {
-          colSpan: 6,
-          node: (
-            <PaymentsContent
-              paymentsByItem={paymentsByItem}
-              cancelledTripIds={cancelledTripIds}
-              onOpenPayDrawer={handleOpenPayDrawer}
-            />
-          ),
-        },
+    // Travel doc: only for non-guest
+    [BENTO_IDS.TRAVEL_DOC]: !isGuest ? {
+      colSpan: 6,
+      node: (
+        <TravelDocContent
+          profile={p}
+          onEdit={() => setTravelDocDrawerOpen(true)}
+        />
+      ),
+    } : null,
 
-    // ── Vital Signs ── API shape: member_vital_signs + vital_sign_definitions
-    [BENTO_IDS.VITALS]: vitalsLoading
-      ? { colSpan: 6, node: <div className="rounded-2xl animate-pulse" style={{ height: 120, backgroundColor: 'var(--border-default)' }} /> }
-      : hasVitals
-        ? {
-            colSpan: 6,
-            node: <VitalsContent vitalsData={vitalsData!} />,
-          }
-        : null,
+    // Settings: always
+    [BENTO_IDS.SETTINGS]: {
+      colSpan: 6,
+      node: <UserSettingsContent />,
+    },
 
-    [BENTO_IDS.PARTICIPATION]: eventRolesLoading
-      ? { colSpan: 6, node: <div className="rounded-2xl animate-pulse" style={{ height: 120, backgroundColor: 'var(--border-default)' }} /> }
-      : hasEventRoles
-        ? {
-            colSpan: 6,
-            node: <ParticipationContent eventRolesData={eventRolesData!} />,
-          }
-        : null,
+    // Trips: member+ only, only if data exists
+    [BENTO_IDS.TRIPS]: !isGuest
+      ? tripsLoading
+        ? { colSpan: 6, node: <div className="rounded-2xl animate-pulse" style={{ height: 160, backgroundColor: 'var(--border-default)' }} /> }
+        : hasTrips
+          ? { colSpan: 6, node: <TripsContent tripsData={tripsData!} onCancelTrip={handleCancelTrip} cancelTripPending={cancelTrip.isPending} /> }
+          : null
+      : null,
 
+    // Payments: member+ only
+    [BENTO_IDS.PAYMENTS]: !isGuest
+      ? paymentsLoading
+        ? { colSpan: 6, node: <div className="rounded-2xl animate-pulse" style={{ height: 160, backgroundColor: 'var(--border-default)' }} /> }
+        : { colSpan: 6, node: <PaymentsContent paymentsByItem={paymentsByItem} cancelledTripIds={cancelledTripIds} onOpenPayDrawer={handleOpenPayDrawer} /> }
+      : null,
+
+    // Vitals: member+ only, only if data exists
+    [BENTO_IDS.VITALS]: !isGuest
+      ? vitalsLoading
+        ? { colSpan: 6, node: <div className="rounded-2xl animate-pulse" style={{ height: 120, backgroundColor: 'var(--border-default)' }} /> }
+        : hasVitals
+          ? { colSpan: 6, node: <VitalsContent vitalsData={vitalsData!} /> }
+          : null
+      : null,
+
+    // Participation: member+ only, only if data exists
+    [BENTO_IDS.PARTICIPATION]: !isGuest
+      ? eventRolesLoading
+        ? { colSpan: 6, node: <div className="rounded-2xl animate-pulse" style={{ height: 120, backgroundColor: 'var(--border-default)' }} /> }
+        : hasEventRoles
+          ? { colSpan: 6, node: <ParticipationContent eventRolesData={eventRolesData!} /> }
+          : null
+      : null,
+
+    // Calendar: always
     [BENTO_IDS.CALENDAR]: {
       colSpan: 12,
       node: (
@@ -1723,22 +1145,18 @@ export default function ProfilePage() {
       ),
     },
 
+    // Stats: abo_number present
     [BENTO_IDS.STATS]: p.abo_number
       ? losSummaryLoading
         ? { colSpan: 12, node: <div className="rounded-2xl animate-pulse" style={{ height: 80, backgroundColor: 'var(--border-default)' }} /> }
         : losSummary
-          ? {
-              colSpan: 12,
-              node: <StatsContent role={p.role} losSummary={losSummary} />,
-            }
+          ? { colSpan: 12, node: <StatsContent role={p.role} losSummary={losSummary} /> }
           : null
       : null,
 
+    // Admin: admin role only
     [BENTO_IDS.ADMIN]: isAdmin
-      ? {
-          colSpan: 12,
-          node: <AdminContent />,
-        }
+      ? { colSpan: 12, node: <AdminContent /> }
       : null,
   }
 
@@ -1746,347 +1164,141 @@ export default function ProfilePage() {
     .map(id => ({ id, entry: bentoMap[id] ?? null }))
     .filter((b): b is { id: string; entry: BentoEntry } => b.entry !== null)
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
+  )
+
   return (
     <div className="py-8 pb-16">
       <div className="max-w-[1280px] mx-auto px-4 sm:px-6 xl:px-8">
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
-            gap: '12px',
-          }}
-        >
-          {isGuest ? (
-            // ── GUEST LAYOUT ────────────────────────────────────────────────
-            <>
-              <div style={{ gridColumn: 'span 6' }}>
-                <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-                  <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-6" style={{ color: 'var(--brand-crimson)' }}>
-                    {t('profile.identity')}
-                  </p>
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
-                          {t('profile.firstName')}
-                        </label>
-                        <input
-                          value={form.first_name ?? ''}
-                          onChange={e => { setForm(f => ({ ...f, first_name: e.target.value })); clearFieldError('first_name') }}
-                          onBlur={e => touchField('first_name', e.target.value)}
-                          className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-                          style={{ color: 'var(--text-primary)', borderColor: formErrors.first_name ? 'var(--brand-crimson)' : undefined }}
-                        />
-                        {formErrors.first_name && <p className="text-[11px] mt-1" style={{ color: 'var(--brand-crimson)' }}>{formErrors.first_name}</p>}
-                      </div>
-                      <div>
-                        <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
-                          {t('profile.lastName')}
-                        </label>
-                        <input
-                          value={form.last_name ?? ''}
-                          onChange={e => { setForm(f => ({ ...f, last_name: e.target.value })); clearFieldError('last_name') }}
-                          onBlur={e => touchField('last_name', e.target.value)}
-                          className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-                          style={{ color: 'var(--text-primary)', borderColor: formErrors.last_name ? 'var(--brand-crimson)' : undefined }}
-                        />
-                        {formErrors.last_name && <p className="text-[11px] mt-1" style={{ color: 'var(--brand-crimson)' }}>{formErrors.last_name}</p>}
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
-                          {t('profile.firstName')} (БГ)
-                        </label>
-                        <input
-                          value={bgFirst}
-                          onChange={e => { setForm(f => ({ ...f, display_names: { ...((f.display_names ?? {}) as Record<string,string>), bg_first: e.target.value } })); clearFieldError('bg_first') }}
-                          onBlur={e => touchField('bg_first', e.target.value)}
-                          className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-                          style={{ color: 'var(--text-primary)', borderColor: formErrors.bg_first ? 'var(--brand-crimson)' : undefined }}
-                        />
-                        {formErrors.bg_first && <p className="text-[11px] mt-1" style={{ color: 'var(--brand-crimson)' }}>{formErrors.bg_first}</p>}
-                      </div>
-                      <div>
-                        <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
-                          {t('profile.lastName')} (БГ)
-                        </label>
-                        <input
-                          value={bgLast}
-                          onChange={e => { setForm(f => ({ ...f, display_names: { ...((f.display_names ?? {}) as Record<string,string>), bg_last: e.target.value } })); clearFieldError('bg_last') }}
-                          onBlur={e => touchField('bg_last', e.target.value)}
-                          className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-                          style={{ color: 'var(--text-primary)', borderColor: formErrors.bg_last ? 'var(--brand-crimson)' : undefined }}
-                        />
-                        {formErrors.bg_last && <p className="text-[11px] mt-1" style={{ color: 'var(--brand-crimson)' }}>{formErrors.bg_last}</p>}
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => saveMutation.mutate({ first_name: form.first_name, last_name: form.last_name, display_names: form.display_names })}
-                      disabled={saveMutation.isPending || hasAnyError()}
-                      className="w-full py-3 rounded-2xl text-sm font-semibold text-white disabled:opacity-50 transition-all hover:opacity-90 active:scale-[0.99]"
-                      style={{ backgroundColor: 'var(--brand-crimson)' }}
-                    >
-                      {saveMutation.isPending ? t('profile.saving') : saved ? t('profile.saved') : t('profile.saveChanges')}
-                    </button>
-                  </div>
-                </div>
-              </div>
 
-              <div style={{ gridColumn: 'span 6' }}>
-                <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', borderLeft: '4px solid var(--brand-teal)', border: '1px solid var(--border-default)' }}>
-                  <p className="text-xs font-semibold tracking-widest uppercase mb-1"
-                    style={{ color: 'var(--text-secondary)' }}>
-                    {t('profile.aboVerification')}
-                  </p>
-                  <p className="text-xs mb-4" style={{ color: 'var(--text-secondary)' }}>
-                    {t('profile.aboVerifDesc')}
-                  </p>
-                  {verRequest?.status === 'pending' ? (
-                    <div className="rounded-xl px-4 py-3" style={{ backgroundColor: '#f2cc8f33' }}>
-                      <p className="text-sm font-medium" style={{ color: '#7a5c00' }}>
-                        {verRequest.request_type === 'manual' ? 'Manual verification pending' : t('profile.verifPending')}
-                      </p>
-                      <p className="text-xs mt-0.5" style={{ color: '#7a5c00' }}>
-                        {verRequest.request_type === 'manual'
-                          ? `Upline ${verRequest.claimed_upline_abo}`
-                          : `ABO ${verRequest.claimed_abo} · Upline ${verRequest.claimed_upline_abo}`}
-                      </p>
-                      <button
-                        onClick={() => cancelVerification.mutate()}
-                        disabled={cancelVerification.isPending}
-                        className="text-xs mt-2 font-medium hover:underline disabled:opacity-50"
-                        style={{ color: 'var(--brand-crimson)' }}
-                      >
-                        {t('profile.cancelRequest')}
-                      </button>
-                    </div>
-                  ) : verRequest?.status === 'denied' ? (
-                    <div className="rounded-xl px-4 py-3 mb-4" style={{ backgroundColor: '#bc474915' }}>
-                      <p className="text-sm font-medium" style={{ color: 'var(--brand-crimson)' }}>
-                        {t('profile.prevDenied')}
-                      </p>
-                      {verRequest.admin_note && (
-                        <p className="text-xs mt-0.5" style={{ color: 'var(--brand-crimson)' }}>
-                          {verRequest.admin_note}
-                        </p>
-                      )}
-                      <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
-                        {t('profile.checkDetails')}
-                      </p>
-                    </div>
-                  ) : null}
-                  {(!verRequest || verRequest.status === 'denied') && (
-                    <div className="space-y-3">
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => setVerificationMode('standard')}
-                          className="flex-1 py-2 rounded-xl text-xs font-semibold transition-colors"
-                          style={{
-                            backgroundColor: verificationMode === 'standard' ? 'var(--text-primary)' : 'transparent',
-                            color: verificationMode === 'standard' ? 'var(--bg-card)' : 'var(--text-secondary)',
-                            border: '1px solid var(--border-default)',
-                          }}
-                        >
-                          I have an ABO number
-                        </button>
-                        <button
-                          onClick={() => setVerificationMode('manual')}
-                          className="flex-1 py-2 rounded-xl text-xs font-semibold transition-colors"
-                          style={{
-                            backgroundColor: verificationMode === 'manual' ? 'var(--text-primary)' : 'transparent',
-                            color: verificationMode === 'manual' ? 'var(--bg-card)' : 'var(--text-secondary)',
-                            border: '1px solid var(--border-default)',
-                          }}
-                        >
-                          I don&apos;t have an ABO yet
-                        </button>
-                      </div>
-                      {verificationMode === 'standard' && (
-                        <div>
-                          <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
-                            {t('profile.yourAbo')}
-                          </label>
-                          <input
-                            value={aboInput}
-                            onChange={e => setAboInput(e.target.value)}
-                            placeholder="e.g. 7023040472"
-                            className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm font-mono"
-                            style={{ color: 'var(--text-primary)' }}
-                          />
-                        </div>
-                      )}
-                      <div>
-                        <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
-                          {t('profile.sponsorAbo')}
-                        </label>
-                        <input
-                          value={uplineInput}
-                          onChange={e => setUplineInput(e.target.value)}
-                          placeholder="e.g. 7010970187"
-                          className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm font-mono"
-                          style={{ color: 'var(--text-primary)' }}
-                        />
-                      </div>
-                      {submitVerification.isError && (
-                        <p className="text-xs" style={{ color: 'var(--brand-crimson)' }}>
-                          {(submitVerification.error as Error).message}
-                        </p>
-                      )}
-                      <button
-                        onClick={() => submitVerification.mutate()}
-                        disabled={submitVerification.isPending || (verificationMode === 'standard' ? (!aboInput || !uplineInput) : !uplineInput)}
-                        className="w-full py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity"
-                        style={{ backgroundColor: 'var(--text-primary)' }}
-                      >
-                        {submitVerification.isPending ? t('profile.submitting') : t('profile.submitVerif')}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div style={{ gridColumn: 'span 12' }}>
-                <CalendarContent
-                  calUrl={calData?.url ?? ''}
-                  calCopied={calCopied}
-                  onCopy={handleCalCopy}
-                  onRegenerate={handleCalRegenerate}
-                  regeneratePending={regenerateCal.isPending}
-                  copyLabel={t('profile.calSubCopy')}
-                  copiedLabel={t('profile.calSubCopied')}
-                  subLabel={t('profile.calSub')}
-                  subDesc={t('profile.calSubDesc')}
-                  subInstructions={t('profile.calSubInstructions')}
-                  regenerateLabel={t('profile.calSubRegenerate')}
-                />
-              </div>
-            </>
-          ) : (
-            // ── MEMBER / CORE / ADMIN LAYOUT ─────────────────────────────────
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
-            >
-              <SortableContext items={orderedBentos.map(b => b.id)} strategy={rectSortingStrategy}>
-                {orderedBentos.map(({ id, entry }) => (
-                  <SortableBento
-                    key={id}
-                    id={id}
-                    disabled={id === BENTO_IDS.PERSONAL}
-                    collapsed={!!bentoCollapsed[id]}
-                    onToggleCollapse={() => toggleCollapse(id)}
-                    colSpan={entry.colSpan}
-                  >
-                    {entry.node}
-                  </SortableBento>
-                ))}
-              </SortableContext>
-            </DndContext>
-          )}
+        {/* Reset layout button */}
+        <div className="flex justify-end mb-3">
+          <button
+            onClick={resetLayout}
+            className="text-xs font-medium hover:opacity-70 transition-opacity"
+            style={{ color: 'var(--text-secondary)' }}
+          >
+            {t('profile.resetLayout')}
+          </button>
         </div>
+
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={orderedBentos.map(b => b.id)} strategy={rectSortingStrategy}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: '12px' }}>
+              {orderedBentos.map(({ id, entry }) => (
+                <SortableBento
+                  key={id}
+                  id={id}
+                  collapsed={!!bentoCollapsed[id]}
+                  onToggleCollapse={() => toggleCollapse(id)}
+                  colSpan={entry.colSpan}
+                >
+                  {entry.node}
+                </SortableBento>
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
       </div>
 
-      {/* ── Personal Details Drawer ───────────────────────────────────────── */}
-      <Drawer open={personalDrawerOpen} onClose={closePersonalDrawer} title="Personal Details">
-        {personalDrawerForm}
+      {/* ── Personal Details Drawer ─────────────────────────────────────── */}
+      <Drawer open={personalDrawerOpen} onClose={() => { setPersonalDrawerOpen(false); setPersonalErrors({}); savePersonal.reset() }} title={t('profile.tile.personalDetails')}>
+        <PersonalDrawerForm
+          form={personalForm}
+          formErrors={personalErrors}
+          onChange={handlePersonalChange}
+          onBlur={handlePersonalBlur}
+          onClearError={clearPersonalError}
+          onCancel={() => { setPersonalDrawerOpen(false); setPersonalErrors({}); savePersonal.reset() }}
+          onSave={() => savePersonal.mutate()}
+          isPending={savePersonal.isPending}
+          isError={savePersonal.isError}
+          errorMessage={savePersonal.isError ? (savePersonal.error as Error).message : ''}
+          saved={savedPersonal}
+        />
       </Drawer>
 
-      {/* ── Submit Payment Drawer ─────────────────────────────────────────── */}
+      {/* ── Travel Document Drawer ──────────────────────────────────────── */}
+      <Drawer open={travelDocDrawerOpen} onClose={() => { setTravelDocDrawerOpen(false); setDocErrors({}); saveTravelDoc.reset() }} title={t('profile.tile.travelDoc')}>
+        <TravelDocDrawerForm
+          form={docForm}
+          formErrors={docErrors}
+          onDocTypeChange={handleDocTypeChange}
+          onDocNumberChange={handleDocNumberChange}
+          onValidThroughChange={v => setDocForm(f => ({ ...f, valid_through: v }))}
+          onDocNumberBlur={handleDocNumberBlur}
+          onValidThroughBlur={handleValidThroughBlur}
+          onClearError={clearDocError}
+          onCancel={() => { setTravelDocDrawerOpen(false); setDocErrors({}); saveTravelDoc.reset() }}
+          onSave={() => saveTravelDoc.mutate()}
+          isPending={saveTravelDoc.isPending}
+          isError={saveTravelDoc.isError}
+          errorMessage={saveTravelDoc.isError ? (saveTravelDoc.error as Error).message : ''}
+          saved={savedTravelDoc}
+        />
+      </Drawer>
+
+      {/* ── Submit Payment Drawer ───────────────────────────────────────── */}
       <Drawer open={payDrawerOpen} onClose={closePayDrawer} title="Submit Payment">
         <div className="space-y-4">
           <div>
             <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Item</label>
-            <select
-              value={payModalItemId}
-              onChange={e => setPayModalItemId(e.target.value)}
+            <select value={payModalItemId} onChange={e => setPayModalItemId(e.target.value)}
               className="w-full border rounded-xl px-3 py-2 text-sm"
-              style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
-            >
+              style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}>
               <option value="">Select an item…</option>
               {(payableItems ?? []).map(item => (
-                <option key={item.id} value={item.id}>
-                  {item.title} — {formatCurrency(item.amount, item.currency)}
-                </option>
+                <option key={item.id} value={item.id}>{item.title} — {formatCurrency(item.amount, item.currency)}</option>
               ))}
             </select>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Amount</label>
-              <input
-                type="number" min="0" step="0.01"
-                value={payModalAmount}
-                onChange={e => setPayModalAmount(e.target.value)}
+              <input type="number" min="0" step="0.01" value={payModalAmount} onChange={e => setPayModalAmount(e.target.value)}
                 className="w-full border rounded-xl px-3 py-2 text-sm"
-                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
-              />
+                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
             </div>
             <div>
               <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Date</label>
-              <input
-                type="date"
-                value={payModalDate}
-                onChange={e => setPayModalDate(e.target.value)}
+              <input type="date" value={payModalDate} onChange={e => setPayModalDate(e.target.value)}
                 className="w-full border rounded-xl px-3 py-2 text-sm"
-                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
-              />
+                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
             </div>
           </div>
           <div>
             <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Payment method</label>
-            <input
-              value={payModalMethod}
-              onChange={e => setPayModalMethod(e.target.value)}
+            <input value={payModalMethod} onChange={e => setPayModalMethod(e.target.value)}
               placeholder="e.g. bank transfer, cash"
               className="w-full border rounded-xl px-3 py-2 text-sm"
-              style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
-            />
+              style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
           </div>
           <div>
             <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Proof of payment <span className="opacity-60 font-normal">(optional)</span></label>
-            <input
-              type="file"
-              accept="image/*,.pdf"
-              onChange={e => setPayModalFile(e.target.files?.[0] ?? null)}
-              className="w-full text-xs"
-              style={{ color: 'var(--text-secondary)' }}
-            />
-            {payModalFile && (
-              <p className="text-[11px] mt-1" style={{ color: 'var(--brand-teal)' }}>
-                {payModalFile.name}
-              </p>
-            )}
+            <input type="file" accept="image/*,.pdf" onChange={e => setPayModalFile(e.target.files?.[0] ?? null)}
+              className="w-full text-xs" style={{ color: 'var(--text-secondary)' }} />
+            {payModalFile && <p className="text-[11px] mt-1" style={{ color: 'var(--brand-teal)' }}>{payModalFile.name}</p>}
           </div>
           <div>
             <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Note</label>
-            <textarea
-              value={payModalNote}
-              onChange={e => setPayModalNote(e.target.value)}
-              rows={2}
-              className="w-full border rounded-xl px-3 py-2 text-sm resize-none"
-              style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
-            />
+            <textarea value={payModalNote} onChange={e => setPayModalNote(e.target.value)}
+              rows={2} className="w-full border rounded-xl px-3 py-2 text-sm resize-none"
+              style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
           </div>
           {submitGenericPayment.isError && (
-            <p className="text-xs" style={{ color: 'var(--brand-crimson)' }}>
-              {(submitGenericPayment.error as Error).message}
-            </p>
+            <p className="text-xs" style={{ color: 'var(--brand-crimson)' }}>{(submitGenericPayment.error as Error).message}</p>
           )}
           <div className="flex gap-3 pt-2">
             <button onClick={closePayDrawer}
               className="flex-1 py-2.5 rounded-xl text-sm font-semibold border hover:bg-black/5 transition-colors"
-              style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
-            >
-              Cancel
-            </button>
+              style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>Cancel</button>
             <button
               onClick={() => submitGenericPayment.mutate()}
               disabled={submitGenericPayment.isPending || !payModalItemId || !payModalAmount || !payModalDate}
               className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity"
-              style={{ backgroundColor: 'var(--brand-forest)' }}
-            >
+              style={{ backgroundColor: 'var(--brand-forest)' }}>
               {submitGenericPayment.isPending ? 'Submitting…' : 'Submit'}
             </button>
           </div>
