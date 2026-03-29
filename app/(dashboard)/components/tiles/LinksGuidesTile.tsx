@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { useUser } from '@clerk/nextjs'
 import { useLanguage } from '@/lib/hooks/useLanguage'
-import BentoCard, { Eyebrow } from '@/components/bento/BentoCard'
+import BentoCard from '@/components/bento/BentoCard'
 
 type QuickLink = { id: string; label: string; url: string; icon_name: string }
 type Guide = {
@@ -13,6 +13,8 @@ type Guide = {
   title: { en: string; bg: string }
   emoji: string | null
 }
+
+const MAX_ITEMS = 4
 
 function normaliseUrl(raw: string): string {
   const trimmed = raw.trim()
@@ -37,14 +39,18 @@ export default function LinksGuidesTile({
   const { isLoaded } = useUser()
   const { lang } = useLanguage()
 
+  const visibleLinks = quickLinks.slice(0, MAX_ITEMS)
+  const guideSlotsAvailable = MAX_ITEMS - visibleLinks.length
+
   const { data: guides = [], isLoading } = useQuery<Guide[]>({
-    queryKey: ['guides', 'tile', 3],
-    queryFn: () => fetch('/api/guides?limit=3').then(r => r.json()),
-    enabled: isLoaded,
+    queryKey: ['guides', 'tile', guideSlotsAvailable],
+    queryFn: () =>
+      fetch(`/api/guides?limit=${guideSlotsAvailable}`).then(r => r.json()),
+    enabled: isLoaded && guideSlotsAvailable > 0,
     staleTime: 5 * 60 * 1000,
   })
 
-  const hasLinks = quickLinks.length > 0
+  const hasLinks = visibleLinks.length > 0
   const hasGuides = guides.length > 0 || isLoading
 
   if (!hasLinks && !hasGuides) return null
@@ -55,92 +61,88 @@ export default function LinksGuidesTile({
       colSpan={colSpan}
       mobileColSpan={mobileColSpan}
       rowSpan={rowSpan}
-      className="flex flex-col gap-4"
+      className="flex flex-col gap-0.5"
       style={style}
     >
-      {hasLinks && (
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <Eyebrow>Quick Access</Eyebrow>
-          </div>
-          <div className="flex flex-col gap-1">
-            {quickLinks.map(link => (
-              <a
-                key={link.id}
-                href={normaliseUrl(link.url)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium truncate hover:opacity-80 transition-opacity"
-                style={{
-                  backgroundColor: 'var(--border-default)',
-                  color: 'var(--text-primary)',
-                }}
-              >
-                <span style={{ flexShrink: 0, opacity: 0.5 }}>→</span>
-                <span className="truncate">{link.label}</span>
-              </a>
-            ))}
-          </div>
-        </div>
-      )}
+      {visibleLinks.map(link => (
+        <a
+          key={link.id}
+          href={normaliseUrl(link.url)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2.5 px-2 py-[7px] rounded-lg hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
+        >
+          <span
+            className="flex-shrink-0 w-[22px] text-center text-[10px]"
+            style={{ color: 'var(--text-secondary)', opacity: 0.45 }}
+          >
+            •
+          </span>
+          <span
+            className="flex-1 text-[13px] font-medium truncate"
+            style={{ color: 'var(--text-primary)' }}
+          >
+            {link.label}
+          </span>
+        </a>
+      ))}
 
-      {hasLinks && hasGuides && (
-        <div className="h-px w-full" style={{ backgroundColor: 'var(--border-default)' }} />
-      )}
+      {guideSlotsAvailable > 0 && isLoading &&
+        [...Array(Math.min(2, guideSlotsAvailable))].map((_, i) => (
+          <div
+            key={i}
+            className="h-8 mx-2 rounded-lg animate-pulse"
+            style={{ backgroundColor: 'var(--border-default)' }}
+          />
+        ))
+      }
 
-      {hasGuides && (
-        <div className="flex flex-col flex-1">
-          <div className="flex items-center justify-between mb-2">
-            <Eyebrow>Guides</Eyebrow>
+      {guideSlotsAvailable > 0 && !isLoading &&
+        guides.map(g => {
+          const title =
+            (g.title as Record<string, string>)[lang] ??
+            (g.title as Record<string, string>).en ??
+            ''
+          return (
             <Link
-              href="/guides"
-              className="text-xs font-semibold tracking-widest uppercase hover:opacity-70 transition-opacity"
-              style={{ color: 'var(--brand-crimson)' }}
+              key={g.id}
+              href={`/guides/${g.slug}`}
+              className="flex items-center gap-2.5 px-2 py-[7px] rounded-lg hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
             >
-              All →
+              <span
+                className="flex-shrink-0 w-[22px] text-center text-[10px]"
+                style={{ color: 'var(--text-secondary)', opacity: 0.45 }}
+              >
+                •
+              </span>
+              <span
+                className="flex-1 text-[13px] font-medium truncate"
+                style={{ color: 'var(--text-primary)' }}
+              >
+                {title}
+              </span>
             </Link>
-          </div>
-          {isLoading ? (
-            <div className="space-y-2">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="h-8 rounded-lg animate-pulse"
-                  style={{ backgroundColor: 'var(--border-default)' }} />
-              ))}
-            </div>
-          ) : (
-            <div className="space-y-0.5">
-              {guides.map(g => {
-                const title =
-                  (g.title as Record<string, string>)[lang] ??
-                  (g.title as Record<string, string>).en ??
-                  ''
-                return (
-                  <Link
-                    key={g.id}
-                    href={`/guides/${g.slug}`}
-                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-black/[0.04] transition-colors group"
-                  >
-                    <span className="text-sm flex-shrink-0 w-5 text-center">
-                      {g.emoji ?? '📄'}
-                    </span>
-                    <span
-                      className="flex-1 text-sm font-medium truncate"
-                      style={{ color: 'var(--text-primary)' }}
-                    >
-                      {title}
-                    </span>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
-                      stroke="var(--text-secondary)" strokeWidth="2"
-                      strokeLinecap="round" strokeLinejoin="round"
-                      className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <polyline points="9 18 15 12 9 6" />
-                    </svg>
-                  </Link>
-                )
-              })}
-            </div>
-          )}
-        </div>
+          )
+        })
+      }
+
+      {hasGuides && !isLoading && (
+        <Link
+          href="/guides"
+          className="flex items-center justify-center gap-1 mt-1.5 px-2 py-[5px] rounded-lg hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
+        >
+          <span
+            className="text-[11px] font-semibold tracking-[0.06em] uppercase"
+            style={{ color: 'var(--text-secondary)' }}
+          >
+            All guides
+          </span>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
+            stroke="var(--text-secondary)" strokeWidth="2.5"
+            strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </Link>
       )}
     </BentoCard>
   )
