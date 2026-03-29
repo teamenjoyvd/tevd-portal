@@ -38,7 +38,7 @@ type Props = {
   rowSpan?: number
 }
 
-export default function CalendarTile({ colSpan, mobileColSpan, rowSpan }: Props): JSX.Element {
+export default function CalendarTile({ colSpan, mobileColSpan, rowSpan }: Props) {
   const { isLoaded } = useUser()
 
   const { data: events = [] } = useQuery<CalendarEvent[]>({
