@@ -38,6 +38,14 @@ export async function PATCH(
 
       if (profileErr) return Response.json({ error: profileErr.message }, { status: 500 })
 
+      // Resolve the request immediately after the profile write — before non-atomic ops
+      const { error: statusErr } = await supabase
+        .from('abo_verification_requests')
+        .update({ status: 'approved', resolved_at: new Date().toISOString(), admin_note: admin_note ?? null })
+        .eq('id', id)
+
+      if (statusErr) return Response.json({ error: statusErr.message }, { status: 500 })
+
       // Cast to any: generated types declare p_abo_number as string but the
       // function accepts NULL to trigger the no-ABO placeholder path.
       const { error: treeErr } = await supabase
@@ -56,6 +64,24 @@ export async function PATCH(
         .eq('id', verReq.profile_id)
 
       if (profileErr) return Response.json({ error: profileErr.message }, { status: 500 })
+
+      // Resolve the request immediately after the profile write — before non-atomic ops
+      const { error: statusErr } = await supabase
+        .from('abo_verification_requests')
+        .update({ status: 'approved', resolved_at: new Date().toISOString(), admin_note: admin_note ?? null })
+        .eq('id', id)
+
+      if (statusErr) return Response.json({ error: statusErr.message }, { status: 500 })
+
+      // Place member in the LOS tree
+      const { error: treeErr } = await supabase
+        .rpc('upsert_tree_node', {
+          p_profile_id: verReq.profile_id,
+          p_abo_number: verReq.claimed_abo,
+          p_sponsor_abo_number: verReq.claimed_upline_abo,
+        })
+
+      if (treeErr) return Response.json({ error: treeErr.message }, { status: 500 })
     }
 
     // Sync role to Clerk publicMetadata so UserDropdown reflects immediately
@@ -83,6 +109,16 @@ export async function PATCH(
       message: notifMessage,
       action_url: '/profile',
     })
+
+    // Read back the resolved request for the response
+    const { data, error } = await supabase
+      .from('abo_verification_requests')
+      .select()
+      .eq('id', id)
+      .single()
+
+    if (error) return Response.json({ error: error.message }, { status: 500 })
+    return Response.json(data)
   } else {
     // Notify denial
     await supabase.from('notifications').insert({
@@ -94,15 +130,15 @@ export async function PATCH(
         : 'Your ABO verification request was not approved. Please check your details and try again.',
       action_url: '/profile',
     })
+
+    // Update the request status
+    const { data, error } = await supabase
+      .from('abo_verification_requests')
+      .update({ status: 'denied', resolved_at: new Date().toISOString(), admin_note: admin_note ?? null })
+      .eq('id', id)
+      .select().single()
+
+    if (error) return Response.json({ error: error.message }, { status: 500 })
+    return Response.json(data)
   }
-
-  // Update the request status
-  const { data, error } = await supabase
-    .from('abo_verification_requests')
-    .update({ status: action === 'approve' ? 'approved' : 'denied', resolved_at: new Date().toISOString(), admin_note: admin_note ?? null })
-    .eq('id', id)
-    .select().single()
-
-  if (error) return Response.json({ error: error.message }, { status: 500 })
-  return Response.json(data)
 }

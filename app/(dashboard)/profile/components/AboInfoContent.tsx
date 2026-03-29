@@ -19,7 +19,7 @@ type UplineData = {
   upline_abo_number: string | null
 }
 
-type AboInfoMode = 'form' | 'pending' | 'confirmed'
+type AboInfoMode = 'form' | 'pending' | 'confirmed' | 'member_manual'
 
 const ROLE_LABELS: Record<string, string> = {
   admin: 'Admin', core: 'Core', member: 'Member', guest: 'Guest',
@@ -76,6 +76,38 @@ export const AboInfoContent = memo(function AboInfoContent({
             <p className="text-sm font-medium font-mono" style={{ color: 'var(--text-primary)' }}>
               {aboNumber} <span style={{ color: '#2d6a4f' }}>✓</span>
             </p>
+          </div>
+          <div style={{ borderTop: '1px solid var(--border-default)', paddingTop: 10 }}>
+            <div className="grid grid-cols-2 gap-3 mb-2">
+              <p className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>Upline</p>
+              <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                {uplineData?.upline_name ?? '—'}
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <p className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>Upline #</p>
+              <p className="text-sm font-mono" style={{ color: 'var(--text-secondary)' }}>
+                {uplineData?.upline_abo_number ?? '—'}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {mode === 'member_manual' && (
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <p className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>Access</p>
+            <span
+              className="text-[10px] font-bold px-2 py-0.5 rounded-full self-start w-fit"
+              style={{ backgroundColor: rc.bg, color: rc.font }}
+            >
+              {ROLE_LABELS[role]}
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <p className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>ABO #</p>
+            <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>—</p>
           </div>
           <div style={{ borderTop: '1px solid var(--border-default)', paddingTop: 10 }}>
             <div className="grid grid-cols-2 gap-3 mb-2">

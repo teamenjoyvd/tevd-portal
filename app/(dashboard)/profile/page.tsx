@@ -1147,10 +1147,13 @@ export default function ProfilePage() {
   const hasVitals     = Array.isArray(vitalsData) && vitalsData.length > 0
   const hasEventRoles = Array.isArray(eventRolesData) && eventRolesData.length > 0
 
-  type AboMode = 'form' | 'pending' | 'confirmed'
+  type AboMode = 'form' | 'pending' | 'confirmed' | 'member_manual'
   let aboMode: AboMode = 'form'
   if (p.abo_number) {
     aboMode = 'confirmed'
+  } else if (p.role !== 'guest') {
+    // Manually-verified member: role promoted but no ABO number assigned
+    aboMode = 'member_manual'
   } else if (verRequest && (verRequest.status === 'pending' || verRequest.status === 'denied')) {
     aboMode = 'pending'
   }
