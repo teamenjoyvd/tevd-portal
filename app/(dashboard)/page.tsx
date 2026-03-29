@@ -53,15 +53,15 @@ export default async function HomePage() {
     <div style={{ backgroundColor: 'var(--bg-global)' }}>
       <BentoGrid className="py-4 pb-16">
 
-        {/* ── ROW 1–2: Hero·5 | Profile·2 | About·2 | Calendar·3 (rows 1–4) ── */}
+        {/* ── ROW 1–2: Hero·6 | Events·3 | Profile·3 ── */}
 
         <BentoCard
           variant="forest"
-          colSpan={5}
+          colSpan={6}
           mobileColSpan={12}
           rowSpan={2}
           className="bento-tile relative overflow-hidden"
-          style={{ gridColumn: '1 / span 5', gridRow: '1 / span 2', animationDelay: '0ms' }}
+          style={{ gridColumn: '1 / span 6', gridRow: '1 / span 2', animationDelay: '0ms' }}
         >
           <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 40% 50%, rgba(188,71,73,0.18) 0%, transparent 70%)' }} />
           <div className="absolute inset-0 flex flex-col justify-end px-8 py-10 z-10">
@@ -74,42 +74,21 @@ export default async function HomePage() {
           </div>
         </BentoCard>
 
-        <ProfileTile
-          colSpan={2}
-          mobileColSpan={12}
-          rowSpan={2}
-          style={{ gridColumn: '6 / span 2', gridRow: '1 / span 2' }}
-        />
-
-        <BentoCard
-          variant="default"
-          colSpan={2}
-          mobileColSpan={12}
-          rowSpan={2}
-          className="bento-tile flex flex-col"
-          style={{ gridColumn: '8 / span 2', gridRow: '1 / span 2', animationDelay: '100ms' }}
-        >
-          <div className="flex items-center justify-between mb-4">
-            <Eyebrow>About Us</Eyebrow>
-            <Link href="/about" className="font-body text-[11px] font-bold tracking-widest uppercase hover:underline" style={{ color: 'var(--brand-crimson)' }}>Our story →</Link>
-          </div>
-          <div className="flex-1">
-            <h2 className="font-display text-xl font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>Hey there!</h2>
-            <p className="font-body text-sm leading-relaxed" style={{ color: 'var(--text-secondary)', display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' } as React.CSSProperties}>
-              We&apos;re Vera &amp; Deniz, two folks living it up in Sofia, Bulgaria. All about good vibes, meaningful connections, and building rock-solid relationships.
-            </p>
-          </div>
-        </BentoCard>
-
-        {/* Calendar spans rows 1–4, col 10–12 */}
         <CalendarTile
           colSpan={3}
           mobileColSpan={12}
-          rowSpan={4}
-          style={{ gridColumn: '10 / span 3', gridRow: '1 / span 4' }}
+          rowSpan={2}
+          style={{ gridColumn: '7 / span 3', gridRow: '1 / span 2' }}
         />
 
-        {/* ── ROW 3–4: Trip·3 | Announcement·3 | LinksGuides·3 (rows 3–6) ── */}
+        <ProfileTile
+          colSpan={3}
+          mobileColSpan={12}
+          rowSpan={2}
+          style={{ gridColumn: '10 / span 3', gridRow: '1 / span 2' }}
+        />
+
+        {/* ── ROW 3–4: Trip·3 | Announcement·3 | Map·3 | QuickLinks·3 ── */}
 
         {nextTrip && (
         <BentoCard
@@ -191,44 +170,63 @@ export default async function HomePage() {
         </BentoCard>
         )}
 
-        {/* LinksGuides spans rows 3–6, col 7–9 */}
+        <LocationTile
+          colSpan={3}
+          mobileColSpan={6}
+          rowSpan={2}
+          style={{ gridColumn: '7 / span 3', gridRow: '3 / span 2' }}
+        />
+
         <LinksGuidesTile
           quickLinks={quickLinks}
           colSpan={3}
           mobileColSpan={12}
-          rowSpan={4}
-          style={{ gridColumn: '7 / span 3', gridRow: '3 / span 4' }}
-        />
-
-        {/* ── ROW 5–6: Theme·2 | FontSize·2 | Map·2 | Socials·3 (col 10–12) ── */}
-
-        <ThemeTile
-          colSpan={2}
-          mobileColSpan={6}
           rowSpan={2}
-          style={{ gridColumn: '1 / span 2', gridRow: '5 / span 2' }}
-        />
-        <FontSizeTile
-          colSpan={2}
-          mobileColSpan={6}
-          rowSpan={2}
-          style={{ gridColumn: '3 / span 2', gridRow: '5 / span 2' }}
+          style={{ gridColumn: '10 / span 3', gridRow: '3 / span 2' }}
         />
 
-        <LocationTile
-          colSpan={2}
-          mobileColSpan={6}
-          rowSpan={2}
-          style={{ gridColumn: '5 / span 2', gridRow: '5 / span 2' }}
-        />
+        {/* ── ROW 5–6: Socials·3 | Theme·3 | FontSize·3 | About·3 ── */}
 
-        {/* Socials: bottom right, col 10–12 rows 5–6, under Calendar */}
         <SocialsTile
           colSpan={3}
           mobileColSpan={12}
           rowSpan={2}
-          style={{ gridColumn: '10 / span 3', gridRow: '5 / span 2' }}
+          style={{ gridColumn: '1 / span 3', gridRow: '5 / span 2' }}
         />
+
+        <ThemeTile
+          colSpan={3}
+          mobileColSpan={6}
+          rowSpan={2}
+          style={{ gridColumn: '4 / span 3', gridRow: '5 / span 2' }}
+        />
+
+        <FontSizeTile
+          colSpan={3}
+          mobileColSpan={6}
+          rowSpan={2}
+          style={{ gridColumn: '7 / span 3', gridRow: '5 / span 2' }}
+        />
+
+        <BentoCard
+          variant="default"
+          colSpan={3}
+          mobileColSpan={12}
+          rowSpan={2}
+          className="bento-tile flex flex-col"
+          style={{ gridColumn: '10 / span 3', gridRow: '5 / span 2', animationDelay: '100ms' }}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <Eyebrow>About Us</Eyebrow>
+            <Link href="/about" className="font-body text-[11px] font-bold tracking-widest uppercase hover:underline" style={{ color: 'var(--brand-crimson)' }}>Our story →</Link>
+          </div>
+          <div className="flex-1">
+            <h2 className="font-display text-xl font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>Hey there!</h2>
+            <p className="font-body text-sm leading-relaxed" style={{ color: 'var(--text-secondary)', display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' } as React.CSSProperties}>
+              We&apos;re Vera &amp; Deniz, two folks living it up in Sofia, Bulgaria. All about good vibes, meaningful connections, and building rock-solid relationships.
+            </p>
+          </div>
+        </BentoCard>
 
       </BentoGrid>
     </div>
