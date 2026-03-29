@@ -579,9 +579,9 @@ const CalendarContent = memo(function CalendarContent({
 
 const StatsContent = memo(function StatsContent({ role, losSummary }: { role: string; losSummary: LosSummaryData }) {
   return (
-    <div className="rounded-2xl p-6" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+    <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
       <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-4 pr-16" style={{ color: 'var(--brand-crimson)' }}>STATS</p>
-      <div className="flex items-center gap-6">
+      <div className="flex flex-wrap items-center gap-4">
         <div>
           <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Role</p>
           <p className="text-sm font-semibold mt-0.5" style={{ color: 'var(--text-primary)' }}>{ROLE_LABELS[role]}</p>
@@ -1125,7 +1125,7 @@ export default function ProfilePage() {
           : null
       : null,
 
-    // Calendar: col-6 (was col-12)
+    // Calendar: col-6
     [BENTO_IDS.CALENDAR]: {
       colSpan: 6,
       node: (
@@ -1145,16 +1145,16 @@ export default function ProfilePage() {
       ),
     },
 
-    // Stats: abo_number present — col-12 (spans full row, wide content)
+    // Stats: abo_number present — col-6
     [BENTO_IDS.STATS]: p.abo_number
       ? losSummaryLoading
-        ? { colSpan: 12, node: <div className="rounded-2xl animate-pulse" style={{ height: 80, backgroundColor: 'var(--border-default)' }} /> }
+        ? { colSpan: 6, node: <div className="rounded-2xl animate-pulse" style={{ height: 80, backgroundColor: 'var(--border-default)' }} /> }
         : losSummary
-          ? { colSpan: 12, node: <StatsContent role={p.role} losSummary={losSummary} /> }
+          ? { colSpan: 6, node: <StatsContent role={p.role} losSummary={losSummary} /> }
           : null
       : null,
 
-    // Admin: admin role only — col-6 (was col-12)
+    // Admin: admin role only — col-6
     [BENTO_IDS.ADMIN]: isAdmin
       ? { colSpan: 6, node: <AdminContent /> }
       : null,
