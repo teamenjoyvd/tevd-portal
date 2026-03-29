@@ -3,9 +3,11 @@
 import { useSyncExternalStore, useEffect, useCallback } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 
-export type FontSize = 'sm' | 'md' | 'lg' | 'xl'
+// SEQ277: 'sm' removed from FontSize. Any stored 'sm' value is silently
+// upgraded to 'md' on mount — cookie, DOM attribute, and server profile.
+export type FontSize = 'md' | 'lg' | 'xl'
 
-const ALLOWED: FontSize[] = ['sm', 'md', 'lg', 'xl']
+const ALLOWED: FontSize[] = ['md', 'lg', 'xl']
 const DEFAULT: FontSize = 'md'
 const COOKIE_KEY = 'tevd-font-size'
 const DOM_EVENT = 'tevd-font-size-change'
@@ -46,6 +48,34 @@ function getServerSnapshot(): FontSize {
   return DEFAULT
 }
 
+// Silently upgrade a stored 'sm' value to 'md'.
+// Fires once on mount, does not block render.
+async function upgradeLegacySmIfNeeded(queryClient: ReturnType<typeof useQueryClient>): Promise<void> {
+  const cookie = document.cookie.split('; ').find((c) => c.startsWith(`${COOKIE_KEY}=`))
+  const raw = cookie?.split('=')[1]
+  if (raw !== 'sm') return
+  // Apply upgrade locally
+  applyToDOM(DEFAULT)
+  writeCookie(DEFAULT)
+  window.dispatchEvent(new Event(DOM_EVENT))
+  // Persist to server
+  try {
+    const res = await fetch('/api/profile', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ui_prefs: { font_size: DEFAULT } }),
+    })
+    if (res.ok) {
+      queryClient.setQueryData(
+        ['profile-ui-prefs-font-size'],
+        (prev: { font_size?: FontSize } | undefined) => ({ ...prev, font_size: DEFAULT }),
+      )
+    }
+  } catch {
+    // Silent — local upgrade already applied.
+  }
+}
+
 export function useFontSize(): {
   fontSize: FontSize
   setFontSize: (value: FontSize) => Promise<void>
@@ -66,8 +96,16 @@ export function useFontSize(): {
     staleTime: Infinity,
   })
 
+  // Upgrade interceptor: runs once on mount to migrate any legacy 'sm' cookie.
+  useEffect(() => {
+    upgradeLegacySmIfNeeded(queryClient)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // Profile sync: when the server value differs from the local cookie, apply it
   // and notify all store subscribers so useSyncExternalStore re-reads.
+  // Also handles the case where the server still holds 'sm' — isValidFontSize
+  // will return false, so the stale value is ignored and DEFAULT holds.
   useEffect(() => {
     const cookieVal = readCookie()
     const profileVal = profileUiPrefs?.font_size

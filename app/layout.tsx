@@ -37,7 +37,8 @@ export const metadata: Metadata = {
   description: 'Team Portal for teamenjoyVD',
 }
 
-const ALLOWED_FONT_SIZES = ['sm', 'md', 'lg'] as const
+// SEQ277: 'sm' removed, 'xl' added to match useFontSize.ts ALLOWED array.
+const ALLOWED_FONT_SIZES = ['md', 'lg', 'xl'] as const
 type FontSizeCookie = typeof ALLOWED_FONT_SIZES[number]
 
 function resolveFont(raw: string | undefined): FontSizeCookie {
