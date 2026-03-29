@@ -881,7 +881,8 @@ export default function ProfilePage() {
 
   const { data: vitalsData, isLoading: vitalsLoading } = useQuery<VitalSign[]>({
     queryKey: ['profile-vitals'],
-    queryFn: () => fetch('/api/profile/vitals').then(r => r.json()),
+    // Fixed: was calling deprecated /api/profile/vitals — now uses canonical route
+    queryFn: () => fetch('/api/profile/vital-signs').then(r => r.json()),
     enabled: !!validProfile?.id && validProfile?.role !== 'guest',
     staleTime: 5 * 60 * 1000,
   })
