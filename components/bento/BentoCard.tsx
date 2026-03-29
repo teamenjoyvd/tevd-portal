@@ -15,19 +15,6 @@ type BentoCardProps = {
   onClick?: React.MouseEventHandler<HTMLDivElement>
 }
 
-// ── KPI sub-component ──────────────────────────────────────────────────────
-
-export function KpiValue({ children }: { children: React.ReactNode }) {
-  return (
-    <p
-      className="text-4xl font-medium tracking-tight tabular-nums"
-      style={{ color: 'var(--text-primary)' }}
-    >
-      {children}
-    </p>
-  )
-}
-
 // ── Eyebrow sub-component ──────────────────────────────────────────────────
 
 export function Eyebrow({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
