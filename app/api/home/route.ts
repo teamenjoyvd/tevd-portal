@@ -1,10 +1,10 @@
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
 
-export async function GET() {
+export async function GET(): Promise<Response> {
   const supabase = createServiceClient()
 
-  // Resolve caller role so announcements and quick_links respect access_level.
+  // Resolve caller role so announcements and links respect access filters.
   // Unauthenticated callers (public homepage) fall back to 'guest'.
   let role = 'guest'
   try {
@@ -16,7 +16,7 @@ export async function GET() {
     }
   } catch { /* unauthenticated */ }
 
-  const [settings, announcements, quickLinks, events] = await Promise.all([
+  const [settings, announcements, links, events] = await Promise.all([
     supabase.from('home_settings')
       .select('*, featured_announcement:announcements(*)')
       .single(),
@@ -26,9 +26,9 @@ export async function GET() {
       .contains('access_level', [role])
       .order('created_at', { ascending: false })
       .limit(5),
-    supabase.from('quick_links')
+    supabase.from('links')
       .select('*')
-      .contains('access_level', [role])
+      .contains('access_roles', [role])
       .order('sort_order'),
     supabase.from('calendar_events')
       .select('*')
@@ -41,7 +41,7 @@ export async function GET() {
   return Response.json({
     settings: settings.data,
     announcements: announcements.data ?? [],
-    quickLinks: quickLinks.data ?? [],
+    links: links.data ?? [],
     nextEvents: events.data ?? [],
   })
 }
