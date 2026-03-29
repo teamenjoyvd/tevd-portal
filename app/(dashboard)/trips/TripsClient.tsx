@@ -105,7 +105,7 @@ function TripCardMobile(props: CardProps) {
         alt=""
         aria-hidden="true"
         className="w-full object-cover flex-shrink-0"
-        style={{ height: 140, viewTransitionName: `trip-image-${trip.id}` } as React.CSSProperties}
+        style={{ height: 140, viewTransitionName: `trip-image-${trip.id}` }}
       />
       <div className="px-5 pt-4 pb-5 flex flex-col gap-3 flex-1">
         <div className="flex items-start justify-between gap-3">
@@ -164,7 +164,7 @@ function TripCardDesktop(props: CardProps) {
         alt=""
         aria-hidden="true"
         className="w-full object-cover flex-shrink-0"
-        style={{ height: 180, viewTransitionName: `trip-image-${trip.id}` } as React.CSSProperties}
+        style={{ height: 180, viewTransitionName: `trip-image-${trip.id}` }}
       />
       <div className="px-6 pt-5 pb-6 flex flex-col gap-3 flex-1">
         <div className="flex items-start justify-between gap-4">
@@ -205,7 +205,7 @@ function TripCardDesktop(props: CardProps) {
             WebkitLineClamp: 3,
             WebkitBoxOrient: 'vertical',
             overflow: 'hidden',
-          } as React.CSSProperties}>
+          }}>
             {trip.description}
           </p>
         )}
