@@ -23,10 +23,12 @@ export default function ProfileTile({
   colSpan = 3,
   mobileColSpan = 12,
   rowSpan,
+  style,
 }: {
   colSpan?: number
   mobileColSpan?: number
   rowSpan?: number
+  style?: React.CSSProperties
 }) {
   const { isLoaded, isSignedIn, user } = useUser()
 
@@ -68,7 +70,7 @@ export default function ProfileTile({
   // Loading state
   if (!isLoaded) {
     return (
-      <BentoCard variant="default" colSpan={colSpan} mobileColSpan={mobileColSpan} rowSpan={rowSpan} className="flex flex-col justify-between">
+      <BentoCard variant="default" colSpan={colSpan} mobileColSpan={mobileColSpan} rowSpan={rowSpan} style={style} className="flex flex-col justify-between">
         <div className="h-6 w-24 rounded-lg animate-pulse" style={{ backgroundColor: 'var(--border-default)' }} />
         <div className="h-4 w-16 rounded-lg animate-pulse mt-3" style={{ backgroundColor: 'var(--border-default)' }} />
       </BentoCard>
@@ -78,7 +80,7 @@ export default function ProfileTile({
   // Unauthenticated guest
   if (!isSignedIn) {
     return (
-      <BentoCard variant="default" colSpan={colSpan} mobileColSpan={mobileColSpan} rowSpan={rowSpan} className="flex flex-col justify-between">
+      <BentoCard variant="default" colSpan={colSpan} mobileColSpan={mobileColSpan} rowSpan={rowSpan} style={style} className="flex flex-col justify-between">
         <div>
           <Eyebrow>{t('profile.eyebrow')}</Eyebrow>
           <h2 className="font-display text-2xl font-semibold mt-3"
@@ -103,7 +105,7 @@ export default function ProfileTile({
   // Unverified Member
   if (isUnverified) {
     return (
-      <BentoCard variant="default" colSpan={colSpan} mobileColSpan={mobileColSpan} rowSpan={rowSpan} className="flex flex-col justify-between">
+      <BentoCard variant="default" colSpan={colSpan} mobileColSpan={mobileColSpan} rowSpan={rowSpan} style={style} className="flex flex-col justify-between">
         <div>
           <Eyebrow>{t('profile.eyebrow')}</Eyebrow>
           <h2 className="font-display text-2xl font-semibold mt-3"
@@ -133,7 +135,7 @@ export default function ProfileTile({
 
   // Authenticated member+
   return (
-    <BentoCard variant="default" colSpan={colSpan} mobileColSpan={mobileColSpan} rowSpan={rowSpan} className="flex flex-col justify-between">
+    <BentoCard variant="default" colSpan={colSpan} mobileColSpan={mobileColSpan} rowSpan={rowSpan} style={style} className="flex flex-col justify-between">
       <div>
         <Eyebrow>{t('profile.eyebrow')}</Eyebrow>
         <h2 className="font-display text-2xl font-semibold mt-3"
