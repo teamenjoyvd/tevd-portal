@@ -53,7 +53,7 @@ export default async function HomePage() {
     <div style={{ backgroundColor: 'var(--bg-global)' }}>
       <BentoGrid className="py-4 pb-16">
 
-        {/* ── ROW 1–2: Hero·6 | Events·3 | Profile·3 ── */}
+        {/* ── ROW 1: Hero·6(rows1–2) | Profile·3(row1) | Events·3(rows1–2) ── */}
 
         <BentoCard
           variant="forest"
@@ -74,30 +74,43 @@ export default async function HomePage() {
           </div>
         </BentoCard>
 
-        <CalendarTile
+        {/* Profile: col 7–9, row 1 only */}
+        <ProfileTile
           colSpan={3}
           mobileColSpan={12}
-          rowSpan={2}
-          style={{ gridColumn: '7 / span 3', gridRow: '1 / span 2' }}
+          rowSpan={1}
+          style={{ gridColumn: '7 / span 3', gridRow: '1 / span 1' }}
         />
 
-        <ProfileTile
+        {/* Events: col 10–12, rows 1–2 */}
+        <CalendarTile
           colSpan={3}
           mobileColSpan={12}
           rowSpan={2}
           style={{ gridColumn: '10 / span 3', gridRow: '1 / span 2' }}
         />
 
-        {/* ── ROW 3–4: Trip·3 | Announcement·3 | Map·3 | QuickLinks·3 ── */}
+        {/* ── ROW 2: Hero cont. | LinksGuides·3(rows2–3) | Events cont. ── */}
+
+        {/* LinksGuides: col 7–9, rows 2–3 */}
+        <LinksGuidesTile
+          quickLinks={quickLinks}
+          colSpan={3}
+          mobileColSpan={12}
+          rowSpan={2}
+          style={{ gridColumn: '7 / span 3', gridRow: '2 / span 2' }}
+        />
+
+        {/* ── ROW 3: Trips·3 | Announce·3 | LinksGuides cont. | About·3 ── */}
 
         {nextTrip && (
         <BentoCard
           variant="crimson"
           colSpan={3}
           mobileColSpan={6}
-          rowSpan={2}
+          rowSpan={1}
           className="bento-tile relative overflow-hidden p-0"
-          style={{ gridColumn: '1 / span 3', gridRow: '3 / span 2', animationDelay: '200ms' }}
+          style={{ gridColumn: '1 / span 3', gridRow: '3 / span 1', animationDelay: '200ms' }}
         >
           {nextTrip.image_url && (
             // eslint-disable-next-line @next/next/no-img-element
@@ -148,9 +161,9 @@ export default async function HomePage() {
           variant="default"
           colSpan={3}
           mobileColSpan={12}
-          rowSpan={2}
+          rowSpan={1}
           className="bento-tile flex flex-col"
-          style={{ gridColumn: '4 / span 3', gridRow: '3 / span 2', animationDelay: '250ms' }}
+          style={{ gridColumn: '4 / span 3', gridRow: '3 / span 1', animationDelay: '250ms' }}
         >
           <div className="flex items-center justify-between mb-4">
             <Eyebrow>Latest</Eyebrow>
@@ -170,51 +183,14 @@ export default async function HomePage() {
         </BentoCard>
         )}
 
-        <LocationTile
-          colSpan={3}
-          mobileColSpan={6}
-          rowSpan={2}
-          style={{ gridColumn: '7 / span 3', gridRow: '3 / span 2' }}
-        />
-
-        <LinksGuidesTile
-          quickLinks={quickLinks}
-          colSpan={3}
-          mobileColSpan={12}
-          rowSpan={2}
-          style={{ gridColumn: '10 / span 3', gridRow: '3 / span 2' }}
-        />
-
-        {/* ── ROW 5–6: Socials·3 | Theme·3 | FontSize·3 | About·3 ── */}
-
-        <SocialsTile
-          colSpan={3}
-          mobileColSpan={12}
-          rowSpan={2}
-          style={{ gridColumn: '1 / span 3', gridRow: '5 / span 2' }}
-        />
-
-        <ThemeTile
-          colSpan={3}
-          mobileColSpan={6}
-          rowSpan={2}
-          style={{ gridColumn: '4 / span 3', gridRow: '5 / span 2' }}
-        />
-
-        <FontSizeTile
-          colSpan={3}
-          mobileColSpan={6}
-          rowSpan={2}
-          style={{ gridColumn: '7 / span 3', gridRow: '5 / span 2' }}
-        />
-
+        {/* About: col 10–12, row 3 */}
         <BentoCard
           variant="default"
           colSpan={3}
           mobileColSpan={12}
-          rowSpan={2}
+          rowSpan={1}
           className="bento-tile flex flex-col"
-          style={{ gridColumn: '10 / span 3', gridRow: '5 / span 2', animationDelay: '100ms' }}
+          style={{ gridColumn: '10 / span 3', gridRow: '3 / span 1', animationDelay: '100ms' }}
         >
           <div className="flex items-center justify-between mb-4">
             <Eyebrow>About Us</Eyebrow>
@@ -227,6 +203,36 @@ export default async function HomePage() {
             </p>
           </div>
         </BentoCard>
+
+        {/* ── ROW 4: Map·3 | Theme·3 | FontSize·3 | Socials·3 ── */}
+
+        <LocationTile
+          colSpan={3}
+          mobileColSpan={6}
+          rowSpan={1}
+          style={{ gridColumn: '1 / span 3', gridRow: '4 / span 1' }}
+        />
+
+        <ThemeTile
+          colSpan={3}
+          mobileColSpan={6}
+          rowSpan={1}
+          style={{ gridColumn: '4 / span 3', gridRow: '4 / span 1' }}
+        />
+
+        <FontSizeTile
+          colSpan={3}
+          mobileColSpan={6}
+          rowSpan={1}
+          style={{ gridColumn: '7 / span 3', gridRow: '4 / span 1' }}
+        />
+
+        <SocialsTile
+          colSpan={3}
+          mobileColSpan={12}
+          rowSpan={1}
+          style={{ gridColumn: '10 / span 3', gridRow: '4 / span 1' }}
+        />
 
       </BentoGrid>
     </div>
