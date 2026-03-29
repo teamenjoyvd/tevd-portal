@@ -123,3 +123,26 @@ html { font-size: calc(var(--font-scale) * 16px); }
     grid-row: span 1;
   }
 }
+
+/* ── Interaction utilities — SEQ281 ── */
+
+/* Press feedback: subtle scale-down on active. Apply to buttons, nav links, icon buttons. */
+.interactive {
+  will-change: transform;
+  transition: transform 150ms ease;
+}
+.interactive:active {
+  transform: scale(0.97);
+}
+
+/* Lift on hover: for clickable cards and prominent actions. */
+.interactive-lift {
+  will-change: transform;
+  transition: transform 200ms ease, box-shadow 200ms ease;
+}
+.interactive-lift:hover {
+  transform: translateY(-1px) scale(1.01);
+}
+.interactive-lift:active {
+  transform: translateY(0) scale(0.98);
+}

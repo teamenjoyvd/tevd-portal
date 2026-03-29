@@ -69,9 +69,12 @@ export default function BentoCard({
     ...(rowSpan ? { gridRow: `span ${rowSpan}` } : {}),
   } as React.CSSProperties
 
+  // Only apply lift animation when the card is interactive (has a click handler)
+  const liftClass = onClick ? 'interactive-lift' : ''
+
   return (
     <div
-      className={`${variantClass} ${className}`}
+      className={`${variantClass} ${liftClass} ${className}`.trim()}
       style={{ ...spanStyle, ...style }}
       onClick={onClick}
     >
