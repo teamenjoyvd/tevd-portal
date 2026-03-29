@@ -129,7 +129,7 @@ export default function LinksGuidesTile({
       {hasGuides && !isLoading && (
         <Link
           href="/guides"
-          className="flex items-center justify-center gap-1 mt-1.5 px-2 py-[5px] rounded-lg hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
+          className="flex items-center justify-center mt-1.5 px-2 py-[5px] rounded-lg hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
         >
           <span
             className="text-[11px] font-semibold tracking-[0.06em] uppercase"
@@ -137,11 +137,6 @@ export default function LinksGuidesTile({
           >
             All guides
           </span>
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
-            stroke="var(--text-secondary)" strokeWidth="2.5"
-            strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
         </Link>
       )}
     </BentoCard>
