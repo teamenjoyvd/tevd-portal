@@ -57,35 +57,50 @@ function StatusBadge({ status, onCancel, isCancelling, t }: {
   )
 }
 
-function Cta({ trip, registrationStatus, isCancelled, regLoading, profileId, onCancel, isCancelling, t, userRole }: CardProps) {
+// showRegister: true when the unregistered member CTA (RegisterButton) is active.
+// In this state the whole-card onClick is suppressed — clicking outside the
+// red button should not navigate away.
+type CtaResult = { node: React.ReactNode; showRegister: boolean }
+
+function Cta({ trip, registrationStatus, isCancelled, regLoading, profileId, onCancel, isCancelling, t, userRole }: CardProps): CtaResult {
   const router = useRouter()
   const isRegistered = !!registrationStatus && registrationStatus !== 'denied' && !isCancelled
+
   if (regLoading && userRole !== 'guest') {
-    return <Skeleton className="rounded-xl" style={{ height: 44 }} />
+    return { node: <Skeleton className="rounded-xl" style={{ height: 44 }} />, showRegister: false }
   }
   if (isRegistered && registrationStatus) {
-    return (
-      <>
-        <StatusBadge status={registrationStatus} onCancel={() => onCancel(trip.id)} isCancelling={isCancelling} t={t} />
-        <button
-          onClick={e => { e.stopPropagation(); router.push(`/trips/${trip.id}`) }}
-          className="w-full py-3 rounded-xl text-sm font-semibold text-white hover:opacity-90 active:opacity-70 transition-opacity"
-          style={{ backgroundColor: 'var(--brand-forest)' }}
-        >
-          {t('trips.viewDetails')}
-        </button>
-      </>
-    )
+    return {
+      node: (
+        <>
+          <StatusBadge status={registrationStatus} onCancel={() => onCancel(trip.id)} isCancelling={isCancelling} t={t} />
+          <button
+            onClick={e => { e.stopPropagation(); router.push(`/trips/${trip.id}`) }}
+            className="w-full py-3 rounded-xl text-sm font-semibold text-white hover:opacity-90 active:opacity-70 transition-opacity"
+            style={{ backgroundColor: 'var(--brand-forest)' }}
+          >
+            {t('trips.viewDetails')}
+          </button>
+        </>
+      ),
+      showRegister: false,
+    }
   }
   if (userRole === 'guest') {
-    return (
-      <p className="text-xs text-center py-2.5 rounded-xl"
-        style={{ color: 'var(--text-secondary)', backgroundColor: 'var(--border-default)' }}>
-        {t('trips.memberOnly')}
-      </p>
-    )
+    return {
+      node: (
+        <p className="text-xs text-center py-2.5 rounded-xl"
+          style={{ color: 'var(--text-secondary)', backgroundColor: 'var(--border-default)' }}>
+          {t('trips.memberOnly')}
+        </p>
+      ),
+      showRegister: false,
+    }
   }
-  return <RegisterButton tripId={trip.id} profileId={profileId} />
+  return {
+    node: <RegisterButton tripId={trip.id} profileId={profileId} />,
+    showRegister: true,
+  }
 }
 
 // ── Mobile card ───────────────────────────────────────────────────────────────
@@ -93,11 +108,12 @@ function Cta({ trip, registrationStatus, isCancelled, regLoading, profileId, onC
 function TripCardMobile(props: CardProps) {
   const { trip } = props
   const router = useRouter()
+  const { node: ctaNode, showRegister } = Cta(props)
   return (
     <div
       className="rounded-2xl overflow-hidden flex flex-col"
       style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}
-      onClick={() => router.push(`/trips/${trip.id}`)}
+      onClick={showRegister ? undefined : () => router.push(`/trips/${trip.id}`)}
     >
       <div
         className="w-full flex-shrink-0"
@@ -145,8 +161,8 @@ function TripCardMobile(props: CardProps) {
           </svg>
           {formatDate(trip.start_date)} – {formatDate(trip.end_date)}
         </div>
-        <div className="mt-auto flex flex-col gap-2" onClick={e => e.stopPropagation()}>
-          <Cta {...props} />
+        <div className="mt-auto flex flex-col gap-2">
+          {ctaNode}
         </div>
       </div>
     </div>
@@ -158,11 +174,12 @@ function TripCardMobile(props: CardProps) {
 function TripCardDesktop(props: CardProps) {
   const { trip } = props
   const router = useRouter()
+  const { node: ctaNode, showRegister } = Cta(props)
   return (
     <div
       className="rounded-2xl overflow-hidden flex flex-col h-full"
       style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)', minHeight: 300 }}
-      onClick={() => router.push(`/trips/${trip.id}`)}
+      onClick={showRegister ? undefined : () => router.push(`/trips/${trip.id}`)}
     >
       <div
         className="w-full flex-shrink-0"
@@ -176,7 +193,7 @@ function TripCardDesktop(props: CardProps) {
             aria-hidden="true"
             className="w-full h-full object-cover"
           />
-        )}
+          )}
       </div>
       <div className="px-6 pt-5 pb-6 flex flex-col gap-3 flex-1">
         <div className="flex items-start justify-between gap-4">
@@ -229,8 +246,8 @@ function TripCardDesktop(props: CardProps) {
             {trip.location}
           </div>
         )}
-        <div className="mt-auto flex flex-col gap-2" onClick={e => e.stopPropagation()}>
-          <Cta {...props} />
+        <div className="mt-auto flex flex-col gap-2">
+          {ctaNode}
         </div>
       </div>
     </div>
