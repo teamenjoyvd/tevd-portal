@@ -135,11 +135,14 @@ export default function UserDropdown() {
             </DropdownMenuItem>
           )}
 
-          {/* Language */}
+          {/* Language — borderTop only when Admin row is above it */}
           <DropdownMenuItem
             onSelect={e => e.preventDefault()}
             className="flex items-center justify-between px-4 py-2.5"
-            style={{ cursor: 'default' }}
+            style={{
+              borderTop: isAdmin ? '1px solid var(--border-default)' : '0px solid transparent',
+              cursor: 'default',
+            }}
           >
             <span className="text-sm font-body" style={{ color: 'var(--text-secondary)' }}>
               {lang === 'en' ? 'Language' : 'Език'}

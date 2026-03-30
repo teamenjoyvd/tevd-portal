@@ -87,3 +87,11 @@ body {
 ::view-transition-new(root) {
   animation: vt-scale-in 250ms ease-out both;
 }
+
+/* ── Exclude Radix portals from view transitions ── */
+/* Radix injects popovers/dropdowns into a portal outside the page tree.
+   The view-transition-new(root) animation starts at opacity:0 and captures
+   these elements, leaving them invisible. Opting them out entirely. */
+[data-radix-popper-content-wrapper] {
+  view-transition-name: none;
+}
