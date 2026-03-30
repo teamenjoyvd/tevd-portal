@@ -32,14 +32,6 @@ type CardProps = {
   userRole: string
 }
 
-function navigateWithTransition(push: (url: string) => void, url: string) {
-  if (typeof document !== 'undefined' && 'startViewTransition' in document) {
-    document.startViewTransition(() => push(url))
-  } else {
-    push(url)
-  }
-}
-
 function StatusBadge({ status, onCancel, isCancelling, t }: {
   status: 'pending' | 'approved' | 'denied'
   onCancel?: () => void
@@ -76,7 +68,7 @@ function Cta({ trip, registrationStatus, isCancelled, regLoading, profileId, onC
       <>
         <StatusBadge status={registrationStatus} onCancel={() => onCancel(trip.id)} isCancelling={isCancelling} t={t} />
         <button
-          onClick={e => { e.stopPropagation(); navigateWithTransition(router.push, `/trips/${trip.id}`) }}
+          onClick={e => { e.stopPropagation(); router.push(`/trips/${trip.id}`) }}
           className="w-full py-3 rounded-xl text-sm font-semibold text-white hover:opacity-90 active:opacity-70 transition-opacity"
           style={{ backgroundColor: 'var(--brand-forest)' }}
         >
@@ -96,25 +88,31 @@ function Cta({ trip, registrationStatus, isCancelled, regLoading, profileId, onC
   return <RegisterButton tripId={trip.id} profileId={profileId} />
 }
 
-// ── Mobile card: image + destination + title + dates + CTA ───────────────────
+// ── Mobile card ───────────────────────────────────────────────────────────────
 
 function TripCardMobile(props: CardProps) {
-  const { trip, userRole } = props
+  const { trip } = props
   const router = useRouter()
   return (
     <div
-      className="rounded-2xl overflow-hidden flex flex-col cursor-pointer"
-      style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}
-      onClick={() => navigateWithTransition(router.push, `/trips/${trip.id}`)}
+      className="rounded-2xl overflow-hidden flex flex-col interactive-lift"
+      style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)', cursor: 'pointer' }}
+      onClick={() => router.push(`/trips/${trip.id}`)}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={trip.image_url!}
-        alt=""
-        aria-hidden="true"
-        className="w-full object-cover flex-shrink-0"
-        style={{ height: 140, viewTransitionName: `trip-image-${trip.id}` }}
-      />
+      <div
+        className="w-full flex-shrink-0"
+        style={{ height: 140, backgroundColor: 'var(--brand-forest)' }}
+      >
+        {trip.image_url && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={trip.image_url}
+            alt=""
+            aria-hidden="true"
+            className="w-full h-full object-cover"
+          />
+        )}
+      </div>
       <div className="px-5 pt-4 pb-5 flex flex-col gap-3 flex-1">
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
@@ -134,7 +132,7 @@ function TripCardMobile(props: CardProps) {
               {trip.title}
             </h3>
           </div>
-          {userRole !== 'guest' && (
+          {props.userRole !== 'guest' && (
             <div className="text-right flex-shrink-0">
               <p className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>{formatCurrency(trip.total_cost)}</p>
               <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{props.t('trips.total')}</p>
@@ -155,25 +153,31 @@ function TripCardMobile(props: CardProps) {
   )
 }
 
-// ── Desktop card: image + destination + title + dates + description + location + CTA ──
+// ── Desktop card ──────────────────────────────────────────────────────────────
 
 function TripCardDesktop(props: CardProps) {
-  const { trip, userRole } = props
+  const { trip } = props
   const router = useRouter()
   return (
     <div
-      className="rounded-2xl overflow-hidden flex flex-col h-full cursor-pointer"
-      style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)', minHeight: 300 }}
-      onClick={() => navigateWithTransition(router.push, `/trips/${trip.id}`)}
+      className="rounded-2xl overflow-hidden flex flex-col h-full interactive-lift"
+      style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)', minHeight: 300, cursor: 'pointer' }}
+      onClick={() => router.push(`/trips/${trip.id}`)}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={trip.image_url!}
-        alt=""
-        aria-hidden="true"
-        className="w-full object-cover flex-shrink-0"
-        style={{ height: 180, viewTransitionName: `trip-image-${trip.id}` }}
-      />
+      <div
+        className="w-full flex-shrink-0"
+        style={{ height: 180, backgroundColor: 'var(--brand-forest)' }}
+      >
+        {trip.image_url && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={trip.image_url}
+            alt=""
+            aria-hidden="true"
+            className="w-full h-full object-cover"
+          />
+        )}
+      </div>
       <div className="px-6 pt-5 pb-6 flex flex-col gap-3 flex-1">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
@@ -193,7 +197,7 @@ function TripCardDesktop(props: CardProps) {
               {trip.title}
             </h3>
           </div>
-          {userRole !== 'guest' && (
+          {props.userRole !== 'guest' && (
             <div className="text-right flex-shrink-0">
               <p className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>{formatCurrency(trip.total_cost)}</p>
               <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{props.t('trips.total')}</p>
@@ -311,14 +315,14 @@ export default function TripsClient({ initialTrips }: { initialTrips: Trip[] }) 
     <div className="py-8 pb-16">
       <div className="max-w-[860px] mx-auto px-4 sm:px-6 xl:px-8">
 
-        {/* Mobile — trimmed card: image + title + dates + CTA */}
+        {/* Mobile */}
         <div className="md:hidden flex flex-col gap-3">
           {trips.length === 0 ? emptyState : trips.map(trip => (
             <TripCardMobile key={trip.id} {...cardProps(trip)} />
           ))}
         </div>
 
-        {/* Desktop — full card: image + title + dates + description + location + CTA */}
+        {/* Desktop */}
         <div className="hidden md:block">
           {trips.length === 0 ? emptyState : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: '12px' }}>
