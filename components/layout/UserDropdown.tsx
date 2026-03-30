@@ -136,11 +136,14 @@ export default function UserDropdown() {
             </DropdownMenuItem>
           )}
 
-          {/* Language */}
+          {/* Language — no borderTop; identity block borderBottom provides separation */}
           <DropdownMenuItem
             onSelect={e => e.preventDefault()}
             className="flex items-center justify-between px-4 py-2.5"
-            style={{ borderTop: '1px solid var(--border-default)', cursor: 'default' }}
+            style={{
+              borderTop: isAdmin ? '1px solid var(--border-default)' : 'none',
+              cursor: 'default',
+            }}
           >
             <span className="text-sm font-body" style={{ color: 'var(--text-secondary)' }}>
               {lang === 'en' ? 'Language' : 'Език'}
