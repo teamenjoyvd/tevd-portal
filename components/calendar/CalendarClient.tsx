@@ -2,7 +2,6 @@
 
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { useSearchParams } from 'next/navigation'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { DAYS_I18N, MONTHS_I18N } from '@/lib/i18n/translations'
 import EventPopup from '@/app/(dashboard)/calendar/components/EventPopup'
@@ -26,6 +25,7 @@ type View = 'month' | 'agenda'
 type Props = {
   initialEvents: CalendarEvent[]
   initialMonth: string
+  initialEventId: string | null
   userRole: 'admin' | 'core' | 'member' | 'guest' | null
   userProfileId: string | null
   isAuthenticated: boolean
@@ -355,34 +355,25 @@ function AgendaView({
 export default function CalendarClient({
   initialEvents,
   initialMonth,
+  initialEventId,
   userRole,
   userProfileId,
   isAuthenticated,
 }: Props) {
   const { lang, t } = useLanguage()
   const MONTHS = MONTHS_I18N[lang]
-  const searchParams = useSearchParams()
 
-  const [view, setView]       = useState<View>('month')
+  const [view, setView]       = useState<View>(initialEventId ? 'agenda' : 'month')
   const [current, setCurrent] = useState(() => {
     const [y, m] = initialMonth.split('-').map(Number)
     return new Date(y, m - 1, 1)
   })
-  const [selectedEventId, setSelectedEventId]     = useState<string | null>(null)
+  const [selectedEventId, setSelectedEventId]     = useState<string | null>(initialEventId)
   const [anchorRect, setAnchorRect]               = useState<DOMRect | null>(null)
   const [showN21, setShowN21]                     = useState(true)
   const [showPersonal, setShowPersonal]           = useState(true)
   const [filterType, setFilterType]               = useState<'in-person' | 'online' | 'hybrid' | null>(null)
-  const [deepLinkId, setDeepLinkId]               = useState<string | null>(null)
-
-  // Deep-link: ?event=<id> → switch to agenda, open popup, highlight row
-  useEffect(() => {
-    const eventId = searchParams.get('event')
-    if (!eventId) return
-    setDeepLinkId(eventId)
-    setView('agenda')
-    setSelectedEventId(eventId)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  const [deepLinkId, setDeepLinkId]               = useState<string | null>(initialEventId)
 
   const canSeePersonal = isAuthenticated && userRole !== 'guest'
 

@@ -1,11 +1,16 @@
-import { Suspense } from 'react'
 import { createServiceClient } from '@/lib/supabase/service'
 import { auth } from '@clerk/nextjs/server'
 import CalendarClient from '@/components/calendar/CalendarClient'
 
 export const dynamic = 'force-dynamic'
 
-export default async function CalendarPage() {
+export default async function CalendarPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ event?: string }>
+}) {
+  const { event: initialEventId = null } = await searchParams
+
   const now = new Date()
   const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
   const start = new Date(`${month}-01`).toISOString()
@@ -49,14 +54,13 @@ export default async function CalendarPage() {
   }
 
   return (
-    <Suspense>
-      <CalendarClient
-        initialEvents={initialEvents ?? []}
-        initialMonth={month}
-        userRole={userRole}
-        userProfileId={userProfileId}
-        isAuthenticated={!!userId}
-      />
-    </Suspense>
+    <CalendarClient
+      initialEvents={initialEvents ?? []}
+      initialMonth={month}
+      initialEventId={initialEventId}
+      userRole={userRole}
+      userProfileId={userProfileId}
+      isAuthenticated={!!userId}
+    />
   )
 }
