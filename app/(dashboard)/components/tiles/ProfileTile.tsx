@@ -70,8 +70,10 @@ export default function ProfileTile({
   if (!isLoaded) {
     return (
       <BentoCard variant="teal" colSpan={colSpan} mobileColSpan={mobileColSpan} rowSpan={rowSpan} style={style} className="flex flex-col justify-between">
+        <div className="flex items-center justify-end">
+          <div className="h-3 w-16 rounded animate-pulse" style={{ backgroundColor: 'rgba(250,248,243,0.15)' }} />
+        </div>
         <div className="h-6 w-24 rounded-lg animate-pulse" style={{ backgroundColor: 'rgba(250,248,243,0.15)' }} />
-        <div className="h-4 w-16 rounded-lg animate-pulse mt-3" style={{ backgroundColor: 'rgba(250,248,243,0.15)' }} />
       </BentoCard>
     )
   }
