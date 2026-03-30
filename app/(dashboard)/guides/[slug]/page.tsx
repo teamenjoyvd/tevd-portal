@@ -67,10 +67,9 @@ export default async function GuideDetailPage({
       {/* Back link */}
       <Link
         href="/guides"
-        className="inline-flex items-center gap-1.5 text-xs font-semibold tracking-widest uppercase mb-8 transition-opacity hover:opacity-70"
-        style={{ color: 'var(--text-secondary)' }}
+        className="inline-flex items-center gap-1.5 text-sm font-medium mb-6 pill-link-crimson"
       >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
           stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="15 18 9 12 15 6" />
         </svg>
