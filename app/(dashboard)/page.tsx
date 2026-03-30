@@ -19,6 +19,7 @@ type Announcement = {
   is_active: boolean
 }
 type SiteLink = { id: string; label: { en: string; bg: string }; url: string }
+type Guide = { id: string; slug: string; title: { en: string; bg: string }; emoji: string | null }
 type Trip = { id: string; title: string; destination: string; start_date: string; image_url: string | null }
 
 export default async function HomePage() {
@@ -32,17 +33,21 @@ export default async function HomePage() {
     if (profile?.role) role = profile.role
   }
 
-  const [announcementsRes, linksRes, tripsRes] = await Promise.all([
+  const [announcementsRes, linksRes, tripsRes, guidesRes] = await Promise.all([
     supabase.from('announcements').select('*').eq('is_active', true)
       .contains('access_level', [role]).order('created_at', { ascending: false }).limit(5),
     supabase.from('links').select('id, label, url').contains('access_roles', [role]).order('sort_order').limit(4),
     supabase.from('trips').select('id, title, destination, start_date, image_url')
       .contains('visibility_roles', [role]).order('start_date').limit(3),
+    supabase.from('guides').select('id, slug, title, emoji')
+      .eq('is_published', true).contains('access_roles', [role])
+      .order('created_at', { ascending: false }).limit(4),
   ])
 
   const announcements = (announcementsRes.data ?? []) as unknown as Announcement[]
   const links         = (linksRes.data ?? []) as unknown as SiteLink[]
   const trips         = (tripsRes.data ?? []) as unknown as Trip[]
+  const guides        = (guidesRes.data ?? []) as unknown as Guide[]
 
   const featuredAnnouncement = announcements[0] ?? null
   const announcementTitle   = featuredAnnouncement?.titles?.en ?? featuredAnnouncement?.titles?.bg ?? null
@@ -170,6 +175,7 @@ export default async function HomePage() {
 
           <LinksGuidesTile
             links={links}
+            guides={guides}
             colSpan={3}
             rowSpan={2}
             style={{ gridColumn: '7 / span 3', gridRow: '2 / span 2' }}
@@ -266,7 +272,7 @@ export default async function HomePage() {
         )}
 
         {/* Links & Guides */}
-        <LinksGuidesTile links={links} />
+        <LinksGuidesTile links={links} guides={guides} />
 
         {/* About */}
         <BentoCard variant="default" className="flex flex-col">

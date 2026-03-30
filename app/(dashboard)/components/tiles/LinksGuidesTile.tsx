@@ -1,8 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import { useQuery } from '@tanstack/react-query'
-import { useUser } from '@clerk/nextjs'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import BentoCard from '@/components/bento/BentoCard'
 
@@ -31,33 +29,27 @@ function normaliseUrl(raw: string): string {
 
 export default function LinksGuidesTile({
   links: linksProp = [],
+  guides: guidesProp = [],
   colSpan = 3,
   mobileColSpan = 12,
   rowSpan,
   style,
 }: {
   links?: SiteLink[]
+  guides?: Guide[]
   colSpan?: number
   mobileColSpan?: number
   rowSpan?: number
   style?: React.CSSProperties
 }) {
-  const { isLoaded } = useUser()
   const { lang } = useLanguage()
 
   const visibleLinks  = linksProp.slice(0, MAX_LINKS)
   const guideSlotsAvailable = MAX_GUIDES + (MAX_LINKS - visibleLinks.length)
-
-  const { data: guides = [], isLoading } = useQuery<Guide[]>({
-    queryKey: ['guides', 'tile', guideSlotsAvailable],
-    queryFn: () =>
-      fetch(`/api/guides?limit=${guideSlotsAvailable}`).then(r => r.json()),
-    enabled: isLoaded,
-    staleTime: 5 * 60 * 1000,
-  })
+  const visibleGuides = guidesProp.slice(0, guideSlotsAvailable)
 
   const hasLinks  = visibleLinks.length > 0
-  const hasGuides = guides.length > 0 || isLoading
+  const hasGuides = visibleGuides.length > 0
 
   if (!hasLinks && !hasGuides) return null
 
@@ -115,38 +107,26 @@ export default function LinksGuidesTile({
         </a>
       ))}
 
-      {isLoading &&
-        [...Array(Math.min(2, guideSlotsAvailable))].map((_, i) => (
-          <div
-            key={i}
-            className="h-8 mx-2 rounded-lg animate-pulse"
-            style={{ backgroundColor: 'var(--border-default)' }}
-          />
-        ))
-      }
-
-      {!isLoading &&
-        guides.map(g => (
-          <Link
-            key={g.id}
-            href={`/guides/${g.slug}`}
-            className="flex items-center gap-2.5 px-2 py-[7px] rounded-lg hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
+      {visibleGuides.map(g => (
+        <Link
+          key={g.id}
+          href={`/guides/${g.slug}`}
+          className="flex items-center gap-2.5 px-2 py-[7px] rounded-lg hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
+        >
+          <span
+            className="flex-shrink-0 flex items-center justify-center"
+            style={{ width: 22, height: 22, fontSize: 14 }}
           >
-            <span
-              className="flex-shrink-0 flex items-center justify-center"
-              style={{ width: 22, height: 22, fontSize: 14 }}
-            >
-              {g.emoji ?? '📄'}
-            </span>
-            <span
-              className="flex-1 text-[13px] font-medium truncate"
-              style={{ color: 'var(--text-primary)' }}
-            >
-              {resolveTitle(g)}
-            </span>
-          </Link>
-        ))
-      }
+            {g.emoji ?? '📄'}
+          </span>
+          <span
+            className="flex-1 text-[13px] font-medium truncate"
+            style={{ color: 'var(--text-primary)' }}
+          >
+            {resolveTitle(g)}
+          </span>
+        </Link>
+      ))}
     </BentoCard>
   )
 }
