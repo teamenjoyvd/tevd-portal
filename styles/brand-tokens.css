@@ -151,7 +151,7 @@ html { font-size: calc(var(--font-scale) * 16px); }
 
 /* Light surface: crimson pill on hover */
 .pill-link-crimson {
-  color: var(--brand-crimson);
+  color: var(--text-nav);
   border-radius: 9999px;
   padding: 0.25rem 0.625rem;
   transition: background-color 150ms ease, color 150ms ease;
