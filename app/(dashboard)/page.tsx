@@ -115,7 +115,7 @@ export default async function HomePage() {
         <span className="font-body text-[11px] font-bold px-2.5 py-1 rounded-full" style={{ backgroundColor: 'rgba(255,255,255,0.18)', color: 'var(--brand-parchment)' }}>
           {nextTrip.destination}
         </span>
-        <Link href="/trips" className="font-body text-[11px] font-bold tracking-widest uppercase hover:underline transition-opacity hover:opacity-100" style={{ color: 'var(--brand-parchment)', opacity: 0.75 }}>
+        <Link href="/trips" className="font-body text-[11px] font-bold tracking-widest uppercase hover:opacity-70 transition-opacity" style={{ color: 'var(--brand-parchment)' }}>
           View trips →
         </Link>
       </div>
