@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { createServiceClient } from '@/lib/supabase/service'
 import { auth } from '@clerk/nextjs/server'
 import CalendarClient from '@/components/calendar/CalendarClient'
@@ -48,12 +49,14 @@ export default async function CalendarPage() {
   }
 
   return (
-    <CalendarClient
-      initialEvents={initialEvents ?? []}
-      initialMonth={month}
-      userRole={userRole}
-      userProfileId={userProfileId}
-      isAuthenticated={!!userId}
-    />
+    <Suspense>
+      <CalendarClient
+        initialEvents={initialEvents ?? []}
+        initialMonth={month}
+        userRole={userRole}
+        userProfileId={userProfileId}
+        isAuthenticated={!!userId}
+      />
+    </Suspense>
   )
 }
