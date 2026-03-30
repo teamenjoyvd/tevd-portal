@@ -24,7 +24,9 @@ type CardProps = {
   trip: Trip
   registrationStatus: 'pending' | 'approved' | 'denied' | undefined
   isCancelled: boolean
-  regLoading: boolean
+  // authLoading: true while Clerk, profile, or profile-payments is still in
+  // flight for a signed-in user. Skeleton is shown until all three settle.
+  authLoading: boolean
   profileId: string | null
   onCancel: (tripId: string) => void
   isCancelling: boolean
@@ -57,16 +59,17 @@ function StatusBadge({ status, onCancel, isCancelling, t }: {
   )
 }
 
-// showRegister: true when the unregistered member CTA (RegisterButton) is active.
-// In this state the whole-card onClick is suppressed — clicking outside the
-// red button should not navigate away.
+// showRegister: true only when RegisterButton is the active CTA.
+// When true, the whole-card onClick is suppressed.
 type CtaResult = { node: React.ReactNode; showRegister: boolean }
 
-function Cta({ trip, registrationStatus, isCancelled, regLoading, profileId, onCancel, isCancelling, t, userRole }: CardProps): CtaResult {
+function Cta({ trip, registrationStatus, isCancelled, authLoading, profileId, onCancel, isCancelling, t, userRole }: CardProps): CtaResult {
   const router = useRouter()
   const isRegistered = !!registrationStatus && registrationStatus !== 'denied' && !isCancelled
 
-  if (regLoading && userRole !== 'guest') {
+  // Hold skeleton until Clerk + profile + profile-payments all settled for
+  // signed-in users. Prevents RegisterButton flashing before data arrives.
+  if (authLoading) {
     return { node: <Skeleton className="rounded-xl" style={{ height: 44 }} />, showRegister: false }
   }
   if (isRegistered && registrationStatus) {
@@ -193,7 +196,7 @@ function TripCardDesktop(props: CardProps) {
             aria-hidden="true"
             className="w-full h-full object-cover"
           />
-          )}
+        )}
       </div>
       <div className="px-6 pt-5 pb-6 flex flex-col gap-3 flex-1">
         <div className="flex items-start justify-between gap-4">
@@ -261,7 +264,7 @@ export default function TripsClient({ initialTrips }: { initialTrips: Trip[] }) 
   const qc = useQueryClient()
   const { t } = useLanguage()
 
-  const { data: profile } = useQuery<UserProfile>({
+  const { data: profile, isLoading: profileLoading } = useQuery<UserProfile>({
     queryKey: ['profile'],
     queryFn: () => fetch('/api/profile').then(r => r.json()),
     enabled: !!isSignedIn,
@@ -298,13 +301,18 @@ export default function TripsClient({ initialTrips }: { initialTrips: Trip[] }) 
 
   const userRole = profile?.role ?? (isSignedIn ? undefined : 'guest')
 
+  // authLoading: true for any signed-in user while Clerk, profile, or
+  // profile-payments haven't all settled. Keeps RegisterButton hidden until
+  // we know for certain the user has no existing registration.
+  const authLoading = !isLoaded || (!!isSignedIn && (profileLoading || regLoading))
+
   const cardProps = (trip: Trip): CardProps => {
     const row = regByTripId[trip.id]
     return {
       trip,
       registrationStatus: row?.registration_status,
       isCancelled: !!row?.cancelled_at,
-      regLoading: regLoading && !!isSignedIn,
+      authLoading,
       profileId: profile?.id ?? null,
       onCancel: (id: string) => cancelMutation.mutate(id),
       isCancelling: cancelMutation.isPending,
