@@ -6,6 +6,7 @@ import { useUser } from '@clerk/nextjs'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import RegisterButton from '@/components/trips/RegisterButton'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import { formatDate, formatCurrency } from '@/lib/format'
 import type { Trip } from './page'
 
@@ -60,19 +61,40 @@ function StatusBadge({ status, onCancel, isCancelling, t }: {
 }
 
 // showRegister: true only when RegisterButton is the active CTA.
-// When true, the whole-card onClick is suppressed.
 type CtaResult = { node: React.ReactNode; showRegister: boolean }
 
 function Cta({ trip, registrationStatus, isCancelled, authLoading, profileId, onCancel, isCancelling, t, userRole }: CardProps): CtaResult {
   const router = useRouter()
   const isRegistered = !!registrationStatus && registrationStatus !== 'denied' && !isCancelled
 
-  // Hold skeleton until Clerk + profile + profile-payments all settled for
-  // signed-in users. Prevents RegisterButton flashing before data arrives.
   if (authLoading) {
     return { node: <Skeleton className="rounded-xl" style={{ height: 44 }} />, showRegister: false }
   }
+
   if (isRegistered && registrationStatus) {
+    // Pending: show the clearer long-form message + cancel
+    if (registrationStatus === 'pending') {
+      return {
+        node: (
+          <div className="px-4 py-3 rounded-xl flex items-center justify-between" style={{ backgroundColor: '#f2cc8f33' }}>
+            <p className="text-sm font-medium leading-snug" style={{ color: '#7a5c00' }}>
+              {t('trips.status.pendingLong')}
+            </p>
+            <button
+              onClick={e => { e.stopPropagation(); onCancel(trip.id) }}
+              disabled={isCancelling}
+              className="ml-3 text-xs font-medium flex-shrink-0 disabled:opacity-50"
+              style={{ color: '#7a5c00' }}
+            >
+              {t('trips.cancel')}
+            </button>
+          </div>
+        ),
+        showRegister: false,
+      }
+    }
+
+    // Approved or other: status badge + view details
     return {
       node: (
         <>
@@ -89,17 +111,37 @@ function Cta({ trip, registrationStatus, isCancelled, authLoading, profileId, on
       showRegister: false,
     }
   }
+
   if (userRole === 'guest') {
     return {
       node: (
-        <p className="text-xs text-center py-2.5 rounded-xl"
-          style={{ color: 'var(--text-secondary)', backgroundColor: 'var(--border-default)' }}>
-          {t('trips.memberOnly')}
-        </p>
+        <Popover>
+          <PopoverTrigger asChild>
+            <button
+              className="w-full text-xs font-medium py-2.5 rounded-xl transition-opacity hover:opacity-80"
+              style={{ color: 'var(--text-secondary)', backgroundColor: 'var(--border-default)' }}
+            >
+              {t('trips.memberOnly')}
+            </button>
+          </PopoverTrigger>
+          <PopoverContent align="center" style={{ maxWidth: 260, padding: '14px 16px' }}>
+            <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+              {t('trips.memberOnlyTooltip')}
+            </p>
+            <a
+              href="/profile"
+              className="mt-3 block text-center text-xs font-semibold py-2 rounded-xl text-white hover:opacity-90 transition-opacity"
+              style={{ backgroundColor: 'var(--brand-forest)' }}
+            >
+              Go to Profile →
+            </a>
+          </PopoverContent>
+        </Popover>
       ),
       showRegister: false,
     }
   }
+
   return {
     node: <RegisterButton tripId={trip.id} profileId={profileId} />,
     showRegister: true,
@@ -111,6 +153,7 @@ function Cta({ trip, registrationStatus, isCancelled, authLoading, profileId, on
 function TripCardMobile(props: CardProps) {
   const { trip } = props
   const { node: ctaNode } = Cta(props)
+  const isGuest = props.userRole === 'guest'
   return (
     <div
       className="rounded-2xl overflow-hidden flex flex-col"
@@ -149,15 +192,20 @@ function TripCardMobile(props: CardProps) {
               {trip.title}
             </h3>
           </div>
-          {props.userRole !== 'guest' && (
+          {!isGuest && (
             <div className="text-right flex-shrink-0">
               <p className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>{formatCurrency(trip.total_cost)}</p>
               <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{props.t('trips.total')}</p>
             </div>
           )}
+          {isGuest && (
+            <div className="text-right flex-shrink-0 select-none" style={{ filter: 'blur(6px)', pointerEvents: 'none' }} aria-hidden="true">
+              <p className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>{formatCurrency(trip.total_cost)}</p>
+              <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{props.t('trips.total')}</p>
+            </div>
+          )}
         </div>
-        <div className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--text-secondary)' }}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <div className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--text-secondary)' }}>          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <rect width="18" height="18" x="3" y="4" rx="2" /><line x1="16" x2="16" y1="2" y2="6" /><line x1="8" x2="8" y1="2" y2="6" /><line x1="3" x2="21" y1="10" y2="10" />
           </svg>
           {formatDate(trip.start_date)} – {formatDate(trip.end_date)}
@@ -175,6 +223,7 @@ function TripCardMobile(props: CardProps) {
 function TripCardDesktop(props: CardProps) {
   const { trip } = props
   const { node: ctaNode } = Cta(props)
+  const isGuest = props.userRole === 'guest'
   return (
     <div
       className="rounded-2xl overflow-hidden flex flex-col h-full"
@@ -213,8 +262,14 @@ function TripCardDesktop(props: CardProps) {
               {trip.title}
             </h3>
           </div>
-          {props.userRole !== 'guest' && (
+          {!isGuest && (
             <div className="text-right flex-shrink-0">
+              <p className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>{formatCurrency(trip.total_cost)}</p>
+              <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{props.t('trips.total')}</p>
+            </div>
+          )}
+          {isGuest && (
+            <div className="text-right flex-shrink-0 select-none" style={{ filter: 'blur(6px)', pointerEvents: 'none' }} aria-hidden="true">
               <p className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>{formatCurrency(trip.total_cost)}</p>
               <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{props.t('trips.total')}</p>
             </div>
@@ -297,9 +352,6 @@ export default function TripsClient({ initialTrips }: { initialTrips: Trip[] }) 
 
   const userRole = profile?.role ?? (isSignedIn ? undefined : 'guest')
 
-  // authLoading: true for any signed-in user while Clerk, profile, or
-  // profile-payments haven't all settled. Keeps RegisterButton hidden until
-  // we know for certain the user has no existing registration.
   const authLoading = !isLoaded || (!!isSignedIn && (profileLoading || regLoading))
 
   const cardProps = (trip: Trip): CardProps => {
