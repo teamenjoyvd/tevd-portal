@@ -35,6 +35,8 @@ export async function PATCH(
         .from('profiles')
         .update({ role: 'member', upline_abo_number: verReq.claimed_upline_abo })
         .eq('id', verReq.profile_id)
+        .select('id')
+        .single()
 
       if (profileErr) return Response.json({ error: profileErr.message }, { status: 500 })
 
@@ -62,6 +64,8 @@ export async function PATCH(
         .from('profiles')
         .update({ abo_number: verReq.claimed_abo, role: 'member' })
         .eq('id', verReq.profile_id)
+        .select('id')
+        .single()
 
       if (profileErr) return Response.json({ error: profileErr.message }, { status: 500 })
 
