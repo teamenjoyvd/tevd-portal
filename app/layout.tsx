@@ -66,6 +66,18 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               __html: `(function(){try{var t=localStorage.getItem('tevd-theme');if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}})();`,
             }}
           />
+          {/*
+            SEQ298: Gate bento-enter animation on first-ever session load only.
+            sessionStorage persists across hard reloads (Ctrl+F5) within a session
+            but clears on new tab / browser restart — matching 'first ever load' exactly.
+            On subsequent loads data-animated="done" is set before paint, suppressing
+            the animation via CSS before any tile mounts.
+          */}
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `(function(){try{if(sessionStorage.getItem('tevd-visited')){document.documentElement.setAttribute('data-animated','done');}else{sessionStorage.setItem('tevd-visited','1');}}catch(e){}})();`,
+            }}
+          />
         </head>
         <body className="font-body" style={{ backgroundColor: 'var(--bg-global)', color: 'var(--text-primary)' }}>
           <Providers>

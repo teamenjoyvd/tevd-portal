@@ -60,6 +60,13 @@ body {
   animation: bento-enter 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/* SEQ298: Suppress bento entrance animation after first session load.
+   data-animated="done" is set by the inline script in layout.tsx
+   before any paint on all reloads after the first within a session. */
+[data-animated="done"] .bento-tile {
+  animation: none;
+}
+
 /* ── Mapbox UI suppression ── */
 .mapboxgl-ctrl-logo { display: none !important; }
 .mapboxgl-ctrl-attrib { display: none !important; }
