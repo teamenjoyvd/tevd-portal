@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 type Props = {
@@ -10,7 +9,6 @@ type Props = {
 
 export default function RegisterButton({ tripId, profileId }: Props) {
   const qc = useQueryClient()
-  const [localSuccess, setLocalSuccess] = useState(false)
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -23,8 +21,7 @@ export default function RegisterButton({ tripId, profileId }: Props) {
         return r.json()
       }),
     onSuccess: () => {
-      setLocalSuccess(true)
-      qc.invalidateQueries({ queryKey: ['registrations'] })
+      qc.invalidateQueries({ queryKey: ['profile-payments'] })
       qc.invalidateQueries({ queryKey: ['notifications'] })
     },
     onError: (e: Error) => {
@@ -32,23 +29,10 @@ export default function RegisterButton({ tripId, profileId }: Props) {
         e.message.toLowerCase().includes('already') ||
         e.message.toLowerCase().includes('unique')
       if (isAlreadyRegistered) {
-        // Force re-fetch so the parent can swap to "View Trip Details"
-        qc.invalidateQueries({ queryKey: ['registrations'] })
+        qc.invalidateQueries({ queryKey: ['profile-payments'] })
       }
     },
   })
-
-  // Optimistic success state — parent will re-render once query refetches
-  if (localSuccess) {
-    return (
-      <div
-        className="w-full py-3 rounded-xl text-sm font-medium text-center"
-        style={{ backgroundColor: 'rgba(129,178,154,0.15)', color: '#2d6a4f' }}
-      >
-        Registered — awaiting approval ✓
-      </div>
-    )
-  }
 
   return (
     <button
