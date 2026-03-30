@@ -95,8 +95,8 @@ function TripCardMobile(props: CardProps) {
   const router = useRouter()
   return (
     <div
-      className="rounded-2xl overflow-hidden flex flex-col interactive-lift"
-      style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)', cursor: 'pointer' }}
+      className="rounded-2xl overflow-hidden flex flex-col"
+      style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}
       onClick={() => router.push(`/trips/${trip.id}`)}
     >
       <div
@@ -160,8 +160,8 @@ function TripCardDesktop(props: CardProps) {
   const router = useRouter()
   return (
     <div
-      className="rounded-2xl overflow-hidden flex flex-col h-full interactive-lift"
-      style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)', minHeight: 300, cursor: 'pointer' }}
+      className="rounded-2xl overflow-hidden flex flex-col h-full"
+      style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)', minHeight: 300 }}
       onClick={() => router.push(`/trips/${trip.id}`)}
     >
       <div

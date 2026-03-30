@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { formatDate, formatCurrency } from '@/lib/format'
 import { getRoleColors } from '@/lib/role-colors'
@@ -23,34 +24,24 @@ interface TripDetailClientProps {
   teamAttendees: TeamAttendee[]
 }
 
-function navigateWithTransition(push: (url: string) => void, url: string) {
-  if (typeof document !== 'undefined' && 'startViewTransition' in document) {
-    document.startViewTransition(() => push(url))
-  } else {
-    push(url)
-  }
-}
-
 // ── Shared primitives ────────────────────────────────────────────
 
 function BackButton() {
-  const router = useRouter()
   return (
-    <button
-      onClick={() => navigateWithTransition(router.push, '/trips')}
-      className="flex items-center gap-1.5 text-sm font-medium mb-6 hover:opacity-70 transition-opacity"
-      style={{ color: 'var(--text-secondary)' }}
+    <Link
+      href="/trips"
+      className="inline-flex items-center gap-1.5 text-sm font-medium mb-6 pill-link-crimson"
     >
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
         stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <polyline points="15 18 9 12 15 6" />
       </svg>
       Back to trips
-    </button>
+    </Link>
   )
 }
 
-function TripHero({ trip, profile, enableMorph }: { trip: Trip; profile: TripProfile; enableMorph?: boolean }) {
+function TripHero({ trip, profile }: { trip: Trip; profile: TripProfile }) {
   const milestones: Milestone[] = Array.isArray(trip.milestones)
     ? (trip.milestones as Milestone[])
     : []
@@ -68,10 +59,7 @@ function TripHero({ trip, profile, enableMorph }: { trip: Trip; profile: TripPro
           alt=""
           aria-hidden="true"
           className="w-full object-cover"
-          style={{
-            height: 240,
-            ...(enableMorph ? { viewTransitionName: `trip-image-${trip.id}` } : {}),
-          }}
+          style={{ height: 240 }}
         />
       )}
       <div className="px-6 pt-6 pb-8">
@@ -235,7 +223,7 @@ function AvailableView({ trip, profile }: { trip: Trip; profile: TripProfile }) 
     <div className="py-8 pb-16">
       <div className="max-w-[720px] mx-auto px-4">
         <BackButton />
-        <TripHero trip={trip} profile={profile} enableMorph />
+        <TripHero trip={trip} profile={profile} />
         <div className="mt-4">
           <RegisterButton tripId={trip.id} profileId={profile.id} />
         </div>
@@ -257,7 +245,7 @@ function PendingView({
         if (!r.ok) throw new Error((await r.json()).error ?? 'Cancel failed')
         return r.json()
       }),
-    onSuccess: () => navigateWithTransition(router.push, '/trips'),
+    onSuccess: () => router.push('/trips'),
   })
 
   if (registration.cancelled_at) {
@@ -265,7 +253,7 @@ function PendingView({
       <div className="py-8 pb-16">
         <div className="max-w-[720px] mx-auto px-4">
           <BackButton />
-          <TripHero trip={trip} profile={profile} enableMorph />
+          <TripHero trip={trip} profile={profile} />
           <div className="mt-4 rounded-2xl px-6 py-5"
             style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
             <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
@@ -281,7 +269,7 @@ function PendingView({
     <div className="py-8 pb-16">
       <div className="max-w-[720px] mx-auto px-4">
         <BackButton />
-        <TripHero trip={trip} profile={profile} enableMorph />
+        <TripHero trip={trip} profile={profile} />
         <div className="mt-4 rounded-2xl px-6 py-6"
           style={{ backgroundColor: 'rgba(180,138,60,0.08)', border: '1px solid rgba(180,138,60,0.25)' }}>
           <div className="flex items-start gap-4">
@@ -700,7 +688,7 @@ function AttendeeView({
         {/* Who's Going */}
         <WhosGoingTile attendees={teamAttendees} />
 
-        {/* Trip info (read-only) — no morph: TripHero is below the fold */}
+        {/* Trip info (read-only) */}
         <TripHero trip={trip} profile={profile} />
       </div>
 
