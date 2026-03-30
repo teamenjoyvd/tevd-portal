@@ -14,17 +14,17 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   // Check for an existing registration for this trip/profile
   const { data: existing } = await supabase
     .from('trip_registrations')
-    .select('id, status')
+    .select('id, status, cancelled_at')
     .eq('trip_id', trip_id)
     .eq('profile_id', profile.id)
     .maybeSingle()
 
   if (existing) {
-    if (existing.status === 'denied') {
-      // Re-registration after denial: update back to pending (preserves audit trail)
+    if (existing.status === 'denied' || existing.cancelled_at) {
+      // Re-registration after denial or cancellation: reset to pending (preserves audit trail)
       const { data, error } = await supabase
         .from('trip_registrations')
-        .update({ status: 'pending' })
+        .update({ status: 'pending', cancelled_at: null, cancelled_by: null })
         .eq('id', existing.id)
         .select()
         .single()
