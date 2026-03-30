@@ -6,7 +6,6 @@ import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { useTheme } from '@/lib/hooks/useTheme'
-import { useFontSize, type FontSize } from '@/lib/hooks/useFontSize'
 import { getRoleColors } from '@/lib/role-colors'
 import {
   DropdownMenu,
@@ -23,13 +22,6 @@ const ROLE_LABELS: Record<string, string> = {
   guest:  'Guest',
 }
 
-// SEQ277: 'sm' removed — matches useFontSize ALLOWED and UserPopup/FontSizeTile
-const FONT_STEPS: { value: FontSize; label: string }[] = [
-  { value: 'md', label: 'A' },
-  { value: 'lg', label: 'A+' },
-  { value: 'xl', label: 'A++' },
-]
-
 type ProfileData = {
   id: string
   first_name: string
@@ -43,7 +35,6 @@ export default function UserDropdown() {
   const { signOut } = useClerk()
   const { lang, toggle: toggleLang } = useLanguage()
   const { theme, mounted: themeMounted, toggle: toggleTheme } = useTheme()
-  const { fontSize, setFontSize, resetFontSize } = useFontSize()
   const [open, setOpen] = useState(false)
 
   const role = (user?.publicMetadata?.role as string) ?? 'guest'
@@ -184,49 +175,6 @@ export default function UserDropdown() {
               {!themeMounted ? '…' : theme === 'light' ? '🌙' : '☀️'}
             </button>
           </DropdownMenuItem>
-
-          {/* Font size */}
-          <DropdownMenuItem
-            onSelect={e => e.preventDefault()}
-            className="flex items-center justify-between px-4 py-2"
-            style={{ borderTop: '1px solid var(--border-default)', cursor: 'default' }}
-          >
-            <span className="text-sm font-body" style={{ color: 'var(--text-secondary)' }}>
-              Text size
-            </span>
-            <div className="flex items-center gap-1">
-              {FONT_STEPS.map(({ value, label }) => (
-                <button
-                  key={value}
-                  onClick={() => void setFontSize(value)}
-                  className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-xs font-bold transition-colors"
-                  style={{
-                    backgroundColor: fontSize === value ? 'var(--brand-crimson)' : 'var(--bg-global)',
-                    color: fontSize === value ? 'var(--brand-parchment)' : 'var(--text-secondary)',
-                  }}
-                  aria-pressed={fontSize === value}
-                  aria-label={`Font size ${label}`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </DropdownMenuItem>
-          {fontSize !== 'md' && (
-            <DropdownMenuItem
-              onSelect={e => e.preventDefault()}
-              className="flex justify-center px-4 py-1"
-              style={{ cursor: 'default' }}
-            >
-              <button
-                onClick={() => void resetFontSize()}
-                className="text-xs transition-opacity hover:opacity-70"
-                style={{ color: 'var(--brand-crimson)' }}
-              >
-                Reset text size
-              </button>
-            </DropdownMenuItem>
-          )}
 
           {/* Sign out */}
           <DropdownMenuItem asChild>
