@@ -110,13 +110,11 @@ function Cta({ trip, registrationStatus, isCancelled, authLoading, profileId, on
 
 function TripCardMobile(props: CardProps) {
   const { trip } = props
-  const router = useRouter()
-  const { node: ctaNode, showRegister } = Cta(props)
+  const { node: ctaNode } = Cta(props)
   return (
     <div
       className="rounded-2xl overflow-hidden flex flex-col"
       style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}
-      onClick={showRegister ? undefined : () => router.push(`/trips/${trip.id}`)}
     >
       <div
         className="w-full flex-shrink-0"
@@ -176,13 +174,11 @@ function TripCardMobile(props: CardProps) {
 
 function TripCardDesktop(props: CardProps) {
   const { trip } = props
-  const router = useRouter()
-  const { node: ctaNode, showRegister } = Cta(props)
+  const { node: ctaNode } = Cta(props)
   return (
     <div
       className="rounded-2xl overflow-hidden flex flex-col h-full"
       style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)', minHeight: 300 }}
-      onClick={showRegister ? undefined : () => router.push(`/trips/${trip.id}`)}
     >
       <div
         className="w-full flex-shrink-0"
