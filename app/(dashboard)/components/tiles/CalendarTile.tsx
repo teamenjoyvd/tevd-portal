@@ -3,7 +3,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useUser } from '@clerk/nextjs'
 import Link from 'next/link'
-import BentoCard, { Eyebrow } from '@/components/bento/BentoCard'
+import BentoCard from '@/components/bento/BentoCard'
 import { formatTime, calDay, calMonth } from '@/lib/format'
 
 type CalendarEvent = {
@@ -63,8 +63,7 @@ export default function CalendarTile({ colSpan, mobileColSpan, rowSpan, style }:
       className="bento-tile flex flex-col"
       style={{ animationDelay: '150ms', ...style }}
     >
-      <div className="flex items-center justify-between mb-4">
-        <Eyebrow>Events</Eyebrow>
+      <div className="flex items-center justify-end mb-4">
         <Link
           href="/calendar"
           className="font-body text-[11px] font-bold tracking-widest uppercase hover:underline"
