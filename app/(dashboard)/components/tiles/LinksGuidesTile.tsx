@@ -78,6 +78,12 @@ export default function LinksGuidesTile({
       className="flex flex-col gap-0.5"
       style={style}
     >
+      <div className="flex items-center justify-end mb-4">
+        <Link href="/guides" className="font-body text-[11px] font-bold tracking-widest uppercase pill-link-crimson">
+          Guides →
+        </Link>
+      </div>
+
       {visibleLinks.map(link => (
         <a
           key={link.id}
@@ -141,15 +147,6 @@ export default function LinksGuidesTile({
           </Link>
         ))
       }
-
-      {hasGuides && !isLoading && (
-        <Link
-          href="/guides"
-          className="flex items-center justify-center mt-1.5 pill-link-crimson text-[11px] font-semibold tracking-[0.06em] uppercase"
-        >
-          All guides &amp; links
-        </Link>
-      )}
     </BentoCard>
   )
 }

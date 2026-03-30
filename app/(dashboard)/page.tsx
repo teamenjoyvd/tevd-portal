@@ -175,19 +175,7 @@ export default async function HomePage() {
             style={{ gridColumn: '7 / span 3', gridRow: '2 / span 2' }}
           />
 
-          {/* ROW 3: Trips·3 | Announce·3 | LinksGuides cont. | Profile·3 */}
-
-          {nextTrip && (
-            <BentoCard
-              variant="crimson"
-              colSpan={3}
-              rowSpan={1}
-              className="bento-tile relative overflow-hidden p-0"
-              style={{ gridColumn: '1 / span 3', gridRow: '3 / span 1', animationDelay: '200ms' }}
-            >
-              {tripContent}
-            </BentoCard>
-          )}
+          {/* ROW 3: Announce·3 | Map·3 | LinksGuides cont. | Profile·3 */}
 
           {featuredAnnouncement && (
             <BentoCard
@@ -195,11 +183,17 @@ export default async function HomePage() {
               colSpan={3}
               rowSpan={1}
               className="bento-tile flex flex-col"
-              style={{ gridColumn: '4 / span 3', gridRow: '3 / span 1', animationDelay: '250ms' }}
+              style={{ gridColumn: '1 / span 3', gridRow: '3 / span 1', animationDelay: '250ms' }}
             >
               {announcementContent2}
             </BentoCard>
           )}
+
+          <LocationTile
+            colSpan={3}
+            rowSpan={1}
+            style={{ gridColumn: '4 / span 3', gridRow: '3 / span 1' }}
+          />
 
           {/* Profile: col 10–12, row 3 */}
           <ProfileTile
@@ -208,13 +202,19 @@ export default async function HomePage() {
             style={{ gridColumn: '10 / span 3', gridRow: '3 / span 1' }}
           />
 
-          {/* ROW 4: Map·3 | Socials·3 | FontSize·3 | Theme·3 */}
+          {/* ROW 4: Trips·3 | Socials·3 | FontSize·3 | Theme·3 */}
 
-          <LocationTile
-            colSpan={3}
-            rowSpan={1}
-            style={{ gridColumn: '1 / span 3', gridRow: '4 / span 1' }}
-          />
+          {nextTrip && (
+            <BentoCard
+              variant="crimson"
+              colSpan={3}
+              rowSpan={1}
+              className="bento-tile relative overflow-hidden p-0"
+              style={{ gridColumn: '1 / span 3', gridRow: '4 / span 1', animationDelay: '200ms' }}
+            >
+              {tripContent}
+            </BentoCard>
+          )}
 
           <SocialsTile
             colSpan={3}
