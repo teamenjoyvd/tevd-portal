@@ -12,7 +12,6 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
 
 const ROLE_LABELS: Record<string, string> = {
@@ -136,14 +135,11 @@ export default function UserDropdown() {
             </DropdownMenuItem>
           )}
 
-          {/* Language — no borderTop; identity block borderBottom provides separation */}
+          {/* Language */}
           <DropdownMenuItem
             onSelect={e => e.preventDefault()}
             className="flex items-center justify-between px-4 py-2.5"
-            style={{
-              borderTop: isAdmin ? '1px solid var(--border-default)' : 'none',
-              cursor: 'default',
-            }}
+            style={{ cursor: 'default' }}
           >
             <span className="text-sm font-body" style={{ color: 'var(--text-secondary)' }}>
               {lang === 'en' ? 'Language' : 'Език'}

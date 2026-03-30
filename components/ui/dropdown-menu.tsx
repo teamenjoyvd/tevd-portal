@@ -29,6 +29,7 @@ function DropdownMenuContent({
           overflow: 'hidden',
           outline: 'none',
           animation: 'none',
+          opacity: 1,
           ...style,
         }}
         className={className}
