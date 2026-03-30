@@ -73,13 +73,14 @@ export async function PATCH(
 
       if (statusErr) return Response.json({ error: statusErr.message }, { status: 500 })
 
-      // Place member in the LOS tree
+      // Cast to any: generated types declare p_abo_number as string but
+      // claimed_abo is string | null in the generated schema.
       const { error: treeErr } = await supabase
         .rpc('upsert_tree_node', {
           p_profile_id: verReq.profile_id,
           p_abo_number: verReq.claimed_abo,
           p_sponsor_abo_number: verReq.claimed_upline_abo,
-        })
+        } as any)
 
       if (treeErr) return Response.json({ error: treeErr.message }, { status: 500 })
     }
