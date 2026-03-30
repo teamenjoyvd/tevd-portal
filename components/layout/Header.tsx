@@ -83,10 +83,10 @@ export default function Header() {
               <Link
                 key={href}
                 href={href}
-                className="interactive px-3.5 py-1.5 rounded-lg text-xs font-semibold tracking-widest uppercase transition-colors"
+                className="interactive px-3.5 py-1.5 rounded-full text-xs font-semibold tracking-widest uppercase transition-all hover:bg-[rgba(188,71,73,0.12)] hover:text-[var(--brand-crimson)]"
                 style={{
                   color: isActive(href) ? 'var(--brand-crimson)' : 'var(--text-nav)',
-                  backgroundColor: isActive(href) ? 'rgba(188,71,73,0.06)' : 'transparent',
+                  backgroundColor: isActive(href) ? 'rgba(188,71,73,0.12)' : 'transparent',
                 }}
               >
                 {labels[lang]}
@@ -169,10 +169,10 @@ export default function Header() {
                 key={href}
                 href={href}
                 onClick={() => setMobileNavOpen(false)}
-                className="interactive flex items-center px-3 py-2.5 rounded-xl text-xs font-semibold tracking-widest uppercase transition-colors"
+                className="interactive flex items-center px-3 py-2.5 rounded-full text-xs font-semibold tracking-widest uppercase transition-all hover:bg-[rgba(188,71,73,0.12)] hover:text-[var(--brand-crimson)]"
                 style={{
                   color: isActive(href) ? 'var(--brand-crimson)' : 'var(--text-nav)',
-                  backgroundColor: isActive(href) ? 'rgba(188,71,73,0.06)' : 'transparent',
+                  backgroundColor: isActive(href) ? 'rgba(188,71,73,0.12)' : 'transparent',
                 }}
               >
                 {labels[lang]}

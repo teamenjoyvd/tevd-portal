@@ -36,13 +36,13 @@ export default function Footer() {
           </div>
 
           {/* Col 2 — Nav: hidden on mobile, single row on lg+ */}
-          <nav className="hidden lg:flex flex-nowrap items-center gap-x-4 justify-center">
+          <nav className="hidden lg:flex flex-nowrap items-center gap-x-1 justify-center">
             {FOOTER_NAV.map(({ href, labels }) => (
               <Link
                 key={href}
                 href={href}
-                className="text-xs font-medium tracking-widest uppercase transition-opacity hover:opacity-100 flex-shrink-0"
-                style={{ color: 'rgba(242,239,232,0.55)', opacity: 0.8 }}
+                className="text-xs font-medium tracking-widest uppercase transition-all rounded-full px-2.5 py-1 hover:bg-[rgba(255,255,255,0.15)] flex-shrink-0"
+                style={{ color: 'rgba(242,239,232,0.65)' }}
               >
                 {labels[lang]}
               </Link>

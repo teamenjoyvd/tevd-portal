@@ -146,7 +146,7 @@ export default function LinksGuidesTile({
       {hasGuides && !isLoading && (
         <Link
           href="/guides"
-          className="flex items-center justify-center mt-1.5 px-2 py-[5px] rounded-lg hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
+          className="flex items-center justify-center mt-1.5 px-2.5 py-1 rounded-full transition-all hover:bg-[rgba(188,71,73,0.12)] hover:text-[var(--brand-crimson)]"
         >
           <span
             className="text-[11px] font-semibold tracking-[0.06em] uppercase"

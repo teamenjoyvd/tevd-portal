@@ -68,7 +68,13 @@ export default async function HomePage() {
   const aboutContent = (
     <>
       <div className="flex items-center justify-between mb-4">
-        <Link href="/about" className="font-body text-[11px] font-bold tracking-widest uppercase hover:underline" style={{ color: 'var(--brand-crimson)' }}>About us →</Link>
+        <Link
+          href="/about"
+          className="font-body text-[11px] font-bold tracking-widest uppercase transition-all rounded-full px-2.5 py-1 hover:bg-[rgba(188,71,73,0.12)] hover:text-[var(--brand-crimson)]"
+          style={{ color: 'var(--brand-crimson)' }}
+        >
+          About us →
+        </Link>
       </div>
       <div className="flex-1">
         <h2 className="font-display text-xl font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>Hey there!</h2>
@@ -83,7 +89,13 @@ export default async function HomePage() {
     <>
       <div className="flex items-center justify-between mb-4">
         <Eyebrow>Latest</Eyebrow>
-        <Link href="/announcements" className="font-body text-[11px] font-bold tracking-widest uppercase hover:underline" style={{ color: 'var(--brand-crimson)' }}>View all →</Link>
+        <Link
+          href="/announcements"
+          className="font-body text-[11px] font-bold tracking-widest uppercase transition-all rounded-full px-2.5 py-1 hover:bg-[rgba(188,71,73,0.12)] hover:text-[var(--brand-crimson)]"
+          style={{ color: 'var(--brand-crimson)' }}
+        >
+          View all →
+        </Link>
       </div>
       <div className="flex-1">
         <h2 className="font-display text-xl font-semibold leading-snug mb-2" style={{ color: 'var(--text-primary)' }}>
@@ -110,17 +122,23 @@ export default async function HomePage() {
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.45, pointerEvents: 'none' }}
         />
       )}
-      <div className="absolute top-0 left-0 right-0 flex items-start justify-between px-5 pt-5 z-10">
-        <span className="font-body text-[11px] font-bold px-2.5 py-1 rounded-full" style={{ backgroundColor: 'rgba(255,255,255,0.18)', color: 'var(--brand-parchment)' }}>
-          {nextTrip.destination}
-        </span>
-        <Link href="/trips" className="font-body text-[11px] font-bold tracking-widest uppercase hover:opacity-70 transition-opacity" style={{ color: 'var(--brand-parchment)' }}>
+      <div className="absolute top-0 left-0 right-0 flex items-start justify-end px-5 pt-5 z-10">
+        <Link
+          href="/trips"
+          className="font-body text-[11px] font-bold tracking-widest uppercase transition-all rounded-full px-2.5 py-1 hover:bg-[rgba(255,255,255,0.18)] hover:text-[var(--brand-parchment)]"
+          style={{ color: 'var(--brand-parchment)' }}
+        >
           Trips →
         </Link>
       </div>
       <div className="absolute bottom-0 left-0 right-0 px-5 pb-5 z-10">
         <h3 className="font-display text-2xl font-semibold leading-tight" style={{ color: 'var(--brand-parchment)' }}>{nextTrip.title}</h3>
-        <p className="font-body text-[12px] mt-1" style={{ color: 'rgba(242,239,232,0.65)' }}>{formatDate(nextTrip.start_date)}</p>
+        <div className="flex items-center gap-2 mt-1">
+          <span className="font-body text-[11px] font-bold px-2.5 py-1 rounded-full" style={{ backgroundColor: 'rgba(255,255,255,0.18)', color: 'var(--brand-parchment)' }}>
+            {nextTrip.destination}
+          </span>
+          <p className="font-body text-[12px]" style={{ color: 'rgba(242,239,232,0.65)' }}>{formatDate(nextTrip.start_date)}</p>
+        </div>
       </div>
     </>
   ) : null

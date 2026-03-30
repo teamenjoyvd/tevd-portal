@@ -85,7 +85,7 @@ export default function ProfileTile({
         <div className="flex items-center justify-end">
           <Link
             href="/sign-in"
-            className="font-body text-[11px] font-bold tracking-widest uppercase transition-opacity hover:opacity-70"
+            className="font-body text-[11px] font-bold tracking-widest uppercase transition-all rounded-full px-2.5 py-1 hover:bg-[rgba(255,255,255,0.18)] hover:text-[var(--brand-parchment)]"
             style={{ color: 'var(--brand-parchment)' }}
           >
             {t('profile.signIn')}
@@ -110,7 +110,7 @@ export default function ProfileTile({
         <div className="flex items-center justify-end">
           <Link
             href="/profile"
-            className="font-body text-[11px] font-bold tracking-widest uppercase transition-opacity hover:opacity-70"
+            className="font-body text-[11px] font-bold tracking-widest uppercase transition-all rounded-full px-2.5 py-1 hover:bg-[rgba(255,255,255,0.18)] hover:text-[var(--brand-parchment)]"
             style={{ color: 'var(--brand-parchment)' }}
           >
             {t('profile.profileLink')}
@@ -140,7 +140,7 @@ export default function ProfileTile({
       <div className="flex items-center justify-end gap-3">
         <Link
           href="/profile"
-          className="font-body text-[11px] font-bold tracking-widest uppercase transition-opacity hover:opacity-70"
+          className="font-body text-[11px] font-bold tracking-widest uppercase transition-all rounded-full px-2.5 py-1 hover:bg-[rgba(255,255,255,0.18)] hover:text-[var(--brand-parchment)]"
           style={{ color: 'var(--brand-parchment)' }}
         >
           {t('profile.profileLink')}
@@ -148,7 +148,7 @@ export default function ProfileTile({
         {isAdmin && (
           <Link
             href="/admin"
-            className="font-body text-[11px] font-bold tracking-widest uppercase transition-opacity hover:opacity-70"
+            className="font-body text-[11px] font-bold tracking-widest uppercase transition-all rounded-full px-2.5 py-1 hover:bg-[rgba(255,255,255,0.18)] hover:text-[rgba(250,248,243,0.65)]"
             style={{ color: 'rgba(250,248,243,0.65)' }}
           >
             {t('profile.adminLink')}

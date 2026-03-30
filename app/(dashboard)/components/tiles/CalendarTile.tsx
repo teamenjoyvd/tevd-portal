@@ -66,7 +66,7 @@ export default function CalendarTile({ colSpan, mobileColSpan, rowSpan, style }:
       <div className="flex items-center justify-end mb-4">
         <Link
           href="/calendar"
-          className="font-body text-[11px] font-bold tracking-widest uppercase hover:underline"
+          className="font-body text-[11px] font-bold tracking-widest uppercase transition-all rounded-full px-2.5 py-1 hover:bg-[rgba(188,71,73,0.12)] hover:text-[var(--brand-crimson)]"
           style={{ color: 'var(--brand-crimson)' }}
         >
           Events →
