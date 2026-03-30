@@ -45,7 +45,6 @@ export default function LinksGuidesTile({
   const { isLoaded } = useUser()
   const { lang } = useLanguage()
 
-  // Take up to MAX_LINKS from the prop; fill remaining slots with guides
   const visibleLinks  = linksProp.slice(0, MAX_LINKS)
   const guideSlotsAvailable = MAX_GUIDES + (MAX_LINKS - visibleLinks.length)
 
@@ -146,14 +145,9 @@ export default function LinksGuidesTile({
       {hasGuides && !isLoading && (
         <Link
           href="/guides"
-          className="flex items-center justify-center mt-1.5 px-2.5 py-1 rounded-full transition-all hover:bg-[rgba(188,71,73,0.12)] hover:text-[var(--brand-crimson)]"
+          className="flex items-center justify-center mt-1.5 pill-link-crimson text-[11px] font-semibold tracking-[0.06em] uppercase"
         >
-          <span
-            className="text-[11px] font-semibold tracking-[0.06em] uppercase"
-            style={{ color: 'var(--text-secondary)' }}
-          >
-            All guides &amp; links
-          </span>
+          All guides &amp; links
         </Link>
       )}
     </BentoCard>

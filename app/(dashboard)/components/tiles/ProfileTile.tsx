@@ -83,11 +83,7 @@ export default function ProfileTile({
     return (
       <BentoCard variant="teal" colSpan={colSpan} mobileColSpan={mobileColSpan} rowSpan={rowSpan} style={style} className="flex flex-col justify-between">
         <div className="flex items-center justify-end">
-          <Link
-            href="/sign-in"
-            className="font-body text-[11px] font-bold tracking-widest uppercase transition-all rounded-full px-2.5 py-1 hover:bg-[rgba(255,255,255,0.18)] hover:text-[var(--brand-parchment)]"
-            style={{ color: 'var(--brand-parchment)' }}
-          >
+          <Link href="/sign-in" className="font-body text-[11px] font-bold tracking-widest uppercase pill-link-parchment">
             {t('profile.signIn')}
           </Link>
         </div>
@@ -108,11 +104,7 @@ export default function ProfileTile({
     return (
       <BentoCard variant="teal" colSpan={colSpan} mobileColSpan={mobileColSpan} rowSpan={rowSpan} style={style} className="flex flex-col justify-between">
         <div className="flex items-center justify-end">
-          <Link
-            href="/profile"
-            className="font-body text-[11px] font-bold tracking-widest uppercase transition-all rounded-full px-2.5 py-1 hover:bg-[rgba(255,255,255,0.18)] hover:text-[var(--brand-parchment)]"
-            style={{ color: 'var(--brand-parchment)' }}
-          >
+          <Link href="/profile" className="font-body text-[11px] font-bold tracking-widest uppercase pill-link-parchment">
             {t('profile.profileLink')}
           </Link>
         </div>
@@ -138,19 +130,11 @@ export default function ProfileTile({
   return (
     <BentoCard variant="teal" colSpan={colSpan} mobileColSpan={mobileColSpan} rowSpan={rowSpan} style={style} className="flex flex-col justify-between">
       <div className="flex items-center justify-end gap-3">
-        <Link
-          href="/profile"
-          className="font-body text-[11px] font-bold tracking-widest uppercase transition-all rounded-full px-2.5 py-1 hover:bg-[rgba(255,255,255,0.18)] hover:text-[var(--brand-parchment)]"
-          style={{ color: 'var(--brand-parchment)' }}
-        >
+        <Link href="/profile" className="font-body text-[11px] font-bold tracking-widest uppercase pill-link-parchment">
           {t('profile.profileLink')}
         </Link>
         {isAdmin && (
-          <Link
-            href="/admin"
-            className="font-body text-[11px] font-bold tracking-widest uppercase transition-all rounded-full px-2.5 py-1 hover:bg-[rgba(255,255,255,0.18)] hover:text-[rgba(250,248,243,0.65)]"
-            style={{ color: 'rgba(250,248,243,0.65)' }}
-          >
+          <Link href="/admin" className="font-body text-[11px] font-bold tracking-widest uppercase pill-link-parchment" style={{ opacity: 0.65 }}>
             {t('profile.adminLink')}
           </Link>
         )}

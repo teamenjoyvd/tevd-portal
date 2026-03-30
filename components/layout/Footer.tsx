@@ -41,8 +41,7 @@ export default function Footer() {
               <Link
                 key={href}
                 href={href}
-                className="text-xs font-medium tracking-widest uppercase transition-all rounded-full px-2.5 py-1 hover:bg-[rgba(255,255,255,0.15)] flex-shrink-0"
-                style={{ color: 'rgba(242,239,232,0.65)' }}
+                className="pill-link-footer text-xs font-medium tracking-widest uppercase flex-shrink-0"
               >
                 {labels[lang]}
               </Link>

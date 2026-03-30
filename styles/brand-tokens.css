@@ -146,3 +146,41 @@ html { font-size: calc(var(--font-scale) * 16px); }
 .interactive-lift:active {
   transform: translateY(0) scale(0.98);
 }
+
+/* ── Pill link hover — action links in nav, bento tiles ── */
+
+/* Light surface: crimson pill on hover */
+.pill-link-crimson {
+  color: var(--brand-crimson);
+  border-radius: 9999px;
+  padding: 0.25rem 0.625rem;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+.pill-link-crimson:hover {
+  background-color: rgba(188, 71, 73, 0.12);
+  color: var(--brand-crimson);
+}
+
+/* Dark surface: parchment pill on hover (teal/forest/crimson card bg) */
+.pill-link-parchment {
+  color: var(--brand-parchment);
+  border-radius: 9999px;
+  padding: 0.25rem 0.625rem;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+.pill-link-parchment:hover {
+  background-color: rgba(255, 255, 255, 0.18);
+  color: var(--brand-parchment);
+}
+
+/* Footer variant: parchment-tinted, slightly dimmer base */
+.pill-link-footer {
+  color: rgba(242, 239, 232, 0.65);
+  border-radius: 9999px;
+  padding: 0.25rem 0.625rem;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+.pill-link-footer:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+  color: var(--brand-parchment);
+}

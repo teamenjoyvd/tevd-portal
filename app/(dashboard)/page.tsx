@@ -2,7 +2,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { auth } from '@clerk/nextjs/server'
 import Link from 'next/link'
 import BentoGrid from '@/components/bento/BentoGrid'
-import BentoCard, { Eyebrow } from '@/components/bento/BentoCard'
+import BentoCard from '@/components/bento/BentoCard'
 import ProfileTile from '@/app/(dashboard)/components/tiles/ProfileTile'
 import LinksGuidesTile from '@/app/(dashboard)/components/tiles/LinksGuidesTile'
 import LocationTile from '@/app/(dashboard)/components/tiles/LocationTileLazy'
@@ -67,12 +67,8 @@ export default async function HomePage() {
 
   const aboutContent = (
     <>
-      <div className="flex items-center justify-between mb-4">
-        <Link
-          href="/about"
-          className="font-body text-[11px] font-bold tracking-widest uppercase transition-all rounded-full px-2.5 py-1 hover:bg-[rgba(188,71,73,0.12)] hover:text-[var(--brand-crimson)]"
-          style={{ color: 'var(--brand-crimson)' }}
-        >
+      <div className="flex items-center justify-end mb-4">
+        <Link href="/about" className="font-body text-[11px] font-bold tracking-widest uppercase pill-link-crimson">
           About us →
         </Link>
       </div>
@@ -87,20 +83,14 @@ export default async function HomePage() {
 
   const announcementContent2 = featuredAnnouncement ? (
     <>
-      <div className="flex items-center justify-between mb-4">
-        <Eyebrow>Latest</Eyebrow>
-        <Link
-          href="/announcements"
-          className="font-body text-[11px] font-bold tracking-widest uppercase transition-all rounded-full px-2.5 py-1 hover:bg-[rgba(188,71,73,0.12)] hover:text-[var(--brand-crimson)]"
-          style={{ color: 'var(--brand-crimson)' }}
-        >
+      <div className="flex items-center justify-end mb-4">
+        <Link href="/announcements" className="font-body text-[11px] font-bold tracking-widest uppercase pill-link-crimson">
           View all →
         </Link>
       </div>
       <div className="flex-1">
         <h2 className="font-display text-xl font-semibold leading-snug mb-2" style={{ color: 'var(--text-primary)' }}>
-          {announcementTitle!.split(' ').slice(0, -1).join(' ')}{' '}
-          <span style={{ color: 'var(--brand-crimson)' }}>{announcementTitle!.split(' ').slice(-1)[0]}</span>
+          {announcementTitle}
         </h2>
         {announcementContent && (
           <p className="font-body text-sm leading-relaxed" style={{ color: 'var(--text-secondary)', display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' } as React.CSSProperties}>
@@ -123,11 +113,7 @@ export default async function HomePage() {
         />
       )}
       <div className="absolute top-0 left-0 right-0 flex items-start justify-end px-5 pt-5 z-10">
-        <Link
-          href="/trips"
-          className="font-body text-[11px] font-bold tracking-widest uppercase transition-all rounded-full px-2.5 py-1 hover:bg-[rgba(255,255,255,0.18)] hover:text-[var(--brand-parchment)]"
-          style={{ color: 'var(--brand-parchment)' }}
-        >
+        <Link href="/trips" className="font-body text-[11px] font-bold tracking-widest uppercase pill-link-parchment">
           Trips →
         </Link>
       </div>
