@@ -1,12 +1,10 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
-import { useUser } from '@clerk/nextjs'
 import Link from 'next/link'
 import BentoCard from '@/components/bento/BentoCard'
 import { formatTime, calDay, calMonth } from '@/lib/format'
 
-type CalendarEvent = {
+export type CalendarEvent = {
   id: string
   title: string
   start_time: string
@@ -33,27 +31,14 @@ function eventDuration(startIso: string, endIso: string | null | undefined): str
 }
 
 type Props = {
+  events?: CalendarEvent[]
   colSpan?: number
   mobileColSpan?: number
   rowSpan?: number
   style?: React.CSSProperties
 }
 
-export default function CalendarTile({ colSpan, mobileColSpan, rowSpan, style }: Props) {
-  const { isLoaded } = useUser()
-
-  const { data: events = [] } = useQuery<CalendarEvent[]>({
-    queryKey: ['calendar', 'tile'],
-    queryFn: async () => {
-      const res = await fetch('/api/calendar')
-      if (!res.ok) return []
-      const data = await res.json()
-      return (data as CalendarEvent[]).slice(0, 3)
-    },
-    enabled: isLoaded,
-    staleTime: 5 * 60 * 1000,
-  })
-
+export default function CalendarTile({ events = [], colSpan, mobileColSpan, rowSpan, style }: Props) {
   return (
     <BentoCard
       variant="default"

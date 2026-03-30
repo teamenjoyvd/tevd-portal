@@ -21,6 +21,7 @@ type Announcement = {
 type SiteLink = { id: string; label: { en: string; bg: string }; url: string }
 type Guide = { id: string; slug: string; title: { en: string; bg: string }; emoji: string | null }
 type Trip = { id: string; title: string; destination: string; start_date: string; image_url: string | null }
+type CalendarEvent = { id: string; title: string; start_time: string; end_time: string | null; event_type: string | null }
 
 export default async function HomePage() {
   let userId: string | null = null
@@ -33,7 +34,7 @@ export default async function HomePage() {
     if (profile?.role) role = profile.role
   }
 
-  const [announcementsRes, linksRes, tripsRes, guidesRes] = await Promise.all([
+  const [announcementsRes, linksRes, tripsRes, guidesRes, eventsRes] = await Promise.all([
     supabase.from('announcements').select('*').eq('is_active', true)
       .contains('access_level', [role]).order('created_at', { ascending: false }).limit(5),
     supabase.from('links').select('id, label, url').contains('access_roles', [role]).order('sort_order').limit(4),
@@ -42,12 +43,19 @@ export default async function HomePage() {
     supabase.from('guides').select('id, slug, title, emoji')
       .eq('is_published', true).contains('access_roles', [role])
       .order('created_at', { ascending: false }).limit(4),
+    supabase.from('calendar_events')
+      .select('id, title, start_time, end_time, event_type')
+      .contains('visibility_roles', [role])
+      .gte('start_time', new Date().toISOString())
+      .order('start_time')
+      .limit(3),
   ])
 
-  const announcements = (announcementsRes.data ?? []) as unknown as Announcement[]
-  const links         = (linksRes.data ?? []) as unknown as SiteLink[]
-  const trips         = (tripsRes.data ?? []) as unknown as Trip[]
-  const guides        = (guidesRes.data ?? []) as unknown as Guide[]
+  const announcements  = (announcementsRes.data ?? []) as unknown as Announcement[]
+  const links          = (linksRes.data ?? []) as unknown as SiteLink[]
+  const trips          = (tripsRes.data ?? []) as unknown as Trip[]
+  const guides         = (guidesRes.data ?? []) as unknown as Guide[]
+  const events         = (eventsRes.data ?? []) as unknown as CalendarEvent[]
 
   const featuredAnnouncement = announcements[0] ?? null
   const announcementTitle   = featuredAnnouncement?.titles?.en ?? featuredAnnouncement?.titles?.bg ?? null
@@ -141,8 +149,6 @@ export default async function HomePage() {
       <div className="hidden md:block">
         <BentoGrid className="py-4 pb-16">
 
-          {/* ROW 1: Hero·6(rows1–2) | About·3(row1) | Events·3(rows1–2) */}
-
           <BentoCard
             variant="forest"
             colSpan={6}
@@ -153,7 +159,6 @@ export default async function HomePage() {
             {heroContent}
           </BentoCard>
 
-          {/* About: col 7–9, row 1 */}
           <BentoCard
             variant="default"
             colSpan={3}
@@ -164,14 +169,12 @@ export default async function HomePage() {
             {aboutContent}
           </BentoCard>
 
-          {/* Events: col 10–12, rows 1–2 */}
           <CalendarTile
+            events={events}
             colSpan={3}
             rowSpan={2}
             style={{ gridColumn: '10 / span 3', gridRow: '1 / span 2' }}
           />
-
-          {/* ROW 2: Hero cont. | LinksGuides·3(rows2–3) | Events cont. */}
 
           <LinksGuidesTile
             links={links}
@@ -180,8 +183,6 @@ export default async function HomePage() {
             rowSpan={2}
             style={{ gridColumn: '7 / span 3', gridRow: '2 / span 2' }}
           />
-
-          {/* ROW 3: Announce·3 | Map·3 | LinksGuides cont. | Profile·3 */}
 
           {featuredAnnouncement && (
             <BentoCard
@@ -201,14 +202,11 @@ export default async function HomePage() {
             style={{ gridColumn: '4 / span 3', gridRow: '3 / span 1' }}
           />
 
-          {/* Profile: col 10–12, row 3 */}
           <ProfileTile
             colSpan={3}
             rowSpan={1}
             style={{ gridColumn: '10 / span 3', gridRow: '3 / span 1' }}
           />
-
-          {/* ROW 4: Trips·3 | Socials·3 | FontSize·3 | Theme·3 */}
 
           {nextTrip && (
             <BentoCard
@@ -246,49 +244,39 @@ export default async function HomePage() {
       {/* ── MOBILE (< md) ────────────────────────────────────────────────── */}
       <div className="md:hidden flex flex-col gap-3 px-4 py-4 pb-24">
 
-        {/* Hero */}
         <BentoCard variant="forest" className="relative overflow-hidden" style={{ minHeight: 200 }}>
           {heroContent}
         </BentoCard>
 
-        {/* Profile */}
         <ProfileTile />
 
-        {/* Events */}
-        <CalendarTile />
+        <CalendarTile events={events} />
 
-        {/* Trip */}
         {nextTrip && (
           <BentoCard variant="crimson" className="relative overflow-hidden p-0" style={{ minHeight: 180 }}>
             {tripContent}
           </BentoCard>
         )}
 
-        {/* Announcement */}
         {featuredAnnouncement && (
           <BentoCard variant="default" className="flex flex-col">
             {announcementContent2}
           </BentoCard>
         )}
 
-        {/* Links & Guides */}
         <LinksGuidesTile links={links} guides={guides} />
 
-        {/* About */}
         <BentoCard variant="default" className="flex flex-col">
           {aboutContent}
         </BentoCard>
 
-        {/* Map */}
         <LocationTile style={{ minHeight: 200 }} />
 
-        {/* Theme + FontSize side by side */}
         <div className="grid grid-cols-2 gap-3">
           <ThemeTile />
           <FontSizeTile />
         </div>
 
-        {/* Socials */}
         <SocialsTile />
 
       </div>
