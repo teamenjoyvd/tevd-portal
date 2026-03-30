@@ -88,10 +88,12 @@ body {
   animation: vt-scale-in 250ms ease-out both;
 }
 
-/* ── Exclude Radix portals from view transitions ── */
-/* Radix injects popovers/dropdowns into a portal outside the page tree.
-   The view-transition-new(root) animation starts at opacity:0 and captures
-   these elements, leaving them invisible. Opting them out entirely. */
+/* ── Radix portal layering ── */
+/* backdrop-filter on the header creates a stacking context (z-50).
+   Radix portals render into <body> with z-index:auto, which resolves
+   below that stacking context and makes the dropdown appear to show
+   the blurred page content behind it instead of its own background.
+   Forcing z-index:100 on the wrapper puts it above the header (z-50). */
 [data-radix-popper-content-wrapper] {
-  view-transition-name: none;
+  z-index: 100 !important;
 }
