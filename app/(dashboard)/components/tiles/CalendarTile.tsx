@@ -70,7 +70,7 @@ export default function CalendarTile({ colSpan, mobileColSpan, rowSpan, style }:
           className="font-body text-[11px] font-bold tracking-widest uppercase hover:underline"
           style={{ color: 'var(--brand-crimson)' }}
         >
-          See all →
+          Events →
         </Link>
       </div>
 

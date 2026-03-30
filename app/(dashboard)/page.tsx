@@ -68,8 +68,7 @@ export default async function HomePage() {
   const aboutContent = (
     <>
       <div className="flex items-center justify-between mb-4">
-        <Eyebrow>About Us</Eyebrow>
-        <Link href="/about" className="font-body text-[11px] font-bold tracking-widest uppercase hover:underline" style={{ color: 'var(--brand-crimson)' }}>Our story →</Link>
+        <Link href="/about" className="font-body text-[11px] font-bold tracking-widest uppercase hover:underline" style={{ color: 'var(--brand-crimson)' }}>About us →</Link>
       </div>
       <div className="flex-1">
         <h2 className="font-display text-xl font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>Hey there!</h2>
@@ -116,7 +115,7 @@ export default async function HomePage() {
           {nextTrip.destination}
         </span>
         <Link href="/trips" className="font-body text-[11px] font-bold tracking-widest uppercase hover:opacity-70 transition-opacity" style={{ color: 'var(--brand-parchment)' }}>
-          View trips →
+          Trips →
         </Link>
       </div>
       <div className="absolute bottom-0 left-0 right-0 px-5 pb-5 z-10">

@@ -1,7 +1,6 @@
 'use client'
 
-import BentoCard from '@/components/bento/BentoCard'
-import { Eyebrow } from '@/components/bento/BentoCard'
+import BentoCard, { Eyebrow, BENTO_INTERACTIVE_CLASSES } from '@/components/bento/BentoCard'
 import { useTheme } from '@/lib/hooks/useTheme'
 
 export default function ThemeTile({
@@ -23,7 +22,7 @@ export default function ThemeTile({
       colSpan={colSpan}
       mobileColSpan={mobileColSpan}
       rowSpan={rowSpan}
-      className="cursor-pointer select-none hover:brightness-95 active:scale-[0.98] transition-all flex flex-col items-center justify-center text-center"
+      className={`cursor-pointer select-none ${BENTO_INTERACTIVE_CLASSES} flex flex-col items-center justify-center text-center`}
       style={{ minHeight: 120, ...style }}
       onClick={toggle}
     >

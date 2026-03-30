@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import BentoCard, { Eyebrow } from '@/components/bento/BentoCard'
 import { useFontSize, type FontSize } from '@/lib/hooks/useFontSize'
 
@@ -45,6 +46,7 @@ export default function FontSizeTile({
   style?: React.CSSProperties
 }) {
   const { fontSize, setFontSize } = useFontSize()
+  const [hoveredStep, setHoveredStep] = useState<FontSize | null>(null)
 
   return (
     <BentoCard
@@ -59,13 +61,20 @@ export default function FontSizeTile({
       <div className="flex items-center justify-center gap-2">
         {STEPS.map(({ value, label, iconSize }) => {
           const active = fontSize === value
+          const hovered = hoveredStep === value
           return (
             <button
               key={value}
               onClick={() => void setFontSize(value)}
+              onMouseEnter={() => !active && setHoveredStep(value)}
+              onMouseLeave={() => setHoveredStep(null)}
               className="w-11 h-11 flex flex-col items-center justify-center rounded-xl transition-colors"
               style={{
-                backgroundColor: active ? 'var(--brand-crimson)' : 'var(--bg-global)',
+                backgroundColor: active
+                  ? 'var(--brand-crimson)'
+                  : hovered
+                    ? 'var(--bg-card)'
+                    : 'var(--bg-global)',
                 border: active ? '1px solid transparent' : '1px solid var(--border-default)',
               }}
               aria-pressed={active}

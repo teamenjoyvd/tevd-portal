@@ -4,7 +4,6 @@ import Link from 'next/link'
 import { useUser } from '@clerk/nextjs'
 import { useQuery } from '@tanstack/react-query'
 import BentoCard from '@/components/bento/BentoCard'
-import { Eyebrow } from '@/components/bento/BentoCard'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import type { TranslationKey } from '@/lib/i18n/translations'
 
@@ -81,8 +80,16 @@ export default function ProfileTile({
   if (!isSignedIn) {
     return (
       <BentoCard variant="teal" colSpan={colSpan} mobileColSpan={mobileColSpan} rowSpan={rowSpan} style={style} className="flex flex-col justify-between">
+        <div className="flex items-center justify-end">
+          <Link
+            href="/sign-in"
+            className="font-body text-[11px] font-bold tracking-widest uppercase transition-opacity hover:opacity-70"
+            style={{ color: 'var(--brand-parchment)' }}
+          >
+            {t('profile.signIn')}
+          </Link>
+        </div>
         <div>
-          <Eyebrow style={{ color: 'rgba(250,248,243,0.65)' }}>{t('profile.eyebrow')}</Eyebrow>
           <h2 className="font-display text-2xl font-semibold mt-3" style={{ color: 'var(--brand-parchment)' }}>
             {t('profile.heyGuest')}
           </h2>
@@ -90,13 +97,6 @@ export default function ProfileTile({
             {t('profile.signInDesc')}
           </p>
         </div>
-        <Link
-          href="/sign-in"
-          className="mt-4 inline-flex items-center justify-center px-4 py-2 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80"
-          style={{ backgroundColor: 'rgba(250,248,243,0.15)', color: 'var(--brand-parchment)' }}
-        >
-          {t('profile.signIn')}
-        </Link>
       </BentoCard>
     )
   }
@@ -105,8 +105,16 @@ export default function ProfileTile({
   if (isUnverified) {
     return (
       <BentoCard variant="teal" colSpan={colSpan} mobileColSpan={mobileColSpan} rowSpan={rowSpan} style={style} className="flex flex-col justify-between">
+        <div className="flex items-center justify-end">
+          <Link
+            href="/profile"
+            className="font-body text-[11px] font-bold tracking-widest uppercase transition-opacity hover:opacity-70"
+            style={{ color: 'var(--brand-parchment)' }}
+          >
+            {t('profile.profileLink')}
+          </Link>
+        </div>
         <div>
-          <Eyebrow style={{ color: 'rgba(250,248,243,0.65)' }}>{t('profile.eyebrow')}</Eyebrow>
           <h2 className="font-display text-2xl font-semibold mt-3" style={{ color: 'var(--brand-parchment)' }}>
             Hey, {firstName ?? 'there'}.
           </h2>
@@ -120,13 +128,6 @@ export default function ProfileTile({
               : t('profile.verifDeniedDesc')}
           </p>
         </div>
-        <Link
-          href="/profile"
-          className="mt-4 text-xs font-semibold tracking-widest uppercase transition-opacity hover:opacity-70"
-          style={{ color: 'var(--brand-parchment)' }}
-        >
-          {t('profile.profileLink')}
-        </Link>
       </BentoCard>
     )
   }
@@ -134,8 +135,25 @@ export default function ProfileTile({
   // Authenticated member+
   return (
     <BentoCard variant="teal" colSpan={colSpan} mobileColSpan={mobileColSpan} rowSpan={rowSpan} style={style} className="flex flex-col justify-between">
+      <div className="flex items-center justify-end gap-3">
+        <Link
+          href="/profile"
+          className="font-body text-[11px] font-bold tracking-widest uppercase transition-opacity hover:opacity-70"
+          style={{ color: 'var(--brand-parchment)' }}
+        >
+          {t('profile.profileLink')}
+        </Link>
+        {isAdmin && (
+          <Link
+            href="/admin"
+            className="font-body text-[11px] font-bold tracking-widest uppercase transition-opacity hover:opacity-70"
+            style={{ color: 'rgba(250,248,243,0.65)' }}
+          >
+            {t('profile.adminLink')}
+          </Link>
+        )}
+      </div>
       <div>
-        <Eyebrow style={{ color: 'rgba(250,248,243,0.65)' }}>{t('profile.eyebrow')}</Eyebrow>
         <h2 className="font-display text-2xl font-semibold mt-3" style={{ color: 'var(--brand-parchment)' }}>
           Hey, {firstName ?? 'there'}.
         </h2>
@@ -150,24 +168,6 @@ export default function ProfileTile({
             </span>
           )}
         </div>
-      </div>
-      <div className="flex items-center gap-3 mt-4">
-        <Link
-          href="/profile"
-          className="text-xs font-semibold tracking-widest uppercase transition-opacity hover:opacity-70"
-          style={{ color: 'var(--brand-parchment)' }}
-        >
-          {t('profile.profileLink')}
-        </Link>
-        {isAdmin && (
-          <Link
-            href="/admin"
-            className="text-xs font-semibold tracking-widest uppercase transition-opacity hover:opacity-70"
-            style={{ color: 'rgba(250,248,243,0.65)' }}
-          >
-            {t('profile.adminLink')}
-          </Link>
-        )}
       </div>
     </BentoCard>
   )

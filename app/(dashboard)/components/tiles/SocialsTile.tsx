@@ -1,7 +1,7 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import BentoCard, { Eyebrow } from '@/components/bento/BentoCard'
+import BentoCard from '@/components/bento/BentoCard'
 
 type SocialPost = {
   id: string
@@ -96,10 +96,6 @@ export default function SocialsTile({
       />
 
       <div className="relative flex flex-col flex-1" style={{ zIndex: 1 }}>
-        <div className="flex items-center gap-1.5" style={{ color: 'var(--text-secondary)' }}>
-          <Eyebrow>Socials</Eyebrow>
-        </div>
-
         {isLoading && (
           <div className="flex-1 flex flex-col justify-center gap-3 mt-3">
             <div className="h-14 rounded-lg animate-pulse" style={{ backgroundColor: 'rgba(0,0,0,0.06)' }} />
