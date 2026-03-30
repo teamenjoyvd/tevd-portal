@@ -112,7 +112,7 @@ export default function UserDropdown() {
         </div>
 
         {/* Actions */}
-        <div className="py-1.5">
+        <div>
           {isAdmin && (
             <DropdownMenuItem asChild>
               <Link
