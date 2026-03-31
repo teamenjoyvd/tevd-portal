@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server'
 
 export async function GET(
   _req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -22,7 +22,7 @@ export async function GET(
     return NextResponse.json({ error: 'Profile not found' }, { status: 403 })
   }
 
-  const tripId = params.id
+  const { id: tripId } = await params
 
   // Must have an approved registration for this trip
   const { data: reg, error: regErr } = await supabase
