@@ -4,10 +4,10 @@ import { Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import AdminTabs, { TabsContent } from '@/app/admin/components/AdminTabs'
-import { TripRegistrationsTab } from './components/PaymentsApprovalTab'
+import { TripRegistrationsTab } from './components/TripRegistrationsTab'
 import { AboVerificationTab } from './components/VerificationsTab'
-import { EventRolesTab } from './components/DirectVerifyTab'
-import type { TripRegistration } from './components/PaymentsApprovalTab'
+import { EventRolesTab } from './components/EventRolesTab'
+import type { TripRegistration } from './components/TripRegistrationsTab'
 import type { AdminMembersResponse } from './components/VerificationsTab'
 
 // ── Types ─────────────────────────────────────────────────────
