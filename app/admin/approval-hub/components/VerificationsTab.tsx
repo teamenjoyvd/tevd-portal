@@ -288,7 +288,7 @@ export function AboVerificationTab() {
               onChange={e => setDirectUpline(e.target.value)}
               placeholder="e.g. 7010970187"
               className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm font-mono"
-              style={{ color: 'var(--text-primary)' }}
+              style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
             />
           </div>
           {directError && (
