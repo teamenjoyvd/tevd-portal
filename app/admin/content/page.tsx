@@ -17,7 +17,7 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
 } from '@/components/ui/alert-dialog'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import AdminTabs, { TabsContent } from '@/app/admin/components/AdminTabs'
 
 // ── Shared drag handle ───────────────────────────────────────────────
 
@@ -924,16 +924,11 @@ function ContentPageInner() {
         </h1>
       </div>
 
-      <Tabs
+      <AdminTabs
+        tabs={[...TABS]}
         value={tab}
         onValueChange={(val) => router.replace(`?tab=${val}`, { scroll: false })}
       >
-        <TabsList className="mb-6 flex-wrap h-auto gap-1">
-          {TABS.map(t => (
-            <TabsTrigger key={t.key} value={t.key}>{t.label}</TabsTrigger>
-          ))}
-        </TabsList>
-
         {/* ── Announcements tab ── */}
         <TabsContent value="announcements">
           <section>
@@ -1445,7 +1440,7 @@ function ContentPageInner() {
         <TabsContent value="bento">
           <BentoSettings />
         </TabsContent>
-      </Tabs>
+      </AdminTabs>
     </div>
   )
 }
