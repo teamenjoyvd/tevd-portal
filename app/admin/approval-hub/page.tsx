@@ -1,7 +1,10 @@
 'use client'
 
+import { Suspense } from 'react'
 import { useState } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import AdminTabs, { TabsContent } from '@/app/admin/components/AdminTabs'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -696,10 +699,19 @@ function EventRolesTab() {
   )
 }
 
-// ── Main Page ────────────────────────────────────────────────────────────────────
+// ── Inner page (needs useSearchParams) ───────────────────────────────────────────
 
-export default function ApprovalHubPage() {
-  const [activeTab, setActiveTab] = useState<'trips' | 'roles' | 'abo'>('trips')
+const TABS = [
+  { key: 'trips', label: 'Trip Registrations' },
+  { key: 'roles', label: 'Event Roles' },
+  { key: 'abo',   label: 'ABO Verification' },
+] as const
+type TabKey = typeof TABS[number]['key']
+
+function ApprovalHubInner() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const tab = (searchParams.get('tab') ?? 'trips') as TabKey
 
   const { data: trips = [] } = useQuery<Trip[]>({
     queryKey: ['trips'],
@@ -742,10 +754,10 @@ export default function ApprovalHubPage() {
   const pendingRoles = roleRequests.filter(r => r.status === 'pending').length
   const pendingAbo   = (membersData?.pending_verifications ?? []).length
 
-  const tabs = [
-    { key: 'trips' as const, label: 'Trip Registrations', count: pendingTrips },
-    { key: 'roles' as const, label: 'Event Roles',         count: pendingRoles },
-    { key: 'abo'   as const, label: 'ABO Verification',    count: pendingAbo   },
+  const tabsWithBadges = [
+    { key: 'trips', label: 'Trip Registrations', badge: pendingTrips },
+    { key: 'roles', label: 'Event Roles',         badge: pendingRoles },
+    { key: 'abo',   label: 'ABO Verification',    badge: pendingAbo   },
   ]
 
   return (
@@ -757,36 +769,23 @@ export default function ApprovalHubPage() {
         Review and action pending requests from members.
       </p>
 
-      {/* Tabs */}
-      <div className="flex gap-1 mb-6 p-1 rounded-xl w-fit" style={{ backgroundColor: 'rgba(0,0,0,0.05)' }}>
-        {tabs.map(tab => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all"
-            style={{
-              backgroundColor: activeTab === tab.key ? 'white' : 'transparent',
-              color: activeTab === tab.key ? 'var(--text-primary)' : 'var(--text-secondary)',
-              boxShadow: activeTab === tab.key ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-            }}
-          >
-            {tab.label}
-            {tab.count > 0 && (
-              <span
-                className="text-[11px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center"
-                style={{ backgroundColor: 'var(--brand-crimson)', color: 'white' }}
-              >
-                {tab.count}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
-
-      {/* Tab content */}
-      {activeTab === 'trips' && <TripRegistrationsTab />}
-      {activeTab === 'roles' && <EventRolesTab />}
-      {activeTab === 'abo'   && <AboVerificationTab />}
+      <AdminTabs
+        tabs={tabsWithBadges}
+        value={tab}
+        onValueChange={val => router.replace(`?tab=${val}`, { scroll: false })}
+      >
+        <TabsContent value="trips"><TripRegistrationsTab /></TabsContent>
+        <TabsContent value="roles"><EventRolesTab /></TabsContent>
+        <TabsContent value="abo"><AboVerificationTab /></TabsContent>
+      </AdminTabs>
     </div>
+  )
+}
+
+export default function ApprovalHubPage() {
+  return (
+    <Suspense>
+      <ApprovalHubInner />
+    </Suspense>
   )
 }

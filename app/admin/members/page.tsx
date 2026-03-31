@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { Suspense, useState, useRef, useEffect, useCallback } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   useReactTable,
@@ -23,6 +24,7 @@ import {
   TableHead,
   TableCell,
 } from '@/components/ui/table'
+import AdminTabs, { TabsContent } from '@/app/admin/components/AdminTabs'
 
 // ── Shared types ─────────────────────────────────────────────────────
 
@@ -176,7 +178,6 @@ function LosTable({
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [debouncedFilter, setDebouncedFilter] = useState('')
 
-  // Close column visibility dropdown on outside click
   useEffect(() => {
     function handler(e: MouseEvent) {
       if (colsRef.current && !colsRef.current.contains(e.target as Node)) {
@@ -340,7 +341,6 @@ function LosTable({
     abo_number: 'ABO', sponsor_abo_number: 'Sponsor ABO', abo_level: 'Level',
     gpv: 'GPV', bonus_percent: 'Bonus%', group_size: 'Group',
   }
-  // Mobile-hidden columns — hidden via CSS, not column visibility toggle
   const MOBILE_HIDDEN = new Set(['gpv', 'bonus_percent', 'group_size', 'sponsor_abo_number'])
 
   if (isLoading) {
@@ -366,7 +366,6 @@ function LosTable({
 
   return (
     <div>
-      {/* Toolbar */}
       <div className="flex items-center gap-3 mb-3 flex-wrap">
         <input
           value={globalFilter}
@@ -404,7 +403,6 @@ function LosTable({
         </div>
       </div>
 
-      {/* Table */}
       <div className="bg-white rounded-2xl border border-black/5 shadow-sm overflow-hidden">
         <Table className="border-collapse">
           <TableHeader>
@@ -461,7 +459,6 @@ function LosTable({
         </Table>
       </div>
 
-      {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between mt-3">
           <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
@@ -520,7 +517,6 @@ function VitalSignsConfig({ definitions, onRefetch }: {
     [...definitions].sort((a, b) => a.sort_order - b.sort_order)
   )
 
-  // Keep local in sync with server data when it changes
   const defsKey = definitions.map(d => d.id + d.is_active + d.sort_order).join(',')
   const prevKey = useRef(defsKey)
   if (prevKey.current !== defsKey) {
@@ -553,9 +549,7 @@ function VitalSignsConfig({ definitions, onRefetch }: {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['vital-sign-definitions'] }),
   })
 
-  function handleDragStart(id: string) {
-    setDragging(id)
-  }
+  function handleDragStart(id: string) { setDragging(id) }
 
   function handleDragOver(e: React.DragEvent, targetId: string) {
     e.preventDefault()
@@ -598,7 +592,6 @@ function VitalSignsConfig({ definitions, onRefetch }: {
               cursor: 'grab',
             }}
           >
-            {/* Drag handle */}
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none"
               className="flex-shrink-0" style={{ color: 'var(--text-secondary)' }}>
               <circle cx="4" cy="3" r="1.2" fill="currentColor"/>
@@ -611,7 +604,6 @@ function VitalSignsConfig({ definitions, onRefetch }: {
             <span className="flex-1 text-sm font-body" style={{ color: 'var(--text-primary)' }}>
               {def.label ?? def.category}
             </span>
-            {/* Active toggle pill */}
             <button
               disabled={toggleActiveMutation.isPending}
               onClick={() => toggleActiveMutation.mutate({ id: def.id, is_active: !def.is_active })}
@@ -636,8 +628,8 @@ function NodeCard({
   node, definitions, allDefinitions, onToggle, isPending,
 }: {
   node: TreeNode
-  definitions: VitalSignDefinition[]       // active only
-  allDefinitions: VitalSignDefinition[]    // all 6 (for inactive historical display)
+  definitions: VitalSignDefinition[]
+  allDefinitions: VitalSignDefinition[]
   onToggle: (profileId: string, definitionId: string, currentlyRecorded: boolean) => void
   isPending: boolean
 }) {
@@ -649,7 +641,6 @@ function NodeCard({
     : node.name ?? node.abo_number
   const vitalSigns = Array.isArray(node.vital_signs) ? node.vital_signs : []
 
-  // Inactive definitions that this member has historical records for
   const inactiveWithHistory = allDefinitions
     .filter(d => !d.is_active)
     .filter(d => vitalSigns.some(v => v.definition_id === d.id))
@@ -680,8 +671,6 @@ function NodeCard({
               )}
               <span className="font-body text-[10px]" style={{ color: 'var(--text-secondary)' }}>#{node.abo_number}</span>
             </div>
-
-            {/* Active vital sign checkboxes */}
             {definitions.length > 0 && (
               <div className="flex flex-wrap gap-3 mt-2">
                 {definitions.map(def => {
@@ -710,8 +699,6 @@ function NodeCard({
                 })}
               </div>
             )}
-
-            {/* Inactive definitions with historical records — read-only */}
             {inactiveWithHistory.length > 0 && (
               <div className="flex flex-wrap gap-3 mt-1.5 pt-1.5 border-t" style={{ borderColor: 'var(--border-default)' }}>
                 {inactiveWithHistory.map(def => {
@@ -1154,20 +1141,15 @@ function LosTab() {
 
   const uncheckMutation = useMutation({
     mutationFn: ({ profileId, definitionId }: { profileId: string; definitionId: string }) =>
-      fetch(`/api/admin/members/${profileId}/vital-signs/${definitionId}`, {
-        method: 'DELETE',
-      }),
+      fetch(`/api/admin/members/${profileId}/vital-signs/${definitionId}`, { method: 'DELETE' }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['los-tree'] }),
   })
 
   const isPending = checkMutation.isPending || uncheckMutation.isPending
 
   function handleToggle(profileId: string, definitionId: string, currentlyRecorded: boolean) {
-    if (currentlyRecorded) {
-      uncheckMutation.mutate({ profileId, definitionId })
-    } else {
-      checkMutation.mutate({ profileId, definitionId })
-    }
+    if (currentlyRecorded) uncheckMutation.mutate({ profileId, definitionId })
+    else checkMutation.mutate({ profileId, definitionId })
   }
 
   function handleConfigRefetch() {
@@ -1185,12 +1167,9 @@ function LosTab() {
         </p>
         <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{flatNodes.length} members</span>
       </div>
-
-      {/* Vital Signs Config panel */}
       {allDefinitions.length > 0 && (
         <VitalSignsConfig definitions={allDefinitions} onRefetch={handleConfigRefetch} />
       )}
-
       {treeLoading ? (
         <div className="space-y-2">
           {[...Array(5)].map((_, i) => (
@@ -1266,7 +1245,6 @@ function DataCenterTab() {
       <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
         LOS CSV import — upserts on ABO number. Rebuilds LTree paths after every import.
       </p>
-
       <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
         <input ref={fileRef} type="file" accept=".csv" onChange={handleFile} className="hidden" id="csv-upload" />
         <label htmlFor="csv-upload" className="cursor-pointer">
@@ -1274,7 +1252,6 @@ function DataCenterTab() {
           <p className="text-xs text-gray-400 mt-1">{preview.length > 0 ? `${preview.length}+ rows detected` : '.csv only'}</p>
         </label>
       </div>
-
       {preview.length > 0 && (
         <div className="overflow-x-auto">
           <p className="text-xs text-gray-400 mb-2">Preview (first 5 rows)</p>
@@ -1298,14 +1275,12 @@ function DataCenterTab() {
           </table>
         </div>
       )}
-
       {preview.length > 0 && (
         <button onClick={handleImport} disabled={loading}
           className="bg-[#bc4749] text-white px-6 py-2 rounded-lg text-sm font-medium disabled:opacity-50">
           {loading ? 'Importing...' : 'Run Import'}
         </button>
       )}
-
       {result && (
         <div className="p-5 rounded-2xl border" style={{ borderColor: 'rgba(0,0,0,0.07)', backgroundColor: 'white' }}>
           <div className="flex items-center gap-3 flex-wrap mb-2">
@@ -1361,14 +1336,12 @@ function DataCenterTab() {
           )}
         </div>
       )}
-
       {result && (result.unrecognized.length > 0 || result.manual_members_no_abo.length > 0) && (
         <ReconciliationPanel
           initialUnrecognized={result.unrecognized}
           initialProfiles={result.manual_members_no_abo}
         />
       )}
-
       {error && (
         <div className="p-4 rounded-lg bg-red-50 border border-red-200">
           <p className="text-sm text-red-700">{error}</p>
@@ -1380,44 +1353,40 @@ function DataCenterTab() {
 
 // ── Main page shell ─────────────────────────────────────────────────────────────────
 
-type TabKey = 'members' | 'los' | 'data-center'
-
-const TABS: { key: TabKey; label: string }[] = [
+const TABS = [
   { key: 'members',     label: 'Members'     },
   { key: 'los',         label: 'LOS Tree'    },
   { key: 'data-center', label: 'Data Center' },
-]
+] as const
+type TabKey = typeof TABS[number]['key']
 
-export default function AdminMembersPage() {
-  const [activeTab, setActiveTab] = useState<TabKey>('members')
+function AdminMembersInner() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const tab = (searchParams.get('tab') ?? 'members') as TabKey
 
   return (
     <div className="p-6">
-      <h1 className="font-display text-2xl font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
+      <h1 className="font-display text-2xl font-semibold mb-6" style={{ color: 'var(--text-primary)' }}>
         Members
       </h1>
-
-      {/* Tab strip */}
-      <div className="flex gap-1 mt-4 mb-6 p-1 rounded-xl w-fit" style={{ backgroundColor: 'rgba(0,0,0,0.05)' }}>
-        {TABS.map(tab => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
-            style={{
-              backgroundColor: activeTab === tab.key ? 'white' : 'transparent',
-              color: activeTab === tab.key ? 'var(--text-primary)' : 'var(--text-secondary)',
-              boxShadow: activeTab === tab.key ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-            }}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {activeTab === 'members'     && <MembersTab />}
-      {activeTab === 'los'         && <LosTab />}
-      {activeTab === 'data-center' && <DataCenterTab />}
+      <AdminTabs
+        tabs={[...TABS]}
+        value={tab}
+        onValueChange={val => router.replace(`?tab=${val}`, { scroll: false })}
+      >
+        <TabsContent value="members"><MembersTab /></TabsContent>
+        <TabsContent value="los"><LosTab /></TabsContent>
+        <TabsContent value="data-center"><DataCenterTab /></TabsContent>
+      </AdminTabs>
     </div>
+  )
+}
+
+export default function AdminMembersPage() {
+  return (
+    <Suspense>
+      <AdminMembersInner />
+    </Suspense>
   )
 }

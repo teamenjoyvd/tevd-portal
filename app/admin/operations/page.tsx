@@ -26,7 +26,7 @@ import {
   SelectSeparator,
   SelectGroup,
 } from '@/components/ui/select'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import AdminTabs, { TabsContent } from '@/app/admin/components/AdminTabs'
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -119,7 +119,7 @@ function statusPill(status: string) {
   if (status === 'rejected' || status === 'denied' || status === 'failed') {
     return { bg: 'rgba(188,71,73,0.1)', color: 'var(--brand-crimson)' }
   }
-  return { bg: '#f2cc8f33', color: '#7a5c00' } // pending
+  return { bg: '#f2cc8f33', color: '#7a5c00' }
 }
 
 // ── Trips tab ────────────────────────────────────────────────────
@@ -203,11 +203,8 @@ function TripsTab({ trips, isLoading }: { trips: Trip[]; isLoading: boolean }) {
   })
 
   function handleSave() {
-    if (editing) {
-      updateMutation.mutate({ id: editing.id, ...form })
-    } else {
-      createMutation.mutate(form)
-    }
+    if (editing) updateMutation.mutate({ id: editing.id, ...form })
+    else createMutation.mutate(form)
   }
 
   const isPending = createMutation.isPending || updateMutation.isPending
@@ -299,7 +296,6 @@ function TripsTab({ trips, isLoading }: { trips: Trip[]; isLoading: boolean }) {
                 className="w-full border rounded-xl px-3 py-2.5 text-sm" style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
             </div>
           </div>
-
           <div>
             <p className="text-xs font-semibold tracking-widest uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>Payment milestones</p>
             {form.milestones.map((m, i) => (
@@ -325,7 +321,6 @@ function TripsTab({ trips, isLoading }: { trips: Trip[]; isLoading: boolean }) {
                 className="border rounded-xl text-sm hover:bg-black/5 transition-colors" style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}>+ Add</button>
             </div>
           </div>
-
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Location</label>
@@ -352,7 +347,6 @@ function TripsTab({ trips, isLoading }: { trips: Trip[]; isLoading: boolean }) {
                 style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
             </div>
           </div>
-
           <div>
             <p className="text-xs font-semibold tracking-widest uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>Visible to</p>
             <div className="flex gap-2 flex-wrap">
@@ -373,9 +367,7 @@ function TripsTab({ trips, isLoading }: { trips: Trip[]; isLoading: boolean }) {
               ))}
             </div>
           </div>
-
           {error && <p className="text-sm" style={{ color: 'var(--brand-crimson)' }}>{error}</p>}
-
           <div className="flex gap-3 pt-2">
             <button onClick={handleSave} disabled={isPending || !isValid}
               className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity"
@@ -487,11 +479,8 @@ function ItemsTab({ trips }: { trips: Trip[] }) {
   })
 
   function handleSave() {
-    if (editing) {
-      editMutation.mutate({ id: editing.id, body: toPayload(form) })
-    } else {
-      createMutation.mutate(toPayload(form))
-    }
+    if (editing) editMutation.mutate({ id: editing.id, body: toPayload(form) })
+    else createMutation.mutate(toPayload(form))
   }
 
   const isPending = createMutation.isPending || editMutation.isPending
@@ -568,13 +557,9 @@ function ItemsTab({ trips }: { trips: Trip[] }) {
                 value={form.item_type}
                 onValueChange={val => setForm(f => ({ ...f, item_type: val as ItemForm['item_type'] }))}
               >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {ITEM_TYPES.map(t => (
-                    <SelectItem key={t} value={t}>{t}</SelectItem>
-                  ))}
+                  {ITEM_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -631,8 +616,7 @@ function PaymentsTab({ trips }: { trips: Trip[] }) {
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all')
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({})
 
-  // Drawer form state
-  const [entity, setEntity] = useState('') // "trip::{id}" | "item::{id}"
+  const [entity, setEntity] = useState('')
   const [profileId, setProfileId] = useState('')
   const [amount, setAmount] = useState('')
   const [currency, setCurrency] = useState('EUR')
@@ -756,7 +740,6 @@ function PaymentsTab({ trips }: { trips: Trip[] }) {
         </button>
       </div>
 
-      {/* Pending member submissions */}
       {pendingSubmissions.length > 0 && (
         <div>
           <p className="text-xs font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
@@ -808,7 +791,6 @@ function PaymentsTab({ trips }: { trips: Trip[] }) {
         </div>
       )}
 
-      {/* Status filter pills */}
       <div className="flex gap-2 flex-wrap">
         {STATUS_FILTERS.map(f => (
           <button key={f.key} onClick={() => setStatusFilter(f.key)}
@@ -822,7 +804,6 @@ function PaymentsTab({ trips }: { trips: Trip[] }) {
         ))}
       </div>
 
-      {/* Payments table */}
       {paymentsLoading ? (
         <div className="space-y-2">
           {[...Array(4)].map((_, i) => <div key={i} className="h-14 rounded-xl animate-pulse" style={{ backgroundColor: 'rgba(0,0,0,0.05)' }} />)}
@@ -857,43 +838,33 @@ function PaymentsTab({ trips }: { trips: Trip[] }) {
         </div>
       )}
 
-      {/* Log Payment Drawer */}
       <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title="Log Payment">
         <div className="space-y-4">
           <div>
             <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Entity *</label>
             <Select value={entity} onValueChange={setEntity}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select entity…" />
-              </SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Select entity…" /></SelectTrigger>
               <SelectContent>
                 {trips.length > 0 && (
                   <SelectGroup>
                     <SelectLabel>Trips</SelectLabel>
-                    {trips.map(t => (
-                      <SelectItem key={t.id} value={`trip::${t.id}`}>{t.title}</SelectItem>
-                    ))}
+                    {trips.map(t => <SelectItem key={t.id} value={`trip::${t.id}`}>{t.title}</SelectItem>)}
                   </SelectGroup>
                 )}
                 {trips.length > 0 && activeItems.length > 0 && <SelectSeparator />}
                 {activeItems.length > 0 && (
                   <SelectGroup>
                     <SelectLabel>Items</SelectLabel>
-                    {activeItems.map(it => (
-                      <SelectItem key={it.id} value={`item::${it.id}`}>{it.title}</SelectItem>
-                    ))}
+                    {activeItems.map(it => <SelectItem key={it.id} value={`item::${it.id}`}>{it.title}</SelectItem>)}
                   </SelectGroup>
                 )}
               </SelectContent>
             </Select>
           </div>
-
           <div>
             <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Member *</label>
             <Select value={profileId} onValueChange={setProfileId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select member…" />
-              </SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Select member…" /></SelectTrigger>
               <SelectContent>
                 {allMembers.map(m => (
                   <SelectItem key={m.id} value={m.id}>
@@ -903,7 +874,6 @@ function PaymentsTab({ trips }: { trips: Trip[] }) {
               </SelectContent>
             </Select>
           </div>
-
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Amount *</label>
@@ -918,7 +888,6 @@ function PaymentsTab({ trips }: { trips: Trip[] }) {
                 style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
             </div>
           </div>
-
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Date</label>
@@ -934,20 +903,16 @@ function PaymentsTab({ trips }: { trips: Trip[] }) {
                 style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
             </div>
           </div>
-
           <div>
             <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Status</label>
             <Select value={payStatus} onValueChange={val => setPayStatus(val as 'approved' | 'pending')}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
+              <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="approved">Approved</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
               </SelectContent>
             </Select>
           </div>
-
           <div>
             <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Note <span className="opacity-60 font-normal">(optional)</span></label>
             <input value={note} onChange={e => setNote(e.target.value)}
@@ -955,9 +920,7 @@ function PaymentsTab({ trips }: { trips: Trip[] }) {
               className="w-full border rounded-xl px-3 py-2.5 text-sm"
               style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
           </div>
-
           {payError && <p className="text-sm" style={{ color: 'var(--brand-crimson)' }}>{payError}</p>}
-
           <div className="flex gap-3 pt-2">
             <button onClick={handleLog}
               disabled={logMutation.isPending || !entity || !profileId || !amount || Number(amount) <= 0}
@@ -995,26 +958,15 @@ function OperationsInner() {
         </h1>
       </div>
 
-      <Tabs
+      <AdminTabs
+        tabs={[...TABS]}
         value={tab}
-        onValueChange={(val) => router.replace(`?tab=${val}`, { scroll: false })}
+        onValueChange={val => router.replace(`?tab=${val}`, { scroll: false })}
       >
-        <TabsList className="mb-6">
-          {TABS.map(t => (
-            <TabsTrigger key={t.key} value={t.key}>{t.label}</TabsTrigger>
-          ))}
-        </TabsList>
-
-        <TabsContent value="trips">
-          <TripsTab trips={trips} isLoading={tripsLoading} />
-        </TabsContent>
-        <TabsContent value="items">
-          <ItemsTab trips={trips} />
-        </TabsContent>
-        <TabsContent value="payments">
-          <PaymentsTab trips={trips} />
-        </TabsContent>
-      </Tabs>
+        <TabsContent value="trips"><TripsTab trips={trips} isLoading={tripsLoading} /></TabsContent>
+        <TabsContent value="items"><ItemsTab trips={trips} /></TabsContent>
+        <TabsContent value="payments"><PaymentsTab trips={trips} /></TabsContent>
+      </AdminTabs>
     </div>
   )
 }
