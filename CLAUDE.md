@@ -1,5 +1,5 @@
 # CLAUDE.md — teamenjoyVD Portal
-> Last updated: 2026-03-28 — v2.0.8. Latest stable commit: e86a7e7.
+> Last updated: 2026-03-31 — v2.0.8. Latest stable commit: e86a7e7.
 > Architecture docs live in `docs/architecture/`. Reference tables live in `docs/ai/LOOKUP.md`. Orienting context in `docs/ai/CONTEXT.md`.
 > **Neither CONTEXT.md nor LOOKUP.md is read at SSU or at GATHER start.**
 
@@ -163,7 +163,7 @@ Duplicate-safe: always filter `Duplicate = false/empty`; discard `fld2P6m5fMOsi1
 | `types/supabase.ts` | Always regenerate via `Supabase:generate_typescript_types` MCP tool after migrations — NOT the CLI. |
 | `supabase gen types` CLI | NOT installed. Do not ask user to run it. Use MCP tool instead. |
 | `payments → profiles` FK ambiguity | `payments` has TWO FKs to `profiles`: `profile_id` (member) and `logged_by_admin` (admin). Any PostgREST `.select()` joining `profiles(...)` from `payments` MUST use `profiles!profile_id(...)`. Without it PostgREST returns 500. |
-| `Drawer` for admin forms | Use `components/ui/Drawer.tsx` for ALL admin create/edit flows. Exceptions: Announcements create + Quick Links create stay as always-visible inline cards. Delete stays inline with `window.confirm`. |
+| `Drawer` for admin forms | Use `components/ui/Drawer.tsx` for ALL admin create/edit flows. Exceptions: Announcements create + Quick Links create stay as always-visible inline cards. ALL deletes use `AlertDialog` (shadcn/ui) — `window.confirm` is retired. |
 | Admin form components inside render | NEVER define a form component inside a parent page component. React remounts it on every render causing state reset. Always hoist to module scope. |
 | Theme system | Single source: `lib/hooks/useTheme.ts`. Three consumers: `ThemeTile`, `UserDropdown`, `UserPopup`. Same-tab sync via `tevd-theme-change` DOM event. Cross-tab via `StorageEvent`. Key: `tevd-theme`. |
 | `--bg-global-rgb` dark override | MUST be `26, 31, 24` in `[data-theme="dark"]`. Header uses `rgba(var(--bg-global-rgb), 0.80)` — without this the navbar renders ~80% white in dark mode. |
