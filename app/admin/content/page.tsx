@@ -18,22 +18,9 @@ import {
   AlertDialogCancel,
 } from '@/components/ui/alert-dialog'
 import AdminTabs, { TabsContent } from '@/app/admin/components/AdminTabs'
-
-// ── Shared drag handle ───────────────────────────────────────────────
-
-function GripHandle() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="flex-shrink-0"
-      style={{ color: 'var(--text-secondary)', cursor: 'grab' }}>
-      <circle cx="4" cy="3" r="1.2" fill="currentColor"/>
-      <circle cx="4" cy="7" r="1.2" fill="currentColor"/>
-      <circle cx="4" cy="11" r="1.2" fill="currentColor"/>
-      <circle cx="10" cy="3" r="1.2" fill="currentColor"/>
-      <circle cx="10" cy="7" r="1.2" fill="currentColor"/>
-      <circle cx="10" cy="11" r="1.2" fill="currentColor"/>
-    </svg>
-  )
-}
+import { AdminListCard } from '@/app/admin/components/AdminListCard'
+import { AdminStatusBadge } from '@/app/admin/components/AdminStatusBadge'
+import { useAdminDrawer } from '@/app/admin/components/useAdminDrawer'
 
 // ── BentoSettings ───────────────────────────────────────────────
 
@@ -509,14 +496,7 @@ function GuideForm({
       </div>
 
       <div className="flex items-center gap-3">
-        <span
-          className="px-2.5 py-0.5 rounded-full text-xs font-semibold"
-          style={{
-            backgroundColor: form.is_published ? 'rgba(34,197,94,0.12)' : 'rgba(0,0,0,0.06)',
-            color: form.is_published ? '#15803d' : 'var(--text-secondary)',
-          }}>
-          {form.is_published ? 'Published' : 'Draft'}
-        </span>
+        <AdminStatusBadge variant={form.is_published ? 'active' : 'inactive'} label={form.is_published ? 'Published' : 'Draft'} />
         <button
           onClick={() => setForm(f => ({ ...f, is_published: !f.is_published }))}
           className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border transition-all hover:bg-black/5"
@@ -531,6 +511,113 @@ function GuideForm({
         <button
           onClick={() => onSave(form)}
           disabled={isPending || !form.slug || !form.title.en || coverUploading}
+          className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40 transition-opacity hover:opacity-90"
+          style={{ backgroundColor: 'var(--brand-crimson)' }}>
+          {isPending ? 'Saving…' : 'Save'}
+        </button>
+        <button onClick={onCancel}
+          className="px-6 py-2.5 rounded-xl text-sm font-semibold border transition-colors hover:bg-black/5"
+          style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
+          Cancel
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ── SocialPostForm ──────────────────────────────────────────────
+
+type SocialPostFormData = {
+  platform: 'instagram' | 'facebook'
+  post_url: string
+  caption: string
+  thumbnail_url: string
+}
+
+function SocialPostForm({
+  initial,
+  onSave,
+  onCancel,
+  isPending,
+  error,
+}: {
+  initial: SocialPostFormData
+  onSave: (data: SocialPostFormData) => void
+  onCancel: () => void
+  isPending: boolean
+  error: string | null
+}) {
+  const [form, setForm] = useState(initial)
+  const [previewing, setPreviewing] = useState(false)
+  const [previewHint, setPreviewHint] = useState<string | null>(null)
+
+  async function fetchOgPreview(url: string) {
+    if (!url) return
+    setPreviewing(true)
+    setPreviewHint(null)
+    try {
+      const res = await fetch(`/api/admin/social-posts/preview?url=${encodeURIComponent(url)}`)
+      if (!res.ok) throw new Error('preview failed')
+      const data = await res.json() as { thumbnail_url: string | null; caption: string | null }
+      setForm(f => ({
+        ...f,
+        thumbnail_url: data.thumbnail_url ?? f.thumbnail_url,
+        caption: data.caption ?? f.caption,
+      }))
+      if (!data.thumbnail_url && !data.caption) {
+        setPreviewHint('Preview unavailable for this platform — enter thumbnail URL manually')
+      }
+    } catch {
+      setPreviewHint('Preview unavailable for this platform — enter thumbnail URL manually')
+    } finally {
+      setPreviewing(false)
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-2">
+        {(['instagram', 'facebook'] as const).map(p => (
+          <button key={p} onClick={() => setForm(f => ({ ...f, platform: p }))}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all"
+            style={{ backgroundColor: form.platform === p ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)', color: form.platform === p ? 'var(--brand-parchment)' : 'var(--text-secondary)' }}>
+            {p === 'instagram' ? <InstagramIcon /> : <FacebookIcon />}
+            {p.charAt(0).toUpperCase() + p.slice(1)}
+          </button>
+        ))}
+      </div>
+      <div>
+        <input
+          value={form.post_url}
+          onChange={e => setForm(f => ({ ...f, post_url: e.target.value }))}
+          onBlur={e => { if (e.target.value) fetchOgPreview(e.target.value) }}
+          placeholder="Post URL (required)"
+          className="w-full border rounded-xl px-3 py-2.5 text-sm"
+          style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
+        />
+        {previewing && <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>Fetching preview…</p>}
+        {!previewing && previewHint && <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>{previewHint}</p>}
+      </div>
+      <textarea
+        value={form.caption}
+        onChange={e => setForm(f => ({ ...f, caption: e.target.value }))}
+        placeholder="Caption — auto-extracted from post if left blank"
+        rows={3}
+        className="w-full border rounded-xl px-3 py-2.5 text-sm resize-none"
+        style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
+      />
+      <input
+        value={form.thumbnail_url}
+        onChange={e => setForm(f => ({ ...f, thumbnail_url: e.target.value }))}
+        placeholder="Thumbnail URL — auto-extracted from post if left blank"
+        className="w-full border rounded-xl px-3 py-2.5 text-sm"
+        style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
+      />
+      {error && <p className="text-xs" style={{ color: 'var(--brand-crimson)' }}>{error}</p>}
+      <div className="flex gap-3 pt-2">
+        <button
+          onClick={() => onSave(form)}
+          disabled={isPending || !form.post_url}
           className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40 transition-opacity hover:opacity-90"
           style={{ backgroundColor: 'var(--brand-crimson)' }}>
           {isPending ? 'Saving…' : 'Save'}
@@ -566,6 +653,8 @@ function ContentPageInner() {
   const qc = useQueryClient()
 
   // ── Alert dialog state ────────────────────
+  const [announcementAlertTarget, setAnnouncementAlertTarget] = useState<{ id: string; name: string } | null>(null)
+  const [linkAlertTarget, setLinkAlertTarget] = useState<{ id: string; name: string } | null>(null)
   const [guideAlertTarget, setGuideAlertTarget] = useState<{ id: string; name: string } | null>(null)
   const [socialAlertTarget, setSocialAlertTarget] = useState<{ id: string; name: string } | null>(null)
 
@@ -623,7 +712,7 @@ function ContentPageInner() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['announcements'] }),
   })
 
-  const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null)
+  const announcementDrawer = useAdminDrawer<Announcement>()
   const [editAForm, setEditAForm] = useState({
     titles: { en: '', bg: '', sk: '' } as Record<string,string>,
     contents: { en: '', bg: '', sk: '' } as Record<string,string>,
@@ -640,7 +729,7 @@ function ContentPageInner() {
       }).then(r => r.json()),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['announcements'] })
-      setEditingAnnouncement(null)
+      announcementDrawer.close()
     },
   })
 
@@ -652,7 +741,7 @@ function ContentPageInner() {
       access_level: Array.isArray(a.access_level) ? a.access_level : ['guest','member','core','admin'],
     })
     setEditALang('en')
-    setEditingAnnouncement(a)
+    announcementDrawer.openEdit(a)
   }
 
   // ── Links ────────────────────────────────────────────
@@ -703,7 +792,7 @@ function ContentPageInner() {
     },
   })
 
-  const [editingLink, setEditingLink] = useState<SiteLink | null>(null)
+  const linkDrawer = useAdminDrawer<SiteLink>()
   const [editLForm, setEditLForm] = useState({
     label: { en: '', bg: '' },
     url: '',
@@ -720,7 +809,7 @@ function ContentPageInner() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-links'] })
       qc.invalidateQueries({ queryKey: ['links', 'list'] })
-      setEditingLink(null)
+      linkDrawer.close()
     },
   })
 
@@ -731,12 +820,11 @@ function ContentPageInner() {
       access_roles: Array.isArray(l.access_roles) ? l.access_roles : ['guest','member','core','admin'],
       sort_order: l.sort_order,
     })
-    setEditingLink(l)
+    linkDrawer.openEdit(l)
   }
 
   // ── Guides ─────────────────────────────────────────
-  const [guidesEditing, setGuidesEditing] = useState<Guide | null>(null)
-  const [guidesCreating, setGuidesCreating] = useState(false)
+  const guideDrawer = useAdminDrawer<Guide>()
   const [guidesMutError, setGuidesMutError] = useState<string | null>(null)
 
   const { data: guidesRaw = [], isLoading: guidesLoading } = useQuery<Guide[]>({
@@ -764,7 +852,7 @@ function ContentPageInner() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       }).then(async r => { if (!r.ok) throw new Error((await r.json()).error); return r.json() }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-guides'] }); setGuidesCreating(false); setGuidesMutError(null) },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-guides'] }); guideDrawer.close(); setGuidesMutError(null) },
     onError: (e: Error) => setGuidesMutError(e.message),
   })
 
@@ -775,7 +863,7 @@ function ContentPageInner() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       }).then(async r => { if (!r.ok) throw new Error((await r.json()).error); return r.json() }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-guides'] }); setGuidesEditing(null); setGuidesMutError(null) },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-guides'] }); guideDrawer.close(); setGuidesMutError(null) },
     onError: (e: Error) => setGuidesMutError(e.message),
   })
 
@@ -788,6 +876,9 @@ function ContentPageInner() {
     updateGuide.mutate({ id: guide.id, is_published: !guide.is_published })
 
   // ── Social Posts ───────────────────────────────────
+  const socialDrawer = useAdminDrawer<SocialPost>()
+  const [socialMutError, setSocialMutError] = useState<string | null>(null)
+
   const { data: socialPostsRaw = [] } = useQuery<SocialPost[]>({
     queryKey: ['admin-social-posts'],
     queryFn: () => fetch('/api/admin/social-posts').then(r => r.json()),
@@ -806,40 +897,8 @@ function ContentPageInner() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-social-posts'] }); qc.invalidateQueries({ queryKey: ['socials'] }) },
   })
 
-  const [spForm, setSpForm] = useState({
-    platform: 'instagram' as 'instagram' | 'facebook',
-    post_url: '',
-    caption: '',
-    thumbnail_url: '',
-  })
-  const [spPreviewing, setSpPreviewing] = useState(false)
-  const [spPreviewHint, setSpPreviewHint] = useState<string | null>(null)
-
-  async function fetchOgPreview(url: string) {
-    if (!url) return
-    setSpPreviewing(true)
-    setSpPreviewHint(null)
-    try {
-      const res = await fetch(`/api/admin/social-posts/preview?url=${encodeURIComponent(url)}`)
-      if (!res.ok) throw new Error('preview failed')
-      const data = await res.json() as { thumbnail_url: string | null; caption: string | null }
-      setSpForm(f => ({
-        ...f,
-        thumbnail_url: data.thumbnail_url ?? f.thumbnail_url,
-        caption: data.caption ?? f.caption,
-      }))
-      if (!data.thumbnail_url && !data.caption) {
-        setSpPreviewHint('Preview unavailable for this platform — enter thumbnail URL manually')
-      }
-    } catch {
-      setSpPreviewHint('Preview unavailable for this platform — enter thumbnail URL manually')
-    } finally {
-      setSpPreviewing(false)
-    }
-  }
-
   const createSocialPost = useMutation({
-    mutationFn: (body: typeof spForm) =>
+    mutationFn: (body: SocialPostFormData) =>
       fetch('/api/admin/social-posts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -852,9 +911,30 @@ function ContentPageInner() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-social-posts'] })
       qc.invalidateQueries({ queryKey: ['socials'] })
-      setSpForm({ platform: 'instagram', post_url: '', caption: '', thumbnail_url: '' })
-      setSpPreviewHint(null)
+      socialDrawer.close()
+      setSocialMutError(null)
     },
+    onError: (e: Error) => setSocialMutError(e.message),
+  })
+
+  const updateSocialPost = useMutation({
+    mutationFn: ({ id, ...body }: { id: string } & SocialPostFormData) =>
+      fetch(`/api/admin/social-posts/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...body,
+          caption: body.caption || undefined,
+          thumbnail_url: body.thumbnail_url || undefined,
+        }),
+      }).then(async r => { if (!r.ok) throw new Error((await r.json()).error ?? 'Failed'); return r.json() }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-social-posts'] })
+      qc.invalidateQueries({ queryKey: ['socials'] })
+      socialDrawer.close()
+      setSocialMutError(null)
+    },
+    onError: (e: Error) => setSocialMutError(e.message),
   })
 
   const patchSocialPost = useMutation({
@@ -945,18 +1025,19 @@ function ContentPageInner() {
               ))}
             </div>
 
-            <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-6 mb-4 space-y-3">
+            {/* Inline create card — intentional exception per CLAUDE.md */}
+            <div className="rounded-2xl border p-6 mb-4 space-y-3" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
               <input value={aForm.titles[aLang] ?? ''}
                 onChange={e => setAForm(f => ({ ...f, titles: { ...f.titles, [aLang]: e.target.value } }))}
                 placeholder={`Title (${aLang.toUpperCase()})`}
-                className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-                style={{ color: 'var(--text-primary)' }} />
+                className="w-full border rounded-xl px-3 py-2.5 text-sm"
+                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
               <textarea value={aForm.contents[aLang] ?? ''}
                 onChange={e => setAForm(f => ({ ...f, contents: { ...f.contents, [aLang]: e.target.value } }))}
                 placeholder={`Content (${aLang.toUpperCase()})`}
                 rows={4}
-                className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm resize-none"
-                style={{ color: 'var(--text-primary)' }} />
+                className="w-full border rounded-xl px-3 py-2.5 text-sm resize-none"
+                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
               <div className="flex gap-2 flex-wrap">
                 {['guest','member','core','admin'].map(role => (
                   <button key={role}
@@ -977,41 +1058,35 @@ function ContentPageInner() {
 
             <div className="space-y-1.5">
               {localAnnouncements.map(a => (
-                <div key={a.id}
-                  draggable
+                <AdminListCard
+                  key={a.id}
+                  grip
+                  title={a.titles.en ?? a.titles.bg ?? 'Untitled'}
+                  sub={new Date(a.created_at).toLocaleDateString('en-GB').replace(/\//g, '.')}
+                  dragging={aDrag.isDragging(a.id)}
                   onDragStart={() => aDrag.onDragStart(a.id)}
                   onDragOver={e => aDrag.onDragOver(e, a.id)}
                   onDrop={aDrag.onDrop}
                   onDragEnd={aDrag.onDragEnd}
-                  className="bg-white rounded-2xl border border-black/5 shadow-sm p-4 flex items-start gap-3"
-                  style={{ opacity: aDrag.isDragging(a.id) ? 0.5 : 1 }}>
-                  <GripHandle />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
-                      {a.titles.en ?? a.titles.bg ?? 'Untitled'}
-                    </p>
-                    <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                      {new Date(a.created_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <button onClick={() => startEditingAnnouncement(a)}
-                      className="text-xs px-2.5 py-1 rounded-full font-medium border hover:bg-black/5 transition-colors"
-                      style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>Edit</button>
-                    <button onClick={() => toggleAnnouncement.mutate({ id: a.id, is_active: !a.is_active })}
-                      className="text-xs px-2.5 py-1 rounded-full font-medium"
-                      style={{ backgroundColor: a.is_active ? '#81b29a33' : 'rgba(0,0,0,0.05)', color: a.is_active ? '#2d6a4f' : 'var(--text-secondary)' }}>
-                      {a.is_active ? 'Active' : 'Inactive'}
-                    </button>
-                    <button onClick={() => deleteAnnouncement.mutate(a.id)}
-                      className="text-xs font-medium hover:opacity-70 transition-opacity"
-                      style={{ color: 'var(--brand-crimson)' }}>Delete</button>
-                  </div>
-                </div>
+                  actions={
+                    <>
+                      <button onClick={() => startEditingAnnouncement(a)}
+                        className="text-xs px-2.5 py-1 rounded-full font-medium border hover:bg-black/5 transition-colors"
+                        style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>Edit</button>
+                      <button onClick={() => toggleAnnouncement.mutate({ id: a.id, is_active: !a.is_active })}>
+                        <AdminStatusBadge variant={a.is_active ? 'active' : 'inactive'} label={a.is_active ? 'Active' : 'Inactive'} />
+                      </button>
+                      <button
+                        onClick={() => setAnnouncementAlertTarget({ id: a.id, name: a.titles.en ?? a.titles.bg ?? 'Untitled' })}
+                        className="text-xs font-medium hover:opacity-70 transition-opacity"
+                        style={{ color: 'var(--brand-crimson)' }}>Delete</button>
+                    </>
+                  }
+                />
               ))}
             </div>
 
-            <Drawer open={!!editingAnnouncement} onClose={() => setEditingAnnouncement(null)} title="Edit announcement">
+            <Drawer open={announcementDrawer.open} onClose={announcementDrawer.close} title="Edit announcement">
               <div className="space-y-3">
                 <div className="flex gap-2 mb-2">
                   {LANGS.map(l => (
@@ -1044,47 +1119,70 @@ function ContentPageInner() {
                   ))}
                 </div>
                 <div className="flex gap-3 pt-2">
-                  <button onClick={() => editingAnnouncement && updateAnnouncement.mutate({ id: editingAnnouncement.id, ...editAForm })}
+                  <button onClick={() => announcementDrawer.editing && updateAnnouncement.mutate({ id: announcementDrawer.editing.id, ...editAForm })}
                     disabled={updateAnnouncement.isPending || !editAForm.titles.en}
                     className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
                     style={{ backgroundColor: 'var(--brand-crimson)' }}>
                     {updateAnnouncement.isPending ? 'Saving…' : 'Save changes'}
                   </button>
-                  <button onClick={() => setEditingAnnouncement(null)}
+                  <button onClick={announcementDrawer.close}
                     className="px-5 py-2 rounded-xl text-sm font-semibold border transition-colors hover:bg-black/5"
                     style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>Cancel</button>
                 </div>
               </div>
             </Drawer>
+
+            <AlertDialog open={!!announcementAlertTarget} onOpenChange={open => { if (!open) setAnnouncementAlertTarget(null) }}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete announcement</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Delete &ldquo;{announcementAlertTarget?.name}&rdquo;? This cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => {
+                      if (announcementAlertTarget) deleteAnnouncement.mutate(announcementAlertTarget.id)
+                      setAnnouncementAlertTarget(null)
+                    }}
+                  >
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </section>
         </TabsContent>
 
         {/* ── Links tab ── */}
         <TabsContent value="links">
           <section>
-            <div className="rounded-2xl border border-black/5 shadow-sm p-6 mb-4 space-y-4" style={{ backgroundColor: 'var(--bg-card)' }}>
+            {/* Inline create card — intentional exception per CLAUDE.md */}
+            <div className="rounded-2xl border p-6 mb-4 space-y-4" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold uppercase tracking-widest mb-1 block" style={{ color: 'var(--text-secondary)' }}>Label (EN)</label>
                   <input value={lForm.label.en} onChange={e => setLForm(f => ({ ...f, label: { ...f.label, en: e.target.value } }))}
                     placeholder="Label in English"
-                    className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-                    style={{ color: 'var(--text-primary)' }} />
+                    className="w-full border rounded-xl px-3 py-2.5 text-sm"
+                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
                 </div>
                 <div>
                   <label className="text-xs font-semibold uppercase tracking-widest mb-1 block" style={{ color: 'var(--text-secondary)' }}>Label (BG)</label>
                   <input value={lForm.label.bg} onChange={e => setLForm(f => ({ ...f, label: { ...f.label, bg: e.target.value } }))}
                     placeholder="Етикет на български"
-                    className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-                    style={{ color: 'var(--text-primary)' }} />
+                    className="w-full border rounded-xl px-3 py-2.5 text-sm"
+                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
                 </div>
               </div>
               <div>
                 <label className="text-xs font-semibold uppercase tracking-widest mb-1 block" style={{ color: 'var(--text-secondary)' }}>URL</label>
                 <input value={lForm.url} onChange={e => setLForm(f => ({ ...f, url: e.target.value }))}
                   placeholder="https://…"
-                  className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-                  style={{ color: 'var(--text-primary)' }} />
+                  className="w-full border rounded-xl px-3 py-2.5 text-sm"
+                  style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
               </div>
               <div className="flex gap-2 flex-wrap">
                 {ALL_ROLES.map(role => (
@@ -1106,28 +1204,28 @@ function ContentPageInner() {
 
             <div className="space-y-1.5">
               {localLinks.map(l => (
-                <div key={l.id}
-                  draggable
+                <AdminListCard
+                  key={l.id}
+                  grip
+                  title={l.label.en}
+                  sub={l.url}
+                  dragging={lDrag.isDragging(l.id)}
                   onDragStart={() => lDrag.onDragStart(l.id)}
                   onDragOver={e => lDrag.onDragOver(e, l.id)}
                   onDrop={lDrag.onDrop}
                   onDragEnd={lDrag.onDragEnd}
-                  className="rounded-2xl border border-black/5 shadow-sm p-4 flex items-center gap-3"
-                  style={{ backgroundColor: 'var(--bg-card)', opacity: lDrag.isDragging(l.id) ? 0.5 : 1 }}>
-                  <GripHandle />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{l.label.en}</p>
-                    <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>{l.url}</p>
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <button onClick={() => startEditingLink(l)}
-                      className="text-xs font-medium border px-2.5 py-1 rounded-full hover:bg-black/5 transition-colors"
-                      style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>Edit</button>
-                    <button onClick={() => deleteLink.mutate(l.id)}
-                      className="text-xs font-medium hover:opacity-70 transition-opacity"
-                      style={{ color: 'var(--brand-crimson)' }}>Delete</button>
-                  </div>
-                </div>
+                  actions={
+                    <>
+                      <button onClick={() => startEditingLink(l)}
+                        className="text-xs font-medium border px-2.5 py-1 rounded-full hover:bg-black/5 transition-colors"
+                        style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>Edit</button>
+                      <button
+                        onClick={() => setLinkAlertTarget({ id: l.id, name: l.label.en })}
+                        className="text-xs font-medium hover:opacity-70 transition-opacity"
+                        style={{ color: 'var(--brand-crimson)' }}>Delete</button>
+                    </>
+                  }
+                />
               ))}
               {localLinks.length === 0 && (
                 <div className="rounded-2xl border px-6 py-10 text-center" style={{ borderColor: 'var(--border-default)' }}>
@@ -1137,9 +1235,9 @@ function ContentPageInner() {
             </div>
 
             <Drawer
-              open={!!editingLink}
-              onClose={() => setEditingLink(null)}
-              title={editingLink ? `Edit: ${editingLink.label.en}` : 'Edit link'}
+              open={linkDrawer.open}
+              onClose={linkDrawer.close}
+              title={linkDrawer.editing ? `Edit: ${linkDrawer.editing.label.en}` : 'Edit link'}
             >
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
@@ -1173,18 +1271,40 @@ function ContentPageInner() {
                   ))}
                 </div>
                 <div className="flex gap-3 pt-2">
-                  <button onClick={() => editingLink && updateLink.mutate({ id: editingLink.id, ...editLForm })}
+                  <button onClick={() => linkDrawer.editing && updateLink.mutate({ id: linkDrawer.editing.id, ...editLForm })}
                     disabled={updateLink.isPending || !editLForm.label.en || !editLForm.url}
                     className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
                     style={{ backgroundColor: 'var(--brand-crimson)' }}>
                     {updateLink.isPending ? 'Saving…' : 'Save changes'}
                   </button>
-                  <button onClick={() => setEditingLink(null)}
+                  <button onClick={linkDrawer.close}
                     className="px-5 py-2 rounded-xl text-sm font-semibold border transition-colors hover:bg-black/5"
                     style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>Cancel</button>
                 </div>
               </div>
             </Drawer>
+
+            <AlertDialog open={!!linkAlertTarget} onOpenChange={open => { if (!open) setLinkAlertTarget(null) }}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete link</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Delete &ldquo;{linkAlertTarget?.name}&rdquo;? This cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => {
+                      if (linkAlertTarget) deleteLink.mutate(linkAlertTarget.id)
+                      setLinkAlertTarget(null)
+                    }}
+                  >
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </section>
         </TabsContent>
 
@@ -1195,30 +1315,30 @@ function ContentPageInner() {
               <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                 {guidesRaw.length} guide{guidesRaw.length !== 1 ? 's' : ''}
               </p>
-              <button onClick={() => { setGuidesCreating(true); setGuidesEditing(null); setGuidesMutError(null) }}
+              <button onClick={() => { guideDrawer.openCreate(); setGuidesMutError(null) }}
                 className="px-4 py-2 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-opacity"
                 style={{ backgroundColor: 'var(--brand-crimson)' }}>+ New Guide</button>
             </div>
 
             <Drawer
-              open={guidesCreating || !!guidesEditing}
-              onClose={() => { setGuidesCreating(false); setGuidesEditing(null); setGuidesMutError(null) }}
-              title={guidesEditing ? `Edit: ${guidesEditing.title.en || guidesEditing.slug}` : 'New Guide'}
+              open={guideDrawer.open}
+              onClose={() => { guideDrawer.close(); setGuidesMutError(null) }}
+              title={guideDrawer.editing ? `Edit: ${guideDrawer.editing.title.en || guideDrawer.editing.slug}` : 'New Guide'}
             >
-              {guidesCreating && (
+              {guideDrawer.isCreating && (
                 <GuideForm
                   initial={emptyGuide()}
                   onSave={data => createGuide.mutate(data)}
-                  onCancel={() => { setGuidesCreating(false); setGuidesMutError(null) }}
+                  onCancel={() => { guideDrawer.close(); setGuidesMutError(null) }}
                   isPending={createGuide.isPending}
                   error={guidesMutError}
                 />
               )}
-              {guidesEditing && (
+              {guideDrawer.isEditing && guideDrawer.editing && (
                 <GuideForm
-                  initial={{ slug: guidesEditing.slug, title: guidesEditing.title, cover_image_url: guidesEditing.cover_image_url, emoji: guidesEditing.emoji, body: guidesEditing.body, access_roles: guidesEditing.access_roles, is_published: guidesEditing.is_published, sort_order: guidesEditing.sort_order }}
-                  onSave={data => updateGuide.mutate({ id: guidesEditing.id, ...data })}
-                  onCancel={() => { setGuidesEditing(null); setGuidesMutError(null) }}
+                  initial={{ slug: guideDrawer.editing.slug, title: guideDrawer.editing.title, cover_image_url: guideDrawer.editing.cover_image_url, emoji: guideDrawer.editing.emoji, body: guideDrawer.editing.body, access_roles: guideDrawer.editing.access_roles, is_published: guideDrawer.editing.is_published, sort_order: guideDrawer.editing.sort_order }}
+                  onSave={data => updateGuide.mutate({ id: guideDrawer.editing!.id, ...data })}
+                  onCancel={() => { guideDrawer.close(); setGuidesMutError(null) }}
                   isPending={updateGuide.isPending}
                   error={guidesMutError}
                 />
@@ -1238,40 +1358,36 @@ function ContentPageInner() {
             ) : (
               <div className="space-y-1.5">
                 {localGuides.map(guide => (
-                  <div key={guide.id}
-                    draggable
+                  <AdminListCard
+                    key={guide.id}
+                    grip
+                    lead={<span className="text-xl">{guide.emoji ?? '📄'}</span>}
+                    title={guide.title.en || '(untitled)'}
+                    sub={`/${guide.slug} · ${guide.access_roles.join(', ')}`}
+                    dragging={gDrag.isDragging(guide.id)}
                     onDragStart={() => gDrag.onDragStart(guide.id)}
                     onDragOver={e => gDrag.onDragOver(e, guide.id)}
                     onDrop={gDrag.onDrop}
                     onDragEnd={gDrag.onDragEnd}
-                    className="rounded-2xl border px-4 py-4 flex items-center gap-3"
-                    style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)', opacity: gDrag.isDragging(guide.id) ? 0.5 : 1 }}>
-                    <GripHandle />
-                    <span className="text-xl flex-shrink-0">{guide.emoji ?? '📄'}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{guide.title.en || '(untitled)'}</p>
-                      <p className="text-xs mt-0.5 font-mono" style={{ color: 'var(--text-secondary)' }}>/{guide.slug} · {guide.access_roles.join(', ')}</p>
-                    </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold"
-                        style={{ backgroundColor: guide.is_published ? 'rgba(34,197,94,0.12)' : 'rgba(0,0,0,0.06)', color: guide.is_published ? '#15803d' : 'var(--text-secondary)' }}>
-                        {guide.is_published ? 'Published' : 'Draft'}
-                      </span>
-                      <button onClick={() => toggleGuidePublish(guide)} disabled={updateGuide.isPending}
-                        className="px-3 py-1 rounded-full text-xs font-semibold border transition-all disabled:opacity-50 hover:bg-black/5"
-                        style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
-                        {guide.is_published ? 'Unpublish' : 'Publish'}
-                      </button>
-                      <button onClick={() => { setGuidesEditing(guide); setGuidesCreating(false); setGuidesMutError(null) }}
-                        className="px-3 py-1 rounded-lg text-xs font-semibold border transition-colors hover:bg-black/5"
-                        style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>Edit</button>
-                      <button
-                        onClick={() => setGuideAlertTarget({ id: guide.id, name: guide.title.en || guide.slug })}
-                        disabled={deleteGuide.isPending}
-                        className="px-3 py-1 rounded-lg text-xs font-semibold transition-colors hover:bg-red-50 disabled:opacity-50"
-                        style={{ color: 'var(--brand-crimson)' }}>Delete</button>
-                    </div>
-                  </div>
+                    actions={
+                      <>
+                        <AdminStatusBadge variant={guide.is_published ? 'active' : 'inactive'} label={guide.is_published ? 'Published' : 'Draft'} />
+                        <button onClick={() => toggleGuidePublish(guide)} disabled={updateGuide.isPending}
+                          className="px-3 py-1 rounded-full text-xs font-semibold border transition-all disabled:opacity-50 hover:bg-black/5"
+                          style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
+                          {guide.is_published ? 'Unpublish' : 'Publish'}
+                        </button>
+                        <button onClick={() => { guideDrawer.openEdit(guide); setGuidesMutError(null) }}
+                          className="px-3 py-1 rounded-lg text-xs font-semibold border transition-colors hover:bg-black/5"
+                          style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>Edit</button>
+                        <button
+                          onClick={() => setGuideAlertTarget({ id: guide.id, name: guide.title.en || guide.slug })}
+                          disabled={deleteGuide.isPending}
+                          className="text-xs font-medium hover:opacity-70 transition-opacity disabled:opacity-50"
+                          style={{ color: 'var(--brand-crimson)' }}>Delete</button>
+                      </>
+                    }
+                  />
                 ))}
               </div>
             )}
@@ -1303,112 +1419,96 @@ function ContentPageInner() {
         {/* ── Social Posts tab ── */}
         <TabsContent value="socials">
           <section className="space-y-6">
-            <div className="rounded-2xl border p-6 space-y-4" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
-              <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--brand-crimson)' }}>Add post</p>
-              <div className="flex gap-2">
-                {(['instagram', 'facebook'] as const).map(p => (
-                  <button key={p} onClick={() => setSpForm(f => ({ ...f, platform: p }))}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all"
-                    style={{ backgroundColor: spForm.platform === p ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)', color: spForm.platform === p ? 'var(--brand-parchment)' : 'var(--text-secondary)' }}>
-                    {p === 'instagram' ? <InstagramIcon /> : <FacebookIcon />}
-                    {p.charAt(0).toUpperCase() + p.slice(1)}
-                  </button>
-                ))}
-              </div>
-              <div>
-                <input
-                  value={spForm.post_url}
-                  onChange={e => setSpForm(f => ({ ...f, post_url: e.target.value }))}
-                  onBlur={e => { if (e.target.value) fetchOgPreview(e.target.value) }}
-                  placeholder="Post URL (required)"
-                  className="w-full border rounded-xl px-3 py-2.5 text-sm"
-                  style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
-                />
-                {spPreviewing && (
-                  <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>Fetching preview…</p>
-                )}
-                {!spPreviewing && spPreviewHint && (
-                  <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>{spPreviewHint}</p>
-                )}
-              </div>
-              <textarea
-                value={spForm.caption}
-                onChange={e => setSpForm(f => ({ ...f, caption: e.target.value }))}
-                placeholder="Caption — auto-extracted from post if left blank"
-                rows={3}
-                className="w-full border rounded-xl px-3 py-2.5 text-sm resize-none"
-                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
-              />
-              <input
-                value={spForm.thumbnail_url}
-                onChange={e => setSpForm(f => ({ ...f, thumbnail_url: e.target.value }))}
-                placeholder="Thumbnail URL — auto-extracted from post if left blank"
-                className="w-full border rounded-xl px-3 py-2.5 text-sm"
-                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
-              />
-              {createSocialPost.isError && (
-                <p className="text-xs" style={{ color: 'var(--brand-crimson)' }}>{(createSocialPost.error as Error).message}</p>
-              )}
-              <button onClick={() => createSocialPost.mutate(spForm)} disabled={createSocialPost.isPending || !spForm.post_url}
-                className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity"
-                style={{ backgroundColor: 'var(--brand-crimson)' }}>
-                {createSocialPost.isPending ? 'Adding…' : 'Add post'}
-              </button>
+            <div className="flex items-center justify-between">
+              <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                {socialPostsRaw.length} post{socialPostsRaw.length !== 1 ? 's' : ''}
+              </p>
+              <button onClick={() => { socialDrawer.openCreate(); setSocialMutError(null) }}
+                className="px-4 py-2 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-opacity"
+                style={{ backgroundColor: 'var(--brand-crimson)' }}>+ Add post</button>
             </div>
+
+            <Drawer
+              open={socialDrawer.open}
+              onClose={() => { socialDrawer.close(); setSocialMutError(null) }}
+              title={socialDrawer.editing ? `Edit: ${socialDrawer.editing.caption ?? socialDrawer.editing.post_url}` : 'New post'}
+            >
+              {socialDrawer.isCreating && (
+                <SocialPostForm
+                  initial={{ platform: 'instagram', post_url: '', caption: '', thumbnail_url: '' }}
+                  onSave={data => createSocialPost.mutate(data)}
+                  onCancel={() => { socialDrawer.close(); setSocialMutError(null) }}
+                  isPending={createSocialPost.isPending}
+                  error={socialMutError}
+                />
+              )}
+              {socialDrawer.isEditing && socialDrawer.editing && (
+                <SocialPostForm
+                  initial={{
+                    platform: socialDrawer.editing.platform,
+                    post_url: socialDrawer.editing.post_url,
+                    caption: socialDrawer.editing.caption ?? '',
+                    thumbnail_url: socialDrawer.editing.thumbnail_url ?? '',
+                  }}
+                  onSave={data => updateSocialPost.mutate({ id: socialDrawer.editing!.id, ...data })}
+                  onCancel={() => { socialDrawer.close(); setSocialMutError(null) }}
+                  isPending={updateSocialPost.isPending}
+                  error={socialMutError}
+                />
+              )}
+            </Drawer>
 
             <div className="space-y-1.5">
               {localSocials.length === 0 && (
                 <div className="rounded-2xl border px-6 py-10 text-center" style={{ borderColor: 'var(--border-default)' }}>
-                  <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No posts yet. Add one above.</p>
+                  <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No posts yet.</p>
                 </div>
               )}
               {localSocials.map(post => (
-                <div key={post.id}
-                  draggable
+                <AdminListCard
+                  key={post.id}
+                  grip
+                  lead={
+                    <div className="rounded-lg overflow-hidden flex-shrink-0" style={{ width: 40, height: 40, backgroundColor: 'rgba(0,0,0,0.06)' }}>
+                      {post.thumbnail_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={post.thumbnail_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center" style={{ color: 'var(--text-secondary)' }}>
+                          {post.platform === 'instagram' ? <InstagramIcon /> : <FacebookIcon />}
+                        </div>
+                      )}
+                    </div>
+                  }
+                  title={post.caption ?? post.post_url}
+                  sub={post.platform}
+                  dragging={sDrag.isDragging(post.id)}
                   onDragStart={() => sDrag.onDragStart(post.id)}
                   onDragOver={e => sDrag.onDragOver(e, post.id)}
                   onDrop={sDrag.onDrop}
                   onDragEnd={sDrag.onDragEnd}
-                  className="rounded-2xl border px-4 py-3 flex items-center gap-3"
-                  style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)', opacity: sDrag.isDragging(post.id) ? 0.5 : 1 }}>
-                  <GripHandle />
-                  <div className="flex-shrink-0 rounded-lg overflow-hidden" style={{ width: 40, height: 40, backgroundColor: 'rgba(0,0,0,0.06)' }}>
-                    {post.thumbnail_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={post.thumbnail_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center" style={{ color: 'var(--text-secondary)' }}>
-                        {post.platform === 'instagram' ? <InstagramIcon /> : <FacebookIcon />}
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <span style={{ color: 'var(--text-secondary)' }}>{post.platform === 'instagram' ? <InstagramIcon /> : <FacebookIcon />}</span>
-                      {post.is_pinned && (
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white" style={{ backgroundColor: 'var(--brand-crimson)' }}>Pinned</span>
-                      )}
-                    </div>
-                    <p className="text-xs truncate" style={{ color: 'var(--text-secondary)' }}>{post.caption ?? post.post_url}</p>
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <button onClick={() => patchSocialPost.mutate({ id: post.id, is_visible: !post.is_visible })} disabled={patchSocialPost.isPending}
-                      className="text-xs px-2.5 py-1 rounded-full font-semibold transition-all disabled:opacity-50"
-                      style={{ backgroundColor: post.is_visible ? 'rgba(26,107,74,0.12)' : 'rgba(0,0,0,0.06)', color: post.is_visible ? '#1a6b4a' : 'var(--text-secondary)' }}>
-                      {post.is_visible ? 'Active' : 'Hidden'}
-                    </button>
-                    <button onClick={() => patchSocialPost.mutate({ id: post.id, is_pinned: !post.is_pinned })} disabled={patchSocialPost.isPending}
-                      className="text-xs px-2.5 py-1 rounded-full font-semibold border transition-all disabled:opacity-50 hover:bg-black/5"
-                      style={{ borderColor: 'var(--border-default)', color: post.is_pinned ? 'var(--brand-crimson)' : 'var(--text-secondary)' }}>
-                      {post.is_pinned ? 'Unpin' : 'Pin'}
-                    </button>
-                    <button
-                      onClick={() => setSocialAlertTarget({ id: post.id, name: post.caption ?? post.post_url })}
-                      disabled={deleteSocialPost.isPending}
-                      className="text-xs font-medium hover:opacity-70 transition-opacity disabled:opacity-40"
-                      style={{ color: 'var(--brand-crimson)' }}>Delete</button>
-                  </div>
-                </div>
+                  actions={
+                    <>
+                      {post.is_pinned && <AdminStatusBadge variant="pinned" label="Pinned" />}
+                      <button onClick={() => patchSocialPost.mutate({ id: post.id, is_visible: !post.is_visible })} disabled={patchSocialPost.isPending}>
+                        <AdminStatusBadge variant={post.is_visible ? 'active' : 'inactive'} label={post.is_visible ? 'Active' : 'Hidden'} />
+                      </button>
+                      <button onClick={() => patchSocialPost.mutate({ id: post.id, is_pinned: !post.is_pinned })} disabled={patchSocialPost.isPending}
+                        className="text-xs px-2.5 py-1 rounded-full font-semibold border transition-all disabled:opacity-50 hover:bg-black/5"
+                        style={{ borderColor: 'var(--border-default)', color: post.is_pinned ? 'var(--brand-crimson)' : 'var(--text-secondary)' }}>
+                        {post.is_pinned ? 'Unpin' : 'Pin'}
+                      </button>
+                      <button onClick={() => { socialDrawer.openEdit(post); setSocialMutError(null) }}
+                        className="text-xs font-medium border px-2.5 py-1 rounded-full hover:bg-black/5 transition-colors"
+                        style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>Edit</button>
+                      <button
+                        onClick={() => setSocialAlertTarget({ id: post.id, name: post.caption ?? post.post_url })}
+                        disabled={deleteSocialPost.isPending}
+                        className="text-xs font-medium hover:opacity-70 transition-opacity disabled:opacity-40"
+                        style={{ color: 'var(--brand-crimson)' }}>Delete</button>
+                    </>
+                  }
+                />
               ))}
             </div>
 
