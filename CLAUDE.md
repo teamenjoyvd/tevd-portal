@@ -1,5 +1,5 @@
 # CLAUDE.md — teamenjoyVD Portal
-> Last updated: 2026-03-31 — v2.0.8. Latest stable commit: e86a7e7.
+> Last updated: 2026-04-01 — v2.0.9. Latest stable commit: baf924a.
 > Architecture docs live in `docs/architecture/`. Reference tables live in `docs/ai/LOOKUP.md`. Orienting context in `docs/ai/CONTEXT.md`.
 > **Neither CONTEXT.md nor LOOKUP.md is read at SSU or at GATHER start.**
 
@@ -177,6 +177,7 @@ Duplicate-safe: always filter `Duplicate = false/empty`; discard `fld2P6m5fMOsi1
 | shadcn/ui install method | NEVER run `npx shadcn@latest init` — it assumes Tailwind v3 and corrupts `globals.css`. Add components individually: `npx shadcn@latest add <n>`. After each add, review the `globals.css` diff and revert any injected `@layer base` blocks. |
 | shadcn CSS variable conflicts | shadcn components reference `--background`, `--foreground`, etc. Edit the vended component source in `components/ui/` to use project tokens (`--bg-card`, `--text-primary`) instead. |
 | shadcn Tabs — MUST be controlled | NEVER use `defaultValue` on `<Tabs>`. Mobile users rely on hardware back/swipe; uncontrolled tabs break navigation. Always use `value={tab}` (from `useSearchParams`) + `onValueChange={(val) => router.replace(`?tab=${val}`, { scroll: false })}`. The `scroll: false` option is mandatory — without it, tab switches scroll the page to top on mobile. Wrap the component calling `useSearchParams()` in `<Suspense>` (server shell pattern). |
+| Route handler `params` — Next.js 16 | `params` is a `Promise` in Next.js 16. ALWAYS type as `{ params: Promise<{ id: string }> }` and `await params` before use. The old sync pattern `{ params }: { params: { id: string } }` is a TS error and will fail the build. |
 
 ---
 
