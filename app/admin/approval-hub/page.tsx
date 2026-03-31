@@ -179,13 +179,13 @@ function AboVerificationTab() {
           Standard ABO requests — {standardPending.length}
         </p>
         {standardPending.length === 0 ? (
-          <div className="rounded-xl border border-black/5 bg-white px-5 py-6 text-center">
+          <div className="rounded-xl border px-5 py-6 text-center" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
             <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No pending standard requests.</p>
           </div>
         ) : (
           <div className="space-y-2">
             {standardPending.map(v => (
-              <div key={v.id} className="bg-white rounded-xl border border-black/5 px-4 py-3.5 flex items-center gap-3">
+              <div key={v.id} className="rounded-xl border px-4 py-3.5 flex items-center gap-3" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
                     {v.profiles?.first_name} {v.profiles?.last_name}
@@ -224,13 +224,13 @@ function AboVerificationTab() {
           Manual requests — {manualPending.length}
         </p>
         {manualPending.length === 0 ? (
-          <div className="rounded-xl border border-black/5 bg-white px-5 py-6 text-center">
+          <div className="rounded-xl border px-5 py-6 text-center" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
             <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No pending manual requests.</p>
           </div>
         ) : (
           <div className="space-y-2">
             {manualPending.map(v => (
-              <div key={v.id} className="bg-white rounded-xl border border-black/5 px-4 py-3.5 flex items-center gap-3">
+              <div key={v.id} className="rounded-xl border px-4 py-3.5 flex items-center gap-3" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
@@ -279,7 +279,7 @@ function AboVerificationTab() {
           </p>
           <div className="space-y-2">
             {manualNoAbo.map(m => (
-              <div key={m.id} className="bg-white rounded-xl border border-black/5 px-4 py-3 flex items-center justify-between gap-3">
+              <div key={m.id} className="rounded-xl border px-4 py-3 flex items-center justify-between gap-3" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
@@ -315,14 +315,14 @@ function AboVerificationTab() {
         <p className="text-xs mb-4" style={{ color: 'var(--text-secondary)' }}>
           Directly promote a guest to member without a prior submission.
         </p>
-        <div className="bg-white rounded-xl border border-black/5 p-5 space-y-4">
+        <div className="rounded-xl border p-5 space-y-4" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
           <div>
             <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Guest</label>
             <select
               value={directProfileId}
               onChange={e => setDirectProfileId(e.target.value)}
               className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
-              style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
+              style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
             >
               <option value="">Select a guest…</option>
               {directCandidates.map(g => (
@@ -461,13 +461,13 @@ function TripRegistrationsTab() {
           {[...Array(3)].map((_, i) => <div key={i} className="h-16 bg-black/5 rounded-xl animate-pulse" />)}
         </div>
       ) : pending.length === 0 ? (
-        <div className="rounded-xl border border-black/5 bg-white px-5 py-8 text-center">
+        <div className="rounded-xl border px-5 py-8 text-center" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
           <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No pending registrations.</p>
         </div>
       ) : (
         <div className="space-y-2">
           {pending.map(r => (
-            <div key={r.id} className="bg-white rounded-xl border border-black/5 px-4 py-3.5 flex items-center gap-3">
+            <div key={r.id} className="rounded-xl border px-4 py-3.5 flex items-center gap-3" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
                   {r.profile?.first_name} {r.profile?.last_name}
@@ -506,7 +506,7 @@ function TripRegistrationsTab() {
 
       <CollapsibleResolved count={resolved.length}>
         {resolved.map(r => (
-          <div key={r.id} className="bg-white rounded-xl border border-black/5 px-4 py-3 flex items-center justify-between gap-3">
+          <div key={r.id} className="rounded-xl border px-4 py-3 flex items-center justify-between gap-3" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
             <div className="min-w-0">
               <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
                 {r.profile?.first_name} {r.profile?.last_name}
@@ -625,13 +625,13 @@ function EventRolesTab() {
           {[...Array(3)].map((_, i) => <div key={i} className="h-16 bg-black/5 rounded-xl animate-pulse" />)}
         </div>
       ) : pending.length === 0 ? (
-        <div className="rounded-xl border border-black/5 bg-white px-5 py-8 text-center">
+        <div className="rounded-xl border px-5 py-8 text-center" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
           <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No pending role requests.</p>
         </div>
       ) : (
         <div className="space-y-2">
           {pending.map(r => (
-            <div key={r.id} className="bg-white rounded-xl border border-black/5 px-4 py-3.5">
+            <div key={r.id} className="rounded-xl border px-4 py-3.5" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
               <div className="flex items-start gap-3">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
@@ -678,7 +678,7 @@ function EventRolesTab() {
 
       <CollapsibleResolved count={resolved.length}>
         {resolved.map(r => (
-          <div key={r.id} className="bg-white rounded-xl border border-black/5 px-4 py-3 flex items-center justify-between gap-3">
+          <div key={r.id} className="rounded-xl border px-4 py-3 flex items-center justify-between gap-3" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
             <div className="min-w-0">
               <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
                 {r.profile.first_name} {r.profile.last_name}

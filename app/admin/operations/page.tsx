@@ -264,7 +264,7 @@ function TripsTab({ trips, isLoading }: { trips: Trip[]; isLoading: boolean }) {
                   value={(form as Record<string, unknown>)[k] as string}
                   onChange={e => setForm(f => ({ ...f, [k]: e.target.value }))}
                   className="w-full border rounded-xl px-3 py-2.5 text-sm"
-                  style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
+                  style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
                 />
               </div>
             ))}
@@ -276,24 +276,24 @@ function TripsTab({ trips, isLoading }: { trips: Trip[]; isLoading: boolean }) {
               onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
               rows={3}
               className="w-full border rounded-xl px-3 py-2.5 text-sm resize-none"
-              style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
+              style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
             />
           </div>
           <div className="grid grid-cols-3 gap-4">
             <div>
               <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Start date</label>
               <input type="date" value={form.start_date} onChange={e => setForm(f => ({ ...f, start_date: e.target.value }))}
-                className="w-full border rounded-xl px-3 py-2.5 text-sm" style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
+                className="w-full border rounded-xl px-3 py-2.5 text-sm" style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
             </div>
             <div>
               <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>End date</label>
               <input type="date" value={form.end_date} onChange={e => setForm(f => ({ ...f, end_date: e.target.value }))}
-                className="w-full border rounded-xl px-3 py-2.5 text-sm" style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
+                className="w-full border rounded-xl px-3 py-2.5 text-sm" style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
             </div>
             <div>
               <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Cost (EUR)</label>
               <input type="number" value={form.total_cost} onChange={e => setForm(f => ({ ...f, total_cost: Number(e.target.value) }))}
-                className="w-full border rounded-xl px-3 py-2.5 text-sm" style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
+                className="w-full border rounded-xl px-3 py-2.5 text-sm" style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
             </div>
           </div>
           <div>
@@ -310,13 +310,13 @@ function TripsTab({ trips, isLoading }: { trips: Trip[]; isLoading: boolean }) {
             <div className="grid grid-cols-4 gap-2 mt-2">
               <input placeholder="Label" value={milestoneInput.label}
                 onChange={e => setMilestoneInput(m => ({ ...m, label: e.target.value }))}
-                className="border rounded-xl px-3 py-2 text-sm col-span-1" style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
+                className="border rounded-xl px-3 py-2 text-sm col-span-1" style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
               <input placeholder="Amount" type="number" value={milestoneInput.amount}
                 onChange={e => setMilestoneInput(m => ({ ...m, amount: e.target.value }))}
-                className="border rounded-xl px-3 py-2 text-sm" style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
+                className="border rounded-xl px-3 py-2 text-sm" style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
               <input type="date" value={milestoneInput.due_date}
                 onChange={e => setMilestoneInput(m => ({ ...m, due_date: e.target.value }))}
-                className="border rounded-xl px-3 py-2 text-sm" style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
+                className="border rounded-xl px-3 py-2 text-sm" style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
               <button onClick={addMilestone}
                 className="border rounded-xl text-sm hover:bg-black/5 transition-colors" style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}>+ Add</button>
             </div>
@@ -326,25 +326,25 @@ function TripsTab({ trips, isLoading }: { trips: Trip[]; isLoading: boolean }) {
               <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Location</label>
               <input value={form.location ?? ''} onChange={e => setForm(f => ({ ...f, location: e.target.value || null }))}
                 placeholder="e.g. Oradea, Romania" className="w-full border rounded-xl px-3 py-2.5 text-sm"
-                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
+                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
             </div>
             <div>
               <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Trip type</label>
               <input value={form.trip_type ?? ''} onChange={e => setForm(f => ({ ...f, trip_type: e.target.value || null }))}
                 placeholder="e.g. leisure, training" className="w-full border rounded-xl px-3 py-2.5 text-sm"
-                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
+                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
             </div>
             <div>
               <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Accommodation</label>
               <input value={form.accommodation_type ?? ''} onChange={e => setForm(f => ({ ...f, accommodation_type: e.target.value || null }))}
                 placeholder="e.g. hotel, hostel" className="w-full border rounded-xl px-3 py-2.5 text-sm"
-                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
+                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
             </div>
             <div>
               <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Inclusions (comma-sep)</label>
               <input value={form.inclusions.join(', ')} onChange={e => setForm(f => ({ ...f, inclusions: e.target.value.split(',').map(s => s.trim()).filter(Boolean) }))}
                 placeholder="e.g. flights, hotel" className="w-full border rounded-xl px-3 py-2.5 text-sm"
-                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
+                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
             </div>
           </div>
           <div>
@@ -549,7 +549,7 @@ function ItemsTab({ trips }: { trips: Trip[] }) {
               <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Title *</label>
               <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
                 className="w-full border rounded-xl px-3 py-2.5 text-sm"
-                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
+                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
             </div>
             <div>
               <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Type *</label>
@@ -568,20 +568,20 @@ function ItemsTab({ trips }: { trips: Trip[] }) {
             <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Description</label>
             <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
               rows={2} className="w-full border rounded-xl px-3 py-2.5 text-sm resize-none"
-              style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
+              style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Amount *</label>
               <input type="number" step="0.01" min="0" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
                 className="w-full border rounded-xl px-3 py-2.5 text-sm"
-                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
+                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
             </div>
             <div>
               <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Currency</label>
               <input value={form.currency} onChange={e => setForm(f => ({ ...f, currency: e.target.value }))}
                 className="w-full border rounded-xl px-3 py-2.5 text-sm"
-                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
+                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
             </div>
           </div>
           <div>
@@ -772,7 +772,7 @@ function PaymentsTab({ trips }: { trips: Trip[] }) {
                     onChange={e => setReviewNotes(n => ({ ...n, [p.id]: e.target.value }))}
                     placeholder="Admin note (optional)"
                     className="flex-1 border rounded-xl px-3 py-2 text-xs"
-                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
+                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
                   />
                   <button
                     onClick={() => reviewMutation.mutate({ id: p.id, admin_status: 'approved', admin_note: reviewNotes[p.id] || null })}
@@ -879,13 +879,13 @@ function PaymentsTab({ trips }: { trips: Trip[] }) {
               <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Amount *</label>
               <input type="number" step="0.01" min="0" value={amount} onChange={e => setAmount(e.target.value)}
                 placeholder="0.00" className="w-full border rounded-xl px-3 py-2.5 text-sm"
-                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
+                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
             </div>
             <div>
               <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Currency</label>
               <input value={currency} onChange={e => setCurrency(e.target.value)}
                 className="w-full border rounded-xl px-3 py-2.5 text-sm"
-                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
+                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -893,14 +893,14 @@ function PaymentsTab({ trips }: { trips: Trip[] }) {
               <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Date</label>
               <input type="date" value={txDate} onChange={e => setTxDate(e.target.value)}
                 className="w-full border rounded-xl px-3 py-2.5 text-sm"
-                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
+                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
             </div>
             <div>
               <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Payment method</label>
               <input value={method} onChange={e => setMethod(e.target.value)}
                 placeholder="e.g. bank transfer, cash"
                 className="w-full border rounded-xl px-3 py-2.5 text-sm"
-                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
+                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
             </div>
           </div>
           <div>
@@ -918,7 +918,7 @@ function PaymentsTab({ trips }: { trips: Trip[] }) {
             <input value={note} onChange={e => setNote(e.target.value)}
               placeholder="e.g. Cash payment, ref #123"
               className="w-full border rounded-xl px-3 py-2.5 text-sm"
-              style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
+              style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
           </div>
           {payError && <p className="text-sm" style={{ color: 'var(--brand-crimson)' }}>{payError}</p>}
           <div className="flex gap-3 pt-2">

@@ -89,7 +89,7 @@ function BentoSettings() {
                   value={values[entry.tile_key] ?? entry.max_items}
                   onChange={e => setDraft(d => ({ ...d, [entry.tile_key]: Number(e.target.value) }))}
                   className="w-20 border rounded-xl px-3 py-2 text-sm text-center"
-                  style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
+                  style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
                 />
               </div>
             ))}
@@ -224,7 +224,7 @@ function BlockEditor({ blocks, onChange }: { blocks: Block[]; onChange: (b: Bloc
     <div className="space-y-3">
       {safeBlocks.map((block, i) => (
         <div key={i} className="rounded-xl border p-4 space-y-3"
-          style={{ backgroundColor: 'var(--bg-global)', borderColor: 'var(--border-default)' }}>
+          style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <span className="text-xs font-semibold px-2 py-0.5 rounded-full uppercase tracking-widest"
@@ -593,7 +593,7 @@ function SocialPostForm({
           onBlur={e => { if (e.target.value) fetchOgPreview(e.target.value) }}
           placeholder="Post URL (required)"
           className="w-full border rounded-xl px-3 py-2.5 text-sm"
-          style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
+          style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
         />
         {previewing && <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>Fetching preview…</p>}
         {!previewing && previewHint && <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>{previewHint}</p>}
@@ -604,14 +604,14 @@ function SocialPostForm({
         placeholder="Caption — auto-extracted from post if left blank"
         rows={3}
         className="w-full border rounded-xl px-3 py-2.5 text-sm resize-none"
-        style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
+        style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
       />
       <input
         value={form.thumbnail_url}
         onChange={e => setForm(f => ({ ...f, thumbnail_url: e.target.value }))}
         placeholder="Thumbnail URL — auto-extracted from post if left blank"
         className="w-full border rounded-xl px-3 py-2.5 text-sm"
-        style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
+        style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
       />
       {error && <p className="text-xs" style={{ color: 'var(--brand-crimson)' }}>{error}</p>}
       <div className="flex gap-3 pt-2">
@@ -1031,13 +1031,13 @@ function ContentPageInner() {
                 onChange={e => setAForm(f => ({ ...f, titles: { ...f.titles, [aLang]: e.target.value } }))}
                 placeholder={`Title (${aLang.toUpperCase()})`}
                 className="w-full border rounded-xl px-3 py-2.5 text-sm"
-                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
+                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
               <textarea value={aForm.contents[aLang] ?? ''}
                 onChange={e => setAForm(f => ({ ...f, contents: { ...f.contents, [aLang]: e.target.value } }))}
                 placeholder={`Content (${aLang.toUpperCase()})`}
                 rows={4}
                 className="w-full border rounded-xl px-3 py-2.5 text-sm resize-none"
-                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
+                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
               <div className="flex gap-2 flex-wrap">
                 {['guest','member','core','admin'].map(role => (
                   <button key={role}
@@ -1101,13 +1101,13 @@ function ContentPageInner() {
                   onChange={e => setEditAForm(f => ({ ...f, titles: { ...f.titles, [editALang]: e.target.value } }))}
                   placeholder={`Title (${editALang.toUpperCase()})`}
                   className="w-full border rounded-xl px-3 py-2.5 text-sm"
-                  style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
+                  style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
                 <textarea value={editAForm.contents[editALang] ?? ''}
                   onChange={e => setEditAForm(f => ({ ...f, contents: { ...f.contents, [editALang]: e.target.value } }))}
                   placeholder={`Content (${editALang.toUpperCase()})`}
                   rows={4}
                   className="w-full border rounded-xl px-3 py-2.5 text-sm resize-none"
-                  style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
+                  style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
                 <div className="flex gap-2 flex-wrap">
                   {['guest','member','core','admin'].map(role => (
                     <button key={role}
@@ -1167,14 +1167,14 @@ function ContentPageInner() {
                   <input value={lForm.label.en} onChange={e => setLForm(f => ({ ...f, label: { ...f.label, en: e.target.value } }))}
                     placeholder="Label in English"
                     className="w-full border rounded-xl px-3 py-2.5 text-sm"
-                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
+                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
                 </div>
                 <div>
                   <label className="text-xs font-semibold uppercase tracking-widest mb-1 block" style={{ color: 'var(--text-secondary)' }}>Label (BG)</label>
                   <input value={lForm.label.bg} onChange={e => setLForm(f => ({ ...f, label: { ...f.label, bg: e.target.value } }))}
                     placeholder="Етикет на български"
                     className="w-full border rounded-xl px-3 py-2.5 text-sm"
-                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
+                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
                 </div>
               </div>
               <div>
@@ -1182,7 +1182,7 @@ function ContentPageInner() {
                 <input value={lForm.url} onChange={e => setLForm(f => ({ ...f, url: e.target.value }))}
                   placeholder="https://…"
                   className="w-full border rounded-xl px-3 py-2.5 text-sm"
-                  style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
+                  style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
               </div>
               <div className="flex gap-2 flex-wrap">
                 {ALL_ROLES.map(role => (
@@ -1245,20 +1245,20 @@ function ContentPageInner() {
                     <label className="text-xs font-semibold uppercase tracking-widest mb-1 block" style={{ color: 'var(--text-secondary)' }}>Label (EN)</label>
                     <input value={editLForm.label.en} onChange={e => setEditLForm(f => ({ ...f, label: { ...f.label, en: e.target.value } }))}
                       className="w-full border rounded-xl px-3 py-2.5 text-sm"
-                      style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
+                      style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
                   </div>
                   <div>
                     <label className="text-xs font-semibold uppercase tracking-widest mb-1 block" style={{ color: 'var(--text-secondary)' }}>Label (BG)</label>
                     <input value={editLForm.label.bg} onChange={e => setEditLForm(f => ({ ...f, label: { ...f.label, bg: e.target.value } }))}
                       className="w-full border rounded-xl px-3 py-2.5 text-sm"
-                      style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
+                      style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
                   </div>
                 </div>
                 <div>
                   <label className="text-xs font-semibold uppercase tracking-widest mb-1 block" style={{ color: 'var(--text-secondary)' }}>URL</label>
                   <input value={editLForm.url} onChange={e => setEditLForm(f => ({ ...f, url: e.target.value }))}
                     className="w-full border rounded-xl px-3 py-2.5 text-sm"
-                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
+                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
                 </div>
                 <div className="flex gap-2 flex-wrap">
                   {ALL_ROLES.map(role => (

@@ -69,25 +69,25 @@ function EventForm({
     <div className="space-y-4">
       <input value={f.title} onChange={e => setF(p => ({ ...p, title: e.target.value }))}
         placeholder="Title" className="w-full border rounded-xl px-3 py-2.5 text-sm"
-        style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
+        style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
       <textarea value={f.description ?? ''} onChange={e => setF(p => ({ ...p, description: e.target.value }))}
         placeholder="Description (optional)" rows={2}
         className="w-full border rounded-xl px-3 py-2.5 text-sm resize-none"
-        style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
+        style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Start</label>
           <input type="datetime-local" value={f.start_time}
             onChange={e => setF(p => ({ ...p, start_time: e.target.value }))}
             className="w-full border rounded-xl px-3 py-2.5 text-sm"
-            style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
+            style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
         </div>
         <div>
           <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>End</label>
           <input type="datetime-local" value={f.end_time}
             onChange={e => setF(p => ({ ...p, end_time: e.target.value }))}
             className="w-full border rounded-xl px-3 py-2.5 text-sm"
-            style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }} />
+            style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
         </div>
       </div>
       <div className="flex flex-wrap gap-4 items-start">

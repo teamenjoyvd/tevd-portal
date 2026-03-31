@@ -355,7 +355,7 @@ function LosTable({
 
   if (members.length === 0) {
     return (
-      <div className="text-center py-16 bg-white rounded-2xl border border-black/5">
+      <div className="text-center py-16 rounded-2xl border" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
         <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No LOS data. Import a CSV in Data Center.</p>
       </div>
     )
@@ -403,7 +403,7 @@ function LosTable({
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-black/5 shadow-sm overflow-hidden">
+      <div className="rounded-2xl border shadow-sm overflow-hidden" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
         <Table className="border-collapse">
           <TableHeader>
             {table.getHeaderGroups().map(hg => (
@@ -875,7 +875,7 @@ function ReconciliationPanel({
   }
 
   return (
-    <div className="mt-6 p-5 rounded-2xl border" style={{ borderColor: 'rgba(0,0,0,0.07)', backgroundColor: 'white' }}>
+    <div className="mt-6 p-5 rounded-2xl border" style={{ borderColor: 'var(--border-default)', backgroundColor: 'var(--bg-card)' }}>
       <div className="flex items-start justify-between gap-4 mb-4">
         <div>
           <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Reconciliation</p>
@@ -1014,8 +1014,8 @@ function MembersTab() {
               const uplineMatch = losMatch?.sponsor_abo_number === v.claimed_upline_abo
               const fullMatch = losMatch && uplineMatch
               return (
-                <div key={v.id} className="bg-white rounded-2xl border shadow-sm p-4"
-                  style={{ borderColor: fullMatch ? '#81b29a50' : '#f2cc8f80' }}>
+                <div key={v.id} className="rounded-2xl border shadow-sm p-4"
+                  style={{ backgroundColor: 'var(--bg-card)', borderColor: fullMatch ? '#81b29a50' : '#f2cc8f80' }}>
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -1058,7 +1058,7 @@ function MembersTab() {
                             onChange={e => setDenyNote(s => ({ ...s, [v.id]: e.target.value }))}
                             placeholder="Reason (optional)"
                             className="border border-black/10 rounded-lg px-2 py-1 text-xs w-36"
-                            style={{ color: 'var(--text-primary)' }} />
+                            style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
                           <button onClick={() => verifyMutation.mutate({ id: v.id, action: 'deny', admin_note: denyNote[v.id] })}
                             disabled={verifyMutation.isPending}
                             className="px-3 py-1.5 rounded-lg text-xs font-medium text-white disabled:opacity-50"
@@ -1079,7 +1079,7 @@ function MembersTab() {
           <p className="text-xs font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
             Guests — no ABO submitted ({unverifiedGuests.length})
           </p>
-          <div className="bg-white rounded-2xl border border-black/5 shadow-sm divide-y divide-black/5">
+          <div className="rounded-2xl border shadow-sm divide-y" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
             {unverifiedGuests.map(g => (
               <div key={g.id} className="px-5 py-3 flex items-center justify-between gap-4">
                 <div>
@@ -1245,21 +1245,21 @@ function DataCenterTab() {
       <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
         LOS CSV import — upserts on ABO number. Rebuilds LTree paths after every import.
       </p>
-      <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+      <div className="border-2 border-dashed rounded-lg p-8 text-center" style={{ borderColor: 'var(--border-default)', backgroundColor: 'var(--bg-card)' }}>
         <input ref={fileRef} type="file" accept=".csv" onChange={handleFile} className="hidden" id="csv-upload" />
         <label htmlFor="csv-upload" className="cursor-pointer">
-          <p className="text-sm font-medium text-gray-700">{filename ? filename : 'Click to select a CSV file'}</p>
-          <p className="text-xs text-gray-400 mt-1">{preview.length > 0 ? `${preview.length}+ rows detected` : '.csv only'}</p>
+          <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{filename ? filename : 'Click to select a CSV file'}</p>
+          <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>{preview.length > 0 ? `${preview.length}+ rows detected` : '.csv only'}</p>
         </label>
       </div>
       {preview.length > 0 && (
         <div className="overflow-x-auto">
-          <p className="text-xs text-gray-400 mb-2">Preview (first 5 rows)</p>
+          <p className="text-xs mb-2" style={{ color: 'var(--text-secondary)' }}>Preview (first 5 rows)</p>
           <table className="text-xs w-full border-collapse">
             <thead>
               <tr>
                 {Object.keys(preview[0]).map(k => (
-                  <th key={k} className="border border-gray-200 px-2 py-1 bg-gray-50 text-left font-medium">{k}</th>
+                  <th key={k} className="border px-2 py-1 text-left font-medium" style={{ borderColor: 'var(--border-default)', backgroundColor: 'var(--bg-card)', color: 'var(--text-secondary)' }}>{k}</th>
                 ))}
               </tr>
             </thead>
@@ -1267,7 +1267,7 @@ function DataCenterTab() {
               {preview.map((row, i) => (
                 <tr key={i}>
                   {Object.values(row).map((v, j) => (
-                    <td key={j} className="border border-gray-200 px-2 py-1 truncate max-w-24">{v}</td>
+                    <td key={j} className="border px-2 py-1 truncate max-w-24" style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}>{v}</td>
                   ))}
                 </tr>
               ))}
@@ -1282,7 +1282,7 @@ function DataCenterTab() {
         </button>
       )}
       {result && (
-        <div className="p-5 rounded-2xl border" style={{ borderColor: 'rgba(0,0,0,0.07)', backgroundColor: 'white' }}>
+        <div className="p-5 rounded-2xl border" style={{ borderColor: 'var(--border-default)', backgroundColor: 'var(--bg-card)' }}>
           <div className="flex items-center gap-3 flex-wrap mb-2">
             <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
               Import complete — {result.inserted} rows upserted
@@ -1327,10 +1327,10 @@ function DataCenterTab() {
             ))}
           </DiffSection>
           {result.errors.length > 0 && (
-            <div className="mt-4 pt-4 border-t border-black/5">
-              <p className="text-xs font-semibold text-red-700 mb-1">{result.errors.length} errors:</p>
+            <div className="mt-4 pt-4 border-t" style={{ borderColor: 'var(--border-default)' }}>
+              <p className="text-xs font-semibold mb-1" style={{ color: 'var(--brand-crimson)' }}>{result.errors.length} errors:</p>
               {result.errors.map((e, i) => (
-                <p key={i} className="text-xs text-red-600">{e.abo_number}: {e.error}</p>
+                <p key={i} className="text-xs" style={{ color: 'var(--brand-crimson)' }}>{e.abo_number}: {e.error}</p>
               ))}
             </div>
           )}
@@ -1343,8 +1343,8 @@ function DataCenterTab() {
         />
       )}
       {error && (
-        <div className="p-4 rounded-lg bg-red-50 border border-red-200">
-          <p className="text-sm text-red-700">{error}</p>
+        <div className="p-4 rounded-lg border" style={{ backgroundColor: 'rgba(188,71,73,0.06)', borderColor: 'rgba(188,71,73,0.3)' }}>
+          <p className="text-sm" style={{ color: 'var(--brand-crimson)' }}>{error}</p>
         </div>
       )}
     </div>
