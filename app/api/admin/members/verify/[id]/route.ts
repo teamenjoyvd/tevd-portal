@@ -1,5 +1,6 @@
 import { auth, clerkClient } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { upsertTreeNode } from '@/lib/supabase/rpc'
 
 export async function PATCH(
   req: Request,
@@ -48,14 +49,12 @@ export async function PATCH(
 
       if (statusErr) return Response.json({ error: statusErr.message }, { status: 500 })
 
-      // Cast to any: generated types declare p_abo_number as string but the
-      // function accepts NULL to trigger the no-ABO placeholder path.
-      const { error: treeErr } = await supabase
-        .rpc('upsert_tree_node', {
-          p_profile_id: verReq.profile_id,
-          p_abo_number: null,
-          p_sponsor_abo_number: verReq.claimed_upline_abo,
-        } as any)
+      // p_abo_number=null triggers the no-ABO placeholder path in the function
+      const { error: treeErr } = await upsertTreeNode(supabase, {
+        p_profile_id: verReq.profile_id,
+        p_abo_number: null,
+        p_sponsor_abo_number: verReq.claimed_upline_abo,
+      })
 
       if (treeErr) return Response.json({ error: treeErr.message }, { status: 500 })
     } else {
@@ -77,14 +76,12 @@ export async function PATCH(
 
       if (statusErr) return Response.json({ error: statusErr.message }, { status: 500 })
 
-      // Cast to any: generated types declare p_abo_number as string but
-      // claimed_abo is string | null in the generated schema.
-      const { error: treeErr } = await supabase
-        .rpc('upsert_tree_node', {
-          p_profile_id: verReq.profile_id,
-          p_abo_number: verReq.claimed_abo,
-          p_sponsor_abo_number: verReq.claimed_upline_abo,
-        } as any)
+      // claimed_abo is string | null in the schema; null triggers the placeholder path
+      const { error: treeErr } = await upsertTreeNode(supabase, {
+        p_profile_id: verReq.profile_id,
+        p_abo_number: verReq.claimed_abo,
+        p_sponsor_abo_number: verReq.claimed_upline_abo,
+      })
 
       if (treeErr) return Response.json({ error: treeErr.message }, { status: 500 })
     }

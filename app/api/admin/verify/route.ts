@@ -1,6 +1,7 @@
 import { auth, clerkClient } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { requireAdmin } from '@/lib/supabase/guards'
+import { upsertTreeNode } from '@/lib/supabase/rpc'
 
 // Path C: admin directly verifies a guest with no prior submission.
 // Sets role=member, stores upline_abo_number, places a placeholder tree node.
@@ -35,15 +36,12 @@ export async function POST(req: Request) {
     })
   }
 
-  // Place placeholder tree node (p_abo_number=null → p_<uuid> label).
-  // Cast to any: generated types declare p_abo_number as string but the
-  // function accepts NULL to trigger the no-ABO placeholder path.
-  const { error: treeErr } = await supabase
-    .rpc('upsert_tree_node', {
-      p_profile_id: profile_id,
-      p_abo_number: null,
-      p_sponsor_abo_number: upline_abo_number,
-    } as any)
+  // p_abo_number=null triggers the no-ABO placeholder path in the function
+  const { error: treeErr } = await upsertTreeNode(supabase, {
+    p_profile_id: profile_id,
+    p_abo_number: null,
+    p_sponsor_abo_number: upline_abo_number,
+  })
 
   if (treeErr) return Response.json({ error: treeErr.message }, { status: 500 })
 
