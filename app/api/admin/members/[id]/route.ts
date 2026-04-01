@@ -14,13 +14,18 @@ export async function GET(
     .from('profiles').select('role').eq('clerk_id', userId).single()
   if (admin?.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 })
 
-  const [profileRes, losRes, registrationsRes, paymentsRes, roleRequestsRes] = await Promise.all([
-    supabase.from('profiles')
-      .select('*, tree_nodes(path, depth)')
-      .eq('id', id).single(),
+  const profileRes = await supabase
+    .from('profiles')
+    .select('*, tree_nodes(path, depth)')
+    .eq('id', id)
+    .single()
+
+  const aboNumber = profileRes.data?.abo_number ?? ''
+
+  const [losRes, registrationsRes, paymentsRes, roleRequestsRes] = await Promise.all([
     supabase.from('los_members')
       .select('*')
-      .eq('abo_number', (await supabase.from('profiles').select('abo_number').eq('id', id).single()).data?.abo_number ?? ''),
+      .eq('abo_number', aboNumber),
     supabase.from('trip_registrations')
       .select('*, trip:trips(title, destination, start_date)')
       .eq('profile_id', id)
