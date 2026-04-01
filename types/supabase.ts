@@ -974,6 +974,10 @@ export type Database = {
     }
     Functions: {
       abo_to_ltree_label: { Args: { abo: string }; Returns: string }
+      approve_member_verification: {
+        Args: { p_admin_note?: string; p_request_id: string }
+        Returns: undefined
+      }
       get_core_ancestors: { Args: { p_profile_id: string }; Returns: string[] }
       get_los_members_with_profiles: {
         Args: never

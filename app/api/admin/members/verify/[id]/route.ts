@@ -1,6 +1,5 @@
 import { auth, clerkClient } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { upsertTreeNode } from '@/lib/supabase/rpc'
 
 export async function PATCH(
   req: Request,
@@ -20,7 +19,7 @@ export async function PATCH(
     return Response.json({ error: 'action must be approve or deny' }, { status: 400 })
   }
 
-  // Get the request
+  // Fetch the request — needed for Clerk sync and notification copy after approval
   const { data: verReq } = await supabase
     .from('abo_verification_requests')
     .select('*')
@@ -30,63 +29,19 @@ export async function PATCH(
   if (!verReq) return Response.json({ error: 'Request not found' }, { status: 404 })
 
   if (action === 'approve') {
-    if (verReq.request_type === 'manual') {
-      // Manual path: member has no ABO — store upline, place placeholder tree node
-      const { error: profileErr } = await supabase
-        .from('profiles')
-        .update({ role: 'member', upline_abo_number: verReq.claimed_upline_abo })
-        .eq('id', verReq.profile_id)
-        .select('id')
-        .single()
-
-      if (profileErr) return Response.json({ error: profileErr.message }, { status: 500 })
-
-      // Resolve the request immediately after the profile write — before non-atomic ops
-      const { error: statusErr } = await supabase
-        .from('abo_verification_requests')
-        .update({ status: 'approved', resolved_at: new Date().toISOString(), admin_note: admin_note ?? null })
-        .eq('id', id)
-
-      if (statusErr) return Response.json({ error: statusErr.message }, { status: 500 })
-
-      // p_abo_number=null triggers the no-ABO placeholder path in the function
-      const { error: treeErr } = await upsertTreeNode(supabase, {
-        p_profile_id: verReq.profile_id,
-        p_abo_number: null,
-        p_sponsor_abo_number: verReq.claimed_upline_abo,
+    // Single atomic RPC: UPDATE profiles + UPDATE abo_verification_requests
+    // + upsert_tree_node all in one transaction.
+    // If this fails, no partial state is written.
+    const { error: rpcErr } = await supabase
+      .rpc('approve_member_verification', {
+        p_request_id: id,
+        p_admin_note: admin_note ?? null,
       })
 
-      if (treeErr) return Response.json({ error: treeErr.message }, { status: 500 })
-    } else {
-      // Standard path: set abo_number + promote to member
-      const { error: profileErr } = await supabase
-        .from('profiles')
-        .update({ abo_number: verReq.claimed_abo, role: 'member' })
-        .eq('id', verReq.profile_id)
-        .select('id')
-        .single()
+    if (rpcErr) return Response.json({ error: rpcErr.message }, { status: 500 })
 
-      if (profileErr) return Response.json({ error: profileErr.message }, { status: 500 })
-
-      // Resolve the request immediately after the profile write — before non-atomic ops
-      const { error: statusErr } = await supabase
-        .from('abo_verification_requests')
-        .update({ status: 'approved', resolved_at: new Date().toISOString(), admin_note: admin_note ?? null })
-        .eq('id', id)
-
-      if (statusErr) return Response.json({ error: statusErr.message }, { status: 500 })
-
-      // claimed_abo is string | null in the schema; null triggers the placeholder path
-      const { error: treeErr } = await upsertTreeNode(supabase, {
-        p_profile_id: verReq.profile_id,
-        p_abo_number: verReq.claimed_abo,
-        p_sponsor_abo_number: verReq.claimed_upline_abo,
-      })
-
-      if (treeErr) return Response.json({ error: treeErr.message }, { status: 500 })
-    }
-
-    // Sync role to Clerk publicMetadata so UserDropdown reflects immediately
+    // Sync role to Clerk publicMetadata so UserDropdown reflects immediately.
+    // Best-effort: Supabase is already committed above.
     const { data: promoted } = await supabase
       .from('profiles').select('clerk_id').eq('id', verReq.profile_id).single()
     if (promoted?.clerk_id) {
@@ -96,7 +51,7 @@ export async function PATCH(
       })
     }
 
-    // Notify the user
+    // Notify the user. Best-effort: failure here does not affect approval state.
     const { data: profile } = await supabase
       .from('profiles').select('first_name').eq('id', verReq.profile_id).single()
 
