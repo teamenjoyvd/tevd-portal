@@ -1,16 +1,14 @@
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { requireAdminOrCore } from '@/lib/supabase/guards'
 
 export async function GET(req: Request): Promise<Response> {
   const { userId } = await auth()
   if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
   const supabase = createServiceClient()
-  const { data: caller } = await supabase
-    .from('profiles').select('role').eq('clerk_id', userId).single()
-  if (caller?.role !== 'admin' && caller?.role !== 'core') {
-    return Response.json({ error: 'Forbidden' }, { status: 403 })
-  }
+  const guard = await requireAdminOrCore(userId, supabase)
+  if (guard) return guard
 
   const { searchParams } = new URL(req.url)
   const statusFilter = searchParams.get('admin_status')
@@ -34,6 +32,7 @@ export async function POST(req: Request): Promise<Response> {
   if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
   const supabase = createServiceClient()
+  // Need caller.id for logged_by_admin — fetch id + role together
   const { data: caller } = await supabase
     .from('profiles').select('id, role').eq('clerk_id', userId).single()
   if (!caller || (caller.role !== 'admin' && caller.role !== 'core')) {

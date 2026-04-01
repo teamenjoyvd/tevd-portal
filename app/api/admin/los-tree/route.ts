@@ -1,5 +1,6 @@
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { requireAdmin } from '@/lib/supabase/guards'
 
 export async function GET() {
   const { userId } = await auth()
@@ -8,16 +9,8 @@ export async function GET() {
   }
 
   const supabase = createServiceClient()
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('clerk_id', userId)
-    .single()
-
-  if (profile?.role !== 'admin') {
-    return Response.json({ error: 'Forbidden' }, { status: 403 })
-  }
+  const guard = await requireAdmin(userId, supabase)
+  if (guard) return guard
 
   const { data, error } = await supabase
     .from('tree_nodes')

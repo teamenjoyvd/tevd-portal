@@ -1,16 +1,14 @@
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { requireAdminOrCore } from '@/lib/supabase/guards'
 
 export async function GET(): Promise<Response> {
   const { userId } = await auth()
   if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
   const supabase = createServiceClient()
-  const { data: profile } = await supabase
-    .from('profiles').select('role').eq('clerk_id', userId).single()
-  if (!profile || (profile.role !== 'admin' && profile.role !== 'core')) {
-    return Response.json({ error: 'Forbidden' }, { status: 403 })
-  }
+  const guard = await requireAdminOrCore(userId, supabase)
+  if (guard) return guard
 
   const { data, error } = await supabase
     .from('payable_items')
@@ -26,6 +24,7 @@ export async function POST(req: Request): Promise<Response> {
   if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
   const supabase = createServiceClient()
+  // Need caller.id for created_by — fetch id + role together
   const { data: profile } = await supabase
     .from('profiles').select('id, role').eq('clerk_id', userId).single()
   if (!profile || (profile.role !== 'admin' && profile.role !== 'core')) {
