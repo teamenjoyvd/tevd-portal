@@ -8,6 +8,7 @@ import { formatDate, formatCurrency } from '@/lib/format'
 import { getRoleColors } from '@/lib/role-colors'
 import { Drawer } from '@/components/ui/Drawer'
 import RegisterButton from '@/components/trips/RegisterButton'
+import { TripDocumentsTile } from './components/TripDocumentsTile'
 import type { Tables } from '@/types/supabase'
 import type { TripState, TripProfile, TripPayment, TeamAttendee } from './page'
 
@@ -687,6 +688,9 @@ function AttendeeView({
 
         {/* Who's Going */}
         <WhosGoingTile attendees={teamAttendees} />
+
+        {/* Trip Documents (SEQ313) */}
+        <TripDocumentsTile tripId={trip.id} />
 
         {/* Trip info (read-only) */}
         <TripHero trip={trip} profile={profile} />

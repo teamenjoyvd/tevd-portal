@@ -784,6 +784,54 @@ export type Database = {
           },
         ]
       }
+      trip_attachments: {
+        Row: {
+          created_at: string
+          created_by: string
+          file_name: string
+          file_type: string
+          file_url: string
+          id: string
+          sort_order: number
+          trip_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          file_name: string
+          file_type: string
+          file_url: string
+          id?: string
+          sort_order?: number
+          trip_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          file_name?: string
+          file_type?: string
+          file_url?: string
+          id?: string
+          sort_order?: number
+          trip_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_attachments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_attachments_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trip_registrations: {
         Row: {
           cancelled_at: string | null
