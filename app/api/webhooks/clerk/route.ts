@@ -66,7 +66,10 @@ export async function POST(req: Request) {
   if (evt.type === 'user.deleted') {
     const { id } = evt.data
     if (id) {
-      await supabase.from('profiles').delete().eq('clerk_id', id)
+      const { error } = await supabase.from('profiles').delete().eq('clerk_id', id)
+      if (error) {
+        return Response.json({ error: 'Delete failed' }, { status: 500 })
+      }
     }
   }
 
