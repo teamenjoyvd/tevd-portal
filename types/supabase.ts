@@ -1058,6 +1058,33 @@ export type Database = {
       }
       import_los_members: { Args: { rows: Json }; Returns: Json }
       is_admin: { Args: never; Returns: boolean }
+      patch_member_role: {
+        Args: {
+          p_changed_by: string
+          p_new_role: Database["public"]["Enums"]["user_role"]
+          p_note?: string
+          p_profile_id: string
+        }
+        Returns: {
+          abo_number: string | null
+          clerk_id: string
+          contact_email: string | null
+          created_at: string
+          display_names: Json
+          document_active_type: Database["public"]["Enums"]["document_type"]
+          first_name: string
+          ical_token: string | null
+          id: string
+          id_number: string | null
+          last_name: string
+          passport_number: string | null
+          phone: string | null
+          role: Database["public"]["Enums"]["user_role"]
+          ui_prefs: Json
+          upline_abo_number: string | null
+          valid_through: string | null
+        }[]
+      }
       pin_social_post: { Args: { p_id: string }; Returns: undefined }
       rebuild_tree_paths: { Args: never; Returns: undefined }
       run_los_digest: { Args: never; Returns: undefined }

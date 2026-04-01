@@ -52,7 +52,7 @@ export async function GET(
 export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
-) {
+): Promise<Response> {
   const { id } = await params
   const { userId } = await auth()
   if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
@@ -68,35 +68,46 @@ export async function PATCH(
     Object.entries(body).filter(([k]) => allowed.includes(k))
   )
 
-  // Fetch current role before update so we can write the audit row
-  let oldRole: string | null = null
+  // Role change: use atomic RPC so the profile update and audit row
+  // are committed in a single transaction. A failed audit insert rolls
+  // back the role change — no silent audit gaps.
   if (patch.role) {
-    const { data: current } = await supabase
-      .from('profiles').select('role').eq('id', id).single()
-    oldRole = current?.role ?? null
+    const { data: rows, error: rpcError } = await supabase
+      .rpc('patch_member_role', {
+        p_profile_id: id,
+        p_new_role:   patch.role as 'admin' | 'core' | 'member' | 'guest',
+        p_changed_by: userId,
+      })
+    if (rpcError) return Response.json({ error: rpcError.message }, { status: 500 })
+
+    const data = rows?.[0] ?? null
+
+    // Sync to Clerk publicMetadata so UserDropdown reflects immediately
+    if (data?.clerk_id) {
+      const clerk = await clerkClient()
+      await clerk.users.updateUserMetadata(data.clerk_id, {
+        publicMetadata: { role: patch.role },
+      })
+    }
+
+    // Apply any remaining non-role fields from the patch, if present
+    const nonRolePatch = Object.fromEntries(
+      Object.entries(patch).filter(([k]) => k !== 'role')
+    )
+    if (Object.keys(nonRolePatch).length > 0) {
+      const { data: updated, error: updateError } = await supabase
+        .from('profiles').update(nonRolePatch).eq('id', id).select().single()
+      if (updateError) return Response.json({ error: updateError.message }, { status: 500 })
+      return Response.json(updated)
+    }
+
+    return Response.json(data)
   }
 
+  // Non-role fields only
   const { data, error } = await supabase
     .from('profiles').update(patch).eq('id', id).select().single()
   if (error) return Response.json({ error: error.message }, { status: 500 })
-
-  // If role changed, sync to Clerk publicMetadata so UserDropdown reflects immediately
-  if (patch.role && data?.clerk_id) {
-    const clerk = await clerkClient()
-    await clerk.users.updateUserMetadata(data.clerk_id, {
-      publicMetadata: { role: patch.role },
-    })
-  }
-
-  // Audit log: only when role was actually changed
-  if (patch.role && oldRole && oldRole !== patch.role) {
-    await supabase.from('role_change_audit').insert({
-      profile_id: id,
-      changed_by: userId,
-      old_role: oldRole as 'admin' | 'core' | 'member' | 'guest',
-      new_role: patch.role as 'admin' | 'core' | 'member' | 'guest',
-    })
-  }
 
   return Response.json(data)
 }
