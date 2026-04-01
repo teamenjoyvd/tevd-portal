@@ -1,12 +1,13 @@
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { requireAdmin } from '@/lib/supabase/guards'
 
-export async function GET() {
+export async function GET(): Promise<Response> {
   const { userId } = await auth()
   if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
   const supabase = createServiceClient()
-  const { data: caller } = await supabase.from('profiles').select('role').eq('clerk_id', userId).single()
-  if (caller?.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 })
+  const guard = await requireAdmin(userId, supabase)
+  if (guard) return guard
 
   const { data, error } = await supabase
     .from('calendar_events')
@@ -16,7 +17,7 @@ export async function GET() {
   return Response.json(data)
 }
 
-export async function POST(req: Request) {
+export async function POST(req: Request): Promise<Response> {
   const { userId } = await auth()
   if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
   const supabase = createServiceClient()
