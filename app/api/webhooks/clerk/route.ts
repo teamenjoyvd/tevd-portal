@@ -59,7 +59,6 @@ export async function POST(req: Request) {
       )
 
     if (error) {
-      console.error('Supabase upsert error:', error)
       return Response.json({ error: error.message }, { status: 500 })
     }
   }
