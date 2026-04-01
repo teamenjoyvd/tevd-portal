@@ -706,6 +706,44 @@ export type Database = {
         }
         Relationships: []
       }
+      role_change_audit: {
+        Row: {
+          changed_at: string
+          changed_by: string
+          id: string
+          new_role: Database["public"]["Enums"]["user_role"]
+          note: string | null
+          old_role: Database["public"]["Enums"]["user_role"]
+          profile_id: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by: string
+          id?: string
+          new_role: Database["public"]["Enums"]["user_role"]
+          note?: string | null
+          old_role: Database["public"]["Enums"]["user_role"]
+          profile_id: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string
+          id?: string
+          new_role?: Database["public"]["Enums"]["user_role"]
+          note?: string | null
+          old_role?: Database["public"]["Enums"]["user_role"]
+          profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_change_audit_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       social_posts: {
         Row: {
           caption: string | null

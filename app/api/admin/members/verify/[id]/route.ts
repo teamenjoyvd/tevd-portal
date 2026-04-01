@@ -40,6 +40,15 @@ export async function PATCH(
 
     if (rpcErr) return Response.json({ error: rpcErr.message }, { status: 500 })
 
+    // Audit log: guest → member via verification approval
+    await supabase.from('role_change_audit').insert({
+      profile_id: verReq.profile_id,
+      changed_by: userId,
+      old_role: 'guest',
+      new_role: 'member',
+      note: admin_note ?? null,
+    })
+
     // Sync role to Clerk publicMetadata so UserDropdown reflects immediately.
     // Best-effort: Supabase is already committed above.
     const { data: promoted } = await supabase

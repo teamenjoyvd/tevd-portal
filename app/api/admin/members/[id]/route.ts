@@ -68,6 +68,14 @@ export async function PATCH(
     Object.entries(body).filter(([k]) => allowed.includes(k))
   )
 
+  // Fetch current role before update so we can write the audit row
+  let oldRole: string | null = null
+  if (patch.role) {
+    const { data: current } = await supabase
+      .from('profiles').select('role').eq('id', id).single()
+    oldRole = current?.role ?? null
+  }
+
   const { data, error } = await supabase
     .from('profiles').update(patch).eq('id', id).select().single()
   if (error) return Response.json({ error: error.message }, { status: 500 })
@@ -77,6 +85,16 @@ export async function PATCH(
     const clerk = await clerkClient()
     await clerk.users.updateUserMetadata(data.clerk_id, {
       publicMetadata: { role: patch.role },
+    })
+  }
+
+  // Audit log: only when role was actually changed
+  if (patch.role && oldRole && oldRole !== patch.role) {
+    await supabase.from('role_change_audit').insert({
+      profile_id: id,
+      changed_by: userId,
+      old_role: oldRole as 'admin' | 'core' | 'member' | 'guest',
+      new_role: patch.role as 'admin' | 'core' | 'member' | 'guest',
     })
   }
 

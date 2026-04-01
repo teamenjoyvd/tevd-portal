@@ -26,6 +26,15 @@ export async function POST(req: Request) {
 
   if (profileErr) return Response.json({ error: profileErr.message }, { status: 500 })
 
+  // Audit log: guest → member via direct verify (Path C)
+  await supabase.from('role_change_audit').insert({
+    profile_id,
+    changed_by: userId,
+    old_role: 'guest',
+    new_role: 'member',
+    note: 'direct verify (Path C)',
+  })
+
   // Sync role to Clerk publicMetadata so UserDropdown reflects immediately
   const { data: promoted } = await supabase
     .from('profiles').select('clerk_id').eq('id', profile_id).single()
