@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from '@/lib/toast'
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -85,6 +86,9 @@ export function AboVerificationTab() {
         if (!r.ok) throw new Error((await r.json()).error)
         return r.json()
       }),
+    onError: (e: Error) => {
+      toast.error(e.message ?? 'Verification action failed.')
+    },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: ['admin-members'] })
     },
@@ -108,7 +112,10 @@ export function AboVerificationTab() {
       setTimeout(() => setDirectSuccess(false), 3000)
       qc.invalidateQueries({ queryKey: ['admin-members'] })
     },
-    onError: (e: Error) => setDirectError(e.message),
+    onError: (e: Error) => {
+      setDirectError(e.message)
+      toast.error(e.message ?? 'Verification action failed.')
+    },
   })
 
   if (isLoading) {

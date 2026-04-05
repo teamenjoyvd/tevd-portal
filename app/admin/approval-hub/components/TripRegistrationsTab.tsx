@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from '@/lib/toast'
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -90,6 +91,7 @@ export function TripRegistrationsTab() {
     },
     onError: (_e, _v, ctx) => {
       if (ctx?.prev) qc.setQueryData(['registrations', 'all'], ctx.prev)
+      toast.error('Failed to update registration. Please try again.')
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: ['registrations', 'all'] })
