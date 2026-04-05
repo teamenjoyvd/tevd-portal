@@ -19,7 +19,46 @@ export async function GET() {
     }
     return Response.json({ error: error.message }, { status: 500 })
   }
-  return Response.json(data)
+
+  // Fetch upline and verRequest in parallel, gated on profile state
+  const [upline, verRequest] = await Promise.all([
+    data.abo_number
+      ? (async () => {
+          const { data: losMember } = await supabase
+            .from('los_members')
+            .select('sponsor_abo_number')
+            .eq('abo_number', data.abo_number)
+            .single()
+
+          if (!losMember?.sponsor_abo_number) {
+            return { upline_name: null, upline_abo_number: null }
+          }
+
+          const { data: uplineMember } = await supabase
+            .from('los_members')
+            .select('abo_number, name')
+            .eq('abo_number', losMember.sponsor_abo_number)
+            .single()
+
+          return {
+            upline_name: uplineMember?.name ?? null,
+            upline_abo_number: uplineMember?.abo_number ?? null,
+          }
+        })()
+      : Promise.resolve(null),
+    data.role === 'guest'
+      ? (async () => {
+          const { data: req } = await supabase
+            .from('abo_verification_requests')
+            .select('id, claimed_abo, claimed_upline_abo, status, admin_note, created_at, request_type')
+            .eq('profile_id', data.id)
+            .maybeSingle()
+          return req ?? null
+        })()
+      : Promise.resolve(null),
+  ])
+
+  return Response.json({ ...data, upline, verRequest })
 }
 
 export async function PATCH(req: Request): Promise<Response> {

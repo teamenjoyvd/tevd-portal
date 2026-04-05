@@ -8,8 +8,14 @@ import { useLanguage } from '@/lib/hooks/useLanguage'
 import type { TranslationKey } from '@/lib/i18n/translations'
 
 type VerifRequest = { status: 'pending' | 'approved' | 'denied' } | null
-type Profile = { role: string; first_name: string; abo_number: string | null }
-type Upline = { upline_name: string | null }
+type Upline = { upline_name: string | null; upline_abo_number: string | null } | null
+type Profile = {
+  role: string
+  first_name: string
+  abo_number: string | null
+  upline: Upline
+  verRequest: VerifRequest
+}
 
 const ROLE_STYLES: Record<string, { bg: string; color: string }> = {
   admin:  { bg: 'rgba(250,248,243,0.20)', color: 'var(--brand-parchment)' },
@@ -38,24 +44,13 @@ export default function ProfileTile({
     staleTime: 5 * 60 * 1000,
   })
 
-  const { data: uplineData } = useQuery<Upline>({
-    queryKey: ['profile-upline'],
-    queryFn: () => fetch('/api/profile/upline').then(r => r.json()),
-    enabled: !!isSignedIn && !!profile?.abo_number,
-    staleTime: 5 * 60 * 1000,
-  })
-
-  const { data: verRequest } = useQuery<VerifRequest>({
-    queryKey: ['verify-abo'],
-    queryFn: () => fetch('/api/profile/verify-abo').then(r => r.json()),
-    enabled: !!isSignedIn && profile?.role === 'guest',
-    staleTime: 5 * 60 * 1000,
-  })
-
   const { t } = useLanguage()
 
+  const verRequest = profile?.verRequest ?? null
+  const uplineData = profile?.upline ?? null
+
   const isUnverified = profile?.role === 'guest' &&
-    !!verRequest && verRequest !== null &&
+    verRequest !== null &&
     (verRequest.status === 'pending' || verRequest.status === 'denied')
 
   const role = profile?.role ?? 'guest'
