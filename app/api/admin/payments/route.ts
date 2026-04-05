@@ -1,14 +1,14 @@
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { requireAdminOrCore } from '@/lib/supabase/guards'
+import { getCallerContext } from '@/lib/supabase/guards'
 
 export async function GET(req: Request): Promise<Response> {
   const { userId } = await auth()
   if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
   const supabase = createServiceClient()
-  const guard = await requireAdminOrCore(userId, supabase)
-  if (guard) return guard
+  const ctx = await getCallerContext(userId, supabase, 'adminOrCore')
+  if (ctx.guard) return ctx.guard
 
   const { searchParams } = new URL(req.url)
   const statusFilter = searchParams.get('admin_status')
@@ -32,12 +32,8 @@ export async function POST(req: Request): Promise<Response> {
   if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
   const supabase = createServiceClient()
-  // Need caller.id for logged_by_admin — fetch id + role together
-  const { data: caller } = await supabase
-    .from('profiles').select('id, role').eq('clerk_id', userId).single()
-  if (!caller || (caller.role !== 'admin' && caller.role !== 'core')) {
-    return Response.json({ error: 'Forbidden' }, { status: 403 })
-  }
+  const ctx = await getCallerContext(userId, supabase, 'adminOrCore')
+  if (ctx.guard) return ctx.guard
 
   const body = await req.json()
   const { trip_id, payable_item_id, profile_id, amount, currency, transaction_date, payment_method, note, admin_status } = body
@@ -60,7 +56,7 @@ export async function POST(req: Request): Promise<Response> {
       transaction_date,
       payment_method:   payment_method ?? null,
       note:             note ?? null,
-      logged_by_admin:  caller.id,
+      logged_by_admin:  ctx.profile.id,
       admin_status:     admin_status ?? 'approved',
       member_status:    'pending',
     })

@@ -1,5 +1,6 @@
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { getCallerContext } from '@/lib/supabase/guards'
 import { redirect } from 'next/navigation'
 import AdminNav from '@/app/admin/components/AdminNav'
 
@@ -10,10 +11,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (!userId) redirect('/sign-in')
 
   const supabase = createServiceClient()
-  const { data: profile } = await supabase
-    .from('profiles').select('role').eq('clerk_id', userId).single()
-
-  if (profile?.role !== 'admin') redirect('/')
+  const ctx = await getCallerContext(userId, supabase, 'admin')
+  if (ctx.guard) redirect('/')
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-card)' }}>
