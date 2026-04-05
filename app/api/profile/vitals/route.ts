@@ -1,28 +1,9 @@
-// Deprecated route — superseded by /api/profile/vital-signs (ISS-0161)
-// Kept to avoid 404s during transition. Delegates to new schema.
-import { auth } from '@clerk/nextjs/server'
-import { createServiceClient } from '@/lib/supabase/service'
-
-export async function GET() {
-  const { userId } = await auth()
-  if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const supabase = createServiceClient()
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('clerk_id', userId)
-    .single()
-
-  if (!profile?.id) return Response.json({ error: 'Profile not found' }, { status: 404 })
-
-  const { data, error } = await supabase
-    .from('member_vital_signs')
-    .select('id, definition_id, recorded_at, note, created_at, vital_sign_definitions(category, label, sort_order)')
-    .eq('profile_id', profile.id)
-    .order('created_at', { ascending: false })
-
-  if (error) return Response.json({ error: error.message }, { status: 500 })
-  return Response.json(data ?? [])
+// DEPRECATED — superseded by /api/profile/vital-signs (ISS-0161)
+// Zero call sites confirmed before removal. Returns 410 Gone.
+// TODO: git rm this file once confirmed in production logs.
+export async function GET(): Promise<Response> {
+  return Response.json(
+    { error: 'This endpoint has been removed. Use /api/profile/vital-signs instead.' },
+    { status: 410 }
+  )
 }
