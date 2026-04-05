@@ -14,6 +14,7 @@ export type TripRegistration = {
   created_at: string
   trip_id: string
   profile: { id: string; first_name: string; last_name: string; abo_number: string | null } | null
+  trip: Trip | null
 }
 
 // ── Helpers ──────────────────────────────────────────────────────
@@ -58,21 +59,14 @@ export function TripRegistrationsTab() {
   const qc = useQueryClient()
   const [filterTripId, setFilterTripId] = useState<string>('all')
 
-  const { data: trips = [] } = useQuery<Trip[]>({
-    queryKey: ['trips'],
-    queryFn: () => fetch('/api/trips').then(r => r.json()),
-  })
-
   const { data: registrations = [], isLoading } = useQuery<TripRegistration[]>({
     queryKey: ['registrations', 'all'],
-    queryFn: async () => {
-      const results = await Promise.all(
-        trips.map(t => fetch(`/api/trips/${t.id}/registrations`).then(r => r.json()))
-      )
-      return results.flat().filter((r): r is TripRegistration => !r.error)
-    },
-    enabled: trips.length > 0,
+    queryFn: () => fetch('/api/admin/registrations').then(r => r.json()),
   })
+
+  const trips = Array.from(
+    new Map(registrations.map(r => [r.trip_id, r.trip]).filter((entry): entry is [string, Trip] => entry[1] !== null)).values()
+  )
 
   const updateMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: 'approved' | 'denied' }) =>
@@ -105,7 +99,7 @@ export function TripRegistrationsTab() {
 
   const pending  = filtered.filter(r => r.status === 'pending')
   const resolved = filtered.filter(r => r.status !== 'pending')
-  const tripTitle = (id: string) => trips.find(t => t.id === id)?.title ?? id
+  const tripTitle = (r: TripRegistration) => r.trip?.title ?? r.trip_id
 
   return (
     <div>
@@ -163,7 +157,7 @@ export function TripRegistrationsTab() {
                   )}
                 </p>
                 <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                  {tripTitle(r.trip_id)} · {formatDate(r.created_at)}
+                  {tripTitle(r)} · {formatDate(r.created_at)}
                 </p>
               </div>
               <div className="flex gap-2 flex-shrink-0">
@@ -197,7 +191,7 @@ export function TripRegistrationsTab() {
                 {r.profile?.first_name} {r.profile?.last_name}
               </p>
               <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                {tripTitle(r.trip_id)}
+                {tripTitle(r)}
               </p>
             </div>
             <span className={`text-xs px-2.5 py-1 rounded-full font-medium flex-shrink-0 ${STATUS_BADGE[r.status]}`}>

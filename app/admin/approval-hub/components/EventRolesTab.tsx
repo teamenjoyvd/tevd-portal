@@ -16,6 +16,7 @@ type RoleRequest = {
   created_at: string
   event_id: string
   profile: { id: string; first_name: string; last_name: string; abo_number: string | null }
+  event: CalendarEvent | null
 }
 
 // ── Helpers ──────────────────────────────────────────────────────
@@ -56,24 +57,14 @@ export function EventRolesTab() {
   const qc = useQueryClient()
   const [filterEventId, setFilterEventId] = useState<string>('all')
 
-  const { data: events = [] } = useQuery<CalendarEvent[]>({
-    queryKey: ['calendar-events-list'],
-    queryFn: () => fetch('/api/calendar').then(r => r.json()),
-  })
-
   const { data: roleRequests = [], isLoading } = useQuery<RoleRequest[]>({
     queryKey: ['role-requests', 'all'],
-    queryFn: async () => {
-      const results = await Promise.all(
-        events.map(e => fetch(`/api/events/${e.id}`).then(r => r.json()))
-      )
-      return results.flatMap(e => (e.role_requests ?? []).map((rr: RoleRequest) => ({
-        ...rr,
-        event_id: e.id,
-      })))
-    },
-    enabled: events.length > 0,
+    queryFn: () => fetch('/api/admin/event-role-requests').then(r => r.json()),
   })
+
+  const eventsWithRequests = Array.from(
+    new Map(roleRequests.map(r => [r.event_id, r.event]).filter((entry): entry is [string, CalendarEvent] => entry[1] !== null)).values()
+  )
 
   const updateMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: 'approved' | 'denied' }) =>
@@ -100,17 +91,13 @@ export function EventRolesTab() {
     },
   })
 
-  const eventsWithRequests = events.filter(e =>
-    roleRequests.some(r => r.event_id === e.id)
-  )
-
   const filtered = filterEventId === 'all'
     ? roleRequests
     : roleRequests.filter(r => r.event_id === filterEventId)
 
   const pending  = filtered.filter(r => r.status === 'pending')
   const resolved = filtered.filter(r => r.status !== 'pending')
-  const eventTitle = (id: string) => events.find(e => e.id === id)?.title ?? id
+  const eventTitle = (r: RoleRequest) => r.event?.title ?? r.event_id
 
   return (
     <div>
@@ -170,7 +157,7 @@ export function EventRolesTab() {
                   </p>
                   <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
                     <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{r.role_label}</span>
-                    {' · '}{eventTitle(r.event_id)}
+                    {' · '}{eventTitle(r)}
                   </p>
                   {r.note && (
                     <p className="text-xs mt-1 italic" style={{ color: 'var(--text-secondary)' }}>
@@ -212,7 +199,7 @@ export function EventRolesTab() {
                 <span className="font-medium">{r.role_label}</span>
               </p>
               <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--text-secondary)' }}>
-                {eventTitle(r.event_id)}
+                {eventTitle(r)}
               </p>
             </div>
             <span className={`text-xs px-2.5 py-1 rounded-full font-medium flex-shrink-0 ${STATUS_BADGE[r.status]}`}>
