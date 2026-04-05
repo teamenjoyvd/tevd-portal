@@ -1,5 +1,5 @@
 # LOOKUP.md — teamenjoyVD Portal Reference Tables
-> Last updated: 2026-03-29
+> Last updated: 2026-04-05
 > **Read on demand in GATHER only. Never read at SSU or at GATHER start.**
 > Pull only the sections the ticket needs. See section map in CONTEXT.md header.
 
@@ -49,6 +49,10 @@
     /admin/social-posts/[id]/route.ts
     /admin/social-posts/preview/route.ts
     /admin/trips/registrations/[id]/cancel/route.ts
+    /admin/registrations/route.ts                # GET all trip_registrations (flat, no N+1)
+    /admin/registrations/[id]/route.ts           # PATCH status
+    /admin/event-role-requests/route.ts          # GET all event_role_requests (flat, no N+1)
+    /admin/event-role-requests/[id]/route.ts     # PATCH status
     /admin/guides/route.ts
     /admin/guides/[id]/route.ts
     /admin/guides/upload/route.ts
@@ -148,6 +152,10 @@
 - `status` enum: `pending | approved | denied`. No `cancelled` value.
 - Cancelled signal: `cancelled_at IS NOT NULL`.
 
+**`event_role_requests`**
+`id, event_id, profile_id, role_label, status, created_at, note`
+- `status` enum: `pending | approved | denied`.
+
 **`notifications`**
 `id, profile_id, is_read, type (enum), title, message, action_url, created_at, deleted_at`
 - Soft-delete: `deleted_at IS NULL` on user queries.
@@ -216,6 +224,10 @@
 | `/api/admin/payable-items` | GET, POST | List + create payable items |
 | `/api/admin/payable-items/[id]` | PATCH, DELETE | Update/deactivate item |
 | `/api/admin/calendar` | GET, POST, PATCH, DELETE | Calendar event CRUD |
+| `/api/admin/registrations` | GET | All trip_registrations joined with profile + trip — no N+1 |
+| `/api/admin/registrations/[id]` | PATCH | Update registration status |
+| `/api/admin/event-role-requests` | GET | All event_role_requests joined with profile + calendar_events — no N+1 |
+| `/api/admin/event-role-requests/[id]` | PATCH | Update role request status |
 | `/api/admin/trips/registrations/[id]/cancel` | POST | Admin cancel registration |
 | `/api/admin/guides` | GET, POST | List + create guides |
 | `/api/admin/guides/[id]` | GET, PATCH, DELETE | Guide CRUD |
