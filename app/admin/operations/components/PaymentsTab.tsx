@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { formatDate, formatCurrency } from '@/lib/format'
 import { Drawer } from '@/components/ui/Drawer'
 import {
@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/select'
 import type { Trip } from './TripsTab'
 import type { PayableItem } from './ItemsTab'
+import { useQuery } from '@tanstack/react-query'
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -37,7 +38,7 @@ type Payment = {
   payable_items: { title: string; item_type: string; currency: string } | null
 }
 
-type MembersResponse = {
+export type MembersResponse = {
   los_members: { profile: { id: string; first_name: string; last_name: string; abo_number: string | null } | null }[]
   manual_members_no_abo: { id: string; first_name: string; last_name: string; upline_abo_number: string | null }[]
 }
@@ -58,7 +59,7 @@ function statusPill(status: string) {
 
 // ── Component ────────────────────────────────────────────────────
 
-export function PaymentsTab({ trips }: { trips: Trip[] }) {
+export function PaymentsTab({ trips, membersData }: { trips: Trip[]; membersData: MembersResponse | undefined }) {
   const qc = useQueryClient()
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all')
@@ -77,11 +78,6 @@ export function PaymentsTab({ trips }: { trips: Trip[] }) {
   const { data: items = [] } = useQuery<PayableItem[]>({
     queryKey: ['payable-items'],
     queryFn: () => fetch('/api/admin/payable-items').then(r => r.json()),
-  })
-
-  const { data: membersData } = useQuery<MembersResponse>({
-    queryKey: ['admin-members'],
-    queryFn: () => fetch('/api/admin/members').then(r => r.json()),
   })
 
   const allMembers: MemberProfile[] = (() => {

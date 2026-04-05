@@ -1,7 +1,6 @@
 'use client'
 
 import { Suspense } from 'react'
-import { useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import AdminTabs, { TabsContent } from '@/app/admin/components/AdminTabs'
@@ -9,6 +8,7 @@ import { TripsTab } from './components/TripsTab'
 import { ItemsTab } from './components/ItemsTab'
 import { PaymentsTab } from './components/PaymentsTab'
 import type { Trip } from './components/TripsTab'
+import type { MembersResponse } from './components/PaymentsTab'
 
 // ── Constants ────────────────────────────────────────────────────
 
@@ -31,6 +31,11 @@ function OperationsInner() {
     queryFn: () => fetch('/api/trips').then(r => r.json()),
   })
 
+  const { data: membersData } = useQuery<MembersResponse>({
+    queryKey: ['admin-members'],
+    queryFn: () => fetch('/api/admin/members').then(r => r.json()),
+  })
+
   return (
     <div className="space-y-6">
       <div>
@@ -46,7 +51,7 @@ function OperationsInner() {
       >
         <TabsContent value="trips"><TripsTab trips={trips} isLoading={tripsLoading} /></TabsContent>
         <TabsContent value="items"><ItemsTab trips={trips} /></TabsContent>
-        <TabsContent value="payments"><PaymentsTab trips={trips} /></TabsContent>
+        <TabsContent value="payments"><PaymentsTab trips={trips} membersData={membersData} /></TabsContent>
       </AdminTabs>
     </div>
   )
