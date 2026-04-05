@@ -6,14 +6,13 @@ import NotificationPopup from '@/components/notifications/NotificationPopup'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 
 /**
- * Isolated client component so that useUnreadCount (→ useQuery → useMemo)
+ * Isolated client component so that useUnreadCount (→ useNotifications cache)
  * is always behind a <Suspense> boundary in Header.
  * Without this isolation, React 19 throws #310 on SSR-prerendered routes
  * because useQuery's internal useMemo runs during the prerender pass.
  */
 export default function BellButton() {
-  const { data: unreadData } = useUnreadCount()
-  const unread = unreadData?.count ?? 0
+  const unread = useUnreadCount()
   const [open, setOpen] = useState(false)
 
   return (
