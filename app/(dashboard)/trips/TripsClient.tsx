@@ -30,6 +30,7 @@ type CardProps = {
   authLoading: boolean
   profileId: string | null
   onCancel: (tripId: string) => void
+  onViewDetails: () => void
   isCancelling: boolean
   t: (key: Parameters<ReturnType<typeof useLanguage>['t']>[0]) => string
   userRole: string
@@ -63,8 +64,8 @@ function StatusBadge({ status, onCancel, isCancelling, t }: {
 // showRegister: true only when RegisterButton is the active CTA.
 type CtaResult = { node: React.ReactNode; showRegister: boolean }
 
-function Cta({ trip, registrationStatus, isCancelled, authLoading, profileId, onCancel, isCancelling, t, userRole }: CardProps): CtaResult {
-  const router = useRouter()
+// Pure function — no hooks. router.push is received as onViewDetails prop.
+function Cta({ trip, registrationStatus, isCancelled, authLoading, profileId, onCancel, onViewDetails, isCancelling, t, userRole }: CardProps): CtaResult {
   const isRegistered = !!registrationStatus && registrationStatus !== 'denied' && !isCancelled
 
   if (authLoading) {
@@ -100,7 +101,7 @@ function Cta({ trip, registrationStatus, isCancelled, authLoading, profileId, on
         <>
           <StatusBadge status={registrationStatus} onCancel={() => onCancel(trip.id)} isCancelling={isCancelling} t={t} />
           <button
-            onClick={e => { e.stopPropagation(); router.push(`/trips/${trip.id}`) }}
+            onClick={e => { e.stopPropagation(); onViewDetails() }}
             className="w-full py-3 rounded-xl text-sm font-semibold text-white hover:opacity-90 active:opacity-70 transition-opacity"
             style={{ backgroundColor: 'var(--brand-forest)' }}
           >
@@ -312,6 +313,7 @@ function TripCardDesktop(props: CardProps) {
 
 export default function TripsClient({ initialTrips }: { initialTrips: Trip[] }) {
   const { isSignedIn, isLoaded } = useUser()
+  const router = useRouter()
   const qc = useQueryClient()
   const { t } = useLanguage()
 
@@ -363,6 +365,7 @@ export default function TripsClient({ initialTrips }: { initialTrips: Trip[] }) 
       authLoading,
       profileId: profile?.id ?? null,
       onCancel: (id: string) => cancelMutation.mutate(id),
+      onViewDetails: () => router.push(`/trips/${trip.id}`),
       isCancelling: cancelMutation.isPending,
       t,
       userRole: userRole ?? 'guest',
