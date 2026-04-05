@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useUnreadCount } from '@/lib/hooks/useNotifications'
-import NotificationPopup from '@/components/notifications/NotificationPopup'
+import NotificationPopup from './NotificationPopup'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 
 /**

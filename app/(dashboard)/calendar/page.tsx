@@ -1,6 +1,6 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { auth } from '@clerk/nextjs/server'
-import CalendarClient from '@/components/calendar/CalendarClient'
+import CalendarClient from './components/CalendarClient'
 
 export const dynamic = 'force-dynamic'
 

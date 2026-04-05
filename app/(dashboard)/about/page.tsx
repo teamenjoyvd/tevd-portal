@@ -1,9 +1,9 @@
 import Image from 'next/image'
 import BentoCard from '@/components/bento/BentoCard'
-import AboutMapTile from '@/components/about/AboutMapTile'
+import AboutMapTile from './components/AboutMapTile'
 import MailtoTile from './components/MailtoTile'
 
-// ── Shared content blocks ─────────────────────────────────────────────────
+// ── Shared content blocks ────────────────────────────────────────────────────
 
 const HEADING = (
   <div className="flex items-center justify-end h-full px-2 py-4">
@@ -37,7 +37,7 @@ const BODY = (
   </div>
 )
 
-// ── Page ──────────────────────────────────────────────────────────────────
+// ── Page ─────────────────────────────────────────────────────────────────────────────
 
 export default function AboutPage() {
   return (
