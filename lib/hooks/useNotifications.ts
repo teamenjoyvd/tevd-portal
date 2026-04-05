@@ -21,11 +21,8 @@ export function useNotifications() {
 }
 
 export function useUnreadCount() {
-  return useQuery<{ count: number }>({
-    queryKey: ['notifications', 'unread-count'],
-    queryFn: () => fetch('/api/notifications?count=true').then(r => r.json()),
-    refetchInterval: 15_000,
-  })
+  const { data } = useNotifications()
+  return data?.filter(n => !n.is_read).length ?? 0
 }
 
 export function useMarkRead() {
@@ -42,9 +39,6 @@ export function useMarkRead() {
       const prev = qc.getQueryData<Notification[]>(['notifications'])
       qc.setQueryData<Notification[]>(['notifications'], old =>
         old?.map(n => n.id === id ? { ...n, is_read: true } : n)
-      )
-      qc.setQueryData<{ count: number }>(['notifications', 'unread-count'], old =>
-        old ? { count: Math.max(0, old.count - 1) } : { count: 0 }
       )
       return { prev }
     },
@@ -67,7 +61,6 @@ export function useMarkAllRead() {
       qc.setQueryData<Notification[]>(['notifications'], old =>
         old?.map(n => ({ ...n, is_read: true }))
       )
-      qc.setQueryData<{ count: number }>(['notifications', 'unread-count'], { count: 0 })
       return { prev }
     },
     onError: (_err, _vars, ctx) => {
@@ -91,15 +84,9 @@ export function useDeleteNotification() {
     onMutate: async (id) => {
       await qc.cancelQueries({ queryKey: ['notifications'] })
       const prev = qc.getQueryData<Notification[]>(['notifications'])
-      const deleted = prev?.find(n => n.id === id)
       qc.setQueryData<Notification[]>(['notifications'], old =>
         old?.filter(n => n.id !== id)
       )
-      if (deleted && !deleted.is_read) {
-        qc.setQueryData<{ count: number }>(['notifications', 'unread-count'], old =>
-          old ? { count: Math.max(0, old.count - 1) } : { count: 0 }
-        )
-      }
       return { prev }
     },
     onError: (_err, _id, ctx) => {
@@ -124,7 +111,6 @@ export function useClearAllNotifications() {
       await qc.cancelQueries({ queryKey: ['notifications'] })
       const prev = qc.getQueryData<Notification[]>(['notifications'])
       qc.setQueryData<Notification[]>(['notifications'], [])
-      qc.setQueryData<{ count: number }>(['notifications', 'unread-count'], { count: 0 })
       return { prev }
     },
     onError: (_err, _vars, ctx) => {
