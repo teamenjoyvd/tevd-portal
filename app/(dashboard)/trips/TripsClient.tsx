@@ -66,9 +66,10 @@ function StatusBadge({ status, onCancel, isCancelling, t }: {
 
 // showRegister: true only when RegisterButton is the active CTA.
 type CtaResult = { node: React.ReactNode; showRegister: boolean }
+type CtaProps = Omit<CardProps, 'ctaNode'>
 
 // Pure function — no hooks. router.push is received as onViewDetails prop.
-function Cta({ trip, registrationStatus, isCancelled, authLoading, profileId, onCancel, onViewDetails, isCancelling, t, userRole }: CardProps): CtaResult {
+function Cta({ trip, registrationStatus, isCancelled, authLoading, profileId, onCancel, onViewDetails, isCancelling, t, userRole }: CtaProps): CtaResult {
   const isRegistered = !!registrationStatus && registrationStatus !== 'denied' && !isCancelled
 
   if (authLoading) {
@@ -200,11 +201,10 @@ export default function TripsClient({ initialTrips }: { initialTrips: Trip[] }) 
   const authLoading = !isLoaded || (!!isSignedIn && (profileLoading || regLoading))
 
   const cardProps = (trip: Trip): CardProps => {
-    const row = regByTripId[trip.id]
-    const base: Omit<CardProps, 'ctaNode'> = {
+    const base: CtaProps = {
       trip,
-      registrationStatus: row?.registration_status,
-      isCancelled: !!row?.cancelled_at,
+      registrationStatus: regByTripId[trip.id]?.registration_status,
+      isCancelled: !!regByTripId[trip.id]?.cancelled_at,
       authLoading,
       profileId: profile?.id ?? null,
       onCancel: (id: string) => cancelMutation.mutate(id),
@@ -213,7 +213,7 @@ export default function TripsClient({ initialTrips }: { initialTrips: Trip[] }) 
       t,
       userRole: userRole ?? 'guest',
     }
-    return { ...base, ctaNode: Cta(base as CardProps).node }
+    return { ...base, ctaNode: Cta(base).node }
   }
 
   const isSingle = trips.length === 1
