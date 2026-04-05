@@ -1,34 +1,42 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useSyncExternalStore, useCallback } from 'react'
 import { translate, TranslationKey, Lang } from '@/lib/i18n/translations'
 
-const LANG_KEY = 'tevd_lang'
+const COOKIE_KEY = 'tevd_lang'
 const LANG_EVENT = 'language-changed'
+const DEFAULT: Lang = 'en'
+
+function getCookieLang(): Lang {
+  if (typeof document === 'undefined') return DEFAULT
+  const match = document.cookie
+    .split('; ')
+    .find(row => row.startsWith(`${COOKIE_KEY}=`))
+  const value = match?.split('=')[1]
+  return value === 'bg' ? 'bg' : DEFAULT
+}
+
+function setCookieLang(lang: Lang): void {
+  // 1-year expiry, path=/ so all routes see it
+  document.cookie = `${COOKIE_KEY}=${lang}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`
+}
+
+function subscribe(callback: () => void): () => void {
+  window.addEventListener(LANG_EVENT, callback)
+  return () => window.removeEventListener(LANG_EVENT, callback)
+}
 
 export function useLanguage() {
-  const [lang, setLang] = useState<Lang>('en')
-
-  useEffect(() => {
-    const stored = localStorage.getItem(LANG_KEY) as Lang | null
-    if (stored) setLang(stored)
-
-    function handleChange() {
-      const updated = localStorage.getItem(LANG_KEY) as Lang | null
-      if (updated) setLang(updated)
-    }
-
-    window.addEventListener(LANG_EVENT, handleChange)
-    return () => window.removeEventListener(LANG_EVENT, handleChange)
-  }, [])
+  const lang = useSyncExternalStore(
+    subscribe,
+    getCookieLang,
+    () => DEFAULT, // getServerSnapshot — SSR always gets default
+  )
 
   const toggle = useCallback(() => {
-    setLang(prev => {
-      const next = prev === 'en' ? 'bg' : 'en'
-      localStorage.setItem(LANG_KEY, next)
-      window.dispatchEvent(new Event(LANG_EVENT))
-      return next
-    })
+    const next: Lang = getCookieLang() === 'en' ? 'bg' : 'en'
+    setCookieLang(next)
+    window.dispatchEvent(new Event(LANG_EVENT))
   }, [])
 
   const t = useCallback((key: TranslationKey): string => {
