@@ -20,14 +20,19 @@ export async function GET() {
     return Response.json({ error: error.message }, { status: 500 })
   }
 
-  // Fetch upline and verRequest in parallel, gated on profile state
+  // Extract scalars before Promise.all — TS cannot narrow property accesses
+  // through IIFE closure boundaries, so we capture as typed consts here.
+  const aboNumber: string | null = data.abo_number
+  const profileId: string = data.id
+  const role: string = data.role
+
   const [upline, verRequest] = await Promise.all([
-    data.abo_number
+    aboNumber
       ? (async () => {
           const { data: losMember } = await supabase
             .from('los_members')
             .select('sponsor_abo_number')
-            .eq('abo_number', data.abo_number)
+            .eq('abo_number', aboNumber)
             .single()
 
           if (!losMember?.sponsor_abo_number) {
@@ -46,12 +51,12 @@ export async function GET() {
           }
         })()
       : Promise.resolve(null),
-    data.role === 'guest'
+    role === 'guest'
       ? (async () => {
           const { data: req } = await supabase
             .from('abo_verification_requests')
             .select('id, claimed_abo, claimed_upline_abo, status, admin_note, created_at, request_type')
-            .eq('profile_id', data.id)
+            .eq('profile_id', profileId)
             .maybeSingle()
           return req ?? null
         })()
