@@ -31,6 +31,7 @@
     "next": "16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "sonner": "^2.0.3",
     "svix": "^1.88.0",
     "tailwind-merge": "^3.3.0"
   },
