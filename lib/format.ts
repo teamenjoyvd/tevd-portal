@@ -1,6 +1,10 @@
 // ── lib/format.ts — EET/EEST Regional Standards (ISS-0124) ─────────────────
 // All date/time/currency formatting for the tevd-portal.
 // Standards: Eastern European Time (EET/EEST), DD.MM.YYYY, 24h, EUR.
+// timeZone is explicit on every formatter — Vercel server runs UTC; without
+// this, server and client produce different strings → React hydration error #418.
+
+const TZ = 'Europe/Sofia'
 
 /** 18.03.2026 */
 export function formatDate(iso: string): string {
@@ -8,6 +12,7 @@ export function formatDate(iso: string): string {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
+    timeZone: TZ,
   })
 }
 
@@ -18,6 +23,7 @@ export function formatLongDate(iso: string): string {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
+    timeZone: TZ,
   })
 }
 
@@ -27,6 +33,7 @@ export function formatTime(iso: string): string {
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,
+    timeZone: TZ,
   })
 }
 
@@ -39,6 +46,7 @@ export function formatDateTime(iso: string): string {
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,
+    timeZone: TZ,
   })
 }
 
@@ -53,12 +61,12 @@ export function formatCurrency(amount: number, currency = 'EUR'): string {
 
 /** MAR (3-char uppercase month for iOS-style date square) */
 export function calMonth(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-GB', { month: 'short' }).toUpperCase()
+  return new Date(iso).toLocaleDateString('en-GB', { month: 'short', timeZone: TZ }).toUpperCase()
 }
 
 /** Day number (no leading zero) for iOS-style date square */
 export function calDay(iso: string): string {
-  return String(new Date(iso).getDate())
+  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', timeZone: TZ })
 }
 
 /** 18 Mar 2026 — medium English date for admin/member-facing UI */
@@ -67,6 +75,7 @@ export function formatDateMediumEn(iso: string): string {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
+    timeZone: TZ,
   })
 }
 
@@ -76,5 +85,6 @@ export function formatDateLongEn(iso: string): string {
     day: '2-digit',
     month: 'long',
     year: 'numeric',
+    timeZone: TZ,
   })
 }
