@@ -20,6 +20,13 @@ type RoleRequest = {
   profile: { id: string; first_name: string; last_name: string; abo_number: string | null }
 }
 
+type CallerRequest = {
+  id: string
+  role_label: string
+  status: 'pending' | 'approved' | 'denied'
+  note: string | null
+}
+
 type EventDetail = {
   id: string
   title: string
@@ -30,6 +37,7 @@ type EventDetail = {
   event_type: 'in-person' | 'online' | 'hybrid' | null
   week_number: number
   role_requests: RoleRequest[]
+  caller_request: CallerRequest | null
 }
 
 type Props = {
@@ -91,10 +99,15 @@ export default function EventPopup({
     setDesktopPos({ top, left })
   }, [anchorRect, isBottomSheet, event])
 
-  const myRequest = event?.role_requests.find(r => r.profile?.id === userProfileId)
-  const canRequestRole = userRole && userRole !== 'guest'
   const isAdmin = userRole === 'admin'
+  const canRequestRole = userRole && userRole !== 'guest'
   const isGuest = userRole === 'guest' || userRole === null
+
+  // For admins: scan role_requests by profile id (full PII available).
+  // For everyone else: use caller_request from the API (no second fetch needed).
+  const myRequest: CallerRequest | undefined = isAdmin
+    ? event?.role_requests.find(r => r.profile?.id === userProfileId)
+    : (event?.caller_request ?? undefined)
 
   const requestMutation = useMutation({
     mutationFn: (role_label: string) =>
