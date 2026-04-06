@@ -1,7 +1,7 @@
 'use client'
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useRef, useState } from 'react'
+import { useRef } from 'react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { formatTime, formatLongDate } from '@/lib/format'
 import {
@@ -11,6 +11,11 @@ import {
   DialogOverlay,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  Popover,
+  PopoverAnchor,
+  PopoverContent,
+} from '@/components/ui/popover'
 
 type RoleRequest = {
   id: string
@@ -42,7 +47,7 @@ type EventDetail = {
 
 type Props = {
   eventId: string
-  anchorRect: DOMRect | null
+  anchorEl: HTMLElement | null
   onClose: () => void
   userRole: 'admin' | 'core' | 'member' | 'guest' | null
   userProfileId: string | null
@@ -63,48 +68,21 @@ const EVENT_TYPE_STYLES: Record<string, { bg: string; color: string; label: stri
 }
 
 export default function EventPopup({
-  eventId, anchorRect, onClose, userRole, userProfileId,
+  eventId, anchorEl, onClose, userRole, userProfileId,
 }: Props) {
   const qc = useQueryClient()
   const { t } = useLanguage()
-  const contentRef = useRef<HTMLDivElement>(null)
-  const [desktopPos, setDesktopPos] = useState<{ top: number; left: number } | null>(null)
-  const isBottomSheet = (anchorRect !== null) && (typeof window !== 'undefined') && window.innerWidth < 768
+  const isBottomSheet = (anchorEl !== null) && (typeof window !== 'undefined') && window.innerWidth < 768
 
   const { data: event, isLoading } = useQuery<EventDetail>({
     queryKey: ['event', eventId],
     queryFn: () => fetch(`/api/events/${eventId}`).then(r => r.json()),
   })
 
-  // Compute desktop popover position after content is measured
-  useEffect(() => {
-    if (!anchorRect || isBottomSheet) return
-    const vw = window.innerWidth
-    const vh = window.innerHeight
-    const popW = 320
-    const popH = contentRef.current?.offsetHeight || 420
-    const scroll = window.scrollY
-    const MARGIN = 8
-
-    let left = anchorRect.left + anchorRect.width / 2 - popW / 2
-    let top  = anchorRect.bottom + scroll + MARGIN
-
-    left = Math.max(MARGIN, Math.min(left, vw - popW - MARGIN))
-
-    if (anchorRect.bottom + popH + MARGIN > vh) {
-      top = anchorRect.top + scroll - popH - MARGIN
-    }
-
-    top = Math.max(scroll + MARGIN, top)
-    setDesktopPos({ top, left })
-  }, [anchorRect, isBottomSheet, event])
-
   const isAdmin = userRole === 'admin'
   const canRequestRole = userRole && userRole !== 'guest'
   const isGuest = userRole === 'guest' || userRole === null
 
-  // For admins: scan role_requests by profile id (full PII available).
-  // For everyone else: use caller_request from the API (no second fetch needed).
   const myRequest: CallerRequest | undefined = isAdmin
     ? event?.role_requests.find(r => r.profile?.id === userProfileId)
     : (event?.caller_request ?? undefined)
@@ -140,7 +118,6 @@ export default function EventPopup({
 
   const bodyContent = (
     <>
-      {/* Header — DialogTitle satisfies a11y, visually matches original */}
       <div className="px-4 pt-4 pb-3 border-b border-black/5">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
@@ -171,7 +148,6 @@ export default function EventPopup({
         </div>
       </div>
 
-      {/* Body */}
       <DialogDescription asChild>
         <div className="overflow-y-auto" style={isBottomSheet ? undefined : { maxHeight: 360 }}>
           {isLoading ? (
@@ -284,10 +260,10 @@ export default function EventPopup({
   )
 
   return (
-    <Dialog open onOpenChange={open => { if (!open) onClose() }}>
+    <>
       {isBottomSheet ? (
-        // Mobile: dim overlay + bottom-sheet DialogContent
-        <>
+        // Mobile: dim overlay + bottom-sheet Dialog
+        <Dialog open onOpenChange={open => { if (!open) onClose() }}>
           <DialogOverlay style={{ backgroundColor: 'rgba(0,0,0,0.4)' }} />
           <DialogContent
             style={{
@@ -305,38 +281,27 @@ export default function EventPopup({
               boxShadow: '0 -4px 32px rgba(0,0,0,0.18)',
             }}
           >
-            {/* drag handle */}
             <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
               <div className="w-8 h-1 rounded-full" style={{ backgroundColor: 'rgba(0,0,0,0.15)' }} />
             </div>
             {bodyContent}
           </DialogContent>
-        </>
+        </Dialog>
       ) : (
-        // Desktop: transparent overlay (pointer-events-none), anchor-positioned DialogContent
-        <>
-          <DialogOverlay style={{ backgroundColor: 'transparent', pointerEvents: 'none' }} />
-          <DialogContent
-            ref={contentRef}
-            style={{
-              top: desktopPos?.top ?? 0,
-              left: desktopPos?.left ?? 0,
-              transform: 'none',
-              width: 320,
-              borderRadius: '1rem',
-              overflow: 'hidden',
-              backgroundColor: 'var(--bg-global)',
-              border: '1px solid var(--border-default)',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)',
-              opacity: desktopPos ? 1 : 0,
-              pointerEvents: desktopPos ? 'auto' : 'none',
-              transition: 'opacity 0.1s ease',
-            }}
+        // Desktop: Popover anchored to the live trigger element
+        <Popover open onOpenChange={open => { if (!open) onClose() }}>
+          <PopoverAnchor virtualRef={{ current: anchorEl }} />
+          <PopoverContent
+            side="bottom"
+            sideOffset={8}
+            align="center"
+            style={{ width: 320, overflow: 'hidden' }}
+            onOpenAutoFocus={e => e.preventDefault()}
           >
             {bodyContent}
-          </DialogContent>
-        </>
+          </PopoverContent>
+        </Popover>
       )}
-    </Dialog>
+    </>
   )
 }

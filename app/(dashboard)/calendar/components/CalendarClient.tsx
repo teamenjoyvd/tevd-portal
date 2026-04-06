@@ -98,7 +98,7 @@ function EventPill({
   event, onClick, compact = false,
 }: {
   event: CalendarEvent
-  onClick: (rect: DOMRect) => void
+  onClick: (el: HTMLElement) => void
   compact?: boolean
 }) {
   const c = CATEGORY_COLOR[event.category]
@@ -106,7 +106,7 @@ function EventPill({
     <button
       onClick={e => {
         e.stopPropagation()
-        onClick(e.currentTarget.getBoundingClientRect())
+        onClick(e.currentTarget)
       }}
       className="w-full text-left rounded-md px-1.5 transition-opacity hover:opacity-80 active:opacity-60"
       style={{
@@ -135,7 +135,7 @@ function MonthView({
 }: {
   current: Date
   events: CalendarEvent[]
-  onEventClick: (id: string, rect: DOMRect) => void
+  onEventClick: (id: string, el: HTMLElement) => void
   onDayClick: (date: Date) => void
 }) {
   const { lang } = useLanguage()
@@ -200,7 +200,7 @@ function MonthView({
                           key={ev.id}
                           event={ev}
                           compact
-                          onClick={(rect) => onEventClick(ev.id, rect)}
+                          onClick={(el) => onEventClick(ev.id, el)}
                         />
                       ))}
                       {dayEvents.length > 3 && (
@@ -227,7 +227,7 @@ function AgendaView({
   events, onEventClick, isLoading, highlightId,
 }: {
   events: CalendarEvent[]
-  onEventClick: (id: string, rect: DOMRect) => void
+  onEventClick: (id: string, el: HTMLElement) => void
   isLoading: boolean
   highlightId?: string | null
 }) {
@@ -249,7 +249,6 @@ function AgendaView({
     return map
   }, [events])
 
-  // Scroll highlighted event into view once loaded
   useEffect(() => {
     if (highlightRef.current) {
       highlightRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -308,7 +307,7 @@ function AgendaView({
                   <button
                     key={ev.id}
                     ref={isHighlighted ? highlightRef : null}
-                    onClick={e => onEventClick(ev.id, e.currentTarget.getBoundingClientRect())}
+                    onClick={e => onEventClick(ev.id, e.currentTarget)}
                     className="w-full text-left rounded-xl border overflow-hidden hover:shadow-sm transition-shadow flex"
                     style={{
                       backgroundColor: 'var(--bg-card)',
@@ -369,7 +368,7 @@ export default function CalendarClient({
     return new Date(y, m - 1, 1)
   })
   const [selectedEventId, setSelectedEventId]     = useState<string | null>(initialEventId)
-  const [anchorRect, setAnchorRect]               = useState<DOMRect | null>(null)
+  const [anchorEl, setAnchorEl]                   = useState<HTMLElement | null>(null)
   const [showN21, setShowN21]                     = useState(true)
   const [showPersonal, setShowPersonal]           = useState(true)
   const [filterType, setFilterType]               = useState<'in-person' | 'online' | 'hybrid' | null>(null)
@@ -377,7 +376,6 @@ export default function CalendarClient({
 
   const canSeePersonal = isAuthenticated && userRole !== 'guest'
 
-  // Month query — seeded from SSR, cached 60s
   const { data: monthEvents = [] } = useQuery<CalendarEvent[]>({
     queryKey: ['events-month', toMonthParam(current)],
     queryFn: () =>
@@ -387,7 +385,6 @@ export default function CalendarClient({
     enabled: view === 'month',
   })
 
-  // Agenda query — always fetches fresh, never seeded from month data
   const { data: agendaEvents = [], isPending: agendaPending } = useQuery<CalendarEvent[]>({
     queryKey: ['events-agenda'],
     queryFn: () => fetch('/api/calendar').then(r => r.json()),
@@ -418,9 +415,9 @@ export default function CalendarClient({
 
   const goToday = useCallback(() => setCurrent(new Date()), [])
 
-  const handleEventClick = useCallback((id: string, rect: DOMRect) => {
+  const handleEventClick = useCallback((id: string, el: HTMLElement) => {
     setSelectedEventId(id)
-    setAnchorRect(rect)
+    setAnchorEl(el)
   }, [])
 
   const handleDayClick = (date: Date) => {
@@ -684,8 +681,8 @@ export default function CalendarClient({
       {selectedEventId && (
         <EventPopup
           eventId={selectedEventId}
-          anchorRect={anchorRect}
-          onClose={() => { setSelectedEventId(null); setAnchorRect(null); setDeepLinkId(null) }}
+          anchorEl={anchorEl}
+          onClose={() => { setSelectedEventId(null); setAnchorEl(null); setDeepLinkId(null) }}
           userRole={userRole}
           userProfileId={userProfileId}
         />
