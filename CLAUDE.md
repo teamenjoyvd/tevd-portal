@@ -1,5 +1,5 @@
 # CLAUDE.md — teamenjoyVD Portal
-> Last updated: 2026-04-01 — v2.0.9. Latest stable commit: baf924a.
+> Last updated: 2026-04-07 — v2.0.10. Latest stable commit: b2718c9.
 > Architecture docs live in `docs/architecture/`. Reference tables live in `docs/ai/LOOKUP.md`. Orienting context in `docs/ai/CONTEXT.md`.
 > **Neither CONTEXT.md nor LOOKUP.md is read at SSU or at GATHER start.**
 
@@ -178,6 +178,7 @@ Duplicate-safe: always filter `Duplicate = false/empty`; discard `fld2P6m5fMOsi1
 | shadcn CSS variable conflicts | shadcn components reference `--background`, `--foreground`, etc. Edit the vended component source in `components/ui/` to use project tokens (`--bg-card`, `--text-primary`) instead. |
 | shadcn Tabs — MUST be controlled | NEVER use `defaultValue` on `<Tabs>`. Mobile users rely on hardware back/swipe; uncontrolled tabs break navigation. Always use `value={tab}` (from `useSearchParams`) + `onValueChange={(val) => router.replace(`?tab=${val}`, { scroll: false })}`. The `scroll: false` option is mandatory — without it, tab switches scroll the page to top on mobile. Wrap the component calling `useSearchParams()` in `<Suspense>` (server shell pattern). |
 | Route handler `params` — Next.js 16 | `params` is a `Promise` in Next.js 16. ALWAYS type as `{ params: Promise<{ id: string }> }` and `await params` before use. The old sync pattern `{ params }: { params: { id: string } }` is a TS error and will fail the build. |
+| GitHub MCP `create_or_update_file` | Times out on files above ~10KB. Use `push_files` for initial commits of large files. For subsequent edits to large files, keep changes minimal or ask the user to apply the diff manually if the MCP times out. |
 
 ---
 
