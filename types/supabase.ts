@@ -116,6 +116,7 @@ export type Database = {
           event_type: Database["public"]["Enums"]["event_type"] | null
           google_event_id: string | null
           id: string
+          meeting_url: string | null
           start_time: string
           title: string
           visibility_roles: Database["public"]["Enums"]["user_role"][]
@@ -130,6 +131,7 @@ export type Database = {
           event_type?: Database["public"]["Enums"]["event_type"] | null
           google_event_id?: string | null
           id?: string
+          meeting_url?: string | null
           start_time: string
           title: string
           visibility_roles?: Database["public"]["Enums"]["user_role"][]
@@ -144,6 +146,7 @@ export type Database = {
           event_type?: Database["public"]["Enums"]["event_type"] | null
           google_event_id?: string | null
           id?: string
+          meeting_url?: string | null
           start_time?: string
           title?: string
           visibility_roles?: Database["public"]["Enums"]["user_role"][]
@@ -1084,6 +1087,12 @@ export type Database = {
           upline_abo_number: string | null
           valid_through: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "profiles"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       pin_social_post: { Args: { p_id: string }; Returns: undefined }
       rebuild_tree_paths: { Args: never; Returns: undefined }
@@ -1218,9 +1227,9 @@ export type Enums<
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof DefaultSchema["Enums"]
 }
-  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
@@ -1235,9 +1244,9 @@ export type CompositeTypes<
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
     : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof DefaultSchema["CompositeTypes"]
 }
-  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
