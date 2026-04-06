@@ -24,6 +24,25 @@ function isoWeek(date: Date): number {
   return 1+Math.round(((d.getTime()-w1.getTime())/86400000-3+((w1.getDay()+6)%7))/7)
 }
 
+/** Extract the first href from an HTML string, or return null. */
+function extractFirstHref(html: string): string | null {
+  const m = html.match(/href=["']([^"']+)["']/i)
+  return m ? m[1] : null
+}
+
+/** Strip all HTML tags and decode common HTML entities. */
+function stripHtml(html: string): string {
+  return html
+    .replace(/<[^>]+>/g, '')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ')
+    .trim()
+}
+
 Deno.serve(async (req: Request) => {
   const secret = Deno.env.get('SYNC_SECRET')
   if (secret && req.headers.get('x-sync-secret') !== secret) {
@@ -42,15 +61,14 @@ Deno.serve(async (req: Request) => {
   catch(e) { return new Response(JSON.stringify({error:'auth_failed',detail:String(e)}),{status:500}) }
 
   const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
-  // Look back 2 days to catch events missed by a failed or skipped sync run
-  const tMin = new Date(Date.now() - 2 * 864e5).toISOString()
-  const tMax = new Date(Date.now() + 180 * 864e5).toISOString()
+  const tMin = new Date().toISOString()
+  const tMax = new Date(Date.now()+180*864e5).toISOString()
   const url = new URL(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calId)}/events`)
   url.searchParams.set('timeMin',tMin)
   url.searchParams.set('timeMax',tMax)
   url.searchParams.set('singleEvents','true')
   url.searchParams.set('orderBy','startTime')
-  url.searchParams.set('maxResults','250')
+  url.searchParams.set('maxResults','100')
 
   const calRes = await fetch(url.toString(),{headers:{Authorization:`Bearer ${token}`}})
   if (!calRes.ok) return new Response(JSON.stringify({error:'calendar_api_failed',detail:await calRes.text()}),{status:500})
@@ -66,11 +84,18 @@ Deno.serve(async (req: Request) => {
     if (!startRaw||!endRaw) continue
     const st = new Date(startRaw), et = new Date(endRaw)
     const personal = String(item.summary??'').includes('[Personal]')||String(item.description??'').includes('[Personal]')
+
+    // Extract meeting_url from description HTML before stripping tags
+    const rawDesc = item.description ? String(item.description) : null
+    const meetingUrl = rawDesc ? extractFirstHref(rawDesc) : null
+    const cleanDesc = rawDesc ? (stripHtml(rawDesc) || null) : null
+
     const {data:ex} = await sb.from('calendar_events').select('id').eq('google_event_id',item.id).maybeSingle()
     const {error:ue} = await sb.from('calendar_events').upsert({
       google_event_id: item.id,
       title: String(item.summary??'Untitled'),
-      description: item.description ? String(item.description) : null,
+      description: cleanDesc,
+      meeting_url: meetingUrl,
       start_time: st.toISOString(), end_time: et.toISOString(),
       category: personal?'Personal':'N21',
       visibility_roles: personal?['member','core','admin']:['admin','core','member','guest'],
