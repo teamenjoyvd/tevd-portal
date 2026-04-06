@@ -73,8 +73,6 @@ export default function EventPopup({
   const qc = useQueryClient()
   const { t } = useLanguage()
   const isBottomSheet = (anchorEl !== null) && (typeof window !== 'undefined') && window.innerWidth < 768
-  // Radix virtualRef requires RefObject<Measurable> — current must be non-nullable.
-  // anchorEl is always set when this component mounts. Fallback DOMRect is unreachable.
   const anchorElRef = useMemo(() => ({
     current: anchorEl ?? { getBoundingClientRect: () => new DOMRect(0, 0, 0, 0) },
   }), [anchorEl])
@@ -121,8 +119,11 @@ export default function EventPopup({
     : (event?.role_requests ?? []).filter(r => r.profile?.id === userProfileId)
   const isMutating = requestMutation.isPending || cancelMutation.isPending
 
-  const bodyContent = (
-    <>
+  // Header — DialogTitle inside Dialog (mobile), plain div on desktop (Popover has no Dialog context)
+  function Header({ asDialogTitle }: { asDialogTitle: boolean }) {
+    const titleClass = 'font-display text-base font-semibold leading-snug'
+    const titleStyle = { color: 'var(--text-primary)' }
+    return (
       <div className="px-4 pt-4 pb-3 border-b border-black/5">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
@@ -141,9 +142,10 @@ export default function EventPopup({
                 <span className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>W{event.week_number}</span>
               )}
             </div>
-            <DialogTitle className="font-display text-base font-semibold leading-snug" style={{ color: 'var(--text-primary)' }}>
-              {isLoading ? '…' : event?.title}
-            </DialogTitle>
+            {asDialogTitle
+              ? <DialogTitle className={titleClass} style={titleStyle}>{isLoading ? '…' : event?.title}</DialogTitle>
+              : <p className={titleClass} style={titleStyle}>{isLoading ? '…' : event?.title}</p>
+            }
           </div>
           <button onClick={onClose}
             className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-black/5 transition-colors flex-shrink-0 mt-0.5"
@@ -152,117 +154,125 @@ export default function EventPopup({
           </button>
         </div>
       </div>
+    )
+  }
 
-      <DialogDescription asChild>
-        <div className="overflow-y-auto" style={isBottomSheet ? undefined : { maxHeight: 360 }}>
-          {isLoading ? (
-            <div className="p-4 space-y-2">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="h-6 rounded animate-pulse" style={{ backgroundColor: 'rgba(0,0,0,0.06)' }} />
-              ))}
-            </div>
-          ) : event ? (
-            <>
-              <div className="px-4 py-3 border-b border-black/5">
-                <div className="flex items-center gap-2 text-xs mb-1" style={{ color: 'var(--text-primary)' }}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-                    stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect width="18" height="18" x="3" y="4" rx="2"/>
-                    <line x1="16" x2="16" y1="2" y2="6"/>
-                    <line x1="8" x2="8" y1="2" y2="6"/>
-                    <line x1="3" x2="21" y1="10" y2="10"/>
-                  </svg>
-                  <span className="font-medium">{formatLongDate(event.start_time)}</span>
-                </div>
-                <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-                    stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10"/>
-                    <polyline points="12 6 12 12 16 14"/>
-                  </svg>
-                  <span>{formatTime(event.start_time)} – {formatTime(event.end_time)}</span>
-                </div>
+  // Body — DialogDescription inside Dialog (mobile), plain div on desktop
+  function Body({ asDialogDescription }: { asDialogDescription: boolean }) {
+    const inner = (
+      <div className="overflow-y-auto" style={isBottomSheet ? undefined : { maxHeight: 360 }}>
+        {isLoading ? (
+          <div className="p-4 space-y-2">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="h-6 rounded animate-pulse" style={{ backgroundColor: 'rgba(0,0,0,0.06)' }} />
+            ))}
+          </div>
+        ) : event ? (
+          <>
+            <div className="px-4 py-3 border-b border-black/5">
+              <div className="flex items-center gap-2 text-xs mb-1" style={{ color: 'var(--text-primary)' }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                  stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect width="18" height="18" x="3" y="4" rx="2"/>
+                  <line x1="16" x2="16" y1="2" y2="6"/>
+                  <line x1="8" x2="8" y1="2" y2="6"/>
+                  <line x1="3" x2="21" y1="10" y2="10"/>
+                </svg>
+                <span className="font-medium">{formatLongDate(event.start_time)}</span>
               </div>
-              {event.description && (
-                <div className="px-4 py-3 border-b border-black/5">
-                  <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{event.description}</p>
-                </div>
-              )}
-              {!isGuest && (
-                <div className="px-4 py-3">
-                  <p className="text-[10px] font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
-                    {t('event.roles')}
-                  </p>
-                  {isAdmin && (
-                    visibleRoleRequests.length > 0 ? (
-                      <div className="space-y-2">
-                        {visibleRoleRequests.map(r => (
-                          <div key={r.id} className="rounded-lg p-2.5" style={{ backgroundColor: STATUS_STYLES[r.status].bg }}>
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="flex-1 min-w-0">
-                                <p className="text-[10px] font-medium mb-0.5" style={{ color: 'var(--text-primary)' }}>
-                                  {r.profile?.first_name} {r.profile?.last_name}
-                                  {r.profile?.abo_number && <span style={{ color: 'var(--text-secondary)' }}> · {r.profile.abo_number}</span>}
-                                </p>
-                                <p className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>{r.role_label}</p>
-                              </div>
-                              <div className="flex items-center gap-1.5 flex-shrink-0">
-                                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                                  style={{ backgroundColor: 'rgba(255,255,255,0.6)', color: STATUS_STYLES[r.status].color }}>
-                                  {r.status}
-                                </span>
-                                {r.status === 'pending' && (
-                                  <>
-                                    <button onClick={() => adminApproveMutation.mutate({ requestId: r.id, status: 'approved' })}
-                                      className="text-[10px] px-2 py-0.5 rounded-full font-semibold text-white"
-                                      style={{ backgroundColor: 'var(--brand-teal)' }}>✓</button>
-                                    <button onClick={() => adminApproveMutation.mutate({ requestId: r.id, status: 'denied' })}
-                                      className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-black/10"
-                                      style={{ color: 'var(--text-secondary)' }}>✕</button>
-                                  </>
-                                )}
-                              </div>
+              <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                  stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <polyline points="12 6 12 12 16 14"/>
+                </svg>
+                <span>{formatTime(event.start_time)} – {formatTime(event.end_time)}</span>
+              </div>
+            </div>
+            {event.description && (
+              <div className="px-4 py-3 border-b border-black/5">
+                <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{event.description}</p>
+              </div>
+            )}
+            {!isGuest && (
+              <div className="px-4 py-3">
+                <p className="text-[10px] font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
+                  {t('event.roles')}
+                </p>
+                {isAdmin && (
+                  visibleRoleRequests.length > 0 ? (
+                    <div className="space-y-2">
+                      {visibleRoleRequests.map(r => (
+                        <div key={r.id} className="rounded-lg p-2.5" style={{ backgroundColor: STATUS_STYLES[r.status].bg }}>
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[10px] font-medium mb-0.5" style={{ color: 'var(--text-primary)' }}>
+                                {r.profile?.first_name} {r.profile?.last_name}
+                                {r.profile?.abo_number && <span style={{ color: 'var(--text-secondary)' }}> · {r.profile.abo_number}</span>}
+                              </p>
+                              <p className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>{r.role_label}</p>
+                            </div>
+                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                                style={{ backgroundColor: 'rgba(255,255,255,0.6)', color: STATUS_STYLES[r.status].color }}>
+                                {r.status}
+                              </span>
+                              {r.status === 'pending' && (
+                                <>
+                                  <button onClick={() => adminApproveMutation.mutate({ requestId: r.id, status: 'approved' })}
+                                    className="text-[10px] px-2 py-0.5 rounded-full font-semibold text-white"
+                                    style={{ backgroundColor: 'var(--brand-teal)' }}>✓</button>
+                                  <button onClick={() => adminApproveMutation.mutate({ requestId: r.id, status: 'denied' })}
+                                    className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-black/10"
+                                    style={{ color: 'var(--text-secondary)' }}>✕</button>
+                                </>
+                              )}
                             </div>
                           </div>
-                        ))}
-                      </div>
-                    ) : <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>No requests yet.</p>
-                  )}
-                  {!isAdmin && canRequestRole && (
-                    <div className="flex gap-2">
-                      {ROLE_PILLS.map(role => {
-                        const isActive = myRequest?.role_label === role
-                        const isDisabled = (!isActive && !!myRequest) || isMutating
-                        const activeStyle = isActive ? STATUS_STYLES[myRequest!.status] : null
-                        return (
-                          <button key={role}
-                            onClick={() => {
-                              if (isActive && myRequest!.status === 'pending') cancelMutation.mutate()
-                              else if (!myRequest) requestMutation.mutate(role)
-                            }}
-                            disabled={isDisabled || (isActive && myRequest!.status !== 'pending')}
-                            className="flex-1 flex items-center justify-center gap-1 py-2 rounded-xl text-[11px] font-bold tracking-wider uppercase transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-95 active:scale-[0.97]"
-                            style={{
-                              backgroundColor: activeStyle ? activeStyle.bg : 'rgba(0,0,0,0.05)',
-                              color: activeStyle ? activeStyle.color : 'var(--text-primary)',
-                              border: activeStyle ? `1px solid ${activeStyle.color}33` : '1px solid transparent',
-                            }}>
-                            {role}
-                            {isActive && myRequest!.status === 'pending' && <span className="opacity-60">✕</span>}
-                            {isActive && myRequest!.status === 'approved' && <span>✓</span>}
-                          </button>
-                        )
-                      })}
+                        </div>
+                      ))}
                     </div>
-                  )}
-                </div>
-              )}
-            </>
-          ) : null}
-        </div>
-      </DialogDescription>
-    </>
-  )
+                  ) : <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>No requests yet.</p>
+                )}
+                {!isAdmin && canRequestRole && (
+                  <div className="flex gap-2">
+                    {ROLE_PILLS.map(role => {
+                      const isActive = myRequest?.role_label === role
+                      const isDisabled = (!isActive && !!myRequest) || isMutating
+                      const activeStyle = isActive ? STATUS_STYLES[myRequest!.status] : null
+                      return (
+                        <button key={role}
+                          onClick={() => {
+                            if (isActive && myRequest!.status === 'pending') cancelMutation.mutate()
+                            else if (!myRequest) requestMutation.mutate(role)
+                          }}
+                          disabled={isDisabled || (isActive && myRequest!.status !== 'pending')}
+                          className="flex-1 flex items-center justify-center gap-1 py-2 rounded-xl text-[11px] font-bold tracking-wider uppercase transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-95 active:scale-[0.97]"
+                          style={{
+                            backgroundColor: activeStyle ? activeStyle.bg : 'rgba(0,0,0,0.05)',
+                            color: activeStyle ? activeStyle.color : 'var(--text-primary)',
+                            border: activeStyle ? `1px solid ${activeStyle.color}33` : '1px solid transparent',
+                          }}>
+                          {role}
+                          {isActive && myRequest!.status === 'pending' && <span className="opacity-60">✕</span>}
+                          {isActive && myRequest!.status === 'approved' && <span>✓</span>}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </>
+        ) : null}
+      </div>
+    )
+
+    if (asDialogDescription) {
+      return <DialogDescription asChild>{inner}</DialogDescription>
+    }
+    return inner
+  }
 
   return (
     <>
@@ -289,11 +299,13 @@ export default function EventPopup({
             <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
               <div className="w-8 h-1 rounded-full" style={{ backgroundColor: 'rgba(0,0,0,0.15)' }} />
             </div>
-            {bodyContent}
+            <Header asDialogTitle={true} />
+            <Body asDialogDescription={true} />
           </DialogContent>
         </Dialog>
       ) : (
         // Desktop: Popover anchored to the live trigger element
+        // DialogTitle/DialogDescription must NOT be used outside a Dialog context
         <Popover open onOpenChange={open => { if (!open) onClose() }}>
           <PopoverAnchor virtualRef={anchorElRef} />
           <PopoverContent
@@ -303,7 +315,8 @@ export default function EventPopup({
             style={{ width: 320, overflow: 'hidden' }}
             onOpenAutoFocus={e => e.preventDefault()}
           >
-            {bodyContent}
+            <Header asDialogTitle={false} />
+            <Body asDialogDescription={false} />
           </PopoverContent>
         </Popover>
       )}
