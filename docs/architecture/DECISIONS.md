@@ -1,5 +1,5 @@
 # DECISIONS.md — Architecture Decision Records
-> tevd-portal · Last updated: 2026-03-28
+> tevd-portal · Last updated: 2026-04-06
 > Format: Context | Decision | Consequences (Benefits / Risks / Mitigations)
 > Records are never deleted. Superseded records are marked and linked to their replacement.
 
@@ -23,6 +23,7 @@
 | ADR-012 | Feature-based folder structure: co-locate route-scoped components | 2026-03 | Active |
 | ADR-013 | shadcn/ui as the mandatory primitive library for interactive components | 2026-03 | Active |
 | ADR-014 | Cookie-based transport for UI preference synchronisation | 2026-03-28 | Active |
+| ADR-015 | Autonomous Tile Pattern for profile section components | 2026-04-06 | Active |
 
 ---
 
@@ -634,3 +635,62 @@ Any future cosmetic preference that must be applied at SSR time follows this sam
 - The one-time FOUC is documented as accepted in this ADR and in `docs/architecture/ui-state-sync.md`
 - Cookie validation in `app/layout.tsx` prevents injection of arbitrary `data-font-size` values
 - `useFontSize` reconciliation on mount ensures `ui_prefs` always wins over a stale or missing cookie
+
+---
+
+## ADR-015 — Autonomous Tile Pattern for Profile Section Components
+
+**Date:** 2026-04-06
+**Status:** Active
+
+### Context
+`app/(dashboard)/profile/page.tsx` accumulated 10 `useQuery` calls, 7 `useMutation` calls, 7 drawer open states, and 7 inline drawer JSX blocks in a single 1,600-line file. All section data was fetched at the page level and passed down as props. The file became expensive to reason about and fragile to modify.
+
+The four "core" sections (`PersonalDetailsContent`, `AboInfoContent`, `TravelDocContent`, `UserSettingsContent`) were already extracted to files in a prior ticket. This ADR governs the pattern for the remaining sections: Trips, Payments, Vitals, Participation, Calendar, Stats, Admin.
+
+### Decision
+
+Each profile section is an **autonomous tile component**. It:
+
+1. **Owns its data fetching.** The section component contains its own `useQuery` call(s). No data is passed to it as props from `page.tsx`.
+2. **Owns its mutations.** Any write operations (cancel trip, submit payment, regenerate token) live inside the section, not in page.tsx.
+3. **Owns its drawer.** If the section has a full-list drawer or a form drawer, the drawer JSX and its open/close `useState` live inside the section file.
+4. **Returns a renderable node.** The section component renders its own tile card. Page.tsx places it into the bento grid but does not inspect its internals.
+
+`page.tsx` is reduced to: bento order state, collapse state, DnD context, the single `useQuery(['profile'])` that gates the page, and the grid shell.
+
+### Cross-Section Data Dependency Rule
+
+When one section needs data logically owned by another section (example: `PaymentsSection` needs `cancelledTripIds` which comes from trips data), the section that needs the data **duplicates the query** using the same TanStack Query key. TanStack Query deduplicates the network request — only one fetch is made. The section derives what it needs from its own query result.
+
+This is preferred over:
+- Hoisting the data to page.tsx and passing it as a prop (re-couples page.tsx to section internals)
+- Creating a shared context/store for cross-section data (premature — only one cross-section dependency exists today)
+
+### `minHeight` Strategy
+
+Each section reports a **static `minHeight`** constant (one of `BENTO_HEIGHT.S`, `BENTO_HEIGHT.M`, `BENTO_HEIGHT.L`). The `bentoMinHeight(itemCount)` function that derived height from data length is deleted. Static heights avoid the situation where page.tsx must know section data to compute layout metrics — which would re-couple them.
+
+### Scope
+
+This pattern applies to profile section components only. It is not a general application-wide pattern. Other pages with multiple queries may choose different data organisation strategies.
+
+### Why not a single profile context/provider
+A `ProfileContext` could make all fetched data available to any section without prop-drilling. The problem: all queries would still be triggered from a single mount point, which means data for hidden or conditional sections (Trips only shown if `hasTrips`, Stats only shown if `abo_number`) is still fetched eagerly. The autonomous tile pattern is more efficient — each section gates its own `enabled` flag and fires only when its conditions are met.
+
+### Consequences
+
+**Benefits:**
+- `page.tsx` drops from ~1,600 lines to ≤150 lines
+- Adding or removing a section requires touching only the section file and the `bentoMap` entry in page.tsx
+- Each section is independently testable — it has a well-defined props contract and owns all its state
+- Conditional sections (`enabled: !!aboNumber`) only fetch when their data is actually needed
+- The `cancelledTripIds` cross-section dependency is handled by query deduplication — zero coupling at the component level
+
+**Risks:**
+- If the same query is duplicated across sections, cache invalidation must use the same query key — sections cannot silently rename query keys
+- The query key contract (`['profile-trips']`, `['profile-generic-payments']`, etc.) becomes load-bearing. It is documented in `docs/features/profile-refactor.md`
+
+**Mitigations:**
+- All query keys are defined as string constants or documented explicitly. Any section that duplicates a query uses the identical key.
+- `page.tsx` retains `useQuery(['profile'])` as the single auth/identity gate — sections receive `profileId` and `role` as props to set their `enabled` flags. They do not re-fetch the profile themselves.
