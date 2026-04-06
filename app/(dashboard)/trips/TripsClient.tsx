@@ -82,7 +82,7 @@ function Cta({ trip, registrationStatus, isCancelled, authLoading, profileId, on
       return {
         node: (
           <div className="px-4 py-3 rounded-xl flex items-center justify-between" style={{ backgroundColor: '#f2cc8f33' }}>
-            <p className="text-sm font-medium leading-snug" style={{ color: '#7a5c00' }}>
+            <p className="text-sm font-medium leading-snug min-w-0 flex-1" style={{ color: '#7a5c00' }}>
               {t('trips.status.pendingLong')}
             </p>
             <button

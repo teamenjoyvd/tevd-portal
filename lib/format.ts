@@ -60,3 +60,21 @@ export function calMonth(iso: string): string {
 export function calDay(iso: string): string {
   return String(new Date(iso).getDate())
 }
+
+/** 18 Mar 2026 — medium English date for admin/member-facing UI */
+export function formatDateMediumEn(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  })
+}
+
+/** 18 March 2026 — long English date for profile / travel doc display */
+export function formatDateLongEn(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  })
+}

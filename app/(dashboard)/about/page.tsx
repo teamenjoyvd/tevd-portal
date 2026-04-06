@@ -1,6 +1,5 @@
 import Image from 'next/image'
-import BentoCard from '@/components/bento/BentoCard'
-import AboutMapTile from './components/AboutMapTile'
+import AboutMapTileDynamic from './components/AboutMapTileDynamic'
 import MailtoTile from './components/MailtoTile'
 
 // ── Shared content blocks ────────────────────────────────────────────────────
@@ -119,8 +118,8 @@ export default function AboutPage() {
           {/* Row 3 col 7–9: mailto tile (client component — interactive-lift) */}
           <MailtoTile style={{ gridColumn: '7 / span 3', gridRow: '3' }} />
 
-          {/* Row 3 col 10–12: map */}
-          <AboutMapTile
+          {/* Row 3 col 10–12: map — client-only via dynamic wrapper */}
+          <AboutMapTileDynamic
             gridColumn="10 / span 3"
             style={{ gridColumn: '10 / span 3', gridRow: '3', minHeight: 120 }}
           />
@@ -166,7 +165,7 @@ export default function AboutPage() {
 
         <div className="grid grid-cols-2 gap-3">
           <MailtoTile style={{ minHeight: 96 }} />
-          <AboutMapTile style={{ minHeight: 96 }} />
+          <AboutMapTileDynamic style={{ minHeight: 96 }} />
         </div>
 
       </div>
