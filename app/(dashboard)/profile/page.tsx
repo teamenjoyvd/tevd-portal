@@ -3,7 +3,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
-import { Drawer } from '@/components/ui/Drawer'
 import {
   DndContext,
   PointerSensor,
@@ -22,8 +21,6 @@ import { PersonalDetailsContent } from './components/PersonalDetailsContent'
 import { AboInfoContent } from './components/AboInfoContent'
 import { TravelDocContent } from './components/TravelDocContent'
 import { UserSettingsContent } from './components/UserSettingsContent'
-import { PersonalDrawerForm } from './components/PersonalDrawerForm'
-import { TravelDocDrawerForm } from './components/TravelDocDrawerForm'
 import { SortableBento } from './components/SortableBento'
 import { TripsSection, TRIPS_MIN_HEIGHT } from './components/TripsSection'
 import { PaymentsSection, PAYMENTS_MIN_HEIGHT } from './components/PaymentsSection'
@@ -32,7 +29,7 @@ import { ParticipationSection, PARTICIPATION_MIN_HEIGHT } from './components/Par
 import { CalendarSection, CALENDAR_MIN_HEIGHT } from './components/CalendarSection'
 import { StatsSection, STATS_MIN_HEIGHT } from './components/StatsSection'
 import { AdminSection } from './components/AdminSection'
-import { type Profile } from './types'
+import { type Profile, type VerificationRequest, type UplineData } from './types'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -66,71 +63,6 @@ const DEFAULT_ORDER: string[] = [
   BENTO_IDS.ADMIN,
 ]
 
-// ── Validation (personal + travel doc) ───────────────────────────────────────
-
-type PersonalFormFields = {
-  first_name?: string
-  last_name?: string
-  bg_first?: string
-  bg_last?: string
-  phone?: string
-  contact_email?: string
-}
-
-const LATIN_RE    = /^[A-Za-z\-']+$/
-const CYRILLIC_RE = /^[\u0400-\u04FF\-']+$/
-const PHONE_RE    = /^\+?\d{7,15}$/
-const EMAIL_RE    = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-
-function validatePersonalField(field: keyof PersonalFormFields, value: string): string {
-  switch (field) {
-    case 'first_name':
-      if (!value.trim()) return 'Required'
-      if (!LATIN_RE.test(value.trim())) return 'Latin letters, hyphens and apostrophes only'
-      return ''
-    case 'last_name':
-      if (!value.trim()) return 'Required'
-      if (!LATIN_RE.test(value.trim())) return 'Latin letters, hyphens and apostrophes only'
-      return ''
-    case 'bg_first':
-      if (!value.trim()) return ''
-      if (!CYRILLIC_RE.test(value.trim())) return 'Cyrillic letters, hyphens and apostrophes only'
-      return ''
-    case 'bg_last':
-      if (!value.trim()) return ''
-      if (!CYRILLIC_RE.test(value.trim())) return 'Cyrillic letters, hyphens and apostrophes only'
-      return ''
-    case 'phone':
-      if (!value.trim()) return ''
-      if (!PHONE_RE.test(value.trim())) return 'Enter a valid phone number (7–15 digits, optional leading +)'
-      return ''
-    case 'contact_email':
-      if (!value.trim()) return ''
-      if (!EMAIL_RE.test(value.trim())) return 'Enter a valid email address'
-      return ''
-    default:
-      return ''
-  }
-}
-
-function validateDocField(
-  field: 'doc_number' | 'valid_through',
-  value: string,
-  context: { has_doc_type: boolean; doc_number: string },
-): string {
-  if (field === 'doc_number') {
-    if (context.has_doc_type && !value.trim()) return 'Required when document type is set'
-    return ''
-  }
-  if (field === 'valid_through') {
-    if (!context.doc_number.trim()) return ''
-    if (!value.trim()) return 'Required when document number is filled'
-    if (isNaN(new Date(value).getTime())) return 'Enter a valid date'
-    return ''
-  }
-  return ''
-}
-
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 
 function ProfileSkeleton() {
@@ -155,28 +87,6 @@ export default function ProfilePage() {
   const qc = useQueryClient()
   const { t } = useLanguage()
 
-  // ── Personal + travel doc drawer states (deferred to SEQ339) ────────────
-  const [personalDrawerOpen, setPersonalDrawerOpen]   = useState(false)
-  const [travelDocDrawerOpen, setTravelDocDrawerOpen] = useState(false)
-  const [savedPersonal, setSavedPersonal]             = useState(false)
-  const [savedTravelDoc, setSavedTravelDoc]           = useState(false)
-
-  const [personalForm, setPersonalForm] = useState<{
-    first_name?: string
-    last_name?: string
-    display_names?: Record<string, string>
-    phone?: string
-    contact_email?: string
-  }>({})
-  const [personalErrors, setPersonalErrors] = useState<Partial<Record<keyof PersonalFormFields, string>>>({})
-  const [docForm, setDocForm] = useState<{
-    document_active_type?: 'id' | 'passport'
-    id_number?: string
-    passport_number?: string
-    valid_through?: string
-  }>({})
-  const [docErrors, setDocErrors] = useState<{ doc_number?: string; valid_through?: string }>({})
-
   // ── Layout state ─────────────────────────────────────────────────────────
   const [bentoOrder, setBentoOrder]         = useState<string[]>(DEFAULT_ORDER)
   const [bentoCollapsed, setBentoCollapsed] = useState<Record<string, boolean>>({})
@@ -190,14 +100,14 @@ export default function ProfilePage() {
 
   const validProfile = profile?.id ? profile : null
 
-  // ── ABO + upline queries (needed for AboInfoContent + bentoMap gating) ───
-  const { data: verRequest } = useQuery<{ id: string; claimed_abo: string | null; claimed_upline_abo: string; status: 'pending' | 'approved' | 'denied'; admin_note: string | null; created_at: string; request_type: string } | null>({
+  // ── ABO queries (needed for AboInfoContent + bento gating) ───────────────
+  const { data: verRequest } = useQuery<VerificationRequest | null>({
     queryKey: ['verify-abo'],
     queryFn: () => fetch('/api/profile/verify-abo').then(r => r.json()),
     enabled: !!validProfile && validProfile.role === 'guest',
   })
 
-  const { data: uplineData } = useQuery<{ upline_name: string | null; upline_abo_number: string | null }>({
+  const { data: uplineData } = useQuery<UplineData>({
     queryKey: ['profile-upline'],
     queryFn: () => fetch('/api/profile/upline').then(r => r.json()),
     enabled: !!validProfile?.abo_number,
@@ -243,113 +153,6 @@ export default function ProfilePage() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [validProfile?.id])
-
-  // ── Seed personal + doc form state ───────────────────────────────────────
-  useEffect(() => {
-    if (!validProfile) return
-    setPersonalForm({
-      first_name:    validProfile.first_name,
-      last_name:     validProfile.last_name,
-      display_names: validProfile.display_names ?? {},
-      phone:         validProfile.phone ?? '',
-      contact_email: validProfile.contact_email ?? '',
-    })
-    setDocForm({
-      document_active_type: validProfile.document_active_type,
-      id_number:            validProfile.id_number ?? '',
-      passport_number:      validProfile.passport_number ?? '',
-      valid_through:        validProfile.valid_through ?? '',
-    })
-  }, [validProfile])
-
-  // ── Personal + doc mutations ──────────────────────────────────────────────
-  const savePersonal = useMutation({
-    mutationFn: async () => {
-      const payload = {
-        first_name:    personalForm.first_name,
-        last_name:     personalForm.last_name,
-        display_names: personalForm.display_names,
-        phone:         personalForm.phone || null,
-        contact_email: personalForm.contact_email || null,
-      }
-      const r = await fetch('/api/profile', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
-      if (!r.ok) throw new Error((await r.json()).error ?? 'Save failed')
-      return r.json() as Promise<Profile>
-    },
-    onSuccess: (data) => {
-      qc.setQueryData(['profile'], data)
-      setSavedPersonal(true)
-      setPersonalDrawerOpen(false)
-      setPersonalErrors({})
-      setTimeout(() => setSavedPersonal(false), 2500)
-    },
-  })
-
-  const saveTravelDoc = useMutation({
-    mutationFn: async () => {
-      const payload = {
-        document_active_type: docForm.document_active_type,
-        id_number:       docForm.id_number       || null,
-        passport_number: docForm.passport_number || null,
-        valid_through:   docForm.valid_through   || null,
-      }
-      const r = await fetch('/api/profile', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
-      if (!r.ok) throw new Error((await r.json()).error ?? 'Save failed')
-      return r.json() as Promise<Profile>
-    },
-    onSuccess: (data) => {
-      qc.setQueryData(['profile'], data)
-      setSavedTravelDoc(true)
-      setTravelDocDrawerOpen(false)
-      setDocErrors({})
-      setTimeout(() => setSavedTravelDoc(false), 2500)
-    },
-  })
-
-  // ── Personal form helpers ─────────────────────────────────────────────────
-  function handlePersonalChange(field: keyof PersonalFormFields, value: string) {
-    if (field === 'bg_first' || field === 'bg_last') {
-      const dnKey = field === 'bg_first' ? 'bg_first' : 'bg_last'
-      setPersonalForm(f => ({ ...f, display_names: { ...((f.display_names ?? {}) as Record<string,string>), [dnKey]: value } }))
-    } else {
-      setPersonalForm(f => ({ ...f, [field]: value }))
-    }
-  }
-  function handlePersonalBlur(field: keyof PersonalFormFields, value: string) {
-    setPersonalErrors(prev => ({ ...prev, [field]: validatePersonalField(field, value) }))
-  }
-  function clearPersonalError(field: keyof PersonalFormFields) {
-    setPersonalErrors(prev => { if (!prev[field]) return prev; const n = { ...prev }; delete n[field]; return n })
-  }
-
-  // ── Travel doc form helpers ───────────────────────────────────────────────
-  function handleDocTypeChange(dt: 'id' | 'passport') {
-    setDocForm(f => ({ ...f, document_active_type: dt }))
-  }
-  function handleDocNumberChange(v: string) {
-    const field = docForm.document_active_type === 'passport' ? 'passport_number' : 'id_number'
-    setDocForm(f => ({ ...f, [field]: v }))
-  }
-  function handleDocNumberBlur(v: string) {
-    const err = validateDocField('doc_number', v, { has_doc_type: !!(docForm.document_active_type), doc_number: v })
-    setDocErrors(prev => ({ ...prev, doc_number: err }))
-  }
-  function handleValidThroughBlur(v: string) {
-    const docNumber = docForm.document_active_type === 'passport' ? (docForm.passport_number ?? '') : (docForm.id_number ?? '')
-    const err = validateDocField('valid_through', v, { has_doc_type: true, doc_number: docNumber })
-    setDocErrors(prev => ({ ...prev, valid_through: err }))
-  }
-  function clearDocError(f: 'doc_number' | 'valid_through') {
-    setDocErrors(prev => { const n = { ...prev }; delete n[f]; return n })
-  }
 
   // ── Persist bento prefs ───────────────────────────────────────────────────
   const persistPrefs = useCallback((order: string[], collapsed: Record<string, boolean>) => {
@@ -417,7 +220,7 @@ export default function ProfilePage() {
   const bentoMap: Record<string, BentoEntry | null> = {
     [BENTO_IDS.PERSONAL_DETAILS]: {
       colSpan: 6, minHeight: BENTO_HEIGHT.M,
-      node: <PersonalDetailsContent profile={p} incomplete={!p.first_name} onEdit={() => setPersonalDrawerOpen(true)} />,
+      node: <PersonalDetailsContent profile={p} incomplete={!p.first_name} />,
     },
     [BENTO_IDS.ABO_INFO]: {
       colSpan: 6, minHeight: BENTO_HEIGHT.M,
@@ -435,7 +238,7 @@ export default function ProfilePage() {
     },
     [BENTO_IDS.TRAVEL_DOC]: !isGuest ? {
       colSpan: 6, minHeight: BENTO_HEIGHT.S,
-      node: <TravelDocContent profile={p} onEdit={() => setTravelDocDrawerOpen(true)} />,
+      node: <TravelDocContent profile={p} />,
     } : null,
     [BENTO_IDS.SETTINGS]: {
       colSpan: 6, minHeight: BENTO_HEIGHT.M,
@@ -508,43 +311,6 @@ export default function ProfilePage() {
           </SortableContext>
         </DndContext>
       </div>
-
-      {/* Personal Details Drawer — deferred to SEQ339 */}
-      <Drawer open={personalDrawerOpen} onClose={() => { setPersonalDrawerOpen(false); setPersonalErrors({}); savePersonal.reset() }} title={t('profile.tile.personalDetails')}>
-        <PersonalDrawerForm
-          form={personalForm}
-          formErrors={personalErrors}
-          onChange={handlePersonalChange}
-          onBlur={handlePersonalBlur}
-          onClearError={clearPersonalError}
-          onCancel={() => { setPersonalDrawerOpen(false); setPersonalErrors({}); savePersonal.reset() }}
-          onSave={() => savePersonal.mutate()}
-          isPending={savePersonal.isPending}
-          isError={savePersonal.isError}
-          errorMessage={savePersonal.isError ? (savePersonal.error as Error).message : ''}
-          saved={savedPersonal}
-        />
-      </Drawer>
-
-      {/* Travel Document Drawer — deferred to SEQ339 */}
-      <Drawer open={travelDocDrawerOpen} onClose={() => { setTravelDocDrawerOpen(false); setDocErrors({}); saveTravelDoc.reset() }} title={t('profile.tile.travelDoc')}>
-        <TravelDocDrawerForm
-          form={docForm}
-          formErrors={docErrors}
-          onDocTypeChange={handleDocTypeChange}
-          onDocNumberChange={handleDocNumberChange}
-          onValidThroughChange={v => setDocForm(f => ({ ...f, valid_through: v }))}
-          onDocNumberBlur={handleDocNumberBlur}
-          onValidThroughBlur={handleValidThroughBlur}
-          onClearError={clearDocError}
-          onCancel={() => { setTravelDocDrawerOpen(false); setDocErrors({}); saveTravelDoc.reset() }}
-          onSave={() => saveTravelDoc.mutate()}
-          isPending={saveTravelDoc.isPending}
-          isError={saveTravelDoc.isError}
-          errorMessage={saveTravelDoc.isError ? (saveTravelDoc.error as Error).message : ''}
-          saved={savedTravelDoc}
-        />
-      </Drawer>
     </div>
   )
 }
