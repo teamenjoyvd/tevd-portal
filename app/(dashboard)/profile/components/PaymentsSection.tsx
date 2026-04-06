@@ -4,14 +4,8 @@ import { useState, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Drawer } from '@/components/ui/Drawer'
 import { formatDate, formatCurrency } from '@/lib/format'
-import {
-  type TripEntry,
-  type GenericPayment,
-  type PayableItem,
-  VARIABLE_CAP,
-  PaymentRow,
-  ShowMoreButton,
-} from '../types'
+import { type TripEntry, type GenericPayment, type PayableItem, VARIABLE_CAP } from '../types'
+import { PaymentRow, ShowMoreButton } from './shared'
 
 export const PAYMENTS_MIN_HEIGHT = 280
 
@@ -20,7 +14,6 @@ export function PaymentsSection({ profileId, role }: { profileId: string; role: 
   const [submitDrawerOpen, setSubmitDrawerOpen] = useState(false)
   const [listDrawerOpen, setListDrawerOpen]     = useState(false)
 
-  // Payment form state
   const [payModalItemId, setPayModalItemId]   = useState('')
   const [payModalAmount, setPayModalAmount]   = useState('')
   const [payModalDate, setPayModalDate]       = useState('')
@@ -114,8 +107,8 @@ export function PaymentsSection({ profileId, role }: { profileId: string; role: 
     return map
   }
 
-  const visibleByItem  = groupByItem(visiblePayments)
-  const allByItem      = groupByItem(allPayments)
+  const visibleByItem = groupByItem(visiblePayments)
+  const allByItem     = groupByItem(allPayments)
 
   const PaymentGroups = ({ groups }: { groups: Record<string, GenericPayment[]> }) => (
     <div className="space-y-4">
@@ -149,7 +142,6 @@ export function PaymentsSection({ profileId, role }: { profileId: string; role: 
         {overflow > 0 && <ShowMoreButton count={overflow} onClick={() => setListDrawerOpen(true)} />}
       </div>
 
-      {/* Submit Payment Drawer */}
       <Drawer open={submitDrawerOpen} onClose={closeSubmitDrawer} title="Submit Payment">
         <div className="space-y-4">
           <div>
@@ -214,7 +206,6 @@ export function PaymentsSection({ profileId, role }: { profileId: string; role: 
         </div>
       </Drawer>
 
-      {/* All Payments Drawer */}
       <Drawer open={listDrawerOpen} onClose={() => setListDrawerOpen(false)} title="All Payments">
         <div className="space-y-4 mb-6">
           <PaymentGroups groups={allByItem} />

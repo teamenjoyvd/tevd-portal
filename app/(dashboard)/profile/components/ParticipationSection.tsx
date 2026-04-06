@@ -4,7 +4,8 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Drawer } from '@/components/ui/Drawer'
 import { formatDate } from '@/lib/format'
-import { type EventRoleRequest, VARIABLE_CAP, REG_STATUS_STYLES, ShowMoreButton } from '../types'
+import { type EventRoleRequest, VARIABLE_CAP, REG_STATUS_STYLES } from '../types'
+import { ShowMoreButton } from './shared'
 
 export const PARTICIPATION_MIN_HEIGHT = 280
 

@@ -3,7 +3,8 @@
 import { useState, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Drawer } from '@/components/ui/Drawer'
-import { type TripEntry, VARIABLE_CAP, TripRow, ShowMoreButton } from '../types'
+import { type TripEntry, VARIABLE_CAP } from '../types'
+import { TripRow, ShowMoreButton } from './shared'
 
 export const TRIPS_MIN_HEIGHT = 280
 

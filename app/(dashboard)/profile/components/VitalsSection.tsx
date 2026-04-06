@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Drawer } from '@/components/ui/Drawer'
-import { type VitalSign, VARIABLE_CAP, ShowMoreButton } from '../types'
+import { type VitalSign, VARIABLE_CAP } from '../types'
+import { ShowMoreButton } from './shared'
 
 export const VITALS_MIN_HEIGHT = 280
 
