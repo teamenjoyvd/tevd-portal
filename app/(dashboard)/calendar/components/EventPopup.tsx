@@ -1,7 +1,7 @@
 'use client'
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useRef } from 'react'
+import { useMemo  } from 'react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { formatTime, formatLongDate } from '@/lib/format'
 import {
@@ -73,6 +73,11 @@ export default function EventPopup({
   const qc = useQueryClient()
   const { t } = useLanguage()
   const isBottomSheet = (anchorEl !== null) && (typeof window !== 'undefined') && window.innerWidth < 768
+  // Radix virtualRef requires RefObject<Measurable> — current must be non-nullable.
+  // anchorEl is always set when this component mounts. Fallback DOMRect is unreachable.
+  const anchorElRef = useMemo(() => ({
+    current: anchorEl ?? { getBoundingClientRect: () => new DOMRect(0, 0, 0, 0) },
+  }), [anchorEl])
 
   const { data: event, isLoading } = useQuery<EventDetail>({
     queryKey: ['event', eventId],
@@ -290,7 +295,7 @@ export default function EventPopup({
       ) : (
         // Desktop: Popover anchored to the live trigger element
         <Popover open onOpenChange={open => { if (!open) onClose() }}>
-          <PopoverAnchor virtualRef={{ current: anchorEl }} />
+          <PopoverAnchor virtualRef={anchorElRef} />
           <PopoverContent
             side="bottom"
             sideOffset={8}
