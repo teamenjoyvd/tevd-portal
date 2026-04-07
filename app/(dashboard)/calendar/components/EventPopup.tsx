@@ -208,7 +208,7 @@ export default function EventPopup({
                 </div>
               )}
             </div>
-            {event.description && (
+            {event.description && event.description !== event.meeting_url && (
               <div className="px-4 py-3 border-b border-black/5">
                 <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{event.description}</p>
               </div>
