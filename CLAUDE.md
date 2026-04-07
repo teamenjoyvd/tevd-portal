@@ -1,5 +1,5 @@
 # CLAUDE.md — teamenjoyVD Portal
-> Last updated: 2026-04-07 — v2.0.12. Latest stable commit: 044499e.
+> Last updated: 2026-04-07 — v2.0.13. Latest stable commit: 044499e.
 > Architecture docs live in `docs/architecture/`. Reference tables live in `docs/ai/LOOKUP.md`. Orienting context in `docs/ai/CONTEXT.md`.
 > **Neither CONTEXT.md nor LOOKUP.md is read at SSU or at GATHER start.**
 
@@ -63,7 +63,7 @@ If any ❌ — stop. Do not proceed to task work.
 | UI Primitives | shadcn/ui | Installed manually (no `npx init` — Tailwind v4 incompatible). Add components via `npx shadcn@latest add <n>`. Source vended into `components/ui/`. |
 | Middleware | `proxy.ts` | **NEVER create `middleware.ts`.** |
 | Deployment | Vercel | Team: `teamenjoyvd`. Project: `prj_HFZJZg2vkLtpX8XvjJlo3mDkSCyn`. |
-| Repo | `teamenjoyvd/tevd-portal` | GitHub Flow: feature branches → PR → `main`. No direct pushes to `main`. Never ask user for repo — always use this. |
+| Repo | `teamenjoyvd/tevd-portal` | Private. **Never push directly to `main`.** All work occurs on `feature/SEQ<NNN>-ISS<NNN>` branches. |
 | Production | `https://tevd-portal.vercel.app` | |
 
 ---
@@ -72,7 +72,8 @@ If any ❌ — stop. Do not proceed to task work.
 
 Violation = immediate stop.
 
-- **NEVER push directly to `main`.** All changes go via a feature branch and PR. Branch naming: `feature/SEQ<NNN>-ISS<NNN>-short-description`.
+- **NEVER push directly to `main`.** All commits must be pushed to a `feature/SEQ<NNN>-ISS<NNN>` branch and merged via Pull Request.
+- **NEVER write data to Supabase from a Preview URL** unless the data is structurally isolated (e.g., test UI state). Preview URLs point to the production database; testing trip registrations or modifying LOS profiles will contaminate production.
 - **NEVER create `middleware.ts`.** Use `proxy.ts`.
 - **NEVER bypass Clerk auth on a protected route.** Security violation.
 - **NEVER expose `SUPABASE_SERVICE_ROLE_KEY` to the client.** Server-only.
@@ -115,15 +116,15 @@ Declare phase at opening of every work response: `PHASE: READ | SHAPE | CLAIM | 
 - Ticket introduces a new architectural pattern or library → write ADR in `DECISIONS.md` before EXECUTE
 - DoD still vague after this check → probe before claiming
 
-**CLAIM:** Set `Status = "In Progress"` by **Seq** (not Issue ID). Gate: Blocked By empty + Duplicate false.
+**CLAIM:** Set `Status = "In Progress"` by **Seq** (not Issue ID). Gate: Blocked By empty + Duplicate false. Checkout new branch: `feature/SEQ<NNN>-ISS<NNN>`.
 
 **GATHER:** Read `docs/ai/CONTEXT.md` first. Then pull from `docs/ai/LOOKUP.md` only for sections the ticket needs (see section map in CONTEXT.md header).
 
-**EXECUTE:** Write code on a `feature/SEQ<NNN>-ISS<NNN>-short-description` branch. Zero-Refactor Rule: change only lines required by DoD.
+**EXECUTE:** Write code on the feature branch. Zero-Refactor Rule: change only lines required by DoD. Push commits to trigger Vercel Preview.
 
-**VERIFY:** DoD point-by-point. Confirm Vercel PR preview deployment is READY and CI (`check-types.yml`) is green against the PR preview URL. Run 390px mobile validation against the preview URL. Iterate if gaps remain.
+**VERIFY:** DoD point-by-point. Check the Vercel Preview URL generated for the feature branch. Perform 390px mobile validation here. **Read-only validation** — do not trigger production side-effects. Confirm CI (`check-types.yml`) is green. Iterate if gaps remain.
 
-**FINALIZE:** Open PR against `main`. Commit format: `[SEQ<NNN>-ISS<NNN>] Short imperative description`. Merge only after VERIFY passes. Single Airtable write: `Status=Done` + `CommitLink` (merge commit) + `ClaudeNotes`.
+**FINALIZE:** Open Pull Request against `main`. Once reviewed and merged, verify the Vercel production deployment is READY. Single Airtable write: `Status=Done` + `CommitLink` (PR or main merge commit) + `ClaudeNotes`.
 
 ### Airtable Reference
 
