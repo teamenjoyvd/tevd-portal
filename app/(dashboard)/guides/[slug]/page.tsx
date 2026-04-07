@@ -1,8 +1,10 @@
 import { auth } from '@clerk/nextjs/server'
+import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createServiceClient } from '@/lib/supabase/service'
 import BentoCard from '@/components/bento/BentoCard'
+import type { Lang } from '@/lib/i18n/translations'
 
 type Block = {
   type: 'heading' | 'paragraph' | 'callout'
@@ -57,8 +59,10 @@ export default async function GuideDetailPage({
   const accessRoles = guide.access_roles as string[]
   if (!accessRoles.includes(role)) redirect('/guides')
 
+  const cookieStore = await cookies()
+  const lang: Lang = cookieStore.get('tevd_lang')?.value === 'bg' ? 'bg' : 'en'
+
   const g = guide as unknown as Guide
-  const lang = 'en'
   const title = (g.title as Record<string, string>)[lang] ?? g.title.en ?? ''
 
   return (
