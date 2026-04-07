@@ -1,5 +1,5 @@
 # CLAUDE.md — teamenjoyVD Portal
-> Last updated: 2026-04-07 — v2.0.11. Latest stable commit: 044499e.
+> Last updated: 2026-04-07 — v2.0.12. Latest stable commit: 044499e.
 > Architecture docs live in `docs/architecture/`. Reference tables live in `docs/ai/LOOKUP.md`. Orienting context in `docs/ai/CONTEXT.md`.
 > **Neither CONTEXT.md nor LOOKUP.md is read at SSU or at GATHER start.**
 
@@ -63,7 +63,7 @@ If any ❌ — stop. Do not proceed to task work.
 | UI Primitives | shadcn/ui | Installed manually (no `npx init` — Tailwind v4 incompatible). Add components via `npx shadcn@latest add <n>`. Source vended into `components/ui/`. |
 | Middleware | `proxy.ts` | **NEVER create `middleware.ts`.** |
 | Deployment | Vercel | Team: `teamenjoyvd`. Project: `prj_HFZJZg2vkLtpX8XvjJlo3mDkSCyn`. |
-| Repo | `teamenjoyvd/tevd-portal` | Private, `main` only. Never ask user for repo — always use this. |
+| Repo | `teamenjoyvd/tevd-portal` | GitHub Flow: feature branches → PR → `main`. No direct pushes to `main`. Never ask user for repo — always use this. |
 | Production | `https://tevd-portal.vercel.app` | |
 
 ---
@@ -72,12 +72,13 @@ If any ❌ — stop. Do not proceed to task work.
 
 Violation = immediate stop.
 
+- **NEVER push directly to `main`.** All changes go via a feature branch and PR. Branch naming: `feature/SEQ<NNN>-ISS<NNN>-short-description`.
 - **NEVER create `middleware.ts`.** Use `proxy.ts`.
 - **NEVER bypass Clerk auth on a protected route.** Security violation.
 - **NEVER expose `SUPABASE_SERVICE_ROLE_KEY` to the client.** Server-only.
 - **NEVER write `Status=Done` before the commit link exists.** Finalization is atomic.
 - **NEVER proceed past CLAIM if `Blocked By` is non-empty** without explicit acknowledgment.
-- **NEVER mark Done on static analysis alone.** Verify Vercel deployment is READY AND CI passes.
+- **NEVER mark Done on static analysis alone.** Verify Vercel PR preview deployment is READY AND CI passes.
 - **390px Mobile-First:** Every new UI surface must render correctly at 390px. The layout law below is non-negotiable.
 - **RLS policies MUST use Pattern A helper functions** (`is_admin()`, `get_my_role()`, `get_my_profile_id()`, `get_my_clerk_id()`). Never use raw `auth.jwt() ->> 'sub'` or `auth.jwt() ->> 'user_role'` directly. See ADR-011 in `docs/architecture/DECISIONS.md`.
 - **Component co-location:** New components scoped to a single route MUST be created inside that route's `components/` subdirectory (e.g. `app/(dashboard)/trips/components/`). No new files are added to `/components` or its subdirectories unless the component is used by 2+ unrelated routes at time of creation. Exempt: `components/layout`, `components/bento`, `components/ui`. See ADR-012.
@@ -118,11 +119,11 @@ Declare phase at opening of every work response: `PHASE: READ | SHAPE | CLAIM | 
 
 **GATHER:** Read `docs/ai/CONTEXT.md` first. Then pull from `docs/ai/LOOKUP.md` only for sections the ticket needs (see section map in CONTEXT.md header).
 
-**EXECUTE:** Write code. Zero-Refactor Rule: change only lines required by DoD.
+**EXECUTE:** Write code on a `feature/SEQ<NNN>-ISS<NNN>-short-description` branch. Zero-Refactor Rule: change only lines required by DoD.
 
-**VERIFY:** DoD point-by-point. Check Vercel deployment is READY and CI is green. Iterate if gaps remain.
+**VERIFY:** DoD point-by-point. Confirm Vercel PR preview deployment is READY and CI (`check-types.yml`) is green against the PR preview URL. Run 390px mobile validation against the preview URL. Iterate if gaps remain.
 
-**FINALIZE:** Commit `[SEQ<NNN>-ISS<NNN>] Short imperative description`. Single Airtable write: `Status=Done` + `CommitLink` + `ClaudeNotes`.
+**FINALIZE:** Open PR against `main`. Commit format: `[SEQ<NNN>-ISS<NNN>] Short imperative description`. Merge only after VERIFY passes. Single Airtable write: `Status=Done` + `CommitLink` (merge commit) + `ClaudeNotes`.
 
 ### Airtable Reference
 
