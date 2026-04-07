@@ -12,7 +12,7 @@ type Props = {
   initialDataUpdatedAt: number
 }
 
-/** Ensure URL has a protocol prefix so browsers don’t treat it as a relative path. */
+/** Ensure URL has a protocol prefix so browsers don't treat it as a relative path. */
 function normaliseUrl(raw: string): string {
   if (/^https?:\/\//i.test(raw)) return raw
   return `https://${raw}`
@@ -63,7 +63,7 @@ const cardStyle: React.CSSProperties = {
 // ── Main client component ─────────────────────────────────────────────────────────
 
 export default function GuidesClient({ initialGuides, initialLinks, initialDataUpdatedAt }: Props) {
-  const { lang } = useLanguage()
+  const { lang, t } = useLanguage()
 
   const { data: guides = initialGuides, isLoading: guidesLoading } = useQuery<Guide[]>({
     queryKey: ['guides', 'list'],
@@ -173,7 +173,7 @@ export default function GuidesClient({ initialGuides, initialLinks, initialDataU
               {links.map(l => <LinkCard key={l.id} l={l} />)}
               {guides.map(g => <GuideCard key={g.id} g={g} />)}
               {links.length === 0 && guides.length === 0 && (
-                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Nothing here yet.</p>
+                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t('guides.emptyAll')}</p>
               )}
             </div>
 
@@ -183,7 +183,7 @@ export default function GuidesClient({ initialGuides, initialLinks, initialDataU
               <div className="flex flex-col gap-3" style={{ width: '38%' }}>
                 {links.map(l => <LinkCard key={l.id} l={l} />)}
                 {links.length === 0 && (
-                  <p className="text-sm px-1" style={{ color: 'var(--text-secondary)' }}>No links yet.</p>
+                  <p className="text-sm px-1" style={{ color: 'var(--text-secondary)' }}>{t('guides.emptyLinks')}</p>
                 )}
               </div>
 
@@ -201,7 +201,7 @@ export default function GuidesClient({ initialGuides, initialLinks, initialDataU
               <div className="flex flex-col gap-3" style={{ flex: 1 }}>
                 {guides.map(g => <GuideCard key={g.id} g={g} />)}
                 {guides.length === 0 && (
-                  <p className="text-sm px-1" style={{ color: 'var(--text-secondary)' }}>No guides yet.</p>
+                  <p className="text-sm px-1" style={{ color: 'var(--text-secondary)' }}>{t('guides.emptyGuides')}</p>
                 )}
               </div>
 

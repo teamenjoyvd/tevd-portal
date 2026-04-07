@@ -20,6 +20,23 @@ export const translations = {
   'role.member': { en: 'Member', bg: 'ЧЛЕН+' },
   'role.guest':  { en: 'Guest',  bg: 'ГОСТ'  },
 
+  // Announcements
+  'ann.title':    { en: 'Announcements',           bg: 'Обяви'                         },
+  'ann.subtitle': { en: 'Latest news and updates', bg: 'Последни новини и актуализации' },
+  'ann.empty':    { en: 'No announcements yet.',   bg: 'Все още няма обяви.'            },
+
+  // Relative time
+  'time.justNow':  { en: 'just now', bg: 'преди малко' },
+  'time.minsAgo':  { en: '{n}m ago', bg: 'пр. {n}м'   },
+  'time.hoursAgo': { en: '{n}h ago', bg: 'пр. {n}ч'   },
+  'time.daysAgo':  { en: '{n}d ago', bg: 'пр. {n}д'   },
+
+  // Guides / Links
+  'guides.emptyAll':    { en: 'Nothing here yet.',      bg: 'Все още няма нищо тук.'        },
+  'guides.emptyLinks':  { en: 'No links yet.',          bg: 'Все още няма линкове.'         },
+  'guides.emptyGuides': { en: 'No guides yet.',         bg: 'Все още няма ръководства.'     },
+  'guides.back':        { en: 'Back to guides & links', bg: 'Назад към ръководствата'       },
+
   // Notifications page
   'notif.unread':             { en: '{n} unread',           bg: '{n} непрочетени'                  },
   'notif.markAllRead':        { en: 'Mark all as read',     bg: 'Маркирай всички като прочетени'   },

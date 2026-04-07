@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createServiceClient } from '@/lib/supabase/service'
 import BentoCard from '@/components/bento/BentoCard'
+import { translate } from '@/lib/i18n/translations'
 import type { Lang } from '@/lib/i18n/translations'
 
 type Block = {
@@ -77,7 +78,7 @@ export default async function GuideDetailPage({
           stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="15 18 9 12 15 6" />
         </svg>
-        Back to guides &amp; links
+        {translate('guides.back', lang)}
       </Link>
 
       {/* Cover image */}
@@ -133,7 +134,8 @@ export default async function GuideDetailPage({
 
           return (
             <p key={i} className="text-base leading-relaxed font-body"
-              style={{ color: 'var(--text-secondary)' }}>
+              style={{ color: 'var(--text-secondary)' }}
+            >
               {content}
             </p>
           )

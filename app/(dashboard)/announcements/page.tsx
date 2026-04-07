@@ -2,6 +2,8 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { useLanguage } from '@/lib/hooks/useLanguage'
+import { translate } from '@/lib/i18n/translations'
+import type { Lang } from '@/lib/i18n/translations'
 import PageHeading from '@/components/layout/PageHeading'
 import BentoGrid from '@/components/bento/BentoGrid'
 import BentoCard from '@/components/bento/BentoCard'
@@ -14,19 +16,19 @@ type Announcement = {
   created_at: string
 }
 
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime()
+function timeAgo(dateStr: string, lang: Lang): string {
+  const diff  = Date.now() - new Date(dateStr).getTime()
   const mins  = Math.floor(diff / 60000)
   const hours = Math.floor(diff / 3600000)
   const days  = Math.floor(diff / 86400000)
-  if (mins < 1)   return 'just now'
-  if (mins < 60)  return `${mins}m ago`
-  if (hours < 24) return `${hours}h ago`
-  return `${days}d ago`
+  if (mins < 1)   return translate('time.justNow', lang)
+  if (mins < 60)  return translate('time.minsAgo', lang).replace('{n}', String(mins))
+  if (hours < 24) return translate('time.hoursAgo', lang).replace('{n}', String(hours))
+  return translate('time.daysAgo', lang).replace('{n}', String(days))
 }
 
 export default function AnnouncementsPage() {
-  const { lang } = useLanguage()
+  const { lang, t } = useLanguage()
 
   const { data: announcements = [], isLoading } = useQuery<Announcement[]>({
     queryKey: ['announcements', 'public'],
@@ -37,7 +39,7 @@ export default function AnnouncementsPage() {
 
   return (
     <>
-      <PageHeading title="Announcements" subtitle="Latest news and updates" />
+      <PageHeading title={t('ann.title')} subtitle={t('ann.subtitle')} />
       <div className="py-8 pb-16">
         <BentoGrid>
           {isLoading ? (
@@ -53,7 +55,7 @@ export default function AnnouncementsPage() {
             <BentoCard variant="default" colSpan={12}>
               <div className="text-center py-12">
                 <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                  No announcements yet.
+                  {t('ann.empty')}
                 </p>
               </div>
             </BentoCard>
@@ -71,7 +73,7 @@ export default function AnnouncementsPage() {
                       </h2>
                       <span className="text-xs flex-shrink-0 mt-1"
                         style={{ color: 'var(--text-secondary)' }}>
-                        {timeAgo(a.created_at)}
+                        {timeAgo(a.created_at, lang)}
                       </span>
                     </div>
                     {content && (
