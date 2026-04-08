@@ -32,13 +32,12 @@ export async function sendEmail({
   const supabase = createServiceClient();
 
   await supabase.from("email_log").insert({
-    recipient_email: to,
-    subject,
-    template_name: templateName ?? null,
-    profile_id: profileId ?? null,
+    recipient: to,
+    template: templateName ?? "unknown",
+    payload: { subject, profile_id: profileId ?? null } as Record<string, unknown>,
     resend_id: data?.id ?? null,
     status: error ? "failed" : "sent",
-    error_message: error ? error.message : null,
+    error: error ? error.message : null,
   });
 
   if (error) {

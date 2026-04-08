@@ -162,6 +162,42 @@ export type Database = {
           },
         ]
       }
+      email_log: {
+        Row: {
+          created_at: string
+          error: string | null
+          id: string
+          payload: Json
+          recipient: string
+          resend_id: string | null
+          sent_at: string | null
+          status: string
+          template: string
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          payload?: Json
+          recipient: string
+          resend_id?: string | null
+          sent_at?: string | null
+          status?: string
+          template: string
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          payload?: Json
+          recipient?: string
+          resend_id?: string | null
+          sent_at?: string | null
+          status?: string
+          template?: string
+        }
+        Relationships: []
+      }
       event_role_requests: {
         Row: {
           created_at: string
@@ -746,6 +782,21 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      settings: {
+        Row: {
+          key: string
+          value: Json
+        }
+        Insert: {
+          key: string
+          value?: Json
+        }
+        Update: {
+          key?: string
+          value?: Json
+        }
+        Relationships: []
       }
       social_posts: {
         Row: {
