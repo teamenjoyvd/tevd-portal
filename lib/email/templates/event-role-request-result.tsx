@@ -25,8 +25,8 @@ export function EventRoleRequestResultEmail({
     ? `Ролята ви беше одобрена`
     : `Заявката ви за роля беше отказана`;
   const body = approved
-    ? `Здравей, ${firstName}. Заявката ви за роля „${roleName}“ в събитието „${eventName}“ беше одобрена.`
-    : `Здравей, ${firstName}. За съжаление, заявката ви за роля „${roleName}“ в „${eventName}“ не беше одобрена.`;
+    ? `Здравей, ${firstName}. Заявката ви за роля „${roleName}" в събитието „${eventName}" беше одобрена.`
+    : `Здравей, ${firstName}. За съжаление, заявката ви за роля „${roleName}" в „${eventName}" не беше одобрена.`;
   const bodyEn = approved
     ? `Hi ${firstName}, your request for the role "${roleName}" at "${eventName}" has been approved.`
     : `Hi ${firstName}, your request for the role "${roleName}" at "${eventName}" was not approved.`;
@@ -48,7 +48,7 @@ export function EventRoleRequestResultEmail({
       {approved ? (
         <Section style={S.ctaSection}>
           <Button
-            href="https://tevd-portal.vercel.app/calendar"
+            href={`${S.APP_URL}/calendar`}
             style={S.ctaButton}
           >
             Виж събитието → View Event
