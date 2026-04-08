@@ -48,7 +48,7 @@ export function TripRegistrationStatusEmail({
       {approved ? (
         <Section style={S.ctaSection}>
           <Button
-            href="https://tevd-portal.vercel.app/trips"
+            href={`${S.APP_URL}/trips`}
             style={S.ctaButton}
           >
             Виж пътуването → View Trip
