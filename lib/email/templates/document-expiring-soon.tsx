@@ -39,7 +39,7 @@ export function DocumentExpiringSoonEmail({
 
       <Section style={S.ctaSection}>
         <Button
-          href="https://tevd-portal.vercel.app/profile"
+          href={`${S.APP_URL}/profile`}
           style={S.ctaButton}
         >
           Актуализирай документ → Update Document
