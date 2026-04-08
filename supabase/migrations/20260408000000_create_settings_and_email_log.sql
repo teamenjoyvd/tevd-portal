@@ -51,10 +51,9 @@ CREATE POLICY "Admin read email_log"
   ON public.email_log FOR SELECT
   USING (is_admin());
 
-CREATE POLICY "Service role write email_log"
-  ON public.email_log FOR ALL
-  USING (true)
-  WITH CHECK (true);
+-- No explicit write policy for service role: the service_role Postgres role
+-- has BYPASSRLS and does not need an RLS policy. An explicit USING (true)
+-- policy would inadvertently grant reads to all authenticated users.
 
 CREATE INDEX email_log_status_idx ON public.email_log (status, created_at DESC);
 CREATE INDEX email_log_template_idx ON public.email_log (template, created_at DESC);
