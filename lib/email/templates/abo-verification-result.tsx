@@ -44,7 +44,7 @@ export function AboVerificationResultEmail({
       {approved ? (
         <Section style={S.ctaSection}>
           <Button
-            href="https://tevd-portal.vercel.app"
+            href={S.APP_URL}
             style={S.ctaButton}
           >
             Отиди към таблото → Go to Dashboard
