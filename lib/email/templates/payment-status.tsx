@@ -25,8 +25,8 @@ export function PaymentStatusEmail({
     ? "Плащането ви беше потвърдено"
     : "Плащането ви беше отказано";
   const body = approved
-    ? `Здравей, ${firstName}. Плащането ви от ${amount} за „${itemName}“ беше потвърдено.`
-    : `Здравей, ${firstName}. Плащането ви от ${amount} за „${itemName}“ не беше одобрено.`;
+    ? `Здравей, ${firstName}. Плащането ви от ${amount} за „${itemName}" беше потвърдено.`
+    : `Здравей, ${firstName}. Плащането ви от ${amount} за „${itemName}" не беше одобрено.`;
   const bodyEn = approved
     ? `Hi ${firstName}, your payment of ${amount} for "${itemName}" has been approved.`
     : `Hi ${firstName}, your payment of ${amount} for "${itemName}" was not approved.`;
@@ -48,7 +48,7 @@ export function PaymentStatusEmail({
       {approved ? (
         <Section style={S.ctaSection}>
           <Button
-            href="https://tevd-portal.vercel.app/profile"
+            href={`${S.APP_URL}/profile`}
             style={S.ctaButton}
           >
             Виж плащането → View Payment
