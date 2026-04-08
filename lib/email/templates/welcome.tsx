@@ -26,7 +26,7 @@ export function WelcomeEmail({ firstName }: WelcomeEmailProps) {
       </Text>
 
       <Section style={S.ctaSection}>
-        <Button href="https://tevd-portal.vercel.app" style={S.ctaButton}>
+        <Button href={S.APP_URL} style={S.ctaButton}>
           Отиди към таблото → Go to Dashboard
         </Button>
       </Section>
