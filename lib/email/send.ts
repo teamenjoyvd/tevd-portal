@@ -2,6 +2,7 @@ import { ReactElement } from "react";
 import { render } from "@react-email/render";
 import { resend } from "./client";
 import { createServiceClient } from "@/lib/supabase/service";
+import type { Json } from "@/types/supabase";
 
 const FROM_ADDRESS = "teamenjoyVD <no-reply@tevd.bg>";
 
@@ -34,7 +35,7 @@ export async function sendEmail({
   await supabase.from("email_log").insert({
     recipient: to,
     template: templateName ?? "unknown",
-    payload: { subject, profile_id: profileId ?? null } as Record<string, unknown>,
+    payload: { subject, profile_id: profileId ?? null } as unknown as Json,
     resend_id: data?.id ?? null,
     status: error ? "failed" : "sent",
     error: error ? error.message : null,
