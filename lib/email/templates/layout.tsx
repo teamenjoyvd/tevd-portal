@@ -16,6 +16,8 @@ const PARCHMENT = "#FAF8F3";
 const VOID = "#1A1F18";
 const STONE = "#8A8577";
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://tevd-portal.vercel.app";
+
 interface EmailLayoutProps {
   preview: string;
   children: ReactNode;
@@ -40,8 +42,8 @@ export function EmailLayout({ preview, children }: EmailLayoutProps) {
           <Section style={footer}>
             <Text style={footerText}>
               &copy; {new Date().getFullYear()} teamenjoyVD &nbsp;&middot;&nbsp;
-              <a href="https://tevd-portal.vercel.app" style={footerLink}>
-                tevd-portal.vercel.app
+              <a href={APP_URL} style={footerLink}>
+                {APP_URL.replace("https://", "")}
               </a>
             </Text>
             <Text style={footerDisclaimer}>
@@ -181,4 +183,5 @@ export const EMAIL_STYLES = {
   PARCHMENT,
   VOID,
   STONE,
+  APP_URL,
 } as const;
