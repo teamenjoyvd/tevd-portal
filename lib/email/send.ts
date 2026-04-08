@@ -14,8 +14,8 @@ interface SendEmailOptions {
   templateName?: string;
 }
 
-// sendEmail logs the result to email_log and throws on Resend error.
-// Call sites are responsible for catching and handling the error.
+// sendEmail logs the result to email_log and swallows errors.
+// Email failure is non-critical-path — check email_log for delivery status.
 export async function sendEmail({
   to,
   subject,
@@ -43,8 +43,4 @@ export async function sendEmail({
     sent_at: error ? null : new Date().toISOString(),
     error: error ? error.message : null,
   });
-
-  if (error) {
-    throw new Error(`Failed to send email to ${to}: ${error.message}`);
-  }
 }
