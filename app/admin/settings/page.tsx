@@ -2,7 +2,7 @@ import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/service'
 import { requireAdmin } from '@/lib/supabase/guards'
-import { EmailSettingsPanel } from './components/EmailSettingsPanel'
+import { EmailSettingsPanel, EmailConfig } from './components/EmailSettingsPanel'
 import { EmailLogTable } from './components/EmailLogTable'
 
 export default async function AdminSettingsPage() {
@@ -20,7 +20,7 @@ export default async function AdminSettingsPage() {
     .eq('key', 'email_config')
     .single()
 
-  const config = settingsData?.value || {
+  const config = (settingsData?.value as unknown as EmailConfig) || {
     enabled: false,
     alert_recipient: '',
     notification_types: {},
