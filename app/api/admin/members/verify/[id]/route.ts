@@ -22,7 +22,7 @@ export async function PATCH(
   // Fetch the request — needed for Clerk sync and notification copy after approval
   const { data: verReq } = await supabase
     .from('abo_verification_requests')
-    .select('*')
+    .select('*, profile:profiles(id, role, first_name, contact_email)')
     .eq('id', id)
     .single()
 
@@ -61,9 +61,7 @@ export async function PATCH(
     }
 
     // Notify the user. Best-effort: failure here does not affect approval state.
-    const { data: profile } = await supabase
-      .from('profiles').select('first_name').eq('id', verReq.profile_id).single()
-
+    const profile = verReq.profile as any
     const notifMessage = verReq.request_type === 'manual'
       ? `Welcome ${profile?.first_name ?? ''}! Your manual verification has been approved. You are now a Member.`
       : `Welcome ${profile?.first_name ?? ''}! Your ABO number ${verReq.claimed_abo} has been verified. You are now a Member.`
@@ -75,6 +73,46 @@ export async function PATCH(
       message: notifMessage,
       action_url: '/profile',
     })
+
+    if (profile?.contact_email) {
+      import('@/lib/email/send').then(({ sendEmail }) => {
+        import('@/lib/email/templates/render').then(({ renderEmailTemplate }) => {
+          import('@/lib/email/templates/AboVerificationEmail').then(({ AboVerificationEmail }) => {
+            renderEmailTemplate(
+              AboVerificationEmail({
+                firstName: profile.first_name || 'Member',
+                claimedAbo: verReq.claimed_abo,
+                status: 'approved',
+                adminNote: admin_note,
+              })
+            ).then(html => {
+              sendEmail({
+                to: profile.contact_email,
+                subject: `ABO Verification Approved ✓`,
+                html,
+                template: 'abo_verification_result',
+                meta: { request_id: id, profile_id: verReq.profile_id },
+              }).catch(console.error)
+            }).catch(console.error)
+          }).catch(console.error)
+
+          if (profile.role === 'guest') {
+            import('@/lib/email/templates/WelcomeEmail').then(({ WelcomeEmail }) => {
+              renderEmailTemplate(WelcomeEmail({ firstName: profile.first_name || 'Member' }))
+                .then(html => {
+                  sendEmail({
+                    to: profile.contact_email,
+                    subject: 'Welcome to Team Enjoy VD!',
+                    html,
+                    template: 'abo_verification_result',
+                    meta: { request_id: id, profile_id: verReq.profile_id },
+                  }).catch(console.error)
+                }).catch(console.error)
+            }).catch(console.error)
+          }
+        }).catch(console.error)
+      }).catch(console.error)
+    }
 
     // Read back the resolved request for the response
     const { data, error } = await supabase
@@ -103,6 +141,32 @@ export async function PATCH(
       .update({ status: 'denied', resolved_at: new Date().toISOString(), admin_note: admin_note ?? null })
       .eq('id', id)
       .select().single()
+
+    const profile = verReq.profile as any
+    if (!error && profile?.contact_email) {
+      import('@/lib/email/send').then(({ sendEmail }) => {
+        import('@/lib/email/templates/render').then(({ renderEmailTemplate }) => {
+          import('@/lib/email/templates/AboVerificationEmail').then(({ AboVerificationEmail }) => {
+            renderEmailTemplate(
+              AboVerificationEmail({
+                firstName: profile.first_name || 'Member',
+                claimedAbo: verReq.claimed_abo,
+                status: 'denied',
+                adminNote: admin_note,
+              })
+            ).then(html => {
+              sendEmail({
+                to: profile.contact_email,
+                subject: `ABO Verification Declined`,
+                html,
+                template: 'abo_verification_result',
+                meta: { request_id: id, profile_id: verReq.profile_id },
+              }).catch(console.error)
+            }).catch(console.error)
+          }).catch(console.error)
+        }).catch(console.error)
+      }).catch(console.error)
+    }
 
     if (error) return Response.json({ error: error.message }, { status: 500 })
     return Response.json(data)
