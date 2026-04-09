@@ -56,7 +56,7 @@ export async function POST(req: Request): Promise<Response> {
   const supabase = createServiceClient()
 
   const { data: profile } = await supabase
-    .from('profiles').select('id, role').eq('clerk_id', userId).single()
+    .from('profiles').select('id, role, first_name').eq('clerk_id', userId).single()
   if (!profile?.id) return Response.json({ error: 'Profile not found' }, { status: 404 })
   if (profile.role === 'guest') return Response.json({ error: 'Forbidden' }, { status: 403 })
 
@@ -85,9 +85,44 @@ export async function POST(req: Request): Promise<Response> {
       member_status:    'approved',
       admin_status:     'pending',
     })
-    .select()
+    .select('*, trips(title), payable_items(title)')
     .single()
 
   if (error) return Response.json({ error: error.message }, { status: 500 })
+
+  // Trigger admin alert asynchronously
+  const tripsData = data.trips as any
+  const itemsData = data.payable_items as any
+  const itemTitle = tripsData?.title || itemsData?.title || 'Unknown Item'
+
+  import('@/lib/email/send').then(({ sendEmail, getEmailConfig }) => {
+    getEmailConfig().then(config => {
+      if (!config.alert_recipient) return
+
+      import('@/lib/email/templates/render').then(({ renderEmailTemplate }) => {
+        import('@/lib/email/templates/PaymentSubmittedEmail').then(({ PaymentSubmittedEmail }) => {
+          renderEmailTemplate(
+            PaymentSubmittedEmail({
+              memberName: profile.first_name || 'Member',
+              amount: data.amount,
+              currency: data.currency,
+              transactionDate: data.transaction_date,
+              itemTitle,
+              paymentMethod: data.payment_method,
+            })
+          ).then(html => {
+            sendEmail({
+              to: config.alert_recipient,
+              subject: `New Payment Logged by ${profile.first_name || 'Member'}`,
+              html,
+              template: 'payment_status',
+              meta: { payment_id: data.id, profile_id: profile.id },
+            }).catch(console.error)
+          }).catch(console.error)
+        }).catch(console.error)
+      }).catch(console.error)
+    }).catch(console.error)
+  }).catch(console.error)
+
   return Response.json(data, { status: 201 })
 }

@@ -21,7 +21,7 @@ export type EmailConfig = {
   alert_recipient: string
 }
 
-async function getEmailConfig(): Promise<EmailConfig> {
+export async function getEmailConfig(): Promise<EmailConfig> {
   const now = Date.now()
   if (_configCache && now - _configFetchedAt < CONFIG_TTL_MS) return _configCache
 

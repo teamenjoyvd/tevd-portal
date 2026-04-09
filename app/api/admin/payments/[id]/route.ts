@@ -24,9 +24,45 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     .from('payments')
     .update({ admin_status, admin_note: admin_note ?? null })
     .eq('id', id)
-    .select()
+    .select('*, profile:profiles(first_name, contact_email), trips(title), payable_items(title)')
     .single()
 
   if (error) return Response.json({ error: error.message }, { status: 500 })
+
+  // Trigger email asynchronously
+  const paymentProfile = data.profile as any
+  const tripsData = data.trips as any
+  const itemsData = data.payable_items as any
+  const itemTitle = tripsData?.title || itemsData?.title || 'Unknown Item'
+  const emailStatus = admin_status === 'rejected' ? 'denied' : 'approved'
+
+  if (paymentProfile?.contact_email) {
+    import('@/lib/email/send').then(({ sendEmail }) => {
+      import('@/lib/email/templates/render').then(({ renderEmailTemplate }) => {
+        import('@/lib/email/templates/PaymentStatusEmail').then(({ PaymentStatusEmail }) => {
+          renderEmailTemplate(
+            PaymentStatusEmail({
+              firstName: paymentProfile.first_name || 'Member',
+              amount: data.amount,
+              currency: data.currency,
+              transactionDate: data.transaction_date,
+              adminStatus: emailStatus,
+              itemTitle,
+              adminNote: admin_note,
+            })
+          ).then(html => {
+            sendEmail({
+              to: paymentProfile.contact_email,
+              subject: `Payment ${emailStatus === 'approved' ? 'Approved ✓' : 'Declined'}`,
+              html,
+              template: 'payment_status',
+              meta: { payment_id: data.id, profile_id: data.profile_id },
+            }).catch(console.error)
+          }).catch(console.error)
+        }).catch(console.error)
+      }).catch(console.error)
+    }).catch(console.error)
+  }
+
   return Response.json(data)
 }
