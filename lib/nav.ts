@@ -37,4 +37,5 @@ export const ADMIN_NAV: NavItem[] = [
   { href: '/admin/content',       labels: { en: 'Content',       bg: 'Content'       } },
   { href: '/admin/notifications', labels: { en: 'Notifications', bg: 'Notifications' } },
   { href: '/admin/members',       labels: { en: 'Members',       bg: 'Members'       } },
+  { href: '/admin/settings',      labels: { en: 'Settings',      bg: 'Settings'      } },
 ]
