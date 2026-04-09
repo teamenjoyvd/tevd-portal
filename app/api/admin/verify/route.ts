@@ -18,6 +18,13 @@ export async function POST(req: Request) {
     return Response.json({ error: 'profile_id and upline_abo_number are required' }, { status: 400 })
   }
 
+  // Fetch target profile first to know its current role and contact info
+  const { data: targetProfile } = await supabase
+    .from('profiles')
+    .select('role, first_name, contact_email')
+    .eq('id', profile_id)
+    .single()
+
   // Promote to member and store upline
   const { error: profileErr } = await supabase
     .from('profiles')
@@ -30,7 +37,7 @@ export async function POST(req: Request) {
   await supabase.from('role_change_audit').insert({
     profile_id,
     changed_by: userId,
-    old_role: 'guest',
+    old_role: targetProfile?.role || 'guest',
     new_role: 'member',
     note: 'direct verify (Path C)',
   })
@@ -69,6 +76,46 @@ export async function POST(req: Request) {
       { onConflict: 'profile_id' }
     )
     .select().single()
+
+  if (!reqErr && targetProfile?.contact_email) {
+    import('@/lib/email/send').then(({ sendEmail }) => {
+      import('@/lib/email/templates/render').then(({ renderEmailTemplate }) => {
+        import('@/lib/email/templates/AboVerificationEmail').then(({ AboVerificationEmail }) => {
+          renderEmailTemplate(
+            AboVerificationEmail({
+              firstName: targetProfile.first_name || 'Member',
+              claimedAbo: null,
+              status: 'approved',
+              adminNote: 'Direct verification by admin',
+            })
+          ).then(html => {
+            sendEmail({
+              to: targetProfile.contact_email!,
+              subject: `ABO Verification Approved ✓`,
+              html,
+              template: 'abo_verification_result',
+              meta: { profile_id },
+            }).catch(console.error)
+          }).catch(console.error)
+        }).catch(console.error)
+
+        if (targetProfile.role === 'guest') {
+          import('@/lib/email/templates/WelcomeEmail').then(({ WelcomeEmail }) => {
+            renderEmailTemplate(WelcomeEmail({ firstName: targetProfile.first_name || 'Member' }))
+              .then(html => {
+                sendEmail({
+                  to: targetProfile.contact_email!,
+                  subject: 'Welcome to Team Enjoy VD!',
+                  html,
+                  template: 'abo_verification_result',
+                  meta: { profile_id },
+                }).catch(console.error)
+              }).catch(console.error)
+          }).catch(console.error)
+        }
+      }).catch(console.error)
+    }).catch(console.error)
+  }
 
   if (reqErr) return Response.json({ error: reqErr.message }, { status: 500 })
   return Response.json(data, { status: 201 })
