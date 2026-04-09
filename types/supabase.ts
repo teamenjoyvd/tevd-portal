@@ -207,6 +207,42 @@ export type Database = {
           },
         ]
       }
+      email_log: {
+        Row: {
+          created_at: string
+          error: string | null
+          id: string
+          payload: Json
+          recipient: string
+          resend_id: string | null
+          sent_at: string | null
+          status: string
+          template: string
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          payload?: Json
+          recipient: string
+          resend_id?: string | null
+          sent_at?: string | null
+          status?: string
+          template: string
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          payload?: Json
+          recipient?: string
+          resend_id?: string | null
+          sent_at?: string | null
+          status?: string
+          template?: string
+        }
+        Relationships: []
+      }
       guides: {
         Row: {
           access_roles: string[]
@@ -662,6 +698,7 @@ export type Database = {
           id: string
           id_number: string | null
           last_name: string
+          notification_prefs: Json
           passport_number: string | null
           phone: string | null
           role: Database["public"]["Enums"]["user_role"]
@@ -681,6 +718,7 @@ export type Database = {
           id?: string
           id_number?: string | null
           last_name: string
+          notification_prefs?: Json
           passport_number?: string | null
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role"]
@@ -700,6 +738,7 @@ export type Database = {
           id?: string
           id_number?: string | null
           last_name?: string
+          notification_prefs?: Json
           passport_number?: string | null
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role"]
@@ -780,6 +819,21 @@ export type Database = {
           post_url?: string
           sort_order?: number
           thumbnail_url?: string | null
+        }
+        Relationships: []
+      }
+      settings: {
+        Row: {
+          key: string
+          value: Json
+        }
+        Insert: {
+          key: string
+          value?: Json
+        }
+        Update: {
+          key?: string
+          value?: Json
         }
         Relationships: []
       }

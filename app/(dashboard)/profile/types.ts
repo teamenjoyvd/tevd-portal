@@ -6,6 +6,22 @@ export type UiPrefs = {
   bento_collapsed?: Record<string, boolean>
 }
 
+export type NotificationPrefs = {
+  trip_registration_status: boolean
+  payment_status: boolean
+  abo_verification_result: boolean
+  event_role_request_result: boolean
+  document_expiring_soon: boolean
+}
+
+export const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
+  trip_registration_status: true,
+  payment_status: true,
+  abo_verification_result: true,
+  event_role_request_result: true,
+  document_expiring_soon: true,
+}
+
 export type Profile = {
   id: string
   clerk_id: string
@@ -22,6 +38,7 @@ export type Profile = {
   phone: string | null
   contact_email: string | null
   ui_prefs: UiPrefs | null
+  notification_prefs: NotificationPrefs | null
 }
 
 export type VerificationRequest = {
