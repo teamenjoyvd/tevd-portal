@@ -80,6 +80,7 @@ export async function PATCH(req: Request): Promise<Response> {
     'id_number', 'passport_number', 'valid_through',
     'phone', 'contact_email',
     'ui_prefs',
+    'notification_prefs',
   ]
   const patch = Object.fromEntries(
     Object.entries(body).filter(([k]) => allowed.includes(k))

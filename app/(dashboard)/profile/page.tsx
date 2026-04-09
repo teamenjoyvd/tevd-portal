@@ -29,7 +29,8 @@ import { ParticipationSection, PARTICIPATION_MIN_HEIGHT } from './components/Par
 import { CalendarSection, CALENDAR_MIN_HEIGHT } from './components/CalendarSection'
 import { StatsSection, STATS_MIN_HEIGHT } from './components/StatsSection'
 import { AdminSection } from './components/AdminSection'
-import { type Profile, type VerificationRequest, type UplineData } from './types'
+import { EmailPrefsSection, EMAIL_PREFS_MIN_HEIGHT } from './components/EmailPrefsSection'
+import { type Profile, type VerificationRequest, type UplineData, type NotificationPrefs, DEFAULT_NOTIFICATION_PREFS } from './types'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -42,6 +43,7 @@ const BENTO_IDS = {
   SETTINGS:         'settings',
   TRIPS:            'trips',
   PAYMENTS:         'payments',
+  EMAIL_PREFS:      'email_prefs',
   VITALS:           'vitals',
   PARTICIPATION:    'participation',
   CALENDAR:         'calendar',
@@ -54,6 +56,7 @@ const DEFAULT_ORDER: string[] = [
   BENTO_IDS.ABO_INFO,
   BENTO_IDS.TRIPS,
   BENTO_IDS.PAYMENTS,
+  BENTO_IDS.EMAIL_PREFS,
   BENTO_IDS.VITALS,
   BENTO_IDS.PARTICIPATION,
   BENTO_IDS.SETTINGS,
@@ -251,6 +254,10 @@ export default function ProfilePage() {
     [BENTO_IDS.PAYMENTS]: !isGuest ? {
       colSpan: 6, minHeight: PAYMENTS_MIN_HEIGHT,
       node: <PaymentsSection profileId={p.id} role={p.role} />,
+    } : null,
+    [BENTO_IDS.EMAIL_PREFS]: !isGuest ? {
+      colSpan: 6, minHeight: EMAIL_PREFS_MIN_HEIGHT,
+      node: <EmailPrefsSection prefs={p.notification_prefs ?? DEFAULT_NOTIFICATION_PREFS} />,
     } : null,
     [BENTO_IDS.VITALS]: !isGuest ? {
       colSpan: 6, minHeight: VITALS_MIN_HEIGHT,
