@@ -1,5 +1,8 @@
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { sendEmail } from '@/lib/email/send'
+import { renderEmailTemplate } from '@/lib/email/templates/render'
+import { TripRegistrationEmail } from '@/lib/email/templates/TripRegistrationEmail'
 
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }): Promise<Response> {
   const { userId } = await auth()
@@ -31,9 +34,34 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
       cancelled_by: adminProfile.id,
     })
     .eq('id', registrationId)
-    .select()
+    .select('*, profile:profiles(id, first_name, contact_email), trip:trips(id, title, destination, start_date, end_date)')
     .single()
 
   if (error) return Response.json({ error: error.message }, { status: 500 })
+
+  // Trigger email asynchronously
+  const regProfile = data.profile as any
+  const regTrip = data.trip as any
+  if (regProfile?.contact_email) {
+    renderEmailTemplate(
+      TripRegistrationEmail({
+        firstName: regProfile.first_name || 'Member',
+        tripTitle: regTrip.title,
+        destination: regTrip.destination,
+        startDate: regTrip.start_date,
+        endDate: regTrip.end_date,
+        status: 'cancelled',
+      })
+    ).then((html) => {
+      sendEmail({
+        to: regProfile.contact_email,
+        subject: `Trip Registration Cancelled`,
+        html,
+        template: 'trip_registration_status',
+        meta: { registration_id: data.id, trip_id: data.trip_id, profile_id: data.profile_id },
+      }).catch(console.error)
+    }).catch(console.error)
+  }
+
   return Response.json(data)
 }
