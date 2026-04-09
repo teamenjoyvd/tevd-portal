@@ -2,17 +2,19 @@ import { Section, Text } from '@react-email/components'
 import * as React from 'react'
 import { EmailShell, bodyPadding } from './_shell'
 
-type Status = 'pending' | 'approved' | 'denied'
+type Status = 'pending' | 'approved' | 'denied' | 'cancelled'
 
 const STATUS_LABEL: Record<Status, string> = {
   pending:  'Pending approval',
   approved: 'Approved ✓',
   denied:   'Declined',
+  cancelled: 'Cancelled',
 }
 const STATUS_COLOR: Record<Status, string> = {
   pending:  '#7a5c00',
   approved: '#1a3c2e',
   denied:   '#bc4749',
+  cancelled: '#6b7280',
 }
 
 export type TripRegistrationEmailProps = {
