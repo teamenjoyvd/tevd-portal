@@ -108,6 +108,7 @@ export type Database = {
       }
       calendar_events: {
         Row: {
+          allow_guest_registration: boolean
           category: Database["public"]["Enums"]["event_category"]
           created_at: string
           created_by: string | null
@@ -123,6 +124,7 @@ export type Database = {
           week_number: number
         }
         Insert: {
+          allow_guest_registration?: boolean
           category?: Database["public"]["Enums"]["event_category"]
           created_at?: string
           created_by?: string | null
@@ -138,6 +140,7 @@ export type Database = {
           week_number: number
         }
         Update: {
+          allow_guest_registration?: boolean
           category?: Database["public"]["Enums"]["event_category"]
           created_at?: string
           created_by?: string | null
@@ -161,6 +164,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      email_log: {
+        Row: {
+          created_at: string
+          error: string | null
+          id: string
+          payload: Json
+          recipient: string
+          resend_id: string | null
+          sent_at: string | null
+          status: string
+          template: string
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          payload?: Json
+          recipient: string
+          resend_id?: string | null
+          sent_at?: string | null
+          status?: string
+          template: string
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          payload?: Json
+          recipient?: string
+          resend_id?: string | null
+          sent_at?: string | null
+          status?: string
+          template?: string
+        }
+        Relationships: []
       }
       event_role_requests: {
         Row: {
@@ -207,41 +246,46 @@ export type Database = {
           },
         ]
       }
-      email_log: {
+      guest_registrations: {
         Row: {
           created_at: string
-          error: string | null
+          email: string
+          event_id: string
+          expires_at: string
           id: string
-          payload: Json
-          recipient: string
-          resend_id: string | null
-          sent_at: string | null
-          status: string
-          template: string
+          name: string
+          status: Database["public"]["Enums"]["guest_registration_status"]
+          token: string
         }
         Insert: {
           created_at?: string
-          error?: string | null
+          email: string
+          event_id: string
+          expires_at: string
           id?: string
-          payload?: Json
-          recipient: string
-          resend_id?: string | null
-          sent_at?: string | null
-          status?: string
-          template: string
+          name: string
+          status?: Database["public"]["Enums"]["guest_registration_status"]
+          token: string
         }
         Update: {
           created_at?: string
-          error?: string | null
+          email?: string
+          event_id?: string
+          expires_at?: string
           id?: string
-          payload?: Json
-          recipient?: string
-          resend_id?: string | null
-          sent_at?: string | null
-          status?: string
-          template?: string
+          name?: string
+          status?: Database["public"]["Enums"]["guest_registration_status"]
+          token?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "guest_registrations_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_events"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       guides: {
         Row: {
@@ -786,6 +830,21 @@ export type Database = {
           },
         ]
       }
+      settings: {
+        Row: {
+          key: string
+          value: Json
+        }
+        Insert: {
+          key: string
+          value?: Json
+        }
+        Update: {
+          key?: string
+          value?: Json
+        }
+        Relationships: []
+      }
       social_posts: {
         Row: {
           caption: string | null
@@ -819,21 +878,6 @@ export type Database = {
           post_url?: string
           sort_order?: number
           thumbnail_url?: string | null
-        }
-        Relationships: []
-      }
-      settings: {
-        Row: {
-          key: string
-          value: Json
-        }
-        Insert: {
-          key: string
-          value?: Json
-        }
-        Update: {
-          key?: string
-          value?: Json
         }
         Relationships: []
       }
@@ -1134,6 +1178,7 @@ export type Database = {
           id: string
           id_number: string | null
           last_name: string
+          notification_prefs: Json
           passport_number: string | null
           phone: string | null
           role: Database["public"]["Enums"]["user_role"]
@@ -1172,6 +1217,7 @@ export type Database = {
       document_type: "id" | "passport"
       event_category: "N21" | "Personal"
       event_type: "in-person" | "online" | "hybrid"
+      guest_registration_status: "pending" | "confirmed"
       notification_type:
         | "role_request"
         | "trip_request"
@@ -1311,6 +1357,7 @@ export const Constants = {
       document_type: ["id", "passport"],
       event_category: ["N21", "Personal"],
       event_type: ["in-person", "online", "hybrid"],
+      guest_registration_status: ["pending", "confirmed"],
       notification_type: [
         "role_request",
         "trip_request",
