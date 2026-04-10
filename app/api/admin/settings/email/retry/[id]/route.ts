@@ -26,7 +26,7 @@ const TEMPLATE_COMPONENTS: Record<string, any> = {
 
 export async function POST(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const { userId } = await auth()
   if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
@@ -35,7 +35,7 @@ export async function POST(
   const guard = await requireAdmin(userId, supabase)
   if (guard) return guard
 
-  const { id } = params
+  const { id } = await params
 
   // 1. Fetch the failed log row
   const { data: log, error: fetchErr } = await supabase

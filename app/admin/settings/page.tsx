@@ -9,11 +9,8 @@ export default async function AdminSettingsPage() {
   const { userId } = await auth()
   if (!userId) redirect('/')
 
-  const supabase = createServiceClient()
-  const guard = await requireAdmin(userId, supabase)
-  if (guard) return guard
-
   // Fetch current settings
+  const supabase = createServiceClient()
   const { data: settingsData } = await supabase
     .from('settings')
     .select('value')
