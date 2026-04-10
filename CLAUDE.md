@@ -55,7 +55,7 @@ Output format:
 ```
 | Airtable | ✅/❌ |
 | GitHub   | ✅/❌ |
-| Queue    | SEQ<NNN>-ISS<NNN>: <name> / All clear |
+| Queue    | SEQ<NNN>-ISS<NNN>: <n> / All clear |
 | Handoff  | IN PROGRESS: <next action> / DONE / No active PR |
 ```
 If any ❌ — stop.
@@ -135,7 +135,7 @@ Write `IN PROGRESS` before starting a large task. Write `DONE` after verifying. 
 | Admin Drawer | Use `components/ui/Drawer.tsx` for all admin create/edit. Exceptions: Announcements + Quick Links create = inline cards. All deletes use `AlertDialog`. |
 | Route handler `params` | `params` is a `Promise` in Next.js 16. Type as `{ params: Promise<{ id: string }> }` and `await params`. |
 | `useParams()` | Takes NO type argument in Next.js 16. `const params = useParams(); const id = params.id as string`. |
-| `sendEmail` | Removed. Use `sendNotificationEmail` (fire-and-forget, respects config gates) or `sendTransactionalEmail` (bypasses gates, returns typed result). |
+| `sendEmail` | Removed. Use `sendNotificationEmail` (fire-and-forget, respects config gates) or `sendTransactionalEmail` (bypasses gates, returns typed result). **Dynamic imports evade static rename tools and grep** — after any email-related rename, manually read every route that uses `import('@/lib/email/send')`. Known callers (all must use `sendNotificationEmail`): `admin/verify/route.ts`, `admin/members/verify/[id]/route.ts`, `admin/event-role-requests/[id]/route.ts`, `profile/payments/route.ts`. |
 | `pg_net` cron | `net.http_post(...)`. NEVER `extensions.http_post(...)` — silently does nothing. |
 | `TranslationKey` | Strict union. Add to `translations.ts` before using `t()` or build breaks. |
 | `BottomNav.tsx` | Dead stub. Do not import. |
