@@ -1,6 +1,6 @@
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { sendEmail } from '@/lib/email/send'
+import { sendNotificationEmail } from '@/lib/email/send'
 import { renderEmailTemplate } from '@/lib/email/templates/render'
 import { TripRegistrationEmail } from '@/lib/email/templates/TripRegistrationEmail'
 
@@ -42,7 +42,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         status: status as 'approved' | 'denied',
       })
     ).then((html) => {
-      sendEmail({
+      sendNotificationEmail({
         to: regProfile.contact_email,
         subject: `Trip Registration ${status === 'approved' ? 'Approved ✓' : 'Declined'}`,
         html,
