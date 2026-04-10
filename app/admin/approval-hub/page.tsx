@@ -12,7 +12,6 @@ import type { AdminMembersResponse } from './components/VerificationsTab'
 
 // ── Types ─────────────────────────────────────────────────────
 
-type Trip = { id: string; title: string; destination: string; start_date: string }
 type CalendarEvent = { id: string; title: string; start_time: string }
 type RoleRequest = {
   id: string; role_label: string
@@ -28,20 +27,10 @@ function ApprovalHubInner() {
   const router = useRouter()
   const tab = (searchParams.get('tab') ?? 'trips') as 'trips' | 'roles' | 'abo'
 
-  const { data: trips = [] } = useQuery<Trip[]>({
-    queryKey: ['trips'],
-    queryFn: () => fetch('/api/trips').then(r => r.json()),
-  })
-
+  // Same queryKey + queryFn as TripRegistrationsTab — single cache entry, no conflict.
   const { data: registrations = [] } = useQuery<TripRegistration[]>({
     queryKey: ['registrations', 'all'],
-    queryFn: async () => {
-      const results = await Promise.all(
-        trips.map(t => fetch(`/api/trips/${t.id}/registrations`).then(r => r.json()))
-      )
-      return results.flat().filter((r): r is TripRegistration => !r.error)
-    },
-    enabled: trips.length > 0,
+    queryFn: () => fetch('/api/admin/registrations').then(r => r.json()),
   })
 
   const { data: events = [] } = useQuery<CalendarEvent[]>({
