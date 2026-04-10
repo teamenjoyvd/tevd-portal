@@ -1,7 +1,7 @@
 # CLAUDE.md — teamenjoyVD Portal
-> Last updated: 2026-04-07 — v2.0.13. Latest stable commit: 044499e.
-> Architecture docs live in `docs/architecture/`. Reference tables live in `docs/ai/LOOKUP.md`. Orienting context in `docs/ai/CONTEXT.md`.
-> **Neither CONTEXT.md nor LOOKUP.md is read at SSU or at GATHER start.**
+> Last updated: 2026-04-10 — v2.1.0. Latest stable commit: 044499e.
+> Architecture docs: `docs/architecture/`. Reference tables: `docs/ai/LOOKUP.md`. Context: `docs/ai/CONTEXT.md`.
+> **Neither CONTEXT.md nor LOOKUP.md is read at session start or proactively. Read only sections relevant to the current ticket during GATHER (section map in CONTEXT.md header).**
 
 ---
 
@@ -16,36 +16,35 @@
 
 ## SSU — System Status Update
 
-When the user types **SSU**, execute in full, in order:
+Execute in full, in order:
 
 1. **Airtable** — `list_bases`. Confirm `app1n7KYX8i8xSiB7` reachable. ✅/❌
-2. **GitHub MCP** — `get_file_contents` on `CLAUDE.md` from repo `teamenjoyvd/tevd-portal`. Confirm loaded. ✅/❌
+2. **GitHub MCP** — `get_file_contents` on `CLAUDE.md` from `teamenjoyvd/tevd-portal`. ✅/❌
 3. **Vercel** — `list_deployments`. Confirm latest production deployment is READY. ✅/❌
 4. **Supabase** — `list_projects`. Confirm `ynykjpnetfwqzdnsgkkg` is `ACTIVE_HEALTHY`. ✅/❌
 5. **Queue** — check Issues for `Status = "In Progress"` AND `Duplicate = false/empty`. If found, report it. Else report highest-priority unblocked `Status = "To Do"` AND `Duplicate = false/empty` ticket.
 
 ```
-## SSU Report
-| Connection  | Status | Notes |
-|-------------|--------|-------|
-| Airtable    | ✅/❌  | ...   |
-| GitHub MCP  | ✅/❌  | ...   |
-| Vercel      | ✅/❌  | ...   |
-| Supabase    | ✅/❌  | ...   |
-| Queue       | —      | SEQ<NNN>-ISS<NNN>: ... / All clear |
+| Connection | Status | Notes |
+|------------|--------|-------|
+| Airtable   | ✅/❌  | ...   |
+| GitHub MCP | ✅/❌  | ...   |
+| Vercel     | ✅/❌  | ...   |
+| Supabase   | ✅/❌  | ...   |
+| Queue      | —      | SEQ<NNN>-ISS<NNN>: ... / All clear |
 ```
 
-If any ❌ — stop. Do not proceed to task work.
+If any ❌ — stop.
 
 ---
 
 ## PIU — Pack It Up
 
-1. Update CLAUDE.md header (stable commit, date).
+1. Update CLAUDE.md header (stable commit, date). **Use `push_files` — file exceeds ~10KB and `create_or_update_file` will time out.**
 2. Update `docs/ai/CONTEXT.md` — new routes, new release entry, pending issues.
 3. Update `docs/ai/LOOKUP.md` — schema changes, new env vars, new API routes.
-4. Update `docs/architecture/` — if session introduced a new flow, new external system, or new architectural decision.
-5. Update Gotchas below if new non-obvious decisions were made this session.
+4. Update `docs/architecture/` — if session introduced a new flow, external system, or architectural decision.
+5. Update Gotchas (§5) if new non-obvious decisions were made this session.
 6. Verify latest commit is pushed and Vercel deployment is READY.
 
 ---
@@ -60,10 +59,10 @@ If any ❌ — stop. Do not proceed to task work.
 | State | TanStack Query v5 | `QueryClientProvider` in `app/providers.tsx`. |
 | Styling | Tailwind CSS v4 | No `@layer` + `@apply`. Inline utilities only. Exceptions: `globals.css`, `styles/brand-tokens.css`. |
 | Maps | Mapbox GL JS v2.15.0 | CDN only — never npm. Token: `NEXT_PUBLIC_MAPBOX_TOKEN`. |
-| UI Primitives | shadcn/ui | Installed manually (no `npx init` — Tailwind v4 incompatible). Add components via `npx shadcn@latest add <n>`. Source vended into `components/ui/`. |
+| UI Primitives | shadcn/ui | Add components: `npx shadcn@latest add <n>`. Source vended into `components/ui/`. |
 | Middleware | `proxy.ts` | **NEVER create `middleware.ts`.** |
 | Deployment | Vercel | Team: `teamenjoyvd`. Project: `prj_HFZJZg2vkLtpX8XvjJlo3mDkSCyn`. |
-| Repo | `teamenjoyvd/tevd-portal` | Private. **Never push directly to `main`.** All work occurs on `feature/SEQ<NNN>-ISS<NNN>` branches. |
+| Repo | `teamenjoyvd/tevd-portal` | Private. **Never push directly to `main`.** Feature branches: `feature/SEQ<NNN>-ISS<NNN>`. |
 | Production | `https://tevd-portal.vercel.app` | |
 
 ---
@@ -72,71 +71,67 @@ If any ❌ — stop. Do not proceed to task work.
 
 Violation = immediate stop.
 
-- **NEVER push directly to `main`.** All commits must be pushed to a `feature/SEQ<NNN>-ISS<NNN>` branch and merged via Pull Request.
-- **NEVER write data to Supabase from a Preview URL** unless the data is structurally isolated (e.g., test UI state). Preview URLs point to the production database; testing trip registrations or modifying LOS profiles will contaminate production.
+- **NEVER push directly to `main`.** All commits go to `feature/SEQ<NNN>-ISS<NNN>` branches, merged via PR.
+- **NEVER write data to Supabase from a Preview URL** unless structurally isolated. Preview URLs hit the production database.
 - **NEVER create `middleware.ts`.** Use `proxy.ts`.
-- **NEVER bypass Clerk auth on a protected route.** Security violation.
-- **NEVER expose `SUPABASE_SERVICE_ROLE_KEY` to the client.** Server-only.
-- **NEVER write `Status=Done` before the commit link exists.** Finalization is atomic.
+- **NEVER bypass Clerk auth on a protected route.**
+- **NEVER expose `SUPABASE_SERVICE_ROLE_KEY` to the client.**
+- **NEVER write `Status=Done` before the commit link exists.**
 - **NEVER proceed past CLAIM if `Blocked By` is non-empty** without explicit acknowledgment.
-- **NEVER mark Done on static analysis alone.** Verify Vercel PR preview deployment is READY AND CI passes.
-- **390px Mobile-First:** Every new UI surface must render correctly at 390px. The layout law below is non-negotiable.
-- **RLS policies MUST use Pattern A helper functions** (`is_admin()`, `get_my_role()`, `get_my_profile_id()`, `get_my_clerk_id()`). Never use raw `auth.jwt() ->> 'sub'` or `auth.jwt() ->> 'user_role'` directly. See ADR-011 in `docs/architecture/DECISIONS.md`.
-- **Component co-location:** New components scoped to a single route MUST be created inside that route's `components/` subdirectory (e.g. `app/(dashboard)/trips/components/`). No new files are added to `/components` or its subdirectories unless the component is used by 2+ unrelated routes at time of creation. Exempt: `components/layout`, `components/bento`, `components/ui`. See ADR-012.
-- **shadcn/ui for interactive primitives:** Any new dialog, popover, dropdown, sheet, tooltip, select, combobox, or alert dialog MUST use the corresponding shadcn/ui component. Hand-rolled equivalents are prohibited. See ADR-013.
+- **NEVER mark Done on static analysis alone.** Verify Vercel PR preview is READY AND CI passes.
+- **390px Mobile-First:** Every new UI surface must render correctly at 390px.
+- **RLS policies MUST use Pattern A helpers** (`is_admin()`, `get_my_role()`, `get_my_profile_id()`, `get_my_clerk_id()`). Never raw `auth.jwt()`. See ADR-011.
+- **Component co-location:** New components scoped to a single route live in `app/[route]/components/`. Promote to `/components` only when used by 2+ unrelated routes. Exempt: `components/layout`, `components/bento`, `components/ui`. See ADR-012.
+- **shadcn/ui for interactive primitives:** dialog, popover, dropdown, sheet, tooltip, select, combobox, alert dialog — all must use shadcn/ui. See ADR-013.
 
 ### Desktop / Mobile Layout Law
 
-Two separate complete layouts. No hybrid responsive design. Pattern:
+Two separate complete layouts. No hybrid responsive design:
 ```tsx
 <div className="hidden md:block">{/* Desktop */}</div>
 <div className="md:hidden">{/* Mobile */}</div>
 ```
-Prohibitions: no BottomNav, no tab bar, no FAB, no `overflow-x-auto` on nav.
-
-**Canonical reference:** `app/(dashboard)/about/page.tsx`
+No BottomNav, tab bar, FAB, or `overflow-x-auto` on nav. **Canonical ref:** `app/(dashboard)/about/page.tsx`
 
 ---
 
-## 3. Workflow Loop — Airtable → GitHub
+## 3. Workflow Loop
 
 Declare phase at opening of every work response: `PHASE: READ | SHAPE | CLAIM | GATHER | EXECUTE | VERIFY | FINALIZE`
 
-**Issue numbering:** `SEQ<NNN>-ISS<NNN>` — e.g. `SEQ116-ISS107`. Always use this format in reports, commit messages, and notes.
+**Issue format:** `SEQ<NNN>-ISS<NNN>`. Commit format: `[SEQ<NNN>-ISS<NNN>] Description`. `Seq` (autonumber) is the true PK — `Issue ID` is not unique.
 
-**READ:** Query `Status = "In Progress"` AND `Duplicate = false/empty`. Resume if found. Else query `Status = "To Do"` AND `Blocked By = empty` AND `Duplicate = false/empty`, sorted by Priority asc. Probe vague/harmful tickets before claiming.
+**READ:** Query `Status = "In Progress"` AND `Duplicate = false/empty`. Resume if found. Else query `Status = "To Do"` AND `Blocked By = empty` AND `Duplicate = false/empty`, sorted by Priority asc.
 
-**SHAPE:** Before claiming, locate the ticket in the architecture docs. Hard stop on each trigger:
-- Ticket touches auth, role, Clerk sync → read `FLOWS.md §1`
-- Ticket touches registration status → read `FLOWS.md §2`
-- Ticket touches payments → read `FLOWS.md §3`
-- Ticket touches LOS, tree, notifications → read `FLOWS.md §4`
-- Ticket touches vital signs → read `FLOWS.md §5` (pending SO clarification — do not proceed without it)
-- Ticket introduces a new external dependency → update `C4.md` first
-- Ticket introduces a new architectural pattern or library → write ADR in `DECISIONS.md` before EXECUTE
-- DoD still vague after this check → probe before claiming
+**SHAPE:** Hard stop — read the relevant doc before claiming:
+- Auth / role / Clerk sync → `FLOWS.md §1`
+- Registration status → `FLOWS.md §2`
+- Payments → `FLOWS.md §3`
+- LOS / tree / notifications → `FLOWS.md §4`
+- Vital signs → `FLOWS.md §5` (pending SO clarification — stop)
+- New external dependency → update `C4.md` first
+- New architectural pattern/library → write ADR in `DECISIONS.md` before EXECUTE
 
-**CLAIM:** Set `Status = "In Progress"` by **Seq** (not Issue ID). Gate: Blocked By empty + Duplicate false. Checkout new branch: `feature/SEQ<NNN>-ISS<NNN>`.
+**CLAIM:** Set `Status = "In Progress"` by Seq. Gate: Blocked By empty + Duplicate false. Checkout `feature/SEQ<NNN>-ISS<NNN>`.
 
-**GATHER:** Read `docs/ai/CONTEXT.md` first. Then pull from `docs/ai/LOOKUP.md` only for sections the ticket needs (see section map in CONTEXT.md header).
+**GATHER:** Read only the sections of `docs/ai/CONTEXT.md` and `docs/ai/LOOKUP.md` relevant to this ticket (section map in CONTEXT.md header).
 
-**EXECUTE:** Write code on the feature branch. Zero-Refactor Rule: change only lines required by DoD. Push commits to trigger Vercel Preview.
+**EXECUTE:** Change only lines required by DoD (Zero-Refactor Rule). Push commits to trigger Vercel Preview.
 
-**VERIFY:** DoD point-by-point. Check the Vercel Preview URL generated for the feature branch. Perform 390px mobile validation here. **Read-only validation** — do not trigger production side-effects. Confirm CI (`check-types.yml`) is green. Iterate if gaps remain.
+**VERIFY:** DoD point-by-point. Check Vercel Preview URL. 390px mobile validation. Read-only — no production side-effects. Confirm CI (`check-types.yml`) green.
 
-**FINALIZE:** Open Pull Request against `main`. Once reviewed and merged, verify the Vercel production deployment is READY. Single Airtable write: `Status=Done` + `CommitLink` (PR or main merge commit) + `ClaudeNotes`.
+**FINALIZE:** Open PR against `main`. After merge, verify Vercel production READY. Single Airtable write: `Status=Done` + `CommitLink` + `ClaudeNotes`.
 
 ### Airtable Reference
-
-**Base:** `app1n7KYX8i8xSiB7` — **Issues Table:** `tblUq45Wo3xngSf3w`
-→ Field IDs and Status choice IDs: see `docs/ai/LOOKUP.md §7`
-Duplicate-safe: always filter `Duplicate = false/empty`; discard `fld2P6m5fMOsi1q3G === true` if MCP can't filter checkboxes.
+**Base:** `app1n7KYX8i8xSiB7` — **Issues:** `tblUq45Wo3xngSf3w`
+→ Field IDs and Status choice IDs: `docs/ai/LOOKUP.md §7`
+Filter `Duplicate = false/empty`; discard `fld2P6m5fMOsi1q3G === true` if MCP can't filter checkboxes.
 
 ---
 
 ## 4. Code Style
 
-- Zero-Refactor Rule: change only lines required by the DoD. Never re-indent, rename, or reformat untouched sections.
+- Zero-Refactor Rule: change only lines required by DoD.
 - No `any` — use `unknown` and narrow.
 - No `console.log` in committed code.
 - No default exports from utility files.
@@ -144,58 +139,53 @@ Duplicate-safe: always filter `Duplicate = false/empty`; discard `fld2P6m5fMOsi1
 - Explicit return types on route handlers and server actions.
 - `<img>` for user-uploaded images (domains unpredictable).
 - `TranslationKey` is strict — add to `lib/i18n/translations.ts` before using `t()` or build breaks.
-- `useParams()` takes NO type argument in Next.js 16. Use `const params = useParams(); const id = params.id as string`.
+- `useParams()` takes NO type argument in Next.js 16. `const params = useParams(); const id = params.id as string`.
 
 ---
 
-## 5. Gotchas (non-derivable decisions)
+## 5. Gotchas
 
 | Topic | Rule |
 |---|---|
 | `middleware.ts` | NEVER. Use `proxy.ts`. |
 | Mapbox | CDN only. Dupe guard on load. Logo/attribution hidden via globals.css. |
 | Mapbox theme swap | `map.setStyle()` + `styledata` event. MutationObserver on `data-theme`. |
-| Mapbox About tile style | `outdoors-v12` (light) / `dark-v11` (dark). |
+| Mapbox About tile | `outdoors-v12` (light) / `dark-v11` (dark). |
 | Clerk shadow DOM | CSS vars unavailable. Use hardcoded hex (`#bc4749`). |
 | Clerk v7 auth | `await auth()` → `{ userId }`. No sync auth. No JWT template. |
-| Role promotion | Every `profiles.role` update MUST also call `clerk.users.updateUserMetadata`. Routes: `/api/admin/verify`, `/api/admin/members/[id]` PATCH, `/api/admin/members/verify/[id]`. Pre-fix cohort (before commit 4b2d69c) has stale metadata — re-login to fix. |
+| Role promotion | Every `profiles.role` update MUST also call `clerk.users.updateUserMetadata`. Routes: `/api/admin/verify`, `/api/admin/members/[id]` PATCH, `/api/admin/members/verify/[id]`. Pre-fix cohort (before 4b2d69c) has stale metadata — re-login to fix. |
 | `useLanguage` | Dispatches `window.dispatchEvent(new Event('language-changed'))` on toggle. |
-| Profile page prerender | `/profile` prerenders. Guard ALL `validProfile!` accesses with `if (isLoading \|\| !validProfile) return <ProfileSkeleton />` before any JSX referencing profile fields. |
-| Seq is the true PK | `Issue ID` is NOT unique. `Seq` (autonumber) is the PK. Always target by Seq. Issue format: `SEQ<NNN>-ISS<NNN>`. Commit format: `[SEQ<NNN>-ISS<NNN>] Description`. |
-| `types/supabase.ts` | Always regenerate via `Supabase:generate_typescript_types` MCP tool after migrations — NOT the CLI. |
-| `supabase gen types` CLI | NOT installed. Do not ask user to run it. Use MCP tool instead. |
-| `payments → profiles` FK ambiguity | `payments` has TWO FKs to `profiles`: `profile_id` (member) and `logged_by_admin` (admin). Any PostgREST `.select()` joining `profiles(...)` from `payments` MUST use `profiles!profile_id(...)`. Without it PostgREST returns 500. |
-| `Drawer` for admin forms | Use `components/ui/Drawer.tsx` for ALL admin create/edit flows. Exceptions: Announcements create + Quick Links create stay as always-visible inline cards. ALL deletes use `AlertDialog` (shadcn/ui) — `window.confirm` is retired. |
-| Admin form components inside render | NEVER define a form component inside a parent page component. React remounts it on every render causing state reset. Always hoist to module scope. |
-| Theme system | Single source: `lib/hooks/useTheme.ts`. Three consumers: `ThemeTile`, `UserDropdown`, `UserPopup`. Same-tab sync via `tevd-theme-change` DOM event. Cross-tab via `StorageEvent`. Key: `tevd-theme`. |
-| `--bg-global-rgb` dark override | MUST be `26, 31, 24` in `[data-theme="dark"]`. Header uses `rgba(var(--bg-global-rgb), 0.80)` — without this the navbar renders ~80% white in dark mode. |
-| `--text-nav` dark value | `var(--brand-parchment)` in dark mode. Full contrast required on dark navbar backdrop. |
-| Nav breakpoint | Desktop nav and hamburger use `lg` (1024px), not `md`. Landscape phones clear `md` — `lg` keeps hamburger on all phones in any orientation. |
-| `/guides` cover image | Use `<img>` not `next/image` for Supabase storage URLs. |
-| Guide cover bucket | Supabase Storage bucket `guide-covers` (public). RLS: public SELECT, admin INSERT/UPDATE/DELETE. |
+| Profile prerender | `/profile` prerenders. Guard ALL `validProfile!` accesses with `if (isLoading \|\| !validProfile) return <ProfileSkeleton />`. |
+| `types/supabase.ts` | Regenerate via `Supabase:generate_typescript_types` MCP only — CLI not installed. |
+| `payments → profiles` FK | Two FKs to `profiles`. PostgREST `.select()` MUST use `profiles!profile_id(...)` — without it, 500. |
+| Admin Drawer | Use `components/ui/Drawer.tsx` for all admin create/edit. Exceptions: Announcements + Quick Links create stay as inline cards. All deletes use `AlertDialog` — `window.confirm` retired. |
+| Admin form components | NEVER define a form component inside a parent page component — React remounts on every render. Hoist to module scope. |
+| Theme system | Single source: `lib/hooks/useTheme.ts`. Same-tab: `tevd-theme-change` DOM event. Cross-tab: `StorageEvent`. Key: `tevd-theme`. |
+| `--bg-global-rgb` dark | MUST be `26, 31, 24`. Header uses `rgba(var(--bg-global-rgb), 0.80)` — wrong value = white navbar in dark mode. |
+| `--text-nav` dark | `var(--brand-parchment)`. Full contrast on dark navbar backdrop. |
+| Nav breakpoint | `lg` (1024px), not `md`. Landscape phones clear `md` — `lg` keeps hamburger on all phones. |
+| Guide cover image | `<img>` not `next/image` for Supabase storage URLs. Bucket: `guide-covers` (public). RLS: public SELECT, admin INSERT/UPDATE/DELETE. |
 | `TeamAttendee` type | Exported from `app/(dashboard)/trips/[id]/page.tsx`. Do not redeclare. |
-| RLS pattern | New policies MUST use Pattern A helpers: `is_admin()`, `get_my_role()`, `get_my_profile_id()`, `get_my_clerk_id()`. Never `auth.jwt() ->> 'sub'` (resolves to Supabase Auth UUID, not Clerk user — silently non-functional). See ADR-011. |
-| Component co-location | New components scoped to a single route live in `app/[route]/components/`. Only promote to `/components` when used by 2+ unrelated routes. Exempt: `components/layout`, `components/bento`, `components/ui`. See ADR-012. |
-| shadcn/ui install method | NEVER run `npx shadcn@latest init` — it assumes Tailwind v3 and corrupts `globals.css`. Add components individually: `npx shadcn@latest add <n>`. After each add, review the `globals.css` diff and revert any injected `@layer base` blocks. |
-| shadcn CSS variable conflicts | shadcn components reference `--background`, `--foreground`, etc. Edit the vended component source in `components/ui/` to use project tokens (`--bg-card`, `--text-primary`) instead. |
-| shadcn Tabs — MUST be controlled | NEVER use `defaultValue` on `<Tabs>`. Mobile users rely on hardware back/swipe; uncontrolled tabs break navigation. Always use `value={tab}` (from `useSearchParams`) + `onValueChange={(val) => router.replace(`?tab=${val}`, { scroll: false })}`. The `scroll: false` option is mandatory — without it, tab switches scroll the page to top on mobile. Wrap the component calling `useSearchParams()` in `<Suspense>` (server shell pattern). |
-| Route handler `params` — Next.js 16 | `params` is a `Promise` in Next.js 16. ALWAYS type as `{ params: Promise<{ id: string }> }` and `await params` before use. The old sync pattern `{ params }: { params: { id: string } }` is a TS error and will fail the build. |
-| GitHub MCP `create_or_update_file` | Times out on files above ~10KB. Use `push_files` for initial commits of large files. For subsequent edits to large files, keep changes minimal or ask the user to apply the diff manually if the MCP times out. |
-| pg_net cron calls | The `http` extension is NOT installed. All cron jobs that invoke edge functions MUST use `net.http_post(...)` (pg_net). NEVER use `extensions.http_post(...)` — it silently does nothing and produces zero errors or logs. |
+| shadcn install | NEVER `npx shadcn@latest init` — corrupts globals.css. Add: `npx shadcn@latest add <n>`. After each add, revert any injected `@layer base` blocks. |
+| shadcn CSS vars | shadcn refs `--background`, `--foreground`, etc. Edit vended source in `components/ui/` to use project tokens (`--bg-card`, `--text-primary`). |
+| shadcn Tabs | NEVER `defaultValue`. Always `value={tab}` + `onValueChange={(val) => router.replace(\`?tab=${val}\`, { scroll: false })}`. `scroll: false` is mandatory. Wrap in `<Suspense>`. |
+| Route handler `params` | `params` is a `Promise` in Next.js 16. Type as `{ params: Promise<{ id: string }> }` and `await params`. |
+| GitHub MCP large files | `create_or_update_file` times out above ~10KB. Use `push_files`. |
+| pg_net cron calls | Use `net.http_post(...)`. NEVER `extensions.http_post(...)` — silently does nothing. |
 
 ---
 
 ## 6. Supabase MCP Workflow
 
-1. Read existing function/table first with `execute_sql` before writing any DDL.
+1. `execute_sql` to read existing state before any DDL.
 2. DDL → `apply_migration` only. Never raw `execute_sql` for DDL.
-3. Verify result with `execute_sql` after.
+3. `execute_sql` to verify after.
 4. Save SQL to `supabase/migrations/YYYYMMDDNNNNNN_name.sql`.
-5. Run `generate_typescript_types` → write to `types/supabase.ts` → commit in same push as migration.
+5. `generate_typescript_types` → write to `types/supabase.ts` → commit in same push as migration.
 6. `npx tsc --noEmit` → zero errors → commit.
 
 ---
 
 ## 7. When This File Is Wrong
 
-If any instruction here contradicts Next.js 16 / Clerk v7 / Supabase current SDK behaviour — stop and flag it. State the contradiction, cite the correct behaviour, ask for a decision before proceeding.
+If any instruction contradicts Next.js 16 / Clerk v7 / Supabase current SDK behaviour — stop. State the contradiction, cite the correct behaviour, ask for a decision.
