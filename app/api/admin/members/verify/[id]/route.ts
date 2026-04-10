@@ -75,7 +75,7 @@ export async function PATCH(
     })
 
     if (profile?.contact_email) {
-      import('@/lib/email/send').then(({ sendEmail }) => {
+      import('@/lib/email/send').then(({ sendNotificationEmail }) => {
         import('@/lib/email/templates/render').then(({ renderEmailTemplate }) => {
           import('@/lib/email/templates/AboVerificationEmail').then(({ AboVerificationEmail }) => {
             renderEmailTemplate(
@@ -86,7 +86,7 @@ export async function PATCH(
                 adminNote: admin_note,
               })
             ).then(html => {
-              sendEmail({
+              sendNotificationEmail({
                 to: profile.contact_email,
                 subject: `ABO Verification Approved ✓`,
                 html,
@@ -100,7 +100,7 @@ export async function PATCH(
             import('@/lib/email/templates/WelcomeEmail').then(({ WelcomeEmail }) => {
               renderEmailTemplate(WelcomeEmail({ firstName: profile.first_name || 'Member' }))
                 .then(html => {
-                  sendEmail({
+                  sendNotificationEmail({
                     to: profile.contact_email,
                     subject: 'Welcome to Team Enjoy VD!',
                     html,
@@ -144,7 +144,7 @@ export async function PATCH(
 
     const profile = verReq.profile as any
     if (!error && profile?.contact_email) {
-      import('@/lib/email/send').then(({ sendEmail }) => {
+      import('@/lib/email/send').then(({ sendNotificationEmail }) => {
         import('@/lib/email/templates/render').then(({ renderEmailTemplate }) => {
           import('@/lib/email/templates/AboVerificationEmail').then(({ AboVerificationEmail }) => {
             renderEmailTemplate(
@@ -155,7 +155,7 @@ export async function PATCH(
                 adminNote: admin_note,
               })
             ).then(html => {
-              sendEmail({
+              sendNotificationEmail({
                 to: profile.contact_email,
                 subject: `ABO Verification Declined`,
                 html,
