@@ -1,5 +1,5 @@
 # CONTEXT.md — teamenjoyVD Portal
-> Last updated: 2026-03-24 — v2.0.3. Latest stable commit: 2f7f0fd.
+> Last updated: 2026-04-10 — v2.3.1. Latest stable commit: 5de6c8b.
 > **Read at GATHER start. Never read at SSU.**
 > For reference tables (schema, design system, i18n, env vars, API map): `docs/ai/LOOKUP.md`
 > For architecture, flows, and decisions: `docs/architecture/`
@@ -69,6 +69,12 @@ Singleton service role client. Do not create a new client per request.
 ### `lib/og-scrape.ts`
 Server-only. Returns nulls for IG/FB URLs. Preview endpoint: `/api/admin/social-posts/preview?url=...`.
 
+### `lib/email/send.ts`
+Two public dispatchers — never import `sendEmail` (removed):
+- `sendNotificationEmail(payload)` — fire-and-forget (`Promise<void>`). Respects `email_config.enabled` and per-type toggles. All errors swallowed and written to `email_log`.
+- `sendTransactionalEmail(payload)` — returns `Promise<TransactionalEmailResult>`. Bypasses all config gates. Caller must check `result.sent`. Use for flows where the email IS the feature (magic links, access links).
+- Both delegate to private `_dispatch()` — do not inline send/log logic.
+
 ### `components/ui/Drawer.tsx`
 Right slide-over. Use for ALL admin create/edit forms and member-facing modal flows.
 Props: `open`, `onClose`, `title`, `children`. Backdrop click + Escape close. Body scroll locked.
@@ -136,7 +142,9 @@ Fix flow: `generate_typescript_types` → write `types/supabase.ts` → `tsc --n
 | v2.0.1 | 2026-03-23 | SEQ221: guides stale state fix, cover image upload fix. SEQ222: canvas 1280px sitewide. |
 | v2.0.2 | 2026-03-23 | SEQ223: theme system overhaul. SEQ224: navbar dark mode, lg breakpoint fix. |
 | v2.0.3 | 2026-03-24 | Phase A: architecture docs, SHAPE step, CONTEXT/LOOKUP split, CLAUDE.md trim. |
+| v2.3.1 | 2026-04-10 | SEQ349: guest registration flow. SEQ361: transactional email dispatcher, sendEmail → sendNotificationEmail/sendTransactionalEmail rename, _dispatch extraction. |
 
 ### Pending issues
 - ISS-0043 (SEQ221): Navbar dark mode contrast — resolved in SEQ224, open for close.
 - SEQ241-243: Vital signs feature — on hold pending SO clarification on state model.
+- PR14 (SEQ361): open against `feature/SEQ349-ISS349` — merge SEQ349 first, then PR14.

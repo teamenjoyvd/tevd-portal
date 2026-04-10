@@ -1,5 +1,5 @@
 # CLAUDE.md — teamenjoyVD Portal
-> Last updated: 2026-04-10 — v2.3.0. Latest stable commit: 7df58de.
+> Last updated: 2026-04-10 — v2.3.1. Latest stable commit: 5de6c8b.
 > Architecture docs: `docs/architecture/`. Reference tables: `docs/ai/LOOKUP.md`. Context: `docs/ai/CONTEXT.md`.
 > **Neither CONTEXT.md nor LOOKUP.md is read at session start or proactively. Read only sections relevant to the current ticket during GATHER (section map in CONTEXT.md header).**
 
@@ -239,6 +239,7 @@ The PR description is the handoff document. It is the single source of session s
 | GitHub MCP large files | `create_or_update_file` times out above ~10KB. Use `push_files`. |
 | pg_net cron calls | Use `net.http_post(...)`. NEVER `extensions.http_post(...)` — silently does nothing. |
 | Session constants | Repo, branch, project IDs are in §0. Never ask the user to confirm them. |
+| `sendEmail` rename | `sendEmail` no longer exists — split into `sendNotificationEmail` (fire-and-forget, respects config gates) and `sendTransactionalEmail` (bypasses gates, returns typed result). Dynamic `import('@/lib/email/send').then(({ sendEmail })` callers are invisible to static search — grep the full codebase when renaming email exports. |
 
 ---
 

@@ -1,5 +1,5 @@
 # LOOKUP.md — teamenjoyVD Portal Reference Tables
-> Last updated: 2026-04-05
+> Last updated: 2026-04-10
 > **Read on demand in GATHER only. Never read at SSU or at GATHER start.**
 > Pull only the sections the ticket needs. See section map in CONTEXT.md header.
 
@@ -96,6 +96,8 @@
   /supabase/server.ts
   /supabase/service.ts
   /i18n/translations.ts
+  /email/send.ts                 # Email dispatchers — see CONTEXT.md §1 for API
+  /actions/guest-registration.ts
 /styles/brand-tokens.css
 /.github/workflows/check-types.yml
 /docs/ai/CONTEXT.md
@@ -200,7 +202,7 @@
 | `/api/profile/event-roles` | GET | Read own event participation |
 | `/api/profile/los-summary` | GET | Read own LOS downline |
 | `/api/profile/upline` | GET | Read own upline |
-| `/api/profile/payments` | GET, POST | Read/submit own payments |
+| `/api/profile/payments` | GET, POST | Read/submit own payments — POST triggers admin alert via `sendNotificationEmail` |
 | `/api/profile/trips/[id]/cancel` | POST | Cancel own trip registration |
 | `/api/payable-items` | GET | List active payable items |
 | `/api/payments` | GET, POST | Unified payment read/submit |
@@ -220,15 +222,15 @@
 | `/api/admin/verify` | POST | Approve/deny ABO verification |
 | `/api/admin/members/verify/[id]` | POST | Path C direct verify |
 | `/api/admin/payments` | GET, POST | All payments + log payment |
-| `/api/admin/payments/[id]` | PATCH | Update admin_status + admin_note |
+| `/api/admin/payments/[id]` | PATCH | Update admin_status + admin_note — triggers `sendNotificationEmail` |
 | `/api/admin/payable-items` | GET, POST | List + create payable items |
 | `/api/admin/payable-items/[id]` | PATCH, DELETE | Update/deactivate item |
 | `/api/admin/calendar` | GET, POST, PATCH, DELETE | Calendar event CRUD |
 | `/api/admin/registrations` | GET | All trip_registrations joined with profile + trip — no N+1 |
-| `/api/admin/registrations/[id]` | PATCH | Update registration status |
+| `/api/admin/registrations/[id]` | PATCH | Update registration status — triggers `sendNotificationEmail` |
 | `/api/admin/event-role-requests` | GET | All event_role_requests joined with profile + calendar_events — no N+1 |
 | `/api/admin/event-role-requests/[id]` | PATCH | Update role request status |
-| `/api/admin/trips/registrations/[id]/cancel` | POST | Admin cancel registration |
+| `/api/admin/trips/registrations/[id]/cancel` | POST | Admin cancel registration — triggers `sendNotificationEmail` |
 | `/api/admin/guides` | GET, POST | List + create guides |
 | `/api/admin/guides/[id]` | GET, PATCH, DELETE | Guide CRUD |
 | `/api/admin/guides/upload` | POST | Upload cover image to `guide-covers` bucket |
@@ -237,6 +239,11 @@
 | `/api/admin/social-posts/preview` | GET | OG scrape (`?url=...`) |
 | `/api/admin/vital-sign-definitions` | GET, POST | List + create definitions |
 | `/api/admin/vital-sign-definitions/[id]` | PATCH, DELETE | Update/deactivate definition |
+
+### Guest registration
+| File | Purpose |
+|---|---|
+| `lib/actions/guest-registration.ts` | Server action — inserts guest token, sends magic link via `sendTransactionalEmail`. Returns `{ success: false, error }` if email fails. |
 
 ### Supabase RPCs
 | RPC | Purpose |
@@ -345,6 +352,7 @@ Every `profiles.role` update MUST also call `clerk.users.updateUserMetadata`. Se
 | `INSTAGRAM_ACCESS_TOKEN` | Meta Graph API | ⏳ Pending |
 | `FB_PAGE_ACCESS_TOKEN` | Meta Graph API | ⏳ Pending |
 | `FB_PAGE_ID` | Meta Graph API | ⏳ Pending |
+| `RESEND_API_KEY` | Resend email delivery | ✅ |
 
 ---
 
