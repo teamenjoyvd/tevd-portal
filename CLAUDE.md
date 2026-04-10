@@ -1,5 +1,5 @@
 # CLAUDE.md — teamenjoyVD Portal
-> Last updated: 2026-04-10 — v2.3.0. Latest stable commit: 044499e.
+> Last updated: 2026-04-10 — v2.3.0. Latest stable commit: 7df58de.
 > Architecture docs: `docs/architecture/`. Reference tables: `docs/ai/LOOKUP.md`. Context: `docs/ai/CONTEXT.md`.
 > **Neither CONTEXT.md nor LOOKUP.md is read at session start or proactively. Read only sections relevant to the current ticket during GATHER (section map in CONTEXT.md header).**
 
@@ -102,7 +102,7 @@ Violation = immediate stop.
 - **NEVER ask the user to confirm session constants** (repo, branch, project IDs). They are hardcoded in §0.
 - **390px Mobile-First:** Every new UI surface must render correctly at 390px.
 - **RLS policies MUST use Pattern A helpers** (`is_admin()`, `get_my_role()`, `get_my_profile_id()`, `get_my_clerk_id()`). Never raw `auth.jwt()`. See ADR-011.
-- **Component co-location:** New components scoped to a single route live in `app/[route]/components/`. Promote to `/components` only when used by 2+ unrelated routes. Exempt: `components/layout`, `components/bento`, `components/ui`. See ADR-012.
+- **Component co-location:** New components scoped to a single route live in `app/[route]/components/`. Promote to `/components` only when used by 2+ unrelated routes. Exempt: `components/layout`, `components/bento`, `components/ui`. See ADR-011.
 - **shadcn/ui for interactive primitives:** dialog, popover, dropdown, sheet, tooltip, select, combobox, alert dialog — all must use shadcn/ui. See ADR-013.
 
 ### Desktop / Mobile Layout Law
@@ -238,6 +238,7 @@ The PR description is the handoff document. It is the single source of session s
 | Route handler `params` | `params` is a `Promise` in Next.js 16. Type as `{ params: Promise<{ id: string }> }` and `await params`. |
 | GitHub MCP large files | `create_or_update_file` times out above ~10KB. Use `push_files`. |
 | pg_net cron calls | Use `net.http_post(...)`. NEVER `extensions.http_post(...)` — silently does nothing. |
+| Session constants | Repo, branch, project IDs are in §0. Never ask the user to confirm them. |
 
 ---
 
