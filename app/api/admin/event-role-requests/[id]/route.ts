@@ -31,7 +31,7 @@ export async function PATCH(
     const eventData = data.event as any
 
     if (profileData.contact_email) {
-      import('@/lib/email/send').then(({ sendEmail }) => {
+      import('@/lib/email/send').then(({ sendNotificationEmail }) => {
         import('@/lib/email/templates/render').then(({ renderEmailTemplate }) => {
           import('@/lib/email/templates/EventRoleRequestEmail').then(({ EventRoleRequestEmail }) => {
             renderEmailTemplate(
@@ -43,7 +43,7 @@ export async function PATCH(
                 status: status as 'approved' | 'denied',
               })
             ).then(html => {
-              sendEmail({
+              sendNotificationEmail({
                 to: profileData.contact_email,
                 subject: `Event Role Request ${status === 'approved' ? 'Approved ✓' : 'Declined'}`,
                 html,
