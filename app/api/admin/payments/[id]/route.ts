@@ -37,7 +37,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const emailStatus = admin_status === 'rejected' ? 'denied' : 'approved'
 
   if (paymentProfile?.contact_email) {
-    import('@/lib/email/send').then(({ sendEmail }) => {
+    import('@/lib/email/send').then(({ sendNotificationEmail }) => {
       import('@/lib/email/templates/render').then(({ renderEmailTemplate }) => {
         import('@/lib/email/templates/PaymentStatusEmail').then(({ PaymentStatusEmail }) => {
           renderEmailTemplate(
@@ -51,7 +51,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
               adminNote: admin_note,
             })
           ).then(html => {
-            sendEmail({
+            sendNotificationEmail({
               to: paymentProfile.contact_email,
               subject: `Payment ${emailStatus === 'approved' ? 'Approved ✓' : 'Declined'}`,
               html,

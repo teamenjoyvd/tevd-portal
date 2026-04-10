@@ -1,7 +1,7 @@
 import { Resend } from 'resend'
 import { createServiceClient } from '@/lib/supabase/service'
 
-// ── Lazy-init Resend client ───────────────────────────────────────────────────
+// -- Lazy-init Resend client --------------------------------------------------
 // Not constructed at module load so missing key in dev doesn't crash boot.
 let _resend: Resend | null = null
 function getResend(): Resend {
@@ -9,7 +9,7 @@ function getResend(): Resend {
   return _resend
 }
 
-// ── Settings cache ────────────────────────────────────────────────────────────
+// -- Settings cache -----------------------------------------------------------
 // The email_config row is fetched once per cold start; re-fetched if stale.
 let _configCache: EmailConfig | null = null
 let _configFetchedAt = 0
@@ -37,51 +37,45 @@ export async function getEmailConfig(): Promise<EmailConfig> {
   return _configCache
 }
 
-// ── Public API ─────────────────────────────────────────────────────────────────
+// -- Shared payload type ------------------------------------------------------
 
 export type SendEmailPayload = {
   /** Resend "from" address. Defaults to the team noreply. */
   from?: string
   to: string
   subject: string
-  /** Pre-rendered HTML string — use renderEmailTemplate() from templates/render.ts */
+  /** Pre-rendered HTML string -- use renderEmailTemplate() from templates/render.ts */
   html: string
   /** Template key used for log + admin toggle check e.g. 'trip_registration_status' */
   template: string
-  /** Any serialisable metadata to store in email_log.payload (profile IDs, amounts…) */
+  /** Any serialisable metadata to store in email_log.payload (profile IDs, amounts...) */
   meta?: Record<string, unknown>
 }
 
-/**
- * Resilient email dispatcher.
- *
- * - Never throws — all errors are caught and written to email_log.
- * - Respects the system-wide `email_config.enabled` flag.
- * - Respects per-notification-type toggles in `email_config.notification_types`.
- * - Every attempt (success or failure) is written to email_log for auditability.
- */
-export async function sendEmail(payload: SendEmailPayload): Promise<void> {
+export type TransactionalEmailResult =
+  | { sent: true }
+  | { sent: false; error: string }
+
+// -- Core dispatcher (private) ------------------------------------------------
+// Owns: Resend call, error capture, audit log write.
+// Never throws. Does not read email_config -- gates are the caller's concern.
+
+async function _dispatch(
+  payload: SendEmailPayload,
+): Promise<TransactionalEmailResult> {
   const supabase = createServiceClient()
-  const config = await getEmailConfig()
-
-  // ── System-level gate ──────────────────────────────────────────────────────
-  if (!config.enabled) return
-
-  // ── Per-type gate ──────────────────────────────────────────────────────────
-  if (config.notification_types[payload.template] === false) return
-
   const from = payload.from ?? 'TeamEnjoyVD <noreply@teamenjoyvd.com>'
 
-  let status = 'pending'
+  let status: 'sent' | 'failed'
   let resendId: string | null = null
   let errorMsg: string | null = null
 
   try {
     const { data, error } = await getResend().emails.send({
       from,
-      to: payload.to,
+      to:      payload.to,
       subject: payload.subject,
-      html: payload.html,
+      html:    payload.html,
     })
 
     if (error) throw new Error(error.message)
@@ -92,7 +86,7 @@ export async function sendEmail(payload: SendEmailPayload): Promise<void> {
     errorMsg = err instanceof Error ? err.message : String(err)
   }
 
-  // ── Audit log — never throws ───────────────────────────────────────────────
+  // -- Audit log -- never throws ----------------------------------------------
   try {
     await supabase.from('email_log').insert({
       template:  payload.template,
@@ -104,6 +98,50 @@ export async function sendEmail(payload: SendEmailPayload): Promise<void> {
       sent_at:   status === 'sent' ? new Date().toISOString() : null,
     })
   } catch {
-    // Logging failure must never propagate — email is already sent/failed.
+    // Logging failure must never propagate.
   }
+
+  if (status === 'sent') return { sent: true }
+  return { sent: false, error: errorMsg ?? 'Unknown error' }
+}
+
+// -- Notification dispatcher --------------------------------------------------
+
+/**
+ * Resilient notification email dispatcher.
+ *
+ * - Never throws -- all errors are caught and written to email_log.
+ * - Respects the system-wide `email_config.enabled` flag.
+ * - Respects per-notification-type toggles in `email_config.notification_types`.
+ * - Every attempt (success or failure) is written to email_log for auditability.
+ */
+export async function sendNotificationEmail(payload: SendEmailPayload): Promise<void> {
+  const config = await getEmailConfig()
+
+  // -- System-level gate ------------------------------------------------------
+  if (!config.enabled) return
+
+  // -- Per-type gate ----------------------------------------------------------
+  if (config.notification_types[payload.template] === false) return
+
+  await _dispatch(payload)
+  // Result intentionally discarded -- fire-and-forget contract.
+}
+
+// -- Transactional dispatcher -------------------------------------------------
+
+/**
+ * Transactional email dispatcher for flows where the email IS the feature
+ * (e.g. magic links, access links).
+ *
+ * - Bypasses `email_config.enabled` -- a master kill switch must not block auth flows.
+ * - Bypasses per-type toggles.
+ * - Returns a typed result -- caller decides how to handle failure.
+ * - Does NOT swallow errors.
+ * - Still writes to email_log for auditability.
+ */
+export async function sendTransactionalEmail(
+  payload: SendEmailPayload,
+): Promise<TransactionalEmailResult> {
+  return _dispatch(payload)
 }
