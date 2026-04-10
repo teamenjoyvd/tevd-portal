@@ -1,7 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { requireAdmin } from '@/lib/supabase/guards'
-import { sendEmail } from '@/lib/email/send'
+import { sendNotificationEmail } from '@/lib/email/send'
 import { renderEmailTemplate } from '@/lib/email/templates/render'
 import { AboVerificationEmail } from '@/lib/email/templates/AboVerificationEmail'
 import { DocumentExpiryEmail } from '@/lib/email/templates/DocumentExpiryEmail'
@@ -20,7 +20,7 @@ const TEMPLATE_COMPONENTS: Record<string, any> = {
   abo_verification_result: AboVerificationEmail,
   trip_registration_status: TripRegistrationEmail,
   event_role_request_result: EventRoleRequestEmail,
-  trip_registration_cancelled: TripRegistrationEmail, // Uses same template usually or specific one if exists
+  trip_registration_cancelled: TripRegistrationEmail,
   payment_submitted: PaymentSubmittedEmail,
 }
 
@@ -54,11 +54,9 @@ export async function POST(
   try {
     const html = await renderEmailTemplate(TemplateComponent(log.payload as any))
 
-    // 3. Re-invoke sendEmail
-    // Note: sendEmail already logs its own result to a NEW row.
-    // We should ideally update the OLD row to 'retried' or similar, but for now 
-    // the UI just cares that a new attempt is made.
-    await sendEmail({
+    // 3. Re-invoke sendNotificationEmail — bypasses no gates since this is an
+    //    admin-triggered retry; a new email_log row is written by the dispatcher.
+    await sendNotificationEmail({
       to: log.recipient,
       subject: `[RETRY] ${log.template.replace(/_/g, ' ')}`,
       html,
