@@ -6,6 +6,7 @@ const isPublicRoute = createRouteMatcher([
   '/about',
   '/calendar',
   '/trips',
+  '/events/(.*)',
   '/sign-in(.*)',
   '/sign-up(.*)',
   '/api/webhooks/(.*)',
@@ -13,10 +14,8 @@ const isPublicRoute = createRouteMatcher([
   '/api/events/:id',
 ])
 
-const isAdminApiRoute = createRouteMatcher(['/api/admin/(.*)']
-)
-const isAdminPageRoute = createRouteMatcher(['/admin/(.*)']
-)
+const isAdminApiRoute = createRouteMatcher(['/api/admin/(.*)'])
+const isAdminPageRoute = createRouteMatcher(['/admin/(.*)'])
 
 export default clerkMiddleware(async (auth, req) => {
   if (isPublicRoute(req)) return
