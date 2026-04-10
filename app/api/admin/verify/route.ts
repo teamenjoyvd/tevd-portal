@@ -78,7 +78,7 @@ export async function POST(req: Request) {
     .select().single()
 
   if (!reqErr && targetProfile?.contact_email) {
-    import('@/lib/email/send').then(({ sendEmail }) => {
+    import('@/lib/email/send').then(({ sendNotificationEmail }) => {
       import('@/lib/email/templates/render').then(({ renderEmailTemplate }) => {
         import('@/lib/email/templates/AboVerificationEmail').then(({ AboVerificationEmail }) => {
           renderEmailTemplate(
@@ -89,7 +89,7 @@ export async function POST(req: Request) {
               adminNote: 'Direct verification by admin',
             })
           ).then(html => {
-            sendEmail({
+            sendNotificationEmail({
               to: targetProfile.contact_email!,
               subject: `ABO Verification Approved ✓`,
               html,
@@ -103,7 +103,7 @@ export async function POST(req: Request) {
           import('@/lib/email/templates/WelcomeEmail').then(({ WelcomeEmail }) => {
             renderEmailTemplate(WelcomeEmail({ firstName: targetProfile.first_name || 'Member' }))
               .then(html => {
-                sendEmail({
+                sendNotificationEmail({
                   to: targetProfile.contact_email!,
                   subject: 'Welcome to Team Enjoy VD!',
                   html,
