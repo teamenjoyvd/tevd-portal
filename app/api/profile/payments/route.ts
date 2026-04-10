@@ -95,7 +95,7 @@ export async function POST(req: Request): Promise<Response> {
   const itemsData = data.payable_items as any
   const itemTitle = tripsData?.title || itemsData?.title || 'Unknown Item'
 
-  import('@/lib/email/send').then(({ sendEmail, getEmailConfig }) => {
+  import('@/lib/email/send').then(({ sendNotificationEmail, getEmailConfig }) => {
     getEmailConfig().then(config => {
       if (!config.alert_recipient) return
 
@@ -111,7 +111,7 @@ export async function POST(req: Request): Promise<Response> {
               paymentMethod: data.payment_method,
             })
           ).then(html => {
-            sendEmail({
+            sendNotificationEmail({
               to: config.alert_recipient,
               subject: `New Payment Logged by ${profile.first_name || 'Member'}`,
               html,
