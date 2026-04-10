@@ -1,5 +1,5 @@
 # CLAUDE.md — teamenjoyVD Portal
-> Last updated: 2026-04-10 — v2.1.0. Latest stable commit: 044499e.
+> Last updated: 2026-04-10 — v2.2.0. Latest stable commit: 044499e.
 > Architecture docs: `docs/architecture/`. Reference tables: `docs/ai/LOOKUP.md`. Context: `docs/ai/CONTEXT.md`.
 > **Neither CONTEXT.md nor LOOKUP.md is read at session start or proactively. Read only sections relevant to the current ticket during GATHER (section map in CONTEXT.md header).**
 
@@ -23,6 +23,7 @@ Execute in full, in order:
 3. **Vercel** — `list_deployments`. Confirm latest production deployment is READY. ✅/❌
 4. **Supabase** — `list_projects`. Confirm `ynykjpnetfwqzdnsgkkg` is `ACTIVE_HEALTHY`. ✅/❌
 5. **Queue** — check Issues for `Status = "In Progress"` AND `Duplicate = false/empty`. If found, report it. Else report highest-priority unblocked `Status = "To Do"` AND `Duplicate = false/empty` ticket.
+6. **Handoff** — if an active PR exists for the in-progress ticket, read its description. Check for a `## Session State` block. If `Status: IN PROGRESS` is present, state what was in flight and what the next action is before doing anything else.
 
 ```
 | Connection | Status | Notes |
@@ -32,6 +33,7 @@ Execute in full, in order:
 | Vercel     | ✅/❌  | ...   |
 | Supabase   | ✅/❌  | ...   |
 | Queue      | —      | SEQ<NNN>-ISS<NNN>: ... / All clear |
+| Handoff    | —      | IN PROGRESS / DONE / No active PR |
 ```
 
 If any ❌ — stop.
@@ -45,7 +47,8 @@ If any ❌ — stop.
 3. Update `docs/ai/LOOKUP.md` — schema changes, new env vars, new API routes.
 4. Update `docs/architecture/` — if session introduced a new flow, external system, or architectural decision.
 5. Update Gotchas (§5) if new non-obvious decisions were made this session.
-6. Verify latest commit is pushed and Vercel deployment is READY.
+6. Update the active PR `## Session State` block to reflect current state (see §3 Session Handoff Protocol).
+7. Verify latest commit is pushed and Vercel deployment is READY.
 
 ---
 
@@ -118,6 +121,14 @@ Declare phase at opening of every work response: `PHASE: READ | SHAPE | CLAIM | 
 
 **EXECUTE:** Change only lines required by DoD (Zero-Refactor Rule). Push commits to trigger Vercel Preview.
 
+> **Large file protocol (>100 lines estimated):**
+> 1. Update PR `## Session State` block to `Status: IN PROGRESS` with task description before starting.
+> 2. Commit a skeleton with locked decisions and explicit `// TODO:` items.
+> 3. Implement against the TODOs.
+> 4. Update PR `## Session State` to `Status: DONE` on completion.
+>
+> OOT during step 3 leaves the next instance with: intent on the PR, decisions in the skeleton, TODOs as a checklist. No investigation required.
+
 **VERIFY:** DoD point-by-point. Check Vercel Preview URL. 390px mobile validation. Read-only — no production side-effects. Confirm CI (`check-types.yml`) green.
 
 **FINALIZE:** Open PR against `main`. After merge, verify Vercel production READY. Single Airtable write: `Status=Done` + `CommitLink` + `ClaudeNotes`.
@@ -126,6 +137,43 @@ Declare phase at opening of every work response: `PHASE: READ | SHAPE | CLAIM | 
 **Base:** `app1n7KYX8i8xSiB7` — **Issues:** `tblUq45Wo3xngSf3w`
 → Field IDs and Status choice IDs: `docs/ai/LOOKUP.md §7`
 Filter `Duplicate = false/empty`; discard `fld2P6m5fMOsi1q3G === true` if MCP can't filter checkboxes.
+
+---
+
+## 3a. Session Handoff Protocol
+
+The PR description is the handoff document. It is the single source of session state. No separate files.
+
+### PR `## Session State` block format
+
+```markdown
+## Session State
+**Status:** IN PROGRESS | DONE
+**Last touched:** `path/to/file.tsx`
+**Completed:**
+- [x] thing that is done
+- [x] another thing done
+**In flight:** Creating `path/to/file.tsx` — skeleton committed, TODOs are ground truth
+**Unverified:**
+- [ ] thing not yet smoke tested
+**Next:** Single specific action for the incoming instance
+```
+
+### Rules
+
+- Write `IN PROGRESS` + task description **before** starting any large task.
+- Write `DONE` **after** completing and verifying.
+- If OOT hits between those two writes, the skeleton commit is the fallback — it must exist before implementation begins.
+- Incoming instance reads this block at SSU step 6 and states current state back before acting.
+
+### OOT Recovery Matrix
+
+| What exists | What it means | Incoming action |
+|---|---|---|
+| PR shows `IN PROGRESS`, no skeleton commit | Task not started | Begin from scratch |
+| PR shows `IN PROGRESS`, skeleton exists | OOT mid-implementation | Read skeleton TODOs, continue |
+| Skeleton has no remaining TODOs, no `DONE` on PR | OOT post-implementation | Verify output, update PR to `DONE` |
+| PR shows `DONE` | Clean handoff | Proceed to next task |
 
 ---
 
