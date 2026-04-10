@@ -1,11 +1,28 @@
 # CLAUDE.md — teamenjoyVD Portal
-> Last updated: 2026-04-10 — v2.2.0. Latest stable commit: 044499e.
+> Last updated: 2026-04-10 — v2.3.0. Latest stable commit: 044499e.
 > Architecture docs: `docs/architecture/`. Reference tables: `docs/ai/LOOKUP.md`. Context: `docs/ai/CONTEXT.md`.
 > **Neither CONTEXT.md nor LOOKUP.md is read at session start or proactively. Read only sections relevant to the current ticket during GATHER (section map in CONTEXT.md header).**
 
 ---
 
-## 0. Commands
+## 0. Session Constants
+
+Hardcoded. Never ask the user to confirm these.
+
+| Constant | Value |
+|---|---|
+| GitHub org/repo | `teamenjoyvd/tevd-portal` |
+| Default branch | `main` |
+| Airtable base | `app1n7KYX8i8xSiB7` |
+| Airtable issues table | `tblUq45Wo3xngSf3w` |
+| Supabase project | `ynykjpnetfwqzdnsgkkg` |
+| Vercel team | `teamenjoyvd` |
+| Vercel project | `prj_HFZJZg2vkLtpX8XvjJlo3mDkSCyn` |
+| Production URL | `https://tevd-portal.vercel.app` |
+
+---
+
+## 0b. Commands
 
 | Command | What it does |
 |---|---|
@@ -47,7 +64,7 @@ If any ❌ — stop.
 3. Update `docs/ai/LOOKUP.md` — schema changes, new env vars, new API routes.
 4. Update `docs/architecture/` — if session introduced a new flow, external system, or architectural decision.
 5. Update Gotchas (§5) if new non-obvious decisions were made this session.
-6. Update the active PR `## Session State` block to reflect current state (see §3 Session Handoff Protocol).
+6. Update the active PR `## Session State` block to reflect current state (see §3a Session Handoff Protocol).
 7. Verify latest commit is pushed and Vercel deployment is READY.
 
 ---
@@ -82,6 +99,7 @@ Violation = immediate stop.
 - **NEVER write `Status=Done` before the commit link exists.**
 - **NEVER proceed past CLAIM if `Blocked By` is non-empty** without explicit acknowledgment.
 - **NEVER mark Done on static analysis alone.** Verify Vercel PR preview is READY AND CI passes.
+- **NEVER ask the user to confirm session constants** (repo, branch, project IDs). They are hardcoded in §0.
 - **390px Mobile-First:** Every new UI surface must render correctly at 390px.
 - **RLS policies MUST use Pattern A helpers** (`is_admin()`, `get_my_role()`, `get_my_profile_id()`, `get_my_clerk_id()`). Never raw `auth.jwt()`. See ADR-011.
 - **Component co-location:** New components scoped to a single route live in `app/[route]/components/`. Promote to `/components` only when used by 2+ unrelated routes. Exempt: `components/layout`, `components/bento`, `components/ui`. See ADR-012.
