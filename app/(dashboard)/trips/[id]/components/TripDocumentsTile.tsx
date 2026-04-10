@@ -34,7 +34,7 @@ function ImageIcon() {
 }
 
 export function TripDocumentsTile({ tripId }: { tripId: string }) {
-  const { data: attachments, isLoading } = useQuery<Attachment[]>({
+  const { data: attachments, isLoading, isError } = useQuery<Attachment[]>({
     queryKey: ['trip-attachments', tripId],
     queryFn: () =>
       fetch(`/api/trips/${tripId}/attachments`).then(async r => {
@@ -43,7 +43,30 @@ export function TripDocumentsTile({ tripId }: { tripId: string }) {
       }),
   })
 
-  if (isLoading || !attachments || attachments.length === 0) return null
+  if (isLoading) return null
+
+  if (isError) {
+    return (
+      <div
+        className="rounded-2xl overflow-hidden"
+        style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}
+      >
+        <div className="px-6 py-5">
+          <p
+            className="text-xs font-semibold tracking-widest uppercase mb-2"
+            style={{ color: 'var(--text-secondary)' }}
+          >
+            Trip Documents
+          </p>
+          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+            Documents could not be loaded.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!attachments || attachments.length === 0) return null
 
   return (
     <div
