@@ -5,15 +5,15 @@ import { randomBytes } from 'crypto'
 import { headers } from 'next/headers'
 import * as React from 'react'
 import { createServiceClient } from '@/lib/supabase/service'
-import { sendEmail } from '@/lib/email/send'
+import { sendTransactionalEmail } from '@/lib/email/send'
 import { renderEmailTemplate } from '@/lib/email/templates/render'
 import { GuestEventMagicLinkEmail } from '@/lib/email/templates/GuestEventMagicLinkEmail'
 
-// ── Types ──────────────────────────────────────────────────────────────────────
+// -- Types --------------------------------------------------------------------
 
 export type RegisterGuestState = { success: boolean; error?: string }
 
-// ── Schema ─────────────────────────────────────────────────────────────────────
+// -- Schema -------------------------------------------------------------------
 
 const schema = z.object({
   name:    z.string().min(2).max(100).trim(),
@@ -21,7 +21,7 @@ const schema = z.object({
   eventId: z.string().uuid(),
 })
 
-// ── Action ─────────────────────────────────────────────────────────────────────
+// -- Action -------------------------------------------------------------------
 
 export async function registerGuest(
   _prev: RegisterGuestState,
@@ -74,13 +74,15 @@ export async function registerGuest(
     }),
   )
 
-  await sendEmail({
+  const result = await sendTransactionalEmail({
     to:       email,
     subject:  `Your link to join: ${event.title}`,
     html,
     template: 'guest_event_magic_link',
     meta:     { eventId, name },
   })
+
+  if (!result.sent) return { success: false, error: 'Could not send access link. Please try again.' }
 
   return { success: true }
 }
