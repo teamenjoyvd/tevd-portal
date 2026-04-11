@@ -12,7 +12,7 @@ export default function HeroTile() {
       */}
       <div
         className="absolute inset-y-0 right-0 pointer-events-none select-none"
-        style={{ width: '65%' }}
+        style={{ width: '45%' }}
         aria-hidden
       >
         <Image
@@ -30,13 +30,13 @@ export default function HeroTile() {
         <div style={{ maxWidth: '58%' }}>
           <h1
             className="font-serif leading-tight mb-2 text-[22px] md:text-[34px]"
-            style={{ fontWeight: 900, color: '#f2efe8', letterSpacing: '-0.01em' }}
+            style={{ fontWeight: 900, color: '#F0EDE6', letterSpacing: '-0.01em' }}
           >
             TEAMENJOYVD
           </h1>
           <p
             className="font-sans text-[12px]"
-            style={{ fontWeight: 300, color: 'rgba(242,239,232,0.52)', lineHeight: 1.5 }}
+            style={{ fontWeight: 400, color: 'rgba(242,239,232,0.52)', lineHeight: 1.5 }}
           >
             Entrepreneurs, dreamers, enjoying life.
           </p>
