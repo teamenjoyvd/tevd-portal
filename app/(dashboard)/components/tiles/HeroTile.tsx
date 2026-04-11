@@ -1,20 +1,42 @@
+import Image from 'next/image'
+
 export default function HeroTile() {
   return (
     <>
+      {/*
+        Founders image — occupies right 45% of the card, full height, bleeds off right edge.
+        `fill` requires a positioned ancestor with explicit dimensions — that's the BentoCard
+        wrapper which has `relative overflow-hidden` and a defined grid row height (desktop: 2×row,
+        mobile: minHeight 200px). The inner div is absolutely positioned to cover only the right
+        portion so the image doesn't fight with the text on the left.
+      */}
       <div
-        className="absolute inset-0"
-        style={{ background: 'radial-gradient(ellipse at 40% 50%, rgba(188,71,73,0.18) 0%, transparent 70%)' }}
-      />
+        className="absolute inset-y-0 right-0 pointer-events-none select-none"
+        style={{ width: '45%' }}
+        aria-hidden
+      >
+        <Image
+          src="/founders-hero.png"
+          alt=""
+          fill
+          sizes="(max-width: 768px) 45vw, 30vw"
+          className="object-contain object-right-bottom"
+          priority
+        />
+      </div>
+
+      {/* Text block — bottom-left, hard-capped at 58% width so it never overlaps the image */}
       <div className="absolute inset-0 flex flex-col justify-end px-8 py-10 z-10">
-        <h1
-          className="font-display text-4xl font-semibold leading-tight mb-3"
-          style={{ color: 'var(--brand-parchment)' }}
-        >
-          TEAMENJOYVD
-        </h1>
-        <p className="font-body text-base max-w-xs" style={{ color: 'rgba(242,239,232,0.65)' }}>
-          Entrepreneurs, dreamers, enjoying life.
-        </p>
+        <div className="max-w-[58%]">
+          <h1
+            className="font-serif leading-tight mb-2 text-[22px] md:text-[34px] font-black text-brand-parchment tracking-[-0.01em]"
+          >
+            TEAMENJOYVD
+          </h1>
+          <p className="font-sans text-xs font-light text-brand-parchment/[0.52] leading-normal">
+            Entrepreneurs, dreamers, enjoying life.
+          </p>
+        </div>
       </div>
     </>
   )
