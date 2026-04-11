@@ -12,7 +12,7 @@ export default function HeroTile() {
       */}
       <div
         className="absolute inset-y-0 right-0 pointer-events-none select-none"
-        style={{ width: '45%' }}
+        style={{ width: '65%' }}
         aria-hidden
       >
         <Image
@@ -27,17 +27,13 @@ export default function HeroTile() {
 
       {/* Text block — bottom-left, hard-capped at 58% width so it never overlaps the image */}
       <div className="absolute inset-0 flex flex-col justify-end px-8 py-10 z-10">
-        <div style={{ maxWidth: '58%' }}>
+        <div className="max-w-[58%]">
           <h1
-            className="font-serif leading-tight mb-2 text-[22px] md:text-[34px]"
-            style={{ fontWeight: 900, color: '#F0EDE6', letterSpacing: '-0.01em' }}
+            className="font-serif leading-tight mb-2 text-[22px] md:text-[34px] font-black text-brand-parchment tracking-[-0.01em]"
           >
             TEAMENJOYVD
           </h1>
-          <p
-            className="font-sans text-[12px]"
-            style={{ fontWeight: 400, color: 'rgba(242,239,232,0.52)', lineHeight: 1.5 }}
-          >
+          <p className="font-sans text-xs font-light text-brand-parchment/[0.52] leading-normal">
             Entrepreneurs, dreamers, enjoying life.
           </p>
         </div>
