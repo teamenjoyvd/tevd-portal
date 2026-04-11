@@ -33,9 +33,9 @@ export function PaymentForm({ tripId, onSuccess, onCancel }: Props) {
         const fd = new FormData()
         fd.append('file', file)
         const uploadRes = await fetch('/api/profile/payments/upload', { method: 'POST', body: fd })
-        if (!uploadRes.ok) throw new Error((await uploadRes.json()).error ?? 'Upload failed')
-        const { url } = await uploadRes.json()
-        proof_url = url
+        const uploadBody = await uploadRes.json().catch(() => ({}))
+        if (!uploadRes.ok) throw new Error(uploadBody.error ?? 'Upload failed')
+        proof_url = uploadBody.url
       }
 
       const res = await fetch('/api/payments', {
@@ -51,8 +51,9 @@ export function PaymentForm({ tripId, onSuccess, onCancel }: Props) {
           note: note || null,
         }),
       })
-      if (!res.ok) throw new Error((await res.json()).error ?? 'Submission failed')
-      return res.json()
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(body.error ?? 'Submission failed')
+      return body
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['trip-payments', tripId] })
@@ -61,7 +62,8 @@ export function PaymentForm({ tripId, onSuccess, onCancel }: Props) {
     },
   })
 
-  const canSubmit = !!amount && !!date && !submitMutation.isPending
+  const parsedAmount = parseFloat(amount)
+  const canSubmit = !isNaN(parsedAmount) && parsedAmount > 0 && !!date && !submitMutation.isPending
 
   const inputStyle = {
     backgroundColor: 'var(--bg-global)',
