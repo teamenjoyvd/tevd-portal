@@ -119,7 +119,7 @@ export default function EventPopup({
     const shareUrl = `${window.location.origin}/events/${eventId}/register`
     const shareData = { title: event?.title ?? '', url: shareUrl }
     if (typeof navigator.share === 'function' && navigator.canShare?.(shareData)) {
-      try { await navigator.share(shareData); return } catch { /* cancelled */ }
+      try { await navigator.share(shareData); return } catch (err) { if (err instanceof Error && err.name === 'AbortError') return }
     }
     await navigator.clipboard.writeText(shareUrl)
     setShareCopied(true)
@@ -142,7 +142,7 @@ export default function EventPopup({
             <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
               <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
                 style={{ backgroundColor: event?.category === 'N21' ? 'var(--brand-forest)' : 'var(--brand-crimson)', color: 'rgba(255,255,255,0.9)' }}>
-                {event?.category ?? '...'}
+                {event?.category ?? '…'}
               </span>
               {eventTypeStyle && (
                 <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
@@ -155,14 +155,14 @@ export default function EventPopup({
               )}
             </div>
             {asDialogTitle
-              ? <DialogTitle className={titleClass} style={titleStyle}>{isLoading ? '...' : event?.title}</DialogTitle>
-              : <p className={titleClass} style={titleStyle}>{isLoading ? '...' : event?.title}</p>
+              ? <DialogTitle className={titleClass} style={titleStyle}>{isLoading ? '…' : event?.title}</DialogTitle>
+              : <p className={titleClass} style={titleStyle}>{isLoading ? '…' : event?.title}</p>
             }
           </div>
           <button onClick={onClose}
             className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-black/5 transition-colors flex-shrink-0 mt-0.5"
             style={{ color: 'var(--text-secondary)', fontSize: 14 }}>
-            x
+            ✕
           </button>
         </div>
       </div>
@@ -197,7 +197,7 @@ export default function EventPopup({
                   <circle cx="12" cy="12" r="10"/>
                   <polyline points="12 6 12 12 16 14"/>
                 </svg>
-                <span>{formatTime(event.start_time)} - {formatTime(event.end_time)}</span>
+                <span>{formatTime(event.start_time)} – {formatTime(event.end_time)}</span>
               </div>
               {event.meeting_url && (
                 <div className="flex items-center gap-2 text-xs mt-1">
@@ -250,10 +250,10 @@ export default function EventPopup({
                                 <>
                                   <button onClick={() => adminApproveMutation.mutate({ requestId: r.id, status: 'approved' })}
                                     className="text-[10px] px-2 py-0.5 rounded-full font-semibold text-white"
-                                    style={{ backgroundColor: 'var(--brand-teal)' }}>ok</button>
+                                    style={{ backgroundColor: 'var(--brand-teal)' }}>✓</button>
                                   <button onClick={() => adminApproveMutation.mutate({ requestId: r.id, status: 'denied' })}
                                     className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-black/10"
-                                    style={{ color: 'var(--text-secondary)' }}>x</button>
+                                    style={{ color: 'var(--text-secondary)' }}>✕</button>
                                 </>
                               )}
                             </div>
@@ -283,8 +283,8 @@ export default function EventPopup({
                             border: activeStyle ? `1px solid ${activeStyle.color}33` : '1px solid transparent',
                           }}>
                           {role}
-                          {isActive && myRequest!.status === 'pending' && <span className="opacity-60">x</span>}
-                          {isActive && myRequest!.status === 'approved' && <span>ok</span>}
+                          {isActive && myRequest!.status === 'pending' && <span className="opacity-60">✕</span>}
+                          {isActive && myRequest!.status === 'approved' && <span>✓</span>}
                         </button>
                       )
                     })}

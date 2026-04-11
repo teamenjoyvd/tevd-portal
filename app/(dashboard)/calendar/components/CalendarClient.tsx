@@ -315,8 +315,8 @@ function AgendaView({
                         </span>
                       </div>
                       <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                        {formatTime(ev.start_time)} - {formatTime(ev.end_time)}
-                        {' . '}
+                        {formatTime(ev.start_time)} – {formatTime(ev.end_time)}
+                        {' · '}
                         <span style={{ color: c.bg }}>{ev.category}</span>
                       </p>
                       {ev.description && (
