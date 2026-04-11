@@ -6,8 +6,6 @@ import { useLanguage } from '@/lib/hooks/useLanguage'
 import { DAYS_I18N, MONTHS_I18N } from '@/lib/i18n/translations'
 import EventPopup from '@/app/(dashboard)/calendar/components/EventPopup'
 
-// ── Types ──────────────────────────────────────────────────────────────────
-
 type CalendarEvent = {
   id: string
   title: string
@@ -31,8 +29,6 @@ type Props = {
   isAuthenticated: boolean
 }
 
-// ── Constants ────────────────────────────────────────────────────────
-
 const HOURS  = Array.from({ length: 24 }, (_, i) => i)
 const HOUR_HEIGHT = 60
 
@@ -40,8 +36,6 @@ const CATEGORY_COLOR: Record<string, { bg: string; text: string }> = {
   N21:      { bg: 'var(--forest)',  text: 'rgba(255,255,255,0.95)' },
   Personal: { bg: 'var(--sienna)', text: 'rgba(255,255,255,0.95)' },
 }
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
 
 function isoWeek(date: Date): number {
   const d = new Date(date)
@@ -92,8 +86,6 @@ function eventDurationMinutes(start: string, end: string): number {
   return Math.max(30, (new Date(end).getTime() - new Date(start).getTime()) / 60000)
 }
 
-// ── Event pill ────────────────────────────────────────────────────────────────────────
-
 function EventPill({
   event, onClick, compact = false,
 }: {
@@ -127,8 +119,6 @@ function EventPill({
     </button>
   )
 }
-
-// ── Month View ────────────────────────────────────────────────────────────────────────
 
 function MonthView({
   current, events, onEventClick, onDayClick,
@@ -220,8 +210,6 @@ function MonthView({
     </div>
   )
 }
-
-// ── Agenda View ────────────────────────────────────────────────────────────────────────────
 
 function AgendaView({
   events, onEventClick, isLoading, highlightId,
@@ -327,8 +315,8 @@ function AgendaView({
                         </span>
                       </div>
                       <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                        {formatTime(ev.start_time)} – {formatTime(ev.end_time)}
-                        {' · '}
+                        {formatTime(ev.start_time)} - {formatTime(ev.end_time)}
+                        {' . '}
                         <span style={{ color: c.bg }}>{ev.category}</span>
                       </p>
                       {ev.description && (
@@ -349,8 +337,6 @@ function AgendaView({
   )
 }
 
-// ── Main ─────────────────────────────────────────────────────────────────────────────
-
 export default function CalendarClient({
   initialEvents,
   initialMonth,
@@ -367,7 +353,9 @@ export default function CalendarClient({
     const [y, m] = initialMonth.split('-').map(Number)
     return new Date(y, m - 1, 1)
   })
-  const [selectedEventId, setSelectedEventId]     = useState<string | null>(initialEventId)
+  // Deep-link: only highlight the event in the agenda — never auto-open the popup
+  // (no anchor element exists at mount, so the popover would anchor to 0,0 top-left)
+  const [selectedEventId, setSelectedEventId]     = useState<string | null>(null)
   const [anchorEl, setAnchorEl]                   = useState<HTMLElement | null>(null)
   const [showN21, setShowN21]                     = useState(true)
   const [showPersonal, setShowPersonal]           = useState(true)
@@ -438,11 +426,9 @@ export default function CalendarClient({
   return (
     <div className="w-full" style={{ backgroundColor: 'var(--bg-global)' }}>
 
-      {/* Mobile: top-toolbar layout */}
       <div className="md:hidden">
         <div className="flex-shrink-0 border-b" style={{ backgroundColor: 'var(--bg-global)', borderColor: 'var(--border-default)' }}>
           <div className="max-w-[1024px] mx-auto px-4">
-            {/* Row 1: period nav */}
             <div className="flex items-center gap-2 py-2.5">
               <button onClick={() => navigate(-1)}
                 className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5"
@@ -469,7 +455,6 @@ export default function CalendarClient({
                 {periodLabel}
               </p>
             </div>
-            {/* Row 2: view switcher */}
             <div className="flex items-center justify-between gap-2 pb-2">
               <div className="flex gap-0.5 p-0.5 rounded-lg" style={{ backgroundColor: 'rgba(0,0,0,0.05)' }}>
                 {views.map(v => (
@@ -485,7 +470,6 @@ export default function CalendarClient({
                 ))}
               </div>
             </div>
-            {/* Row 3: category + format filter chips */}
             <div className="flex items-center gap-1.5 pb-2.5 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
               <button
                 onClick={() => setShowN21(v => !v)}
@@ -540,7 +524,6 @@ export default function CalendarClient({
         </div>
       </div>
 
-      {/* Desktop: col-2 nav sidebar + col-10 calendar */}
       <div className="hidden md:block py-8 pb-16">
         <div className="max-w-[1440px] mx-auto px-4 md:px-8 xl:px-12">
           <div
@@ -551,12 +534,10 @@ export default function CalendarClient({
               alignItems: 'start',
             }}
           >
-            {/* col-2: left nav sidebar */}
             <div
               style={{ gridColumn: 'span 2', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}
               className="rounded-2xl p-4 flex flex-col gap-4 sticky top-24"
             >
-              {/* Period nav */}
               <div>
                 <p className="font-display text-base font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
                   {periodLabel}
@@ -586,7 +567,6 @@ export default function CalendarClient({
                 </button>
               </div>
 
-              {/* View switcher */}
               <div>
                 <p className="text-[10px] font-semibold tracking-widest uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>View</p>
                 <div className="flex flex-col gap-0.5">
@@ -604,7 +584,6 @@ export default function CalendarClient({
                 </div>
               </div>
 
-              {/* Category filters */}
               <div>
                 <p className="text-[10px] font-semibold tracking-widest uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>Category</p>
                 <div className="flex flex-col gap-1.5">
@@ -633,7 +612,6 @@ export default function CalendarClient({
                 </div>
               </div>
 
-              {/* Event type filters */}
               <div>
                 <p className="text-[10px] font-semibold tracking-widest uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>Format</p>
                 <div className="flex flex-col gap-1">
@@ -651,7 +629,6 @@ export default function CalendarClient({
               </div>
             </div>
 
-            {/* col-10: calendar */}
             <div
               style={{ gridColumn: 'span 10', border: '1px solid var(--border-default)', backgroundColor: 'var(--bg-global)' }}
               className="rounded-2xl overflow-hidden"
@@ -677,7 +654,6 @@ export default function CalendarClient({
         </div>
       </div>
 
-      {/* Floating event popover */}
       {selectedEventId && (
         <EventPopup
           eventId={selectedEventId}

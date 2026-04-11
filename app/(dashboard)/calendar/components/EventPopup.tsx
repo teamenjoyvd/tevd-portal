@@ -1,7 +1,7 @@
 'use client'
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useMemo  } from 'react'
+import { useMemo, useState } from 'react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { formatTime, formatLongDate } from '@/lib/format'
 import {
@@ -73,6 +73,7 @@ export default function EventPopup({
 }: Props) {
   const qc = useQueryClient()
   const { t } = useLanguage()
+  const [shareCopied, setShareCopied] = useState(false)
   const isBottomSheet = (anchorEl !== null) && (typeof window !== 'undefined') && window.innerWidth < 768
   const anchorElRef = useMemo(() => ({
     current: anchorEl ?? { getBoundingClientRect: () => new DOMRect(0, 0, 0, 0) },
@@ -114,13 +115,23 @@ export default function EventPopup({
     onSuccess: () => qc.invalidateQueries({ queryKey: ['event', eventId] }),
   })
 
+  async function handleShare() {
+    const shareUrl = `${window.location.origin}/events/${eventId}/register`
+    const shareData = { title: event?.title ?? '', url: shareUrl }
+    if (typeof navigator.share === 'function' && navigator.canShare?.(shareData)) {
+      try { await navigator.share(shareData); return } catch { /* cancelled */ }
+    }
+    await navigator.clipboard.writeText(shareUrl)
+    setShareCopied(true)
+    setTimeout(() => setShareCopied(false), 2000)
+  }
+
   const eventTypeStyle = event?.event_type ? EVENT_TYPE_STYLES[event.event_type] : null
   const visibleRoleRequests = isAdmin
     ? (event?.role_requests ?? [])
     : (event?.role_requests ?? []).filter(r => r.profile?.id === userProfileId)
   const isMutating = requestMutation.isPending || cancelMutation.isPending
 
-  // Header — DialogTitle inside Dialog (mobile), plain div on desktop (Popover has no Dialog context)
   function Header({ asDialogTitle }: { asDialogTitle: boolean }) {
     const titleClass = 'font-display text-base font-semibold leading-snug'
     const titleStyle = { color: 'var(--text-primary)' }
@@ -131,7 +142,7 @@ export default function EventPopup({
             <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
               <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
                 style={{ backgroundColor: event?.category === 'N21' ? 'var(--brand-forest)' : 'var(--brand-crimson)', color: 'rgba(255,255,255,0.9)' }}>
-                {event?.category ?? '…'}
+                {event?.category ?? '...'}
               </span>
               {eventTypeStyle && (
                 <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
@@ -144,21 +155,20 @@ export default function EventPopup({
               )}
             </div>
             {asDialogTitle
-              ? <DialogTitle className={titleClass} style={titleStyle}>{isLoading ? '…' : event?.title}</DialogTitle>
-              : <p className={titleClass} style={titleStyle}>{isLoading ? '…' : event?.title}</p>
+              ? <DialogTitle className={titleClass} style={titleStyle}>{isLoading ? '...' : event?.title}</DialogTitle>
+              : <p className={titleClass} style={titleStyle}>{isLoading ? '...' : event?.title}</p>
             }
           </div>
           <button onClick={onClose}
             className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-black/5 transition-colors flex-shrink-0 mt-0.5"
             style={{ color: 'var(--text-secondary)', fontSize: 14 }}>
-            ✕
+            x
           </button>
         </div>
       </div>
     )
   }
 
-  // Body — DialogDescription inside Dialog (mobile), plain div on desktop
   function Body({ asDialogDescription }: { asDialogDescription: boolean }) {
     const inner = (
       <div className="overflow-y-auto" style={isBottomSheet ? undefined : { maxHeight: 360 }}>
@@ -187,7 +197,7 @@ export default function EventPopup({
                   <circle cx="12" cy="12" r="10"/>
                   <polyline points="12 6 12 12 16 14"/>
                 </svg>
-                <span>{formatTime(event.start_time)} – {formatTime(event.end_time)}</span>
+                <span>{formatTime(event.start_time)} - {formatTime(event.end_time)}</span>
               </div>
               {event.meeting_url && (
                 <div className="flex items-center gap-2 text-xs mt-1">
@@ -214,7 +224,7 @@ export default function EventPopup({
               </div>
             )}
             {!isGuest && (
-              <div className="px-4 py-3">
+              <div className="px-4 py-3 border-b border-black/5">
                 <p className="text-[10px] font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
                   {t('event.roles')}
                 </p>
@@ -240,10 +250,10 @@ export default function EventPopup({
                                 <>
                                   <button onClick={() => adminApproveMutation.mutate({ requestId: r.id, status: 'approved' })}
                                     className="text-[10px] px-2 py-0.5 rounded-full font-semibold text-white"
-                                    style={{ backgroundColor: 'var(--brand-teal)' }}>✓</button>
+                                    style={{ backgroundColor: 'var(--brand-teal)' }}>ok</button>
                                   <button onClick={() => adminApproveMutation.mutate({ requestId: r.id, status: 'denied' })}
                                     className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-black/10"
-                                    style={{ color: 'var(--text-secondary)' }}>✕</button>
+                                    style={{ color: 'var(--text-secondary)' }}>x</button>
                                 </>
                               )}
                             </div>
@@ -273,8 +283,8 @@ export default function EventPopup({
                             border: activeStyle ? `1px solid ${activeStyle.color}33` : '1px solid transparent',
                           }}>
                           {role}
-                          {isActive && myRequest!.status === 'pending' && <span className="opacity-60">✕</span>}
-                          {isActive && myRequest!.status === 'approved' && <span>✓</span>}
+                          {isActive && myRequest!.status === 'pending' && <span className="opacity-60">x</span>}
+                          {isActive && myRequest!.status === 'approved' && <span>ok</span>}
                         </button>
                       )
                     })}
@@ -282,6 +292,29 @@ export default function EventPopup({
                 )}
               </div>
             )}
+            {/* Share event */}
+            <div className="px-4 py-3">
+              <button
+                onClick={handleShare}
+                className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-semibold transition-opacity hover:opacity-75"
+                style={{
+                  backgroundColor: 'var(--bg-global)',
+                  border: '1px solid var(--border-default)',
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer',
+                }}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="18" cy="5" r="3"/>
+                  <circle cx="6" cy="12" r="3"/>
+                  <circle cx="18" cy="19" r="3"/>
+                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+                  <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                </svg>
+                {shareCopied ? 'Link copied!' : 'Share event'}
+              </button>
+            </div>
           </>
         ) : null}
       </div>
@@ -296,7 +329,6 @@ export default function EventPopup({
   return (
     <>
       {isBottomSheet ? (
-        // Mobile: dim overlay + bottom-sheet Dialog
         <Dialog open onOpenChange={open => { if (!open) onClose() }}>
           <DialogOverlay style={{ backgroundColor: 'rgba(0,0,0,0.4)' }} />
           <DialogContent
@@ -323,8 +355,6 @@ export default function EventPopup({
           </DialogContent>
         </Dialog>
       ) : (
-        // Desktop: Popover anchored to the live trigger element
-        // DialogTitle/DialogDescription must NOT be used outside a Dialog context
         <Popover open onOpenChange={open => { if (!open) onClose() }}>
           <PopoverAnchor virtualRef={anchorElRef} />
           <PopoverContent
