@@ -4,7 +4,7 @@ export default function HeroTile() {
   return (
     <>
       {/*
-        Founders image — occupies right 65% of the card, full height, bleeds off right edge.
+        Founders image — occupies right 45% of the card, full height, bleeds off right edge.
         `fill` requires a positioned ancestor with explicit dimensions — that's the BentoCard
         wrapper which has `relative overflow-hidden` and a defined grid row height (desktop: 2×row,
         mobile: minHeight 200px). The inner div is absolutely positioned to cover only the right
@@ -12,14 +12,14 @@ export default function HeroTile() {
       */}
       <div
         className="absolute inset-y-0 right-0 pointer-events-none select-none"
-        style={{ width: '65%' }}
+        style={{ width: '45%' }}
         aria-hidden
       >
         <Image
           src="/founders-hero.png"
           alt=""
           fill
-          sizes="(max-width: 768px) 65vw, 40vw"
+          sizes="(max-width: 768px) 45vw, 30vw"
           className="object-contain object-right-bottom"
           priority
         />
