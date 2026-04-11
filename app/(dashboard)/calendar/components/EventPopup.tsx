@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useMemo  } from 'react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
@@ -73,6 +74,7 @@ export default function EventPopup({
 }: Props) {
   const qc = useQueryClient()
   const { t } = useLanguage()
+  const [shareCopied, setShareCopied] = useState(false)
   const isBottomSheet = (anchorEl !== null) && (typeof window !== 'undefined') && window.innerWidth < 768
   const anchorElRef = useMemo(() => ({
     current: anchorEl ?? { getBoundingClientRect: () => new DOMRect(0, 0, 0, 0) },
@@ -113,6 +115,17 @@ export default function EventPopup({
       }).then(r => r.json()),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['event', eventId] }),
   })
+
+  async function handleShare() {
+    const shareUrl = `${window.location.origin}/events/${eventId}/register`
+    const shareData = { title: event?.title ?? '', text: `Register for ${event?.title ?? ''}`, url: shareUrl }
+    if (typeof navigator.share === 'function' && navigator.canShare?.(shareData)) {
+      try { await navigator.share(shareData); return } catch { /* cancelled */ }
+    }
+    await navigator.clipboard.writeText(shareUrl)
+    setShareCopied(true)
+    setTimeout(() => setShareCopied(false), 2000)
+  }
 
   const eventTypeStyle = event?.event_type ? EVENT_TYPE_STYLES[event.event_type] : null
   const visibleRoleRequests = isAdmin
@@ -207,6 +220,22 @@ export default function EventPopup({
                   </a>
                 </div>
               )}
+              {/* Share button */}
+              <button
+                onClick={handleShare}
+                className="mt-3 flex items-center gap-1.5 text-xs font-medium hover:opacity-70 transition-opacity"
+                style={{ color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="18" cy="5" r="3"/>
+                  <circle cx="6" cy="12" r="3"/>
+                  <circle cx="18" cy="19" r="3"/>
+                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+                  <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                </svg>
+                {shareCopied ? 'Link copied!' : 'Share event'}
+              </button>
             </div>
             {event.description && event.description !== event.meeting_url && (
               <div className="px-4 py-3 border-b border-black/5">

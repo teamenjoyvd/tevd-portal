@@ -83,21 +83,7 @@ export function JoinActions({
   startTime,
   endTime,
 }: Props) {
-  const [copied, setCopied]   = useState(false)
   const [calOpen, setCalOpen] = useState(false)
-
-  // -- Share -------------------------------------------------------------------
-  async function handleShare() {
-    // Share the public registration page -- not the personal token URL.
-    const shareUrl = `${window.location.origin}/events/${eventId}/register`
-    const shareData = { title: eventTitle, text: `Register for ${eventTitle}`, url: shareUrl }
-    if (typeof navigator.share === 'function' && navigator.canShare?.(shareData)) {
-      try { await navigator.share(shareData); return } catch { /* cancelled or failed */ }
-    }
-    await navigator.clipboard.writeText(shareUrl)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
 
   // -- .ics download -----------------------------------------------------------
   function downloadIcs() {
@@ -202,20 +188,6 @@ export function JoinActions({
           )}
         </div>
       )}
-
-      {/* -- Share event ------------------------------------------------------- */}
-      <button
-        onClick={handleShare}
-        className="w-full rounded-xl py-2.5 text-sm font-medium hover:opacity-75 transition-opacity"
-        style={{
-          border: '1px solid var(--border-default)',
-          color: 'var(--text-primary)',
-          backgroundColor: 'var(--bg-global)',
-          cursor: 'pointer',
-        }}
-      >
-        {copied ? 'Link copied!' : 'Share event'}
-      </button>
     </div>
   )
 }
