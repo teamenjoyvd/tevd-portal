@@ -120,7 +120,7 @@ export default function EventPopup({
     const shareUrl = `${window.location.origin}/events/${eventId}/register`
     const shareData = { title: event?.title ?? '', text: `Register for ${event?.title ?? ''}`, url: shareUrl }
     if (typeof navigator.share === 'function' && navigator.canShare?.(shareData)) {
-      try { await navigator.share(shareData); return } catch (err) { if (err instanceof Error && err.name === 'AbortError') return }
+      try { await navigator.share(shareData); return } catch { /* cancelled */ }
     }
     await navigator.clipboard.writeText(shareUrl)
     setShareCopied(true)
