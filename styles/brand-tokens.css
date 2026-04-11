@@ -61,7 +61,7 @@ html { font-size: calc(var(--font-scale) * 16px); }
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
   gap: var(--bento-gap);
-  grid-auto-rows: minmax(120px, auto);
+  grid-auto-rows: minmax(160px, auto);
   grid-auto-flow: dense;
 }
 
