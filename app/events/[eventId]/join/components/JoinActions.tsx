@@ -14,7 +14,7 @@ type Props = {
 
 /** Convert ISO datetime string -> compact GCal format: 20260411T100000Z */
 function toGcalDate(iso: string): string {
-  return iso.replace(/[-:]/g, '').replace(/\.\d{3}/, '')
+  return iso.replace(/\.\d+/, '').replace(/[-:]/g, '')
 }
 
 function buildGoogleCalUrl(
@@ -57,6 +57,7 @@ function buildIcsContent(
   end: string,
   location: string | null,
 ): string {
+  const escape = (str: string) => str.replace(/[\\,;]/g, '\\$&').replace(/\r?\n/g, '\\n')
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
@@ -64,9 +65,9 @@ function buildIcsContent(
     'BEGIN:VEVENT',
     `DTSTART:${toGcalDate(start)}`,
     `DTEND:${toGcalDate(end)}`,
-    `SUMMARY:${title}`,
-    location ? `LOCATION:${location}` : null,
-    location ? `DESCRIPTION:Join here: ${location}` : null,
+    `SUMMARY:${escape(title)}`,
+    location ? `LOCATION:${escape(location)}` : null,
+    location ? `DESCRIPTION:Join here: ${escape(location)}` : null,
     'END:VEVENT',
     'END:VCALENDAR',
   ].filter((l): l is string => l !== null)
@@ -105,7 +106,7 @@ export function JoinActions({
     const url  = URL.createObjectURL(blob)
     const a    = document.createElement('a')
     a.href     = url
-    a.download = `${eventTitle.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.ics`
+    a.download = `${eventTitle.replace(/[^a-z0-9]+/gi, '-').toLowerCase() || 'event'}.ics`
     a.click()
     URL.revokeObjectURL(url)
   }
@@ -141,64 +142,66 @@ export function JoinActions({
       <hr style={{ borderColor: 'var(--border-default)' }} />
 
       {/* -- Add to calendar --------------------------------------------------- */}
-      <div>
-        <button
-          onClick={() => setCalOpen(o => !o)}
-          className="w-full flex items-center justify-between text-sm font-medium py-1.5"
-          style={{ color: 'var(--text-primary)', background: 'none', border: 'none', cursor: 'pointer' }}
-        >
-          <span>Add to calendar</span>
-          <svg
-            style={{ transition: 'transform 0.2s', transform: calOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
-            width={16} height={16} fill="none" stroke="currentColor" viewBox="0 0 24 24"
+      {startTime && endTime && (
+        <div>
+          <button
+            onClick={() => setCalOpen(o => !o)}
+            className="w-full flex items-center justify-between text-sm font-medium py-1.5"
+            style={{ color: 'var(--text-primary)', background: 'none', border: 'none', cursor: 'pointer' }}
           >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
+            <span>Add to calendar</span>
+            <svg
+              style={{ transition: 'transform 0.2s', transform: calOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
+              width={16} height={16} fill="none" stroke="currentColor" viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
 
-        {calOpen && (
-          <div className="space-y-2 mt-2">
-            <a
-              href={buildGoogleCalUrl(eventTitle, startTime, endTime, meetingUrl)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 w-full rounded-xl px-4 py-2.5 text-sm font-medium hover:opacity-75 transition-opacity"
-              style={{
-                backgroundColor: 'var(--bg-global)',
-                border: '1px solid var(--border-default)',
-                color: 'var(--text-primary)',
-              }}
-            >
-              Google Calendar
-            </a>
-            <a
-              href={buildOutlookUrl(eventTitle, startTime, endTime, meetingUrl)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 w-full rounded-xl px-4 py-2.5 text-sm font-medium hover:opacity-75 transition-opacity"
-              style={{
-                backgroundColor: 'var(--bg-global)',
-                border: '1px solid var(--border-default)',
-                color: 'var(--text-primary)',
-              }}
-            >
-              Outlook
-            </a>
-            <button
-              onClick={downloadIcs}
-              className="flex items-center gap-2 w-full rounded-xl px-4 py-2.5 text-sm font-medium hover:opacity-75 transition-opacity text-left"
-              style={{
-                backgroundColor: 'var(--bg-global)',
-                border: '1px solid var(--border-default)',
-                color: 'var(--text-primary)',
-                cursor: 'pointer',
-              }}
-            >
-              Download .ics (Apple Calendar &amp; others)
-            </button>
-          </div>
-        )}
-      </div>
+          {calOpen && (
+            <div className="space-y-2 mt-2">
+              <a
+                href={buildGoogleCalUrl(eventTitle, startTime, endTime, meetingUrl)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 w-full rounded-xl px-4 py-2.5 text-sm font-medium hover:opacity-75 transition-opacity"
+                style={{
+                  backgroundColor: 'var(--bg-global)',
+                  border: '1px solid var(--border-default)',
+                  color: 'var(--text-primary)',
+                }}
+              >
+                Google Calendar
+              </a>
+              <a
+                href={buildOutlookUrl(eventTitle, startTime, endTime, meetingUrl)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 w-full rounded-xl px-4 py-2.5 text-sm font-medium hover:opacity-75 transition-opacity"
+                style={{
+                  backgroundColor: 'var(--bg-global)',
+                  border: '1px solid var(--border-default)',
+                  color: 'var(--text-primary)',
+                }}
+              >
+                Outlook
+              </a>
+              <button
+                onClick={downloadIcs}
+                className="flex items-center gap-2 w-full rounded-xl px-4 py-2.5 text-sm font-medium hover:opacity-75 transition-opacity text-left"
+                style={{
+                  backgroundColor: 'var(--bg-global)',
+                  border: '1px solid var(--border-default)',
+                  color: 'var(--text-primary)',
+                  cursor: 'pointer',
+                }}
+              >
+                Download .ics (Apple Calendar &amp; others)
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* -- Share event ------------------------------------------------------- */}
       <button
