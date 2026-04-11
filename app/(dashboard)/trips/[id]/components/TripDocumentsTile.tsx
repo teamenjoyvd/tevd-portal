@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 
 interface Attachment {
@@ -7,6 +8,11 @@ interface Attachment {
   file_url: string
   file_name: string
   file_type: 'pdf' | 'image'
+}
+
+interface ApiError {
+  status?: number
+  message: string
 }
 
 function PdfIcon() {
@@ -34,16 +40,53 @@ function ImageIcon() {
 }
 
 export function TripDocumentsTile({ tripId }: { tripId: string }) {
-  const { data: attachments, isLoading } = useQuery<Attachment[]>({
+  const [retrying, setRetrying] = useState(false)
+
+  const { data: attachments, isLoading, isError, error, refetch } = useQuery<Attachment[], ApiError>({
     queryKey: ['trip-attachments', tripId],
     queryFn: () =>
       fetch(`/api/trips/${tripId}/attachments`).then(async r => {
-        if (!r.ok) return []
+        if (!r.ok) {
+          const body = await r.json().catch(() => ({}))
+          const err: ApiError = { status: r.status, message: body.error ?? 'Failed' }
+          throw err
+        }
         return r.json()
       }),
+    retry: false,
   })
 
-  if (isLoading || !attachments || attachments.length === 0) return null
+  if (isLoading) return null
+
+  // 403 = no approved registration — expected, render nothing
+  if (isError && (error as ApiError)?.status === 403) return null
+
+  // 5xx or network error — show discreet retry, no alarming message
+  if (isError) {
+    return (
+      <div
+        className="rounded-2xl overflow-hidden"
+        style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}
+      >
+        <div className="px-6 py-4 flex items-center justify-between">
+          <p className="text-xs font-semibold tracking-widest uppercase"
+            style={{ color: 'var(--text-secondary)' }}>
+            Trip Documents
+          </p>
+          <button
+            onClick={async () => { setRetrying(true); await refetch(); setRetrying(false) }}
+            disabled={retrying}
+            className="text-xs hover:opacity-70 transition-opacity disabled:opacity-40"
+            style={{ color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer' }}
+          >
+            {retrying ? 'Retrying…' : '↺ Retry'}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (!attachments || attachments.length === 0) return null
 
   return (
     <div
@@ -84,7 +127,7 @@ export function TripDocumentsTile({ tripId }: { tripId: string }) {
                 className="text-xs flex-shrink-0 hover:opacity-70 transition-opacity"
                 style={{ color: 'var(--brand-teal)' }}
               >
-                Open
+                Open ↗
               </a>
             </div>
           ))}

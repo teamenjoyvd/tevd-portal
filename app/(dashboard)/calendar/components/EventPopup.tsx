@@ -1,7 +1,8 @@
 'use client'
 
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useMemo, useState } from 'react'
+import { useMemo  } from 'react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { formatTime, formatLongDate } from '@/lib/format'
 import {
@@ -117,7 +118,7 @@ export default function EventPopup({
 
   async function handleShare() {
     const shareUrl = `${window.location.origin}/events/${eventId}/register`
-    const shareData = { title: event?.title ?? '', url: shareUrl }
+    const shareData = { title: event?.title ?? '', text: `Register for ${event?.title ?? ''}`, url: shareUrl }
     if (typeof navigator.share === 'function' && navigator.canShare?.(shareData)) {
       try { await navigator.share(shareData); return } catch (err) { if (err instanceof Error && err.name === 'AbortError') return }
     }
@@ -132,6 +133,7 @@ export default function EventPopup({
     : (event?.role_requests ?? []).filter(r => r.profile?.id === userProfileId)
   const isMutating = requestMutation.isPending || cancelMutation.isPending
 
+  // Header — DialogTitle inside Dialog (mobile), plain div on desktop (Popover has no Dialog context)
   function Header({ asDialogTitle }: { asDialogTitle: boolean }) {
     const titleClass = 'font-display text-base font-semibold leading-snug'
     const titleStyle = { color: 'var(--text-primary)' }
@@ -169,6 +171,7 @@ export default function EventPopup({
     )
   }
 
+  // Body — DialogDescription inside Dialog (mobile), plain div on desktop
   function Body({ asDialogDescription }: { asDialogDescription: boolean }) {
     const inner = (
       <div className="overflow-y-auto" style={isBottomSheet ? undefined : { maxHeight: 360 }}>
@@ -217,6 +220,22 @@ export default function EventPopup({
                   </a>
                 </div>
               )}
+              {/* Share button */}
+              <button
+                onClick={handleShare}
+                className="mt-3 flex items-center gap-1.5 text-xs font-medium hover:opacity-70 transition-opacity"
+                style={{ color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="18" cy="5" r="3"/>
+                  <circle cx="6" cy="12" r="3"/>
+                  <circle cx="18" cy="19" r="3"/>
+                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+                  <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                </svg>
+                {shareCopied ? 'Link copied!' : 'Share event'}
+              </button>
             </div>
             {event.description && event.description !== event.meeting_url && (
               <div className="px-4 py-3 border-b border-black/5">
@@ -224,7 +243,7 @@ export default function EventPopup({
               </div>
             )}
             {!isGuest && (
-              <div className="px-4 py-3 border-b border-black/5">
+              <div className="px-4 py-3">
                 <p className="text-[10px] font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
                   {t('event.roles')}
                 </p>
@@ -292,29 +311,6 @@ export default function EventPopup({
                 )}
               </div>
             )}
-            {/* Share event */}
-            <div className="px-4 py-3">
-              <button
-                onClick={handleShare}
-                className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-semibold transition-opacity hover:opacity-75"
-                style={{
-                  backgroundColor: 'var(--bg-global)',
-                  border: '1px solid var(--border-default)',
-                  color: 'var(--text-secondary)',
-                  cursor: 'pointer',
-                }}
-              >
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-                  stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="18" cy="5" r="3"/>
-                  <circle cx="6" cy="12" r="3"/>
-                  <circle cx="18" cy="19" r="3"/>
-                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
-                  <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-                </svg>
-                {shareCopied ? 'Link copied!' : 'Share event'}
-              </button>
-            </div>
           </>
         ) : null}
       </div>
@@ -329,6 +325,7 @@ export default function EventPopup({
   return (
     <>
       {isBottomSheet ? (
+        // Mobile: dim overlay + bottom-sheet Dialog
         <Dialog open onOpenChange={open => { if (!open) onClose() }}>
           <DialogOverlay style={{ backgroundColor: 'rgba(0,0,0,0.4)' }} />
           <DialogContent
@@ -355,6 +352,8 @@ export default function EventPopup({
           </DialogContent>
         </Dialog>
       ) : (
+        // Desktop: Popover anchored to the live trigger element
+        // DialogTitle/DialogDescription must NOT be used outside a Dialog context
         <Popover open onOpenChange={open => { if (!open) onClose() }}>
           <PopoverAnchor virtualRef={anchorElRef} />
           <PopoverContent
