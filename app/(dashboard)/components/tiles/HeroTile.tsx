@@ -3,19 +3,29 @@ import Image from 'next/image'
 export default function HeroTile() {
   return (
     <>
-      {/* Founders image — pinned bottom-right, height 100%, slight right crop */}
-      <div className="absolute inset-y-0 right-0 w-full pointer-events-none select-none">
+      {/*
+        Founders image — occupies right 65% of the card, full height, bleeds off right edge.
+        `fill` requires a positioned ancestor with explicit dimensions — that's the BentoCard
+        wrapper which has `relative overflow-hidden` and a defined grid row height (desktop: 2×row,
+        mobile: minHeight 200px). The inner div is absolutely positioned to cover only the right
+        portion so the image doesn't fight with the text on the left.
+      */}
+      <div
+        className="absolute inset-y-0 right-0 pointer-events-none select-none"
+        style={{ width: '65%' }}
+        aria-hidden
+      >
         <Image
           src="/founders-hero.png"
           alt=""
           fill
-          className="object-cover object-right-bottom"
+          sizes="(max-width: 768px) 65vw, 40vw"
+          className="object-contain object-right-bottom"
           priority
-          aria-hidden
         />
       </div>
 
-      {/* Text block — bottom-left, hard-capped at 58% width */}
+      {/* Text block — bottom-left, hard-capped at 58% width so it never overlaps the image */}
       <div className="absolute inset-0 flex flex-col justify-end px-8 py-10 z-10">
         <div style={{ maxWidth: '58%' }}>
           <h1
