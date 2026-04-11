@@ -1,12 +1,13 @@
 import Link from 'next/link'
 import { createServiceClient } from '@/lib/supabase/service'
+import { JoinActions } from './components/JoinActions'
 
 type Props = {
   params:       Promise<{ eventId: string }>
   searchParams: Promise<{ token?: string }>
 }
 
-// ── Sub-components (module-scoped — never defined inside render fn) ────────────
+// -- Sub-components (module-scoped -- never defined inside render fn) ----------
 
 function InvalidState({ eventId, reason }: { eventId: string; reason: 'missing' | 'invalid' | 'expired' }) {
   const message = reason === 'expired' ? 'This link has expired.' : 'This link is invalid.'
@@ -70,7 +71,7 @@ function InvalidState({ eventId, reason }: { eventId: string; reason: 'missing' 
   )
 }
 
-// ── Page ───────────────────────────────────────────────────────────────────────
+// -- Page ----------------------------------------------------------------------
 
 export default async function GuestJoinPage({ params, searchParams }: Props) {
   const { eventId } = await params
@@ -82,7 +83,7 @@ export default async function GuestJoinPage({ params, searchParams }: Props) {
 
   const { data: reg } = await supabase
     .from('guest_registrations')
-    .select('id, name, event_id, expires_at, calendar_events(title, meeting_url)')
+    .select('id, name, event_id, expires_at, calendar_events(title, meeting_url, start_time, end_time)')
     .eq('token', token)
     .single()
 
@@ -90,12 +91,25 @@ export default async function GuestJoinPage({ params, searchParams }: Props) {
   if (reg.event_id !== eventId)              return <InvalidState eventId={eventId} reason="invalid" />
   if (new Date(reg.expires_at) < new Date()) return <InvalidState eventId={eventId} reason="expired" />
 
-  // Narrow joined relation — PostgREST returns object for to-one FK
-  const event = reg.calendar_events as unknown as { title: string; meeting_url: string | null } | null
+  // Narrow joined relation -- PostgREST returns object for to-one FK
+  const event = reg.calendar_events as unknown as {
+    title:       string
+    meeting_url: string | null
+    start_time:  string
+    end_time:    string
+  } | null
+
+  const actionProps = {
+    eventId,
+    eventTitle: event?.title      ?? '',
+    meetingUrl: event?.meeting_url ?? null,
+    startTime:  event?.start_time  ?? '',
+    endTime:    event?.end_time    ?? '',
+  }
 
   return (
     <>
-      {/* ── Desktop ─────────────────────────────────────────────────────────── */}
+      {/* -- Desktop ----------------------------------------------------------- */}
       <div
         className="hidden md:flex min-h-screen items-center justify-center px-6"
         style={{ backgroundColor: 'var(--bg-global, #f4f1eb)' }}
@@ -113,7 +127,7 @@ export default async function GuestJoinPage({ params, searchParams }: Props) {
               {event?.title}
             </h1>
             <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
-              Hi {reg.name}, tap the button below to open the meeting.
+              Hi {reg.name}, click the button below to open the meeting.
             </p>
             {event?.meeting_url ? (
               <a
@@ -130,11 +144,12 @@ export default async function GuestJoinPage({ params, searchParams }: Props) {
                 Meeting link not yet available. Check back closer to the event.
               </p>
             )}
+            <JoinActions {...actionProps} />
           </div>
         </div>
       </div>
 
-      {/* ── Mobile ──────────────────────────────────────────────────────────── */}
+      {/* -- Mobile ------------------------------------------------------------ */}
       <div
         className="md:hidden min-h-screen px-5 pt-12 pb-8"
         style={{ backgroundColor: 'var(--bg-global, #f4f1eb)' }}
@@ -168,6 +183,7 @@ export default async function GuestJoinPage({ params, searchParams }: Props) {
               Meeting link not yet available. Check back closer to the event.
             </p>
           )}
+          <JoinActions {...actionProps} />
         </div>
       </div>
     </>
