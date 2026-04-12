@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { AdminStatusBadge } from '@/app/admin/components/AdminStatusBadge'
+import { RoleSelector } from '@/app/admin/components/RoleSelector'
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -189,15 +190,6 @@ export function GuideForm({
     }))
   }
 
-  function toggleRole(role: string) {
-    setForm(f => ({
-      ...f,
-      access_roles: f.access_roles.includes(role)
-        ? f.access_roles.filter(r => r !== role)
-        : [...f.access_roles, role],
-    }))
-  }
-
   async function handleCoverFileChange(file: File) {
     setCoverFile(file)
     setCoverUploading(true)
@@ -331,18 +323,11 @@ export function GuideForm({
       <div>
         <label className="text-xs font-semibold uppercase tracking-widest mb-2 block"
           style={{ color: 'var(--text-secondary)' }}>Access Roles</label>
-        <div className="flex gap-2">
-          {ALL_ROLES.map(role => (
-            <button key={role} onClick={() => toggleRole(role)}
-              className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
-              style={{
-                backgroundColor: form.access_roles.includes(role) ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)',
-                color: form.access_roles.includes(role) ? 'var(--brand-parchment)' : 'var(--text-secondary)',
-              }}>
-              {role}
-            </button>
-          ))}
-        </div>
+        <RoleSelector
+          roles={ALL_ROLES}
+          selected={form.access_roles}
+          onChange={access_roles => setForm(f => ({ ...f, access_roles }))}
+        />
       </div>
 
       <div>

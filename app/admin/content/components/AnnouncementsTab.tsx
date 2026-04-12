@@ -17,6 +17,9 @@ import { AdminListCard } from '@/app/admin/components/AdminListCard'
 import { AdminStatusBadge } from '@/app/admin/components/AdminStatusBadge'
 import { useAdminDrawer } from '@/app/admin/components/useAdminDrawer'
 import { makeDragHandlers } from './useDragSort'
+import { RoleSelector } from '@/app/admin/components/RoleSelector'
+import { LangTabs } from '@/app/admin/components/LangTabs'
+import { I18nField } from '@/app/admin/components/I18nField'
 
 type Announcement = {
   id: string; titles: Record<string,string>; contents: Record<string,string>
@@ -24,6 +27,11 @@ type Announcement = {
 }
 
 const LANGS = ['en', 'bg', 'sk']
+const ALL_ROLES = ['guest', 'member', 'core', 'admin']
+
+function emptyI18n() {
+  return Object.fromEntries(LANGS.map(l => [l, '']))
+}
 
 export function AnnouncementsTab() {
   const qc = useQueryClient()
@@ -34,17 +42,17 @@ export function AnnouncementsTab() {
   const [editALang, setEditALang] = useState('en')
 
   const [aForm, setAForm] = useState({
-    titles: { en: '', bg: '', sk: '' } as Record<string,string>,
-    contents: { en: '', bg: '', sk: '' } as Record<string,string>,
+    titles: emptyI18n() as Record<string,string>,
+    contents: emptyI18n() as Record<string,string>,
     is_active: true,
-    access_level: ['guest', 'member', 'core', 'admin'] as string[],
+    access_level: [...ALL_ROLES] as string[],
   })
 
   const [editAForm, setEditAForm] = useState({
-    titles: { en: '', bg: '', sk: '' } as Record<string,string>,
-    contents: { en: '', bg: '', sk: '' } as Record<string,string>,
+    titles: emptyI18n() as Record<string,string>,
+    contents: emptyI18n() as Record<string,string>,
     is_active: true,
-    access_level: ['guest', 'member', 'core', 'admin'] as string[],
+    access_level: [...ALL_ROLES] as string[],
   })
 
   const { data: announcementsRaw = [] } = useQuery<Announcement[]>({
@@ -72,7 +80,7 @@ export function AnnouncementsTab() {
       }).then(r => r.json()),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['announcements'] })
-      setAForm({ titles: { en:'',bg:'',sk:'' }, contents: { en:'',bg:'',sk:'' }, is_active: true, access_level: ['guest','member','core','admin'] })
+      setAForm({ titles: emptyI18n(), contents: emptyI18n(), is_active: true, access_level: [...ALL_ROLES] })
     },
   })
 
@@ -105,10 +113,10 @@ export function AnnouncementsTab() {
 
   function startEditingAnnouncement(a: Announcement) {
     setEditAForm({
-      titles: { en: '', bg: '', sk: '', ...a.titles },
-      contents: { en: '', bg: '', sk: '', ...a.contents },
+      titles: { ...emptyI18n(), ...a.titles },
+      contents: { ...emptyI18n(), ...a.contents },
       is_active: a.is_active,
-      access_level: Array.isArray(a.access_level) ? a.access_level : ['guest','member','core','admin'],
+      access_level: Array.isArray(a.access_level) ? a.access_level : [...ALL_ROLES],
     })
     setEditALang('en')
     announcementDrawer.openEdit(a)
@@ -118,42 +126,30 @@ export function AnnouncementsTab() {
 
   return (
     <section>
-      <div className="flex gap-2 mb-4">
-        {LANGS.map(l => (
-          <button key={l} onClick={() => setALang(l)}
-            className="px-3 py-1 rounded-lg text-sm font-medium transition-colors"
-            style={{
-              backgroundColor: aLang === l ? 'var(--text-primary)' : 'rgba(0,0,0,0.05)',
-              color: aLang === l ? 'white' : 'var(--text-secondary)',
-            }}>
-            {l.toUpperCase()}
-          </button>
-        ))}
+      <div className="mb-4">
+        <LangTabs langs={LANGS} active={aLang} onChange={setALang} />
       </div>
 
       {/* Inline create card — intentional exception per CLAUDE.md */}
       <div className="rounded-2xl border p-6 mb-4 space-y-3" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
-        <input value={aForm.titles[aLang] ?? ''}
-          onChange={e => setAForm(f => ({ ...f, titles: { ...f.titles, [aLang]: e.target.value } }))}
-          placeholder={`Title (${aLang.toUpperCase()})`}
-          className="w-full border rounded-xl px-3 py-2.5 text-sm"
-          style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
-        <textarea value={aForm.contents[aLang] ?? ''}
-          onChange={e => setAForm(f => ({ ...f, contents: { ...f.contents, [aLang]: e.target.value } }))}
-          placeholder={`Content (${aLang.toUpperCase()})`}
-          rows={4}
-          className="w-full border rounded-xl px-3 py-2.5 text-sm resize-none"
-          style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
-        <div className="flex gap-2 flex-wrap">
-          {['guest','member','core','admin'].map(role => (
-            <button key={role}
-              onClick={() => setAForm(f => ({ ...f, access_level: f.access_level.includes(role) ? f.access_level.filter(r => r !== role) : [...f.access_level, role] }))}
-              className="px-3 py-1 rounded-full text-xs font-semibold transition-all"
-              style={{ backgroundColor: aForm.access_level.includes(role) ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)', color: aForm.access_level.includes(role) ? 'var(--brand-parchment)' : 'var(--text-secondary)' }}>
-              {role}
-            </button>
-          ))}
-        </div>
+        <I18nField
+          activeLang={aLang}
+          values={aForm.titles}
+          onChange={(lang, val) => setAForm(f => ({ ...f, titles: { ...f.titles, [lang]: val } }))}
+          placeholder="Title"
+        />
+        <I18nField
+          activeLang={aLang}
+          values={aForm.contents}
+          onChange={(lang, val) => setAForm(f => ({ ...f, contents: { ...f.contents, [lang]: val } }))}
+          placeholder="Content"
+          multiline
+        />
+        <RoleSelector
+          roles={ALL_ROLES}
+          selected={aForm.access_level}
+          onChange={access_level => setAForm(f => ({ ...f, access_level }))}
+        />
         <button onClick={() => createAnnouncement.mutate(aForm)}
           disabled={createAnnouncement.isPending || !aForm.titles.en}
           className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
@@ -194,36 +190,25 @@ export function AnnouncementsTab() {
 
       <Drawer open={announcementDrawer.open} onClose={announcementDrawer.close} title="Edit announcement">
         <div className="space-y-3">
-          <div className="flex gap-2 mb-2">
-            {LANGS.map(l => (
-              <button key={l} onClick={() => setEditALang(l)}
-                className="px-3 py-1 rounded-lg text-sm font-medium transition-colors"
-                style={{ backgroundColor: editALang === l ? 'var(--text-primary)' : 'rgba(0,0,0,0.05)', color: editALang === l ? 'white' : 'var(--text-secondary)' }}>
-                {l.toUpperCase()}
-              </button>
-            ))}
-          </div>
-          <input value={editAForm.titles[editALang] ?? ''}
-            onChange={e => setEditAForm(f => ({ ...f, titles: { ...f.titles, [editALang]: e.target.value } }))}
-            placeholder={`Title (${editALang.toUpperCase()})`}
-            className="w-full border rounded-xl px-3 py-2.5 text-sm"
-            style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
-          <textarea value={editAForm.contents[editALang] ?? ''}
-            onChange={e => setEditAForm(f => ({ ...f, contents: { ...f.contents, [editALang]: e.target.value } }))}
-            placeholder={`Content (${editALang.toUpperCase()})`}
-            rows={4}
-            className="w-full border rounded-xl px-3 py-2.5 text-sm resize-none"
-            style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
-          <div className="flex gap-2 flex-wrap">
-            {['guest','member','core','admin'].map(role => (
-              <button key={role}
-                onClick={() => setEditAForm(f => ({ ...f, access_level: f.access_level.includes(role) ? f.access_level.filter(r => r !== role) : [...f.access_level, role] }))}
-                className="px-3 py-1 rounded-full text-xs font-semibold transition-all"
-                style={{ backgroundColor: editAForm.access_level.includes(role) ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)', color: editAForm.access_level.includes(role) ? 'var(--brand-parchment)' : 'var(--text-secondary)' }}>
-                {role}
-              </button>
-            ))}
-          </div>
+          <LangTabs langs={LANGS} active={editALang} onChange={setEditALang} />
+          <I18nField
+            activeLang={editALang}
+            values={editAForm.titles}
+            onChange={(lang, val) => setEditAForm(f => ({ ...f, titles: { ...f.titles, [lang]: val } }))}
+            placeholder="Title"
+          />
+          <I18nField
+            activeLang={editALang}
+            values={editAForm.contents}
+            onChange={(lang, val) => setEditAForm(f => ({ ...f, contents: { ...f.contents, [lang]: val } }))}
+            placeholder="Content"
+            multiline
+          />
+          <RoleSelector
+            roles={ALL_ROLES}
+            selected={editAForm.access_level}
+            onChange={access_level => setEditAForm(f => ({ ...f, access_level }))}
+          />
           <div className="flex gap-3 pt-2">
             <button onClick={() => announcementDrawer.editing && updateAnnouncement.mutate({ id: announcementDrawer.editing.id, ...editAForm })}
               disabled={updateAnnouncement.isPending || !editAForm.titles.en}
