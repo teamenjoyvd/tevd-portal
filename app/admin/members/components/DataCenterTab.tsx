@@ -48,6 +48,61 @@ const HEADER_MAP: Record<string, string> = {
   'Sponsoring': 'sponsoring', 'Annual PPV': 'annual_ppv',
 }
 
+// Bulgarian locale export -- Amway BG sends Cyrillic column headers with
+// comma-decimal numerics (e.g. "33,74") and space thousands separators
+// (e.g. "5 299,54"). See sanitizeNumeric() below.
+const HEADER_MAP_BG: Record<string, string> = {
+  'Ниво на СБА': 'abo_level',
+  'Номер на Спонсориращия СБА': 'sponsor_abo_number',
+  'Номер на СБА': 'abo_number',
+  'Държава': 'country',
+  'Име': 'name',
+  'Дата на въвеждане': 'entry_date',
+  'Телефон': 'phone',
+  'Електронна поща': 'email',
+  'Адрес': 'address',
+  'Дата на подновяване': 'renewal_date',
+  'ГТС': 'gpv',
+  'ЛТС': 'ppv',
+  'Процент на възнаграждение': 'bonus_percent',
+  'ГБО': 'gbv',
+  'Клиентска ТС': 'customer_pv',
+  'ТС за Рубин': 'ruby_pv',
+  'Клиенти': 'customers',
+  'Точки до следващото ниво': 'points_to_next_level',
+  'Квалифицирани звена': 'qualified_legs',
+  'Размер на група': 'group_size',
+  'Брой лични поръчки': 'personal_order_count',
+  'Брой групови поръчки': 'group_orders_count',
+  'Спонсориране': 'sponsoring',
+  'Годишна ЛТС:': 'annual_ppv',
+  // Summary column -- not a schema field. Mapped to a dead-end key so the
+  // RPC (which reads only named columns from the JSONB row) silently ignores
+  // it. Do not remap to an existing field: it would silently overwrite it.
+  'ТС общо за организацията': 'org_total_pv',
+}
+
+// Fields the RPC casts to ::numeric or ::integer. Values must be normalised
+// before leaving the browser -- locale-specific formats cause Postgres to throw
+// "invalid input syntax for type numeric" inside EXCEPTION WHEN OTHERS, which
+// silently drops the row instead of crashing visibly.
+const NUMERIC_KEYS = new Set([
+  'gpv', 'ppv', 'bonus_percent', 'gbv', 'customer_pv', 'ruby_pv',
+  'customers', 'points_to_next_level', 'qualified_legs', 'group_size',
+  'personal_order_count', 'group_orders_count', 'sponsoring', 'annual_ppv',
+])
+
+function sanitizeNumeric(val: string, isBG: boolean): string {
+  if (isBG) {
+    // BG locale: spaces and \u00A0 are thousands separators, comma is decimal.
+    // Strip spaces first, then replace comma with period for Postgres ::numeric.
+    return val.replace(/[\u00A0\s]/g, '').replace(/,/g, '.')
+  }
+  // EN locale: commas are thousands separators (e.g. "1,250.00"). Strip them --
+  // replacing with period would produce "1.250.00", an invalid numeric literal.
+  return val.replace(/,/g, '')
+}
+
 const MONTH_MAP: Record<string, string> = {
   January: '01', February: '02', March: '03', April: '04',
   May: '05', June: '06', July: '07', August: '08',
@@ -88,21 +143,34 @@ function splitCSVLine(line: string): string[] {
 function parseCSV(text: string): Record<string, string>[] {
   const cleaned = text.replace(/^\uFEFF/, '') // strip Excel BOM
   const allLines = cleaned.trim().split('\n')
-  const headerIdx = allLines.findIndex(l => l.includes('ABO Number'))
+
+  // Support both EN ('ABO Number') and BG ('Номер на СБА') exports
+  const headerIdx = allLines.findIndex(
+    l => l.includes('ABO Number') || l.includes('Номер на СБА')
+  )
   if (headerIdx === -1) return []
+
+  // Detect locale from the anchor line -- drives header map and numeric sanitization
+  const isBG = allLines[headerIdx].includes('Номер на СБА')
+  const activeMap = isBG ? HEADER_MAP_BG : HEADER_MAP
+
   const dataLines = allLines.slice(headerIdx)
   const headers = splitCSVLine(dataLines[0])
+
   return dataLines.slice(1)
     .filter(line => line.trim() !== '')
     .map(line => {
       const values = splitCSVLine(line)
       const row: Record<string, string> = {}
       headers.forEach((h, i) => {
-        const dbKey = HEADER_MAP[h] ?? h.toLowerCase().replace(/\s+/g, '_')
+        const dbKey = activeMap[h] ?? h.toLowerCase().replace(/\s+/g, '_')
         let val = values[i] ?? ''
         if (dbKey === 'bonus_percent') val = val.replace('%', '').trim()
         if (dbKey === 'entry_date' || dbKey === 'renewal_date') val = parseDate(val)
         if (dbKey === 'phone') val = val.replace(/^Primary:\s*/i, '').trim()
+        // Sanitize after all other transforms -- numeric normalisation must
+        // run after % stripping so bonus_percent is clean before replacement
+        if (NUMERIC_KEYS.has(dbKey)) val = sanitizeNumeric(val, isBG)
         row[dbKey] = val
       })
       return row
@@ -186,7 +254,7 @@ function ReconciliationPanel({
           <button onClick={handleLink} disabled={linking}
             className="flex-shrink-0 px-4 py-2 rounded-lg text-sm font-semibold text-white disabled:opacity-50"
             style={{ backgroundColor: 'var(--brand-teal)' }}>
-            {linking ? 'Linking…' : 'Link'}
+            {linking ? 'Linking...' : 'Link'}
           </button>
         )}
       </div>
@@ -272,7 +340,7 @@ export function DataCenterTab() {
       const text = (ev.target?.result as string).replace(/^\uFEFF/, '') // strip Excel BOM
       const rows = parseCSV(text)
       if (rows.length === 0) {
-        setError('Could not parse CSV — "ABO Number" column not found. Check the file header.')
+        setError('Could not parse CSV — header row not found. Check that the file is a valid LOS export.')
         return
       }
       setParsedRows(rows)
@@ -358,6 +426,11 @@ export function DataCenterTab() {
             <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: '#e07a5f20', color: '#e07a5f' }}>
               {result.diff.bonus_changes.length} bonus changes
             </span>
+            {result.errors.length > 0 && (
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(188,71,73,0.12)', color: '#bc4749' }}>
+                {result.errors.length} errors
+              </span>
+            )}
           </div>
           <DiffSection title="New members" count={result.diff.new_members.length} color="#81b29a">
             {result.diff.new_members.map(m => (
@@ -390,7 +463,7 @@ export function DataCenterTab() {
           </DiffSection>
           {result.errors.length > 0 && (
             <div className="mt-4 pt-4 border-t" style={{ borderColor: 'var(--border-default)' }}>
-              <p className="text-xs font-semibold mb-1" style={{ color: 'var(--brand-crimson)' }}>{result.errors.length} errors:</p>
+              <p className="text-xs font-semibold mb-1" style={{ color: 'var(--brand-crimson)' }}>{result.errors.length} row errors — check for unsanitized data:</p>
               {result.errors.map((e, i) => (
                 <p key={i} className="text-xs" style={{ color: 'var(--brand-crimson)' }}>{e.abo_number}: {e.error}</p>
               ))}
