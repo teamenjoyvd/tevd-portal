@@ -111,13 +111,18 @@ export function BlockEditor({ blocks, onChange }: { blocks: Block[]; onChange: (
                 <label className="text-[10px] font-semibold uppercase tracking-widest mb-1 block"
                   style={{ color: 'var(--text-secondary)' }}>{lang.toUpperCase()}</label>
                 {block.type === 'paragraph' || block.type === 'callout' ? (
-                  <textarea
-                    value={block.content[lang]}
-                    onChange={e => updateContent(i, lang, e.target.value)}
-                    rows={3}
-                    className="w-full border rounded-xl px-3 py-2 text-sm resize-none"
-                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
-                  />
+                  <>
+                    <textarea
+                      value={block.content[lang]}
+                      onChange={e => updateContent(i, lang, e.target.value)}
+                      rows={3}
+                      className="w-full border rounded-xl px-3 py-2 text-sm resize-none"
+                      style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
+                    />
+                    <p className="text-[10px] mt-1" style={{ color: 'var(--text-tertiary)' }}>
+                      **bold**, _italic_ supported
+                    </p>
+                  </>
                 ) : (
                   <input
                     value={block.content[lang]}

@@ -2,6 +2,7 @@ import { auth } from '@clerk/nextjs/server'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { marked } from 'marked'
 import { createServiceClient } from '@/lib/supabase/service'
 import BentoCard from '@/components/bento/BentoCard'
 import { translate } from '@/lib/i18n/translations'
@@ -27,6 +28,13 @@ function getContent(block: Block, lang: string): string {
   return (block.content as Record<string, string>)[lang]
     ?? block.content.en
     ?? ''
+}
+
+// Parse inline markdown (bold, italic, code, etc.) to HTML.
+// Used for paragraph and callout blocks only — headings stay plain text.
+// marked.parseInline with { async: false } returns a string synchronously.
+function renderInline(text: string): string {
+  return marked.parseInline(text, { async: false }) as string
 }
 
 export default async function GuideDetailPage({
@@ -124,20 +132,20 @@ export default async function GuideDetailPage({
                     <span className="text-xl flex-shrink-0 mt-0.5">{block.emoji}</span>
                   )}
                   <p className="text-sm leading-relaxed font-body"
-                    style={{ color: 'var(--text-primary)' }}>
-                    {content}
-                  </p>
+                    style={{ color: 'var(--text-primary)' }}
+                    dangerouslySetInnerHTML={{ __html: renderInline(content) }}
+                  />
                 </div>
               </BentoCard>
             )
           }
 
+          // paragraph
           return (
             <p key={i} className="text-base leading-relaxed font-body"
               style={{ color: 'var(--text-secondary)' }}
-            >
-              {content}
-            </p>
+              dangerouslySetInnerHTML={{ __html: renderInline(content) }}
+            />
           )
         })}
       </div>
