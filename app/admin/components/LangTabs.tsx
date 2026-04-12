@@ -11,11 +11,13 @@ type LangTabsProps = {
 
 export function LangTabs({ langs, active, onChange }: LangTabsProps) {
   return (
-    <div className="flex gap-2">
+    <div className="flex gap-2" role="tablist">
       {langs.map(l => (
         <button
           key={l}
           type="button"
+          role="tab"
+          aria-selected={active === l}
           onClick={() => onChange(l)}
           className="px-3 py-1 rounded-lg text-sm font-medium transition-colors"
           style={{

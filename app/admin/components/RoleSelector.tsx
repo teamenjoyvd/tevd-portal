@@ -24,6 +24,7 @@ export function RoleSelector({ roles, selected, onChange }: RoleSelectorProps) {
         <button
           key={role}
           type="button"
+          aria-pressed={selected.includes(role)}
           onClick={() => toggle(role)}
           className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
           style={{

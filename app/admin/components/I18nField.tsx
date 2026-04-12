@@ -27,13 +27,14 @@ export function I18nField({
     backgroundColor: 'var(--bg-card)',
   }
   const sharedClass = 'w-full border rounded-xl px-3 py-2.5 text-sm'
+  const placeholderText = placeholder ? `${placeholder} (${activeLang.toUpperCase()})` : undefined
 
   if (multiline) {
     return (
       <textarea
         value={value}
         onChange={e => onChange(activeLang, e.target.value)}
-        placeholder={placeholder ? `${placeholder} (${activeLang.toUpperCase()})` : undefined}
+        placeholder={placeholderText}
         rows={rows}
         className={`${sharedClass} resize-none`}
         style={sharedStyle}
@@ -45,7 +46,7 @@ export function I18nField({
     <input
       value={value}
       onChange={e => onChange(activeLang, e.target.value)}
-      placeholder={placeholder ? `${placeholder} (${activeLang.toUpperCase()})` : undefined}
+      placeholder={placeholderText}
       className={sharedClass}
       style={sharedStyle}
     />

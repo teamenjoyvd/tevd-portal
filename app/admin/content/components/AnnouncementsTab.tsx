@@ -29,6 +29,10 @@ type Announcement = {
 const LANGS = ['en', 'bg', 'sk']
 const ALL_ROLES = ['guest', 'member', 'core', 'admin']
 
+function emptyI18n() {
+  return Object.fromEntries(LANGS.map(l => [l, '']))
+}
+
 export function AnnouncementsTab() {
   const qc = useQueryClient()
   const announcementDrawer = useAdminDrawer<Announcement>()
@@ -38,15 +42,15 @@ export function AnnouncementsTab() {
   const [editALang, setEditALang] = useState('en')
 
   const [aForm, setAForm] = useState({
-    titles: { en: '', bg: '', sk: '' } as Record<string,string>,
-    contents: { en: '', bg: '', sk: '' } as Record<string,string>,
+    titles: emptyI18n() as Record<string,string>,
+    contents: emptyI18n() as Record<string,string>,
     is_active: true,
     access_level: [...ALL_ROLES] as string[],
   })
 
   const [editAForm, setEditAForm] = useState({
-    titles: { en: '', bg: '', sk: '' } as Record<string,string>,
-    contents: { en: '', bg: '', sk: '' } as Record<string,string>,
+    titles: emptyI18n() as Record<string,string>,
+    contents: emptyI18n() as Record<string,string>,
     is_active: true,
     access_level: [...ALL_ROLES] as string[],
   })
@@ -76,7 +80,7 @@ export function AnnouncementsTab() {
       }).then(r => r.json()),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['announcements'] })
-      setAForm({ titles: { en:'',bg:'',sk:'' }, contents: { en:'',bg:'',sk:'' }, is_active: true, access_level: [...ALL_ROLES] })
+      setAForm({ titles: emptyI18n(), contents: emptyI18n(), is_active: true, access_level: [...ALL_ROLES] })
     },
   })
 
@@ -109,8 +113,8 @@ export function AnnouncementsTab() {
 
   function startEditingAnnouncement(a: Announcement) {
     setEditAForm({
-      titles: { en: '', bg: '', sk: '', ...a.titles },
-      contents: { en: '', bg: '', sk: '', ...a.contents },
+      titles: { ...emptyI18n(), ...a.titles },
+      contents: { ...emptyI18n(), ...a.contents },
       is_active: a.is_active,
       access_level: Array.isArray(a.access_level) ? a.access_level : [...ALL_ROLES],
     })
