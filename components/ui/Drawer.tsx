@@ -4,6 +4,8 @@
 // The external API (open, onClose, title, children) is preserved exactly —
 // all call sites continue to import { Drawer } from '@/components/ui/Drawer'
 // with zero changes required at each consumer.
+// SEQ373: SheetContent widened to sm:max-w-2xl (672px) on desktop to
+// accommodate GuideForm's two-column grid layouts comfortably.
 
 import {
   Sheet,
@@ -23,7 +25,7 @@ type DrawerProps = {
 export function Drawer({ open, onClose, title, children }: DrawerProps) {
   return (
     <Sheet open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose() }}>
-      <SheetContent side="right">
+      <SheetContent side="right" className="sm:max-w-2xl w-full">
         <SheetHeader>
           <SheetTitle>{title}</SheetTitle>
           <SheetClose asChild>
