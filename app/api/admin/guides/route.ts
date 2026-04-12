@@ -6,7 +6,7 @@ export async function GET() {
   const supabase = createServiceClient()
   const { data, error } = await supabase
     .from('guides')
-    .select('id, slug, title, emoji, cover_image_url, access_roles, is_published, created_at, updated_at, sort_order')
+    .select('id, slug, title, emoji, cover_image_url, body, access_roles, is_published, created_at, updated_at, sort_order')
     .order('sort_order')
     .order('created_at', { ascending: false })
   if (error) return Response.json({ error: error.message }, { status: 500 })
