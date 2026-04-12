@@ -48,6 +48,60 @@ const HEADER_MAP: Record<string, string> = {
   'Sponsoring': 'sponsoring', 'Annual PPV': 'annual_ppv',
 }
 
+// Bulgarian locale export -- Amway BG sends Cyrillic column headers with
+// comma-decimal numerics (e.g. "33,74") and space thousands separators
+// (e.g. "5 299,54"). See sanitizeNumeric() below.
+const HEADER_MAP_BG: Record<string, string> = {
+  'Ниво на СБА': 'abo_level',
+  'Номер на Спонсориращия СБА': 'sponsor_abo_number',
+  'Номер на СБА': 'abo_number',
+  'Държава': 'country',
+  'Име': 'name',
+  'Дата на въвеждане': 'entry_date',
+  'Телефон': 'phone',
+  'Електронна поща': 'email',
+  'Адрес': 'address',
+  'Дата на подновяване': 'renewal_date',
+  'ГТС': 'gpv',
+  'ЛТС': 'ppv',
+  'Процент на възнаграждение': 'bonus_percent',
+  'ГБО': 'gbv',
+  'Клиентска ТС': 'customer_pv',
+  'ТС за Рубин': 'ruby_pv',
+  ' Клиенти': 'customers',
+  'Клиенти': 'customers',
+  'Точки до следващото ниво': 'points_to_next_level',
+  'Квалифицирани звена': 'qualified_legs',
+  'Размер на група': 'group_size',
+  'Брой лични поръчки': 'personal_order_count',
+  'Брой групови поръчки': 'group_orders_count',
+  'Спонсориране': 'sponsoring',
+  'Годишна ЛТС:': 'annual_ppv',
+  // Summary column -- not a schema field. Mapped to a dead-end key so the
+  // RPC (which reads only named columns from the JSONB row) silently ignores
+  // it. Do not remap to an existing field: it would silently overwrite it.
+  'ТС общо за организацията': 'org_total_pv',
+}
+
+// Fields the RPC casts to ::numeric or ::integer. Values arriving from a BG
+// export use comma as decimal separator and regular/non-breaking spaces as
+// thousands separators. Sending those strings unmodified causes Postgres to
+// throw "invalid input syntax for type numeric" inside EXCEPTION WHEN OTHERS,
+// which silently drops the row instead of crashing visibly. Normalise here,
+// before the rows leave the browser, so the backend contract is always met.
+const NUMERIC_KEYS = new Set([
+  'gpv', 'ppv', 'bonus_percent', 'gbv', 'customer_pv', 'ruby_pv',
+  'customers', 'points_to_next_level', 'qualified_legs', 'group_size',
+  'personal_order_count', 'group_orders_count', 'sponsoring', 'annual_ppv',
+])
+
+function sanitizeNumeric(val: string): string {
+  // Strip regular spaces and non-breaking spaces (\u00A0) used as
+  // thousands separators in European-locale CSV exports, then replace
+  // comma decimal separator with period for Postgres ::numeric compatibility.
+  return val.replace(/[\u00A0\s]/g, '').replace(',', '.')
+}
+
 const MONTH_MAP: Record<string, string> = {
   January: '01', February: '02', March: '03', April: '04',
   May: '05', June: '06', July: '07', August: '08',
@@ -88,21 +142,34 @@ function splitCSVLine(line: string): string[] {
 function parseCSV(text: string): Record<string, string>[] {
   const cleaned = text.replace(/^\uFEFF/, '') // strip Excel BOM
   const allLines = cleaned.trim().split('\n')
-  const headerIdx = allLines.findIndex(l => l.includes('ABO Number'))
+
+  // Support both EN ('ABO Number') and BG ('Номер на СБА') exports
+  const headerIdx = allLines.findIndex(
+    l => l.includes('ABO Number') || l.includes('Номер на СБА')
+  )
   if (headerIdx === -1) return []
+
+  // Detect locale from the anchor line -- drives header map selection
+  const isBG = allLines[headerIdx].includes('Номер на СБА')
+  const activeMap = isBG ? HEADER_MAP_BG : HEADER_MAP
+
   const dataLines = allLines.slice(headerIdx)
   const headers = splitCSVLine(dataLines[0])
+
   return dataLines.slice(1)
     .filter(line => line.trim() !== '')
     .map(line => {
       const values = splitCSVLine(line)
       const row: Record<string, string> = {}
       headers.forEach((h, i) => {
-        const dbKey = HEADER_MAP[h] ?? h.toLowerCase().replace(/\s+/g, '_')
+        const dbKey = activeMap[h] ?? h.toLowerCase().replace(/\s+/g, '_')
         let val = values[i] ?? ''
         if (dbKey === 'bonus_percent') val = val.replace('%', '').trim()
         if (dbKey === 'entry_date' || dbKey === 'renewal_date') val = parseDate(val)
         if (dbKey === 'phone') val = val.replace(/^Primary:\s*/i, '').trim()
+        // Sanitize after all other transforms -- numeric normalisation must
+        // run after % stripping so bonus_percent is clean before replacement
+        if (NUMERIC_KEYS.has(dbKey)) val = sanitizeNumeric(val)
         row[dbKey] = val
       })
       return row
@@ -186,7 +253,7 @@ function ReconciliationPanel({
           <button onClick={handleLink} disabled={linking}
             className="flex-shrink-0 px-4 py-2 rounded-lg text-sm font-semibold text-white disabled:opacity-50"
             style={{ backgroundColor: 'var(--brand-teal)' }}>
-            {linking ? 'Linking…' : 'Link'}
+            {linking ? 'Linking...' : 'Link'}
           </button>
         )}
       </div>
@@ -194,7 +261,7 @@ function ReconciliationPanel({
       <div className="grid grid-cols-2 gap-4">
         <div>
           <p className="text-xs font-semibold tracking-widest uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>
-            Unrecognized in LOS — {unrecognized.length}
+            Unrecognized in LOS -- {unrecognized.length}
           </p>
           {unrecognized.length === 0 ? (
             <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>All LOS members matched.</p>
@@ -220,7 +287,7 @@ function ReconciliationPanel({
         </div>
         <div>
           <p className="text-xs font-semibold tracking-widest uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>
-            No ABO — awaiting position — {profiles.length}
+            No ABO -- awaiting position -- {profiles.length}
           </p>
           {profiles.length === 0 ? (
             <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>No manually-verified members without ABO.</p>
@@ -272,7 +339,7 @@ export function DataCenterTab() {
       const text = (ev.target?.result as string).replace(/^\uFEFF/, '') // strip Excel BOM
       const rows = parseCSV(text)
       if (rows.length === 0) {
-        setError('Could not parse CSV — "ABO Number" column not found. Check the file header.')
+        setError('Could not parse CSV -- header row not found. Check that the file is a valid LOS export.')
         return
       }
       setParsedRows(rows)
@@ -305,7 +372,7 @@ export function DataCenterTab() {
   return (
     <div className="space-y-6">
       <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-        LOS CSV import — upserts on ABO number. Rebuilds LTree paths after every import.
+        LOS CSV import -- upserts on ABO number. Rebuilds LTree paths after every import.
       </p>
       <div className="border-2 border-dashed rounded-lg p-8 text-center" style={{ borderColor: 'var(--border-default)', backgroundColor: 'var(--bg-card)' }}>
         <input ref={fileRef} type="file" accept=".csv" onChange={handleFile} className="hidden" id="csv-upload" />
@@ -347,7 +414,7 @@ export function DataCenterTab() {
         <div className="p-5 rounded-2xl border" style={{ borderColor: 'var(--border-default)', backgroundColor: 'var(--bg-card)' }}>
           <div className="flex items-center gap-3 flex-wrap mb-2">
             <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-              Import complete — {result.inserted} rows upserted
+              Import complete -- {result.inserted} rows upserted
             </p>
             <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: '#81b29a20', color: '#2d6a4f' }}>
               {result.diff.new_members.length} new
@@ -358,6 +425,11 @@ export function DataCenterTab() {
             <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: '#e07a5f20', color: '#e07a5f' }}>
               {result.diff.bonus_changes.length} bonus changes
             </span>
+            {result.errors.length > 0 && (
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(188,71,73,0.12)', color: '#bc4749' }}>
+                {result.errors.length} errors
+              </span>
+            )}
           </div>
           <DiffSection title="New members" count={result.diff.new_members.length} color="#81b29a">
             {result.diff.new_members.map(m => (
@@ -373,7 +445,7 @@ export function DataCenterTab() {
               <div key={m.abo_number} className="flex items-center gap-2 text-xs px-2 py-1.5 rounded-lg" style={{ backgroundColor: '#3d405b10' }}>
                 <span className="font-mono font-medium" style={{ color: 'var(--text-primary)' }}>{m.abo_number}</span>
                 <span style={{ color: 'var(--text-secondary)' }}>{m.name}</span>
-                <span className="ml-auto font-semibold" style={{ color: 'var(--text-primary)' }}>{m.prev_level} → {m.new_level}</span>
+                <span className="ml-auto font-semibold" style={{ color: 'var(--text-primary)' }}>{m.prev_level} to {m.new_level}</span>
               </div>
             ))}
           </DiffSection>
@@ -383,14 +455,14 @@ export function DataCenterTab() {
                 <span className="font-mono font-medium" style={{ color: 'var(--text-primary)' }}>{m.abo_number}</span>
                 <span style={{ color: 'var(--text-secondary)' }}>{m.name}</span>
                 <span className="ml-auto font-semibold" style={{ color: m.new_bonus > m.prev_bonus ? '#2d6a4f' : '#bc4749' }}>
-                  {m.prev_bonus}% → {m.new_bonus}%
+                  {m.prev_bonus}% to {m.new_bonus}%
                 </span>
               </div>
             ))}
           </DiffSection>
           {result.errors.length > 0 && (
             <div className="mt-4 pt-4 border-t" style={{ borderColor: 'var(--border-default)' }}>
-              <p className="text-xs font-semibold mb-1" style={{ color: 'var(--brand-crimson)' }}>{result.errors.length} errors:</p>
+              <p className="text-xs font-semibold mb-1" style={{ color: 'var(--brand-crimson)' }}>{result.errors.length} row errors -- check for unsanitized data:</p>
               {result.errors.map((e, i) => (
                 <p key={i} className="text-xs" style={{ color: 'var(--brand-crimson)' }}>{e.abo_number}: {e.error}</p>
               ))}
