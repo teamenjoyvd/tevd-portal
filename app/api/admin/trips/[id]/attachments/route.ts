@@ -64,6 +64,17 @@ export async function POST(
     .from('trip-attachments')
     .getPublicUrl(storagePath)
 
+  // Derive sort_order as max existing + 1 so uploads append in order
+  const { data: maxRow } = await supabase
+    .from('trip_attachments')
+    .select('sort_order')
+    .eq('trip_id', tripId)
+    .order('sort_order', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  const sort_order = (maxRow?.sort_order ?? -1) + 1
+
   const { data: attachment, error: insertError } = await supabase
     .from('trip_attachments')
     .insert({
@@ -71,6 +82,7 @@ export async function POST(
       file_url: publicUrl,
       file_name: file.name,
       file_type: fileType,
+      sort_order,
       created_by: profile.id,
     })
     .select()
