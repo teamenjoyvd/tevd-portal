@@ -14,7 +14,7 @@ export async function GET(
   // Resolve profile
   const { data: profile, error: profileErr } = await supabase
     .from('profiles')
-    .select('id')
+    .select('id, role')
     .eq('clerk_id', userId)
     .single()
 
@@ -24,17 +24,19 @@ export async function GET(
 
   const { id: tripId } = await params
 
-  // Must have an approved registration for this trip
-  const { data: reg, error: regErr } = await supabase
-    .from('trip_registrations')
-    .select('id')
-    .eq('trip_id', tripId)
-    .eq('profile_id', profile.id)
-    .eq('status', 'approved')
-    .maybeSingle()
+  // Admins bypass the registration gate
+  if (profile.role !== 'admin') {
+    const { data: reg, error: regErr } = await supabase
+      .from('trip_registrations')
+      .select('id')
+      .eq('trip_id', tripId)
+      .eq('profile_id', profile.id)
+      .eq('status', 'approved')
+      .maybeSingle()
 
-  if (regErr || !reg) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    if (regErr || !reg) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
   }
 
   const { data: attachments, error: attachErr } = await supabase
