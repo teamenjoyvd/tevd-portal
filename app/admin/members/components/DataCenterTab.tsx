@@ -86,7 +86,8 @@ function splitCSVLine(line: string): string[] {
 }
 
 function parseCSV(text: string): Record<string, string>[] {
-  const allLines = text.trim().split('\n')
+  const cleaned = text.replace(/^\uFEFF/, '') // strip Excel BOM
+  const allLines = cleaned.trim().split('\n')
   const headerIdx = allLines.findIndex(l => l.includes('ABO Number'))
   if (headerIdx === -1) return []
   const dataLines = allLines.slice(headerIdx)
@@ -251,6 +252,7 @@ function ReconciliationPanel({
 
 export function DataCenterTab() {
   const fileRef = useRef<HTMLInputElement>(null)
+  const [parsedRows, setParsedRows] = useState<Record<string, string>[]>([])
   const [preview, setPreview] = useState<Record<string, string>[]>([])
   const [filename, setFilename] = useState<string>('')
   const [loading, setLoading] = useState(false)
@@ -263,27 +265,32 @@ export function DataCenterTab() {
     setFilename(file.name)
     setResult(null)
     setError(null)
+    setParsedRows([])
+    setPreview([])
     const reader = new FileReader()
     reader.onload = ev => {
-      const rows = parseCSV(ev.target?.result as string)
+      const text = (ev.target?.result as string).replace(/^\uFEFF/, '') // strip Excel BOM
+      const rows = parseCSV(text)
+      if (rows.length === 0) {
+        setError('Could not parse CSV — "ABO Number" column not found. Check the file header.')
+        return
+      }
+      setParsedRows(rows)
       setPreview(rows.slice(0, 5))
     }
     reader.readAsText(file)
   }
 
   async function handleImport() {
-    const file = fileRef.current?.files?.[0]
-    if (!file) return
+    if (!parsedRows.length) return
     setLoading(true)
     setError(null)
     setResult(null)
-    const text = await file.text()
-    const rows = parseCSV(text)
     try {
       const res = await fetch('/api/admin/los-import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rows }),
+        body: JSON.stringify({ rows: parsedRows }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Import failed')
@@ -304,7 +311,7 @@ export function DataCenterTab() {
         <input ref={fileRef} type="file" accept=".csv" onChange={handleFile} className="hidden" id="csv-upload" />
         <label htmlFor="csv-upload" className="cursor-pointer">
           <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{filename ? filename : 'Click to select a CSV file'}</p>
-          <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>{preview.length > 0 ? `${preview.length}+ rows detected` : '.csv only'}</p>
+          <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>{preview.length > 0 ? `${parsedRows.length} rows detected` : '.csv only'}</p>
         </label>
       </div>
       {preview.length > 0 && (
