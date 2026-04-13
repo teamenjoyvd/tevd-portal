@@ -1,45 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { formatDate } from '@/lib/format'
-
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-type VitalSign = {
-  event_key: string
-  event_label: string
-  has_ticket: boolean
-  updated_at: string
-}
-
-type LOSNode = {
-  profile_id: string | null
-  abo_number: string | null
-  sponsor_abo_number: string | null
-  abo_level: string | null
-  name: string | null
-  first_name: string | null
-  last_name: string | null
-  role: string | null
-  depth: number | null
-  country: string | null
-  gpv: number | null
-  ppv: number | null
-  bonus_percent: number | null
-  group_size: number | null
-  qualified_legs: number | null
-  annual_ppv: number | null
-  renewal_date: string | null
-  vital_signs: VitalSign[]
-  children?: LOSNode[]
-}
-
-type TreeResponse = {
-  scope: 'full' | 'subtree' | 'guest'
-  nodes: LOSNode[]
-  caller_abo: string | null
-}
+import { OrgChartCanvas } from './components/OrgChartCanvas'
+import { displayName, roleColors } from './lib/los-utils'
+import type { LOSNode, TreeResponse } from './lib/los-utils'
 
 // ── Tree builder ──────────────────────────────────────────────────────────────
 
@@ -56,24 +23,6 @@ function buildTree(nodes: LOSNode[], rootAbo: string | null): LOSNode[] {
   }
   if (rootAbo && byAbo[rootAbo]) return [byAbo[rootAbo]]
   return roots
-}
-
-function displayName(node: LOSNode): string {
-  if (node.first_name && node.last_name) return `${node.first_name} ${node.last_name}`
-  return node.name ?? node.abo_number ?? '—'
-}
-
-// ── Role color system ─────────────────────────────────────────────────────────
-
-const ROLE_COLORS: Record<string, { border: string; labelBg: string; labelColor: string; opacity: number }> = {
-  admin:  { border: '#2d332a',             labelBg: '#2d332a',               labelColor: '#FAF8F3', opacity: 1   },
-  core:   { border: '#3E7785',             labelBg: '#3E7785',               labelColor: '#FAF8F3', opacity: 1   },
-  member: { border: 'rgba(45,51,42,0.15)', labelBg: 'rgba(62,119,133,0.12)', labelColor: '#3E7785', opacity: 1   },
-  guest:  { border: 'rgba(45,51,42,0.08)', labelBg: 'rgba(0,0,0,0.05)',      labelColor: '#8A8577', opacity: 0.6 },
-}
-
-function roleColors(role: string | null) {
-  return ROLE_COLORS[role ?? 'guest'] ?? ROLE_COLORS.guest
 }
 
 // ── Stat subcomponent ─────────────────────────────────────────────────────────
@@ -116,30 +65,25 @@ function MemberCard({ node, isExpanded, onToggle }: {
         >
           <polyline points="9 18 15 12 9 6" />
         </svg>
-
         <span className="text-sm font-semibold flex-1 min-w-0 truncate" style={{ color: 'var(--text-primary)' }}>
           {name}
         </span>
-
         {node.abo_number && (
           <span className="text-xs font-mono flex-shrink-0" style={{ color: 'var(--text-tertiary)' }}>
             {node.abo_number}
           </span>
         )}
-
         <span
           className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 uppercase tracking-wide"
           style={{ backgroundColor: rc.labelBg, color: rc.labelColor }}
         >
           {node.role ?? 'guest'}
         </span>
-
         {node.abo_level && (
           <span className="text-[10px] flex-shrink-0" style={{ color: 'var(--text-secondary)' }}>
             {node.abo_level}%
           </span>
         )}
-
         {!isExpanded && hasVitals && (
           <div className="flex gap-1 flex-shrink-0">
             {node.vital_signs.map(vs => (
@@ -159,8 +103,8 @@ function MemberCard({ node, isExpanded, onToggle }: {
           {hasStats && (
             <div className="grid grid-cols-2 gap-x-6 gap-y-2">
               {node.abo_level && <Stat label="ABO Level" value={`${node.abo_level}%`} />}
-              {node.gpv != null && <Stat label="GPV" value={node.gpv.toLocaleString('de-DE', { maximumFractionDigits: 0 })} />}
-              {node.ppv != null && <Stat label="PPV" value={node.ppv.toLocaleString('de-DE', { maximumFractionDigits: 0 })} />}
+              {node.gpv != null && <Stat label="ГТС" value={node.gpv.toLocaleString('de-DE', { maximumFractionDigits: 0 })} />}
+              {node.ppv != null && <Stat label="ЛТС" value={node.ppv.toLocaleString('de-DE', { maximumFractionDigits: 0 })} />}
               {node.bonus_percent != null && <Stat label="Bonus %" value={`${node.bonus_percent}%`} />}
               {node.group_size != null && <Stat label="Group size" value={String(node.group_size)} />}
               {node.qualified_legs != null && <Stat label="Qualified legs" value={String(node.qualified_legs)} />}
@@ -170,7 +114,6 @@ function MemberCard({ node, isExpanded, onToggle }: {
               {node.depth != null && <Stat label="Tree depth" value={String(node.depth)} />}
             </div>
           )}
-
           {hasVitals && (
             <div>
               <p className="text-[10px] font-semibold tracking-widest uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>
@@ -192,7 +135,6 @@ function MemberCard({ node, isExpanded, onToggle }: {
               </div>
             </div>
           )}
-
           {!hasStats && !hasVitals && (
             <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>No additional data available.</p>
           )}
@@ -274,9 +216,14 @@ function GuestView({ nodes, callerAbo }: { nodes: LOSNode[]; callerAbo: string |
   )
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
+// ── Inner page (reads searchParams) ──────────────────────────────────────────
 
-export default function LOSPage() {
+function LOSPageInner() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const view = (searchParams.get('view') ?? 'list') as 'list' | 'chart'
+  const [chartDepth, setChartDepth] = useState(3)
+
   const { data, isLoading, isError } = useQuery<TreeResponse>({
     queryKey: ['los-tree'],
     queryFn: () => fetch('/api/los/tree').then(r => r.json()),
@@ -285,6 +232,12 @@ export default function LOSPage() {
 
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [search, setSearch] = useState('')
+
+  function setView(v: 'list' | 'chart') {
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('view', v)
+    router.replace(`?${params.toString()}`, { scroll: false })
+  }
 
   function toggleExpand(key: string) {
     setExpanded(prev => {
@@ -326,6 +279,8 @@ export default function LOSPage() {
     ? 'Your Network'
     : 'Your Upline'
 
+  const isGuest = data?.scope === 'guest'
+
   return (
     <div className="py-8 pb-16">
       <div className="max-w-[960px] mx-auto px-4">
@@ -343,32 +298,79 @@ export default function LOSPage() {
             )}
           </div>
 
+          {/* Legend */}
           <div className="flex items-center gap-3 flex-shrink-0">
             {(['admin', 'core', 'member', 'guest'] as const).map(role => {
               const rc = roleColors(role)
-              const label = role.charAt(0).toUpperCase() + role.slice(1)
               return (
                 <div key={role} className="flex items-center gap-1.5">
                   <span
                     className="w-2.5 h-2.5 rounded-full flex-shrink-0"
                     style={{ backgroundColor: rc.labelBg, border: `1px solid ${rc.border}`, opacity: rc.opacity }}
                   />
-                  <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{label}</span>
+                  <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                    {role.charAt(0).toUpperCase() + role.slice(1)}
+                  </span>
                 </div>
               )
             })}
           </div>
         </div>
 
-        {/* Search + controls */}
-        {data?.scope !== 'guest' && (
+        {/* View switcher — non-guest only */}
+        {!isGuest && data && (
+          <div className="flex items-center gap-2 mb-5 flex-wrap">
+            {(['list', 'chart'] as const).map(v => (
+              <button
+                key={v}
+                onClick={() => setView(v)}
+                className="px-4 py-1.5 rounded-lg text-xs font-semibold border transition-colors"
+                style={{
+                  borderColor: view === v ? 'var(--text-primary)' : 'var(--border-default)',
+                  backgroundColor: view === v ? 'var(--text-primary)' : 'transparent',
+                  color: view === v ? 'var(--bg-global)' : 'var(--text-secondary)',
+                }}
+              >
+                {v === 'list' ? 'List' : 'Chart'}
+              </button>
+            ))}
+
+            {/* Depth control — chart view only */}
+            {view === 'chart' && (
+              <div className="flex items-center gap-2 ml-4">
+                <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Depth:</span>
+                {[1, 2, 3, 4, 5].map(d => (
+                  <button
+                    key={d}
+                    onClick={() => setChartDepth(d)}
+                    className="w-6 h-6 rounded text-xs font-semibold border transition-colors"
+                    style={{
+                      borderColor: chartDepth === d ? 'var(--text-primary)' : 'var(--border-default)',
+                      backgroundColor: chartDepth === d ? 'var(--text-primary)' : 'transparent',
+                      color: chartDepth === d ? 'var(--bg-global)' : 'var(--text-secondary)',
+                    }}
+                  >
+                    {d}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Search + expand controls — list view only */}
+        {!isGuest && view === 'list' && (
           <div className="flex items-center gap-3 mb-5">
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search by name or ABO…"
               className="flex-1 border rounded-xl px-3 py-2 text-sm"
-              style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
+              style={{
+                borderColor: 'var(--border-default)',
+                color: 'var(--text-primary)',
+                backgroundColor: 'var(--bg-global)',
+              }}
             />
             {!searchLower && (
               <>
@@ -391,6 +393,7 @@ export default function LOSPage() {
           </div>
         )}
 
+        {/* Loading skeleton */}
         {isLoading && (
           <div className="space-y-2">
             {[...Array(8)].map((_, i) => (
@@ -399,17 +402,25 @@ export default function LOSPage() {
           </div>
         )}
 
+        {/* Error */}
         {isError && (
           <div className="rounded-2xl p-6 text-center" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
             <p className="text-sm font-semibold" style={{ color: 'var(--brand-crimson)' }}>Failed to load LOS data.</p>
           </div>
         )}
 
-        {!isLoading && !isError && data?.scope === 'guest' && (
-          <GuestView nodes={data.nodes} callerAbo={data.caller_abo} />
+        {/* Guest */}
+        {!isLoading && !isError && isGuest && (
+          <GuestView nodes={data!.nodes} callerAbo={data!.caller_abo} />
         )}
 
-        {!isLoading && !isError && data?.scope !== 'guest' && (
+        {/* Chart */}
+        {!isLoading && !isError && !isGuest && view === 'chart' && (
+          <OrgChartCanvas roots={tree} maxDepth={chartDepth} />
+        )}
+
+        {/* List */}
+        {!isLoading && !isError && !isGuest && view === 'list' && (
           <>
             {filteredTree.length === 0 && (
               <p className="text-sm text-center py-8" style={{ color: 'var(--text-secondary)' }}>
@@ -429,5 +440,15 @@ export default function LOSPage() {
         )}
       </div>
     </div>
+  )
+}
+
+// ── Page — Suspense boundary for useSearchParams ──────────────────────────────
+
+export default function LOSPage() {
+  return (
+    <Suspense>
+      <LOSPageInner />
+    </Suspense>
   )
 }
