@@ -40,6 +40,21 @@ Counter resets each month. GitHub issue number is the canonical unique reference
 
 ---
 
+## GitHub Issue Labels
+
+| Label | Purpose |
+|---|---|
+| `feat` | New functionality |
+| `bug` | Something broken |
+| `chore` | Refactor, deps, infrastructure |
+| `priority:high` | Pick before anything else |
+| `priority:low` | Pick last |
+| `blocked` | Do not pick — has a dependency that isn’t resolved |
+
+READ order: `priority:high` first, then unlabelled, then `priority:low`. Never pick a `blocked` issue without explicit user acknowledgment.
+
+---
+
 ## Hard Constraints
 
 Violation = immediate stop, no exceptions.
@@ -71,9 +86,9 @@ Violation = immediate stop, no exceptions.
 
 Output format:
 ```
-| GitHub   | ✅/❌ |
-| In flight | [YYMM-TYPE-NNN] <title> / None |
-| Handoff  | IN PROGRESS: <next action> / DONE / No active PR |
+| GitHub    | ✅/❌ |
+| In flight | [YYMM]-[TYPE]-[NNN] <title> / None |
+| Handoff   | IN PROGRESS: <next action> / DONE / No active PR |
 ```
 If GitHub ❌ — stop.
 
@@ -87,14 +102,14 @@ If GitHub ❌ — stop.
 2. `get_pull_request_comments` — fetch all inline comments.
 3. Read each affected file at its current branch HEAD (not the diff commit SHA).
 4. Apply every HIGH-priority comment. Apply MEDIUM-priority comments unless there is a concrete reason not to (state it).
-5. Push all changes in a single commit to the PR branch. Commit message: `[YYMM-TYPE-NNN] fix: address Gemini PR<N> review comments`.
+5. Push all changes in a single commit to the PR branch. Commit message: `[YYMM]-[TYPE]-[NNN] fix: address Gemini PR<N> review comments`.
 6. Report: one line per comment — ✅ Applied / ⚠️ Skipped (reason).
 
 ---
 
 ## Workflow
 
-**READ** → Check open GitHub Issues. Resume any in-progress issue (open PR exists). Otherwise pick the highest priority open unblocked issue.
+**READ** → Check open GitHub Issues. Resume any in-progress issue (open PR exists). Otherwise pick the highest `priority:high` open issue without the `blocked` label. If none, pick the next unlabelled issue by creation order.
 
 **SHAPE** → Hard stop before claiming. Two required outputs before any code:
 1. Write the DoD into the issue body as a single verifiable line: `DoD: <specific outcome>`. If you cannot write it, you do not understand the ticket — stop.
