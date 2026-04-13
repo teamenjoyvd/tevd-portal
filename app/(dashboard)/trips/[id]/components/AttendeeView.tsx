@@ -24,7 +24,7 @@ function SubmitPaymentDrawer({
 }) {
   return (
     <Drawer open={open} onClose={onClose} title="Submit Payment">
-      <PaymentForm tripId={tripId} onSuccess={onClose} onCancel={onClose} />
+      <PaymentForm context="trip" tripId={tripId} onSuccess={onClose} onCancel={onClose} />
     </Drawer>
   )
 }
