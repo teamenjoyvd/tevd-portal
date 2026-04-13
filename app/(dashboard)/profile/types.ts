@@ -86,14 +86,8 @@ export type TripEntry = {
   payments: TripPayment[]
 }
 
-export type PayableItem = {
-  id: string
-  title: string
-  description: string | null
-  amount: number
-  currency: string
-  item_type: string
-}
+// PayableItem is the canonical type — defined in components/payment/types.ts
+export type { PayableItem } from '@/components/payment/types'
 
 export type GenericPayment = {
   id: string

@@ -2,23 +2,32 @@
 
 import { useState, useRef } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { formatCurrency } from '@/lib/format'
+import type { PayableItem } from './types'
 
-type Props = {
-  tripId: string
+type TripContext    = { context: 'trip';    tripId: string }
+type GenericContext = { context: 'generic'; payableItems: PayableItem[] }
+
+type PaymentFormProps = (TripContext | GenericContext) & {
   onSuccess?: () => void
-  onCancel?: () => void
+  onCancel?:  () => void
 }
 
 /**
  * Unified payment submission form.
- * Used in AttendeeView (trip detail) and any future payment surfaces.
- * Applies the SEQ363 UX: segmented control for method, forest-green CTA,
- * styled upload zone, required-field legend.
+ *
+ * context='trip'    — posts trip_id, no item selector. Used in AttendeeView.
+ * context='generic' — posts payable_item_id, shows item dropdown. Used in PaymentsSection.
+ *
+ * Both contexts share identical UX: segmented method control, styled upload
+ * zone, required-field legend, forest-green CTA.
  */
-export function PaymentForm({ tripId, onSuccess, onCancel }: Props) {
+export function PaymentForm(props: PaymentFormProps) {
+  const { onSuccess, onCancel } = props
   const qc = useQueryClient()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  const [itemId, setItemId]   = useState('')
   const [amount, setAmount]   = useState('')
   const [date, setDate]       = useState('')
   const [method, setMethod]   = useState<'cash' | 'bank_transfer'>('cash')
@@ -38,15 +47,20 @@ export function PaymentForm({ tripId, onSuccess, onCancel }: Props) {
         proof_url = uploadBody.url
       }
 
+      const entity =
+        props.context === 'trip'
+          ? { trip_id: props.tripId }
+          : { payable_item_id: itemId }
+
       const res = await fetch('/api/payments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          trip_id: tripId,
-          amount: parseFloat(amount),
-          currency: 'EUR',
+          ...entity,
+          amount:           parseFloat(amount),
+          currency:         'EUR',
           transaction_date: date,
-          payment_method: method,
+          payment_method:   method,
           proof_url,
           note: note || null,
         }),
@@ -56,14 +70,19 @@ export function PaymentForm({ tripId, onSuccess, onCancel }: Props) {
       return body
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['trip-payments', tripId] })
-      setAmount(''); setDate(''); setMethod('cash'); setFile(null); setNote('')
+      if (props.context === 'trip') {
+        qc.invalidateQueries({ queryKey: ['trip-payments', props.tripId] })
+      } else {
+        qc.invalidateQueries({ queryKey: ['profile-generic-payments'] })
+      }
+      setItemId(''); setAmount(''); setDate(''); setMethod('cash'); setFile(null); setNote('')
       onSuccess?.()
     },
   })
 
   const parsedAmount = parseFloat(amount)
-  const canSubmit = !isNaN(parsedAmount) && parsedAmount > 0 && !!date && !submitMutation.isPending
+  const entityValid  = props.context === 'trip' ? true : !!itemId
+  const canSubmit    = !isNaN(parsedAmount) && parsedAmount > 0 && !!date && entityValid && !submitMutation.isPending
 
   const inputStyle = {
     backgroundColor: 'var(--bg-global)',
@@ -90,6 +109,27 @@ export function PaymentForm({ tripId, onSuccess, onCancel }: Props) {
       <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
         Fields marked <span style={{ color: 'var(--brand-crimson)' }}>*</span> are required.
       </p>
+
+      {/* Item selector — generic context only */}
+      {props.context === 'generic' && (
+        <div>
+          <label style={labelStyle}>
+            Item <span style={{ color: 'var(--brand-crimson)' }}>*</span>
+          </label>
+          <select
+            value={itemId}
+            onChange={e => setItemId(e.target.value)}
+            style={inputStyle}
+          >
+            <option value="">Select an item…</option>
+            {props.payableItems.map(item => (
+              <option key={item.id} value={item.id}>
+                {item.title} — {formatCurrency(item.amount, item.currency)}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {/* Amount */}
       <div>
