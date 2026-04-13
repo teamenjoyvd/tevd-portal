@@ -65,6 +65,14 @@ If any ❌ — stop.
 2. If REF.md needs updates (schema changed, new routes, new env vars) — update and push in a single `push_files` call together with any other changed docs.
 3. If nothing changed in REF.md — done. No other writes required.
 
+**GCR** — Address Gemini Code Review. Given a PR number:
+1. `get_pull_request_reviews` — fetch the Gemini review summary.
+2. `get_pull_request_comments` — fetch all inline comments.
+3. Read each affected file at its current branch HEAD (not the diff commit SHA).
+4. Apply every HIGH-priority comment. Apply MEDIUM-priority comments unless there is a concrete reason not to (state it).
+5. Push all changes in a single commit to the PR branch. Commit message: `[SEQ<NNN>] fix: address Gemini PR<N> review comments`.
+6. Report: one line per comment — ✅ Applied / ⚠️ Skipped (reason).
+
 ---
 
 ## Workflow
