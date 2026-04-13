@@ -24,7 +24,8 @@ type LOSRow = {
 
 type VitalSign = {
   definition_id: string
-  recorded_at: string
+  label: string
+  recorded_at: string | null
   note: string | null
 }
 
@@ -72,20 +73,43 @@ export async function GET() {
   const { data: losRows } = await supabase.rpc('get_los_members_with_profiles')
   const rows = (losRows ?? []) as LOSRow[]
 
+  // Fetch all active definitions once — these drive completeness display
+  const { data: defRows } = await supabase
+    .from('vital_sign_definitions')
+    .select('id, category')
+    .eq('is_active', true)
+    .order('sort_order')
+
+  const definitions = (defRows ?? []) as { id: string; category: string }[]
+
+  // Fetch all recorded vital signs (service role bypasses RLS — full table)
   const { data: vsRows } = await supabase
     .from('member_vital_signs')
     .select('profile_id, definition_id, recorded_at, note')
 
-  const vsByProfile: Record<string, VitalSign[]> = {}
+  // Index recorded signs by profile_id → definition_id
+  const recordedByProfile: Record<string, Record<string, { recorded_at: string; note: string | null }>> = {}
   for (const vs of vsRows ?? []) {
     const pid = vs.profile_id as string
-    if (!vsByProfile[pid]) vsByProfile[pid] = []
-    vsByProfile[pid].push({ definition_id: vs.definition_id, recorded_at: vs.recorded_at, note: vs.note })
+    if (!recordedByProfile[pid]) recordedByProfile[pid] = {}
+    recordedByProfile[pid][vs.definition_id] = { recorded_at: vs.recorded_at, note: vs.note }
+  }
+
+  // Build full vital signs list per profile: all definitions, recorded_at/note null if absent
+  function vitalsForProfile(profileId: string | null): VitalSign[] {
+    if (!profileId) return []
+    const recorded = recordedByProfile[profileId] ?? {}
+    return definitions.map(def => ({
+      definition_id: def.id,
+      label: def.category,
+      recorded_at: recorded[def.id]?.recorded_at ?? null,
+      note: recorded[def.id]?.note ?? null,
+    }))
   }
 
   const allNodes: LOSNodeWithVitals[] = rows.map(row => ({
     ...row,
-    vital_signs: vsByProfile[row.profile_id ?? ''] ?? [],
+    vital_signs: vitalsForProfile(row.profile_id),
   }))
 
   function syntheticSelf(): SyntheticNode {
@@ -102,7 +126,7 @@ export async function GET() {
       country: null, gpv: null, ppv: null, bonus_percent: null,
       group_size: null, qualified_legs: null, annual_ppv: null,
       renewal_date: null, last_synced_at: null,
-      vital_signs: vsByProfile[caller!.id] ?? [],
+      vital_signs: vitalsForProfile(caller!.id),
     }
   }
 

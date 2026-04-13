@@ -3,10 +3,10 @@
 // routes consume this.
 
 export type VitalSign = {
-  event_key: string
-  event_label: string
-  has_ticket: boolean
-  updated_at: string
+  definition_id: string
+  label: string        // mapped from vital_sign_definitions.category
+  recorded_at: string | null  // null = definition exists but not recorded for this member
+  note: string | null
 }
 
 export type LOSNode = {
