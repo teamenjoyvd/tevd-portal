@@ -38,6 +38,11 @@ function Stat({ label, value }: { label: string; value: string }) {
 
 // ── MemberCard ────────────────────────────────────────────────────────────────
 
+const STAT_FIELDS = [
+  'gpv', 'ppv', 'bonus_percent', 'group_size',
+  'qualified_legs', 'annual_ppv', 'renewal_date', 'country', 'depth',
+] as const
+
 function MemberCard({ node, isExpanded, onToggle }: {
   node: LOSNode
   isExpanded: boolean
@@ -46,7 +51,7 @@ function MemberCard({ node, isExpanded, onToggle }: {
   const rc = roleColors(node.role)
   const name = displayName(node)
   const hasVitals = node.vital_signs.length > 0
-  const hasStats = node.gpv != null || node.ppv != null || node.group_size != null
+  const hasStats = STAT_FIELDS.some(k => node[k] != null)
 
   return (
     <div
