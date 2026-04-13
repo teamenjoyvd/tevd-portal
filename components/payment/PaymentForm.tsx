@@ -5,7 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { formatCurrency } from '@/lib/format'
 import type { PayableItem } from './types'
 
-type TripContext    = { context: 'trip';    tripId: string }
+type TripContext    = { context?: 'trip';   tripId: string }
 type GenericContext = { context: 'generic'; payableItems: PayableItem[] }
 
 type PaymentFormProps = (TripContext | GenericContext) & {
@@ -16,8 +16,8 @@ type PaymentFormProps = (TripContext | GenericContext) & {
 /**
  * Unified payment submission form.
  *
- * context='trip'    — posts trip_id, no item selector. Used in AttendeeView.
- * context='generic' — posts payable_item_id, shows item dropdown. Used in PaymentsSection.
+ * context='trip' (or omitted) — posts trip_id, no item selector. Used in AttendeeView.
+ * context='generic'           — posts payable_item_id, shows item dropdown. Used in PaymentsSection.
  *
  * Both contexts share identical UX: segmented method control, styled upload
  * zone, required-field legend, forest-green CTA.
@@ -34,6 +34,9 @@ export function PaymentForm(props: PaymentFormProps) {
   const [file, setFile]       = useState<File | null>(null)
   const [note, setNote]       = useState('')
 
+  const selectedItem = 'payableItems' in props ? props.payableItems.find(i => i.id === itemId) : null
+  const currency     = selectedItem?.currency ?? 'EUR'
+
   const submitMutation = useMutation({
     mutationFn: async () => {
       let proof_url: string | null = null
@@ -48,7 +51,7 @@ export function PaymentForm(props: PaymentFormProps) {
       }
 
       const entity =
-        props.context === 'trip'
+        'tripId' in props
           ? { trip_id: props.tripId }
           : { payable_item_id: itemId }
 
@@ -58,7 +61,7 @@ export function PaymentForm(props: PaymentFormProps) {
         body: JSON.stringify({
           ...entity,
           amount:           parseFloat(amount),
-          currency:         'EUR',
+          currency,
           transaction_date: date,
           payment_method:   method,
           proof_url,
@@ -70,7 +73,7 @@ export function PaymentForm(props: PaymentFormProps) {
       return body
     },
     onSuccess: () => {
-      if (props.context === 'trip') {
+      if ('tripId' in props) {
         qc.invalidateQueries({ queryKey: ['trip-payments', props.tripId] })
       } else {
         qc.invalidateQueries({ queryKey: ['profile-generic-payments'] })
@@ -81,7 +84,7 @@ export function PaymentForm(props: PaymentFormProps) {
   })
 
   const parsedAmount = parseFloat(amount)
-  const entityValid  = props.context === 'trip' ? true : !!itemId
+  const entityValid  = 'tripId' in props ? true : !!itemId
   const canSubmit    = !isNaN(parsedAmount) && parsedAmount > 0 && !!date && entityValid && !submitMutation.isPending
 
   const inputStyle = {
@@ -111,14 +114,19 @@ export function PaymentForm(props: PaymentFormProps) {
       </p>
 
       {/* Item selector — generic context only */}
-      {props.context === 'generic' && (
+      {'payableItems' in props && (
         <div>
           <label style={labelStyle}>
             Item <span style={{ color: 'var(--brand-crimson)' }}>*</span>
           </label>
           <select
             value={itemId}
-            onChange={e => setItemId(e.target.value)}
+            onChange={e => {
+              const id = e.target.value
+              setItemId(id)
+              const item = props.payableItems.find(i => i.id === id)
+              if (item) setAmount(item.amount.toString())
+            }}
             style={inputStyle}
           >
             <option value="">Select an item…</option>
@@ -134,7 +142,7 @@ export function PaymentForm(props: PaymentFormProps) {
       {/* Amount */}
       <div>
         <label style={labelStyle}>
-          Amount (EUR) <span style={{ color: 'var(--brand-crimson)' }}>*</span>
+          Amount ({currency}) <span style={{ color: 'var(--brand-crimson)' }}>*</span>
         </label>
         <input
           type="number" min="0" step="0.01" placeholder="0.00"
