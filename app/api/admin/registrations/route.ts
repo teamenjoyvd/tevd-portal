@@ -13,7 +13,7 @@ export async function GET(): Promise<Response> {
   const { data, error } = await supabase
     .from('trip_registrations')
     .select('id, status, created_at, trip_id, profile:profiles!profile_id(id, first_name, last_name, abo_number), trip:trips!trip_id(id, title, destination, start_date)')
-    .eq('status', 'pending')
+    .is('cancelled_at', null)
     .order('created_at', { ascending: true })
 
   if (error) return Response.json({ error: error.message }, { status: 500 })

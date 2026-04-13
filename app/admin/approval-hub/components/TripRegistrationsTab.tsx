@@ -74,7 +74,11 @@ export function TripRegistrationsTab() {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
-      }).then(r => r.json()),
+      }).then(async r => {
+        const body = await r.json().catch(() => ({}))
+        if (!r.ok) throw new Error(body.error ?? `HTTP ${r.status}`)
+        return body
+      }),
     onMutate: async ({ id, status }) => {
       await qc.cancelQueries({ queryKey: ['registrations', 'all'] })
       const prev = qc.getQueryData<TripRegistration[]>(['registrations', 'all'])
