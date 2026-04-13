@@ -88,10 +88,10 @@ function MemberCard({ node, isExpanded, onToggle }: {
           <div className="flex gap-1 flex-shrink-0">
             {node.vital_signs.map(vs => (
               <span
-                key={vs.event_key}
-                title={`${vs.event_label}: ${vs.has_ticket ? 'ticketed' : 'no ticket'}`}
+                key={vs.definition_id}
+                title={`${vs.label}: ${vs.recorded_at ? 'recorded' : 'not recorded'}`}
                 className="w-2 h-2 rounded-full flex-shrink-0"
-                style={{ backgroundColor: vs.has_ticket ? 'var(--brand-crimson)' : 'rgba(0,0,0,0.12)' }}
+                style={{ backgroundColor: vs.recorded_at ? 'var(--brand-crimson)' : 'rgba(0,0,0,0.12)' }}
               />
             ))}
           </div>
@@ -121,14 +121,14 @@ function MemberCard({ node, isExpanded, onToggle }: {
               <div className="flex flex-wrap gap-2">
                 {node.vital_signs.map(vs => (
                   <span
-                    key={vs.event_key}
+                    key={vs.definition_id}
                     className="text-xs font-semibold px-2.5 py-1 rounded-full"
                     style={{
-                      backgroundColor: vs.has_ticket ? 'rgba(188,71,73,0.12)' : 'rgba(0,0,0,0.05)',
-                      color: vs.has_ticket ? 'var(--brand-crimson)' : 'var(--text-secondary)',
+                      backgroundColor: vs.recorded_at ? 'rgba(188,71,73,0.12)' : 'rgba(0,0,0,0.05)',
+                      color: vs.recorded_at ? 'var(--brand-crimson)' : 'var(--text-secondary)',
                     }}
                   >
-                    {vs.has_ticket ? '✓' : '○'} {vs.event_label}
+                    {vs.recorded_at ? '✓' : '○'} {vs.label}
                   </span>
                 ))}
               </div>
@@ -282,7 +282,7 @@ function LOSPageInner() {
 
   return (
     <div className="py-8 pb-16">
-      <div className="max-w-[960px] mx-auto px-4">
+      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 xl:px-8">
 
         {/* Header */}
         <div className="flex items-center justify-between mb-6 gap-4">
@@ -299,7 +299,7 @@ function LOSPageInner() {
 
           {/* Legend */}
           <div className="flex items-center gap-3 flex-shrink-0">
-            {(['admin', 'core', 'member', 'guest'] as const).map(role => {
+            {(['core', 'member', 'guest'] as const).map(role => {
               const rc = roleColors(role)
               return (
                 <div key={role} className="flex items-center gap-1.5">

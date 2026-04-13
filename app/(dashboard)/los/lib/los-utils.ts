@@ -3,10 +3,9 @@
 // routes consume this.
 
 export type VitalSign = {
-  event_key: string
-  event_label: string
-  has_ticket: boolean
-  updated_at: string
+  definition_id: string
+  label: string
+  recorded_at: string | null
 }
 
 export type LOSNode = {
