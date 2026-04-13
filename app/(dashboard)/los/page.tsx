@@ -46,7 +46,7 @@ function MemberCard({ node, isExpanded, onToggle }: {
   const rc = roleColors(node.role)
   const name = displayName(node)
   const hasVitals = node.vital_signs.length > 0
-  const hasStats = node.gpv != null || node.ppv != null || node.group_size != null || node.abo_level != null
+  const hasStats = node.gpv != null || node.ppv != null || node.group_size != null
 
   return (
     <div
@@ -79,11 +79,6 @@ function MemberCard({ node, isExpanded, onToggle }: {
         >
           {node.role ?? 'guest'}
         </span>
-        {node.abo_level && (
-          <span className="text-[10px] flex-shrink-0" style={{ color: 'var(--text-secondary)' }}>
-            {node.abo_level}%
-          </span>
-        )}
         {!isExpanded && hasVitals && (
           <div className="flex gap-1 flex-shrink-0">
             {node.vital_signs.map(vs => (
@@ -102,7 +97,6 @@ function MemberCard({ node, isExpanded, onToggle }: {
         <div className="px-4 pb-4 pt-2 space-y-3" style={{ borderTop: '1px solid var(--border-default)' }}>
           {hasStats && (
             <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-              {node.abo_level && <Stat label="ABO Level" value={`${node.abo_level}%`} />}
               {node.gpv != null && <Stat label="ГТС" value={node.gpv.toLocaleString('de-DE', { maximumFractionDigits: 0 })} />}
               {node.ppv != null && <Stat label="ЛТС" value={node.ppv.toLocaleString('de-DE', { maximumFractionDigits: 0 })} />}
               {node.bonus_percent != null && <Stat label="Bonus %" value={`${node.bonus_percent}%`} />}
