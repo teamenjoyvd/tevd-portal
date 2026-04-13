@@ -4,8 +4,9 @@
 
 export type VitalSign = {
   definition_id: string
-  label: string
-  recorded_at: string | null
+  label: string        // mapped from vital_sign_definitions.category
+  recorded_at: string | null  // null = definition exists but not recorded for this member
+  note: string | null
 }
 
 export type LOSNode = {
