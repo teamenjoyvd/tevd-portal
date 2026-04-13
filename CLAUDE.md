@@ -10,8 +10,6 @@
 |---|---|
 | Repo | `teamenjoyvd/tevd-portal` |
 | Branch | `main` |
-| Airtable base | `app1n7KYX8i8xSiB7` |
-| Airtable issues table | `tblUq45Wo3xngSf3w` |
 | Supabase project | `ynykjpnetfwqzdnsgkkg` |
 | Production URL | `https://tevd-portal.vercel.app` |
 
@@ -19,17 +17,53 @@ Never ask the user to confirm these.
 
 ---
 
+## ID Format
+
+```
+[YYMM]-[TYPE]-[NNN]
+```
+
+- `YYMM` — year + month of creation (e.g. `2604` for April 2026)
+- `TYPE` — `FEAT`, `BUG`, or `CHORE`
+- `NNN` — incrementing counter within the month, zero-padded to 3 digits
+
+Examples: `2604-FEAT-001`, `2604-BUG-002`, `2604-CHORE-003`
+
+| Artifact | Format |
+|---|---|
+| GitHub Issue title | `[2604-FEAT-001] Short description` |
+| Branch | `feature/2604-FEAT-001` |
+| Commit prefix | `[2604-FEAT-001] description` |
+| PR title | `[2604-FEAT-001] description` |
+
+Counter resets each month. GitHub issue number is the canonical unique reference if a lookup is ever needed.
+
+---
+
+## GitHub Issue Labels
+
+| Label | Purpose |
+|---|---|
+| `feat` | New functionality |
+| `bug` | Something broken |
+| `chore` | Refactor, deps, infrastructure |
+| `priority:high` | Pick before anything else |
+| `priority:low` | Pick last |
+| `blocked` | Do not pick — has a dependency that isn’t resolved |
+
+READ order: `priority:high` first, then unlabelled, then `priority:low`. Never pick a `blocked` issue without explicit user acknowledgment.
+
+---
+
 ## Hard Constraints
 
 Violation = immediate stop, no exceptions.
 
-- **NEVER push directly to `main`.** Feature branches only: `feature/SEQ<NNN>-ISS<NNN>`.
+- **NEVER push directly to `main`.** Feature branches only: `feature/[YYMM]-[TYPE]-[NNN]`.
 - **NEVER create `middleware.ts`.** Auth lives in `proxy.ts`.
 - **NEVER expose `SUPABASE_SERVICE_ROLE_KEY` to the client.**
 - **NEVER bypass Clerk auth on a protected route.**
-- **NEVER write `Status=Done` before the commit link exists.**
 - **NEVER mark Done on static analysis alone.** Vercel PR preview must be READY and CI green.
-- **NEVER proceed if `Blocked By` is non-empty** without explicit user acknowledgment.
 - **NEVER write data to Supabase from a Preview URL** — preview URLs hit production DB.
 - **390px mobile-first.** Every new UI surface must render correctly at 390px.
 - **RLS policies use Pattern A helpers only** — `is_admin()`, `get_my_role()`, `get_my_profile_id()`, `get_my_clerk_id()`. Never raw `auth.jwt()`.
@@ -47,18 +81,16 @@ Violation = immediate stop, no exceptions.
 ## Commands
 
 **SSU** — System Status Update. Run at session start:
-1. Airtable `list_bases` — confirm `app1n7KYX8i8xSiB7` reachable.
-2. GitHub MCP `get_file_contents` on `CLAUDE.md` — confirms connectivity and loads current state.
-3. Airtable queue — query `Status = In Progress` AND `Duplicate = false/empty`. If found: read the active PR's `## Session State` block and report what's in flight before doing anything else. If none: report top `Status = To Do`, `Blocked By = empty`, `Duplicate = false/empty` by Priority.
+1. GitHub MCP `get_file_contents` on `CLAUDE.md` — confirms connectivity and loads current state.
+2. GitHub MCP `list_pull_requests` — check for any open PRs. If found: read the active PR's `## Session State` block and report what's in flight before doing anything else. If none: report ready to pick up next issue.
 
 Output format:
 ```
-| Airtable | ✅/❌ |
-| GitHub   | ✅/❌ |
-| Queue    | SEQ<NNN>-ISS<NNN>: <n> / All clear |
-| Handoff  | IN PROGRESS: <next action> / DONE / No active PR |
+| GitHub    | ✅/❌ |
+| In flight | [YYMM]-[TYPE]-[NNN] <title> / None |
+| Handoff   | IN PROGRESS: <next action> / DONE / No active PR |
 ```
-If any ❌ — stop.
+If GitHub ❌ — stop.
 
 **PIU** — Pack It Up. Run at session end:
 1. Confirm PR `## Session State` is `DONE` — write it now if not already done.
@@ -70,29 +102,27 @@ If any ❌ — stop.
 2. `get_pull_request_comments` — fetch all inline comments.
 3. Read each affected file at its current branch HEAD (not the diff commit SHA).
 4. Apply every HIGH-priority comment. Apply MEDIUM-priority comments unless there is a concrete reason not to (state it).
-5. Push all changes in a single commit to the PR branch. Commit message: `[SEQ<NNN>] fix: address Gemini PR<N> review comments`.
+5. Push all changes in a single commit to the PR branch. Commit message: `[YYMM]-[TYPE]-[NNN] fix: address Gemini PR<N> review comments`.
 6. Report: one line per comment — ✅ Applied / ⚠️ Skipped (reason).
 
 ---
 
 ## Workflow
 
-Issue format: `SEQ<NNN>-ISS<NNN>`. `Seq` is the true PK — Issue ID is not unique.
-Commit format: `[SEQ<NNN>-ISS<NNN>] Description`.
-Branch format: `feature/SEQ<NNN>-ISS<NNN>`.
+**READ** → Check open GitHub Issues. Resume any in-progress issue (open PR exists). Otherwise pick the highest `priority:high` open issue without the `blocked` label. If none, pick the next unlabelled issue by creation order.
 
-**READ** → Query In Progress (resume if found) else top To Do unblocked.
+**SHAPE** → Hard stop before claiming. Two required outputs before any code:
+1. Write the DoD into the issue body as a single verifiable line: `DoD: <specific outcome>`. If you cannot write it, you do not understand the ticket — stop.
+2. Read the relevant architecture doc if the ticket touches a sensitive area:
+   - Auth / role / Clerk sync → `FLOWS.md §1`
+   - Registration → `FLOWS.md §2`
+   - Payments → `FLOWS.md §3`
+   - LOS / tree / notifications → `FLOWS.md §4`
+   - Vital signs → `FLOWS.md §5` — STOP, pending SO clarification
+   - New external dependency → update `C4.md` first
+   - New architectural pattern → write ADR in `DECISIONS.md` before executing
 
-**SHAPE** → Hard stop before claiming — read the relevant doc:
-- Auth / role / Clerk sync → `FLOWS.md §1`
-- Registration → `FLOWS.md §2`
-- Payments → `FLOWS.md §3`
-- LOS / tree / notifications → `FLOWS.md §4`
-- Vital signs → `FLOWS.md §5` — STOP, pending SO clarification
-- New external dependency → update `C4.md` first
-- New architectural pattern → write ADR in `DECISIONS.md` before executing
-
-**CLAIM** → Set `Status = In Progress`. Checkout branch.
+**CLAIM** → Assign GitHub issue to self. Create branch: `feature/[YYMM]-[TYPE]-[NNN]`. Push immediately to establish remote: `git push -u origin feature/[YYMM]-[TYPE]-[NNN]`.
 
 **GATHER** → Read only the REF.md sections the ticket needs (section map at top of REF.md).
 
@@ -101,7 +131,7 @@ Branch format: `feature/SEQ<NNN>-ISS<NNN>`.
 
 **VERIFY** → DoD point-by-point. Vercel Preview READY. CI green. 390px check. No production side-effects.
 
-**FINALIZE** → Open PR against `main`. After merge: verify Vercel production READY. Write Airtable: `Status=Done` + `CommitLink` + `ClaudeNotes`.
+**FINALIZE** → Mark PR ready for review. User merges manually via GitHub UI. After merge: confirm production Vercel deployment READY. Issue closes automatically via `Closes #N` in PR body.
 
 ### PR Session State block
 
