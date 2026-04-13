@@ -5,33 +5,17 @@ import { useQuery } from '@tanstack/react-query'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { formatDate } from '@/lib/format'
 import { OrgChartCanvas } from './components/OrgChartCanvas'
-import type { LOSNode } from './components/OrgChartCanvas'
-
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-type VitalSign = {
-  event_key: string
-  event_label: string
-  has_ticket: boolean
-  updated_at: string
-}
-
-type LOSNodeInternal = LOSNode
-
-type TreeResponse = {
-  scope: 'full' | 'subtree' | 'guest'
-  nodes: LOSNodeInternal[]
-  caller_abo: string | null
-}
+import { displayName, roleColors } from './lib/los-utils'
+import type { LOSNode, TreeResponse } from './lib/los-utils'
 
 // ── Tree builder ──────────────────────────────────────────────────────────────
 
-function buildTree(nodes: LOSNodeInternal[], rootAbo: string | null): LOSNodeInternal[] {
-  const byAbo: Record<string, LOSNodeInternal> = {}
+function buildTree(nodes: LOSNode[], rootAbo: string | null): LOSNode[] {
+  const byAbo: Record<string, LOSNode> = {}
   for (const n of nodes) {
     if (n.abo_number) byAbo[n.abo_number] = { ...n, children: [] }
   }
-  const roots: LOSNodeInternal[] = []
+  const roots: LOSNode[] = []
   for (const n of Object.values(byAbo)) {
     const parent = n.sponsor_abo_number ? byAbo[n.sponsor_abo_number] : null
     if (parent) parent.children!.push(n)
@@ -39,24 +23,6 @@ function buildTree(nodes: LOSNodeInternal[], rootAbo: string | null): LOSNodeInt
   }
   if (rootAbo && byAbo[rootAbo]) return [byAbo[rootAbo]]
   return roots
-}
-
-function displayName(node: LOSNodeInternal): string {
-  if (node.first_name && node.last_name) return `${node.first_name} ${node.last_name}`
-  return node.name ?? node.abo_number ?? '—'
-}
-
-// ── Role color system ─────────────────────────────────────────────────────────
-
-const ROLE_COLORS: Record<string, { border: string; labelBg: string; labelColor: string; opacity: number }> = {
-  admin:  { border: '#2d332a',             labelBg: '#2d332a',               labelColor: '#FAF8F3', opacity: 1   },
-  core:   { border: '#3E7785',             labelBg: '#3E7785',               labelColor: '#FAF8F3', opacity: 1   },
-  member: { border: 'rgba(45,51,42,0.15)', labelBg: 'rgba(62,119,133,0.12)', labelColor: '#3E7785', opacity: 1   },
-  guest:  { border: 'rgba(45,51,42,0.08)', labelBg: 'rgba(0,0,0,0.05)',      labelColor: '#8A8577', opacity: 0.6 },
-}
-
-function roleColors(role: string | null) {
-  return ROLE_COLORS[role ?? 'guest'] ?? ROLE_COLORS.guest
 }
 
 // ── Stat subcomponent ─────────────────────────────────────────────────────────
@@ -73,7 +39,7 @@ function Stat({ label, value }: { label: string; value: string }) {
 // ── MemberCard ────────────────────────────────────────────────────────────────
 
 function MemberCard({ node, isExpanded, onToggle }: {
-  node: LOSNodeInternal
+  node: LOSNode
   isExpanded: boolean
   onToggle: () => void
 }) {
@@ -181,7 +147,7 @@ function MemberCard({ node, isExpanded, onToggle }: {
 // ── Recursive tree node ───────────────────────────────────────────────────────
 
 function TreeNode({ node, depth, expanded, onToggleExpand }: {
-  node: LOSNodeInternal
+  node: LOSNode
   depth: number
   expanded: Set<string>
   onToggleExpand: (key: string) => void
@@ -212,11 +178,11 @@ function TreeNode({ node, depth, expanded, onToggleExpand }: {
 
 // ── Guest view ────────────────────────────────────────────────────────────────
 
-function GuestView({ nodes, callerAbo }: { nodes: LOSNodeInternal[]; callerAbo: string | null }) {
+function GuestView({ nodes, callerAbo }: { nodes: LOSNode[]; callerAbo: string | null }) {
   const self = nodes.find(n => n.abo_number === callerAbo) ?? nodes[0]
   const upline = nodes.find(n => n.abo_number !== callerAbo)
 
-  function SimpleRow({ node, label }: { node: LOSNodeInternal; label: string }) {
+  function SimpleRow({ node, label }: { node: LOSNode; label: string }) {
     const rc = roleColors(node.role)
     return (
       <div>
@@ -282,9 +248,9 @@ function LOSPageInner() {
     })
   }
 
-  function expandAll(nodes: LOSNodeInternal[]) {
+  function expandAll(nodes: LOSNode[]) {
     const keys = new Set<string>()
-    function collect(n: LOSNodeInternal) {
+    function collect(n: LOSNode) {
       if (n.abo_number) keys.add(n.abo_number)
       else if (n.profile_id) keys.add(n.profile_id)
       for (const c of n.children ?? []) collect(c)
@@ -293,12 +259,12 @@ function LOSPageInner() {
     setExpanded(keys)
   }
 
-  const tree: LOSNodeInternal[] = data
+  const tree: LOSNode[] = data
     ? buildTree(data.nodes, data.scope === 'subtree' ? data.caller_abo : null)
     : []
 
   const searchLower = search.toLowerCase().trim()
-  const filteredTree: LOSNodeInternal[] = searchLower
+  const filteredTree: LOSNode[] = searchLower
     ? (data?.nodes ?? [])
         .filter(n => {
           const name = displayName(n).toLowerCase()

@@ -1,37 +1,10 @@
 'use client'
 
-import { useRef, useState, useCallback, useEffect, useMemo } from 'react'
+import { useRef, useState, useEffect, useMemo } from 'react'
+import { displayName, roleColors } from '../lib/los-utils'
+import type { LOSNode } from '../lib/los-utils'
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-type VitalSign = {
-  event_key: string
-  event_label: string
-  has_ticket: boolean
-  updated_at: string
-}
-
-export type LOSNode = {
-  profile_id: string | null
-  abo_number: string | null
-  sponsor_abo_number: string | null
-  abo_level: string | null
-  name: string | null
-  first_name: string | null
-  last_name: string | null
-  role: string | null
-  depth: number | null
-  country: string | null
-  gpv: number | null
-  ppv: number | null
-  bonus_percent: number | null
-  group_size: number | null
-  qualified_legs: number | null
-  annual_ppv: number | null
-  renewal_date: string | null
-  vital_signs: VitalSign[]
-  children?: LOSNode[]
-}
+export type { LOSNode }
 
 // ── Layout types ──────────────────────────────────────────────────────────────
 
@@ -51,25 +24,9 @@ const GAP_Y  = 56
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function displayName(node: LOSNode): string {
-  if (node.first_name && node.last_name) return `${node.last_name}, ${node.first_name}`
-  return node.name ?? node.abo_number ?? '—'
-}
-
 function fmt(v: number | null): string {
   if (v == null) return '—'
   return v.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-}
-
-const ROLE_COLORS: Record<string, { border: string; labelBg: string; labelColor: string }> = {
-  admin:  { border: '#2d332a',             labelBg: '#2d332a',               labelColor: '#FAF8F3' },
-  core:   { border: '#3E7785',             labelBg: '#3E7785',               labelColor: '#FAF8F3' },
-  member: { border: 'rgba(45,51,42,0.2)',  labelBg: 'rgba(62,119,133,0.12)', labelColor: '#3E7785' },
-  guest:  { border: 'rgba(45,51,42,0.1)',  labelBg: 'rgba(0,0,0,0.05)',      labelColor: '#8A8577' },
-}
-
-function rc(role: string | null) {
-  return ROLE_COLORS[role ?? 'guest'] ?? ROLE_COLORS.guest
 }
 
 // ── Depth cap ─────────────────────────────────────────────────────────────────
@@ -82,26 +39,36 @@ function capDepth(node: LOSNode, maxDepth: number, current = 0): LOSNode {
   }
 }
 
-// ── Layout algorithm ──────────────────────────────────────────────────────────
+// ── Layout algorithm (single bottom-up pass, O(N)) ────────────────────────────
+// widthMap memoizes subtree widths so each node is measured exactly once.
 
-function subtreeWidth(node: LOSNode): number {
+function buildWidthMap(node: LOSNode, map: Map<LOSNode, number>): number {
   const children = node.children ?? []
-  if (children.length === 0) return CARD_W
-  const childrenWidth = children.reduce((sum, c) => sum + subtreeWidth(c), 0)
-  return Math.max(CARD_W, childrenWidth + GAP_X * (children.length - 1))
+  if (children.length === 0) {
+    map.set(node, CARD_W)
+    return CARD_W
+  }
+  const childrenWidth = children.reduce((sum, c) => sum + buildWidthMap(c, map), 0)
+  const w = Math.max(CARD_W, childrenWidth + GAP_X * (children.length - 1))
+  map.set(node, w)
+  return w
 }
 
-function layoutNode(node: LOSNode, cx: number, y: number): LayoutNode {
+function layoutNode(node: LOSNode, cx: number, y: number, widthMap: Map<LOSNode, number>): LayoutNode {
   const children = node.children ?? []
   if (children.length === 0) return { node, x: cx, y, children: [] }
-  const widths = children.map(subtreeWidth)
-  const totalWidth = widths.reduce((s, w) => s + w, 0) + GAP_X * (children.length - 1)
+  const totalWidth = (widthMap.get(node) ?? CARD_W)
   let cursor = cx - totalWidth / 2
+  // Recompute cursor offset: totalWidth already accounts for GAP_X between siblings,
+  // but cursor starts at the left edge of the first child's subtree.
+  const childWidths = children.map(c => widthMap.get(c) ?? CARD_W)
+  const innerWidth = childWidths.reduce((s, w) => s + w, 0) + GAP_X * (children.length - 1)
+  cursor = cx - innerWidth / 2
   const layoutChildren = children.map((child, i) => {
-    const w = widths[i]
+    const w = childWidths[i]
     const childCx = cursor + w / 2
     cursor += w + GAP_X
-    return layoutNode(child, childCx, y + CARD_H + GAP_Y)
+    return layoutNode(child, childCx, y + CARD_H + GAP_Y, widthMap)
   })
   return { node, x: cx, y, children: layoutChildren }
 }
@@ -124,23 +91,21 @@ function collectEdges(root: LayoutNode): Array<{ x1: number; y1: number; x2: num
   return edges
 }
 
-function canvasBounds(nodes: LayoutNode[]): { minX: number; maxX: number; maxY: number } {
-  let minX = Infinity, maxX = -Infinity, maxY = -Infinity
+function canvasBounds(nodes: LayoutNode[]): { maxX: number; maxY: number } {
+  let maxX = -Infinity, maxY = -Infinity
   for (const n of nodes) {
-    minX = Math.min(minX, n.x - CARD_W / 2)
     maxX = Math.max(maxX, n.x + CARD_W / 2)
     maxY = Math.max(maxY, n.y + CARD_H)
   }
-  return { minX, maxX, maxY }
+  return { maxX, maxY }
 }
 
 // ── OrgChartNode card ─────────────────────────────────────────────────────────
 
 function OrgChartNode({ ln }: { ln: LayoutNode }) {
   const { node, x, y } = ln
-  const colors = rc(node.role)
+  const colors = roleColors(node.role)
   const name = displayName(node)
-  const roleLabel = node.role ?? 'guest'
 
   return (
     <foreignObject x={x - CARD_W / 2} y={y} width={CARD_W} height={CARD_H} style={{ overflow: 'visible' }}>
@@ -190,7 +155,7 @@ function OrgChartNode({ ln }: { ln: LayoutNode }) {
               letterSpacing: '0.04em',
             }}
           >
-            {roleLabel}
+            {node.role ?? 'guest'}
           </span>
         </div>
 
@@ -239,17 +204,24 @@ export function OrgChartCanvas({ roots, maxDepth }: { roots: LOSNode[]; maxDepth
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 })
   const dragging = useRef(false)
   const lastPos = useRef({ x: 0, y: 0 })
+  const containerRef = useRef<HTMLDivElement>(null)
 
   const { nodes, edges, svgW, svgH } = useMemo(() => {
     const PADDING = 40
     const cappedRoots = roots.map(r => capDepth(r, maxDepth))
+
+    // Single bottom-up pass: build width map for all nodes before layout
+    const widthMap = new Map<LOSNode, number>()
+    cappedRoots.forEach(r => buildWidthMap(r, widthMap))
+
     const rootLayouts: LayoutNode[] = []
     let cursor = PADDING
     for (const root of cappedRoots) {
-      const w = subtreeWidth(root)
-      rootLayouts.push(layoutNode(root, cursor + w / 2, PADDING))
+      const w = widthMap.get(root) ?? CARD_W
+      rootLayouts.push(layoutNode(root, cursor + w / 2, PADDING, widthMap))
       cursor += w + GAP_X * 2
     }
+
     const allNodes = rootLayouts.flatMap(flattenLayout)
     const allEdges = rootLayouts.flatMap(collectEdges)
     const bounds = canvasBounds(allNodes)
@@ -263,26 +235,39 @@ export function OrgChartCanvas({ roots, maxDepth }: { roots: LOSNode[]; maxDepth
 
   useEffect(() => { setTransform({ x: 0, y: 0, scale: 1 }) }, [roots, maxDepth])
 
-  const onPointerDown = useCallback((e: React.PointerEvent) => {
+  // ── Pointer drag ─────────────────────────────────────────────────────────────
+
+  const onPointerDown = (e: React.PointerEvent) => {
     dragging.current = true
     lastPos.current = { x: e.clientX, y: e.clientY }
     ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
-  }, [])
+  }
 
-  const onPointerMove = useCallback((e: React.PointerEvent) => {
+  const onPointerMove = (e: React.PointerEvent) => {
     if (!dragging.current) return
     const dx = e.clientX - lastPos.current.x
     const dy = e.clientY - lastPos.current.y
     lastPos.current = { x: e.clientX, y: e.clientY }
     setTransform(t => ({ ...t, x: t.x + dx, y: t.y + dy }))
-  }, [])
+  }
 
-  const onPointerUp = useCallback(() => { dragging.current = false }, [])
+  const onPointerUp = () => { dragging.current = false }
 
-  const onWheel = useCallback((e: React.WheelEvent) => {
-    e.preventDefault()
-    const delta = e.deltaY > 0 ? 0.9 : 1.1
-    setTransform(t => ({ ...t, scale: Math.max(0.3, Math.min(2.5, t.scale * delta)) }))
+  // ── Wheel zoom — non-passive native listener ───────────────────────────────
+  // React's synthetic onWheel is passive in Chrome/Safari; preventDefault() is
+  // silently ignored, causing the page to scroll instead of zooming.
+  // Attaching a native listener with { passive: false } is the only correct fix.
+
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const handler = (e: WheelEvent) => {
+      e.preventDefault()
+      const delta = e.deltaY > 0 ? 0.9 : 1.1
+      setTransform(t => ({ ...t, scale: Math.max(0.3, Math.min(2.5, t.scale * delta)) }))
+    }
+    el.addEventListener('wheel', handler, { passive: false })
+    return () => el.removeEventListener('wheel', handler)
   }, [])
 
   return (
@@ -299,11 +284,11 @@ export function OrgChartCanvas({ roots, maxDepth }: { roots: LOSNode[]; maxDepth
         Reset
       </button>
       <div
+        ref={containerRef}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerLeave={onPointerUp}
-        onWheel={onWheel}
         style={{
           width: '100%', overflowX: 'auto', overflowY: 'hidden',
           cursor: 'grab', borderRadius: 16,
