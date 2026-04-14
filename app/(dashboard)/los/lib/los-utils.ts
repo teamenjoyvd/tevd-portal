@@ -23,7 +23,7 @@ export type LOSNode = {
   qualified_legs: number | null
   annual_ppv: number | null
   renewal_date: string | null
-  vital_signs: import('@/lib/vitals').VitalSign[]
+  vital_signs: VitalSign[]
   children?: LOSNode[]
 }
 

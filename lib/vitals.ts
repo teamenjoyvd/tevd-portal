@@ -7,13 +7,17 @@
 /**
  * Represents one vital sign entry as returned by any /vital-signs API endpoint.
  * Covers both surfaces: profile member view and LOS tree admin view.
+ *
+ * Note: `label` is optional because the profile API nests it inside
+ * `vital_sign_definitions` rather than at the top level. LOS and admin routes
+ * do include it top-level. Use ProfileVitalSign for the profile surface.
  */
 export type VitalSign = {
   definition_id: string
-  label: string
+  label?: string
   /** true = row exists with is_active=true. false = row absent or deactivated. */
   is_active: boolean
-  /** recorded_at from member_vital_signs; null when no row exists or row is inactive. */
+  /** recorded_at from member_vital_signs; null only when no row exists at all. */
   recorded_at: string | null
   note: string | null
 }

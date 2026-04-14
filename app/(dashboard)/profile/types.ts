@@ -114,7 +114,7 @@ export { isVitalRecorded } from '@/lib/vitals'
 
 // Profile API response extends the base VitalSign with the nested definition shape
 // returned by /api/profile/vital-signs.
-export type ProfileVitalSign = import('@/lib/vitals').VitalSign & {
+export type ProfileVitalSign = VitalSign & {
   id: string
   is_recorded: boolean
   created_at: string | null
