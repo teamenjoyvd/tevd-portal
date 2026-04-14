@@ -1,7 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
 
-export async function DELETE(
+export async function PATCH(
   _req: Request,
   { params }: { params: Promise<{ id: string; definitionId: string }> }
 ) {
@@ -15,12 +15,14 @@ export async function DELETE(
 
   const { id: memberId, definitionId } = await params
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('member_vital_signs')
-    .delete()
+    .update({ is_active: false })
     .eq('profile_id', memberId)
     .eq('definition_id', definitionId)
+    .select()
+    .single()
 
   if (error) return Response.json({ error: error.message }, { status: 500 })
-  return new Response(null, { status: 204 })
+  return Response.json(data)
 }

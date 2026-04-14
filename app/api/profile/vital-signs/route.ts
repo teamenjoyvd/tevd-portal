@@ -17,7 +17,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from('member_vital_signs')
-    .select('id, definition_id, recorded_at, note, created_at, vital_sign_definitions(category, label, sort_order)')
+    .select('id, definition_id, is_active, recorded_at, note, created_at, vital_sign_definitions(category, label, sort_order)')
     .eq('profile_id', profile.id)
     .order('created_at', { ascending: false })
 

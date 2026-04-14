@@ -23,7 +23,7 @@ export async function GET(
         .order('sort_order', { ascending: true }),
       supabase
         .from('member_vital_signs')
-        .select('definition_id, recorded_at, note')
+        .select('definition_id, recorded_at, is_active, note')
         .eq('profile_id', memberId),
     ])
 
@@ -39,6 +39,7 @@ export async function GET(
     return {
       ...def,
       is_recorded: !!entry,
+      is_active_record: entry?.is_active ?? false,
       recorded_at: entry?.recorded_at ?? null,
       note: entry?.note ?? null,
     }
@@ -68,13 +69,17 @@ export async function POST(
 
   const { data, error } = await supabase
     .from('member_vital_signs')
-    .insert({
-      profile_id:    memberId,
-      definition_id: body.definition_id,
-      recorded_at:   body.recorded_at ?? new Date().toISOString().split('T')[0],
-      recorded_by:   adminProfile.id,
-      note:          body.note ?? null,
-    })
+    .upsert(
+      {
+        profile_id:    memberId,
+        definition_id: body.definition_id,
+        is_active:     true,
+        recorded_at:   body.recorded_at ?? new Date().toISOString().split('T')[0],
+        recorded_by:   adminProfile.id,
+        note:          body.note ?? null,
+      },
+      { onConflict: 'profile_id,definition_id' }
+    )
     .select()
     .single()
 

@@ -7,7 +7,13 @@ import { formatDate } from '@/lib/format'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type VitalSign = { definition_id: string; recorded_at: string; note: string | null }
+type VitalSign = {
+  definition_id: string
+  label: string
+  is_active: boolean
+  recorded_at: string | null
+  note: string | null
+}
 
 type VitalSignDefinition = {
   id: string
@@ -54,6 +60,14 @@ function buildTree(nodes: TreeNode[]): TreeNode[] {
   return roots
 }
 
+async function apiFetch(url: string, options: RequestInit): Promise<void> {
+  const res = await fetch(url, options)
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error(body.error ?? `Request failed: ${res.status}`)
+  }
+}
+
 // ── VitalSignsConfig ──────────────────────────────────────────────────────────
 
 function VitalSignsConfig({ definitions, onRefetch }: {
@@ -75,14 +89,20 @@ function VitalSignsConfig({ definitions, onRefetch }: {
 
   const toggleActiveMutation = useMutation({
     mutationFn: ({ id, is_active }: { id: string; is_active: boolean }) =>
-      fetch(`/api/admin/vital-sign-definitions/${id}`, {
+      apiFetch(`/api/admin/vital-sign-definitions/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_active }),
-      }).then(r => r.json()),
+      }),
+    onMutate: ({ id, is_active }) => {
+      setLocalDefs(prev => prev.map(d => d.id === id ? { ...d, is_active } : d))
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['vital-sign-definitions'] })
       onRefetch()
+    },
+    onError: (_err, { id, is_active }) => {
+      setLocalDefs(prev => prev.map(d => d.id === id ? { ...d, is_active: !is_active } : d))
     },
   })
 
@@ -174,12 +194,11 @@ function VitalSignsConfig({ definitions, onRefetch }: {
 // ── NodeCard ──────────────────────────────────────────────────────────────────
 
 function NodeCard({
-  node, definitions, allDefinitions, onToggle, isPending,
+  node, definitions, onToggle, isPending,
 }: {
   node: TreeNode
   definitions: VitalSignDefinition[]
-  allDefinitions: VitalSignDefinition[]
-  onToggle: (profileId: string, definitionId: string, currentlyRecorded: boolean) => void
+  onToggle: (profileId: string, definitionId: string, currentlyActive: boolean) => void
   isPending: boolean
 }) {
   const [expanded, setExpanded] = useState(node.depth !== null ? node.depth < 2 : true)
@@ -189,10 +208,6 @@ function NodeCard({
     ? `${node.first_name} ${node.last_name}`
     : node.name ?? node.abo_number
   const vitalSigns = Array.isArray(node.vital_signs) ? node.vital_signs : []
-
-  const inactiveWithHistory = allDefinitions
-    .filter(d => !d.is_active)
-    .filter(d => vitalSigns.some(v => v.definition_id === d.id))
 
   return (
     <div className="relative">
@@ -224,46 +239,38 @@ function NodeCard({
               <div className="flex flex-wrap gap-3 mt-2">
                 {definitions.map(def => {
                   const record = vitalSigns.find(v => v.definition_id === def.id)
-                  const checked = !!record
+                  const isActive = record?.is_active ?? false
+                  const hasRecord = !!record
                   const noProfile = !node.profile_id
                   return (
                     <label key={def.id}
-                      className={`flex items-center gap-1.5 ${noProfile ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer group'}`}
+                      className={`flex items-center gap-1.5 ${
+                        noProfile ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer group'
+                      }`}
                       title={noProfile ? 'No portal account — cannot track vital signs' : undefined}>
-                      <input type="checkbox" checked={checked}
+                      <input
+                        type="checkbox"
+                        checked={isActive}
                         disabled={isPending || noProfile}
-                        onChange={() => onToggle(node.profile_id!, def.id, checked)}
-                        className="w-3.5 h-3.5 rounded accent-[var(--brand-crimson)]" />
-                      <span className="text-[11px] font-body transition-colors"
-                        style={{ color: checked ? 'var(--brand-crimson)' : 'var(--text-secondary)' }}>
+                        onChange={() => onToggle(node.profile_id!, def.id, isActive)}
+                        className="w-3.5 h-3.5 rounded accent-[var(--brand-crimson)]"
+                      />
+                      <span
+                        className="text-[11px] font-body transition-colors"
+                        style={{
+                          color: isActive ? 'var(--brand-crimson)' : 'var(--text-secondary)',
+                          textDecoration: isActive ? 'underline' : 'none',
+                          opacity: hasRecord && !isActive ? 0.5 : 1,
+                        }}
+                      >
                         {def.label ?? def.category}
                       </span>
-                      {checked && record?.recorded_at && (
+                      {isActive && record?.recorded_at && (
                         <span className="text-[10px] font-body" style={{ color: 'var(--text-secondary)', opacity: 0.7 }}>
                           {formatDate(record.recorded_at)}
                         </span>
                       )}
                     </label>
-                  )
-                })}
-              </div>
-            )}
-            {inactiveWithHistory.length > 0 && (
-              <div className="flex flex-wrap gap-3 mt-1.5 pt-1.5 border-t" style={{ borderColor: 'var(--border-default)' }}>
-                {inactiveWithHistory.map(def => {
-                  const record = vitalSigns.find(v => v.definition_id === def.id)!
-                  return (
-                    <span key={def.id} className="flex items-center gap-1.5" style={{ opacity: 0.45 }}>
-                      <input type="checkbox" checked readOnly disabled className="w-3.5 h-3.5 rounded" />
-                      <span className="text-[11px] font-body" style={{ color: 'var(--text-secondary)' }}>
-                        {def.label ?? def.category}
-                      </span>
-                      {record.recorded_at && (
-                        <span className="text-[10px] font-body" style={{ color: 'var(--text-secondary)' }}>
-                          {formatDate(record.recorded_at)}
-                        </span>
-                      )}
-                    </span>
                   )
                 })}
               </div>
@@ -279,7 +286,6 @@ function NodeCard({
         <div className="ml-6 pl-4 border-l" style={{ borderColor: 'var(--border-default)' }}>
           {node.children!.map(child => (
             <NodeCard key={child.abo_number} node={child} definitions={definitions}
-              allDefinitions={allDefinitions}
               onToggle={onToggle} isPending={isPending} />
           ))}
         </div>
@@ -308,27 +314,61 @@ export function LosTab() {
   const allDefinitions = Array.isArray(definitionsRaw) ? definitionsRaw : []
   const definitions = allDefinitions.filter(d => d.is_active)
 
-  const checkMutation = useMutation({
+  const activateMutation = useMutation({
     mutationFn: ({ profileId, definitionId }: { profileId: string; definitionId: string }) =>
-      fetch(`/api/admin/members/${profileId}/vital-signs`, {
+      apiFetch(`/api/admin/members/${profileId}/vital-signs`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ definition_id: definitionId }),
-      }).then(r => r.json()),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['los-tree'] }),
+      }),
+    onMutate: ({ profileId, definitionId }) => {
+      qc.setQueryData<LosTreeResponse>(['los-tree'], old => {
+        if (!old) return old
+        return {
+          ...old,
+          nodes: old.nodes.map(n =>
+            n.profile_id !== profileId ? n : {
+              ...n,
+              vital_signs: n.vital_signs.map(v =>
+                v.definition_id !== definitionId ? v : { ...v, is_active: true }
+              ),
+            }
+          ),
+        }
+      })
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ['los-tree'] }),
   })
 
-  const uncheckMutation = useMutation({
+  const deactivateMutation = useMutation({
     mutationFn: ({ profileId, definitionId }: { profileId: string; definitionId: string }) =>
-      fetch(`/api/admin/members/${profileId}/vital-signs/${definitionId}`, { method: 'DELETE' }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['los-tree'] }),
+      apiFetch(`/api/admin/members/${profileId}/vital-signs/${definitionId}`, {
+        method: 'PATCH',
+      }),
+    onMutate: ({ profileId, definitionId }) => {
+      qc.setQueryData<LosTreeResponse>(['los-tree'], old => {
+        if (!old) return old
+        return {
+          ...old,
+          nodes: old.nodes.map(n =>
+            n.profile_id !== profileId ? n : {
+              ...n,
+              vital_signs: n.vital_signs.map(v =>
+                v.definition_id !== definitionId ? v : { ...v, is_active: false }
+              ),
+            }
+          ),
+        }
+      })
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ['los-tree'] }),
   })
 
-  const isPending = checkMutation.isPending || uncheckMutation.isPending
+  const isPending = activateMutation.isPending || deactivateMutation.isPending
 
-  function handleToggle(profileId: string, definitionId: string, currentlyRecorded: boolean) {
-    if (currentlyRecorded) uncheckMutation.mutate({ profileId, definitionId })
-    else checkMutation.mutate({ profileId, definitionId })
+  function handleToggle(profileId: string, definitionId: string, currentlyActive: boolean) {
+    if (currentlyActive) deactivateMutation.mutate({ profileId, definitionId })
+    else activateMutation.mutate({ profileId, definitionId })
   }
 
   function handleConfigRefetch() {
@@ -342,7 +382,7 @@ export function LosTab() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-          Full org tree with vital signs. Click a checkbox to toggle event attendance.
+          Full org tree with vital signs. Click a checkbox to toggle.
         </p>
         <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{flatNodes.length} members</span>
       </div>
@@ -361,7 +401,6 @@ export function LosTab() {
         <div className="space-y-1">
           {treeRoots.map(node => (
             <NodeCard key={node.abo_number} node={node} definitions={definitions}
-              allDefinitions={allDefinitions}
               onToggle={handleToggle}
               isPending={isPending} />
           ))}
