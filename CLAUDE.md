@@ -118,7 +118,7 @@ If GitHub ❌ — stop.
    - Registration → `FLOWS.md §2`
    - Payments → `FLOWS.md §3`
    - LOS / tree / notifications → `FLOWS.md §4`
-   - Vital signs → `FLOWS.md §5` — STOP, pending SO clarification
+   - Vital signs → `FLOWS.md §5`
    - New external dependency → update `C4.md` first
    - New architectural pattern → write ADR in `DECISIONS.md` before executing
 
