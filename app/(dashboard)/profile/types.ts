@@ -110,9 +110,12 @@ export type GenericPayment = {
 export type VitalSign = {
   id: string
   definition_id: string
+  /** Present in all API responses after 2604-BUG-002. True = row exists AND is_active=true. */
+  is_recorded: boolean
+  is_active: boolean
   recorded_at: string | null
   note: string | null
-  created_at: string
+  created_at: string | null
   vital_sign_definitions: {
     category: string
     label: string

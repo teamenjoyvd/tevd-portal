@@ -284,7 +284,7 @@ Tree structure drives targeted notification delivery:
 
 ## 5. Vital Signs
 
-> ✅ Status: **Confirmed** — state model established via 2604-BUG-001 (PR #32, 2026-04-14).
+> ✅ Status: **Stable / Implemented** — state model established via 2604-BUG-001 (PR #32) and API corrected via 2604-BUG-002 (PR #33), both 2026-04-14.
 
 ### Context
 
@@ -292,7 +292,7 @@ Vital signs track per-member health or qualification markers. Each sign belongs 
 
 ### Data Model
 
-- `vital_sign_definitions` — admin-managed category/label definitions
+- `vital_sign_definitions` — admin-managed category/label definitions; `is_active` controls whether the definition appears in the member-facing matrix
 - `member_vital_signs` — one row per `(profile_id, definition_id)`, UNIQUE constraint enforced at DB level
   - `is_active boolean NOT NULL DEFAULT true` — active/inactive toggle; row is never deleted
   - `recorded_at`, `recorded_by` — updated on every activate (upsert)
@@ -352,6 +352,10 @@ sequenceDiagram
     Note over S: Row is retained. History preserved.<br/>No DELETE ever issued against member_vital_signs.
 ```
 
+### Member Profile API (`/api/profile/vital-signs`)
+
+Returns one entry per **active** `vital_sign_definitions` row (`.eq('is_active', true)`), left-joined against `member_vital_signs` for the requesting profile. Each entry carries `is_recorded` and `is_active` so the UI can distinguish unrecorded, recorded-active, and recorded-inactive states without additional queries.
+
 ### LOS Tree Surface (`/api/los/tree`)
 
 The tree endpoint fetches **all** vital sign records for each member regardless of `is_active`, and surfaces `is_active` per record. Rendering decisions (active = underlined crimson, inactive = dimmed) are made at the component level (`NodeCard`), not at the query level.
@@ -360,4 +364,5 @@ The tree endpoint fetches **all** vital sign records for each member regardless 
 - **Never DELETE from `member_vital_signs`.** Deactivate only (`is_active=false`).
 - **Activate = upsert**, not INSERT. This is the only safe path given the UNIQUE constraint.
 - Admin-only write access. Members read via `/api/profile/vital-signs` (returns `is_active` per record).
+- `/api/profile/vital-signs` filters definitions by `is_active=true` — retired definitions do not appear in the member matrix.
 - Definition toggle (enable/disable a definition globally) is a separate concern managed via `vital_sign_definitions` — it does not affect existing `member_vital_signs` rows.
