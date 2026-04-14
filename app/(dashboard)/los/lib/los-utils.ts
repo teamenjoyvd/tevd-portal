@@ -2,6 +2,7 @@
 // Co-located here per CLAUDE.md: promote to /components only when 2+ unrelated
 // routes consume this.
 
+import type { VitalSign } from '@/lib/vitals'
 export type { VitalSign } from '@/lib/vitals'
 export { isVitalRecorded } from '@/lib/vitals'
 
