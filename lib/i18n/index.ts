@@ -12,6 +12,36 @@ import { los }           from './domains/los'
 
 export type Lang = 'en' | 'bg'
 
+// ---------------------------------------------------------------------------
+// Collision guard — throws at module-init time in development and CI so that
+// a key added to two domains fails loudly rather than silently overwriting.
+// Dead-code-eliminated in production builds (process.env.NODE_ENV === 'production').
+// ---------------------------------------------------------------------------
+function assertNoDuplicateKeys(
+  domains: Record<string, unknown>[],
+): void {
+  if (process.env.NODE_ENV === 'production') return
+  const seen = new Set<string>()
+  const dupes: string[] = []
+  for (const domain of domains) {
+    for (const key of Object.keys(domain)) {
+      if (seen.has(key)) dupes.push(key)
+      else seen.add(key)
+    }
+  }
+  if (dupes.length > 0) {
+    throw new Error(
+      `[i18n] Duplicate translation keys detected across domains:\n  ${dupes.join('\n  ')}\n` +
+      `Each key must be unique. Rename the conflicting keys to use their domain prefix.`,
+    )
+  }
+}
+
+assertNoDuplicateKeys([
+  nav, roles, announcements, time, guides,
+  notifications, profile, trips, calendar, events, los,
+])
+
 export const translations = {
   ...nav,
   ...roles,
