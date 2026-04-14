@@ -109,6 +109,7 @@ export type GenericPayment = {
 
 // VitalSign canonical type and predicate live in lib/vitals.ts.
 // Re-exported here so profile components can import from a single local barrel.
+import type { VitalSign } from '@/lib/vitals'
 export type { VitalSign } from '@/lib/vitals'
 export { isVitalRecorded } from '@/lib/vitals'
 
