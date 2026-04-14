@@ -1,5 +1,5 @@
 # FLOWS.md — Component Flows (C4 L3)
-> tevd-portal · Last updated: 2026-03-24
+> tevd-portal · Last updated: 2026-04-14
 > Scope: Ambiguous zones only. Simple CRUD with no branching logic is not documented here.
 > Tooling: Mermaid state and sequence diagrams.
 
@@ -284,18 +284,80 @@ Tree structure drives targeted notification delivery:
 
 ## 5. Vital Signs
 
-> ⚠️ Status: **Undocumented — pending SO clarification.**
-> Tickets SEQ241, SEQ242, SEQ243 are on hold until the state model is confirmed.
-> Do not execute any vital signs ticket without first completing this section.
+> ✅ Status: **Confirmed** — state model established via 2604-BUG-001 (PR #32, 2026-04-14).
 
-### What exists (schema + routes only)
+### Context
 
-Tables: `vital_sign_definitions` (categories + labels, admin-managed), `member_vital_signs` (per-member records, UNIQUE on `profile_id + definition_id`).
+Vital signs track per-member health or qualification markers. Each sign belongs to a `vital_sign_definitions` category (admin-managed). Recording is admin-only — members have read access only. There is no dual-approval and no member confirmation step.
 
-Routes: `/api/admin/vital-sign-definitions/*` (definition CRUD), `/api/admin/members/[id]/vital-signs/*` (admin record management), `/api/profile/vitals` (member read).
+### Data Model
 
-### Open questions (resolve with SO before writing the flow)
-1. Is a vital sign record one-time per member per definition, or can multiple be recorded over time? (UNIQUE constraint suggests one-time, but confirm.)
-2. Does admin recording require member confirmation (dual-approval like payments), or is it a direct admin write?
-3. Can members self-report vital signs, or is recording admin-only?
-4. What triggers a vital sign becoming "active" or "expired"?
+- `vital_sign_definitions` — admin-managed category/label definitions
+- `member_vital_signs` — one row per `(profile_id, definition_id)`, UNIQUE constraint enforced at DB level
+  - `is_active boolean NOT NULL DEFAULT true` — active/inactive toggle; row is never deleted
+  - `recorded_at`, `recorded_by` — updated on every activate (upsert)
+
+### State Machine
+
+```mermaid
+stateDiagram-v2
+    [*] --> active : Admin activates (POST upsert)
+    active --> inactive : Admin deactivates (PATCH is_active=false)
+    inactive --> active : Admin re-activates (POST upsert — updates recorded_at/recorded_by)
+
+    note right of active
+        Row exists with is_active=true.
+        recorded_at and recorded_by reflect
+        the most recent activation.
+    end note
+
+    note right of inactive
+        Row exists with is_active=false.
+        History is preserved.
+        No data loss on deactivate.
+    end note
+```
+
+### Activate / Re-activate Flow
+
+```mermaid
+sequenceDiagram
+    participant A as Admin (Browser)
+    participant R as POST /api/admin/members/[id]/vital-signs
+    participant S as Supabase member_vital_signs
+
+    A->>R: POST { definition_id }
+    R->>R: await auth() → verify admin role → resolve profile_id
+    R->>S: UPSERT (profile_id, definition_id)\n  SET is_active=true, recorded_at=now(), recorded_by=admin_profile_id\n  ON CONFLICT (profile_id, definition_id) DO UPDATE
+    S-->>R: Upserted row
+    R-->>A: 200
+
+    Note over S: Idempotent. Re-activating an existing record<br/>updates recorded_at and recorded_by without<br/>violating the UNIQUE constraint.
+```
+
+### Deactivate Flow
+
+```mermaid
+sequenceDiagram
+    participant A as Admin (Browser)
+    participant R as PATCH /api/admin/members/[id]/vital-signs/[definitionId]
+    participant S as Supabase member_vital_signs
+
+    A->>R: PATCH (no body required)
+    R->>R: await auth() → verify admin role → resolve profile_id
+    R->>S: UPDATE member_vital_signs\n  SET is_active=false\n  WHERE profile_id=X AND definition_id=Y
+    S-->>R: Updated row
+    R-->>A: 200
+
+    Note over S: Row is retained. History preserved.<br/>No DELETE ever issued against member_vital_signs.
+```
+
+### LOS Tree Surface (`/api/los/tree`)
+
+The tree endpoint fetches **all** vital sign records for each member regardless of `is_active`, and surfaces `is_active` per record. Rendering decisions (active = underlined crimson, inactive = dimmed) are made at the component level (`NodeCard`), not at the query level.
+
+### Invariants
+- **Never DELETE from `member_vital_signs`.** Deactivate only (`is_active=false`).
+- **Activate = upsert**, not INSERT. This is the only safe path given the UNIQUE constraint.
+- Admin-only write access. Members read via `/api/profile/vital-signs` (returns `is_active` per record).
+- Definition toggle (enable/disable a definition globally) is a separate concern managed via `vital_sign_definitions` — it does not affect existing `member_vital_signs` rows.
