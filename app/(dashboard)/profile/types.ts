@@ -107,14 +107,16 @@ export type GenericPayment = {
   } | null
 }
 
-export type VitalSign = {
+// VitalSign canonical type and predicate live in lib/vitals.ts.
+// Re-exported here so profile components can import from a single local barrel.
+export type { VitalSign } from '@/lib/vitals'
+export { isVitalRecorded } from '@/lib/vitals'
+
+// Profile API response extends the base VitalSign with the nested definition shape
+// returned by /api/profile/vital-signs.
+export type ProfileVitalSign = import('@/lib/vitals').VitalSign & {
   id: string
-  definition_id: string
-  /** Present in all API responses after 2604-BUG-002. True = row exists AND is_active=true. */
   is_recorded: boolean
-  is_active: boolean
-  recorded_at: string | null
-  note: string | null
   created_at: string | null
   vital_sign_definitions: {
     category: string

@@ -2,12 +2,8 @@
 // Co-located here per CLAUDE.md: promote to /components only when 2+ unrelated
 // routes consume this.
 
-export type VitalSign = {
-  definition_id: string
-  label: string        // mapped from vital_sign_definitions.category
-  recorded_at: string | null  // null = definition exists but not recorded for this member
-  note: string | null
-}
+export type { VitalSign } from '@/lib/vitals'
+export { isVitalRecorded } from '@/lib/vitals'
 
 export type LOSNode = {
   profile_id: string | null
@@ -27,7 +23,7 @@ export type LOSNode = {
   qualified_legs: number | null
   annual_ppv: number | null
   renewal_date: string | null
-  vital_signs: VitalSign[]
+  vital_signs: import('@/lib/vitals').VitalSign[]
   children?: LOSNode[]
 }
 

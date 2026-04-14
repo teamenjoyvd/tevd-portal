@@ -39,7 +39,7 @@ export async function GET(
     return {
       ...def,
       is_recorded: !!entry,
-      is_active_record: entry?.is_active ?? false,
+      is_active: entry?.is_active ?? false,
       recorded_at: entry?.recorded_at ?? null,
       note: entry?.note ?? null,
     }
