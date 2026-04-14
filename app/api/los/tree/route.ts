@@ -25,13 +25,13 @@ type LOSRow = {
 type VitalSign = {
   definition_id: string
   label: string
+  is_active: boolean
   recorded_at: string | null
   note: string | null
 }
 
 type LOSNodeWithVitals = LOSRow & { vital_signs: VitalSign[] }
 
-// Synthetic node shape for users not in los_members (no ABO, or not yet imported)
 type SyntheticNode = {
   profile_id: string
   abo_number: string | null
@@ -73,35 +73,37 @@ export async function GET() {
   const { data: losRows } = await supabase.rpc('get_los_members_with_profiles')
   const rows = (losRows ?? []) as LOSRow[]
 
-  // Fetch all active definitions once — these drive completeness display
+  // Fetch ALL definitions — is_active on the record drives rendering, not the definition filter
   const { data: defRows } = await supabase
     .from('vital_sign_definitions')
     .select('id, category')
-    .eq('is_active', true)
     .order('sort_order')
 
   const definitions = (defRows ?? []) as { id: string; category: string }[]
 
-  // Fetch all recorded vital signs (service role bypasses RLS — full table)
+  // Fetch all recorded vital signs with is_active
   const { data: vsRows } = await supabase
     .from('member_vital_signs')
-    .select('profile_id, definition_id, recorded_at, note')
+    .select('profile_id, definition_id, is_active, recorded_at, note')
 
-  // Index recorded signs by profile_id → definition_id
-  const recordedByProfile: Record<string, Record<string, { recorded_at: string; note: string | null }>> = {}
+  const recordedByProfile: Record<string, Record<string, { is_active: boolean; recorded_at: string; note: string | null }>> = {}
   for (const vs of vsRows ?? []) {
     const pid = vs.profile_id as string
     if (!recordedByProfile[pid]) recordedByProfile[pid] = {}
-    recordedByProfile[pid][vs.definition_id] = { recorded_at: vs.recorded_at, note: vs.note }
+    recordedByProfile[pid][vs.definition_id] = {
+      is_active: vs.is_active,
+      recorded_at: vs.recorded_at,
+      note: vs.note,
+    }
   }
 
-  // Build full vital signs list per profile: all definitions, recorded_at/note null if absent
   function vitalsForProfile(profileId: string | null): VitalSign[] {
     if (!profileId) return []
     const recorded = recordedByProfile[profileId] ?? {}
     return definitions.map(def => ({
       definition_id: def.id,
       label: def.category,
+      is_active: recorded[def.id]?.is_active ?? false,
       recorded_at: recorded[def.id]?.recorded_at ?? null,
       note: recorded[def.id]?.note ?? null,
     }))
@@ -132,19 +134,13 @@ export async function GET() {
 
   const role = caller.role as string
 
-  // ── ADMIN: full tree ───────────────────────────────────────────────
   if (role === 'admin') {
     return Response.json({ scope: 'full', nodes: allNodes, caller_abo: caller.abo_number })
   }
 
-  // ── MEMBER / CORE: subtree rooted at caller ────────────────────────────
   if (role === 'member' || role === 'core') {
     if (!caller.abo_number) {
-      return Response.json({
-        scope: 'subtree',
-        nodes: [syntheticSelf()],
-        caller_abo: null,
-      })
+      return Response.json({ scope: 'subtree', nodes: [syntheticSelf()], caller_abo: null })
     }
 
     const childrenOf: Record<string, string[]> = {}
@@ -168,9 +164,7 @@ export async function GET() {
     return Response.json({ scope: 'subtree', nodes: subtreeNodes, caller_abo: caller.abo_number })
   }
 
-  // ── GUEST: self + direct upline only ──────────────────────────────────
   const guestNodes: TreeNode[] = []
-
   const selfRow = caller.abo_number
     ? allNodes.find(r => r.abo_number === caller.abo_number) ?? null
     : null
