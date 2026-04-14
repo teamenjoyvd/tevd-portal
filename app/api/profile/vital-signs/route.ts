@@ -16,21 +16,26 @@ export async function GET() {
   if (!profile?.id) return Response.json({ error: 'Profile not found' }, { status: 404 })
 
   // Fetch the full definition matrix, then left-join recorded rows.
-  // Returns one entry per definition regardless of whether a member_vital_signs
+  // Returns one entry per active definition regardless of whether a member_vital_signs
   // row exists, matching the admin GET pattern used by the LOS tree endpoint.
-  const { data: definitions, error: defError } = await supabase
-    .from('vital_sign_definitions')
-    .select('id, category, label, sort_order')
-    .order('sort_order', { ascending: true })
+  // Queries are independent — run in parallel.
+  const [defRes, recRes] = await Promise.all([
+    supabase
+      .from('vital_sign_definitions')
+      .select('id, category, label, sort_order')
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true }),
+    supabase
+      .from('member_vital_signs')
+      .select('id, definition_id, is_active, recorded_at, note, created_at')
+      .eq('profile_id', profile.id)
+  ])
 
-  if (defError) return Response.json({ error: defError.message }, { status: 500 })
+  if (defRes.error) return Response.json({ error: defRes.error.message }, { status: 500 })
+  if (recRes.error) return Response.json({ error: recRes.error.message }, { status: 500 })
 
-  const { data: recorded, error: recError } = await supabase
-    .from('member_vital_signs')
-    .select('id, definition_id, is_active, recorded_at, note, created_at')
-    .eq('profile_id', profile.id)
-
-  if (recError) return Response.json({ error: recError.message }, { status: 500 })
+  const definitions = defRes.data
+  const recorded = recRes.data
 
   const recordedByDefinition = Object.fromEntries(
     (recorded ?? []).map(r => [r.definition_id, r])

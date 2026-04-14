@@ -11,6 +11,7 @@
 2. [Registration State Machine](#2-registration-state-machine)
 3. [Payment Lifecycle](#3-payment-lifecycle)
 4. [LOS Tree Propagation](#4-los-tree-propagation)
+5. [Vital Signs](#5-vital-signs)
 
 A flow is added here when a ticket produces ambiguity about state transitions, ownership boundaries, or sequencing. If a feature idea touches one of these flows, the flow diagram must be verified (and updated if it changes) before the ticket is executed.
 
@@ -278,3 +279,90 @@ Tree structure drives targeted notification delivery:
 - `rebuild_tree_paths` must be called after any ABO number assignment that renames a node label.
 - LOS import always wins for tree positioning — manual placement is overridden on next import reconciliation.
 - No-ABO labels (`p_<uuid>`) are internal identifiers. They are never displayed to users.
+
+---
+
+## 5. Vital Signs
+
+> ✅ Status: **Stable / Implemented** — state model established via 2604-BUG-001 (PR #32) and API corrected via 2604-BUG-002 (PR #33), both 2026-04-14.
+
+### Context
+
+Vital signs track per-member health or qualification markers. Each sign belongs to a `vital_sign_definitions` category (admin-managed). Recording is admin-only — members have read access only. There is no dual-approval and no member confirmation step.
+
+### Data Model
+
+- `vital_sign_definitions` — admin-managed category/label definitions; `is_active` controls whether the definition appears in the member-facing matrix
+- `member_vital_signs` — one row per `(profile_id, definition_id)`, UNIQUE constraint enforced at DB level
+  - `is_active boolean NOT NULL DEFAULT true` — active/inactive toggle; row is never deleted
+  - `recorded_at`, `recorded_by` — updated on every activate (upsert)
+
+### State Machine
+
+```mermaid
+stateDiagram-v2
+    [*] --> active : Admin activates (POST upsert)
+    active --> inactive : Admin deactivates (PATCH is_active=false)
+    inactive --> active : Admin re-activates (POST upsert — updates recorded_at/recorded_by)
+
+    note right of active
+        Row exists with is_active=true.
+        recorded_at and recorded_by reflect
+        the most recent activation.
+    end note
+
+    note right of inactive
+        Row exists with is_active=false.
+        History is preserved.
+        No data loss on deactivate.
+    end note
+```
+
+### Activate / Re-activate Flow
+
+```mermaid
+sequenceDiagram
+    participant A as Admin (Browser)
+    participant R as POST /api/admin/members/[id]/vital-signs
+    participant S as Supabase member_vital_signs
+
+    A->>R: POST { definition_id }
+    R->>R: await auth() → verify admin role → resolve profile_id
+    R->>S: UPSERT (profile_id, definition_id)\n  SET is_active=true, recorded_at=now(), recorded_by=admin_profile_id\n  ON CONFLICT (profile_id, definition_id) DO UPDATE
+    S-->>R: Upserted row
+    R-->>A: 200
+
+    Note over S: Idempotent. Re-activating an existing record<br/>updates recorded_at and recorded_by without<br/>violating the UNIQUE constraint.
+```
+
+### Deactivate Flow
+
+```mermaid
+sequenceDiagram
+    participant A as Admin (Browser)
+    participant R as PATCH /api/admin/members/[id]/vital-signs/[definitionId]
+    participant S as Supabase member_vital_signs
+
+    A->>R: PATCH (no body required)
+    R->>R: await auth() → verify admin role → resolve profile_id
+    R->>S: UPDATE member_vital_signs\n  SET is_active=false\n  WHERE profile_id=X AND definition_id=Y
+    S-->>R: Updated row
+    R-->>A: 200
+
+    Note over S: Row is retained. History preserved.<br/>No DELETE ever issued against member_vital_signs.
+```
+
+### Member Profile API (`/api/profile/vital-signs`)
+
+Returns one entry per **active** `vital_sign_definitions` row (`.eq('is_active', true)`), left-joined against `member_vital_signs` for the requesting profile. Each entry carries `is_recorded` and `is_active` so the UI can distinguish unrecorded, recorded-active, and recorded-inactive states without additional queries.
+
+### LOS Tree Surface (`/api/los/tree`)
+
+The tree endpoint fetches **all** vital sign records for each member regardless of `is_active`, and surfaces `is_active` per record. Rendering decisions (active = underlined crimson, inactive = dimmed) are made at the component level (`NodeCard`), not at the query level.
+
+### Invariants
+- **Never DELETE from `member_vital_signs`.** Deactivate only (`is_active=false`).
+- **Activate = upsert**, not INSERT. This is the only safe path given the UNIQUE constraint.
+- Admin-only write access. Members read via `/api/profile/vital-signs` (returns `is_active` per record).
+- `/api/profile/vital-signs` filters definitions by `is_active=true` — retired definitions do not appear in the member matrix.
+- Definition toggle (enable/disable a definition globally) is a separate concern managed via `vital_sign_definitions` — it does not affect existing `member_vital_signs` rows.
