@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { formatDate } from '@/lib/format'
 import { OrgChartCanvas } from './components/OrgChartCanvas'
-import { displayName, roleColors } from './lib/los-utils'
+import { displayName, roleColors, isVitalRecorded } from './lib/los-utils'
 import type { LOSNode, TreeResponse } from './lib/los-utils'
 
 // ── Tree builder ──────────────────────────────────────────────────────────────
@@ -89,9 +89,9 @@ function MemberCard({ node, isExpanded, onToggle }: {
             {node.vital_signs.map(vs => (
               <span
                 key={vs.definition_id}
-                title={`${vs.label}: ${vs.recorded_at ? 'recorded' : 'not recorded'}`}
+                title={`${vs.label}: ${isVitalRecorded(vs) ? 'recorded' : 'not recorded'}`}
                 className="w-2 h-2 rounded-full flex-shrink-0"
-                style={{ backgroundColor: vs.recorded_at ? 'var(--brand-crimson)' : 'rgba(0,0,0,0.12)' }}
+                style={{ backgroundColor: isVitalRecorded(vs) ? 'var(--brand-crimson)' : 'rgba(0,0,0,0.12)' }}
               />
             ))}
           </div>
@@ -124,11 +124,11 @@ function MemberCard({ node, isExpanded, onToggle }: {
                     key={vs.definition_id}
                     className="text-xs font-semibold px-2.5 py-1 rounded-full"
                     style={{
-                      backgroundColor: vs.recorded_at ? 'rgba(188,71,73,0.12)' : 'rgba(0,0,0,0.05)',
-                      color: vs.recorded_at ? 'var(--brand-crimson)' : 'var(--text-secondary)',
+                      backgroundColor: isVitalRecorded(vs) ? 'rgba(188,71,73,0.12)' : 'rgba(0,0,0,0.05)',
+                      color: isVitalRecorded(vs) ? 'var(--brand-crimson)' : 'var(--text-secondary)',
                     }}
                   >
-                    {vs.recorded_at ? '✓' : '○'} {vs.label}
+                    {isVitalRecorded(vs) ? '✓' : '○'} {vs.label}
                   </span>
                 ))}
               </div>

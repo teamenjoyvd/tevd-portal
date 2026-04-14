@@ -1,5 +1,6 @@
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import type { VitalSign } from '@/lib/vitals'
 
 type LOSRow = {
   abo_number: string
@@ -20,14 +21,6 @@ type LOSRow = {
   last_name: string | null
   role: string | null
   depth: number | null
-}
-
-type VitalSign = {
-  definition_id: string
-  label: string
-  is_active: boolean
-  recorded_at: string | null
-  note: string | null
 }
 
 type LOSNodeWithVitals = LOSRow & { vital_signs: VitalSign[] }

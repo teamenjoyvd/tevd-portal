@@ -2,12 +2,9 @@
 // Co-located here per CLAUDE.md: promote to /components only when 2+ unrelated
 // routes consume this.
 
-export type VitalSign = {
-  definition_id: string
-  label: string        // mapped from vital_sign_definitions.category
-  recorded_at: string | null  // null = definition exists but not recorded for this member
-  note: string | null
-}
+import type { VitalSign } from '@/lib/vitals'
+export type { VitalSign } from '@/lib/vitals'
+export { isVitalRecorded } from '@/lib/vitals'
 
 export type LOSNode = {
   profile_id: string | null

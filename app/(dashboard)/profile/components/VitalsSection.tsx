@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Drawer } from '@/components/ui/Drawer'
-import { type VitalSign, VARIABLE_CAP } from '../types'
+import { isVitalRecorded } from '@/lib/vitals'
+import { type ProfileVitalSign, VARIABLE_CAP } from '../types'
 import { ShowMoreButton } from './shared'
 
 export const VITALS_MIN_HEIGHT = 280
@@ -11,7 +12,7 @@ export const VITALS_MIN_HEIGHT = 280
 export function VitalsSection({ profileId, role }: { profileId: string; role: string }) {
   const [drawerOpen, setDrawerOpen] = useState(false)
 
-  const { data: vitalsData, isLoading } = useQuery<VitalSign[]>({
+  const { data: vitalsData, isLoading } = useQuery<ProfileVitalSign[]>({
     queryKey: ['profile-vitals'],
     queryFn: () => fetch('/api/profile/vital-signs').then(r => r.json()),
     enabled: !!profileId && role !== 'guest',
@@ -26,10 +27,10 @@ export function VitalsSection({ profileId, role }: { profileId: string; role: st
   const visible = vitals.slice(0, VARIABLE_CAP)
   const overflow = vitals.length - VARIABLE_CAP
 
-  const VitalRow = ({ vs }: { vs: VitalSign }) => {
+  const VitalRow = ({ vs }: { vs: ProfileVitalSign }) => {
     const label = vs.vital_sign_definitions?.label ?? vs.definition_id
     const category = vs.vital_sign_definitions?.category
-    const recorded = vs.is_recorded && vs.is_active
+    const recorded = isVitalRecorded(vs)
     return (
       <div className="flex items-center justify-between gap-3 text-xs py-1.5">
         <div className="min-w-0">
