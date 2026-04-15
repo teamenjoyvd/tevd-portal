@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getRoleColors } from '@/lib/role-colors'
+import { useLanguage } from '@/lib/hooks/useLanguage'
 import { formatDate } from '@/lib/format'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -297,6 +298,7 @@ function NodeCard({
 // ── LosTab ────────────────────────────────────────────────────────────────────
 
 export function LosTab() {
+  const { t } = useLanguage()
   const qc = useQueryClient()
 
   const { data: treeResponse, isLoading: treeLoading, refetch: refetchTree } = useQuery<LosTreeResponse>({
@@ -381,9 +383,7 @@ export function LosTab() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-          Full org tree with vital signs. Click a checkbox to toggle.
-        </p>
+        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t('admin.los.treeDesc')}</p>
         <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{flatNodes.length} members</span>
       </div>
       {allDefinitions.length > 0 && (
@@ -396,7 +396,7 @@ export function LosTab() {
           ))}
         </div>
       ) : treeRoots.length === 0 ? (
-        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No LOS data yet.</p>
+        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t('admin.los.noData')}</p>
       ) : (
         <div className="space-y-1">
           {treeRoots.map(node => (

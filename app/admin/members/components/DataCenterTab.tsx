@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import { useLanguage } from '@/lib/hooks/useLanguage'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -48,9 +49,6 @@ const HEADER_MAP: Record<string, string> = {
   'Sponsoring': 'sponsoring', 'Annual PPV': 'annual_ppv',
 }
 
-// Bulgarian locale export -- Amway BG sends Cyrillic column headers with
-// comma-decimal numerics (e.g. "33,74") and space thousands separators
-// (e.g. "5 299,54"). See sanitizeNumeric() below.
 const HEADER_MAP_BG: Record<string, string> = {
   'Ниво на СБА': 'abo_level',
   'Номер на Спонсориращия СБА': 'sponsor_abo_number',
@@ -76,16 +74,9 @@ const HEADER_MAP_BG: Record<string, string> = {
   'Брой групови поръчки': 'group_orders_count',
   'Спонсориране': 'sponsoring',
   'Годишна ЛТС:': 'annual_ppv',
-  // Summary column -- not a schema field. Mapped to a dead-end key so the
-  // RPC (which reads only named columns from the JSONB row) silently ignores
-  // it. Do not remap to an existing field: it would silently overwrite it.
   'ТС общо за организацията': 'org_total_pv',
 }
 
-// Fields the RPC casts to ::numeric or ::integer. Values must be normalised
-// before leaving the browser -- locale-specific formats cause Postgres to throw
-// "invalid input syntax for type numeric" inside EXCEPTION WHEN OTHERS, which
-// silently drops the row instead of crashing visibly.
 const NUMERIC_KEYS = new Set([
   'gpv', 'ppv', 'bonus_percent', 'gbv', 'customer_pv', 'ruby_pv',
   'customers', 'points_to_next_level', 'qualified_legs', 'group_size',
@@ -94,12 +85,8 @@ const NUMERIC_KEYS = new Set([
 
 function sanitizeNumeric(val: string, isBG: boolean): string {
   if (isBG) {
-    // BG locale: spaces and \u00A0 are thousands separators, comma is decimal.
-    // Strip spaces first, then replace comma with period for Postgres ::numeric.
     return val.replace(/[\u00A0\s]/g, '').replace(/,/g, '.')
   }
-  // EN locale: commas are thousands separators (e.g. "1,250.00"). Strip them --
-  // replacing with period would produce "1.250.00", an invalid numeric literal.
   return val.replace(/,/g, '')
 }
 
@@ -141,16 +128,14 @@ function splitCSVLine(line: string): string[] {
 }
 
 function parseCSV(text: string): Record<string, string>[] {
-  const cleaned = text.replace(/^\uFEFF/, '') // strip Excel BOM
+  const cleaned = text.replace(/^\uFEFF/, '')
   const allLines = cleaned.trim().split('\n')
 
-  // Support both EN ('ABO Number') and BG ('Номер на СБА') exports
   const headerIdx = allLines.findIndex(
     l => l.includes('ABO Number') || l.includes('Номер на СБА')
   )
   if (headerIdx === -1) return []
 
-  // Detect locale from the anchor line -- drives header map and numeric sanitization
   const isBG = allLines[headerIdx].includes('Номер на СБА')
   const activeMap = isBG ? HEADER_MAP_BG : HEADER_MAP
 
@@ -168,8 +153,6 @@ function parseCSV(text: string): Record<string, string>[] {
         if (dbKey === 'bonus_percent') val = val.replace('%', '').trim()
         if (dbKey === 'entry_date' || dbKey === 'renewal_date') val = parseDate(val)
         if (dbKey === 'phone') val = val.replace(/^Primary:\s*/i, '').trim()
-        // Sanitize after all other transforms -- numeric normalisation must
-        // run after % stripping so bonus_percent is clean before replacement
         if (NUMERIC_KEYS.has(dbKey)) val = sanitizeNumeric(val, isBG)
         row[dbKey] = val
       })
@@ -207,6 +190,7 @@ function DiffSection({
 function ReconciliationPanel({
   initialUnrecognized, initialProfiles,
 }: { initialUnrecognized: UnrecognizedRow[]; initialProfiles: ManualMemberNoAbo[] }) {
+  const { t } = useLanguage()
   const [unrecognized, setUnrecognized] = useState(initialUnrecognized)
   const [profiles, setProfiles] = useState(initialProfiles)
   const [selectedLos, setSelectedLos] = useState<string | null>(null)
@@ -246,9 +230,7 @@ function ReconciliationPanel({
       <div className="flex items-start justify-between gap-4 mb-4">
         <div>
           <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Reconciliation</p>
-          <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-            Match unrecognized LOS members to manually-verified portal profiles.
-          </p>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>{t('admin.data.reconciliation.desc')}</p>
         </div>
         {selectedLos && selectedProfileId && (
           <button onClick={handleLink} disabled={linking}
@@ -265,7 +247,7 @@ function ReconciliationPanel({
             Unrecognized in LOS — {unrecognized.length}
           </p>
           {unrecognized.length === 0 ? (
-            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>All LOS members matched.</p>
+            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('admin.data.reconciliation.allMatched')}</p>
           ) : (
             <div className="space-y-1.5">
               {unrecognized.map(row => (
@@ -291,7 +273,7 @@ function ReconciliationPanel({
             No ABO — awaiting position — {profiles.length}
           </p>
           {profiles.length === 0 ? (
-            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>No manually-verified members without ABO.</p>
+            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('admin.data.reconciliation.noManualMembers')}</p>
           ) : (
             <div className="space-y-1.5">
               {profiles.map(p => (
@@ -319,6 +301,7 @@ function ReconciliationPanel({
 // ── DataCenterTab ─────────────────────────────────────────────────────────────
 
 export function DataCenterTab() {
+  const { t } = useLanguage()
   const fileRef = useRef<HTMLInputElement>(null)
   const [parsedRows, setParsedRows] = useState<Record<string, string>[]>([])
   const [preview, setPreview] = useState<Record<string, string>[]>([])
@@ -337,7 +320,7 @@ export function DataCenterTab() {
     setPreview([])
     const reader = new FileReader()
     reader.onload = ev => {
-      const text = (ev.target?.result as string).replace(/^\uFEFF/, '') // strip Excel BOM
+      const text = (ev.target?.result as string).replace(/^\uFEFF/, '')
       const rows = parseCSV(text)
       if (rows.length === 0) {
         setError('Could not parse CSV — header row not found. Check that the file is a valid LOS export.')
@@ -372,9 +355,7 @@ export function DataCenterTab() {
 
   return (
     <div className="space-y-6">
-      <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-        LOS CSV import — upserts on ABO number. Rebuilds LTree paths after every import.
-      </p>
+      <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t('admin.data.title')}</p>
       <div className="border-2 border-dashed rounded-lg p-8 text-center" style={{ borderColor: 'var(--border-default)', backgroundColor: 'var(--bg-card)' }}>
         <input ref={fileRef} type="file" accept=".csv" onChange={handleFile} className="hidden" id="csv-upload" />
         <label htmlFor="csv-upload" className="cursor-pointer">
@@ -441,7 +422,7 @@ export function DataCenterTab() {
               </div>
             ))}
           </DiffSection>
-          <DiffSection title="Level changes" count={result.diff.level_changes.length} color="#3d405b">
+          <DiffSection title={t('admin.data.result.levelChangesTitle')} count={result.diff.level_changes.length} color="#3d405b">
             {result.diff.level_changes.map(m => (
               <div key={m.abo_number} className="flex items-center gap-2 text-xs px-2 py-1.5 rounded-lg" style={{ backgroundColor: '#3d405b10' }}>
                 <span className="font-mono font-medium" style={{ color: 'var(--text-primary)' }}>{m.abo_number}</span>
@@ -450,7 +431,7 @@ export function DataCenterTab() {
               </div>
             ))}
           </DiffSection>
-          <DiffSection title="Bonus % changes" count={result.diff.bonus_changes.length} color="#e07a5f">
+          <DiffSection title={t('admin.data.result.bonusChangesTitle')} count={result.diff.bonus_changes.length} color="#e07a5f">
             {result.diff.bonus_changes.map(m => (
               <div key={m.abo_number} className="flex items-center gap-2 text-xs px-2 py-1.5 rounded-lg" style={{ backgroundColor: '#e07a5f10' }}>
                 <span className="font-mono font-medium" style={{ color: 'var(--text-primary)' }}>{m.abo_number}</span>
@@ -463,7 +444,7 @@ export function DataCenterTab() {
           </DiffSection>
           {result.errors.length > 0 && (
             <div className="mt-4 pt-4 border-t" style={{ borderColor: 'var(--border-default)' }}>
-              <p className="text-xs font-semibold mb-1" style={{ color: 'var(--brand-crimson)' }}>{result.errors.length} row errors — check for unsanitized data:</p>
+              <p className="text-xs font-semibold mb-1" style={{ color: 'var(--brand-crimson)' }}>{t('admin.data.result.rowErrorsTitle').replace('{{count}}', String(result.errors.length))}</p>
               {result.errors.map((e, i) => (
                 <p key={i} className="text-xs" style={{ color: 'var(--brand-crimson)' }}>{e.abo_number}: {e.error}</p>
               ))}

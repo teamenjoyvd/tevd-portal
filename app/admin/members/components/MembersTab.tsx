@@ -23,6 +23,7 @@ import {
   TableCell,
 } from '@/components/ui/table'
 import { getRoleColors } from '@/lib/role-colors'
+import { useLanguage } from '@/lib/hooks/useLanguage'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -106,6 +107,7 @@ function LosTable({
   onPromote: (profileId: string, role: string) => void
   promotePending: boolean
 }) {
+  const { lang, t } = useLanguage()
   const [sorting, setSorting] = useState<SortingState>([])
   const [globalFilter, setGlobalFilter] = useState('')
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({ sponsor_abo_number: false })
@@ -135,7 +137,7 @@ function LosTable({
       ? `${row.profile.first_name} ${row.profile.last_name}`
       : (row.name ?? row.abo_number), {
       id: 'name',
-      header: 'Name',
+      header: t('admin.members.table.name'),
       enableSorting: true,
       cell: ({ row }) => {
         const m = row.original
@@ -160,7 +162,7 @@ function LosTable({
       },
     }),
     colHelper.accessor('abo_number', {
-      header: 'ABO',
+      header: t('admin.members.table.abo'),
       enableSorting: false,
       cell: ({ getValue }) => (
         <span className="text-xs font-mono" style={{ color: 'var(--text-secondary)' }}>{getValue()}</span>
@@ -168,14 +170,14 @@ function LosTable({
     }),
     colHelper.accessor('sponsor_abo_number', {
       id: 'sponsor_abo_number',
-      header: 'Sponsor ABO',
+      header: t('admin.members.table.sponsorAbo'),
       enableSorting: false,
       cell: ({ getValue }) => (
         <span className="text-xs font-mono" style={{ color: 'var(--text-secondary)' }}>{getValue() ?? '—'}</span>
       ),
     }),
     colHelper.accessor('abo_level', {
-      header: 'Level',
+      header: t('admin.members.table.level'),
       enableSorting: true,
       cell: ({ getValue }) => {
         const lvl = getValue() ?? '?'
@@ -187,7 +189,7 @@ function LosTable({
       },
     }),
     colHelper.accessor('gpv', {
-      header: 'GPV',
+      header: t('admin.members.table.gpv'),
       enableSorting: true,
       cell: ({ getValue }) => (
         <span className="text-xs tabular-nums font-semibold" style={{ color: 'var(--text-primary)' }}>
@@ -196,7 +198,7 @@ function LosTable({
       ),
     }),
     colHelper.accessor('bonus_percent', {
-      header: 'Bonus%',
+      header: t('admin.members.table.bonus'),
       enableSorting: true,
       cell: ({ getValue }) => (
         <span className="text-xs tabular-nums font-semibold"
@@ -206,7 +208,7 @@ function LosTable({
       ),
     }),
     colHelper.accessor('group_size', {
-      header: 'Group',
+      header: t('admin.members.table.group'),
       enableSorting: true,
       cell: ({ getValue }) => (
         <span className="text-xs tabular-nums" style={{ color: 'var(--text-primary)' }}>{getValue()}</span>
@@ -274,8 +276,8 @@ function LosTable({
 
   const TOGGLEABLE_COLS = ['abo_number', 'sponsor_abo_number', 'abo_level', 'gpv', 'bonus_percent', 'group_size']
   const COL_LABELS: Record<string, string> = {
-    abo_number: 'ABO', sponsor_abo_number: 'Sponsor ABO', abo_level: 'Level',
-    gpv: 'GPV', bonus_percent: 'Bonus%', group_size: 'Group',
+    abo_number: t('admin.members.table.abo'), sponsor_abo_number: t('admin.members.table.sponsorAbo'), abo_level: t('admin.members.table.level'),
+    gpv: t('admin.members.table.gpv'), bonus_percent: t('admin.members.table.bonus'), group_size: t('admin.members.table.group'),
   }
   const MOBILE_HIDDEN = new Set(['gpv', 'bonus_percent', 'group_size', 'sponsor_abo_number'])
 
@@ -292,7 +294,7 @@ function LosTable({
   if (members.length === 0) {
     return (
       <div className="text-center py-16 rounded-2xl border" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
-        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No LOS data. Import a CSV in Data Center.</p>
+        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t('admin.members.noLosData')}</p>
       </div>
     )
   }
@@ -306,7 +308,7 @@ function LosTable({
         <input
           value={globalFilter}
           onChange={e => handleSearch(e.target.value)}
-          placeholder="Search name or ABO…"
+          placeholder={t('admin.members.searchPlaceholder')}
           className="flex-1 min-w-[180px] border rounded-xl px-3 py-2 text-sm"
           style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
         />
@@ -315,9 +317,7 @@ function LosTable({
             onClick={() => setColsOpen(o => !o)}
             className="px-3 py-2 rounded-xl text-xs font-semibold border hover:bg-black/5 transition-colors"
             style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
-          >
-            Columns
-          </button>
+          >{t('admin.members.btn.columns')}</button>
           {colsOpen && (
             <div
               className="absolute right-0 top-full mt-1 z-20 rounded-xl border shadow-lg p-2 space-y-1 min-w-[140px]"
@@ -361,7 +361,10 @@ function LosTable({
                           {header.column.getIsSorted() === 'asc' && <span className="text-[10px]">▲</span>}
                           {header.column.getIsSorted() === 'desc' && <span className="text-[10px]">▼</span>}
                           {header.column.getCanSort() && !header.column.getIsSorted() && (
-                            <span className="text-[10px] opacity-30">▲▼</span>
+                            <>
+                              {/* eslint-disable-next-line i18next/no-literal-string */}
+                              <span className="text-[10px] opacity-30">▲▼</span>
+                            </>
                           )}
                         </div>
                       )}
@@ -397,26 +400,20 @@ function LosTable({
 
       {totalPages > 1 && (
         <div className="flex items-center justify-between mt-3">
-          <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-            Page {pageIndex + 1} of {totalPages}
-          </p>
+          <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('admin.members.pageInfo').replace('{{current}}', String(pageIndex + 1)).replace('{{total}}', String(totalPages))}</p>
           <div className="flex gap-2">
             <button
               onClick={() => table.previousPage()}
               disabled={!table.getCanPreviousPage()}
               className="px-3 py-1.5 rounded-lg text-xs font-semibold border disabled:opacity-40 hover:opacity-70 transition-opacity"
               style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
-            >
-              Prev
-            </button>
+            >{t('admin.members.btn.prev')}</button>
             <button
               onClick={() => table.nextPage()}
               disabled={!table.getCanNextPage()}
               className="px-3 py-1.5 rounded-lg text-xs font-semibold border disabled:opacity-40 hover:opacity-70 transition-opacity"
               style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
-            >
-              Next
-            </button>
+            >{t('admin.members.btn.next')}</button>
           </div>
         </div>
       )}
@@ -427,6 +424,7 @@ function LosTable({
 // ── MembersTab ────────────────────────────────────────────────────────────────
 
 export function MembersTab() {
+  const { lang, t } = useLanguage()
   const qc = useQueryClient()
   const [denyNote, setDenyNote] = useState<Record<string, string>>({})
   const [showDenyInput, setShowDenyInput] = useState<Record<string, boolean>>({})
@@ -470,14 +468,14 @@ export function MembersTab() {
   return (
     <div className="space-y-8">
       <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-        {losMembers.length} in LOS · {losMembers.filter(m => m.profile).length} linked to portal accounts
+        {t('admin.members.summary.losLinked').replace('{{total}}', String(losMembers.length)).replace('{{linked}}', String(losMembers.filter(m => m.profile).length))}
       </p>
 
       {pendingVerifications.length > 0 && (
         <section>
           <p className="text-xs font-semibold tracking-widest uppercase mb-3 flex items-center gap-2"
             style={{ color: 'var(--text-secondary)' }}>
-            Pending verification
+            {t('admin.members.pendingVerification')}
             <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-full text-white"
               style={{ backgroundColor: 'var(--brand-crimson)' }}>
               {pendingVerifications.length}
@@ -501,17 +499,15 @@ export function MembersTab() {
                           style={fullMatch
                             ? { backgroundColor: '#81b29a33', color: '#2d6a4f' }
                             : { backgroundColor: '#f2cc8f33', color: '#7a5c00' }}>
-                          {fullMatch ? '✓ LOS match' : losMatch ? '⚠ upline mismatch' : '✗ ABO not in LOS'}
+                          {fullMatch ? t('admin.members.verify.losMatch') : losMatch ? t('admin.members.verify.uplineMismatch') : t('admin.members.verify.noAboInLos')}
                         </span>
                       </div>
                       <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
-                        Claims ABO <span className="font-mono font-medium" style={{ color: 'var(--text-primary)' }}>{v.claimed_abo}</span>
-                        {' · '}upline <span className="font-mono font-medium" style={{ color: 'var(--text-primary)' }}>{v.claimed_upline_abo}</span>
+                        {t('admin.members.verify.claimsAbo')} <span className="font-mono font-medium" style={{ color: 'var(--text-primary)' }}>{v.claimed_abo}</span>{' · '}{t('admin.members.verify.upline')} <span className="font-mono font-medium" style={{ color: 'var(--text-primary)' }}>{v.claimed_upline_abo}</span>
                       </p>
                       {losMatch && (
                         <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                          LOS: <span style={{ color: 'var(--text-primary)' }}>{losMatch.name}</span>
-                          {' · '}sponsor in LOS: <span style={{ color: uplineMatch ? '#2d6a4f' : 'var(--brand-crimson)' }}>
+                          {t('admin.members.verify.los')} <span style={{ color: 'var(--text-primary)' }}>{losMatch.name}</span>{' · '}{t('admin.members.verify.sponsorInLos')} <span style={{ color: uplineMatch ? '#2d6a4f' : 'var(--brand-crimson)' }}>
                             {losMatch.sponsor_abo_number ?? '—'}
                           </span>
                         </p>
@@ -522,22 +518,22 @@ export function MembersTab() {
                       <button onClick={() => verifyMutation.mutate({ id: v.id, action: 'approve' })}
                         disabled={verifyMutation.isPending}
                         className="px-4 py-1.5 rounded-lg text-sm font-medium text-white disabled:opacity-50"
-                        style={{ backgroundColor: 'var(--brand-teal)' }}>Approve</button>
+                        style={{ backgroundColor: 'var(--brand-teal)' }}>{t('admin.members.verify.btn.approve')}</button>
                       {!showDenyInput[v.id] ? (
                         <button onClick={() => setShowDenyInput(s => ({ ...s, [v.id]: true }))}
                           className="px-4 py-1.5 rounded-lg text-sm font-medium disabled:opacity-50"
-                          style={{ backgroundColor: 'rgba(0,0,0,0.06)', color: 'var(--text-primary)' }}>Deny</button>
+                          style={{ backgroundColor: 'rgba(0,0,0,0.06)', color: 'var(--text-primary)' }}>{t('admin.members.verify.btn.deny')}</button>
                       ) : (
                         <div className="flex gap-2 items-center">
                           <input value={denyNote[v.id] ?? ''}
                             onChange={e => setDenyNote(s => ({ ...s, [v.id]: e.target.value }))}
-                            placeholder="Reason (optional)"
+                            placeholder={t('admin.members.verify.reasonPlaceholder')}
                             className="border border-black/10 rounded-lg px-2 py-1 text-xs w-36"
                             style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
                           <button onClick={() => verifyMutation.mutate({ id: v.id, action: 'deny', admin_note: denyNote[v.id] })}
                             disabled={verifyMutation.isPending}
                             className="px-3 py-1.5 rounded-lg text-xs font-medium text-white disabled:opacity-50"
-                            style={{ backgroundColor: 'var(--brand-crimson)' }}>Confirm</button>
+                            style={{ backgroundColor: 'var(--brand-crimson)' }}>{t('admin.members.verify.btn.confirm')}</button>
                         </div>
                       )}
                     </div>
@@ -552,17 +548,17 @@ export function MembersTab() {
       {unverifiedGuests.length > 0 && (
         <section>
           <p className="text-xs font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
-            Guests — no ABO submitted ({unverifiedGuests.length})
+            {t('admin.members.guestsNoAbo').replace('{{count}}', String(unverifiedGuests.length))}
           </p>
           <div className="rounded-2xl border shadow-sm divide-y" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
             {unverifiedGuests.map(g => (
               <div key={g.id} className="px-5 py-3 flex items-center justify-between gap-4">
                 <div>
                   <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{g.first_name} {g.last_name}</p>
-                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>Joined {timeAgo(g.created_at)}</p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>{t('admin.members.guestJoined')} {timeAgo(g.created_at)}</p>
                 </div>
                 <span className="text-xs font-semibold px-2.5 py-1 rounded-full"
-                  style={{ backgroundColor: 'rgba(0,0,0,0.06)', color: 'var(--text-secondary)' }}>guest</span>
+                  style={{ backgroundColor: 'rgba(0,0,0,0.06)', color: 'var(--text-secondary)' }}>{t('admin.members.guestRole')}</span>
               </div>
             ))}
           </div>
@@ -571,7 +567,7 @@ export function MembersTab() {
 
       <section>
         <p className="text-xs font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
-          LOS map — {losMembers.length} members
+          {t('admin.members.losMapDesc').replace('{{count}}', String(losMembers.length))}
         </p>
         <LosTable
           members={losMembers}
