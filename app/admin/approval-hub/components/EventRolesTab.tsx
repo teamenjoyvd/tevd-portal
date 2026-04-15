@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from '@/lib/toast'
+import { useLanguage } from '@/lib/hooks/useLanguage'
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -28,6 +29,7 @@ const STATUS_BADGE: Record<string, string> = {
 }
 
 function CollapsibleResolved({ children, count }: { children: React.ReactNode; count: number }) {
+  const { t } = useLanguage()
   const [open, setOpen] = useState(false)
   if (count === 0) return null
   return (
@@ -54,6 +56,7 @@ function CollapsibleResolved({ children, count }: { children: React.ReactNode; c
 // ── Component: Event Roles ───────────────────────────────────────
 
 export function EventRolesTab() {
+  const { t } = useLanguage()
   const qc = useQueryClient()
   const [filterEventId, setFilterEventId] = useState<string>('all')
 

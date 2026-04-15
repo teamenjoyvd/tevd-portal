@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from '@/lib/toast'
+import { useLanguage } from '@/lib/hooks/useLanguage'
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -30,6 +31,7 @@ function formatDate(iso: string) {
 }
 
 function CollapsibleResolved({ children, count }: { children: React.ReactNode; count: number }) {
+  const { t } = useLanguage()
   const [open, setOpen] = useState(false)
   if (count === 0) return null
   return (
@@ -56,6 +58,7 @@ function CollapsibleResolved({ children, count }: { children: React.ReactNode; c
 // ── Component: Trip Registrations ──────────────────────────────────
 
 export function TripRegistrationsTab() {
+  const { t } = useLanguage()
   const qc = useQueryClient()
   const [filterTripId, setFilterTripId] = useState<string>('all')
 
@@ -119,17 +122,17 @@ export function TripRegistrationsTab() {
           >
             {t('admin.approval.trips.btn.allTrips')}
           </button>
-          {trips.map(t => (
+          {trips.map(trip => (
             <button
-              key={t.id}
-              onClick={() => setFilterTripId(t.id)}
+              key={trip.id}
+              onClick={() => setFilterTripId(trip.id)}
               className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
               style={{
-                backgroundColor: filterTripId === t.id ? 'var(--text-primary)' : 'rgba(0,0,0,0.05)',
-                color: filterTripId === t.id ? 'white' : 'var(--text-secondary)',
+                backgroundColor: filterTripId === trip.id ? 'var(--text-primary)' : 'rgba(0,0,0,0.05)',
+                color: filterTripId === trip.id ? 'white' : 'var(--text-secondary)',
               }}
             >
-              {t.title}
+              {trip.title}
             </button>
           ))}
         </div>

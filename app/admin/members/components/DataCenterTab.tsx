@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import { useLanguage } from '@/lib/hooks/useLanguage'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -48,9 +49,6 @@ const HEADER_MAP: Record<string, string> = {
   'Sponsoring': 'sponsoring', 'Annual PPV': 'annual_ppv',
 }
 
-// Bulgarian locale export -- Amway BG sends Cyrillic column headers with
-// comma-decimal numerics (e.g. "33,74") and space thousands separators
-// (e.g. "5 299,54"). See sanitizeNumeric() below.
 const HEADER_MAP_BG: Record<string, string> = {
   'Ниво на СБА': 'abo_level',
   'Номер на Спонсориращия СБА': 'sponsor_abo_number',
@@ -76,16 +74,9 @@ const HEADER_MAP_BG: Record<string, string> = {
   'Брой групови поръчки': 'group_orders_count',
   'Спонсориране': 'sponsoring',
   'Годишна ЛТС:': 'annual_ppv',
-  // Summary column -- not a schema field. Mapped to a dead-end key so the
-  // RPC (which reads only named columns from the JSONB row) silently ignores
-  // it. Do not remap to an existing field: it would silently overwrite it.
   'ТС общо за организацията': 'org_total_pv',
 }
 
-// Fields the RPC casts to ::numeric or ::integer. Values must be normalised
-// before leaving the browser -- locale-specific formats cause Postgres to throw
-// "invalid input syntax for type numeric" inside EXCEPTION WHEN OTHERS, which
-// silently drops the row instead of crashing visibly.
 const NUMERIC_KEYS = new Set([
   'gpv', 'ppv', 'bonus_percent', 'gbv', 'customer_pv', 'ruby_pv',
   'customers', 'points_to_next_level', 'qualified_legs', 'group_size',
@@ -94,12 +85,8 @@ const NUMERIC_KEYS = new Set([
 
 function sanitizeNumeric(val: string, isBG: boolean): string {
   if (isBG) {
-    // BG locale: spaces and \u00A0 are thousands separators, comma is decimal.
-    // Strip spaces first, then replace comma with period for Postgres ::numeric.
     return val.replace(/[\u00A0\s]/g, '').replace(/,/g, '.')
   }
-  // EN locale: commas are thousands separators (e.g. "1,250.00"). Strip them --
-  // replacing with period would produce "1.250.00", an invalid numeric literal.
   return val.replace(/,/g, '')
 }
 
@@ -141,16 +128,14 @@ function splitCSVLine(line: string): string[] {
 }
 
 function parseCSV(text: string): Record<string, string>[] {
-  const cleaned = text.replace(/^\uFEFF/, '') // strip Excel BOM
+  const cleaned = text.replace(/^\uFEFF/, '')
   const allLines = cleaned.trim().split('\n')
 
-  // Support both EN ('ABO Number') and BG ('Номер на СБА') exports
   const headerIdx = allLines.findIndex(
     l => l.includes('ABO Number') || l.includes('Номер на СБА')
   )
   if (headerIdx === -1) return []
 
-  // Detect locale from the anchor line -- drives header map and numeric sanitization
   const isBG = allLines[headerIdx].includes('Номер на СБА')
   const activeMap = isBG ? HEADER_MAP_BG : HEADER_MAP
 
@@ -168,8 +153,6 @@ function parseCSV(text: string): Record<string, string>[] {
         if (dbKey === 'bonus_percent') val = val.replace('%', '').trim()
         if (dbKey === 'entry_date' || dbKey === 'renewal_date') val = parseDate(val)
         if (dbKey === 'phone') val = val.replace(/^Primary:\s*/i, '').trim()
-        // Sanitize after all other transforms -- numeric normalisation must
-        // run after % stripping so bonus_percent is clean before replacement
         if (NUMERIC_KEYS.has(dbKey)) val = sanitizeNumeric(val, isBG)
         row[dbKey] = val
       })
@@ -207,6 +190,7 @@ function DiffSection({
 function ReconciliationPanel({
   initialUnrecognized, initialProfiles,
 }: { initialUnrecognized: UnrecognizedRow[]; initialProfiles: ManualMemberNoAbo[] }) {
+  const { t } = useLanguage()
   const [unrecognized, setUnrecognized] = useState(initialUnrecognized)
   const [profiles, setProfiles] = useState(initialProfiles)
   const [selectedLos, setSelectedLos] = useState<string | null>(null)
@@ -317,6 +301,7 @@ function ReconciliationPanel({
 // ── DataCenterTab ─────────────────────────────────────────────────────────────
 
 export function DataCenterTab() {
+  const { t } = useLanguage()
   const fileRef = useRef<HTMLInputElement>(null)
   const [parsedRows, setParsedRows] = useState<Record<string, string>[]>([])
   const [preview, setPreview] = useState<Record<string, string>[]>([])
@@ -335,7 +320,7 @@ export function DataCenterTab() {
     setPreview([])
     const reader = new FileReader()
     reader.onload = ev => {
-      const text = (ev.target?.result as string).replace(/^\uFEFF/, '') // strip Excel BOM
+      const text = (ev.target?.result as string).replace(/^\uFEFF/, '')
       const rows = parseCSV(text)
       if (rows.length === 0) {
         setError('Could not parse CSV — header row not found. Check that the file is a valid LOS export.')
