@@ -49,7 +49,7 @@ Counter resets each month. GitHub issue number is the canonical unique reference
 | `chore` | Refactor, deps, infrastructure |
 | `priority:high` | Pick before anything else |
 | `priority:low` | Pick last |
-| `blocked` | Do not pick — has a dependency that isn’t resolved |
+| `blocked` | Do not pick — has a dependency that isn't resolved |
 
 READ order: `priority:high` first, then unlabelled, then `priority:low`. Never pick a `blocked` issue without explicit user acknowledgment.
 
@@ -105,9 +105,51 @@ If GitHub ❌ — stop.
 5. Push all changes in a single commit to the PR branch. Commit message: `[YYMM]-[TYPE]-[NNN] fix: address Gemini PR<N> review comments`.
 6. Report: one line per comment — ✅ Applied / ⚠️ Skipped (reason).
 
+**PLAN** — Enter design-only mode for this session.
+- No branch creation.
+- No file writes except issue body updates.
+- No commits.
+- For each ticket in the batch:
+  1. Read the issue body.
+  2. Read relevant REF.md sections freely — no competing write budget.
+  3. Read FLOWS.md if routing or data flow is in scope.
+  4. Produce the Design Checklist and write it to the issue body:
+     ```
+     ## Design Checklist
+     - [ ] DoD defined
+     - [ ] Affected files listed by path
+     - [ ] Gotchas flagged
+     - [ ] Blocking unknowns: none
+     ```
+  5. Output a verdict: **READY** or **BLOCKED: [single specific question]**.
+- If BLOCKED:
+  - Apply `blocked` label to the GitHub issue.
+  - Write a `## Blocking Unknown` section to the issue body with the single question.
+  - Stop processing dependent tickets.
+  - Re-entry: user resolves the question → re-run `PLAN` scoped to that ticket → READY or new BLOCKED.
+- PLAN is session-scoped. The next session starts in BUILD mode unless prefixed with `PLAN` again.
+
 ---
 
-## Workflow
+## DESIGN-Complete Definition
+
+An issue is DESIGN-complete when its body contains a `## Design Checklist` section with all four items checked:
+
+```
+## Design Checklist
+- [x] DoD defined
+- [x] Affected files listed by path
+- [x] Gotchas flagged
+- [x] Blocking unknowns: none
+```
+
+This is the gate between PLAN and BUILD. BUILD mode verifies this at SSU. If the section is absent or any item is unchecked, BUILD refuses and surfaces exactly what is missing.
+
+---
+
+## BUILD Workflow
+
+**Precondition (SSU):** Read the issue body. Verify `## Design Checklist` exists with all four items checked. If absent or any item unchecked — stop, state exactly what is missing, do not proceed.
 
 **READ** → Check open GitHub Issues. Resume any in-progress issue (open PR exists). Otherwise pick the highest `priority:high` open issue without the `blocked` label. If none, pick the next unlabelled issue by creation order.
 

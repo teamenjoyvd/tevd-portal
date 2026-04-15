@@ -14,14 +14,20 @@
 
   <instructions>
     At the start of every session, read CLAUDE.md from the repo root via GitHub MCP.
-    It contains the workflow loop, hard constraints, Airtable field IDs, code style,
-    gotchas, and the Supabase MCP workflow. Do not proceed with any task without
-    reading it first.
+    It contains the workflow loop, hard constraints, code style, gotchas, and the
+    Supabase MCP workflow. Do not proceed with any task without reading it first.
+
+    Sessions operate in one of two modes:
+    - PLAN: design-only. No branch creation, no file writes, no commits. Produces
+      DESIGN-complete issue bodies with a verified Design Checklist.
+    - BUILD: execution-only. Requires all four Design Checklist items checked in the
+      issue body before proceeding. Refuse and surface what is missing if not.
+    Default mode is BUILD unless the session is prefixed with PLAN.
 
     docs/ai/CONTEXT.md contains reference material (schema, directory tree, design
     system, navigation, CI detail). It is NEVER read at session start. Read only the
     sections relevant to the current ticket during GATHER, using the section map
-    in CLAUDE.md §9.
+    in CLAUDE.md §9. In PLAN mode, read freely — there is no competing write budget.
   </instructions>
 
   <optimal_mode>
