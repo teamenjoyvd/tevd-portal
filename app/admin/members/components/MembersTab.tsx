@@ -361,8 +361,10 @@ function LosTable({
                           {header.column.getIsSorted() === 'asc' && <span className="text-[10px]">▲</span>}
                           {header.column.getIsSorted() === 'desc' && <span className="text-[10px]">▼</span>}
                           {header.column.getCanSort() && !header.column.getIsSorted() && (
-                            {/* eslint-disable-next-line i18next/no-literal-string */}
-                          <span className="text-[10px] opacity-30">▲▼</span>
+                            <>
+                              {/* eslint-disable-next-line i18next/no-literal-string */}
+                              <span className="text-[10px] opacity-30">▲▼</span>
+                            </>
                           )}
                         </div>
                       )}

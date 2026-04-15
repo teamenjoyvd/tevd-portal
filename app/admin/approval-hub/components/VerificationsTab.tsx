@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from '@/lib/toast'
+import { useLanguage } from '@/lib/i18n'
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -54,6 +55,7 @@ function formatDate(iso: string) {
 // ── Component: ABO Verification ───────────────────────────────────
 
 export function AboVerificationTab() {
+  const { t, lang } = useLanguage()
   const qc = useQueryClient()
   const [directProfileId, setDirectProfileId] = useState('')
   const [directUpline, setDirectUpline] = useState('')
