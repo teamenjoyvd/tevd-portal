@@ -73,4 +73,30 @@ export const profile = {
   'profile.language':           { en: 'Language',                bg: 'Език'                     },
   'profile.lang.en':            { en: 'English',                 bg: 'Английски'                },
   'profile.lang.bg':            { en: 'Български',               bg: 'Български'                },
+  // EmailPrefsSection
+  'profile.emailNotifications':     { en: 'Email Notifications',                         bg: 'Имейл известия'                                  },
+  'profile.error':                  { en: 'Error',                                        bg: 'Грешка'                                          },
+  'profile.emailOnlyNote':          { en: 'Emails are sent only to your contact email address.', bg: 'Имейлите се изпращат само на вашия контактен адрес.' },
+  'profile.pref.tripReg':           { en: 'Trip registration updates',                    bg: 'Промени по регистрация за пътуване'              },
+  'profile.pref.paymentStatus':     { en: 'Payment status updates',                       bg: 'Промени по статус на плащане'                    },
+  'profile.pref.aboVerif':          { en: 'ABO verification result',                      bg: 'Резултат от ABO верификация'                     },
+  'profile.pref.eventRole':         { en: 'Event role request result',                    bg: 'Резултат от заявка за роля'                      },
+  'profile.pref.docExpiry':         { en: 'Document expiry warnings',                     bg: 'Предупреждения за изтичащ документ'              },
+  // VitalsSection
+  'profile.vitalSigns':             { en: 'Vital Signs',                                  bg: 'Жизнени показатели'                              },
+  'profile.allVitalSigns':          { en: 'All Vital Signs',                              bg: 'Всички жизнени показатели'                       },
+  'profile.vitalRecorded':          { en: '✓ Recorded',                                   bg: '✓ Записано'                                      },
+  'profile.vitalNotRecorded':       { en: '○ Not recorded',                               bg: '○ Не е записано'                                 },
+  // StatsSection
+  'profile.stats':                  { en: 'STATS',                                        bg: 'СТАТИСТИКА'                                      },
+  'profile.statsDepth':             { en: 'Depth',                                        bg: 'Дълбочина'                                       },
+  'profile.statsLevel':             { en: 'Level',                                        bg: 'Ниво'                                            },
+  'profile.statsDirectDownlines':   { en: 'Direct downlines',                             bg: 'Директни даунлайни'                              },
+  'profile.viewLos':                { en: 'VIEW LOS',                                     bg: 'ВИЖДАМ LOS'                                      },
+  // ParticipationSection
+  'profile.participation':          { en: 'Participation',                                bg: 'Участие'                                         },
+  'profile.allParticipation':       { en: 'All Participation',                            bg: 'Всички участия'                                  },
+  // TripsSection
+  'profile.trips':                  { en: 'Trips',                                        bg: 'Пътувания'                                       },
+  'profile.allTrips':               { en: 'All Trips',                                    bg: 'Всички пътувания'                                },
 } as const
