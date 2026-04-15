@@ -39,7 +39,7 @@ function CollapsibleResolved({ children, count }: { children: React.ReactNode; c
         className="flex items-center gap-2 text-xs font-semibold tracking-widest uppercase mb-3 hover:opacity-70 transition-opacity"
         style={{ color: 'var(--text-secondary)' }}
       >
-        <span>Resolved — {count}</span>
+        <span>{t('admin.approval.trips.resolvedCollapsible').replace('{{count}}', String(count))}</span>
         <svg
           width="14" height="14" viewBox="0 0 24 24" fill="none"
           stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
@@ -117,7 +117,7 @@ export function TripRegistrationsTab() {
               color: filterTripId === 'all' ? 'white' : 'var(--text-secondary)',
             }}
           >
-            All trips
+            {t('admin.approval.trips.btn.allTrips')}
           </button>
           {trips.map(t => (
             <button
@@ -136,7 +136,7 @@ export function TripRegistrationsTab() {
       )}
 
       <p className="text-xs font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
-        Pending — {pending.length}
+        {t('admin.approval.trips.pendingTitle').replace('{{count}}', String(pending.length))}
       </p>
 
       {isLoading ? (
@@ -145,7 +145,7 @@ export function TripRegistrationsTab() {
         </div>
       ) : pending.length === 0 ? (
         <div className="rounded-xl border px-5 py-8 text-center" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
-          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No pending registrations.</p>
+          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t('admin.approval.trips.noPending')}</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -171,7 +171,7 @@ export function TripRegistrationsTab() {
                   className="px-4 py-1.5 rounded-lg text-sm font-medium text-white disabled:opacity-50 transition-opacity"
                   style={{ backgroundColor: 'var(--brand-teal)' }}
                 >
-                  Approve
+                  {t('admin.approval.verify.btn.approve')}
                 </button>
                 <button
                   onClick={() => updateMutation.mutate({ id: r.id, status: 'denied' })}
@@ -179,7 +179,7 @@ export function TripRegistrationsTab() {
                   className="px-4 py-1.5 rounded-lg text-sm font-medium disabled:opacity-50 transition-opacity"
                   style={{ backgroundColor: 'rgba(0,0,0,0.06)', color: 'var(--text-primary)' }}
                 >
-                  Deny
+                  {t('admin.approval.verify.btn.deny')}
                 </button>
               </div>
             </div>

@@ -136,7 +136,7 @@ export function AboVerificationTab() {
         </p>
         {standardPending.length === 0 ? (
           <div className="rounded-xl border px-5 py-6 text-center" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
-            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No pending standard requests.</p>
+            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t('admin.approval.verify.noStandard')}</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -181,7 +181,7 @@ export function AboVerificationTab() {
         </p>
         {manualPending.length === 0 ? (
           <div className="rounded-xl border px-5 py-6 text-center" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
-            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No pending manual requests.</p>
+            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t('admin.approval.verify.noManual')}</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -273,14 +273,14 @@ export function AboVerificationTab() {
         </p>
         <div className="rounded-xl border p-5 space-y-4" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
           <div>
-            <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Guest</label>
+            <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.approval.verify.lbl.guest')}</label>
             <select
               value={directProfileId}
               onChange={e => setDirectProfileId(e.target.value)}
               className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
               style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
             >
-              <option value="">Select a guest…</option>
+              <option value="">{t('admin.approval.verify.opt.selectGuest')}</option>
               {directCandidates.map(g => (
                 <option key={g.id} value={g.id}>
                   {g.first_name} {g.last_name}
@@ -289,11 +289,11 @@ export function AboVerificationTab() {
             </select>
           </div>
           <div>
-            <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Upline ABO number</label>
+            <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.approval.verify.lbl.uplineAbo')}</label>
             <input
               value={directUpline}
               onChange={e => setDirectUpline(e.target.value)}
-              placeholder="e.g. 7010970187"
+              placeholder={t('admin.approval.verify.placeholder.upline')}
               className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm font-mono"
               style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
             />

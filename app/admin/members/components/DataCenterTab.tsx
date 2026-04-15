@@ -246,9 +246,7 @@ function ReconciliationPanel({
       <div className="flex items-start justify-between gap-4 mb-4">
         <div>
           <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Reconciliation</p>
-          <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-            Match unrecognized LOS members to manually-verified portal profiles.
-          </p>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>{t('admin.data.reconciliation.desc')}</p>
         </div>
         {selectedLos && selectedProfileId && (
           <button onClick={handleLink} disabled={linking}
@@ -265,7 +263,7 @@ function ReconciliationPanel({
             Unrecognized in LOS — {unrecognized.length}
           </p>
           {unrecognized.length === 0 ? (
-            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>All LOS members matched.</p>
+            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('admin.data.reconciliation.allMatched')}</p>
           ) : (
             <div className="space-y-1.5">
               {unrecognized.map(row => (
@@ -291,7 +289,7 @@ function ReconciliationPanel({
             No ABO — awaiting position — {profiles.length}
           </p>
           {profiles.length === 0 ? (
-            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>No manually-verified members without ABO.</p>
+            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('admin.data.reconciliation.noManualMembers')}</p>
           ) : (
             <div className="space-y-1.5">
               {profiles.map(p => (
@@ -372,9 +370,7 @@ export function DataCenterTab() {
 
   return (
     <div className="space-y-6">
-      <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-        LOS CSV import — upserts on ABO number. Rebuilds LTree paths after every import.
-      </p>
+      <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t('admin.data.title')}</p>
       <div className="border-2 border-dashed rounded-lg p-8 text-center" style={{ borderColor: 'var(--border-default)', backgroundColor: 'var(--bg-card)' }}>
         <input ref={fileRef} type="file" accept=".csv" onChange={handleFile} className="hidden" id="csv-upload" />
         <label htmlFor="csv-upload" className="cursor-pointer">
@@ -441,7 +437,7 @@ export function DataCenterTab() {
               </div>
             ))}
           </DiffSection>
-          <DiffSection title="Level changes" count={result.diff.level_changes.length} color="#3d405b">
+          <DiffSection title={t('admin.data.result.levelChangesTitle')} count={result.diff.level_changes.length} color="#3d405b">
             {result.diff.level_changes.map(m => (
               <div key={m.abo_number} className="flex items-center gap-2 text-xs px-2 py-1.5 rounded-lg" style={{ backgroundColor: '#3d405b10' }}>
                 <span className="font-mono font-medium" style={{ color: 'var(--text-primary)' }}>{m.abo_number}</span>
@@ -450,7 +446,7 @@ export function DataCenterTab() {
               </div>
             ))}
           </DiffSection>
-          <DiffSection title="Bonus % changes" count={result.diff.bonus_changes.length} color="#e07a5f">
+          <DiffSection title={t('admin.data.result.bonusChangesTitle')} count={result.diff.bonus_changes.length} color="#e07a5f">
             {result.diff.bonus_changes.map(m => (
               <div key={m.abo_number} className="flex items-center gap-2 text-xs px-2 py-1.5 rounded-lg" style={{ backgroundColor: '#e07a5f10' }}>
                 <span className="font-mono font-medium" style={{ color: 'var(--text-primary)' }}>{m.abo_number}</span>
@@ -463,7 +459,7 @@ export function DataCenterTab() {
           </DiffSection>
           {result.errors.length > 0 && (
             <div className="mt-4 pt-4 border-t" style={{ borderColor: 'var(--border-default)' }}>
-              <p className="text-xs font-semibold mb-1" style={{ color: 'var(--brand-crimson)' }}>{result.errors.length} row errors — check for unsanitized data:</p>
+              <p className="text-xs font-semibold mb-1" style={{ color: 'var(--brand-crimson)' }}>{t('admin.data.result.rowErrorsTitle').replace('{{count}}', String(result.errors.length))}</p>
               {result.errors.map((e, i) => (
                 <p key={i} className="text-xs" style={{ color: 'var(--brand-crimson)' }}>{e.abo_number}: {e.error}</p>
               ))}
