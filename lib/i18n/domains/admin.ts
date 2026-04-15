@@ -96,6 +96,8 @@ export const admin = {
   'admin.approval.verify.lbl.uplineAbo': { en: 'Upline ABO number', bg: 'СБА номер на горна линия' },
   'admin.approval.verify.opt.selectGuest': { en: 'Select a guest…', bg: 'Избери гост…' },
   'admin.approval.verify.placeholder.upline': { en: 'e.g. 7010970187', bg: 'напр. 7010970187' },
+  'admin.approval.verify.btn.approve': { en: 'Approve', bg: 'Одобри' },
+  'admin.approval.verify.btn.deny': { en: 'Deny', bg: 'Откажи' },
   'admin.approval.verify.btn.verifyMember': { en: 'Verify member', bg: 'Верифицирай член' },
   'admin.approval.verify.btn.verifying': { en: 'Verifying…', bg: 'Верифициране…' },
   'admin.approval.verify.btn.verified': { en: 'Verified ✓', bg: 'Верифициран ✓' },
