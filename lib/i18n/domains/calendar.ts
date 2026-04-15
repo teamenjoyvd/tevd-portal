@@ -12,6 +12,7 @@ export const calendar = {
   'cal.view':        { en: 'View',               bg: 'Изглед'                 },
   'cal.category':    { en: 'Category',           bg: 'Категория'              },
   'cal.format':      { en: 'Format',             bg: 'Формат'                 },
+  'cal.moreEvents':  { en: 'more',               bg: 'още'                    },
   'cal.noRequests':  { en: 'No requests yet.',   bg: 'Все още няма заявки.'   },
   'cal.shareEvent':  { en: 'Share event',        bg: 'Сподели събитие'        },
   'cal.linkCopied':  { en: 'Link copied!',       bg: 'Линкът е копиран!'      },
