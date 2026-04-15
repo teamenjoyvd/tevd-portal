@@ -14,8 +14,8 @@ export const events = {
   'event.join.registerAgainDesc':  { en: 'Please register again to receive a fresh access link.',    bg: 'Моля, регистрирайте се отново, за да получите нова връзка.'      },
   'event.join.registerAgain':      { en: 'Register again',                                           bg: 'Регистрирайте се отново'                                        },
   'event.join.youreJoining':       { en: "You're joining",                                          bg: 'Присъединявате се към'                                          },
-  'event.join.hiClick':            { en: 'Hi {name}, click the button below to open the meeting.',   bg: 'Здравей {name}, натиснете бутона, за да отворите срещата.'       },
-  'event.join.hiTap':              { en: 'Hi {name}, tap the button below to open the meeting.',     bg: 'Здравей {name}, докоснете бутона, за да отворите срещата.'      },
+  'event.join.hiClick':            { en: 'Hi {name}, click the button below to open the meeting.',   bg: 'Здравейте {name}, натиснете бутона, за да отворите срещата.'      },
+  'event.join.hiTap':              { en: 'Hi {name}, tap the button below to open the meeting.',     bg: 'Здравейте {name}, докоснете бутона, за да отворите срещата.'     },
   'event.join.joinMeeting':        { en: 'Join Meeting',                                             bg: 'Присъединете се'                                                },
   'event.join.noMeetingLink':      { en: 'Meeting link not yet available. Check back closer to the event.', bg: 'Връзката към срещата все още не е налична. Проверете по-близо до събитието.' },
 
@@ -37,7 +37,7 @@ export const events = {
   'event.register.emailAddress':   { en: 'Email Address',                                            bg: 'Имейл адрес'                                                    },
   'event.register.emailPlaceholder': { en: 'you@example.com',                                        bg: 'you@example.com'                                                },
   'event.register.sendingLink':    { en: 'Sending link…',                                            bg: 'Изпращане…'                                                     },
-  'event.register.getAccessLink':  { en: 'Get access link',                                          bg: 'Получи връзка за достъп'                                        },
+  'event.register.getAccessLink':  { en: 'Get access link',                                          bg: 'Получете връзка за достъп'                                      },
   'event.register.noAccountDesc':  { en: 'No account needed.',                                       bg: 'Не е нужен акаунт.'                                             },
   'event.register.emailDesc':      { en: "We'll email you a personal link to join",                  bg: 'Ще ви изпратим личен линк за присъединяване към'                },
 } as const
