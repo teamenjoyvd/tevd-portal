@@ -9,6 +9,7 @@ import { trips }         from './domains/trips'
 import { calendar }      from './domains/calendar'
 import { events }        from './domains/events'
 import { los }           from './domains/los'
+import { admin }         from './domains/admin'
 
 export type Lang = 'en' | 'bg'
 
@@ -39,7 +40,7 @@ function assertNoDuplicateKeys(
 
 assertNoDuplicateKeys([
   nav, roles, announcements, time, guides,
-  notifications, profile, trips, calendar, events, los,
+  notifications, profile, trips, calendar, events, los, admin,
 ])
 
 export const translations = {
@@ -54,6 +55,7 @@ export const translations = {
   ...calendar,
   ...events,
   ...los,
+  ...admin,
 } as const
 
 export type TranslationKey = keyof typeof translations
