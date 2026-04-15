@@ -23,7 +23,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     .from('trip_registrations')
     .update({ status })
     .eq('id', id)
-    .select('*, profile:profiles(id, first_name, contact_email), trip:trips(id, title, destination, start_date, end_date)')
+    .select('*, profile:profiles!profile_id(id, first_name, contact_email), trip:trips(id, title, destination, start_date, end_date)')
     .single()
 
   if (error) return Response.json({ error: error.message }, { status: 500 })
