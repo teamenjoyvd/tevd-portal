@@ -79,7 +79,7 @@ export function TravelDocDrawerForm({
               cursor: 'pointer',
             }}
           >
-            {dt === 'id' ? 'Personal ID' : 'Passport'}
+            {dt === 'id' ? t('profile.docType.id') : t('profile.docType.passport')}
           </button>
         ))}
       </div>
@@ -137,7 +137,7 @@ export function TravelDocDrawerForm({
           className="flex-1 py-2.5 rounded-xl text-sm font-semibold border hover:bg-black/5 transition-colors"
           style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
         >
-          Cancel
+          {t('profile.cancel')}
         </button>
         <button
           onClick={onSave}
