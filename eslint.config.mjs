@@ -47,6 +47,15 @@ const eslintConfig = defineConfig([
       ],
     },
   },
+  // API route handlers are server-only. Literal strings here are error messages
+  // and log output — never rendered as UI copy. Translation is not appropriate.
+  // reason: server-only
+  {
+    files: ["app/api/**/*.ts", "app/api/**/*.tsx"],
+    rules: {
+      "i18next/no-literal-string": "off",
+    },
+  },
 ]);
 
 export default eslintConfig;
