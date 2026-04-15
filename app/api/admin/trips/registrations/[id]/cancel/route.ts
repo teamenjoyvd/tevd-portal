@@ -34,7 +34,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
       cancelled_by: adminProfile.id,
     })
     .eq('id', registrationId)
-    .select('*, profile:profiles!profile_id(id, first_name, contact_email), trip:trips!trip_id(id, title, destination, start_date, end_date)')
+    .select('*, profile:profiles(id, first_name, contact_email), trip:trips(id, title, destination, start_date, end_date)')
     .single()
 
   if (error) return Response.json({ error: error.message }, { status: 500 })
