@@ -27,6 +27,8 @@ export function I18nField({
     backgroundColor: 'var(--bg-card)',
   }
   const sharedClass = 'w-full border rounded-xl px-3 py-2.5 text-sm'
+  // eslint-disable-next-line i18next/no-literal-string
+  // reason: admin-internal format string, not UI copy for translation
   const placeholderText = placeholder ? `${placeholder} (${activeLang.toUpperCase()})` : undefined
 
   if (multiline) {
