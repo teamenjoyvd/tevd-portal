@@ -27,4 +27,8 @@ export const trips = {
   'trips.accommodation':      { en: 'Accommodation:',          bg: 'Настаняване:'                       },
   'trips.back':               { en: 'Back',                    bg: 'Назад'                              },
   'trips.viewDetails':        { en: 'View Trip Details',       bg: 'Виж детайли за пътуването'          },
+  'trips.whosGoing':          { en: "Who's Going",             bg: 'Кой пътува'                         },
+  'trips.noTeamRegistered':   { en: 'None of your team are registered yet.', bg: 'Все още никой от отбора ви не е регистриран.' },
+  'trips.daysToGo':           { en: 'days to go',              bg: 'дни до тръгване'                    },
+  'trips.todayBadge':         { en: 'Today!',                  bg: 'Днес!'                              },
 } as const

@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useLanguage } from '@/lib/hooks/useLanguage'
 import { Drawer } from '@/components/ui/Drawer'
 import { PaymentForm } from '@/components/payment/PaymentForm'
 import { formatCurrency } from '@/lib/format'
@@ -11,6 +12,7 @@ import { PaymentRow, ShowMoreButton } from './shared'
 export const PAYMENTS_MIN_HEIGHT = 280
 
 export function PaymentsSection({ profileId, role }: { profileId: string; role: string }) {
+  const { t } = useLanguage()
   const qc = useQueryClient()
   const [submitDrawerOpen, setSubmitDrawerOpen] = useState(false)
   const [listDrawerOpen, setListDrawerOpen]     = useState(false)
@@ -31,7 +33,6 @@ export function PaymentsSection({ profileId, role }: { profileId: string; role: 
     staleTime: 5 * 60 * 1000,
   })
 
-  // Duplicate query — same key as TripsSection. TanStack deduplicates the network request.
   const { data: tripsData } = useQuery<TripEntry[]>({
     queryKey: ['profile-trips'],
     queryFn: () => fetch('/api/profile/payments').then(r => r.json()),
@@ -89,20 +90,20 @@ export function PaymentsSection({ profileId, role }: { profileId: string; role: 
     <>
       <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
         <div className="flex items-center justify-between mb-4 pr-16">
-          <p className="text-xs font-semibold tracking-[0.25em] uppercase" style={{ color: 'var(--brand-crimson)' }}>Payments</p>
+          <p className="text-xs font-semibold tracking-[0.25em] uppercase" style={{ color: 'var(--brand-crimson)' }}>{t('payment.title')}</p>
           <button onClick={handleOpenSubmit}
             className="px-3 py-1.5 rounded-xl text-xs font-semibold text-white hover:opacity-90 transition-opacity flex-shrink-0"
-            style={{ backgroundColor: 'var(--brand-forest)' }}>+ Submit payment</button>
+            style={{ backgroundColor: 'var(--brand-forest)' }}>{t('payment.submitShort')}</button>
         </div>
         {Object.keys(visibleByItem).length === 0 ? (
-          <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>No payments logged yet.</p>
+          <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('payment.none')}</p>
         ) : (
           <PaymentGroups groups={visibleByItem} />
         )}
         {overflow > 0 && <ShowMoreButton count={overflow} onClick={() => setListDrawerOpen(true)} />}
       </div>
 
-      <Drawer open={submitDrawerOpen} onClose={closeSubmitDrawer} title="Submit Payment">
+      <Drawer open={submitDrawerOpen} onClose={closeSubmitDrawer} title={t('payment.submit')}>
         <PaymentForm
           context="generic"
           payableItems={payableItems ?? []}
@@ -111,7 +112,7 @@ export function PaymentsSection({ profileId, role }: { profileId: string; role: 
         />
       </Drawer>
 
-      <Drawer open={listDrawerOpen} onClose={() => setListDrawerOpen(false)} title="All Payments">
+      <Drawer open={listDrawerOpen} onClose={() => setListDrawerOpen(false)} title={t('payment.allPayments')}>
         <div className="space-y-4 mb-6">
           <PaymentGroups groups={allByItem} />
         </div>
@@ -121,7 +122,7 @@ export function PaymentsSection({ profileId, role }: { profileId: string; role: 
             className="w-full py-2.5 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-opacity"
             style={{ backgroundColor: 'var(--brand-forest)' }}
           >
-            + Submit payment
+            {t('payment.submitShort')}
           </button>
         </div>
       </Drawer>

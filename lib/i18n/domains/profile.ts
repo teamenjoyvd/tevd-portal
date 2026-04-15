@@ -53,4 +53,11 @@ export const profile = {
   'profile.verifDeniedDesc':    { en: 'Verification was denied. Update your details and resubmit.', bg: 'Верификацията беше отказана. Обновете данните и опитайте отново.' },
   'profile.profileLink':        { en: 'Profile →',                                               bg: 'Профил →'                                                      },
   'profile.adminLink':          { en: 'Admin →',                                                 bg: 'Админ →'                                                       },
+  'profile.access':             { en: 'Access',                  bg: 'Достъп'                   },
+  'profile.aboHash':            { en: 'ABO #',                   bg: 'ABO №'                    },
+  'profile.upline':             { en: 'Upline',                  bg: 'Ъплайн'                   },
+  'profile.uplineHash':         { en: 'Upline #',                bg: 'Ъплайн №'                 },
+  'profile.manualVerifPending': { en: 'Manual verification pending', bg: 'Ръчна верификация в изчакване' },
+  'profile.hasAboNumber':       { en: 'I have an ABO number',    bg: 'Имам ABO номер'           },
+  'profile.noAboYet':           { en: "I don't have one yet",    bg: 'Все още нямам'            },
 } as const
