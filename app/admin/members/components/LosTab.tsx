@@ -298,6 +298,7 @@ function NodeCard({
 // ── LosTab ────────────────────────────────────────────────────────────────────
 
 export function LosTab() {
+  const { t } = useLanguage()
   const qc = useQueryClient()
 
   const { data: treeResponse, isLoading: treeLoading, refetch: refetchTree } = useQuery<LosTreeResponse>({
