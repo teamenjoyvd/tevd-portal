@@ -1,12 +1,17 @@
 import { notFound } from 'next/navigation'
+import { cookies } from 'next/headers'
 import { createServiceClient } from '@/lib/supabase/service'
 import { RegisterForm } from './components/RegisterForm'
+import { t } from '@/lib/i18n'
 
 type Props = { params: Promise<{ eventId: string }> }
 
 export default async function GuestRegisterPage({ params }: Props) {
   const { eventId } = await params
   const supabase = createServiceClient()
+
+  const cookieStore = await cookies()
+  const lang = cookieStore.get('tevd_lang')?.value === 'bg' ? 'bg' : 'en'
 
   const { data: event } = await supabase
     .from('calendar_events')
@@ -30,7 +35,7 @@ export default async function GuestRegisterPage({ params }: Props) {
         <div className="w-full max-w-md">
           <div className="mb-8 text-center">
             <p className="text-xs font-bold tracking-widest uppercase mb-3" style={{ color: '#bc4749' }}>
-              TeamEnjoyVD
+              {t('event.join.brandName', lang)}
             </p>
             <h1 className="font-display text-2xl font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
               {event.title}
@@ -42,7 +47,7 @@ export default async function GuestRegisterPage({ params }: Props) {
             style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}
           >
             <p className="text-sm font-semibold mb-5" style={{ color: 'var(--text-primary)' }}>
-              Register to get your access link
+              {t('event.register.registerToGet', lang)}
             </p>
             <RegisterForm eventId={event.id} eventTitle={event.title} />
           </div>
@@ -56,7 +61,7 @@ export default async function GuestRegisterPage({ params }: Props) {
       >
         <div className="mb-8">
           <p className="text-xs font-bold tracking-widest uppercase mb-3" style={{ color: '#bc4749' }}>
-            TeamEnjoyVD
+            {t('event.join.brandName', lang)}
           </p>
           <h1 className="font-display text-xl font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
             {event.title}
@@ -68,7 +73,7 @@ export default async function GuestRegisterPage({ params }: Props) {
           style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}
         >
           <p className="text-sm font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
-            Register to get your access link
+            {t('event.register.registerToGet', lang)}
           </p>
           <RegisterForm eventId={event.id} eventTitle={event.title} />
         </div>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useLanguage } from '@/lib/hooks/useLanguage'
 
 type Props = {
   eventId:    string
@@ -84,6 +85,7 @@ export function JoinActions({
   endTime,
 }: Props) {
   const [calOpen, setCalOpen] = useState(false)
+  const { t } = useLanguage()
 
   // -- .ics download -----------------------------------------------------------
   function downloadIcs() {
@@ -110,7 +112,7 @@ export function JoinActions({
           }}
         >
           <p className="text-xs mb-1.5" style={{ color: 'var(--text-secondary)' }}>
-            If the button above doesn&apos;t open, copy this link directly:
+            {t('event.join.copyLinkHint')}
           </p>
           <a
             href={meetingUrl}
@@ -135,7 +137,7 @@ export function JoinActions({
             className="w-full flex items-center justify-between text-sm font-medium py-1.5"
             style={{ color: 'var(--text-primary)', background: 'none', border: 'none', cursor: 'pointer' }}
           >
-            <span>Add to calendar</span>
+            <span>{t('event.join.addToCalendar')}</span>
             <svg
               style={{ transition: 'transform 0.2s', transform: calOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
               width={16} height={16} fill="none" stroke="currentColor" viewBox="0 0 24 24"
@@ -157,7 +159,7 @@ export function JoinActions({
                   color: 'var(--text-primary)',
                 }}
               >
-                Google Calendar
+                {t('event.join.googleCalendar')}
               </a>
               <a
                 href={buildOutlookUrl(eventTitle, startTime, endTime, meetingUrl)}
@@ -170,7 +172,7 @@ export function JoinActions({
                   color: 'var(--text-primary)',
                 }}
               >
-                Outlook
+                {t('event.join.outlook')}
               </a>
               <button
                 onClick={downloadIcs}
@@ -182,7 +184,7 @@ export function JoinActions({
                   cursor: 'pointer',
                 }}
               >
-                Download .ics (Apple Calendar &amp; others)
+                {t('event.join.downloadIcs')}
               </button>
             </div>
           )}

@@ -3,11 +3,13 @@
 import { useActionState } from 'react'
 import { registerGuest } from '@/lib/actions/guest-registration'
 import type { RegisterGuestState } from '@/lib/actions/guest-registration'
+import { useLanguage } from '@/lib/hooks/useLanguage'
 
 const initialState: RegisterGuestState = { success: false }
 
 export function RegisterForm({ eventId, eventTitle }: { eventId: string; eventTitle: string }) {
   const [state, formAction, isPending] = useActionState(registerGuest, initialState)
+  const { t } = useLanguage()
 
   if (state.success) {
     return (
@@ -24,10 +26,10 @@ export function RegisterForm({ eventId, eventTitle }: { eventId: string; eventTi
           </svg>
         </div>
         <p className="font-semibold text-base mb-1" style={{ color: 'var(--text-primary)' }}>
-          Check your inbox
+          {t('event.register.checkInbox')}
         </p>
         <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-          We&apos;ve sent your access link. The link expires in 72 hours.
+          {t('event.register.sentLink')}
         </p>
       </div>
     )
@@ -43,7 +45,7 @@ export function RegisterForm({ eventId, eventTitle }: { eventId: string; eventTi
           className="block text-xs font-semibold tracking-widest uppercase mb-1.5"
           style={{ color: 'var(--text-secondary)' }}
         >
-          Full Name
+          {t('event.register.fullName')}
         </label>
         <input
           id="name"
@@ -53,7 +55,7 @@ export function RegisterForm({ eventId, eventTitle }: { eventId: string; eventTi
           minLength={2}
           maxLength={100}
           autoComplete="name"
-          placeholder="Your name"
+          placeholder={t('event.register.yourName')}
           className="w-full rounded-xl border px-4 py-3 text-sm outline-none transition-colors"
           style={{
             backgroundColor: 'var(--bg-card)',
@@ -69,7 +71,7 @@ export function RegisterForm({ eventId, eventTitle }: { eventId: string; eventTi
           className="block text-xs font-semibold tracking-widest uppercase mb-1.5"
           style={{ color: 'var(--text-secondary)' }}
         >
-          Email Address
+          {t('event.register.emailAddress')}
         </label>
         <input
           id="email"
@@ -77,7 +79,7 @@ export function RegisterForm({ eventId, eventTitle }: { eventId: string; eventTi
           type="email"
           required
           autoComplete="email"
-          placeholder="you@example.com"
+          placeholder={t('event.register.emailPlaceholder')}
           className="w-full rounded-xl border px-4 py-3 text-sm outline-none transition-colors"
           style={{
             backgroundColor: 'var(--bg-card)',
@@ -99,12 +101,12 @@ export function RegisterForm({ eventId, eventTitle }: { eventId: string; eventTi
         className="w-full rounded-xl py-3.5 text-sm font-semibold text-white disabled:opacity-60 transition-opacity"
         style={{ backgroundColor: '#1a3c2e', minHeight: 44 }}
       >
-        {isPending ? 'Sending link…' : 'Get access link'}
+        {isPending ? t('event.register.sendingLink') : t('event.register.getAccessLink')}
       </button>
 
       <p className="text-xs text-center" style={{ color: 'var(--text-secondary)' }}>
-        We&apos;ll email you a personal link to join <strong>{eventTitle}</strong>.
-        No account needed.
+        {t('event.register.emailDesc')} <strong>{eventTitle}</strong>.
+        {t('event.register.noAccountDesc')}
       </p>
     </form>
   )
