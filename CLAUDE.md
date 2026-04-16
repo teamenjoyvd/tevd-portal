@@ -173,8 +173,8 @@ Sessions are either PLAN or BUILD — never both. Default mode is BUILD unless t
    - New external dependency → update `C4.md` first
    - New architectural pattern → write ADR in `DECISIONS.md` before executing
 
-   If DoD is stale or wrong: update the issue body, stop for user confirmation before proceeding.
-   **No file writes in SHAPE.**
+   If DoD is stale or wrong: stop and request user to update the issue body before proceeding.
+   **No writes (including issue body) in SHAPE.**
 
 **CLAIM** → First and only write action before EXECUTE.
   1. `github-tevd:create_branch` → `feature/[YYMM]-[TYPE]-[NNN]` from `main`
