@@ -1,3 +1,4 @@
+/* eslint-disable i18next/no-literal-string -- TODO: email i18n — static server-rendered copy, no t() available */
 import { Button, Section, Text } from '@react-email/components'
 import * as React from 'react'
 import { EmailShell, bodyPadding, labelStyle } from './_shell'
