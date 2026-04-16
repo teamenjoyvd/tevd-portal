@@ -75,6 +75,8 @@ Violation = immediate stop, no exceptions.
   <div className="md:hidden">{/* Mobile */}</div>
   ```
   Canonical reference: `app/(dashboard)/about/page.tsx`
+- **NEVER call `create_or_update_file` or `push_files` before CLAIM is complete.** No file writes until the feature branch exists and is confirmed.
+- **PLAN and BUILD are mutually exclusive within a session.** A session started as PLAN does no branch creation or file writes. A session started as BUILD does no PLAN-mode design work.
 
 ---
 
@@ -106,19 +108,24 @@ If GitHub ❌ — stop.
 6. Report: one line per comment — ✅ Applied / ⚠️ Skipped (reason).
 
 **PLAN** — Enter design-only mode for this session.
-- No branch creation.
-- No file writes except issue body updates.
-- No commits.
-- For each ticket in the batch:
+
+Sessions are either PLAN or BUILD — never both. Prefix the session with `PLAN` to enter this mode.
+
+- For each issue in the batch:
   1. Read the issue body.
-  2. Read relevant REF.md sections freely — no competing write budget.
-  3. Read FLOWS.md if routing or data flow is in scope.
-  4. Produce the Design Checklist and write it to the issue body:
+  2. Read relevant REF.md / FLOWS.md sections freely — no competing write budget.
+  3. Produce a DoD as **specific verifiable checklist items with file paths**, not directional statements. Example:
+     ```
+     ## DoD
+     - [ ] `app/[route]/components/X.tsx` renders without overflow at 390px
+     - [ ] `api/y/route.ts` returns 403 for non-admin Clerk userId
+     ```
+  4. Write the full Design Checklist to the issue body:
      ```
      ## Design Checklist
-     - [ ] DoD defined
+     - [ ] DoD defined (specific, file-path-level)
      - [ ] Affected files listed by path
-     - [ ] Gotchas flagged
+     - [ ] Gotchas flagged against Gotchas table
      - [ ] Blocking unknowns: none
      ```
   5. Output a verdict: **READY** or **BLOCKED: [single specific question]**.
@@ -127,7 +134,9 @@ If GitHub ❌ — stop.
   - Write a `## Blocking Unknown` section to the issue body with the single question.
   - Stop processing dependent tickets.
   - Re-entry: user resolves the question → re-run `PLAN` scoped to that ticket → READY or new BLOCKED.
-- PLAN is session-scoped. The next session starts in BUILD mode unless prefixed with `PLAN` again.
+
+Permitted writes: GitHub issue body only.
+Forbidden: `create_branch`, `create_or_update_file`, `push_files`.
 
 ---
 
@@ -137,9 +146,9 @@ An issue is DESIGN-complete when its body contains a `## Design Checklist` secti
 
 ```
 ## Design Checklist
-- [x] DoD defined
+- [x] DoD defined (specific, file-path-level)
 - [x] Affected files listed by path
-- [x] Gotchas flagged
+- [x] Gotchas flagged against Gotchas table
 - [x] Blocking unknowns: none
 ```
 
@@ -149,13 +158,13 @@ This is the gate between PLAN and BUILD. BUILD mode verifies this at SSU. If the
 
 ## BUILD Workflow
 
+Sessions are either PLAN or BUILD — never both. Default mode is BUILD unless the session is prefixed with `PLAN`.
+
 **Precondition (SSU):** Read the issue body. Verify `## Design Checklist` exists with all four items checked. If absent or any item unchecked — stop, state exactly what is missing, do not proceed.
 
 **READ** → Check open GitHub Issues. Resume any in-progress issue (open PR exists). Otherwise pick the highest `priority:high` open issue without the `blocked` label. If none, pick the next unlabelled issue by creation order.
 
-**SHAPE** → Hard stop before claiming. Two required outputs before any code:
-1. Write the DoD into the issue body as a single verifiable line: `DoD: <specific outcome>`. If you cannot write it, you do not understand the ticket — stop.
-2. Read the relevant architecture doc if the ticket touches a sensitive area:
+**SHAPE (read-only)** → Verify the DoD from the issue body is still coherent against the current codebase state. Read any relevant architecture doc:
    - Auth / role / Clerk sync → `FLOWS.md §1`
    - Registration → `FLOWS.md §2`
    - Payments → `FLOWS.md §3`
@@ -164,11 +173,17 @@ This is the gate between PLAN and BUILD. BUILD mode verifies this at SSU. If the
    - New external dependency → update `C4.md` first
    - New architectural pattern → write ADR in `DECISIONS.md` before executing
 
-**CLAIM** → Assign GitHub issue to self. Create branch: `feature/[YYMM]-[TYPE]-[NNN]`. Push immediately to establish remote: `git push -u origin feature/[YYMM]-[TYPE]-[NNN]`.
+   If DoD is stale or wrong: update the issue body, stop for user confirmation before proceeding.
+   **No file writes in SHAPE.**
+
+**CLAIM** → First and only write action before EXECUTE.
+  1. `github-tevd:create_branch` → `feature/[YYMM]-[TYPE]-[NNN]` from `main`
+  2. Confirm branch exists (check the returned ref).
+  3. **HARD GATE: if branch creation fails — STOP. Do not proceed to GATHER or EXECUTE until resolved.**
 
 **GATHER** → Read only the REF.md sections the ticket needs (section map at top of REF.md).
 
-**EXECUTE** → Change only lines required by DoD. Push to trigger Vercel Preview.
+**EXECUTE** → Change only lines required by DoD. All writes target the feature branch only. Push to trigger Vercel Preview.
 - Before any large task (>100 lines): write `IN PROGRESS` to PR `## Session State` first, then commit a skeleton with `// TODO:` items before implementing.
 
 **VERIFY** → DoD point-by-point. Vercel Preview READY. CI green. 390px check. No production side-effects.
