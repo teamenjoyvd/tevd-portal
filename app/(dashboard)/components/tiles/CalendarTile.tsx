@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import BentoCard from '@/components/bento/BentoCard'
+import { useLanguage } from '@/lib/hooks/useLanguage'
 import { formatTime, calDay, calMonth } from '@/lib/format'
 
 export type CalendarEvent = {
@@ -10,12 +11,6 @@ export type CalendarEvent = {
   start_time: string
   end_time: string | null
   event_type: string | null
-}
-
-const EVENT_TYPE_LABELS: Record<string, string> = {
-  'in-person': 'In-Person',
-  'online': 'Online',
-  'hybrid': 'Hybrid',
 }
 
 function eventDuration(startIso: string, endIso: string | null | undefined): string {
@@ -39,6 +34,14 @@ type Props = {
 }
 
 export default function CalendarTile({ events = [], colSpan, mobileColSpan, rowSpan, style }: Props) {
+  const { t } = useLanguage()
+
+  const EVENT_TYPE_LABELS: Record<string, string> = {
+    'in-person': t('home.cal.typeInPerson'),
+    'online':    t('home.cal.typeOnline'),
+    'hybrid':    t('home.cal.typeHybrid'),
+  }
+
   return (
     <BentoCard
       variant="default"
@@ -50,14 +53,14 @@ export default function CalendarTile({ events = [], colSpan, mobileColSpan, rowS
     >
       <div className="flex items-center justify-end mb-4">
         <Link href="/calendar" className="font-body text-[11px] font-bold tracking-widest uppercase pill-link-crimson">
-          Events →
+          {t('home.cal.eventsLink')}
         </Link>
       </div>
 
       {events.length === 0 ? (
         <div className="flex-1 flex items-center justify-center">
           <p className="font-body text-sm" style={{ color: 'var(--text-secondary)' }}>
-            No upcoming events
+            {t('home.cal.noEvents')}
           </p>
         </div>
       ) : (

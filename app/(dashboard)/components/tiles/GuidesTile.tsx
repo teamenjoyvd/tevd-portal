@@ -17,7 +17,7 @@ type Guide = {
 
 export default function GuidesTile({ colSpan = 6, rowSpan, mobileColSpan }: { colSpan?: number; rowSpan?: number; mobileColSpan?: number }) {
   const { isLoaded } = useUser()
-  const { lang } = useLanguage()
+  const { lang, t } = useLanguage()
   const maxItems = useTileMaxItems('guides', 4)
 
   const { data: guides = [], isLoading } = useQuery<Guide[]>({
@@ -32,13 +32,13 @@ export default function GuidesTile({ colSpan = 6, rowSpan, mobileColSpan }: { co
   return (
     <BentoCard variant="default" colSpan={colSpan} rowSpan={rowSpan} mobileColSpan={mobileColSpan} className="flex flex-col">
       <div className="flex items-center justify-between mb-4">
-        <Eyebrow>Guides</Eyebrow>
+        <Eyebrow>{t('home.guides.title')}</Eyebrow>
         <Link
           href="/guides"
           className="text-xs font-semibold tracking-widest uppercase transition-colors hover:opacity-70"
           style={{ color: 'var(--brand-crimson)' }}
         >
-          View all →
+          {t('home.guides.viewAll')}
         </Link>
       </div>
 

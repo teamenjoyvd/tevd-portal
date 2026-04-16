@@ -3,17 +3,19 @@
 // ── Shared JSX sub-components used across profile section files ──────────────
 // Kept separate from types.ts because .ts files cannot contain JSX.
 
+import { useLanguage } from '@/lib/hooks/useLanguage'
 import { formatDate, formatCurrency } from '@/lib/format'
 import { type TripEntry, type GenericPayment, PAYMENT_STATUS_STYLES, REG_STATUS_STYLES } from '../types'
 
 export function ShowMoreButton({ count, onClick }: { count: number; onClick: () => void }) {
+  const { t } = useLanguage()
   return (
     <button
       onClick={onClick}
       className="mt-3 text-xs font-semibold hover:opacity-70 transition-opacity"
       style={{ color: 'var(--brand-crimson)' }}
     >
-      +{count} more
+      +{count} {t('home.shared.showMore')}
     </button>
   )
 }
@@ -27,6 +29,7 @@ export function TripRow({
   onCancel: (tripId: string) => void
   cancelPending: boolean
 }) {
+  const { t } = useLanguage()
   if (!entry.trip) return null
   const isCancelled = !!entry.cancelled_at
   const regStyle = isCancelled
@@ -49,17 +52,17 @@ export function TripRow({
           className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
           style={{ backgroundColor: regStyle.bg, color: regStyle.color }}
         >
-          {isCancelled ? 'cancelled' : entry.registration_status}
+          {isCancelled ? t('home.shared.cancelled') : entry.registration_status}
         </span>
       </div>
       {!isCancelled && (
         <button
-          onClick={() => { if (confirm('Cancel your participation in this trip? This cannot be undone.')) onCancel(entry.trip!.id) }}
+          onClick={() => { if (confirm(t('home.shared.cancelConfirm'))) onCancel(entry.trip!.id) }}
           disabled={cancelPending}
           className="mt-2 text-[11px] font-medium hover:opacity-70 transition-opacity disabled:opacity-40"
           style={{ color: 'var(--brand-crimson)' }}
         >
-          Cancel participation
+          {t('home.shared.cancelPart')}
         </button>
       )}
     </div>
@@ -73,6 +76,7 @@ export function PaymentRow({
   pay: GenericPayment
   cancelledTripIds: Set<string>
 }) {
+  const { t } = useLanguage()
   const ps = PAYMENT_STATUS_STYLES[pay.status] ?? PAYMENT_STATUS_STYLES.pending
   const linkedTripCancelled = pay.payable_items?.item_type === 'trip' && cancelledTripIds.size > 0
   return (
@@ -91,12 +95,12 @@ export function PaymentRow({
       >
         {pay.status}
         {(pay.admin_note || linkedTripCancelled) && (
-          <span title={linkedTripCancelled ? 'Trip was cancelled' : (pay.admin_note ?? '')} style={{ cursor: 'help', fontSize: 10, lineHeight: 1 }}>ⓘ</span>
+          <span title={linkedTripCancelled ? t('home.shared.tripCancelled') : (pay.admin_note ?? '')} style={{ cursor: 'help', fontSize: 10, lineHeight: 1 }}>ⓘ</span>
         )}
       </span>
       {pay.proof_url && (
         <a href={pay.proof_url} target="_blank" rel="noopener noreferrer"
-          className="flex-shrink-0 hover:underline" style={{ color: 'var(--brand-teal)' }}>proof ↗</a>
+          className="flex-shrink-0 hover:underline" style={{ color: 'var(--brand-teal)' }}>{t('home.shared.proofLink')}</a>
       )}
     </div>
   )
