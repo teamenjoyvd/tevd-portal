@@ -1,3 +1,4 @@
+/* eslint-disable i18next/no-literal-string -- TODO: email i18n — static server-rendered copy, no lang context available */
 import {
   Body, Container, Head, Heading, Html, Preview, Section, Text, Hr,
 } from '@react-email/components'
