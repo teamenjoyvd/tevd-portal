@@ -21,4 +21,9 @@ export const home = {
   'home.shared.cancelConfirm': { en: 'Cancel your participation in this trip? This cannot be undone.', bg: 'Да откажем участието ти в това пътуване? Това не може да се отмени.' },
   'home.shared.proofLink':   { en: 'proof ↗',             bg: 'доказателство ↗'         },
   'home.shared.tripCancelled': { en: 'Trip was cancelled', bg: 'Пътуването е отменено'   },
+  // timeAgo utility (shared: SocialsTile, notifications/page)
+  'home.time.justNow':       { en: 'just now',             bg: 'току-що'                 },
+  'home.time.minutesAgo':    { en: 'm ago',                bg: 'м назад'                 },
+  'home.time.hoursAgo':      { en: 'h ago',                bg: 'ч назад'                 },
+  'home.time.daysAgo':       { en: 'd ago',                bg: 'д назад'                 },
 } as const

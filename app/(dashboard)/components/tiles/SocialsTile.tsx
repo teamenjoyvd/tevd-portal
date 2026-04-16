@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query'
 import BentoCard from '@/components/bento/BentoCard'
+import { useLanguage } from '@/lib/hooks/useLanguage'
 
 type SocialPost = {
   id: string
@@ -15,16 +16,6 @@ type SocialPost = {
 
 type SocialsData = {
   post: SocialPost | null
-}
-
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime()
-  const mins  = Math.floor(diff / 60000)
-  const hours = Math.floor(diff / 3600000)
-  const days  = Math.floor(diff / 86400000)
-  if (mins < 60)  return `${mins}m ago`
-  if (hours < 24) return `${hours}h ago`
-  return `${days}d ago`
 }
 
 function thumbnailSrc(url: string): string {
@@ -60,6 +51,7 @@ export default function SocialsTile({
   rowSpan?: number
   style?: React.CSSProperties
 }) {
+  const { t } = useLanguage()
   const { data, isLoading } = useQuery<SocialsData>({
     queryKey: ['socials'],
     queryFn: () => fetch('/api/socials').then(r => r.json()),
@@ -67,6 +59,16 @@ export default function SocialsTile({
   })
 
   const post = data?.post ?? null
+
+  function timeAgo(dateStr: string): string {
+    const diff = Date.now() - new Date(dateStr).getTime()
+    const mins  = Math.floor(diff / 60000)
+    const hours = Math.floor(diff / 3600000)
+    const days  = Math.floor(diff / 86400000)
+    if (mins < 60)  return `${mins}${t('home.time.minutesAgo')}`
+    if (hours < 24) return `${hours}${t('home.time.hoursAgo')}`
+    return `${days}${t('home.time.daysAgo')}`
+  }
 
   return (
     <BentoCard
@@ -104,7 +106,7 @@ export default function SocialsTile({
 
         {!isLoading && !post && (
           <p className="font-body text-xs mt-3" style={{ color: 'var(--text-secondary)' }}>
-            Social feed coming soon.
+            {t('home.socials.comingSoon')}
           </p>
         )}
 
@@ -136,7 +138,7 @@ export default function SocialsTile({
                   {post.caption}
                 </p>
               ) : (
-                <p className="text-xs italic" style={{ color: 'var(--text-secondary)' }}>View post →</p>
+                <p className="text-xs italic" style={{ color: 'var(--text-secondary)' }}>{t('home.socials.viewPost')}</p>
               )}
             </div>
 
@@ -148,7 +150,7 @@ export default function SocialsTile({
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={thumbnailSrc(post.thumbnail_url)}
-                  alt={`${post.platform} post`}
+                  alt={`${post.platform} ${t('home.socials.postAlt')}`}
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />
               </div>

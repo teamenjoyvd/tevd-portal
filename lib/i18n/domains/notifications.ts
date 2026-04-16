@@ -12,4 +12,13 @@ export const notifications = {
   'notif.type.eventFetched':  { en: 'New event',             bg: 'Ново събитие'                     },
   'notif.type.docExpiry':     { en: 'Document expiry',       bg: 'Изтичане на документ'             },
   'notif.type.losDigest':     { en: 'LOS digest',            bg: 'Обобщение на мрежата'             },
+  'notif.pageTitle':          { en: 'Notifications',         bg: 'Известия'                         },
+  'notif.pageSubtitle':       { en: 'Your activity and alerts', bg: 'Вашата активност и сигнали'   },
+  'notif.searchPlaceholder':  { en: 'Search notifications…', bg: 'Търсене на известия…'             },
+  'notif.filter.all':         { en: 'All',                   bg: 'Всички'                           },
+  'notif.filter.unread':      { en: 'Unread',                bg: 'Непрочетени'                      },
+  'notif.filter.read':        { en: 'Read',                  bg: 'Прочетени'                        },
+  'notif.filter.allTypes':    { en: 'All types',             bg: 'Всички типове'                    },
+  'notif.noMatch':            { en: 'No notifications match your filters', bg: 'Няма известия, отговарящи на филтрите ви' },
+  'notif.clearFilters':       { en: 'Clear filters',         bg: 'Изчисти филтрите'                 },
 } as const
