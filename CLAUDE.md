@@ -71,7 +71,7 @@ Violation = immediate stop, no exceptions.
 - **Component co-location** — new components scoped to one route go in `app/[route]/components/`. Promote to `/components` only when used by 2+ unrelated routes.
 - **Dual layout law** — NEVER a single responsive layout. Two complete separate layouts only. Canonical ref: `app/(dashboard)/about/page.tsx`.
 - **NEVER call `create_or_update_file` or `push_files` before PLAN's CLAIM is complete.** No file writes until the feature branch exists and is confirmed.
-- **PLAN and BUILD are mutually exclusive within a session.** PLAN does no file writes. BUILD does no design work. Violation = immediate stop.
+- **PLAN and BUILD are mutually exclusive within a session.** PLAN does no file writes. BUILD does no PLAN-mode design work. Violation = immediate stop.
 
 ---
 
@@ -133,7 +133,7 @@ Prefix the session with `PLAN` to enter this mode.
      4. `create_branch` → `feature/[YYMM]-[TYPE]-[GH#]` from `main`.
      5. Confirm branch exists (check the returned ref).
      6. **HARD GATE: if branch creation fails — comment `BLOCKED: branch creation failed` on the issue, apply `blocked` label, STOP. Do not proceed.**
-     7. `update_issue` — write `## Branch\n\`feature/[YYMM]-[TYPE]-[GH#]\`` into the issue body.
+     7. `update_issue` — write `## Branch` followed by a newline and `` `feature/[YYMM]-[TYPE]-[GH#]` `` into the issue body.
 
 Permitted writes: GitHub issue creation, issue body, branch creation.
 Forbidden: `create_or_update_file`, `push_files`.
