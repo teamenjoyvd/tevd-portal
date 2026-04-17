@@ -31,9 +31,9 @@ export function GuidesTab() {
     queryFn: () => fetch('/api/admin/guides').then(r => r.json()),
   })
   const [localGuides, setLocalGuides] = useState<Guide[]>(() => [...guidesRaw])
-  const prevGuidesRaw = useRef(guidesRaw)
-  if (prevGuidesRaw.current !== guidesRaw) {
-    prevGuidesRaw.current = guidesRaw
+  const [prevGuidesRaw, setPrevGuidesRaw] = useState(guidesRaw)
+  if (prevGuidesRaw !== guidesRaw) {
+    setPrevGuidesRaw(guidesRaw)
     setLocalGuides([...guidesRaw])
   }
 

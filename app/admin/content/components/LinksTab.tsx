@@ -52,9 +52,9 @@ export function LinksTab() {
     queryFn: () => fetch('/api/admin/links').then(r => r.json()),
   })
   const [localLinks, setLocalLinks] = useState<SiteLink[]>(() => [...linksRaw])
-  const prevLinksRaw = useRef(linksRaw)
-  if (prevLinksRaw.current !== linksRaw) {
-    prevLinksRaw.current = linksRaw
+  const [prevLinksRaw, setPrevLinksRaw] = useState(linksRaw)
+  if (prevLinksRaw !== linksRaw) {
+    setPrevLinksRaw(linksRaw)
     setLocalLinks([...linksRaw])
   }
 

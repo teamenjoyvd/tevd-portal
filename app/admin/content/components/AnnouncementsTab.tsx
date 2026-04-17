@@ -60,9 +60,9 @@ export function AnnouncementsTab() {
     queryFn: () => fetch('/api/admin/announcements').then(r => r.json()),
   })
   const [localAnnouncements, setLocalAnnouncements] = useState<Announcement[]>(() => [...announcementsRaw])
-  const prevAnnouncementsRaw = useRef(announcementsRaw)
-  if (prevAnnouncementsRaw.current !== announcementsRaw) {
-    prevAnnouncementsRaw.current = announcementsRaw
+  const [prevAnnouncementsRaw, setPrevAnnouncementsRaw] = useState(announcementsRaw)
+  if (prevAnnouncementsRaw !== announcementsRaw) {
+    setPrevAnnouncementsRaw(announcementsRaw)
     setLocalAnnouncements([...announcementsRaw])
   }
 
