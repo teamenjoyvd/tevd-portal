@@ -164,8 +164,12 @@ export function SocialTab() {
     queryKey: ['admin-social-posts'],
     queryFn: () => fetch('/api/admin/social-posts').then(r => r.json()),
   })
-  const [localSocials, setLocalSocials] = useState<SocialPost[]>([])
-  useEffect(() => { setLocalSocials([...socialPostsRaw]) }, [socialPostsRaw])
+  const [localSocials, setLocalSocials] = useState<SocialPost[]>(() => [...socialPostsRaw])
+  const [prevSocialsRaw, setPrevSocialsRaw] = useState(socialPostsRaw)
+  if (prevSocialsRaw !== socialPostsRaw) {
+    setPrevSocialsRaw(socialPostsRaw)
+    setLocalSocials([...socialPostsRaw])
+  }
 
   const reorderSocials = useMutation({
     mutationFn: (items: { id: string; sort_order: number }[]) =>
