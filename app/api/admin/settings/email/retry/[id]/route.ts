@@ -1,3 +1,4 @@
+import type * as React from 'react'
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { requireAdmin } from '@/lib/supabase/guards'
@@ -11,7 +12,7 @@ import { PaymentSubmittedEmail } from '@/lib/email/templates/PaymentSubmittedEma
 import { TripRegistrationEmail } from '@/lib/email/templates/TripRegistrationEmail'
 import { WelcomeEmail } from '@/lib/email/templates/WelcomeEmail'
 
-type EmailTemplateComponent = (props: Record<string, unknown>) => JSX.Element
+type EmailTemplateComponent = (props: Record<string, unknown>) => React.ReactElement
 
 // Map template keys to their visual components for rendering during retry
 const TEMPLATE_COMPONENTS: Record<string, EmailTemplateComponent> = {
