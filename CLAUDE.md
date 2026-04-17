@@ -36,7 +36,7 @@ Examples: `2604-FEAT-61`, `2604-BUG-54`, `2604-CHORE-66`
 | Commit prefix | `[2604-FEAT-61] description` |
 | PR title | `[2604-FEAT-61] description` |
 
-The GitHub issue number is the canonical unique identifier. It is assigned atomically by GitHub — no counter to maintain, no inference required.
+The GitHub issue number is the canonical unique identifier. It is assigned atomically by GitHub — no counter to maintain, no inference required. Never check existing issue numbers and increment — always create the issue and read the number from the response.
 
 ---
 
@@ -71,26 +71,36 @@ Violation = immediate stop, no exceptions.
 - **Component co-location** — new components scoped to one route go in `app/[route]/components/`. Promote to `/components` only when used by 2+ unrelated routes.
 - **Dual layout law** — two complete separate layouts, no hybrid responsive:
   ```tsx
-  <div className="hidden md:block">{/* Desktop */}</div>
-  <div className="md:hidden">{/* Mobile */}</div>
+  <div className=\"hidden md:block\">{/* Desktop */}</div>
+  <div className=\"md:hidden\">{/* Mobile */}</div>
   ```
   Canonical reference: `app/(dashboard)/about/page.tsx`
-- **NEVER call `create_or_update_file` or `push_files` before CLAIM is complete.** No file writes until the feature branch exists and is confirmed.
-- **PLAN and BUILD are mutually exclusive within a session.** A session started as PLAN does no branch creation or file writes. A session started as BUILD does no PLAN-mode design work.
+- **NEVER call `create_or_update_file` or `push_files` before PLAN's CLAIM is complete.** No file writes until the feature branch exists and is confirmed.
+- **PLAN and BUILD are mutually exclusive within a session.** A session started as PLAN does no file writes. A session started as BUILD does no PLAN-mode design work.
 
 ---
 
 ## Commands
 
 **SSU** — System Status Update. Run at session start:
-1. GitHub MCP `get_file_contents` on `CLAUDE.md` — confirms connectivity and loads current state.
-2. GitHub MCP `list_pull_requests` — check for any open PRs. If found: read the active PR's `## Session State` block and report what's in flight before doing anything else. If none: report ready to pick up next issue.
+
+1. **Tool warm-up (before anything else):**
+   - `tool_search(\"get file contents github\")`
+   - `tool_search(\"branch issue pull request create\")`
+   Confirm both return results. If either fails — stop.
+
+2. `get_file_contents` on `CLAUDE.md` — confirms GitHub connectivity and loads current state.
+
+3. `list_pull_requests` — check for any open PRs.
+   - **Open PR found:** read its `## Session State` block and report what's in flight before doing anything else.
+   - **No open PR, but a PLAN-complete issue exists** (has `## Branch` block, no PR): report as CLAIM-complete/EXECUTE-not-started → proceed to GATHER in BUILD.
+   - **Nothing in flight:** report ready to pick up next issue.
 
 Output format:
 ```
 | GitHub    | ✅/❌ |
 | In flight | [YYMM]-[TYPE]-[GH#] <title> / None |
-| Handoff   | IN PROGRESS: <next action> / DONE / No active PR |
+| Handoff   | IN PROGRESS: <next action> / DONE / PLAN-complete: ready for GATHER / No active PR |
 ```
 If GitHub ❌ — stop.
 
@@ -112,37 +122,41 @@ If GitHub ❌ — stop.
 Sessions are either PLAN or BUILD — never both. Prefix the session with `PLAN` to enter this mode.
 
 - For each issue in the batch:
-  1. Read the issue body.
-  2. Read relevant REF.md / FLOWS.md sections freely — no competing write budget.
-  3. Produce a DoD as **specific verifiable checklist items with file paths**, not directional statements. Example:
+  1. Read relevant REF.md / FLOWS.md sections freely — no competing write budget.
+  2. Produce a DoD as **specific verifiable checklist items with file paths**, not directional statements. Example:
      ```
      ## DoD
      - [ ] `app/[route]/components/X.tsx` renders without overflow at 390px
      - [ ] `api/y/route.ts` returns 403 for non-admin Clerk userId
      ```
-  4. Write the full Design Checklist to the issue body:
-     ```
-     ## Design Checklist
-     - [ ] DoD defined (specific, file-path-level)
-     - [ ] Affected files listed by path
-     - [ ] Gotchas flagged against Gotchas table
-     - [ ] Blocking unknowns: none
-     ```
-  5. Output a verdict: **READY** or **BLOCKED: [single specific question]**.
-- If BLOCKED:
-  - Apply `blocked` label to the GitHub issue.
-  - Write a `## Blocking Unknown` section to the issue body with the single question.
-  - Stop processing dependent tickets.
-  - Re-entry: user resolves the question → re-run `PLAN` scoped to that ticket → READY or new BLOCKED.
+  3. Output a verdict: **READY** or **BLOCKED: [single specific question]**.
+  4. If BLOCKED:
+     - `create_issue` with title (no ID yet), body with DoD and blocked status.
+     - Read `GH#` from response. Rename title to `[YYMM-TYPE-GH#] description`.
+     - Apply `blocked` label.
+     - Write `## Blocking Unknown` section to the issue body with the single question.
+     - Stop processing dependent tickets.
+     - Re-entry: user resolves the question → re-run `PLAN` scoped to that ticket → READY or new BLOCKED.
+  5. If READY — **CLAIM:**
+     1. `create_issue` — title (no ID yet), body with DoD and Design Checklist (all items checked).
+     2. Read `GH#` from the response — this is the canonical identifier.
+     3. `update_issue` — rename title to `[YYMM-TYPE-GH#] description`.
+     4. `create_branch` → `feature/[YYMM]-[TYPE]-[GH#]` from `main`.
+     5. Confirm branch exists (check the returned ref).
+     6. **HARD GATE: if branch creation fails — comment `BLOCKED: branch creation failed` on the issue, apply `blocked` label, STOP. Do not proceed.**
+     7. `update_issue` — write `## Branch\
+\\`feature/[YYMM]-[TYPE]-[GH#]\\`` into the issue body.
 
-Permitted writes: GitHub issue body only.
-Forbidden: `create_branch`, `create_or_update_file`, `push_files`.
+Permitted writes: GitHub issue creation, issue body, branch creation.
+Forbidden: `create_or_update_file`, `push_files`.
 
 ---
 
 ## DESIGN-Complete Definition
 
-An issue is DESIGN-complete when its body contains a `## Design Checklist` section with all four items checked:
+An issue is DESIGN-complete when its body contains:
+1. A `## Design Checklist` section with all four items checked.
+2. A `## Branch` section with the feature branch name.
 
 ```
 ## Design Checklist
@@ -150,9 +164,12 @@ An issue is DESIGN-complete when its body contains a `## Design Checklist` secti
 - [x] Affected files listed by path
 - [x] Gotchas flagged against Gotchas table
 - [x] Blocking unknowns: none
+
+## Branch
+`feature/YYMM-TYPE-GH#`
 ```
 
-This is the gate between PLAN and BUILD. BUILD mode verifies this at SSU. If the section is absent or any item is unchecked, BUILD refuses and surfaces exactly what is missing.
+This is the gate between PLAN and BUILD. BUILD mode verifies both at SSU. If either section is absent or any checklist item is unchecked, BUILD refuses and states exactly what is missing.
 
 ---
 
@@ -160,9 +177,9 @@ This is the gate between PLAN and BUILD. BUILD mode verifies this at SSU. If the
 
 Sessions are either PLAN or BUILD — never both. Default mode is BUILD unless the session is prefixed with `PLAN`.
 
-**Precondition (SSU):** Read the issue body. Verify `## Design Checklist` exists with all four items checked. If absent or any item unchecked — stop, state exactly what is missing, do not proceed.
+**Precondition (SSU):** Read the issue body. Verify `## Design Checklist` exists with all four items checked AND `## Branch` exists with the branch name. If either is absent or incomplete — stop, state exactly what is missing, do not proceed.
 
-**READ** → Check open GitHub Issues. Resume any in-progress issue (open PR exists). Otherwise pick the highest `priority:high` open issue without the `blocked` label. If none, pick the next unlabelled issue by creation order.
+**READ** → Check open GitHub Issues. Resume any in-progress issue (open PR exists). If a PLAN-complete issue has no open PR, that is the next issue to pick up — read the `## Branch` value from its body and proceed to GATHER. Otherwise pick the highest `priority:high` open issue without the `blocked` label. If none, pick the next unlabelled issue by creation order.
 
 **SHAPE (read-only)** → Verify the DoD from the issue body is still coherent against the current codebase state. Read any relevant architecture doc:
    - Auth / role / Clerk sync → `FLOWS.md §1`
@@ -175,14 +192,6 @@ Sessions are either PLAN or BUILD — never both. Default mode is BUILD unless t
 
    If DoD is stale or wrong: stop and request user to update the issue body before proceeding.
    **No writes (including issue body) in SHAPE.**
-
-**CLAIM** → First and only write action before EXECUTE.
-  1. `github-tevd:create_issue` — create the issue with title (no ID yet), body with DoD and Design Checklist.
-  2. Note the GitHub issue number from the response — this is `GH#`.
-  3. `github-tevd:update_issue` — rename the title to `[YYMM-TYPE-GH#] description`.
-  4. `github-tevd:create_branch` → `feature/[YYMM]-[TYPE]-[GH#]` from `main`.
-  5. Confirm branch exists (check the returned ref).
-  6. **HARD GATE: if branch creation fails — STOP. Do not proceed to GATHER or EXECUTE until resolved.**
 
 **GATHER** → Read only the REF.md sections the ticket needs (section map at top of REF.md).
 
@@ -237,7 +246,7 @@ Write `IN PROGRESS` before starting a large task. Write `DONE` after verifying. 
 | `pg_net` cron | `net.http_post(...)`. NEVER `extensions.http_post(...)` — silently does nothing. |
 | `TranslationKey` | Strict union. Add to `translations.ts` before using `t()` or build breaks. |
 | `BottomNav.tsx` | Dead stub. Do not import. |
-| Profile prerender | Guard ALL `validProfile!` accesses with `if (isLoading \|\| !validProfile) return <ProfileSkeleton />`. |
+| Profile prerender | Guard ALL `validProfile!` accesses with `if (isLoading \\|\\| !validProfile) return <ProfileSkeleton />`. |
 | `TeamAttendee` type | Exported from `app/(dashboard)/trips/[id]/page.tsx`. Do not redeclare. |
 
 ---
@@ -245,3 +254,7 @@ Write `IN PROGRESS` before starting a large task. Write `DONE` after verifying. 
 ## When This File Is Wrong
 
 If any instruction contradicts Next.js 16 / Clerk v7 / Supabase current SDK behaviour — stop, state the contradiction, cite correct behaviour, ask for a decision.
+"
+    }
+  ]
+}
