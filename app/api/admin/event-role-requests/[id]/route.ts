@@ -27,8 +27,8 @@ export async function PATCH(
     .single()
 
   if (!error && data?.profile) {
-    const profileData = data.profile as any
-    const eventData = data.event as any
+    const profileData = data.profile as { first_name: string | null; contact_email: string | null }
+    const eventData = data.event as { title: string; start_time: string }
 
     if (profileData.contact_email) {
       import('@/lib/email/send').then(({ sendNotificationEmail }) => {

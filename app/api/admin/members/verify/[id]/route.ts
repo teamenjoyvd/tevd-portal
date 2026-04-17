@@ -61,7 +61,7 @@ export async function PATCH(
     }
 
     // Notify the user. Best-effort: failure here does not affect approval state.
-    const profile = verReq.profile as any
+    const profile = verReq.profile as { id: string; role: string; first_name: string | null; contact_email: string | null }
     const notifMessage = verReq.request_type === 'manual'
       ? `Welcome ${profile?.first_name ?? ''}! Your manual verification has been approved. You are now a Member.`
       : `Welcome ${profile?.first_name ?? ''}! Your ABO number ${verReq.claimed_abo} has been verified. You are now a Member.`
@@ -142,7 +142,7 @@ export async function PATCH(
       .eq('id', id)
       .select().single()
 
-    const profile = verReq.profile as any
+    const profile = verReq.profile as { id: string; role: string; first_name: string | null; contact_email: string | null }
     if (!error && profile?.contact_email) {
       import('@/lib/email/send').then(({ sendNotificationEmail }) => {
         import('@/lib/email/templates/render').then(({ renderEmailTemplate }) => {
