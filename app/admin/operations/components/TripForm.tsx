@@ -14,6 +14,7 @@ import {
   AlertDialogCancel,
 } from '@/components/ui/alert-dialog'
 import { ALL_ROLES, type Milestone, type Trip } from './TripsTab'
+import { useTranslation } from '@/lib/i18n/useTranslation'
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -33,6 +34,7 @@ export type MilestoneInputState = { label: string; amount: string; due_date: str
 // ── AttachmentsSection ───────────────────────────────────────────
 
 function AttachmentsSection({ tripId }: { tripId: string }) {
+  const { t } = useTranslation()
   const qc = useQueryClient()
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
@@ -83,11 +85,11 @@ function AttachmentsSection({ tripId }: { tripId: string }) {
   return (
     <div>
       <p className="text-xs font-semibold tracking-widest uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>
-        Trip documents
+        {t('admin.operations.form.documents')}
       </p>
 
       {isLoading ? (
-        <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Loading…</p>
+        <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('admin.operations.form.loading')}</p>
       ) : attachments.length > 0 ? (
         <div className="rounded-xl border mb-3 overflow-hidden" style={{ borderColor: 'var(--border-default)', backgroundColor: 'var(--bg-card)' }}>
           {attachments.map((a, i) => (
@@ -121,13 +123,13 @@ function AttachmentsSection({ tripId }: { tripId: string }) {
                 className="text-xs flex-shrink-0 hover:opacity-70 transition-opacity"
                 style={{ color: 'var(--brand-crimson)' }}
               >
-                Remove
+                {t('admin.operations.form.btn.remove')}
               </button>
             </div>
           ))}
         </div>
       ) : (
-        <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>No documents uploaded yet.</p>
+        <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>{t('admin.operations.form.noDocuments')}</p>
       )}
 
       <label className="flex items-center gap-2 cursor-pointer">
@@ -135,9 +137,9 @@ function AttachmentsSection({ tripId }: { tripId: string }) {
           className="px-3 py-1.5 rounded-xl text-xs font-semibold border transition-colors hover:bg-black/5 flex-shrink-0"
           style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
         >
-          {uploading ? 'Uploading…' : '+ Upload file'}
+          {uploading ? t('admin.operations.form.btn.uploading') : t('admin.operations.form.btn.upload')}
         </span>
-        <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>PDF or image, max 10 MB</span>
+        <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('admin.operations.form.uploadHint')}</span>
         <input
           type="file"
           accept="image/*,application/pdf"
@@ -154,17 +156,17 @@ function AttachmentsSection({ tripId }: { tripId: string }) {
       <AlertDialog open={!!deleteTarget} onOpenChange={open => { if (!open) setDeleteTarget(null) }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove document</AlertDialogTitle>
+            <AlertDialogTitle>{t('admin.operations.form.dialog.title')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Remove &ldquo;{deleteTarget?.file_name}&rdquo;? This cannot be undone.
+              Remove &ldquo;{deleteTarget?.file_name}&rdquo;? {t('admin.operations.form.dialog.body')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('admin.operations.form.dialog.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => { if (deleteTarget) deleteMutation.mutate(deleteTarget) }}
             >
-              Remove
+              {t('admin.operations.form.dialog.confirm')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -198,6 +200,8 @@ export function TripForm({
   onSave: () => void
   onClose: () => void
 }): React.JSX.Element {
+  const { t } = useTranslation()
+
   function addMilestone() {
     if (!milestoneInput.label || !milestoneInput.amount || !milestoneInput.due_date) return
     setForm(f => ({
@@ -227,7 +231,7 @@ export function TripForm({
         ))}
       </div>
       <div>
-        <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Description</label>
+        <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.operations.form.lbl.description')}</label>
         <textarea
           value={form.description}
           onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
@@ -238,74 +242,74 @@ export function TripForm({
       </div>
       <div className="grid grid-cols-3 gap-4">
         <div>
-          <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Start date</label>
+          <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.operations.form.lbl.startDate')}</label>
           <input type="date" value={form.start_date} onChange={e => setForm(f => ({ ...f, start_date: e.target.value }))}
             className="w-full border rounded-xl px-3 py-2.5 text-sm" style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
         </div>
         <div>
-          <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>End date</label>
+          <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.operations.form.lbl.endDate')}</label>
           <input type="date" value={form.end_date} onChange={e => setForm(f => ({ ...f, end_date: e.target.value }))}
             className="w-full border rounded-xl px-3 py-2.5 text-sm" style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
         </div>
         <div>
-          <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Cost (EUR)</label>
+          <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.operations.form.lbl.cost')}</label>
           <input type="number" value={form.total_cost} onChange={e => setForm(f => ({ ...f, total_cost: Number(e.target.value) }))}
             className="w-full border rounded-xl px-3 py-2.5 text-sm" style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
         </div>
       </div>
       <div>
-        <p className="text-xs font-semibold tracking-widest uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>Payment milestones</p>
+        <p className="text-xs font-semibold tracking-widest uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>{t('admin.operations.form.lbl.milestones')}</p>
         {form.milestones.map((m, i) => (
           <div key={i} className="flex items-center gap-3 text-sm mb-2 py-2 border-b" style={{ borderColor: 'var(--border-default)' }}>
             <span className="flex-1 font-medium" style={{ color: 'var(--text-primary)' }}>{m.label}</span>
             <span style={{ color: 'var(--text-secondary)' }}>{formatCurrency(m.amount, 'EUR')}</span>
             <span style={{ color: 'var(--text-secondary)' }}>{m.due_date}</span>
             <button onClick={() => setForm(f => ({ ...f, milestones: f.milestones.filter((_, idx) => idx !== i) }))}
-              className="text-xs" style={{ color: 'var(--brand-crimson)' }}>Remove</button>
+              className="text-xs" style={{ color: 'var(--brand-crimson)' }}>{t('admin.operations.form.btn.remove')}</button>
           </div>
         ))}
         <div className="grid grid-cols-4 gap-2 mt-2">
-          <input placeholder="Label" value={milestoneInput.label}
+          <input placeholder={t('admin.operations.form.placeholder.label')} value={milestoneInput.label}
             onChange={e => setMilestoneInput(m => ({ ...m, label: e.target.value }))}
             className="border rounded-xl px-3 py-2 text-sm col-span-1" style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
-          <input placeholder="Amount" type="number" value={milestoneInput.amount}
+          <input placeholder={t('admin.operations.form.placeholder.amount')} type="number" value={milestoneInput.amount}
             onChange={e => setMilestoneInput(m => ({ ...m, amount: e.target.value }))}
             className="border rounded-xl px-3 py-2 text-sm" style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
           <input type="date" value={milestoneInput.due_date}
             onChange={e => setMilestoneInput(m => ({ ...m, due_date: e.target.value }))}
             className="border rounded-xl px-3 py-2 text-sm" style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
           <button onClick={addMilestone}
-            className="border rounded-xl text-sm hover:bg-black/5 transition-colors" style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}>+ Add</button>
+            className="border rounded-xl text-sm hover:bg-black/5 transition-colors" style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}>{t('admin.operations.form.btn.addMilestone')}</button>
         </div>
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Location</label>
+          <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.operations.form.lbl.location')}</label>
           <input value={form.location ?? ''} onChange={e => setForm(f => ({ ...f, location: e.target.value || null }))}
             placeholder="e.g. Oradea, Romania" className="w-full border rounded-xl px-3 py-2.5 text-sm"
             style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
         </div>
         <div>
-          <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Trip type</label>
+          <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.operations.form.lbl.tripType')}</label>
           <input value={form.trip_type ?? ''} onChange={e => setForm(f => ({ ...f, trip_type: e.target.value || null }))}
             placeholder="e.g. leisure, training" className="w-full border rounded-xl px-3 py-2.5 text-sm"
             style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
         </div>
         <div>
-          <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Accommodation</label>
+          <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.operations.form.lbl.accommodation')}</label>
           <input value={form.accommodation_type ?? ''} onChange={e => setForm(f => ({ ...f, accommodation_type: e.target.value || null }))}
             placeholder="e.g. hotel, hostel" className="w-full border rounded-xl px-3 py-2.5 text-sm"
             style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
         </div>
         <div>
-          <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Inclusions (comma-sep)</label>
+          <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.operations.form.lbl.inclusions')}</label>
           <input value={form.inclusions.join(', ')} onChange={e => setForm(f => ({ ...f, inclusions: e.target.value.split(',').map(s => s.trim()).filter(Boolean) }))}
             placeholder="e.g. flights, hotel" className="w-full border rounded-xl px-3 py-2.5 text-sm"
             style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
         </div>
       </div>
       <div>
-        <p className="text-xs font-semibold tracking-widest uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>Visible to</p>
+        <p className="text-xs font-semibold tracking-widest uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>{t('admin.operations.form.lbl.visibleTo')}</p>
         <div className="flex gap-2 flex-wrap">
           {ALL_ROLES.map(role => (
             <button key={role} onClick={() => setForm(f => ({
@@ -336,11 +340,11 @@ export function TripForm({
         <button onClick={onSave} disabled={isPending || !isValid}
           className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity"
           style={{ backgroundColor: 'var(--brand-crimson)' }}>
-          {isPending ? 'Saving…' : editing ? 'Save changes' : 'Create trip'}
+          {isPending ? t('admin.operations.form.btn.saving') : editing ? t('admin.operations.form.btn.saveChanges') : t('admin.operations.form.btn.createTrip')}
         </button>
         <button onClick={onClose}
           className="px-6 py-2.5 rounded-xl text-sm font-semibold border transition-colors hover:bg-black/5"
-          style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>Cancel</button>
+          style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>{t('admin.operations.form.btn.cancel')}</button>
       </div>
     </div>
   )

@@ -15,6 +15,7 @@ import {
   AlertDialogCancel,
 } from '@/components/ui/alert-dialog'
 import { TripForm, type TripFormState, type MilestoneInputState } from './TripForm'
+import { useTranslation } from '@/lib/i18n/useTranslation'
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -47,6 +48,7 @@ const emptyTrip = (): TripFormState => ({
 // ── Component ────────────────────────────────────────────────────
 
 export function TripsTab({ trips, isLoading }: { trips: Trip[]; isLoading: boolean }) {
+  const { t } = useTranslation()
   const qc = useQueryClient()
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [editing, setEditing] = useState<Trip | null>(null)
@@ -127,7 +129,7 @@ export function TripsTab({ trips, isLoading }: { trips: Trip[]; isLoading: boole
           className="px-4 py-2 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-opacity"
           style={{ backgroundColor: 'var(--brand-crimson)' }}
         >
-          + New trip
+          {t('admin.operations.trips.btn.new')}
         </button>
       </div>
 
@@ -136,7 +138,7 @@ export function TripsTab({ trips, isLoading }: { trips: Trip[]; isLoading: boole
           {[...Array(2)].map((_, i) => <div key={i} className="h-16 rounded-xl animate-pulse" style={{ backgroundColor: 'rgba(0,0,0,0.05)' }} />)}
         </div>
       ) : trips.length === 0 ? (
-        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No trips yet.</p>
+        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t('admin.operations.trips.empty')}</p>
       ) : (
         <div className="rounded-2xl border overflow-hidden" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
           {trips.map((trip, i) => (
@@ -147,23 +149,23 @@ export function TripsTab({ trips, isLoading }: { trips: Trip[]; isLoading: boole
                 <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
                   {trip.destination} · {formatDate(trip.start_date)} → {formatDate(trip.end_date)}
                   {' · '}{formatCurrency(trip.total_cost, 'EUR')}
-                  {' · '}{trip.milestones?.length ?? 0} milestones
+                  {' · '}{trip.milestones?.length ?? 0} {t('admin.operations.trips.milestones').replace('{{count}} ', '')}
                 </p>
               </div>
               <div className="flex items-center gap-3 flex-shrink-0">
-                <button onClick={() => openEdit(trip)} className="text-xs hover:opacity-70 transition-opacity" style={{ color: 'var(--text-secondary)' }}>Edit</button>
+                <button onClick={() => openEdit(trip)} className="text-xs hover:opacity-70 transition-opacity" style={{ color: 'var(--text-secondary)' }}>{t('admin.operations.trips.btn.edit')}</button>
                 <button
                   onClick={() => setAlertTarget({ id: trip.id, name: trip.title })}
                   className="text-xs hover:opacity-70 transition-opacity"
                   style={{ color: 'var(--brand-crimson)' }}
-                >Delete</button>
+                >{t('admin.operations.trips.btn.delete')}</button>
               </div>
             </div>
           ))}
         </div>
       )}
 
-      <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title={editing ? `Edit: ${editing.title}` : 'New trip'}>
+      <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title={editing ? `Edit: ${editing.title}` : t('admin.operations.form.btn.createTrip')}>
         <TripForm
           form={form}
           setForm={setForm}
@@ -181,20 +183,20 @@ export function TripsTab({ trips, isLoading }: { trips: Trip[]; isLoading: boole
       <AlertDialog open={!!alertTarget} onOpenChange={open => { if (!open) setAlertTarget(null) }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete trip</AlertDialogTitle>
+            <AlertDialogTitle>{t('admin.operations.trips.dialog.title')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Delete &ldquo;{alertTarget?.name}&rdquo;? This cannot be undone.
+              Delete &ldquo;{alertTarget?.name}&rdquo;? {t('admin.operations.trips.dialog.body')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('admin.operations.trips.dialog.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 if (alertTarget) deleteMutation.mutate(alertTarget.id)
                 setAlertTarget(null)
               }}
             >
-              Delete
+              {t('admin.operations.trips.dialog.confirm')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

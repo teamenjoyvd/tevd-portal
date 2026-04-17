@@ -17,6 +17,7 @@ import {
 import type { Trip } from './TripsTab'
 import type { PayableItem } from './ItemsTab'
 import { useQuery } from '@tanstack/react-query'
+import { useTranslation } from '@/lib/i18n/useTranslation'
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -60,6 +61,7 @@ function statusPill(status: string) {
 // ── Component ────────────────────────────────────────────────────
 
 export function PaymentsTab({ trips, membersData }: { trips: Trip[]; membersData: MembersResponse | undefined }) {
+  const { t } = useTranslation()
   const qc = useQueryClient()
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all')
@@ -164,11 +166,11 @@ export function PaymentsTab({ trips, membersData }: { trips: Trip[]; membersData
   }
 
   const STATUS_FILTERS = [
-    { key: 'all', label: 'All' },
-    { key: 'pending', label: 'Pending' },
-    { key: 'approved', label: 'Approved' },
-    { key: 'rejected', label: 'Rejected' },
-  ] as const
+    { key: 'all' as const, labelKey: 'admin.operations.payments.filter.all' as const },
+    { key: 'pending' as const, labelKey: 'admin.operations.payments.filter.pending' as const },
+    { key: 'approved' as const, labelKey: 'admin.operations.payments.filter.approved' as const },
+    { key: 'rejected' as const, labelKey: 'admin.operations.payments.filter.rejected' as const },
+  ]
 
   const activeItems = items.filter(i => i.is_active)
 
@@ -180,14 +182,14 @@ export function PaymentsTab({ trips, membersData }: { trips: Trip[]; membersData
           className="px-4 py-2 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-opacity"
           style={{ backgroundColor: 'var(--brand-crimson)' }}
         >
-          Log Payment
+          {t('admin.operations.payments.btn.log')}
         </button>
       </div>
 
       {pendingSubmissions.length > 0 && (
         <div>
           <p className="text-xs font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
-            Pending submissions ({pendingSubmissions.length})
+            {t('admin.operations.payments.pendingTitle').replace('{{count}}', String(pendingSubmissions.length))}
           </p>
           <div className="rounded-2xl border overflow-hidden" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
             {pendingSubmissions.map((p, i) => (
@@ -206,15 +208,15 @@ export function PaymentsTab({ trips, membersData }: { trips: Trip[]; membersData
                       {p.payment_method && ` · ${p.payment_method}`}
                     </p>
                     {p.note && <p className="text-xs mt-0.5 italic" style={{ color: 'var(--text-secondary)' }}>{p.note}</p>}
-                    {p.proof_url && <a href={p.proof_url} target="_blank" rel="noopener noreferrer" className="text-xs hover:underline" style={{ color: 'var(--brand-teal)' }}>View proof ↗</a>}
+                    {p.proof_url && <a href={p.proof_url} target="_blank" rel="noopener noreferrer" className="text-xs hover:underline" style={{ color: 'var(--brand-teal)' }}>{t('admin.operations.payments.viewProof')}</a>}
                   </div>
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0" style={{ backgroundColor: '#f2cc8f33', color: '#7a5c00' }}>pending</span>
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0" style={{ backgroundColor: '#f2cc8f33', color: '#7a5c00' }}>{t('admin.operations.payments.badge.pending')}</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <input
                     value={reviewNotes[p.id] ?? ''}
                     onChange={e => setReviewNotes(n => ({ ...n, [p.id]: e.target.value }))}
-                    placeholder="Admin note (optional)"
+                    placeholder={t('admin.operations.payments.placeholder.adminNote')}
                     className="flex-1 border rounded-xl px-3 py-2 text-xs"
                     style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
                   />
@@ -222,12 +224,12 @@ export function PaymentsTab({ trips, membersData }: { trips: Trip[]; membersData
                     onClick={() => reviewMutation.mutate({ id: p.id, admin_status: 'approved', admin_note: reviewNotes[p.id] || null })}
                     disabled={reviewMutation.isPending}
                     className="px-4 py-2 rounded-xl text-xs font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity flex-shrink-0"
-                    style={{ backgroundColor: '#2d6a4f' }}>Approve</button>
+                    style={{ backgroundColor: '#2d6a4f' }}>{t('admin.operations.payments.btn.approve')}</button>
                   <button
                     onClick={() => reviewMutation.mutate({ id: p.id, admin_status: 'rejected', admin_note: reviewNotes[p.id] || null })}
                     disabled={reviewMutation.isPending}
                     className="px-4 py-2 rounded-xl text-xs font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity flex-shrink-0"
-                    style={{ backgroundColor: 'var(--brand-crimson)' }}>Deny</button>
+                    style={{ backgroundColor: 'var(--brand-crimson)' }}>{t('admin.operations.payments.btn.deny')}</button>
                 </div>
               </div>
             ))}
@@ -243,7 +245,7 @@ export function PaymentsTab({ trips, membersData }: { trips: Trip[]; membersData
               backgroundColor: statusFilter === f.key ? 'var(--text-primary)' : 'rgba(0,0,0,0.06)',
               color: statusFilter === f.key ? 'var(--bg-card)' : 'var(--text-secondary)',
             }}>
-            {f.label}
+            {t(f.labelKey)}
           </button>
         ))}
       </div>
@@ -253,7 +255,7 @@ export function PaymentsTab({ trips, membersData }: { trips: Trip[]; membersData
           {[...Array(4)].map((_, i) => <div key={i} className="h-14 rounded-xl animate-pulse" style={{ backgroundColor: 'rgba(0,0,0,0.05)' }} />)}
         </div>
       ) : payments.length === 0 ? (
-        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No payments found.</p>
+        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t('admin.operations.payments.empty')}</p>
       ) : (
         <div className="rounded-2xl border overflow-hidden" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
           {payments.map((p, i) => {
@@ -282,23 +284,23 @@ export function PaymentsTab({ trips, membersData }: { trips: Trip[]; membersData
         </div>
       )}
 
-      <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title="Log Payment">
+      <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title={t('admin.operations.payments.drawer.title')}>
         <div className="space-y-4">
           <div>
-            <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Entity *</label>
+            <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.operations.payments.lbl.entity')}</label>
             <Select value={entity} onValueChange={setEntity}>
-              <SelectTrigger><SelectValue placeholder="Select entity…" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder={t('admin.operations.payments.placeholder.entity')} /></SelectTrigger>
               <SelectContent>
                 {trips.length > 0 && (
                   <SelectGroup>
-                    <SelectLabel>Trips</SelectLabel>
-                    {trips.map(t => <SelectItem key={t.id} value={`trip::${t.id}`}>{t.title}</SelectItem>)}
+                    <SelectLabel>{t('admin.operations.payments.group.trips')}</SelectLabel>
+                    {trips.map(t2 => <SelectItem key={t2.id} value={`trip::${t2.id}`}>{t2.title}</SelectItem>)}
                   </SelectGroup>
                 )}
                 {trips.length > 0 && activeItems.length > 0 && <SelectSeparator />}
                 {activeItems.length > 0 && (
                   <SelectGroup>
-                    <SelectLabel>Items</SelectLabel>
+                    <SelectLabel>{t('admin.operations.payments.group.items')}</SelectLabel>
                     {activeItems.map(it => <SelectItem key={it.id} value={`item::${it.id}`}>{it.title}</SelectItem>)}
                   </SelectGroup>
                 )}
@@ -306,9 +308,9 @@ export function PaymentsTab({ trips, membersData }: { trips: Trip[]; membersData
             </Select>
           </div>
           <div>
-            <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Member *</label>
+            <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.operations.payments.lbl.member')}</label>
             <Select value={profileId} onValueChange={setProfileId}>
-              <SelectTrigger><SelectValue placeholder="Select member…" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder={t('admin.operations.payments.placeholder.member')} /></SelectTrigger>
               <SelectContent>
                 {allMembers.map(m => (
                   <SelectItem key={m.id} value={m.id}>
@@ -320,13 +322,13 @@ export function PaymentsTab({ trips, membersData }: { trips: Trip[]; membersData
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Amount *</label>
+              <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.operations.payments.lbl.amount')}</label>
               <input type="number" step="0.01" min="0" value={amount} onChange={e => setAmount(e.target.value)}
                 placeholder="0.00" className="w-full border rounded-xl px-3 py-2.5 text-sm"
                 style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
             </div>
             <div>
-              <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Currency</label>
+              <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.operations.payments.lbl.currency')}</label>
               <input value={currency} onChange={e => setCurrency(e.target.value)}
                 className="w-full border rounded-xl px-3 py-2.5 text-sm"
                 style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
@@ -334,33 +336,35 @@ export function PaymentsTab({ trips, membersData }: { trips: Trip[]; membersData
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Date</label>
+              <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.operations.payments.lbl.date')}</label>
               <input type="date" value={txDate} onChange={e => setTxDate(e.target.value)}
                 className="w-full border rounded-xl px-3 py-2.5 text-sm"
                 style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
             </div>
             <div>
-              <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Payment method</label>
+              <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.operations.payments.lbl.method')}</label>
               <input value={method} onChange={e => setMethod(e.target.value)}
-                placeholder="e.g. bank transfer, cash"
+                placeholder={t('admin.operations.payments.placeholder.method')}
                 className="w-full border rounded-xl px-3 py-2.5 text-sm"
                 style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
             </div>
           </div>
           <div>
-            <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Status</label>
+            <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.operations.payments.lbl.status')}</label>
             <Select value={payStatus} onValueChange={val => setPayStatus(val as 'approved' | 'pending')}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="approved">Approved</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="approved">{t('admin.operations.payments.status.approved')}</SelectItem>
+                <SelectItem value="pending">{t('admin.operations.payments.status.pending')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div>
-            <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Note <span className="opacity-60 font-normal">(optional)</span></label>
+            <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
+              {t('admin.operations.payments.lbl.note')} <span className="opacity-60 font-normal">{t('admin.operations.payments.lbl.noteOptional')}</span>
+            </label>
             <input value={note} onChange={e => setNote(e.target.value)}
-              placeholder="e.g. Cash payment, ref #123"
+              placeholder={t('admin.operations.payments.placeholder.note')}
               className="w-full border rounded-xl px-3 py-2.5 text-sm"
               style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
           </div>
@@ -370,11 +374,11 @@ export function PaymentsTab({ trips, membersData }: { trips: Trip[]; membersData
               disabled={logMutation.isPending || !entity || !profileId || !amount || Number(amount) <= 0}
               className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity"
               style={{ backgroundColor: 'var(--brand-crimson)' }}>
-              {logMutation.isPending ? 'Saving…' : 'Log payment'}
+              {logMutation.isPending ? t('admin.operations.payments.btn.saving') : t('admin.operations.payments.btn.log2')}
             </button>
             <button onClick={() => setDrawerOpen(false)}
               className="px-6 py-2.5 rounded-xl text-sm font-semibold border transition-colors hover:bg-black/5"
-              style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>Cancel</button>
+              style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>{t('admin.operations.payments.btn.cancel')}</button>
           </div>
         </div>
       </Drawer>

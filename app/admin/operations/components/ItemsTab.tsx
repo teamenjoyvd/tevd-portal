@@ -12,6 +12,7 @@ import {
   SelectItem,
 } from '@/components/ui/select'
 import type { Trip } from './TripsTab'
+import { useTranslation } from '@/lib/i18n/useTranslation'
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -48,6 +49,7 @@ const emptyItem = (): ItemForm => ({
 // ── Component ────────────────────────────────────────────────────
 
 export function ItemsTab({ trips }: { trips: Trip[] }) {
+  const { t } = useTranslation()
   const qc = useQueryClient()
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [editing, setEditing] = useState<PayableItem | null>(null)
@@ -133,7 +135,7 @@ export function ItemsTab({ trips }: { trips: Trip[] }) {
           className="px-4 py-2 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-opacity"
           style={{ backgroundColor: 'var(--brand-crimson)' }}
         >
-          + New item
+          {t('admin.operations.items.btn.new')}
         </button>
       </div>
 
@@ -142,7 +144,7 @@ export function ItemsTab({ trips }: { trips: Trip[] }) {
           {[...Array(3)].map((_, i) => <div key={i} className="h-16 rounded-xl animate-pulse" style={{ backgroundColor: 'rgba(0,0,0,0.05)' }} />)}
         </div>
       ) : items.length === 0 ? (
-        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No payable items yet.</p>
+        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t('admin.operations.items.empty')}</p>
       ) : (
         <div className="rounded-2xl border overflow-hidden" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
           {items.map((item, i) => (
@@ -153,7 +155,7 @@ export function ItemsTab({ trips }: { trips: Trip[] }) {
                   <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{item.title}</p>
                   <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
                     style={{ backgroundColor: item.is_active ? '#81b29a33' : 'rgba(0,0,0,0.06)', color: item.is_active ? '#2d6a4f' : 'var(--text-secondary)' }}>
-                    {item.is_active ? 'active' : 'inactive'}
+                    {item.is_active ? t('admin.operations.items.badge.active') : t('admin.operations.items.badge.inactive')}
                   </span>
                   <span className="text-[10px] font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(0,0,0,0.05)', color: 'var(--text-secondary)' }}>
                     {item.item_type}
@@ -166,14 +168,14 @@ export function ItemsTab({ trips }: { trips: Trip[] }) {
                 </p>
               </div>
               <div className="flex items-center gap-3 flex-shrink-0">
-                <button onClick={() => openEdit(item)} className="text-xs hover:opacity-70 transition-opacity" style={{ color: 'var(--text-secondary)' }}>Edit</button>
+                <button onClick={() => openEdit(item)} className="text-xs hover:opacity-70 transition-opacity" style={{ color: 'var(--text-secondary)' }}>{t('admin.operations.items.btn.edit')}</button>
                 {item.is_active && (
                   <button
                     onClick={() => deactivateMutation.mutate(item.id)}
                     disabled={deactivateMutation.isPending}
                     className="text-xs hover:opacity-70 transition-opacity disabled:opacity-40"
                     style={{ color: 'var(--brand-crimson)' }}
-                  >Deactivate</button>
+                  >{t('admin.operations.items.btn.deactivate')}</button>
                 )}
               </div>
             </div>
@@ -181,43 +183,43 @@ export function ItemsTab({ trips }: { trips: Trip[] }) {
         </div>
       )}
 
-      <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title={editing ? `Edit: ${editing.title}` : 'New payable item'}>
+      <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title={editing ? `Edit: ${editing.title}` : t('admin.operations.items.btn.create')}>
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Title *</label>
+              <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.operations.items.lbl.title')}</label>
               <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
                 className="w-full border rounded-xl px-3 py-2.5 text-sm"
                 style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
             </div>
             <div>
-              <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Type *</label>
+              <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.operations.items.lbl.type')}</label>
               <Select
                 value={form.item_type}
                 onValueChange={val => setForm(f => ({ ...f, item_type: val as ItemForm['item_type'] }))}
               >
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {ITEM_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                  {ITEM_TYPES.map(tp => <SelectItem key={tp} value={tp}>{tp}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
           </div>
           <div>
-            <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Description</label>
+            <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.operations.items.lbl.description')}</label>
             <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
               rows={2} className="w-full border rounded-xl px-3 py-2.5 text-sm resize-none"
               style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Amount *</label>
+              <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.operations.items.lbl.amount')}</label>
               <input type="number" step="0.01" min="0" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
                 className="w-full border rounded-xl px-3 py-2.5 text-sm"
                 style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
             </div>
             <div>
-              <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Currency</label>
+              <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.operations.items.lbl.currency')}</label>
               <input value={form.currency} onChange={e => setForm(f => ({ ...f, currency: e.target.value }))}
                 className="w-full border rounded-xl px-3 py-2.5 text-sm"
                 style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
@@ -227,7 +229,7 @@ export function ItemsTab({ trips }: { trips: Trip[] }) {
             <button onClick={() => setForm(f => ({ ...f, is_active: !f.is_active }))}
               className="text-xs font-semibold px-3 py-1.5 rounded-full transition-all"
               style={{ backgroundColor: form.is_active ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)', color: form.is_active ? 'var(--brand-parchment)' : 'var(--text-secondary)' }}>
-              {form.is_active ? 'Active' : 'Inactive'}
+              {form.is_active ? t('admin.operations.items.toggle.active') : t('admin.operations.items.toggle.inactive')}
             </button>
           </div>
           {error && <p className="text-sm" style={{ color: 'var(--brand-crimson)' }}>{error}</p>}
@@ -235,11 +237,11 @@ export function ItemsTab({ trips }: { trips: Trip[] }) {
             <button onClick={handleSave} disabled={isPending || !isValid}
               className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity"
               style={{ backgroundColor: 'var(--brand-crimson)' }}>
-              {isPending ? 'Saving…' : editing ? 'Save changes' : 'Create item'}
+              {isPending ? t('admin.operations.items.btn.saving') : editing ? t('admin.operations.items.btn.saveChanges') : t('admin.operations.items.btn.create')}
             </button>
             <button onClick={() => setDrawerOpen(false)}
               className="px-6 py-2.5 rounded-xl text-sm font-semibold border transition-colors hover:bg-black/5"
-              style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>Cancel</button>
+              style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>{t('admin.operations.items.btn.cancel')}</button>
           </div>
         </div>
       </Drawer>
