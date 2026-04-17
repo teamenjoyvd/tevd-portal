@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { t } from '@/lib/i18n'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -92,41 +93,41 @@ export function EmailLogTable() {
     onError: (e: Error) => setRetryError(e.message),
   })
 
-  // Templates from currently visible rows for filter
-  const STATUS_FILTERS = ['all', 'sent', 'failed', 'pending'] as const
+  const STATUS_FILTERS = [
+    { key: 'all' as const, labelKey: 'admin.settings.emailLog.filter.all' as const },
+    { key: 'sent' as const, labelKey: 'admin.settings.emailLog.filter.sent' as const },
+    { key: 'failed' as const, labelKey: 'admin.settings.emailLog.filter.failed' as const },
+    { key: 'pending' as const, labelKey: 'admin.settings.emailLog.filter.pending' as const },
+  ]
 
   return (
     <div className="bg-[var(--bg-card)] rounded-xl border border-[var(--border-subtle)] p-5 w-full shadow-sm flex flex-col gap-5">
-      {/* Header */}
       <div className="flex flex-col gap-1">
         <h2 className="text-lg font-semibold text-[var(--semantic-fg-primary)] tracking-tight">
-          Email Log
+          {t('admin.settings.emailLog.title', 'en')}
         </h2>
         <p className="text-xs text-[var(--semantic-fg-secondary)]">
-          Every outbound email attempt is recorded here. Use Retry on failed rows.
+          {t('admin.settings.emailLog.desc', 'en')}
         </p>
       </div>
 
-      {/* Filters */}
       <div className="flex flex-wrap items-center gap-2">
-        {/* Status chips */}
         <div className="flex gap-1.5">
           {STATUS_FILTERS.map(s => (
             <button
-              key={s}
-              onClick={() => { setStatusFilter(s); setPage(0) }}
+              key={s.key}
+              onClick={() => { setStatusFilter(s.key); setPage(0) }}
               className="px-3 py-1 rounded-full text-xs font-semibold capitalize transition-all"
               style={{
-                backgroundColor: statusFilter === s ? 'var(--semantic-fg-primary)' : 'rgba(0,0,0,0.06)',
-                color: statusFilter === s ? 'var(--bg-card)' : 'var(--semantic-fg-secondary)',
+                backgroundColor: statusFilter === s.key ? 'var(--semantic-fg-primary)' : 'rgba(0,0,0,0.06)',
+                color: statusFilter === s.key ? 'var(--bg-card)' : 'var(--semantic-fg-secondary)',
               }}
             >
-              {s === 'all' ? 'All' : s}
+              {t(s.labelKey, 'en')}
             </button>
           ))}
         </div>
 
-        {/* Template select */}
         <select
           value={templateFilter}
           onChange={e => { setTemplateFilter(e.target.value); setPage(0) }}
@@ -137,7 +138,7 @@ export function EmailLogTable() {
             color: 'var(--semantic-fg-primary)',
           }}
         >
-          <option value="all">All templates</option>
+          <option value="all">{t('admin.settings.emailLog.allTemplates', 'en')}</option>
           {Object.entries(TEMPLATE_LABELS).map(([id, label]) => (
             <option key={id} value={id}>{label}</option>
           ))}
@@ -146,11 +147,10 @@ export function EmailLogTable() {
 
       {retryError && (
         <p className="text-xs px-3 py-2 rounded-lg bg-red-50 text-red-700 border border-red-200">
-          Retry error: {retryError}
+          {t('admin.settings.emailLog.retryError', 'en')} {retryError}
         </p>
       )}
 
-      {/* Table */}
       {isLoading ? (
         <div className="space-y-2">
           {[...Array(5)].map((_, i) => (
@@ -158,18 +158,17 @@ export function EmailLogTable() {
           ))}
         </div>
       ) : rows.length === 0 ? (
-        <p className="text-sm text-[var(--semantic-fg-secondary)] py-4 text-center">No email log entries found.</p>
+        <p className="text-sm text-[var(--semantic-fg-secondary)] py-4 text-center">{t('admin.settings.emailLog.empty', 'en')}</p>
       ) : (
         <div className="rounded-xl border overflow-hidden" style={{ borderColor: 'var(--border-subtle)' }}>
-          {/* Desktop header */}
           <div
             className="hidden md:grid grid-cols-[1fr_1fr_1fr_auto_auto] gap-4 px-4 py-2.5 text-[10px] font-semibold uppercase tracking-widest"
             style={{ backgroundColor: 'rgba(0,0,0,0.03)', color: 'var(--semantic-fg-tertiary)', borderBottom: '1px solid var(--border-subtle)' }}
           >
-            <span>Template</span>
-            <span>Recipient</span>
-            <span>Sent at</span>
-            <span>Status</span>
+            <span>{t('admin.settings.emailLog.col.template', 'en')}</span>
+            <span>{t('admin.settings.emailLog.col.recipient', 'en')}</span>
+            <span>{t('admin.settings.emailLog.col.sentAt', 'en')}</span>
+            <span>{t('admin.settings.emailLog.col.status', 'en')}</span>
             <span></span>
           </div>
 
@@ -181,7 +180,6 @@ export function EmailLogTable() {
                 className="px-4 py-3 flex flex-col md:grid md:grid-cols-[1fr_1fr_1fr_auto_auto] md:items-center gap-2 md:gap-4"
                 style={{ borderTop: i > 0 ? '1px solid var(--border-subtle)' : 'none' }}
               >
-                {/* Template */}
                 <div className="flex flex-col gap-0.5">
                   <span className="text-xs font-medium text-[var(--semantic-fg-primary)]">
                     {TEMPLATE_LABELS[row.template] ?? row.template}
@@ -190,24 +188,16 @@ export function EmailLogTable() {
                     <span className="text-[10px] text-red-600 leading-tight line-clamp-2">{row.error}</span>
                   )}
                 </div>
-
-                {/* Recipient */}
                 <span className="text-xs text-[var(--semantic-fg-secondary)] truncate">{row.recipient}</span>
-
-                {/* Date */}
                 <span className="text-xs text-[var(--semantic-fg-tertiary)]">
                   {row.sent_at ? formatDate(row.sent_at) : formatDate(row.created_at)}
                 </span>
-
-                {/* Status pill */}
                 <span
                   className="text-[10px] font-semibold px-2.5 py-0.5 rounded-full whitespace-nowrap w-fit"
                   style={{ backgroundColor: pill.bg, color: pill.color }}
                 >
                   {row.status}
                 </span>
-
-                {/* Retry */}
                 <div className="flex justify-end">
                   {row.status === 'failed' && (
                     <button
@@ -216,7 +206,7 @@ export function EmailLogTable() {
                       className="text-xs font-semibold px-3 py-1 rounded-lg border transition-colors hover:bg-black/5 disabled:opacity-40"
                       style={{ borderColor: 'var(--border-subtle)', color: 'var(--semantic-fg-primary)' }}
                     >
-                      {retryingId === row.id ? 'Retrying…' : 'Retry'}
+                      {retryingId === row.id ? t('admin.settings.emailLog.btn.retrying', 'en') : t('admin.settings.emailLog.btn.retry', 'en')}
                     </button>
                   )}
                 </div>
@@ -226,7 +216,6 @@ export function EmailLogTable() {
         </div>
       )}
 
-      {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between pt-2">
           <span className="text-xs text-[var(--semantic-fg-tertiary)]">
@@ -239,7 +228,7 @@ export function EmailLogTable() {
               className="px-3 py-1.5 text-xs font-semibold rounded-lg border disabled:opacity-40 transition-colors hover:bg-black/5"
               style={{ borderColor: 'var(--border-subtle)', color: 'var(--semantic-fg-primary)' }}
             >
-              ← Prev
+              {t('admin.settings.emailLog.pagination.prev', 'en')}
             </button>
             <button
               disabled={page >= totalPages - 1}
@@ -247,7 +236,7 @@ export function EmailLogTable() {
               className="px-3 py-1.5 text-xs font-semibold rounded-lg border disabled:opacity-40 transition-colors hover:bg-black/5"
               style={{ borderColor: 'var(--border-subtle)', color: 'var(--semantic-fg-primary)' }}
             >
-              Next →
+              {t('admin.settings.emailLog.pagination.next', 'en')}
             </button>
           </div>
         </div>

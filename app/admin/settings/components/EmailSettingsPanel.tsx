@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { t } from '@/lib/i18n'
 
 export type EmailConfig = {
   enabled: boolean
@@ -11,11 +12,11 @@ export type EmailConfig = {
 }
 
 const TEMPLATES = [
-  { id: 'welcome', label: 'Welcome Email' },
-  { id: 'payment_status', label: 'Payment Status Updates' },
-  { id: 'doc_expiry', label: 'Document Expiry Warnings' },
-  { id: 'abo_verification_result', label: 'ABO Verification Results' },
-  { id: 'trip_registration_status', label: 'Trip Registration Updates' },
+  { id: 'welcome' },
+  { id: 'payment_status' },
+  { id: 'doc_expiry' },
+  { id: 'abo_verification_result' },
+  { id: 'trip_registration_status' },
 ]
 
 export function EmailSettingsPanel({ initialConfig }: { initialConfig: EmailConfig }) {
@@ -52,11 +53,10 @@ export function EmailSettingsPanel({ initialConfig }: { initialConfig: EmailConf
 
   return (
     <div className="bg-[var(--bg-card)] rounded-xl border border-[var(--border-subtle)] p-6 w-full shadow-sm flex flex-col gap-8">
-      {/* Global Toggle */}
       <div className="flex items-center justify-between pb-6 border-b border-[var(--border-subtle)]">
         <div className="flex flex-col gap-1">
-          <h3 className="text-sm font-semibold text-[var(--semantic-fg-primary)]">System-wide Email</h3>
-          <p className="text-xs text-[var(--semantic-fg-secondary)]">Enable or disable all automated outbound emails.</p>
+          <h3 className="text-sm font-semibold text-[var(--semantic-fg-primary)]">{t('admin.settings.emailPanel.globalTitle', 'en')}</h3>
+          <p className="text-xs text-[var(--semantic-fg-secondary)]">{t('admin.settings.emailPanel.globalDesc', 'en')}</p>
         </div>
         <button
           onClick={() => toggleAll(!config.enabled)}
@@ -66,11 +66,10 @@ export function EmailSettingsPanel({ initialConfig }: { initialConfig: EmailConf
         </button>
       </div>
 
-      {/* Alert Recipient */}
       <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-1">
-          <label className="text-sm font-semibold text-[var(--semantic-fg-primary)]">Admin Alert Recipient</label>
-          <p className="text-xs text-[var(--semantic-fg-secondary)]">Receives bcc or system alerts if configured.</p>
+          <label className="text-sm font-semibold text-[var(--semantic-fg-primary)]">{t('admin.settings.emailPanel.recipientTitle', 'en')}</label>
+          <p className="text-xs text-[var(--semantic-fg-secondary)]">{t('admin.settings.emailPanel.recipientDesc', 'en')}</p>
         </div>
         <div className="flex gap-2">
           <input
@@ -85,23 +84,22 @@ export function EmailSettingsPanel({ initialConfig }: { initialConfig: EmailConf
             disabled={mutation.isPending}
             className="px-4 py-2 bg-[var(--semantic-fg-primary)] text-[var(--bg-card)] rounded-lg text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
           >
-            Save
+            {t('admin.settings.emailPanel.btn.save', 'en')}
           </button>
         </div>
       </div>
 
-      {/* Template Toggles */}
       <div className="flex flex-col gap-4">
-        <h3 className="text-sm font-semibold text-[var(--semantic-fg-primary)]">Automated Notifications</h3>
+        <h3 className="text-sm font-semibold text-[var(--semantic-fg-primary)]">{t('admin.settings.emailPanel.automatedTitle', 'en')}</h3>
         <div className="grid gap-3">
-          {TEMPLATES.map(t => (
-            <div key={t.id} className="flex items-center justify-between p-3 rounded-lg border border-[var(--border-subtle)] hover:bg-black/[0.02] transition-colors">
-              <span className="text-xs font-medium text-[var(--semantic-fg-secondary)]">{t.label}</span>
+          {TEMPLATES.map(tmpl => (
+            <div key={tmpl.id} className="flex items-center justify-between p-3 rounded-lg border border-[var(--border-subtle)] hover:bg-black/[0.02] transition-colors">
+              <span className="text-xs font-medium text-[var(--semantic-fg-secondary)]">{t(`admin.settings.emailPanel.template.${tmpl.id}` as Parameters<typeof t>[0], 'en')}</span>
               <button
-                onClick={() => toggleType(t.id, !(config.notification_types?.[t.id] !== false))}
-                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${config.notification_types?.[t.id] !== false ? 'bg-green-600' : 'bg-gray-200'}`}
+                onClick={() => toggleType(tmpl.id, !(config.notification_types?.[tmpl.id] !== false))}
+                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${config.notification_types?.[tmpl.id] !== false ? 'bg-green-600' : 'bg-gray-200'}`}
               >
-                <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${config.notification_types?.[t.id] !== false ? 'translate-x-5' : 'translate-x-1'}`} />
+                <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${config.notification_types?.[tmpl.id] !== false ? 'translate-x-5' : 'translate-x-1'}`} />
               </button>
             </div>
           ))}
