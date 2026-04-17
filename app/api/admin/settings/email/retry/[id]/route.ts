@@ -12,19 +12,19 @@ import { PaymentSubmittedEmail } from '@/lib/email/templates/PaymentSubmittedEma
 import { TripRegistrationEmail } from '@/lib/email/templates/TripRegistrationEmail'
 import { WelcomeEmail } from '@/lib/email/templates/WelcomeEmail'
 
-type EmailTemplateComponent = (props: Record<string, unknown>) => React.ReactElement
+type EmailTemplateComponent = React.ComponentType<Record<string, unknown>>
 
 // Map template keys to their visual components for rendering during retry
 const TEMPLATE_COMPONENTS: Record<string, EmailTemplateComponent> = {
-  welcome: WelcomeEmail,
-  payment_status: PaymentStatusEmail,
-  document_expiring_soon: DocumentExpiryEmail,
-  doc_expiry: DocumentExpiryEmail,
-  abo_verification_result: AboVerificationEmail,
-  trip_registration_status: TripRegistrationEmail,
-  event_role_request_result: EventRoleRequestEmail,
-  trip_registration_cancelled: TripRegistrationEmail,
-  payment_submitted: PaymentSubmittedEmail,
+  welcome: WelcomeEmail as EmailTemplateComponent,
+  payment_status: PaymentStatusEmail as EmailTemplateComponent,
+  document_expiring_soon: DocumentExpiryEmail as EmailTemplateComponent,
+  doc_expiry: DocumentExpiryEmail as EmailTemplateComponent,
+  abo_verification_result: AboVerificationEmail as EmailTemplateComponent,
+  trip_registration_status: TripRegistrationEmail as EmailTemplateComponent,
+  event_role_request_result: EventRoleRequestEmail as EmailTemplateComponent,
+  trip_registration_cancelled: TripRegistrationEmail as EmailTemplateComponent,
+  payment_submitted: PaymentSubmittedEmail as EmailTemplateComponent,
 }
 
 export async function POST(
