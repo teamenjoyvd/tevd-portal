@@ -20,23 +20,23 @@ Never ask the user to confirm these.
 ## ID Format
 
 ```
-[YYMM]-[TYPE]-[NNN]
+[YYMM]-[TYPE]-[GH#]
 ```
 
 - `YYMM` — year + month of creation (e.g. `2604` for April 2026)
 - `TYPE` — `FEAT`, `BUG`, or `CHORE`
-- `NNN` — incrementing counter within the month, zero-padded to 3 digits
+- `GH#` — the GitHub issue number assigned when the issue is created (no padding)
 
-Examples: `2604-FEAT-001`, `2604-BUG-002`, `2604-CHORE-003`
+Examples: `2604-FEAT-61`, `2604-BUG-54`, `2604-CHORE-66`
 
 | Artifact | Format |
 |---|---|
-| GitHub Issue title | `[2604-FEAT-001] Short description` |
-| Branch | `feature/2604-FEAT-001` |
-| Commit prefix | `[2604-FEAT-001] description` |
-| PR title | `[2604-FEAT-001] description` |
+| GitHub Issue title | `[2604-FEAT-61] Short description` |
+| Branch | `feature/2604-FEAT-61` |
+| Commit prefix | `[2604-FEAT-61] description` |
+| PR title | `[2604-FEAT-61] description` |
 
-Counter resets each month. GitHub issue number is the canonical unique reference if a lookup is ever needed.
+The GitHub issue number is the canonical unique identifier. It is assigned atomically by GitHub — no counter to maintain, no inference required.
 
 ---
 
@@ -59,7 +59,7 @@ READ order: `priority:high` first, then unlabelled, then `priority:low`. Never p
 
 Violation = immediate stop, no exceptions.
 
-- **NEVER push directly to `main`.** Feature branches only: `feature/[YYMM]-[TYPE]-[NNN]`.
+- **NEVER push directly to `main`.** Feature branches only: `feature/[YYMM]-[TYPE]-[GH#]`.
 - **NEVER create `middleware.ts`.** Auth lives in `proxy.ts`.
 - **NEVER expose `SUPABASE_SERVICE_ROLE_KEY` to the client.**
 - **NEVER bypass Clerk auth on a protected route.**
@@ -89,7 +89,7 @@ Violation = immediate stop, no exceptions.
 Output format:
 ```
 | GitHub    | ✅/❌ |
-| In flight | [YYMM]-[TYPE]-[NNN] <title> / None |
+| In flight | [YYMM]-[TYPE]-[GH#] <title> / None |
 | Handoff   | IN PROGRESS: <next action> / DONE / No active PR |
 ```
 If GitHub ❌ — stop.
@@ -104,7 +104,7 @@ If GitHub ❌ — stop.
 2. `get_pull_request_comments` — fetch all inline comments.
 3. Read each affected file at its current branch HEAD (not the diff commit SHA).
 4. Apply every HIGH-priority comment. Apply MEDIUM-priority comments unless there is a concrete reason not to (state it).
-5. Push all changes in a single commit to the PR branch. Commit message: `[YYMM]-[TYPE]-[NNN] fix: address Gemini PR<N> review comments`.
+5. Push all changes in a single commit to the PR branch. Commit message: `[YYMM]-[TYPE]-[GH#] fix: address Gemini PR<N> review comments`.
 6. Report: one line per comment — ✅ Applied / ⚠️ Skipped (reason).
 
 **PLAN** — Enter design-only mode for this session.
@@ -177,9 +177,12 @@ Sessions are either PLAN or BUILD — never both. Default mode is BUILD unless t
    **No writes (including issue body) in SHAPE.**
 
 **CLAIM** → First and only write action before EXECUTE.
-  1. `github-tevd:create_branch` → `feature/[YYMM]-[TYPE]-[NNN]` from `main`
-  2. Confirm branch exists (check the returned ref).
-  3. **HARD GATE: if branch creation fails — STOP. Do not proceed to GATHER or EXECUTE until resolved.**
+  1. `github-tevd:create_issue` — create the issue with title (no ID yet), body with DoD and Design Checklist.
+  2. Note the GitHub issue number from the response — this is `GH#`.
+  3. `github-tevd:update_issue` — rename the title to `[YYMM-TYPE-GH#] description`.
+  4. `github-tevd:create_branch` → `feature/[YYMM]-[TYPE]-[GH#]` from `main`.
+  5. Confirm branch exists (check the returned ref).
+  6. **HARD GATE: if branch creation fails — STOP. Do not proceed to GATHER or EXECUTE until resolved.**
 
 **GATHER** → Read only the REF.md sections the ticket needs (section map at top of REF.md).
 
