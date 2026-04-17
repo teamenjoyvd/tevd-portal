@@ -62,6 +62,7 @@ export async function PATCH(
 
     // Notify the user. Best-effort: failure here does not affect approval state.
     const profile = verReq.profile as { id: string; role: string; first_name: string | null; contact_email: string | null }
+    const approveContactEmail = profile?.contact_email
     const notifMessage = verReq.request_type === 'manual'
       ? `Welcome ${profile?.first_name ?? ''}! Your manual verification has been approved. You are now a Member.`
       : `Welcome ${profile?.first_name ?? ''}! Your ABO number ${verReq.claimed_abo} has been verified. You are now a Member.`
@@ -74,7 +75,7 @@ export async function PATCH(
       action_url: '/profile',
     })
 
-    if (profile?.contact_email) {
+    if (approveContactEmail) {
       import('@/lib/email/send').then(({ sendNotificationEmail }) => {
         import('@/lib/email/templates/render').then(({ renderEmailTemplate }) => {
           import('@/lib/email/templates/AboVerificationEmail').then(({ AboVerificationEmail }) => {
@@ -87,7 +88,7 @@ export async function PATCH(
               })
             ).then(html => {
               sendNotificationEmail({
-                to: profile.contact_email,
+                to: approveContactEmail,
                 subject: `ABO Verification Approved ✓`,
                 html,
                 template: 'abo_verification_result',
@@ -101,7 +102,7 @@ export async function PATCH(
               renderEmailTemplate(WelcomeEmail({ firstName: profile.first_name || 'Member' }))
                 .then(html => {
                   sendNotificationEmail({
-                    to: profile.contact_email,
+                    to: approveContactEmail,
                     subject: 'Welcome to Team Enjoy VD!',
                     html,
                     template: 'abo_verification_result',
@@ -143,7 +144,8 @@ export async function PATCH(
       .select().single()
 
     const profile = verReq.profile as { id: string; role: string; first_name: string | null; contact_email: string | null }
-    if (!error && profile?.contact_email) {
+    const denyContactEmail = profile?.contact_email
+    if (!error && denyContactEmail) {
       import('@/lib/email/send').then(({ sendNotificationEmail }) => {
         import('@/lib/email/templates/render').then(({ renderEmailTemplate }) => {
           import('@/lib/email/templates/AboVerificationEmail').then(({ AboVerificationEmail }) => {
@@ -156,7 +158,7 @@ export async function PATCH(
               })
             ).then(html => {
               sendNotificationEmail({
-                to: profile.contact_email,
+                to: denyContactEmail,
                 subject: `ABO Verification Declined`,
                 html,
                 template: 'abo_verification_result',

@@ -31,7 +31,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   // Trigger email asynchronously
   const regProfile = data.profile as { id: string; first_name: string | null; contact_email: string | null }
   const regTrip = data.trip as { id: string; title: string; destination: string | null; start_date: string | null; end_date: string | null }
-  if (regProfile?.contact_email) {
+  const regContactEmail = regProfile?.contact_email
+  if (regContactEmail) {
     renderEmailTemplate(
       TripRegistrationEmail({
         firstName: regProfile.first_name || 'Member',
@@ -43,7 +44,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       })
     ).then((html) => {
       sendNotificationEmail({
-        to: regProfile.contact_email,
+        to: regContactEmail,
         subject: `Trip Registration ${status === 'approved' ? 'Approved ✓' : 'Declined'}`,
         html,
         template: 'trip_registration_status',
