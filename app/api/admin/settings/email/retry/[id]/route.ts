@@ -12,19 +12,21 @@ import { PaymentSubmittedEmail } from '@/lib/email/templates/PaymentSubmittedEma
 import { TripRegistrationEmail } from '@/lib/email/templates/TripRegistrationEmail'
 import { WelcomeEmail } from '@/lib/email/templates/WelcomeEmail'
 
-type EmailTemplateComponent = React.ComponentType<Record<string, unknown>>
+// React.FC<P> is always callable — React.ComponentType<P> is FC | ComponentClass,
+// and ComponentClass has no call signature, causing a TS error at the call site.
+type EmailTemplateFC = React.FC<Record<string, unknown>>
 
 // Map template keys to their visual components for rendering during retry
-const TEMPLATE_COMPONENTS: Record<string, EmailTemplateComponent> = {
-  welcome: WelcomeEmail as EmailTemplateComponent,
-  payment_status: PaymentStatusEmail as EmailTemplateComponent,
-  document_expiring_soon: DocumentExpiryEmail as EmailTemplateComponent,
-  doc_expiry: DocumentExpiryEmail as EmailTemplateComponent,
-  abo_verification_result: AboVerificationEmail as EmailTemplateComponent,
-  trip_registration_status: TripRegistrationEmail as EmailTemplateComponent,
-  event_role_request_result: EventRoleRequestEmail as EmailTemplateComponent,
-  trip_registration_cancelled: TripRegistrationEmail as EmailTemplateComponent,
-  payment_submitted: PaymentSubmittedEmail as EmailTemplateComponent,
+const TEMPLATE_COMPONENTS: Record<string, EmailTemplateFC> = {
+  welcome: WelcomeEmail as EmailTemplateFC,
+  payment_status: PaymentStatusEmail as EmailTemplateFC,
+  document_expiring_soon: DocumentExpiryEmail as EmailTemplateFC,
+  doc_expiry: DocumentExpiryEmail as EmailTemplateFC,
+  abo_verification_result: AboVerificationEmail as EmailTemplateFC,
+  trip_registration_status: TripRegistrationEmail as EmailTemplateFC,
+  event_role_request_result: EventRoleRequestEmail as EmailTemplateFC,
+  trip_registration_cancelled: TripRegistrationEmail as EmailTemplateFC,
+  payment_submitted: PaymentSubmittedEmail as EmailTemplateFC,
 }
 
 export async function POST(
