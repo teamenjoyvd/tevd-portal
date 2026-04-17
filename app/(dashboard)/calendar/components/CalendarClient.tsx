@@ -367,6 +367,8 @@ export default function CalendarClient({
     const [y, m] = initialMonth.split('-').map(Number)
     return new Date(y, m - 1, 1)
   })
+  // Deep-link: highlight the agenda row, but do NOT auto-open the popup.
+  // selectedEventId is only set from user interaction (click), not from initialEventId.
   const [selectedEventId, setSelectedEventId]     = useState<string | null>(null)
   const [anchorEl, setAnchorEl]                   = useState<HTMLElement | null>(null)
   const [showN21, setShowN21]                     = useState(true)

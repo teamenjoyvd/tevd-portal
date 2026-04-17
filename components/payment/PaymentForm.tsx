@@ -112,7 +112,9 @@ export function PaymentForm(props: PaymentFormProps) {
     <div className="space-y-5">
       {/* Required field legend */}
       <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-        {t('payment.fieldsRequired')}
+        {t('payment.fieldsRequiredPre')}{' '}
+        <span style={{ color: 'var(--brand-crimson)' }}>*</span>
+        {' '}{t('payment.fieldsRequiredPost')}
       </p>
 
       {/* Item selector — generic context only */}
