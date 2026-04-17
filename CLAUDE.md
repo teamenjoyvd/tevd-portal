@@ -69,14 +69,9 @@ Violation = immediate stop, no exceptions.
 - **RLS policies use Pattern A helpers only** — `is_admin()`, `get_my_role()`, `get_my_profile_id()`, `get_my_clerk_id()`. Never raw `auth.jwt()`.
 - **shadcn/ui for all interactive primitives** — dialog, popover, dropdown, sheet, tooltip, select, combobox, alert dialog.
 - **Component co-location** — new components scoped to one route go in `app/[route]/components/`. Promote to `/components` only when used by 2+ unrelated routes.
-- **Dual layout law** — two complete separate layouts, no hybrid responsive:
-  ```tsx
-  <div className=\"hidden md:block\">{/* Desktop */}</div>
-  <div className=\"md:hidden\">{/* Mobile */}</div>
-  ```
-  Canonical reference: `app/(dashboard)/about/page.tsx`
+- **Dual layout law** — NEVER a single responsive layout. Two complete separate layouts only. Canonical ref: `app/(dashboard)/about/page.tsx`.
 - **NEVER call `create_or_update_file` or `push_files` before PLAN's CLAIM is complete.** No file writes until the feature branch exists and is confirmed.
-- **PLAN and BUILD are mutually exclusive within a session.** A session started as PLAN does no file writes. A session started as BUILD does no PLAN-mode design work.
+- **PLAN and BUILD are mutually exclusive within a session.** PLAN does no file writes. BUILD does no design work. Violation = immediate stop.
 
 ---
 
@@ -85,8 +80,8 @@ Violation = immediate stop, no exceptions.
 **SSU** — System Status Update. Run at session start:
 
 1. **Tool warm-up (before anything else):**
-   - `tool_search(\"get file contents github\")`
-   - `tool_search(\"branch issue pull request create\")`
+   - `tool_search("get file contents github")`
+   - `tool_search("branch issue pull request create")`
    Confirm both return results. If either fails — stop.
 
 2. `get_file_contents` on `CLAUDE.md` — confirms GitHub connectivity and loads current state.
@@ -109,17 +104,11 @@ If GitHub ❌ — stop.
 2. If REF.md needs updates (schema changed, new routes, new env vars) — update and push in a single `push_files` call together with any other changed docs.
 3. If nothing changed in REF.md — done. No other writes required.
 
-**GCR** — Address Gemini Code Review. Given a PR number:
-1. `get_pull_request_reviews` — fetch the Gemini review summary.
-2. `get_pull_request_comments` — fetch all inline comments.
-3. Read each affected file at its current branch HEAD (not the diff commit SHA).
-4. Apply every HIGH-priority comment. Apply MEDIUM-priority comments unless there is a concrete reason not to (state it).
-5. Push all changes in a single commit to the PR branch. Commit message: `[YYMM]-[TYPE]-[GH#] fix: address Gemini PR<N> review comments`.
-6. Report: one line per comment — ✅ Applied / ⚠️ Skipped (reason).
+**GCR** — Address Gemini Code Review. See `docs/ai/GCR.md`.
 
 **PLAN** — Enter design-only mode for this session.
 
-Sessions are either PLAN or BUILD — never both. Prefix the session with `PLAN` to enter this mode.
+Prefix the session with `PLAN` to enter this mode.
 
 - For each issue in the batch:
   1. Read relevant REF.md / FLOWS.md sections freely — no competing write budget.
@@ -144,8 +133,7 @@ Sessions are either PLAN or BUILD — never both. Prefix the session with `PLAN`
      4. `create_branch` → `feature/[YYMM]-[TYPE]-[GH#]` from `main`.
      5. Confirm branch exists (check the returned ref).
      6. **HARD GATE: if branch creation fails — comment `BLOCKED: branch creation failed` on the issue, apply `blocked` label, STOP. Do not proceed.**
-     7. `update_issue` — write `## Branch\
-\\`feature/[YYMM]-[TYPE]-[GH#]\\`` into the issue body.
+     7. `update_issue` — write `## Branch\n\`feature/[YYMM]-[TYPE]-[GH#]\`` into the issue body.
 
 Permitted writes: GitHub issue creation, issue body, branch creation.
 Forbidden: `create_or_update_file`, `push_files`.
@@ -174,8 +162,6 @@ This is the gate between PLAN and BUILD. BUILD mode verifies both at SSU. If eit
 ---
 
 ## BUILD Workflow
-
-Sessions are either PLAN or BUILD — never both. Default mode is BUILD unless the session is prefixed with `PLAN`.
 
 **Precondition (SSU):** Read the issue body. Verify `## Design Checklist` exists with all four items checked AND `## Branch` exists with the branch name. If either is absent or incomplete — stop, state exactly what is missing, do not proceed.
 
@@ -209,10 +195,8 @@ The PR description is the sole handoff document.
 ```markdown
 ## Session State
 **Status:** IN PROGRESS | DONE
-**Last touched:** `path/to/file.tsx`
 **Completed:**
 - [x] done thing
-**In flight:** what's partially done, skeleton location if applicable
 **Next:** single specific action for incoming instance
 ```
 
@@ -242,11 +226,11 @@ Write `IN PROGRESS` before starting a large task. Write `DONE` after verifying. 
 | Admin Drawer | Use `components/ui/Drawer.tsx` for all admin create/edit. Exceptions: Announcements + Quick Links create = inline cards. All deletes use `AlertDialog`. |
 | Route handler `params` | `params` is a `Promise` in Next.js 16. Type as `{ params: Promise<{ id: string }> }` and `await params`. |
 | `useParams()` | Takes NO type argument in Next.js 16. `const params = useParams(); const id = params.id as string`. |
-| `sendEmail` | Removed. Use `sendNotificationEmail` (fire-and-forget, respects config gates) or `sendTransactionalEmail` (bypasses gates, returns typed result). **Dynamic imports evade static rename tools and grep** — after any email-related rename, manually read every route that uses `import('@/lib/email/send')`. Known callers (all must use `sendNotificationEmail`): `admin/verify/route.ts`, `admin/members/verify/[id]/route.ts`, `admin/event-role-requests/[id]/route.ts`, `profile/payments/route.ts`. |
+| `sendEmail` | Removed. Use `sendNotificationEmail` (fire-and-forget, respects config gates) or `sendTransactionalEmail` (bypasses gates, returns typed result). **Dynamic imports evade static rename tools and grep** — after any email-related rename, manually read every route using `import('@/lib/email/send')`. Known callers in `sendNotificationEmail` JSDoc. |
 | `pg_net` cron | `net.http_post(...)`. NEVER `extensions.http_post(...)` — silently does nothing. |
 | `TranslationKey` | Strict union. Add to `translations.ts` before using `t()` or build breaks. |
 | `BottomNav.tsx` | Dead stub. Do not import. |
-| Profile prerender | Guard ALL `validProfile!` accesses with `if (isLoading \\|\\| !validProfile) return <ProfileSkeleton />`. |
+| Profile prerender | Guard ALL `validProfile!` accesses with `if (isLoading \|\| !validProfile) return <ProfileSkeleton />`. |
 | `TeamAttendee` type | Exported from `app/(dashboard)/trips/[id]/page.tsx`. Do not redeclare. |
 
 ---
@@ -254,7 +238,3 @@ Write `IN PROGRESS` before starting a large task. Write `DONE` after verifying. 
 ## When This File Is Wrong
 
 If any instruction contradicts Next.js 16 / Clerk v7 / Supabase current SDK behaviour — stop, state the contradiction, cite correct behaviour, ask for a decision.
-"
-    }
-  ]
-}
