@@ -30,7 +30,7 @@ export default function NotificationPopup({ onClose }: Props) {
   function handleItemClick(id: string, actionUrl: string | null) {
     if (!markRead.isPending) markRead.mutate(id)
     onClose()
-    if (actionUrl) window.location.href = actionUrl
+    if (actionUrl) window.location.assign(actionUrl)
   }
 
   return (

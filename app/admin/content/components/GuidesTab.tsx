@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Drawer } from '@/components/ui/Drawer'
 import {
@@ -30,8 +30,12 @@ export function GuidesTab() {
     queryKey: ['admin-guides'],
     queryFn: () => fetch('/api/admin/guides').then(r => r.json()),
   })
-  const [localGuides, setLocalGuides] = useState<Guide[]>([])
-  useEffect(() => { setLocalGuides([...guidesRaw]) }, [guidesRaw])
+  const [localGuides, setLocalGuides] = useState<Guide[]>(() => [...guidesRaw])
+  const [prevGuidesRaw, setPrevGuidesRaw] = useState(guidesRaw)
+  if (prevGuidesRaw !== guidesRaw) {
+    setPrevGuidesRaw(guidesRaw)
+    setLocalGuides([...guidesRaw])
+  }
 
   const reorderGuides = useMutation({
     mutationFn: (items: { id: string; sort_order: number }[]) =>

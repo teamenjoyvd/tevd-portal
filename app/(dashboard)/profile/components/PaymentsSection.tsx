@@ -11,6 +11,39 @@ import { PaymentRow, ShowMoreButton } from './shared'
 
 export const PAYMENTS_MIN_HEIGHT = 280
 
+function groupByItem(payments: GenericPayment[]): Record<string, GenericPayment[]> {
+  const map: Record<string, GenericPayment[]> = {}
+  for (const pay of payments) {
+    const key = pay.payable_items?.title ?? 'Unknown'
+    if (!map[key]) map[key] = []
+    map[key].push(pay)
+  }
+  return map
+}
+
+function PaymentGroups({
+  groups,
+  cancelledTripIds,
+}: {
+  groups: Record<string, GenericPayment[]>
+  cancelledTripIds: Set<string>
+}) {
+  return (
+    <div className="space-y-4">
+      {Object.entries(groups).map(([itemTitle, itemPayments]) => (
+        <div key={itemTitle}>
+          <p className="text-[11px] font-semibold tracking-widest uppercase mb-1.5" style={{ color: 'var(--text-secondary)' }}>{itemTitle}</p>
+          <div className="space-y-1.5">
+            {itemPayments.map(pay => (
+              <PaymentRow key={pay.id} pay={pay} cancelledTripIds={cancelledTripIds} />
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export function PaymentsSection({ profileId, role }: { profileId: string; role: string }) {
   const { t } = useLanguage()
   const qc = useQueryClient()
@@ -58,33 +91,8 @@ export function PaymentsSection({ profileId, role }: { profileId: string; role: 
   const visiblePayments = allPayments.slice(0, VARIABLE_CAP)
   const overflow = allPayments.length - VARIABLE_CAP
 
-  const groupByItem = (payments: GenericPayment[]) => {
-    const map: Record<string, GenericPayment[]> = {}
-    for (const pay of payments) {
-      const key = pay.payable_items?.title ?? 'Unknown'
-      if (!map[key]) map[key] = []
-      map[key].push(pay)
-    }
-    return map
-  }
-
   const visibleByItem = groupByItem(visiblePayments)
   const allByItem     = groupByItem(allPayments)
-
-  const PaymentGroups = ({ groups }: { groups: Record<string, GenericPayment[]> }) => (
-    <div className="space-y-4">
-      {Object.entries(groups).map(([itemTitle, itemPayments]) => (
-        <div key={itemTitle}>
-          <p className="text-[11px] font-semibold tracking-widest uppercase mb-1.5" style={{ color: 'var(--text-secondary)' }}>{itemTitle}</p>
-          <div className="space-y-1.5">
-            {itemPayments.map(pay => (
-              <PaymentRow key={pay.id} pay={pay} cancelledTripIds={cancelledTripIds} />
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
-  )
 
   return (
     <>
@@ -98,7 +106,7 @@ export function PaymentsSection({ profileId, role }: { profileId: string; role: 
         {Object.keys(visibleByItem).length === 0 ? (
           <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('payment.none')}</p>
         ) : (
-          <PaymentGroups groups={visibleByItem} />
+          <PaymentGroups groups={visibleByItem} cancelledTripIds={cancelledTripIds} />
         )}
         {overflow > 0 && <ShowMoreButton count={overflow} onClick={() => setListDrawerOpen(true)} />}
       </div>
@@ -114,7 +122,7 @@ export function PaymentsSection({ profileId, role }: { profileId: string; role: 
 
       <Drawer open={listDrawerOpen} onClose={() => setListDrawerOpen(false)} title={t('payment.allPayments')}>
         <div className="space-y-4 mb-6">
-          <PaymentGroups groups={allByItem} />
+          <PaymentGroups groups={allByItem} cancelledTripIds={cancelledTripIds} />
         </div>
         <div className="border-t pt-4" style={{ borderColor: 'var(--border-default)' }}>
           <button

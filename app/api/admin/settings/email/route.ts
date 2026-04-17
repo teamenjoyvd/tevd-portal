@@ -23,7 +23,7 @@ export async function PATCH(req: Request) {
     }
 
     return Response.json({ success: true, email_config: payload })
-  } catch (err: any) {
-    return Response.json({ error: err.message }, { status: 400 })
+  } catch (err: unknown) {
+    return Response.json({ error: (err as Error).message }, { status: 400 })
   }
 }

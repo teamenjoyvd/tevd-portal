@@ -29,21 +29,22 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (error) return Response.json({ error: error.message }, { status: 500 })
 
   // Trigger email asynchronously
-  const regProfile = data.profile as any
-  const regTrip = data.trip as any
-  if (regProfile?.contact_email) {
+  const regProfile = data.profile as { id: string; first_name: string | null; contact_email: string | null }
+  const regTrip = data.trip as { id: string; title: string; destination: string | null; start_date: string | null; end_date: string | null }
+  const regContactEmail = regProfile?.contact_email
+  if (regContactEmail) {
     renderEmailTemplate(
       TripRegistrationEmail({
         firstName: regProfile.first_name || 'Member',
         tripTitle: regTrip.title,
-        destination: regTrip.destination,
-        startDate: regTrip.start_date,
-        endDate: regTrip.end_date,
+        destination: regTrip.destination ?? '',
+        startDate: regTrip.start_date ?? '',
+        endDate: regTrip.end_date ?? '',
         status: status as 'approved' | 'denied',
       })
     ).then((html) => {
       sendNotificationEmail({
-        to: regProfile.contact_email,
+        to: regContactEmail,
         subject: `Trip Registration ${status === 'approved' ? 'Approved ✓' : 'Declined'}`,
         html,
         template: 'trip_registration_status',

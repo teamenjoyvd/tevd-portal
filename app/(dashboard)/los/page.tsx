@@ -160,9 +160,9 @@ function TreeNode({ node, depth, expanded, onToggleExpand }: {
       <MemberCard node={node} isExpanded={isExpanded} onToggle={() => onToggleExpand(key)} />
       {hasChildren && (
         <div style={{ borderLeft: '2px solid var(--border-default)', marginLeft: 10, paddingLeft: 10 }}>
-          {node.children!.map(child => (
+          {node.children!.map((child, ci) => (
             <TreeNode
-              key={child.abo_number ?? child.profile_id ?? Math.random()}
+              key={child.abo_number ?? child.profile_id ?? `child-${ci}`}
               node={child}
               depth={depth + 1}
               expanded={expanded}
@@ -175,37 +175,39 @@ function TreeNode({ node, depth, expanded, onToggleExpand }: {
   )
 }
 
+// ── Guest view helper ────────────────────────────────────────────────────────
+
+function SimpleRow({ node, label }: { node: LOSNode; label: string }) {
+  const rc = roleColors(node.role)
+  return (
+    <div>
+      <p className="text-xs font-semibold tracking-widest uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>
+        {label}
+      </p>
+      <div
+        className="rounded-xl px-4 py-3 flex items-center gap-3"
+        style={{ backgroundColor: 'var(--bg-card)', border: `1px solid ${rc.border}` }}
+      >
+        <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{displayName(node)}</span>
+        {node.abo_number && (
+          <span className="text-xs font-mono" style={{ color: 'var(--text-tertiary)' }}>{node.abo_number}</span>
+        )}
+        <span
+          className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ml-auto"
+          style={{ backgroundColor: rc.labelBg, color: rc.labelColor }}
+        >
+          {node.role ?? 'member'}
+        </span>
+      </div>
+    </div>
+  )
+}
+
 // ── Guest view ────────────────────────────────────────────────────────────────
 
 function GuestView({ nodes, callerAbo }: { nodes: LOSNode[]; callerAbo: string | null }) {
   const self = nodes.find(n => n.abo_number === callerAbo) ?? nodes[0]
   const upline = nodes.find(n => n.abo_number !== callerAbo)
-
-  function SimpleRow({ node, label }: { node: LOSNode; label: string }) {
-    const rc = roleColors(node.role)
-    return (
-      <div>
-        <p className="text-xs font-semibold tracking-widest uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>
-          {label}
-        </p>
-        <div
-          className="rounded-xl px-4 py-3 flex items-center gap-3"
-          style={{ backgroundColor: 'var(--bg-card)', border: `1px solid ${rc.border}` }}
-        >
-          <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{displayName(node)}</span>
-          {node.abo_number && (
-            <span className="text-xs font-mono" style={{ color: 'var(--text-tertiary)' }}>{node.abo_number}</span>
-          )}
-          <span
-            className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ml-auto"
-            style={{ backgroundColor: rc.labelBg, color: rc.labelColor }}
-          >
-            {node.role ?? 'member'}
-          </span>
-        </div>
-      </div>
-    )
-  }
 
   return (
     <div className="space-y-4">
@@ -426,9 +428,9 @@ function LOSPageInner() {
                 {searchLower ? 'No members match your search.' : 'No data available.'}
               </p>
             )}
-            {filteredTree.map(node => (
+            {filteredTree.map((node, ni) => (
               <TreeNode
-                key={node.abo_number ?? node.profile_id ?? Math.random()}
+                key={node.abo_number ?? node.profile_id ?? `node-${ni}`}
                 node={node}
                 depth={0}
                 expanded={expanded}

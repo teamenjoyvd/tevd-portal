@@ -1,6 +1,6 @@
 'use client'
 
-import { memo, useState, useEffect } from 'react'
+import { memo, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { Drawer } from '@/components/ui/Drawer'
@@ -75,18 +75,14 @@ export const PersonalDetailsContent = memo(function PersonalDetailsContent({
     display_names?: Record<string, string>
     phone?: string
     contact_email?: string
-  }>({})
+  }>(() => ({
+    first_name:    profile.first_name,
+    last_name:     profile.last_name,
+    display_names: profile.display_names ?? {},
+    phone:         profile.phone ?? '',
+    contact_email: profile.contact_email ?? '',
+  }))
   const [errors, setErrors] = useState<Partial<Record<keyof PersonalFormFields, string>>>({})
-
-  useEffect(() => {
-    setForm({
-      first_name:    profile.first_name,
-      last_name:     profile.last_name,
-      display_names: profile.display_names ?? {},
-      phone:         profile.phone ?? '',
-      contact_email: profile.contact_email ?? '',
-    })
-  }, [profile])
 
   const savePersonal = useMutation({
     mutationFn: async () => {

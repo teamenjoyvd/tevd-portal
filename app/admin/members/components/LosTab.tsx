@@ -82,9 +82,9 @@ function VitalSignsConfig({ definitions, onRefetch }: {
   )
 
   const defsKey = definitions.map(d => d.id + d.is_active + d.sort_order).join(',')
-  const prevKey = useRef(defsKey)
-  if (prevKey.current !== defsKey) {
-    prevKey.current = defsKey
+  const [prevKey, setPrevKey] = useState(defsKey)
+  if (prevKey !== defsKey) {
+    setPrevKey(defsKey)
     setLocalDefs([...definitions].sort((a, b) => a.sort_order - b.sort_order))
   }
 

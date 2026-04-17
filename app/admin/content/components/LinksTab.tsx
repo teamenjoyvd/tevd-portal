@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Drawer } from '@/components/ui/Drawer'
 import {
@@ -51,8 +51,12 @@ export function LinksTab() {
     queryKey: ['admin-links'],
     queryFn: () => fetch('/api/admin/links').then(r => r.json()),
   })
-  const [localLinks, setLocalLinks] = useState<SiteLink[]>([])
-  useEffect(() => { setLocalLinks([...linksRaw]) }, [linksRaw])
+  const [localLinks, setLocalLinks] = useState<SiteLink[]>(() => [...linksRaw])
+  const [prevLinksRaw, setPrevLinksRaw] = useState(linksRaw)
+  if (prevLinksRaw !== linksRaw) {
+    setPrevLinksRaw(linksRaw)
+    setLocalLinks([...linksRaw])
+  }
 
   const reorderLinks = useMutation({
     mutationFn: (items: { id: string; sort_order: number }[]) =>

@@ -1,3 +1,4 @@
+import * as React from 'react'
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { requireAdmin } from '@/lib/supabase/guards'
@@ -11,17 +12,22 @@ import { PaymentSubmittedEmail } from '@/lib/email/templates/PaymentSubmittedEma
 import { TripRegistrationEmail } from '@/lib/email/templates/TripRegistrationEmail'
 import { WelcomeEmail } from '@/lib/email/templates/WelcomeEmail'
 
+// Use ComponentType so React.createElement can accept it.
+// Calling an FC directly returns ReactNode (which includes undefined in React 18+),
+// not ReactElement — so React.createElement is the correct call site.
+type EmailTemplateComponent = React.ComponentType<Record<string, unknown>>
+
 // Map template keys to their visual components for rendering during retry
-const TEMPLATE_COMPONENTS: Record<string, any> = {
-  welcome: WelcomeEmail,
-  payment_status: PaymentStatusEmail,
-  document_expiring_soon: DocumentExpiryEmail,
-  doc_expiry: DocumentExpiryEmail,
-  abo_verification_result: AboVerificationEmail,
-  trip_registration_status: TripRegistrationEmail,
-  event_role_request_result: EventRoleRequestEmail,
-  trip_registration_cancelled: TripRegistrationEmail,
-  payment_submitted: PaymentSubmittedEmail,
+const TEMPLATE_COMPONENTS: Record<string, EmailTemplateComponent> = {
+  welcome: WelcomeEmail as EmailTemplateComponent,
+  payment_status: PaymentStatusEmail as EmailTemplateComponent,
+  document_expiring_soon: DocumentExpiryEmail as EmailTemplateComponent,
+  doc_expiry: DocumentExpiryEmail as EmailTemplateComponent,
+  abo_verification_result: AboVerificationEmail as EmailTemplateComponent,
+  trip_registration_status: TripRegistrationEmail as EmailTemplateComponent,
+  event_role_request_result: EventRoleRequestEmail as EmailTemplateComponent,
+  trip_registration_cancelled: TripRegistrationEmail as EmailTemplateComponent,
+  payment_submitted: PaymentSubmittedEmail as EmailTemplateComponent,
 }
 
 export async function POST(
@@ -52,7 +58,10 @@ export async function POST(
   if (!TemplateComponent) return Response.json({ error: `No renderer for template: ${log.template}` }, { status: 500 })
 
   try {
-    const html = await renderEmailTemplate(TemplateComponent(log.payload as any))
+    // React.createElement always returns ReactElement — safe to pass to renderEmailTemplate.
+    // Calling TemplateComponent(props) directly returns ReactNode (includes undefined in React 18).
+    const element = React.createElement(TemplateComponent, log.payload as Record<string, unknown>)
+    const html = await renderEmailTemplate(element)
 
     // 3. Re-invoke sendNotificationEmail — bypasses no gates since this is an
     //    admin-triggered retry; a new email_log row is written by the dispatcher.
@@ -68,7 +77,7 @@ export async function POST(
     await supabase.from('email_log').update({ status: 'retried' }).eq('id', id)
 
     return Response.json({ success: true })
-  } catch (err: any) {
-    return Response.json({ error: err.message }, { status: 500 })
+  } catch (err: unknown) {
+    return Response.json({ error: (err as Error).message }, { status: 500 })
   }
 }

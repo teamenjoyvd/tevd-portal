@@ -28,7 +28,7 @@ export function CalendarSection({ profileId }: { profileId: string }) {
       setCalCopied(true)
       setTimeout(() => setCalCopied(false), 2000)
     }
-  }, [calData?.url])
+  }, [calData])
 
   const handleRegenerate = useCallback(() => {
     if (confirm('Regenerate your calendar link? Your old link will stop working.')) regenerateCal.mutate()
