@@ -13,7 +13,7 @@ const DragHandle = forwardRef<HTMLSpanElement, React.HTMLAttributes<HTMLSpanElem
         {...props}
         ref={ref}
         title="Drag to reorder"
-        style={{ cursor: 'grab', touchAction: 'none', userSelect: 'none', fontSize: 14, lineHeight: 1, color: 'var(--text-secondary)', opacity: 0.5, flexShrink: 0 }}
+        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 44, minHeight: 44, cursor: 'grab', touchAction: 'none', userSelect: 'none', fontSize: 14, lineHeight: 1, color: 'var(--text-secondary)', opacity: 0.5, flexShrink: 0 }}
       >
         ⠇
       </span>
