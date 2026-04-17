@@ -158,7 +158,7 @@ function AttachmentsSection({ tripId }: { tripId: string }) {
           <AlertDialogHeader>
             <AlertDialogTitle>{t('admin.operations.form.dialog.title')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Remove &ldquo;{deleteTarget?.file_name}&rdquo;? {t('admin.operations.form.dialog.body')}
+              {t('admin.operations.form.dialog.removeConfirm').replace('{{name}}', deleteTarget?.file_name ?? '')} {t('admin.operations.form.dialog.body')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

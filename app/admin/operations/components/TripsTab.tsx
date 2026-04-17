@@ -165,7 +165,7 @@ export function TripsTab({ trips, isLoading }: { trips: Trip[]; isLoading: boole
         </div>
       )}
 
-      <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title={editing ? `Edit: ${editing.title}` : t('admin.operations.form.btn.createTrip')}>
+      <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title={editing ? t('admin.operations.trips.title.edit').replace('{{title}}', editing.title) : t('admin.operations.form.btn.createTrip')}>
         <TripForm
           form={form}
           setForm={setForm}

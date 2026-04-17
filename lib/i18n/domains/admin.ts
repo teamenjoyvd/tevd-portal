@@ -117,6 +117,7 @@ export const admin = {
   'admin.operations.trips.milestones': { en: '{{count}} milestones', bg: '{{count}} вноски' },
   'admin.operations.trips.btn.edit': { en: 'Edit', bg: 'Редактирай' },
   'admin.operations.trips.btn.delete': { en: 'Delete', bg: 'Изтрий' },
+  'admin.operations.trips.title.edit': { en: 'Edit: {{title}}', bg: 'Редактиране: {{title}}' },
   'admin.operations.trips.dialog.title': { en: 'Delete trip', bg: 'Изтриване на пътуване' },
   'admin.operations.trips.dialog.body': { en: 'This cannot be undone.', bg: 'Това действие е необратимо.' },
   'admin.operations.trips.dialog.cancel': { en: 'Cancel', bg: 'Откажи' },
@@ -131,6 +132,7 @@ export const admin = {
   'admin.operations.form.uploadHint': { en: 'PDF or image, max 10 MB', bg: 'PDF или изображение, макс. 10 МБ' },
   'admin.operations.form.btn.remove': { en: 'Remove', bg: 'Премахни' },
   'admin.operations.form.dialog.title': { en: 'Remove document', bg: 'Премахване на документ' },
+  'admin.operations.form.dialog.removeConfirm': { en: 'Remove "{{name}}"?', bg: 'Премахване на "{{name}}"?' },
   'admin.operations.form.dialog.body': { en: 'This cannot be undone.', bg: 'Това действие е необратимо.' },
   'admin.operations.form.dialog.cancel': { en: 'Cancel', bg: 'Откажи' },
   'admin.operations.form.dialog.confirm': { en: 'Remove', bg: 'Премахни' },
@@ -194,6 +196,7 @@ export const admin = {
   'admin.operations.items.btn.deactivate': { en: 'Deactivate', bg: 'Деактивирай' },
   'admin.operations.items.badge.active': { en: 'active', bg: 'активен' },
   'admin.operations.items.badge.inactive': { en: 'inactive', bg: 'неактивен' },
+  'admin.operations.items.title.edit': { en: 'Edit: {{title}}', bg: 'Редактиране: {{title}}' },
   'admin.operations.items.lbl.title': { en: 'Title *', bg: 'Наименование *' },
   'admin.operations.items.lbl.type': { en: 'Type *', bg: 'Тип *' },
   'admin.operations.items.lbl.description': { en: 'Description', bg: 'Описание' },
@@ -205,6 +208,11 @@ export const admin = {
   'admin.operations.items.btn.saveChanges': { en: 'Save changes', bg: 'Запази промените' },
   'admin.operations.items.btn.create': { en: 'Create item', bg: 'Създай артикул' },
   'admin.operations.items.btn.cancel': { en: 'Cancel', bg: 'Откажи' },
+  'admin.operations.items.type.merchandise': { en: 'merchandise', bg: 'стока' },
+  'admin.operations.items.type.ticket': { en: 'ticket', bg: 'билет' },
+  'admin.operations.items.type.food': { en: 'food', bg: 'храна' },
+  'admin.operations.items.type.book': { en: 'book', bg: 'книга' },
+  'admin.operations.items.type.other': { en: 'other', bg: 'друго' },
 
   // -- Notifications audit log --
   'admin.notifications.pageTitle': { en: 'Notification Audit Log', bg: 'Одиторски журнал на известията' },
@@ -253,5 +261,10 @@ export const admin = {
   'admin.settings.emailPanel.recipientDesc': { en: 'Receives bcc or system alerts if configured.', bg: 'Получава скрито копие или системни сигнали при конфигурация.' },
   'admin.settings.emailPanel.btn.save': { en: 'Save', bg: 'Запази' },
   'admin.settings.emailPanel.automatedTitle': { en: 'Automated Notifications', bg: 'Автоматизирани известия' },
+  'admin.settings.emailPanel.template.welcome': { en: 'Welcome Email', bg: 'Приветствен имейл' },
+  'admin.settings.emailPanel.template.payment_status': { en: 'Payment Status Updates', bg: 'Обновяване на статус на плащане' },
+  'admin.settings.emailPanel.template.doc_expiry': { en: 'Document Expiry Warnings', bg: 'Предупреждения за изтичащи документи' },
+  'admin.settings.emailPanel.template.abo_verification_result': { en: 'ABO Verification Results', bg: 'Резултати от СБА верификация' },
+  'admin.settings.emailPanel.template.trip_registration_status': { en: 'Trip Registration Updates', bg: 'Обновяване на регистрация за пътуване' },
 
 } as const

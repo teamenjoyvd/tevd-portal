@@ -12,11 +12,11 @@ export type EmailConfig = {
 }
 
 const TEMPLATES = [
-  { id: 'welcome', label: 'Welcome Email' },
-  { id: 'payment_status', label: 'Payment Status Updates' },
-  { id: 'doc_expiry', label: 'Document Expiry Warnings' },
-  { id: 'abo_verification_result', label: 'ABO Verification Results' },
-  { id: 'trip_registration_status', label: 'Trip Registration Updates' },
+  { id: 'welcome' },
+  { id: 'payment_status' },
+  { id: 'doc_expiry' },
+  { id: 'abo_verification_result' },
+  { id: 'trip_registration_status' },
 ]
 
 export function EmailSettingsPanel({ initialConfig }: { initialConfig: EmailConfig }) {
@@ -95,7 +95,7 @@ export function EmailSettingsPanel({ initialConfig }: { initialConfig: EmailConf
         <div className="grid gap-3">
           {TEMPLATES.map(tmpl => (
             <div key={tmpl.id} className="flex items-center justify-between p-3 rounded-lg border border-[var(--border-subtle)] hover:bg-black/[0.02] transition-colors">
-              <span className="text-xs font-medium text-[var(--semantic-fg-secondary)]">{tmpl.label}</span>
+              <span className="text-xs font-medium text-[var(--semantic-fg-secondary)]">{t(`admin.settings.emailPanel.template.${tmpl.id}`)}</span>
               <button
                 onClick={() => toggleType(tmpl.id, !(config.notification_types?.[tmpl.id] !== false))}
                 className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${config.notification_types?.[tmpl.id] !== false ? 'bg-green-600' : 'bg-gray-200'}`}

@@ -183,7 +183,7 @@ export function ItemsTab({ trips }: { trips: Trip[] }) {
         </div>
       )}
 
-      <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title={editing ? `Edit: ${editing.title}` : t('admin.operations.items.btn.create')}>
+      <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title={editing ? t('admin.operations.items.title.edit').replace('{{title}}', editing.title) : t('admin.operations.items.btn.create')}>
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -200,7 +200,7 @@ export function ItemsTab({ trips }: { trips: Trip[] }) {
               >
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {ITEM_TYPES.map(tp => <SelectItem key={tp} value={tp}>{tp}</SelectItem>)}
+                  {ITEM_TYPES.map(tp => <SelectItem key={tp} value={tp}>{t(`admin.operations.items.type.${tp}`)}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
