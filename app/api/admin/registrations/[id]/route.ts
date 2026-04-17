@@ -37,9 +37,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       TripRegistrationEmail({
         firstName: regProfile.first_name || 'Member',
         tripTitle: regTrip.title,
-        destination: regTrip.destination,
-        startDate: regTrip.start_date,
-        endDate: regTrip.end_date,
+        destination: regTrip.destination ?? '',
+        startDate: regTrip.start_date ?? '',
+        endDate: regTrip.end_date ?? '',
         status: status as 'approved' | 'denied',
       })
     ).then((html) => {
