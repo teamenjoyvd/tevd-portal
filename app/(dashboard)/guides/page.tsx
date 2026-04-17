@@ -14,7 +14,7 @@ export default async function GuidesPage() {
     <GuidesClient
       initialGuides={guides}
       initialLinks={links}
-      initialDataUpdatedAt={Date.now()}
+      initialDataUpdatedAt={0}
     />
   )
 }

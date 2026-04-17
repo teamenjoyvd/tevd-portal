@@ -22,6 +22,15 @@ function thumbnailSrc(url: string): string {
   return `/api/socials/thumbnail?src=${encodeURIComponent(url)}`
 }
 
+function timeAgoMs(diff: number, t: (k: string) => string): string {
+  const mins  = Math.floor(diff / 60000)
+  const hours = Math.floor(diff / 3600000)
+  const days  = Math.floor(diff / 86400000)
+  if (mins < 60)  return `${mins}${t('home.time.minutesAgo')}`
+  if (hours < 24) return `${hours}${t('home.time.hoursAgo')}`
+  return `${days}${t('home.time.daysAgo')}`
+}
+
 function InstagramIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -61,13 +70,7 @@ export default function SocialsTile({
   const post = data?.post ?? null
 
   function timeAgo(dateStr: string): string {
-    const diff = Date.now() - new Date(dateStr).getTime()
-    const mins  = Math.floor(diff / 60000)
-    const hours = Math.floor(diff / 3600000)
-    const days  = Math.floor(diff / 86400000)
-    if (mins < 60)  return `${mins}${t('home.time.minutesAgo')}`
-    if (hours < 24) return `${hours}${t('home.time.hoursAgo')}`
-    return `${days}${t('home.time.daysAgo')}`
+    return timeAgoMs(Date.now() - new Date(dateStr).getTime(), t)
   }
 
   return (

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Drawer } from '@/components/ui/Drawer'
 import {
@@ -59,8 +59,12 @@ export function AnnouncementsTab() {
     queryKey: ['announcements'],
     queryFn: () => fetch('/api/admin/announcements').then(r => r.json()),
   })
-  const [localAnnouncements, setLocalAnnouncements] = useState<Announcement[]>([])
-  useEffect(() => { setLocalAnnouncements([...announcementsRaw]) }, [announcementsRaw])
+  const [localAnnouncements, setLocalAnnouncements] = useState<Announcement[]>(() => [...announcementsRaw])
+  const prevAnnouncementsRaw = useRef(announcementsRaw)
+  if (prevAnnouncementsRaw.current !== announcementsRaw) {
+    prevAnnouncementsRaw.current = announcementsRaw
+    setLocalAnnouncements([...announcementsRaw])
+  }
 
   const reorderAnnouncements = useMutation({
     mutationFn: (items: { id: string; sort_order: number }[]) =>

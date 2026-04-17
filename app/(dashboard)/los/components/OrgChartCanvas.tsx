@@ -200,40 +200,18 @@ function OrgChartEdge({ x1, y1, x2, y2 }: { x1: number; y1: number; x2: number; 
 
 // ── Main canvas ───────────────────────────────────────────────────────────────
 
-export function OrgChartCanvas({ roots, maxDepth }: { roots: LOSNode[]; maxDepth: number }) {
+type OrgChartInnerProps = {
+  nodes: LayoutNode[]
+  edges: Array<{ x1: number; y1: number; x2: number; y2: number }>
+  svgW: number
+  svgH: number
+}
+
+function OrgChartInner({ nodes, edges, svgW, svgH }: OrgChartInnerProps) {
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 })
   const dragging = useRef(false)
   const lastPos = useRef({ x: 0, y: 0 })
   const containerRef = useRef<HTMLDivElement>(null)
-
-  const { nodes, edges, svgW, svgH } = useMemo(() => {
-    const PADDING = 40
-    const cappedRoots = roots.map(r => capDepth(r, maxDepth))
-
-    // Single bottom-up pass: build width map for all nodes before layout
-    const widthMap = new Map<LOSNode, number>()
-    cappedRoots.forEach(r => buildWidthMap(r, widthMap))
-
-    const rootLayouts: LayoutNode[] = []
-    let cursor = PADDING
-    for (const root of cappedRoots) {
-      const w = widthMap.get(root) ?? CARD_W
-      rootLayouts.push(layoutNode(root, cursor + w / 2, PADDING, widthMap))
-      cursor += w + GAP_X * 2
-    }
-
-    const allNodes = rootLayouts.flatMap(flattenLayout)
-    const allEdges = rootLayouts.flatMap(collectEdges)
-    const bounds = canvasBounds(allNodes)
-    return {
-      nodes: allNodes,
-      edges: allEdges,
-      svgW: Math.max(bounds.maxX + PADDING, 320),
-      svgH: bounds.maxY + PADDING,
-    }
-  }, [roots, maxDepth])
-
-  useEffect(() => { setTransform({ x: 0, y: 0, scale: 1 }) }, [roots, maxDepth])
 
   // ── Pointer drag ─────────────────────────────────────────────────────────────
 
@@ -311,4 +289,40 @@ export function OrgChartCanvas({ roots, maxDepth }: { roots: LOSNode[]; maxDepth
       </div>
     </div>
   )
+}
+
+// OrgChartCanvas computes the layout and passes a `resetKey` as the `key` prop
+// to OrgChartInner so that React remounts it (resetting transform state) when
+// roots or maxDepth change — no effect-based setState required.
+export function OrgChartCanvas({ roots, maxDepth }: { roots: LOSNode[]; maxDepth: number }) {
+  const { nodes, edges, svgW, svgH, resetKey } = useMemo(() => {
+    const PADDING = 40
+    const cappedRoots = roots.map(r => capDepth(r, maxDepth))
+
+    // Single bottom-up pass: build width map for all nodes before layout
+    const widthMap = new Map<LOSNode, number>()
+    cappedRoots.forEach(r => buildWidthMap(r, widthMap))
+
+    const rootLayouts: LayoutNode[] = []
+    let cursor = PADDING
+    for (const root of cappedRoots) {
+      const w = widthMap.get(root) ?? CARD_W
+      rootLayouts.push(layoutNode(root, cursor + w / 2, PADDING, widthMap))
+      cursor += w + GAP_X * 2
+    }
+
+    const allNodes = rootLayouts.flatMap(flattenLayout)
+    const allEdges = rootLayouts.flatMap(collectEdges)
+    const bounds = canvasBounds(allNodes)
+    const key = `${maxDepth}:${roots.map(r => r.abo_number ?? r.profile_id ?? '').join(',')}`
+    return {
+      nodes: allNodes,
+      edges: allEdges,
+      svgW: Math.max(bounds.maxX + PADDING, 320),
+      svgH: bounds.maxY + PADDING,
+      resetKey: key,
+    }
+  }, [roots, maxDepth])
+
+  return <OrgChartInner key={resetKey} nodes={nodes} edges={edges} svgW={svgW} svgH={svgH} />
 }

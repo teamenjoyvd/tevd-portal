@@ -1,6 +1,6 @@
 'use client'
 
-import { memo, useState, useEffect } from 'react'
+import { memo, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { formatDate } from '@/lib/format'
@@ -60,17 +60,13 @@ export const TravelDocContent = memo(function TravelDocContent({
     id_number?: string
     passport_number?: string
     valid_through?: string
-  }>({})
+  }>(() => ({
+    document_active_type: profile.document_active_type,
+    id_number:            profile.id_number ?? '',
+    passport_number:      profile.passport_number ?? '',
+    valid_through:        profile.valid_through ?? '',
+  }))
   const [errors, setErrors] = useState<{ doc_number?: string; valid_through?: string }>({})
-
-  useEffect(() => {
-    setForm({
-      document_active_type: profile.document_active_type,
-      id_number:            profile.id_number ?? '',
-      passport_number:      profile.passport_number ?? '',
-      valid_through:        profile.valid_through ?? '',
-    })
-  }, [profile])
 
   const saveTravelDoc = useMutation({
     mutationFn: async () => {
