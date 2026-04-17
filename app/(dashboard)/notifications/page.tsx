@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useNotifications, useMarkRead, useMarkAllRead, useDeleteNotification, useClearAllNotifications } from '@/lib/hooks/useNotifications'
 import { useLanguage } from '@/lib/hooks/useLanguage'
+import { TranslationKey } from '@/lib/i18n/translations'
 import PageHeading from '@/components/layout/PageHeading'
 import PageContainer from '@/components/layout/PageContainer'
 
@@ -17,7 +18,7 @@ const TYPE_STYLES: Record<string, { bg: string; color: string }> = {
 
 const ALL_TYPES = ['role_request', 'trip_request', 'trip_created', 'event_fetched', 'doc_expiry', 'los_digest']
 
-function computeTimeAgo(dateStr: string, t: (k: string) => string): string {
+function computeTimeAgo(dateStr: string, t: (key: TranslationKey) => string): string {
   const diff = Date.now() - new Date(dateStr).getTime()
   const mins  = Math.floor(diff / 60000)
   const hours = Math.floor(diff / 3600000)
