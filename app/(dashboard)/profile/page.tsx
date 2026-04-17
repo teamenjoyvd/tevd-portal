@@ -257,7 +257,13 @@ export default function ProfilePage() {
     } : null,
     [BENTO_IDS.EMAIL_PREFS]: !isGuest ? {
       colSpan: 6, minHeight: EMAIL_PREFS_MIN_HEIGHT,
-      node: <EmailPrefsSection prefs={p.notification_prefs ?? DEFAULT_NOTIFICATION_PREFS} />,
+      node: (
+        <EmailPrefsSection
+          prefs={p.notification_prefs ?? DEFAULT_NOTIFICATION_PREFS}
+          open={!bentoCollapsed[BENTO_IDS.EMAIL_PREFS]}
+          onToggleOpen={() => toggleCollapse(BENTO_IDS.EMAIL_PREFS)}
+        />
+      ),
     } : null,
     [BENTO_IDS.VITALS]: !isGuest ? {
       colSpan: 6, minHeight: VITALS_MIN_HEIGHT,

@@ -25,6 +25,7 @@ const PREF_ROWS: PrefRow[] = [
 function Toggle({ enabled, onToggle }: { enabled: boolean; onToggle: () => void }) {
   return (
     <button
+      type="button"
       role="switch"
       aria-checked={enabled}
       onClick={onToggle}
@@ -55,7 +56,51 @@ function Toggle({ enabled, onToggle }: { enabled: boolean; onToggle: () => void 
   )
 }
 
-export function EmailPrefsSection({ prefs }: { prefs: NotificationPrefs }) {
+function ChevronButton({
+  open,
+  onToggle,
+  labelCollapse,
+  labelExpand,
+}: {
+  open: boolean
+  onToggle: () => void
+  labelCollapse: string
+  labelExpand: string
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-label={open ? labelCollapse : labelExpand}
+      aria-expanded={open}
+      className="flex items-center justify-center w-7 h-7 rounded-lg border border-[var(--border-default)] bg-transparent text-[var(--text-secondary)] cursor-pointer p-0 shrink-0 transition-colors duration-150"
+    >
+      <svg
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={`transition-transform duration-150 ${open ? 'rotate-0' : '-rotate-90'}`}
+      >
+        <polyline points="6 9 12 15 18 9" />
+      </svg>
+    </button>
+  )
+}
+
+export function EmailPrefsSection({
+  prefs,
+  open,
+  onToggleOpen,
+}: {
+  prefs: NotificationPrefs
+  open: boolean
+  onToggleOpen: () => void
+}) {
   const { t } = useLanguage()
   const qc = useQueryClient()
 
@@ -90,37 +135,49 @@ export function EmailPrefsSection({ prefs }: { prefs: NotificationPrefs }) {
   return (
     <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
       {/* Eyebrow */}
-      <div className="flex items-center justify-between mb-4 pr-16">
+      <div className="flex items-center justify-between mb-4">
         <p className="text-xs font-semibold tracking-[0.25em] uppercase" style={{ color: 'var(--brand-crimson)' }}>
           {t('profile.emailNotifications')}
         </p>
-        {saved && (
-          <span className="text-xs font-medium" style={{ color: 'var(--brand-forest)' }}>
-            {t('profile.saved')}
-          </span>
-        )}
-        {save.isError && (
-          <span className="text-xs font-medium" style={{ color: 'var(--brand-crimson)' }}>
-            {t('profile.error')}
-          </span>
-        )}
-      </div>
-
-      {/* Rows */}
-      <div className="space-y-3">
-        {PREF_ROWS.map(row => (
-          <div key={row.key} className="flex items-center justify-between gap-4">
-            <span className="text-sm leading-snug" style={{ color: 'var(--text-primary)' }}>
-              {t(row.labelKey as Parameters<typeof t>[0])}
+        <div className="flex items-center gap-2">
+          {saved && (
+            <span className="text-xs font-medium" style={{ color: 'var(--brand-forest)' }}>
+              {t('profile.saved')}
             </span>
-            <Toggle enabled={local[row.key]} onToggle={() => handleToggle(row.key)} />
-          </div>
-        ))}
+          )}
+          {save.isError && (
+            <span className="text-xs font-medium" style={{ color: 'var(--brand-crimson)' }}>
+              {t('profile.error')}
+            </span>
+          )}
+          <ChevronButton
+            open={open}
+            onToggle={onToggleOpen}
+            labelCollapse={t('profile.collapseNotifications')}
+            labelExpand={t('profile.expandNotifications')}
+          />
+        </div>
       </div>
 
-      <p className="text-[11px] mt-5 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-        {t('profile.emailOnlyNote')}
-      </p>
+      {open && (
+        <>
+          {/* Rows */}
+          <div className="space-y-3">
+            {PREF_ROWS.map(row => (
+              <div key={row.key} className="flex items-center justify-between gap-4">
+                <span className="text-sm leading-snug" style={{ color: 'var(--text-primary)' }}>
+                  {t(row.labelKey as Parameters<typeof t>[0])}
+                </span>
+                <Toggle enabled={local[row.key]} onToggle={() => handleToggle(row.key)} />
+              </div>
+            ))}
+          </div>
+
+          <p className="text-[11px] mt-5 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+            {t('profile.emailOnlyNote')}
+          </p>
+        </>
+      )}
     </div>
   )
 }
