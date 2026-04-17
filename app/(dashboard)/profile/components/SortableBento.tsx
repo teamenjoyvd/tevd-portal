@@ -30,6 +30,7 @@ const BENTO_LABELS: Record<string, string> = {
   'settings':         'Settings',
   'trips':            'Trips',
   'payments':         'Payments',
+  'email_prefs':      'Email Notifications',
   'vitals':           'Vital Signs',
   'participation':    'Participation',
   'calendar':         'Calendar',
@@ -91,6 +92,7 @@ export function SortableBento({
             </span>
           </div>
           <button
+            type="button"
             onClick={onToggleCollapse}
             title="Expand"
             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 12, lineHeight: 1, color: 'var(--text-secondary)', opacity: 0.5, flexShrink: 0 }}
@@ -103,6 +105,7 @@ export function SortableBento({
           <div style={{ position: 'absolute', top: 18, right: 16, display: 'flex', alignItems: 'center', gap: 6, zIndex: 10 }}>
             <DragHandle ref={setActivatorNodeRef} {...attributes} {...listeners} />
             <button
+              type="button"
               onClick={onToggleCollapse}
               title="Collapse"
               style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 12, lineHeight: 1, color: 'var(--text-secondary)', opacity: 0.5, flexShrink: 0 }}

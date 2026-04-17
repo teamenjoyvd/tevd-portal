@@ -25,6 +25,7 @@ const PREF_ROWS: PrefRow[] = [
 function Toggle({ enabled, onToggle }: { enabled: boolean; onToggle: () => void }) {
   return (
     <button
+      type="button"
       role="switch"
       aria-checked={enabled}
       onClick={onToggle}
@@ -55,27 +56,24 @@ function Toggle({ enabled, onToggle }: { enabled: boolean; onToggle: () => void 
   )
 }
 
-function ChevronButton({ open, onToggle }: { open: boolean; onToggle: () => void }) {
+function ChevronButton({
+  open,
+  onToggle,
+  labelCollapse,
+  labelExpand,
+}: {
+  open: boolean
+  onToggle: () => void
+  labelCollapse: string
+  labelExpand: string
+}) {
   return (
     <button
+      type="button"
       onClick={onToggle}
-      aria-label={open ? 'Collapse notifications' : 'Expand notifications'}
+      aria-label={open ? labelCollapse : labelExpand}
       aria-expanded={open}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: 28,
-        height: 28,
-        borderRadius: 8,
-        border: '1px solid var(--border-default)',
-        backgroundColor: 'transparent',
-        color: 'var(--text-secondary)',
-        cursor: 'pointer',
-        padding: 0,
-        flexShrink: 0,
-        transition: 'color 150ms ease',
-      }}
+      className="flex items-center justify-center w-7 h-7 rounded-lg border border-[var(--border-default)] bg-transparent text-[var(--text-secondary)] cursor-pointer p-0 shrink-0 transition-colors duration-150"
     >
       <svg
         width="14"
@@ -86,10 +84,7 @@ function ChevronButton({ open, onToggle }: { open: boolean; onToggle: () => void
         strokeWidth="2.5"
         strokeLinecap="round"
         strokeLinejoin="round"
-        style={{
-          transform: open ? 'rotate(0deg)' : 'rotate(-90deg)',
-          transition: 'transform 150ms ease',
-        }}
+        className={`transition-transform duration-150 ${open ? 'rotate-0' : '-rotate-90'}`}
       >
         <polyline points="6 9 12 15 18 9" />
       </svg>
@@ -97,13 +92,20 @@ function ChevronButton({ open, onToggle }: { open: boolean; onToggle: () => void
   )
 }
 
-export function EmailPrefsSection({ prefs }: { prefs: NotificationPrefs }) {
+export function EmailPrefsSection({
+  prefs,
+  open,
+  onToggleOpen,
+}: {
+  prefs: NotificationPrefs
+  open: boolean
+  onToggleOpen: () => void
+}) {
   const { t } = useLanguage()
   const qc = useQueryClient()
 
   const [local, setLocal] = useState<NotificationPrefs>(prefs)
   const [saved, setSaved] = useState(false)
-  const [open, setOpen] = useState(true)
 
   const save = useMutation({
     mutationFn: (next: NotificationPrefs) =>
@@ -133,7 +135,7 @@ export function EmailPrefsSection({ prefs }: { prefs: NotificationPrefs }) {
   return (
     <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
       {/* Eyebrow */}
-      <div className="flex items-center justify-between mb-4 pr-0">
+      <div className="flex items-center justify-between mb-4">
         <p className="text-xs font-semibold tracking-[0.25em] uppercase" style={{ color: 'var(--brand-crimson)' }}>
           {t('profile.emailNotifications')}
         </p>
@@ -148,7 +150,12 @@ export function EmailPrefsSection({ prefs }: { prefs: NotificationPrefs }) {
               {t('profile.error')}
             </span>
           )}
-          <ChevronButton open={open} onToggle={() => setOpen(o => !o)} />
+          <ChevronButton
+            open={open}
+            onToggle={onToggleOpen}
+            labelCollapse={t('profile.collapseNotifications')}
+            labelExpand={t('profile.expandNotifications')}
+          />
         </div>
       </div>
 
