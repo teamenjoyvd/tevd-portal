@@ -114,6 +114,12 @@ async function _dispatch(
  * - Respects the system-wide `email_config.enabled` flag.
  * - Respects per-notification-type toggles in `email_config.notification_types`.
  * - Every attempt (success or failure) is written to email_log for auditability.
+ *
+ * Known callers (dynamic imports evade grep — verify manually after any rename):
+ * - `app/api/admin/verify/route.ts`
+ * - `app/api/admin/members/verify/[id]/route.ts`
+ * - `app/api/admin/event-role-requests/[id]/route.ts`
+ * - `app/api/profile/payments/route.ts`
  */
 export async function sendNotificationEmail(payload: SendEmailPayload): Promise<void> {
   const config = await getEmailConfig()
