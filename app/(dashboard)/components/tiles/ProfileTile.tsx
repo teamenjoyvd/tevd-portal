@@ -105,7 +105,7 @@ export default function ProfileTile({
         </div>
         <div>
           <h2 className="font-display text-2xl font-semibold mt-3" style={{ color: 'var(--brand-parchment)' }}>
-            Hey, {firstName ?? 'there'}.
+            Hey, {firstName ?? t('home.profile.there')}.
           </h2>
           <span className="inline-block mt-2 text-xs font-semibold px-2.5 py-1 rounded-full"
             style={{ backgroundColor: 'rgba(250,248,243,0.15)', color: 'var(--brand-parchment)' }}>
@@ -136,7 +136,7 @@ export default function ProfileTile({
       </div>
       <div>
         <h2 className="font-display text-2xl font-semibold mt-3" style={{ color: 'var(--brand-parchment)' }}>
-          Hey, {firstName ?? 'there'}.
+          Hey, {firstName ?? t('home.profile.there')}.
         </h2>
         <div className="flex items-center gap-2 mt-2 flex-wrap">
           <span className="text-xs font-semibold px-2.5 py-1 rounded-full"

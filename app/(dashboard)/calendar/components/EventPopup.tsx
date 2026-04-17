@@ -133,7 +133,6 @@ export default function EventPopup({
     : (event?.role_requests ?? []).filter(r => r.profile?.id === userProfileId)
   const isMutating = requestMutation.isPending || cancelMutation.isPending
 
-  // Header — DialogTitle inside Dialog (mobile), plain div on desktop (Popover has no Dialog context)
   function Header({ asDialogTitle }: { asDialogTitle: boolean }) {
     const titleClass = 'font-display text-base font-semibold leading-snug'
     const titleStyle = { color: 'var(--text-primary)' }
@@ -171,7 +170,6 @@ export default function EventPopup({
     )
   }
 
-  // Body — DialogDescription inside Dialog (mobile), plain div on desktop
   function Body({ asDialogDescription }: { asDialogDescription: boolean }) {
     const inner = (
       <div className="overflow-y-auto" style={isBottomSheet ? undefined : { maxHeight: 360 }}>
@@ -220,7 +218,6 @@ export default function EventPopup({
                   </a>
                 </div>
               )}
-              {/* Share button */}
               <button
                 onClick={handleShare}
                 className="mt-3 flex items-center gap-1.5 text-xs font-medium hover:opacity-70 transition-opacity"
@@ -234,7 +231,7 @@ export default function EventPopup({
                   <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
                   <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
                 </svg>
-                {shareCopied ? 'Link copied!' : 'Share event'}
+                {shareCopied ? t('cal.linkCopied') : t('cal.shareEvent')}
               </button>
             </div>
             {event.description && event.description !== event.meeting_url && (
@@ -280,7 +277,7 @@ export default function EventPopup({
                         </div>
                       ))}
                     </div>
-                  ) : <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>No requests yet.</p>
+                  ) : <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('cal.noRequests')}</p>
                 )}
                 {!isAdmin && canRequestRole && (
                   <div className="flex gap-2">
@@ -325,7 +322,6 @@ export default function EventPopup({
   return (
     <>
       {isBottomSheet ? (
-        // Mobile: dim overlay + bottom-sheet Dialog
         <Dialog open onOpenChange={open => { if (!open) onClose() }}>
           <DialogOverlay style={{ backgroundColor: 'rgba(0,0,0,0.4)' }} />
           <DialogContent
@@ -352,8 +348,6 @@ export default function EventPopup({
           </DialogContent>
         </Dialog>
       ) : (
-        // Desktop: Popover anchored to the live trigger element
-        // DialogTitle/DialogDescription must NOT be used outside a Dialog context
         <Popover open onOpenChange={open => { if (!open) onClose() }}>
           <PopoverAnchor virtualRef={anchorElRef} />
           <PopoverContent

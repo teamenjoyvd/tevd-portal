@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useLanguage } from '@/lib/hooks/useLanguage'
 import { Drawer } from '@/components/ui/Drawer'
 import { isVitalRecorded } from '@/lib/vitals'
 import { type ProfileVitalSign, VARIABLE_CAP } from '../types'
@@ -10,6 +11,7 @@ import { ShowMoreButton } from './shared'
 export const VITALS_MIN_HEIGHT = 280
 
 export function VitalsSection({ profileId, role }: { profileId: string; role: string }) {
+  const { t } = useLanguage()
   const [drawerOpen, setDrawerOpen] = useState(false)
 
   const { data: vitalsData, isLoading } = useQuery<ProfileVitalSign[]>({
@@ -44,7 +46,7 @@ export function VitalsSection({ profileId, role }: { profileId: string; role: st
             color: recorded ? 'var(--brand-crimson)' : 'var(--text-secondary)',
           }}
         >
-          {recorded ? '✓ Recorded' : '○ Not recorded'}
+          {recorded ? t('profile.vitalRecorded') : t('profile.vitalNotRecorded')}
         </span>
       </div>
     )
@@ -53,14 +55,14 @@ export function VitalsSection({ profileId, role }: { profileId: string; role: st
   return (
     <>
       <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-        <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-6 pr-16" style={{ color: 'var(--brand-crimson)' }}>Vital Signs</p>
+        <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-6 pr-16" style={{ color: 'var(--brand-crimson)' }}>{t('profile.vitalSigns')}</p>
         <div className="space-y-2">
           {visible.map(vs => <VitalRow key={vs.definition_id} vs={vs} />)}
         </div>
         {overflow > 0 && <ShowMoreButton count={overflow} onClick={() => setDrawerOpen(true)} />}
       </div>
 
-      <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title="All Vital Signs">
+      <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title={t('profile.allVitalSigns')}>
         <div className="space-y-2">
           {vitals.map(vs => <VitalRow key={vs.definition_id} vs={vs} />)}
         </div>

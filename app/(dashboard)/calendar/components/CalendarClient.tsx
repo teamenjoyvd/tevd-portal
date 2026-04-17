@@ -138,7 +138,7 @@ function MonthView({
   onEventClick: (id: string, el: HTMLElement) => void
   onDayClick: (date: Date) => void
 }) {
-  const { lang } = useLanguage()
+  const { lang, t } = useLanguage()
   const DAYS = DAYS_I18N[lang]
   const today = new Date()
   const firstOfMonth = new Date(current.getFullYear(), current.getMonth(), 1)
@@ -206,7 +206,7 @@ function MonthView({
                       {dayEvents.length > 3 && (
                         <p className="text-[10px] font-medium pl-1 truncate"
                           style={{ color: 'var(--text-secondary)' }}>
-                          +{dayEvents.length - 3} more
+                          +{dayEvents.length - 3} {t('cal.moreEvents')}
                         </p>
                       )}
                     </div>
@@ -590,7 +590,7 @@ export default function CalendarClient({
 
               {/* View switcher */}
               <div>
-                <p className="text-[10px] font-semibold tracking-widest uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>View</p>
+                <p className="text-[10px] font-semibold tracking-widest uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>{t('cal.view')}</p>
                 <div className="flex flex-col gap-0.5">
                   {views.map(v => (
                     <button key={v.key} onClick={() => setView(v.key)}
@@ -608,7 +608,7 @@ export default function CalendarClient({
 
               {/* Category filters */}
               <div>
-                <p className="text-[10px] font-semibold tracking-widest uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>Category</p>
+                <p className="text-[10px] font-semibold tracking-widest uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>{t('cal.category')}</p>
                 <div className="flex flex-col gap-1.5">
                   <button onClick={() => setShowN21(v => !v)}
                     className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all"
@@ -637,7 +637,7 @@ export default function CalendarClient({
 
               {/* Event type filters */}
               <div>
-                <p className="text-[10px] font-semibold tracking-widest uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>Format</p>
+                <p className="text-[10px] font-semibold tracking-widest uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>{t('cal.format')}</p>
                 <div className="flex flex-col gap-1">
                   {TYPE_FILTERS.map(type => (
                     <button key={type} onClick={() => setFilterType(filterType === type ? null : type)}

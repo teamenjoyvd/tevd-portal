@@ -14,24 +14,24 @@ const FONT_STEPS: { value: FontSize; label: string; size: number }[] = [
 export const UserSettingsContent = memo(function UserSettingsContent() {
   const { theme, mounted: themeMounted, toggle: toggleTheme } = useTheme()
   const { fontSize, setFontSize } = useFontSize()
-  const { lang, toggle: toggleLang } = useLanguage()
+  const { lang, toggle: toggleLang, t } = useLanguage()
 
   return (
     <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
       <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-5 pr-16" style={{ color: 'var(--brand-crimson)' }}>
-        Settings
+        {t('profile.settings')}
       </p>
 
       <div className="space-y-5">
         {/* Theme */}
         <div>
-          <p className="text-[10px] font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>Theme</p>
+          <p className="text-[10px] font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>{t('profile.theme')}</p>
           <div className="flex gap-2">
-            {(['light', 'dark'] as const).map(t => {
-              const active = themeMounted ? theme === t : t === 'light'
+            {(['light', 'dark'] as const).map(th => {
+              const active = themeMounted ? theme === th : th === 'light'
               return (
                 <button
-                  key={t}
+                  key={th}
                   onClick={toggleTheme}
                   className="flex-1 py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5"
                   style={{
@@ -40,7 +40,7 @@ export const UserSettingsContent = memo(function UserSettingsContent() {
                     border: '1px solid var(--border-default)',
                   }}
                 >
-                  {t === 'light' ? (
+                  {th === 'light' ? (
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
                       stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <circle cx="12" cy="12" r="4"/>
@@ -52,7 +52,7 @@ export const UserSettingsContent = memo(function UserSettingsContent() {
                       <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
                     </svg>
                   )}
-                  {t === 'light' ? 'Light' : 'Dark'}
+                  {th === 'light' ? t('profile.theme.light') : t('profile.theme.dark')}
                 </button>
               )
             })}
@@ -61,7 +61,7 @@ export const UserSettingsContent = memo(function UserSettingsContent() {
 
         {/* Font size */}
         <div>
-          <p className="text-[10px] font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>Text Size</p>
+          <p className="text-[10px] font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>{t('profile.textSize')}</p>
           <div className="flex gap-2">
             {FONT_STEPS.map(({ value, label, size }) => {
               const active = fontSize === value
@@ -90,7 +90,7 @@ export const UserSettingsContent = memo(function UserSettingsContent() {
 
         {/* Language */}
         <div>
-          <p className="text-[10px] font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>Language</p>
+          <p className="text-[10px] font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>{t('profile.language')}</p>
           <div className="flex gap-2">
             {(['en', 'bg'] as const).map(l => {
               const active = lang === l
@@ -105,7 +105,7 @@ export const UserSettingsContent = memo(function UserSettingsContent() {
                     border: '1px solid var(--border-default)',
                   }}
                 >
-                  {l === 'en' ? 'English' : 'Български'}
+                  {l === 'en' ? t('profile.lang.en') : t('profile.lang.bg')}
                 </button>
               )
             })}

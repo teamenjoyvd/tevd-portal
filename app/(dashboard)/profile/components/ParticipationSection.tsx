@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useLanguage } from '@/lib/hooks/useLanguage'
 import { Drawer } from '@/components/ui/Drawer'
 import { formatDate } from '@/lib/format'
 import { type EventRoleRequest, VARIABLE_CAP, REG_STATUS_STYLES } from '../types'
@@ -10,6 +11,7 @@ import { ShowMoreButton } from './shared'
 export const PARTICIPATION_MIN_HEIGHT = 280
 
 export function ParticipationSection({ profileId, role }: { profileId: string; role: string }) {
+  const { t } = useLanguage()
   const [drawerOpen, setDrawerOpen] = useState(false)
 
   const { data: eventRolesData, isLoading } = useQuery<EventRoleRequest[]>({
@@ -50,14 +52,14 @@ export function ParticipationSection({ profileId, role }: { profileId: string; r
   return (
     <>
       <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-        <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-6 pr-16" style={{ color: 'var(--brand-crimson)' }}>Participation</p>
+        <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-6 pr-16" style={{ color: 'var(--brand-crimson)' }}>{t('profile.participation')}</p>
         <div className="space-y-2">
           {visible.map(er => <RoleRow key={er.id} er={er} />)}
         </div>
         {overflow > 0 && <ShowMoreButton count={overflow} onClick={() => setDrawerOpen(true)} />}
       </div>
 
-      <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title="All Participation">
+      <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title={t('profile.allParticipation')}>
         <div className="space-y-2">
           {roles.map(er => <RoleRow key={er.id} er={er} />)}
         </div>

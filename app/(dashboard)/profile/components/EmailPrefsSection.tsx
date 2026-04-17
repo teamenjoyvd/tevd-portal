@@ -10,17 +10,16 @@ export const EMAIL_PREFS_MIN_HEIGHT = 280
 type PrefKey = keyof NotificationPrefs
 
 interface PrefRow {
-  key:  PrefKey
-  labelEn: string
-  labelBg: string
+  key:      PrefKey
+  labelKey: string
 }
 
 const PREF_ROWS: PrefRow[] = [
-  { key: 'trip_registration_status',  labelEn: 'Trip registration updates',    labelBg: 'Промени по регистрация за пътуване' },
-  { key: 'payment_status',            labelEn: 'Payment status updates',       labelBg: 'Промени по статус на плащане'       },
-  { key: 'abo_verification_result',   labelEn: 'ABO verification result',      labelBg: 'Резултат от ABO верификация'        },
-  { key: 'event_role_request_result', labelEn: 'Event role request result',    labelBg: 'Резултат от заявка за роля'         },
-  { key: 'document_expiring_soon',    labelEn: 'Document expiry warnings',     labelBg: 'Предупреждения за изтичащ документ' },
+  { key: 'trip_registration_status',  labelKey: 'profile.pref.tripReg'      },
+  { key: 'payment_status',            labelKey: 'profile.pref.paymentStatus' },
+  { key: 'abo_verification_result',   labelKey: 'profile.pref.aboVerif'      },
+  { key: 'event_role_request_result', labelKey: 'profile.pref.eventRole'     },
+  { key: 'document_expiring_soon',    labelKey: 'profile.pref.docExpiry'     },
 ]
 
 function Toggle({ enabled, onToggle }: { enabled: boolean; onToggle: () => void }) {
@@ -57,11 +56,11 @@ function Toggle({ enabled, onToggle }: { enabled: boolean; onToggle: () => void 
 }
 
 export function EmailPrefsSection({ prefs }: { prefs: NotificationPrefs }) {
-  const { lang } = useLanguage()
+  const { t } = useLanguage()
   const qc = useQueryClient()
 
   const [local, setLocal] = useState<NotificationPrefs>(prefs)
-  const [saved, setSaved]   = useState(false)
+  const [saved, setSaved] = useState(false)
 
   const save = useMutation({
     mutationFn: (next: NotificationPrefs) =>
@@ -93,16 +92,16 @@ export function EmailPrefsSection({ prefs }: { prefs: NotificationPrefs }) {
       {/* Eyebrow */}
       <div className="flex items-center justify-between mb-4 pr-16">
         <p className="text-xs font-semibold tracking-[0.25em] uppercase" style={{ color: 'var(--brand-crimson)' }}>
-          {lang === 'bg' ? 'Имейл известия' : 'Email Notifications'}
+          {t('profile.emailNotifications')}
         </p>
         {saved && (
           <span className="text-xs font-medium" style={{ color: 'var(--brand-forest)' }}>
-            {lang === 'bg' ? 'Запазено ✓' : 'Saved ✓'}
+            {t('profile.saved')}
           </span>
         )}
         {save.isError && (
           <span className="text-xs font-medium" style={{ color: 'var(--brand-crimson)' }}>
-            {lang === 'bg' ? 'Грешка' : 'Error'}
+            {t('profile.error')}
           </span>
         )}
       </div>
@@ -112,7 +111,7 @@ export function EmailPrefsSection({ prefs }: { prefs: NotificationPrefs }) {
         {PREF_ROWS.map(row => (
           <div key={row.key} className="flex items-center justify-between gap-4">
             <span className="text-sm leading-snug" style={{ color: 'var(--text-primary)' }}>
-              {lang === 'bg' ? row.labelBg : row.labelEn}
+              {t(row.labelKey as Parameters<typeof t>[0])}
             </span>
             <Toggle enabled={local[row.key]} onToggle={() => handleToggle(row.key)} />
           </div>
@@ -120,9 +119,7 @@ export function EmailPrefsSection({ prefs }: { prefs: NotificationPrefs }) {
       </div>
 
       <p className="text-[11px] mt-5 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-        {lang === 'bg'
-          ? 'Имейлите се изпращат само на вашия контактен адрес.'
-          : 'Emails are sent only to your contact email address.'}
+        {t('profile.emailOnlyNote')}
       </p>
     </div>
   )

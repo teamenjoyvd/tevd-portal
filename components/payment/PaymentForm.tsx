@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useLanguage } from '@/lib/hooks/useLanguage'
 import { formatCurrency } from '@/lib/format'
 import type { PayableItem } from './types'
 
@@ -23,6 +24,7 @@ type PaymentFormProps = (TripContext | GenericContext) & {
  * zone, required-field legend, forest-green CTA.
  */
 export function PaymentForm(props: PaymentFormProps) {
+  const { t } = useLanguage()
   const { onSuccess, onCancel } = props
   const qc = useQueryClient()
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -110,14 +112,16 @@ export function PaymentForm(props: PaymentFormProps) {
     <div className="space-y-5">
       {/* Required field legend */}
       <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-        Fields marked <span style={{ color: 'var(--brand-crimson)' }}>*</span> are required.
+        {t('payment.fieldsRequiredPre')}{' '}
+        <span style={{ color: 'var(--brand-crimson)' }}>*</span>
+        {' '}{t('payment.fieldsRequiredPost')}
       </p>
 
       {/* Item selector — generic context only */}
       {'payableItems' in props && (
         <div>
           <label style={labelStyle}>
-            Item <span style={{ color: 'var(--brand-crimson)' }}>*</span>
+            {t('payment.item')} <span style={{ color: 'var(--brand-crimson)' }}>*</span>
           </label>
           <select
             value={itemId}
@@ -129,7 +133,7 @@ export function PaymentForm(props: PaymentFormProps) {
             }}
             style={inputStyle}
           >
-            <option value="">Select an item…</option>
+            <option value="">{t('payment.selectItem')}</option>
             {props.payableItems.map(item => (
               <option key={item.id} value={item.id}>
                 {item.title} — {formatCurrency(item.amount, item.currency)}
@@ -142,7 +146,7 @@ export function PaymentForm(props: PaymentFormProps) {
       {/* Amount */}
       <div>
         <label style={labelStyle}>
-          Amount ({currency}) <span style={{ color: 'var(--brand-crimson)' }}>*</span>
+          {t('payment.amount')} ({currency}) <span style={{ color: 'var(--brand-crimson)' }}>*</span>
         </label>
         <input
           type="number" min="0" step="0.01" placeholder="0.00"
@@ -154,7 +158,7 @@ export function PaymentForm(props: PaymentFormProps) {
       {/* Date */}
       <div>
         <label style={labelStyle}>
-          Payment Date <span style={{ color: 'var(--brand-crimson)' }}>*</span>
+          {t('payment.date')} <span style={{ color: 'var(--brand-crimson)' }}>*</span>
         </label>
         <input
           type="date" value={date} onChange={e => setDate(e.target.value)}
@@ -164,7 +168,7 @@ export function PaymentForm(props: PaymentFormProps) {
 
       {/* Payment Method — segmented control */}
       <div>
-        <label style={labelStyle}>Payment Method</label>
+        <label style={labelStyle}>{t('payment.method')}</label>
         <div
           className="flex p-1 gap-1 rounded-xl"
           style={{ backgroundColor: 'rgba(0,0,0,0.05)' }}
@@ -183,7 +187,7 @@ export function PaymentForm(props: PaymentFormProps) {
                 cursor: 'pointer',
               }}
             >
-              {m === 'cash' ? 'Cash' : 'Bank Transfer'}
+              {m === 'cash' ? t('payment.cash') : t('payment.bankTransfer')}
             </button>
           ))}
         </div>
@@ -191,9 +195,9 @@ export function PaymentForm(props: PaymentFormProps) {
 
       {/* Note */}
       <div>
-        <label style={labelStyle}>Note</label>
+        <label style={labelStyle}>{t('payment.note')}</label>
         <input
-          type="text" placeholder="Optional note"
+          type="text" placeholder={t('payment.noteOptional')}
           value={note} onChange={e => setNote(e.target.value)}
           style={inputStyle}
         />
@@ -201,7 +205,7 @@ export function PaymentForm(props: PaymentFormProps) {
 
       {/* Proof of Payment — styled upload zone */}
       <div>
-        <label style={labelStyle}>Proof of Payment</label>
+        <label style={labelStyle}>{t('payment.proof')}</label>
         <input
           ref={fileInputRef}
           type="file"
@@ -233,7 +237,7 @@ export function PaymentForm(props: PaymentFormProps) {
               className="text-xs flex-shrink-0 hover:opacity-70 transition-opacity"
               style={{ color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer' }}
             >
-              Remove
+              {t('payment.remove')}
             </button>
           </div>
         ) : (
@@ -254,7 +258,7 @@ export function PaymentForm(props: PaymentFormProps) {
               <line x1="12" y1="3" x2="12" y2="15"/>
             </svg>
             <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
-              Upload proof (PDF or image)
+              {t('payment.uploadProof')}
             </span>
           </button>
         )}
@@ -281,7 +285,7 @@ export function PaymentForm(props: PaymentFormProps) {
               cursor: 'pointer',
             }}
           >
-            Cancel
+            {t('payment.cancel')}
           </button>
         )}
         <button
@@ -296,7 +300,7 @@ export function PaymentForm(props: PaymentFormProps) {
             border: 'none',
           }}
         >
-          {submitMutation.isPending ? 'Submitting…' : 'Submit Payment'}
+          {submitMutation.isPending ? t('payment.submitting') : t('payment.submit')}
         </button>
       </div>
     </div>

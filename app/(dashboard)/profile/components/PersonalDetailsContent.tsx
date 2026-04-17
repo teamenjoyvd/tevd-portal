@@ -202,13 +202,13 @@ export const PersonalDetailsContent = memo(function PersonalDetailsContent({
           <div style={{ borderTop: '1px solid var(--border-default)', paddingTop: 12 }}>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-[10px] font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Phone</p>
+                <p className="text-[10px] font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>{t('profile.phone')}</p>
                 <p className="text-sm" style={{ color: profile.phone ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
                   {profile.phone || '—'}
                 </p>
               </div>
               <div>
-                <p className="text-[10px] font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Email</p>
+                <p className="text-[10px] font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>{t('profile.contactEmail')}</p>
                 <p className="text-sm truncate" style={{ color: profile.contact_email ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
                   {profile.contact_email || '—'}
                 </p>

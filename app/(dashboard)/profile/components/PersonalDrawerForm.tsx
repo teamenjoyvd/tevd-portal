@@ -107,7 +107,7 @@ export function PersonalDrawerForm({
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Phone</label>
+          <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('profile.phone')}</label>
           <input
             value={form.phone ?? ''}
             onChange={e => { onChange('phone', e.target.value); onClearError('phone') }}
@@ -119,7 +119,7 @@ export function PersonalDrawerForm({
           {formErrors.phone && <p className="text-[11px] mt-1" style={{ color: 'var(--brand-crimson)' }}>{formErrors.phone}</p>}
         </div>
         <div>
-          <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Contact email</label>
+          <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('profile.contactEmail')}</label>
           <input
             value={form.contact_email ?? ''}
             onChange={e => { onChange('contact_email', e.target.value); onClearError('contact_email') }}
@@ -142,7 +142,7 @@ export function PersonalDrawerForm({
           className="flex-1 py-2.5 rounded-xl text-sm font-semibold border hover:bg-black/5 transition-colors"
           style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
         >
-          Cancel
+          {t('profile.cancel')}
         </button>
         <button
           onClick={onSave}

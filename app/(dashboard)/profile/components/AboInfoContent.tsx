@@ -63,7 +63,7 @@ export const AboInfoContent = memo(function AboInfoContent({
       {mode === 'confirmed' && (
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
-            <p className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>Access</p>
+            <p className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>{t('profile.access')}</p>
             <span
               className="text-[10px] font-bold px-2 py-0.5 rounded-full self-start w-fit"
               style={{ backgroundColor: rc.bg, color: rc.font }}
@@ -72,20 +72,20 @@ export const AboInfoContent = memo(function AboInfoContent({
             </span>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <p className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>ABO #</p>
+            <p className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>{t('profile.aboHash')}</p>
             <p className="text-sm font-medium font-mono" style={{ color: 'var(--text-primary)' }}>
               {aboNumber} <span style={{ color: '#2d6a4f' }}>✓</span>
             </p>
           </div>
           <div style={{ borderTop: '1px solid var(--border-default)', paddingTop: 10 }}>
             <div className="grid grid-cols-2 gap-3 mb-2">
-              <p className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>Upline</p>
+              <p className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>{t('profile.upline')}</p>
               <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
                 {uplineData?.upline_name ?? '—'}
               </p>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <p className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>Upline #</p>
+              <p className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>{t('profile.uplineHash')}</p>
               <p className="text-sm font-mono" style={{ color: 'var(--text-secondary)' }}>
                 {uplineData?.upline_abo_number ?? '—'}
               </p>
@@ -97,7 +97,7 @@ export const AboInfoContent = memo(function AboInfoContent({
       {mode === 'member_manual' && (
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
-            <p className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>Access</p>
+            <p className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>{t('profile.access')}</p>
             <span
               className="text-[10px] font-bold px-2 py-0.5 rounded-full self-start w-fit"
               style={{ backgroundColor: rc.bg, color: rc.font }}
@@ -106,18 +106,18 @@ export const AboInfoContent = memo(function AboInfoContent({
             </span>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <p className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>ABO #</p>
+            <p className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>{t('profile.aboHash')}</p>
             <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>—</p>
           </div>
           <div style={{ borderTop: '1px solid var(--border-default)', paddingTop: 10 }}>
             <div className="grid grid-cols-2 gap-3 mb-2">
-              <p className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>Upline</p>
+              <p className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>{t('profile.upline')}</p>
               <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
                 {uplineData?.upline_name ?? '—'}
               </p>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <p className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>Upline #</p>
+              <p className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>{t('profile.uplineHash')}</p>
               <p className="text-sm font-mono" style={{ color: 'var(--text-secondary)' }}>
                 {uplineData?.upline_abo_number ?? '—'}
               </p>
@@ -146,7 +146,7 @@ export const AboInfoContent = memo(function AboInfoContent({
           {verRequest?.status === 'pending' && (
             <div className="rounded-xl px-4 py-3" style={{ backgroundColor: '#f2cc8f33' }}>
               <p className="text-sm font-medium" style={{ color: '#7a5c00' }}>
-                {verRequest.request_type === 'manual' ? 'Manual verification pending' : t('profile.verifPending')}
+                {verRequest.request_type === 'manual' ? t('profile.manualVerifPending') : t('profile.verifPending')}
               </p>
               <p className="text-xs mt-0.5" style={{ color: '#7a5c00' }}>
                 {verRequest.request_type === 'manual'
@@ -163,7 +163,6 @@ export const AboInfoContent = memo(function AboInfoContent({
               </button>
             </div>
           )}
-          {/* denied → fall through to show form below */}
           {verRequest?.status === 'denied' && (
             <VerificationForm
               verificationMode={verificationMode}
@@ -245,7 +244,7 @@ function VerificationForm({
             border: '1px solid var(--border-default)',
           }}
         >
-          I have an ABO number
+          {t('profile.hasAboNumber')}
         </button>
         <button
           onClick={() => onModeChange('manual')}
@@ -256,7 +255,7 @@ function VerificationForm({
             border: '1px solid var(--border-default)',
           }}
         >
-          I don&apos;t have one yet
+          {t('profile.noAboYet')}
         </button>
       </div>
       {verificationMode === 'standard' && (

@@ -17,17 +17,6 @@ const TYPE_STYLES: Record<string, { bg: string; color: string }> = {
 
 const ALL_TYPES = ['role_request', 'trip_request', 'trip_created', 'event_fetched', 'doc_expiry', 'los_digest']
 
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime()
-  const mins  = Math.floor(diff / 60000)
-  const hours = Math.floor(diff / 3600000)
-  const days  = Math.floor(diff / 86400000)
-  if (mins < 1)   return 'just now'
-  if (mins < 60)  return `${mins}m ago`
-  if (hours < 24) return `${hours}h ago`
-  return `${days}d ago`
-}
-
 export default function NotificationsPage() {
   const { data: notifications = [], isLoading } = useNotifications()
   const markRead      = useMarkRead()
@@ -36,9 +25,20 @@ export default function NotificationsPage() {
   const clearAll      = useClearAllNotifications()
   const { t } = useLanguage()
 
-  const [search, setSearch]       = useState('')
+  const [search, setSearch]         = useState('')
   const [typeFilter, setTypeFilter] = useState<string>('all')
   const [readFilter, setReadFilter] = useState<'all' | 'unread' | 'read'>('all')
+
+  function timeAgo(dateStr: string): string {
+    const diff = Date.now() - new Date(dateStr).getTime()
+    const mins  = Math.floor(diff / 60000)
+    const hours = Math.floor(diff / 3600000)
+    const days  = Math.floor(diff / 86400000)
+    if (mins < 1)   return t('home.time.justNow')
+    if (mins < 60)  return `${mins}${t('home.time.minutesAgo')}`
+    if (hours < 24) return `${hours}${t('home.time.hoursAgo')}`
+    return `${days}${t('home.time.daysAgo')}`
+  }
 
   const TYPE_LABELS: Record<string, string> = {
     role_request:  t('notif.type.roleRequest'),
@@ -66,7 +66,7 @@ export default function NotificationsPage() {
 
   return (
     <>
-      <PageHeading title="Notifications" subtitle="Your activity and alerts" />
+      <PageHeading title={t('notif.pageTitle')} subtitle={t('notif.pageSubtitle')} />
       <PageContainer>
         <div className="max-w-2xl py-8 pb-16">
 
@@ -116,7 +116,7 @@ export default function NotificationsPage() {
                   type="text"
                   value={search}
                   onChange={e => setSearch(e.target.value)}
-                  placeholder="Search notifications…"
+                  placeholder={t('notif.searchPlaceholder')}
                   className="w-full pl-9 pr-3 py-2 rounded-xl text-sm border transition-colors"
                   style={{
                     borderColor: 'var(--border-default)',
@@ -141,7 +141,7 @@ export default function NotificationsPage() {
                         boxShadow: readFilter === opt ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
                       }}
                     >
-                      {opt}
+                      {opt === 'all' ? t('notif.filter.all') : opt === 'unread' ? t('notif.filter.unread') : t('notif.filter.read')}
                     </button>
                   ))}
                 </div>
@@ -155,12 +155,12 @@ export default function NotificationsPage() {
                     color: typeFilter === 'all' ? 'white' : 'var(--text-secondary)',
                   }}
                 >
-                  All types
+                  {t('notif.filter.allTypes')}
                 </button>
                 {ALL_TYPES.map(type => (
                   <button
                     key={type}
-                    onClick={() => setTypeFilter(t => t === type ? 'all' : type)}
+                    onClick={() => setTypeFilter(f => f === type ? 'all' : type)}
                     className="px-3 py-1 rounded-full text-xs font-medium transition-all"
                     style={{
                       backgroundColor: typeFilter === type
@@ -204,7 +204,7 @@ export default function NotificationsPage() {
           ) : filtered.length === 0 ? (
             <div className="text-center py-16">
               <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                No notifications match your filters
+                {t('notif.noMatch')}
               </p>
               {filtersActive && (
                 <button
@@ -212,7 +212,7 @@ export default function NotificationsPage() {
                   className="text-xs mt-2 hover:underline"
                   style={{ color: 'var(--brand-crimson)' }}
                 >
-                  Clear filters
+                  {t('notif.clearFilters')}
                 </button>
               )}
             </div>

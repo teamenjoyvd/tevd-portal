@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useLanguage } from '@/lib/hooks/useLanguage'
 import { formatDate, formatCurrency } from '@/lib/format'
 import { getRoleColors } from '@/lib/role-colors'
 import { Drawer } from '@/components/ui/Drawer'
@@ -22,14 +23,16 @@ function SubmitPaymentDrawer({
   open: boolean
   onClose: () => void
 }) {
+  const { t } = useLanguage()
   return (
-    <Drawer open={open} onClose={onClose} title="Submit Payment">
+    <Drawer open={open} onClose={onClose} title={t('payment.submit')}>
       <PaymentForm context="trip" tripId={tripId} onSuccess={onClose} onCancel={onClose} />
     </Drawer>
   )
 }
 
 function WhosGoingTile({ attendees }: { attendees: TeamAttendee[] }) {
+  const { t } = useLanguage()
   if (attendees.length === 0) return null
 
   return (
@@ -38,13 +41,13 @@ function WhosGoingTile({ attendees }: { attendees: TeamAttendee[] }) {
       <div className="px-6 pt-5 pb-2">
         <p className="text-xs font-semibold tracking-widest uppercase"
           style={{ color: 'var(--text-secondary)' }}>
-          Who&apos;s Going
+          {t('trips.whosGoing')}
         </p>
       </div>
       <div className="px-6 pb-5">
         {attendees.length === 0 ? (
           <p className="text-sm pt-2" style={{ color: 'var(--text-secondary)' }}>
-            None of your team are registered yet.
+            {t('trips.noTeamRegistered')}
           </p>
         ) : (
           <div className="space-y-2 mt-1">
@@ -81,6 +84,7 @@ function WhosGoingTile({ attendees }: { attendees: TeamAttendee[] }) {
 export function AttendeeView({
   trip, profile, payments, teamAttendees,
 }: { trip: Trip; profile: TripProfile; payments: TripPayment[]; teamAttendees: TeamAttendee[] }) {
+  const { t } = useLanguage()
   const [drawerOpen, setDrawerOpen] = useState(false)
 
   const milestones: Milestone[] = Array.isArray(trip.milestones)
@@ -117,7 +121,7 @@ export function AttendeeView({
             </p>
             <div className="flex items-baseline gap-2">
               <span className="font-display text-5xl font-bold leading-none">{daysToGo}</span>
-              <span className="text-lg font-medium opacity-80">days to go</span>
+              <span className="text-lg font-medium opacity-80">{t('trips.daysToGo')}</span>
             </div>
             <p className="text-sm opacity-60 mt-1">
               {formatDate(trip.start_date)} – {formatDate(trip.end_date)}
@@ -126,7 +130,7 @@ export function AttendeeView({
           {daysToGo === 0 && (
             <span className="text-xs font-semibold px-3 py-1 rounded-full"
               style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}>
-              Today!
+              {t('trips.todayBadge')}
             </span>
           )}
         </div>
@@ -137,7 +141,7 @@ export function AttendeeView({
           <div className="px-6 pt-5 pb-2 flex items-center justify-between">
             <p className="text-xs font-semibold tracking-widest uppercase"
               style={{ color: 'var(--text-secondary)' }}>
-              Payment Ledger
+              {t('payment.ledger')}
             </p>
             <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
               {formatCurrency(approvedTotal)} / {formatCurrency(trip.total_cost)}
@@ -171,7 +175,7 @@ export function AttendeeView({
                           {m.label}
                         </p>
                         <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                          Due {formatDate(m.due_date)}
+                          {t('trips.due')} {formatDate(m.due_date)}
                         </p>
                       </div>
                       <p className="text-sm font-semibold flex-shrink-0"
@@ -189,7 +193,7 @@ export function AttendeeView({
             <div className="border-t px-6 pt-4 pb-4" style={{ borderColor: 'var(--border-default)' }}>
               <p className="text-xs font-semibold tracking-widest uppercase mb-3"
                 style={{ color: 'var(--text-secondary)' }}>
-                Payment History
+                {t('payment.history')}
               </p>
               <div className="space-y-2">
                 {payments.map(p => (
@@ -206,7 +210,7 @@ export function AttendeeView({
                               ? { backgroundColor: 'rgba(129,178,154,0.15)', color: '#2d6a4f' }
                               : { backgroundColor: 'rgba(180,138,60,0.12)', color: '#b48a3c' }
                           }>
-                          {p.admin_status === 'approved' ? 'Approved' : 'Pending'}
+                          {p.admin_status === 'approved' ? t('payment.approved') : t('payment.pending')}
                         </span>
                       </div>
                       <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
@@ -219,7 +223,7 @@ export function AttendeeView({
                       <a href={p.proof_url} target="_blank" rel="noopener noreferrer"
                         className="text-xs flex-shrink-0 hover:opacity-70 transition-opacity"
                         style={{ color: 'var(--brand-teal)' }}>
-                        Proof ↗
+                        {t('payment.proofLink')}
                       </a>
                     )}
                   </div>
@@ -231,11 +235,11 @@ export function AttendeeView({
           <div className="px-6 pt-3 pb-5 border-t" style={{ borderColor: 'var(--border-default)' }}>
             <div className="flex items-center justify-between mb-4">
               <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
-                Balance remaining
+                {t('payment.balanceRemaining')}
               </p>
               <p className="text-base font-semibold"
                 style={{ color: remaining === 0 ? '#2d6a4f' : 'var(--text-primary)' }}>
-                {remaining === 0 ? '✓ Paid in full' : formatCurrency(remaining)}
+                {remaining === 0 ? t('payment.paidInFull') : formatCurrency(remaining)}
               </p>
             </div>
             <button
@@ -243,7 +247,7 @@ export function AttendeeView({
               className="w-full py-3 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90"
               style={{ backgroundColor: 'var(--brand-forest)' }}
             >
-              Submit Payment
+              {t('payment.submit')}
             </button>
           </div>
         </div>

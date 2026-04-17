@@ -163,7 +163,7 @@ export const TravelDocContent = memo(function TravelDocContent({
               className="text-xs font-semibold tracking-widest uppercase px-2 py-1 rounded-lg"
               style={{ backgroundColor: 'var(--bg-global)', border: '1px solid var(--border-default)', color: 'var(--text-primary)' }}
             >
-              {profile.document_active_type === 'passport' ? 'Passport' : 'Personal ID'}
+              {profile.document_active_type === 'passport' ? t('profile.docType.passport') : t('profile.docType.id')}
             </span>
           </div>
 

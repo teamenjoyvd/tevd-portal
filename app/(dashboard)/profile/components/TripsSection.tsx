@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useLanguage } from '@/lib/hooks/useLanguage'
 import { Drawer } from '@/components/ui/Drawer'
 import { type TripEntry, VARIABLE_CAP } from '../types'
 import { TripRow, ShowMoreButton } from './shared'
@@ -9,6 +10,7 @@ import { TripRow, ShowMoreButton } from './shared'
 export const TRIPS_MIN_HEIGHT = 280
 
 export function TripsSection({ profileId, role }: { profileId: string; role: string }) {
+  const { t } = useLanguage()
   const qc = useQueryClient()
   const [drawerOpen, setDrawerOpen] = useState(false)
 
@@ -41,7 +43,7 @@ export function TripsSection({ profileId, role }: { profileId: string; role: str
   return (
     <>
       <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-        <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-4 pr-16" style={{ color: 'var(--brand-crimson)' }}>Trips</p>
+        <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-4 pr-16" style={{ color: 'var(--brand-crimson)' }}>{t('profile.trips')}</p>
         <div className="space-y-2">
           {visible.map(entry => (
             <TripRow key={entry.registration_id} entry={entry} onCancel={handleCancel} cancelPending={cancelTrip.isPending} />
@@ -50,7 +52,7 @@ export function TripsSection({ profileId, role }: { profileId: string; role: str
         {overflow > 0 && <ShowMoreButton count={overflow} onClick={() => setDrawerOpen(true)} />}
       </div>
 
-      <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title="All Trips">
+      <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title={t('profile.allTrips')}>
         <div className="space-y-2">
           {trips.map(entry => (
             <TripRow key={entry.registration_id} entry={entry} onCancel={handleCancel} cancelPending={cancelTrip.isPending} />
