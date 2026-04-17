@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import BentoCard from '@/components/bento/BentoCard'
 import { useLanguage } from '@/lib/hooks/useLanguage'
@@ -69,8 +70,9 @@ export default function SocialsTile({
 
   const post = data?.post ?? null
 
+  const [now] = useState(() => Date.now())
   function timeAgo(dateStr: string): string {
-    return timeAgoMs(Date.now() - new Date(dateStr).getTime(), t)
+    return timeAgoMs(now - new Date(dateStr).getTime(), t)
   }
 
   return (

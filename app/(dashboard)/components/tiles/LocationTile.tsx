@@ -7,8 +7,7 @@ const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
 const SOFIA: [number, number] = [23.3219, 42.6977]
 const LIGHT_SHIMMER = '#8A8577'
 
-function getMapStyle(): string {
-  const theme = document.documentElement.getAttribute('data-theme')
+function getMapStyle(theme: string | null): string {
   return theme === 'dark'
     ? 'mapbox://styles/mapbox/dark-v11'
     : 'mapbox://styles/mapbox/light-v11'
@@ -61,15 +60,15 @@ export default function LocationTile({
   rowSpan?: number
   style?: React.CSSProperties
 }) {
+  const { theme, mounted } = useTheme()
+  const isDark = mounted ? theme === 'dark' : false
   const mapContainer = useRef<HTMLDivElement>(null)
   const mapRef = useRef<{ remove: () => void; setStyle: (s: string) => void; once: (e: string, cb: () => void) => void } | null>(null)
   const [ready, setReady] = useState(false)
-  const [isDark, setIsDark] = useState(false)
 
+  // Initialization
   useEffect(() => {
     if (!TOKEN || !mapContainer.current) return
-
-    setIsDark(document.documentElement.getAttribute('data-theme') === 'dark')
 
     function initMap() {
       if (!mapContainer.current) return
@@ -79,7 +78,7 @@ export default function LocationTile({
       mapboxgl.accessToken = TOKEN
       const map = new mapboxgl.Map({
         container: mapContainer.current,
-        style: getMapStyle(),
+        style: getMapStyle(theme),
         center: SOFIA,
         zoom: 12,
         interactive: false,
@@ -109,26 +108,20 @@ export default function LocationTile({
       existing.addEventListener('load', initMap, { once: true })
     }
 
-    const observer = new MutationObserver(() => {
-      const dark = document.documentElement.getAttribute('data-theme') === 'dark'
-      setIsDark(dark)
-      if (mapRef.current) {
-        setReady(false)
-        mapRef.current.setStyle(getMapStyle())
-        mapRef.current.once('styledata', () => setReady(true))
-      }
-    })
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['data-theme'],
-    })
-
     return () => {
-      observer.disconnect()
       mapRef.current?.remove()
       mapRef.current = null
     }
-  }, [])
+  }, []) // Empty deps for single initialization
+
+  // Theme update
+  useEffect(() => {
+    if (mapRef.current && mounted) {
+      setReady(false)
+      mapRef.current.setStyle(getMapStyle(theme))
+      mapRef.current.once('styledata', () => setReady(true))
+    }
+  }, [theme, mounted])
 
   if (!TOKEN) return <LocationFallback colSpan={colSpan} mobileColSpan={mobileColSpan} rowSpan={rowSpan} style={style} />
 
