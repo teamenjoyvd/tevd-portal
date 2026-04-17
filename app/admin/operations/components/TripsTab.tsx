@@ -15,7 +15,7 @@ import {
   AlertDialogCancel,
 } from '@/components/ui/alert-dialog'
 import { TripForm, type TripFormState, type MilestoneInputState } from './TripForm'
-import { useTranslation } from '@/lib/i18n/useTranslation'
+import { t } from '@/lib/i18n'
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -48,7 +48,6 @@ const emptyTrip = (): TripFormState => ({
 // ── Component ────────────────────────────────────────────────────
 
 export function TripsTab({ trips, isLoading }: { trips: Trip[]; isLoading: boolean }) {
-  const { t } = useTranslation()
   const qc = useQueryClient()
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [editing, setEditing] = useState<Trip | null>(null)
@@ -129,7 +128,7 @@ export function TripsTab({ trips, isLoading }: { trips: Trip[]; isLoading: boole
           className="px-4 py-2 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-opacity"
           style={{ backgroundColor: 'var(--brand-crimson)' }}
         >
-          {t('admin.operations.trips.btn.new')}
+          {t('admin.operations.trips.btn.new', 'en')}
         </button>
       </div>
 
@@ -138,7 +137,7 @@ export function TripsTab({ trips, isLoading }: { trips: Trip[]; isLoading: boole
           {[...Array(2)].map((_, i) => <div key={i} className="h-16 rounded-xl animate-pulse" style={{ backgroundColor: 'rgba(0,0,0,0.05)' }} />)}
         </div>
       ) : trips.length === 0 ? (
-        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t('admin.operations.trips.empty')}</p>
+        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t('admin.operations.trips.empty', 'en')}</p>
       ) : (
         <div className="rounded-2xl border overflow-hidden" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
           {trips.map((trip, i) => (
@@ -149,23 +148,23 @@ export function TripsTab({ trips, isLoading }: { trips: Trip[]; isLoading: boole
                 <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
                   {trip.destination} · {formatDate(trip.start_date)} → {formatDate(trip.end_date)}
                   {' · '}{formatCurrency(trip.total_cost, 'EUR')}
-                  {' · '}{trip.milestones?.length ?? 0} {t('admin.operations.trips.milestones').replace('{{count}} ', '')}
+                  {' · '}{trip.milestones?.length ?? 0} {t('admin.operations.trips.milestones', 'en').replace('{{count}} ', '')}
                 </p>
               </div>
               <div className="flex items-center gap-3 flex-shrink-0">
-                <button onClick={() => openEdit(trip)} className="text-xs hover:opacity-70 transition-opacity" style={{ color: 'var(--text-secondary)' }}>{t('admin.operations.trips.btn.edit')}</button>
+                <button onClick={() => openEdit(trip)} className="text-xs hover:opacity-70 transition-opacity" style={{ color: 'var(--text-secondary)' }}>{t('admin.operations.trips.btn.edit', 'en')}</button>
                 <button
                   onClick={() => setAlertTarget({ id: trip.id, name: trip.title })}
                   className="text-xs hover:opacity-70 transition-opacity"
                   style={{ color: 'var(--brand-crimson)' }}
-                >{t('admin.operations.trips.btn.delete')}</button>
+                >{t('admin.operations.trips.btn.delete', 'en')}</button>
               </div>
             </div>
           ))}
         </div>
       )}
 
-      <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title={editing ? t('admin.operations.trips.title.edit').replace('{{title}}', editing.title) : t('admin.operations.form.btn.createTrip')}>
+      <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title={editing ? t('admin.operations.trips.title.edit', 'en').replace('{{title}}', editing.title) : t('admin.operations.form.btn.createTrip', 'en')}>
         <TripForm
           form={form}
           setForm={setForm}
@@ -183,20 +182,20 @@ export function TripsTab({ trips, isLoading }: { trips: Trip[]; isLoading: boole
       <AlertDialog open={!!alertTarget} onOpenChange={open => { if (!open) setAlertTarget(null) }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t('admin.operations.trips.dialog.title')}</AlertDialogTitle>
+            <AlertDialogTitle>{t('admin.operations.trips.dialog.title', 'en')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Delete &ldquo;{alertTarget?.name}&rdquo;? {t('admin.operations.trips.dialog.body')}
+              Delete &ldquo;{alertTarget?.name}&rdquo;? {t('admin.operations.trips.dialog.body', 'en')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{t('admin.operations.trips.dialog.cancel')}</AlertDialogCancel>
+            <AlertDialogCancel>{t('admin.operations.trips.dialog.cancel', 'en')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 if (alertTarget) deleteMutation.mutate(alertTarget.id)
                 setAlertTarget(null)
               }}
             >
-              {t('admin.operations.trips.dialog.confirm')}
+              {t('admin.operations.trips.dialog.confirm', 'en')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useTranslation } from '@/lib/i18n/useTranslation'
+import { t } from '@/lib/i18n'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -57,7 +57,6 @@ const TEMPLATE_LABELS: Record<string, string> = {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function EmailLogTable() {
-  const { t } = useTranslation()
   const qc = useQueryClient()
   const [statusFilter, setStatusFilter] = useState<'all' | 'sent' | 'failed' | 'pending'>('all')
   const [templateFilter, setTemplateFilter] = useState('all')
@@ -105,10 +104,10 @@ export function EmailLogTable() {
     <div className="bg-[var(--bg-card)] rounded-xl border border-[var(--border-subtle)] p-5 w-full shadow-sm flex flex-col gap-5">
       <div className="flex flex-col gap-1">
         <h2 className="text-lg font-semibold text-[var(--semantic-fg-primary)] tracking-tight">
-          {t('admin.settings.emailLog.title')}
+          {t('admin.settings.emailLog.title', 'en')}
         </h2>
         <p className="text-xs text-[var(--semantic-fg-secondary)]">
-          {t('admin.settings.emailLog.desc')}
+          {t('admin.settings.emailLog.desc', 'en')}
         </p>
       </div>
 
@@ -124,7 +123,7 @@ export function EmailLogTable() {
                 color: statusFilter === s.key ? 'var(--bg-card)' : 'var(--semantic-fg-secondary)',
               }}
             >
-              {t(s.labelKey)}
+              {t(s.labelKey, 'en')}
             </button>
           ))}
         </div>
@@ -139,7 +138,7 @@ export function EmailLogTable() {
             color: 'var(--semantic-fg-primary)',
           }}
         >
-          <option value="all">{t('admin.settings.emailLog.allTemplates')}</option>
+          <option value="all">{t('admin.settings.emailLog.allTemplates', 'en')}</option>
           {Object.entries(TEMPLATE_LABELS).map(([id, label]) => (
             <option key={id} value={id}>{label}</option>
           ))}
@@ -148,7 +147,7 @@ export function EmailLogTable() {
 
       {retryError && (
         <p className="text-xs px-3 py-2 rounded-lg bg-red-50 text-red-700 border border-red-200">
-          {t('admin.settings.emailLog.retryError')} {retryError}
+          {t('admin.settings.emailLog.retryError', 'en')} {retryError}
         </p>
       )}
 
@@ -159,17 +158,17 @@ export function EmailLogTable() {
           ))}
         </div>
       ) : rows.length === 0 ? (
-        <p className="text-sm text-[var(--semantic-fg-secondary)] py-4 text-center">{t('admin.settings.emailLog.empty')}</p>
+        <p className="text-sm text-[var(--semantic-fg-secondary)] py-4 text-center">{t('admin.settings.emailLog.empty', 'en')}</p>
       ) : (
         <div className="rounded-xl border overflow-hidden" style={{ borderColor: 'var(--border-subtle)' }}>
           <div
             className="hidden md:grid grid-cols-[1fr_1fr_1fr_auto_auto] gap-4 px-4 py-2.5 text-[10px] font-semibold uppercase tracking-widest"
             style={{ backgroundColor: 'rgba(0,0,0,0.03)', color: 'var(--semantic-fg-tertiary)', borderBottom: '1px solid var(--border-subtle)' }}
           >
-            <span>{t('admin.settings.emailLog.col.template')}</span>
-            <span>{t('admin.settings.emailLog.col.recipient')}</span>
-            <span>{t('admin.settings.emailLog.col.sentAt')}</span>
-            <span>{t('admin.settings.emailLog.col.status')}</span>
+            <span>{t('admin.settings.emailLog.col.template', 'en')}</span>
+            <span>{t('admin.settings.emailLog.col.recipient', 'en')}</span>
+            <span>{t('admin.settings.emailLog.col.sentAt', 'en')}</span>
+            <span>{t('admin.settings.emailLog.col.status', 'en')}</span>
             <span></span>
           </div>
 
@@ -207,7 +206,7 @@ export function EmailLogTable() {
                       className="text-xs font-semibold px-3 py-1 rounded-lg border transition-colors hover:bg-black/5 disabled:opacity-40"
                       style={{ borderColor: 'var(--border-subtle)', color: 'var(--semantic-fg-primary)' }}
                     >
-                      {retryingId === row.id ? t('admin.settings.emailLog.btn.retrying') : t('admin.settings.emailLog.btn.retry')}
+                      {retryingId === row.id ? t('admin.settings.emailLog.btn.retrying', 'en') : t('admin.settings.emailLog.btn.retry', 'en')}
                     </button>
                   )}
                 </div>
@@ -229,7 +228,7 @@ export function EmailLogTable() {
               className="px-3 py-1.5 text-xs font-semibold rounded-lg border disabled:opacity-40 transition-colors hover:bg-black/5"
               style={{ borderColor: 'var(--border-subtle)', color: 'var(--semantic-fg-primary)' }}
             >
-              {t('admin.settings.emailLog.pagination.prev')}
+              {t('admin.settings.emailLog.pagination.prev', 'en')}
             </button>
             <button
               disabled={page >= totalPages - 1}
@@ -237,7 +236,7 @@ export function EmailLogTable() {
               className="px-3 py-1.5 text-xs font-semibold rounded-lg border disabled:opacity-40 transition-colors hover:bg-black/5"
               style={{ borderColor: 'var(--border-subtle)', color: 'var(--semantic-fg-primary)' }}
             >
-              {t('admin.settings.emailLog.pagination.next')}
+              {t('admin.settings.emailLog.pagination.next', 'en')}
             </button>
           </div>
         </div>
