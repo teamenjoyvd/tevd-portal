@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Drawer } from '@/components/ui/Drawer'
 import {
@@ -20,6 +20,7 @@ import { makeDragHandlers } from './useDragSort'
 import { RoleSelector } from '@/app/admin/components/RoleSelector'
 import { LangTabs } from '@/app/admin/components/LangTabs'
 import { I18nField } from '@/app/admin/components/I18nField'
+import { formatDate } from '@/lib/format'
 
 type Announcement = {
   id: string; titles: Record<string,string>; contents: Record<string,string>
@@ -168,7 +169,7 @@ export function AnnouncementsTab() {
             key={a.id}
             grip
             title={a.titles.en ?? a.titles.bg ?? 'Untitled'}
-            sub={new Date(a.created_at).toLocaleDateString('en-GB').replace(/\//g, '.')}
+            sub={formatDate(a.created_at)}
             dragging={aDrag.isDragging(a.id)}
             onDragStart={() => aDrag.onDragStart(a.id)}
             onDragOver={e => aDrag.onDragOver(e, a.id)}

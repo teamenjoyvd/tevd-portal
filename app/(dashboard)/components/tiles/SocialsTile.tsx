@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import BentoCard from '@/components/bento/BentoCard'
 import { useLanguage } from '@/lib/hooks/useLanguage'
-import { TranslationKey } from '@/lib/i18n/translations'
+import { timeAgoMs } from '@/lib/format'
 
 type SocialPost = {
   id: string
@@ -22,15 +22,6 @@ type SocialsData = {
 
 function thumbnailSrc(url: string): string {
   return `/api/socials/thumbnail?src=${encodeURIComponent(url)}`
-}
-
-function timeAgoMs(diff: number, t: (k: TranslationKey) => string): string {
-  const mins  = Math.floor(diff / 60000)
-  const hours = Math.floor(diff / 3600000)
-  const days  = Math.floor(diff / 86400000)
-  if (mins < 60)  return `${mins}${t('home.time.minutesAgo')}`
-  if (hours < 24) return `${hours}${t('home.time.hoursAgo')}`
-  return `${days}${t('home.time.daysAgo')}`
 }
 
 function InstagramIcon() {

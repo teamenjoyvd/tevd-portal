@@ -4,6 +4,8 @@
 // timeZone is explicit on every formatter — Vercel server runs UTC; without
 // this, server and client produce different strings → React hydration error #418.
 
+import { TranslationKey } from '@/lib/i18n/translations'
+
 const TZ = 'Europe/Sofia'
 
 /** 18.03.2026 */
@@ -87,4 +89,24 @@ export function formatDateLongEn(iso: string): string {
     year: 'numeric',
     timeZone: TZ,
   })
+}
+
+/**
+ * Canonical relative-time formatter. Accepts an elapsed-ms diff and a typed
+ * translation function. Handles clock skew (negative diff) and sub-minute
+ * resolution via the 'home.time.justNow' key.
+ *
+ * Used by: SocialsTile (and any future component needing "X ago" strings).
+ */
+export function timeAgoMs(
+  diff: number,
+  t: (k: TranslationKey) => string,
+): string {
+  if (diff < 60000) return t('home.time.justNow')
+  const mins  = Math.floor(diff / 60000)
+  const hours = Math.floor(diff / 3600000)
+  const days  = Math.floor(diff / 86400000)
+  if (mins < 60)  return `${mins}${t('home.time.minutesAgo')}`
+  if (hours < 24) return `${hours}${t('home.time.hoursAgo')}`
+  return `${days}${t('home.time.daysAgo')}`
 }
