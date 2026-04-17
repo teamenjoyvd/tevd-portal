@@ -29,8 +29,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (error) return Response.json({ error: error.message }, { status: 500 })
 
   // Trigger email asynchronously
-  const regProfile = data.profile as any
-  const regTrip = data.trip as any
+  const regProfile = data.profile as { id: string; first_name: string | null; contact_email: string | null }
+  const regTrip = data.trip as { id: string; title: string; destination: string | null; start_date: string | null; end_date: string | null }
   if (regProfile?.contact_email) {
     renderEmailTemplate(
       TripRegistrationEmail({

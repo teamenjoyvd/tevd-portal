@@ -11,8 +11,10 @@ import { PaymentSubmittedEmail } from '@/lib/email/templates/PaymentSubmittedEma
 import { TripRegistrationEmail } from '@/lib/email/templates/TripRegistrationEmail'
 import { WelcomeEmail } from '@/lib/email/templates/WelcomeEmail'
 
+type EmailTemplateComponent = (props: Record<string, unknown>) => JSX.Element
+
 // Map template keys to their visual components for rendering during retry
-const TEMPLATE_COMPONENTS: Record<string, any> = {
+const TEMPLATE_COMPONENTS: Record<string, EmailTemplateComponent> = {
   welcome: WelcomeEmail,
   payment_status: PaymentStatusEmail,
   document_expiring_soon: DocumentExpiryEmail,
@@ -52,7 +54,7 @@ export async function POST(
   if (!TemplateComponent) return Response.json({ error: `No renderer for template: ${log.template}` }, { status: 500 })
 
   try {
-    const html = await renderEmailTemplate(TemplateComponent(log.payload as any))
+    const html = await renderEmailTemplate(TemplateComponent(log.payload as Record<string, unknown>))
 
     // 3. Re-invoke sendNotificationEmail — bypasses no gates since this is an
     //    admin-triggered retry; a new email_log row is written by the dispatcher.
@@ -68,7 +70,7 @@ export async function POST(
     await supabase.from('email_log').update({ status: 'retried' }).eq('id', id)
 
     return Response.json({ success: true })
-  } catch (err: any) {
-    return Response.json({ error: err.message }, { status: 500 })
+  } catch (err: unknown) {
+    return Response.json({ error: (err as Error).message }, { status: 500 })
   }
 }

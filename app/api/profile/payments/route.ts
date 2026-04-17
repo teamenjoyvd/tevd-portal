@@ -91,8 +91,8 @@ export async function POST(req: Request): Promise<Response> {
   if (error) return Response.json({ error: error.message }, { status: 500 })
 
   // Trigger admin alert asynchronously
-  const tripsData = data.trips as any
-  const itemsData = data.payable_items as any
+  const tripsData = data.trips as { title: string } | null
+  const itemsData = data.payable_items as { title: string } | null
   const itemTitle = tripsData?.title || itemsData?.title || 'Unknown Item'
 
   import('@/lib/email/send').then(({ sendNotificationEmail, getEmailConfig }) => {
