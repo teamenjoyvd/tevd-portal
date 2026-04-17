@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import BentoCard from '@/components/bento/BentoCard'
+import { useTheme } from '@/lib/hooks/useTheme'
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
 const SOFIA: [number, number] = [23.3219, 42.6977]
