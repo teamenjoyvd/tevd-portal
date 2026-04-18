@@ -31,4 +31,5 @@ export const trips = {
   'trips.noTeamRegistered':   { en: 'None of your team are registered yet.', bg: 'Все още никой от отбора ви не е регистриран.' },
   'trips.daysToGo':           { en: 'days to go',              bg: 'дни до тръгване'                    },
   'trips.todayBadge':         { en: 'Today!',                  bg: 'Днес!'                              },
+  'trips.messages':           { en: 'Trip Messages',           bg: 'Съобщения за пътуването'            },
 } as const

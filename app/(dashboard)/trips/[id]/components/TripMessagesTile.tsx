@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { formatDateTime } from '@/lib/format'
+import { useLanguage } from '@/lib/hooks/useLanguage'
 
 interface TripMessage {
   id: string
@@ -16,21 +16,26 @@ interface ApiError {
 }
 
 export function TripMessagesTile({ tripId }: { tripId: string }) {
-  const [retrying, setRetrying] = useState(false)
+  const { t } = useLanguage()
 
-  const { data: messages, isLoading, isError, error, refetch } = useQuery<TripMessage[], ApiError>({
-    queryKey: ['trip-messages', tripId],
-    queryFn: () =>
-      fetch(`/api/trips/${tripId}/messages`).then(async r => {
-        if (!r.ok) {
-          const body = await r.json().catch(() => ({}))
-          const err: ApiError = { status: r.status, message: body.error ?? 'Failed' }
-          throw err
-        }
-        return r.json()
-      }),
-    retry: false,
-  })
+  const { data: messages, isLoading, isError, error, refetch, isFetching } =
+    useQuery<TripMessage[], ApiError>({
+      queryKey: ['trip-messages', tripId],
+      queryFn: () =>
+        fetch(`/api/trips/${encodeURIComponent(tripId)}/messages`).then(async r => {
+          if (!r.ok) {
+            const body = await r.json().catch(() => ({}))
+            const err: ApiError = { status: r.status, message: body.error ?? 'Failed' }
+            throw err
+          }
+          return r.json()
+        }),
+      retry: false,
+      select: (data) =>
+        [...data].sort(
+          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        ),
+    })
 
   if (isLoading) return null
 
@@ -49,15 +54,15 @@ export function TripMessagesTile({ tripId }: { tripId: string }) {
             className="text-xs font-semibold tracking-widest uppercase"
             style={{ color: 'var(--text-secondary)' }}
           >
-            Trip Messages
+            {t('trips.messages')}
           </p>
           <button
-            onClick={async () => { setRetrying(true); await refetch(); setRetrying(false) }}
-            disabled={retrying}
+            onClick={() => refetch()}
+            disabled={isFetching}
             className="text-xs hover:opacity-70 transition-opacity disabled:opacity-40"
             style={{ color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer' }}
           >
-            {retrying ? 'Retrying…' : '↺ Retry'}
+            {isFetching ? 'Retrying…' : '↺ Retry'}
           </button>
         </div>
       </div>
@@ -65,11 +70,6 @@ export function TripMessagesTile({ tripId }: { tripId: string }) {
   }
 
   if (!messages || messages.length === 0) return null
-
-  // Newest-first
-  const sorted = [...messages].sort(
-    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-  )
 
   return (
     <div
@@ -81,12 +81,12 @@ export function TripMessagesTile({ tripId }: { tripId: string }) {
           className="text-xs font-semibold tracking-widest uppercase"
           style={{ color: 'var(--text-secondary)' }}
         >
-          Trip Messages
+          {t('trips.messages')}
         </p>
       </div>
       <div className="px-6 pb-5">
         <div className="space-y-1 mt-1">
-          {sorted.map(m => (
+          {messages.map(m => (
             <div
               key={m.id}
               className="py-3 border-b last:border-0"
