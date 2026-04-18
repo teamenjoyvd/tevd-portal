@@ -1,5 +1,5 @@
 import { auth } from '@clerk/nextjs/server'
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { NextResponse } from 'next/server'
 
 export async function GET(
@@ -9,7 +9,7 @@ export async function GET(
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const supabase = await createClient()
+  const supabase = createServiceClient()
 
   // Resolve profile
   const { data: profile, error: profileErr } = await supabase
