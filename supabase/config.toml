@@ -2,8 +2,9 @@
 # Supabase CLI project configuration.
 # CI "db push" targets the project specified by SUPABASE_PROJECT_ID_DEV / SUPABASE_PROJECT_ID_PROD secrets.
 # MCP session work continues to target projects directly via project_id param.
-# project_id must be present for CLI validation; value is overridden by --project-ref at runtime.
-project_id = ""
+# project_id is the dev project ref — not a secret (it's a project identifier, not a credential).
+# The --project-ref flag on `supabase link` overrides this for prod CI runs.
+project_id = "iymwxdewcpvpjgzewtzk"
 
 [api]
 enabled = true
@@ -41,5 +42,5 @@ enable_signup = true
 enable_signup = true
 enable_confirmations = false
 
-# Production project:  ynykjpnetfwqzdnsgkkg
+# Production project: ynykjpnetfwqzdnsgkkg
 # Development project: iymwxdewcpvpjgzewtzk
