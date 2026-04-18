@@ -1,11 +1,12 @@
 -- [2604-FEAT-61] GCR fixes: index, tighten SELECT and INSERT RLS policies
 -- Applied separately because trip_messages table was already created in 20260418000000.
+-- IF NOT EXISTS guards against duplicate index when running from scratch (dev DB).
 
 -- Performance: index for primary access pattern (WHERE trip_id = ?)
-CREATE INDEX idx_trip_messages_trip_id ON trip_messages(trip_id);
+CREATE INDEX IF NOT EXISTS idx_trip_messages_trip_id ON trip_messages(trip_id);
 
 -- Tighten SELECT: exclude soft-cancelled approved registrations
-DROP POLICY "trip_messages_select" ON trip_messages;
+DROP POLICY IF EXISTS "trip_messages_select" ON trip_messages;
 CREATE POLICY "trip_messages_select" ON trip_messages FOR SELECT
   USING (
     get_my_role() = 'admin'
@@ -19,6 +20,6 @@ CREATE POLICY "trip_messages_select" ON trip_messages FOR SELECT
   );
 
 -- Tighten INSERT: enforce created_by = caller's profile (defence-in-depth)
-DROP POLICY "trip_messages_insert" ON trip_messages;
+DROP POLICY IF EXISTS "trip_messages_insert" ON trip_messages;
 CREATE POLICY "trip_messages_insert" ON trip_messages FOR INSERT
   WITH CHECK (get_my_role() = 'admin' AND created_by = get_my_profile_id());
