@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { AdminStatusBadge } from '@/app/admin/components/AdminStatusBadge'
 import { RoleSelector } from '@/app/admin/components/RoleSelector'
+import { useLanguage } from '@/lib/hooks/useLanguage'
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -48,6 +49,7 @@ export function emptyGuide(): Omit<Guide, 'id' | 'created_at' | 'updated_at'> {
 // ── BlockEditor ──────────────────────────────────────────────────
 
 export function BlockEditor({ blocks, onChange }: { blocks: Block[]; onChange: (b: Block[]) => void }): React.JSX.Element {
+  const { t } = useLanguage()
   const safeBlocks = Array.isArray(blocks) ? blocks : []
 
   function addBlock(type: Block['type']) {
@@ -121,7 +123,7 @@ export function BlockEditor({ blocks, onChange }: { blocks: Block[]; onChange: (
                       style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
                     />
                     <p className="text-[10px] mt-1" style={{ color: 'var(--text-tertiary)' }}>
-                      **bold**, _italic_ supported
+                      {t('admin.content.guides.markdownHint')}
                     </p>
                   </>
                 ) : (
@@ -165,6 +167,7 @@ export function GuideForm({
   isPending: boolean
   error: string | null
 }): React.JSX.Element {
+  const { t } = useLanguage()
   const [form, setForm] = useState({
     ...initial,
     body: Array.isArray(initial.body) ? initial.body : [],
@@ -213,7 +216,9 @@ export function GuideForm({
         {(['en', 'bg'] as const).map(lang => (
           <div key={lang}>
             <label className="text-xs font-semibold uppercase tracking-widest mb-1 block"
-              style={{ color: 'var(--text-secondary)' }}>Title ({lang.toUpperCase()})</label>
+              style={{ color: 'var(--text-secondary)' }}>
+              {lang === 'en' ? t('admin.content.guides.lbl.titleEn') : t('admin.content.guides.lbl.titleBg')}
+            </label>
             <input
               value={form.title[lang]}
               onChange={e => lang === 'en' ? handleTitleEnChange(e.target.value) : setForm(f => ({ ...f, title: { ...f.title, bg: e.target.value } }))}
@@ -226,7 +231,7 @@ export function GuideForm({
 
       <div>
         <label className="text-xs font-semibold uppercase tracking-widest mb-1 block"
-          style={{ color: 'var(--text-secondary)' }}>Slug</label>
+          style={{ color: 'var(--text-secondary)' }}>{t('admin.content.guides.lbl.slug')}</label>
         <div className="flex items-center gap-2">
           <input
             value={form.slug}
@@ -250,7 +255,7 @@ export function GuideForm({
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="20 6 9 17 4 12"/>
                 </svg>
-                Copied!
+                {t('admin.content.guides.btn.copied')}
               </>
             ) : (
               <>
@@ -258,7 +263,7 @@ export function GuideForm({
                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
                   <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
                 </svg>
-                Copy URL
+                {t('admin.content.guides.btn.copyUrl')}
               </>
             )}
           </button>
@@ -268,7 +273,7 @@ export function GuideForm({
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="text-xs font-semibold uppercase tracking-widest mb-1 block"
-            style={{ color: 'var(--text-secondary)' }}>Emoji</label>
+            style={{ color: 'var(--text-secondary)' }}>{t('admin.content.guides.lbl.emoji')}</label>
           <input
             value={form.emoji ?? ''}
             onChange={e => setForm(f => ({ ...f, emoji: e.target.value || null }))}
@@ -279,7 +284,7 @@ export function GuideForm({
         </div>
         <div>
           <label className="text-xs font-semibold uppercase tracking-widest mb-1 block"
-            style={{ color: 'var(--text-secondary)' }}>Cover Image</label>
+            style={{ color: 'var(--text-secondary)' }}>{t('admin.content.guides.lbl.coverImage')}</label>
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <label
@@ -291,7 +296,7 @@ export function GuideForm({
                   <polyline points="17 8 12 3 7 8"/>
                   <line x1="12" x2="12" y1="3" y2="15"/>
                 </svg>
-                {coverUploading ? 'Uploading…' : 'Upload'}
+                {coverUploading ? t('admin.content.guides.btn.uploading') : t('admin.content.guides.btn.upload')}
                 <input
                   type="file"
                   accept="image/*"
@@ -308,7 +313,7 @@ export function GuideForm({
             <input
               value={form.cover_image_url ?? ''}
               onChange={e => setForm(f => ({ ...f, cover_image_url: e.target.value || null }))}
-              placeholder="or paste URL…"
+              placeholder={t('admin.content.guides.placeholder.pasteUrl')}
               className="w-full border rounded-xl px-3 py-2 text-xs"
               style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)', backgroundColor: 'var(--bg-card)' }}
             />
@@ -322,7 +327,7 @@ export function GuideForm({
 
       <div>
         <label className="text-xs font-semibold uppercase tracking-widest mb-2 block"
-          style={{ color: 'var(--text-secondary)' }}>Access Roles</label>
+          style={{ color: 'var(--text-secondary)' }}>{t('admin.content.guides.lbl.accessRoles')}</label>
         <RoleSelector
           roles={ALL_ROLES}
           selected={form.access_roles}
@@ -332,7 +337,7 @@ export function GuideForm({
 
       <div>
         <label className="text-xs font-semibold uppercase tracking-widest mb-2 block"
-          style={{ color: 'var(--text-secondary)' }}>Body Blocks</label>
+          style={{ color: 'var(--text-secondary)' }}>{t('admin.content.guides.lbl.bodyBlocks')}</label>
         <BlockEditor blocks={form.body} onChange={body => setForm(f => ({ ...f, body }))} />
       </div>
 
@@ -342,7 +347,7 @@ export function GuideForm({
           onClick={() => setForm(f => ({ ...f, is_published: !f.is_published }))}
           className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border transition-all hover:bg-black/5"
           style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
-          {form.is_published ? 'Unpublish' : 'Publish'}
+          {form.is_published ? t('admin.content.guides.btn.unpublish') : t('admin.content.guides.btn.publish')}
         </button>
       </div>
 
@@ -354,12 +359,12 @@ export function GuideForm({
           disabled={isPending || !form.slug || !form.title.en || coverUploading}
           className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40 transition-opacity hover:opacity-90"
           style={{ backgroundColor: 'var(--brand-crimson)' }}>
-          {isPending ? 'Saving…' : 'Save'}
+          {isPending ? t('admin.content.guides.btn.saving') : t('admin.content.guides.btn.save')}
         </button>
         <button onClick={onCancel}
           className="px-6 py-2.5 rounded-xl text-sm font-semibold border transition-colors hover:bg-black/5"
           style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
-          Cancel
+          {t('admin.content.guides.btn.cancel')}
         </button>
       </div>
     </div>

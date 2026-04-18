@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Drawer } from '@/components/ui/Drawer'
 import {
@@ -17,6 +17,7 @@ import { AdminListCard } from '@/app/admin/components/AdminListCard'
 import { AdminStatusBadge } from '@/app/admin/components/AdminStatusBadge'
 import { useAdminDrawer } from '@/app/admin/components/useAdminDrawer'
 import { makeDragHandlers } from './useDragSort'
+import { useLanguage } from '@/lib/hooks/useLanguage'
 
 type SocialPost = {
   id: string
@@ -68,6 +69,7 @@ function SocialPostForm({
   isPending: boolean
   error: string | null
 }) {
+  const { t } = useLanguage()
   const [form, setForm] = useState(initial)
   const [previewing, setPreviewing] = useState(false)
   const [previewHint, setPreviewHint] = useState<string | null>(null)
@@ -86,10 +88,10 @@ function SocialPostForm({
         caption: data.caption ?? f.caption,
       }))
       if (!data.thumbnail_url && !data.caption) {
-        setPreviewHint('Preview unavailable for this platform — enter thumbnail URL manually')
+        setPreviewHint(t('admin.content.social.previewUnavailable'))
       }
     } catch {
-      setPreviewHint('Preview unavailable for this platform — enter thumbnail URL manually')
+      setPreviewHint(t('admin.content.social.previewUnavailable'))
     } finally {
       setPreviewing(false)
     }
@@ -112,17 +114,17 @@ function SocialPostForm({
           value={form.post_url}
           onChange={e => setForm(f => ({ ...f, post_url: e.target.value }))}
           onBlur={e => { if (e.target.value) fetchOgPreview(e.target.value) }}
-          placeholder="Post URL (required)"
+          placeholder={t('admin.content.social.placeholder.postUrl')}
           className="w-full border rounded-xl px-3 py-2.5 text-sm"
           style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
         />
-        {previewing && <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>Fetching preview…</p>}
+        {previewing && <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>{t('admin.content.social.fetchingPreview')}</p>}
         {!previewing && previewHint && <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>{previewHint}</p>}
       </div>
       <textarea
         value={form.caption}
         onChange={e => setForm(f => ({ ...f, caption: e.target.value }))}
-        placeholder="Caption — auto-extracted from post if left blank"
+        placeholder={t('admin.content.social.placeholder.caption')}
         rows={3}
         className="w-full border rounded-xl px-3 py-2.5 text-sm resize-none"
         style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
@@ -130,7 +132,7 @@ function SocialPostForm({
       <input
         value={form.thumbnail_url}
         onChange={e => setForm(f => ({ ...f, thumbnail_url: e.target.value }))}
-        placeholder="Thumbnail URL — auto-extracted from post if left blank"
+        placeholder={t('admin.content.social.placeholder.thumbnailUrl')}
         className="w-full border rounded-xl px-3 py-2.5 text-sm"
         style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
       />
@@ -141,12 +143,12 @@ function SocialPostForm({
           disabled={isPending || !form.post_url}
           className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40 transition-opacity hover:opacity-90"
           style={{ backgroundColor: 'var(--brand-crimson)' }}>
-          {isPending ? 'Saving…' : 'Save'}
+          {isPending ? t('admin.content.social.btn.saving') : t('admin.content.social.btn.save')}
         </button>
         <button onClick={onCancel}
           className="px-6 py-2.5 rounded-xl text-sm font-semibold border transition-colors hover:bg-black/5"
           style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
-          Cancel
+          {t('admin.content.social.btn.cancel')}
         </button>
       </div>
     </div>
@@ -155,6 +157,7 @@ function SocialPostForm({
 
 export function SocialTab() {
   const qc = useQueryClient()
+  const { t } = useLanguage()
   const socialDrawer = useAdminDrawer<SocialPost>()
   const [socialMutError, setSocialMutError] = useState<string | null>(null)
   const [socialAlertTarget, setSocialAlertTarget] = useState<{ id: string; name: string } | null>(null)
@@ -253,13 +256,18 @@ export function SocialTab() {
         </p>
         <button onClick={() => { socialDrawer.openCreate(); setSocialMutError(null) }}
           className="px-4 py-2 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-opacity"
-          style={{ backgroundColor: 'var(--brand-crimson)' }}>+ Add post</button>
+          style={{ backgroundColor: 'var(--brand-crimson)' }}>
+          {t('admin.content.social.btn.addPost')}
+        </button>
       </div>
 
       <Drawer
         open={socialDrawer.open}
         onClose={() => { socialDrawer.close(); setSocialMutError(null) }}
-        title={socialDrawer.editing ? `Edit: ${socialDrawer.editing.caption ?? socialDrawer.editing.post_url}` : 'New post'}
+        title={socialDrawer.editing
+          ? t('admin.content.social.drawer.editTitle').replace('{{name}}', socialDrawer.editing.caption ?? socialDrawer.editing.post_url)
+          : t('admin.content.social.drawer.newTitle')
+        }
       >
         {socialDrawer.isCreating && (
           <SocialPostForm
@@ -289,7 +297,7 @@ export function SocialTab() {
       <div className="space-y-1.5">
         {localSocials.length === 0 && (
           <div className="rounded-2xl border px-6 py-10 text-center" style={{ borderColor: 'var(--border-default)' }}>
-            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No posts yet.</p>
+            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t('admin.content.social.empty')}</p>
           </div>
         )}
         {localSocials.map(post => (
@@ -317,23 +325,30 @@ export function SocialTab() {
             onDragEnd={sDrag.onDragEnd}
             actions={
               <>
-                {post.is_pinned && <AdminStatusBadge variant="pinned" label="Pinned" />}
+                {post.is_pinned && <AdminStatusBadge variant="pinned" label={t('admin.content.social.badge.pinned')} />}
                 <button onClick={() => patchSocialPost.mutate({ id: post.id, is_visible: !post.is_visible })} disabled={patchSocialPost.isPending}>
-                  <AdminStatusBadge variant={post.is_visible ? 'active' : 'inactive'} label={post.is_visible ? 'Active' : 'Hidden'} />
+                  <AdminStatusBadge
+                    variant={post.is_visible ? 'active' : 'inactive'}
+                    label={post.is_visible ? t('admin.content.social.badge.active') : t('admin.content.social.badge.hidden')}
+                  />
                 </button>
                 <button onClick={() => patchSocialPost.mutate({ id: post.id, is_pinned: !post.is_pinned })} disabled={patchSocialPost.isPending}
                   className="text-xs px-2.5 py-1 rounded-full font-semibold border transition-all disabled:opacity-50 hover:bg-black/5"
                   style={{ borderColor: 'var(--border-default)', color: post.is_pinned ? 'var(--brand-crimson)' : 'var(--text-secondary)' }}>
-                  {post.is_pinned ? 'Unpin' : 'Pin'}
+                  {post.is_pinned ? t('admin.content.social.btn.unpin') : t('admin.content.social.btn.pin')}
                 </button>
                 <button onClick={() => { socialDrawer.openEdit(post); setSocialMutError(null) }}
                   className="text-xs font-medium border px-2.5 py-1 rounded-full hover:bg-black/5 transition-colors"
-                  style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>Edit</button>
+                  style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
+                  {t('admin.content.social.btn.edit')}
+                </button>
                 <button
                   onClick={() => setSocialAlertTarget({ id: post.id, name: post.caption ?? post.post_url })}
                   disabled={deleteSocialPost.isPending}
                   className="text-xs font-medium hover:opacity-70 transition-opacity disabled:opacity-40"
-                  style={{ color: 'var(--brand-crimson)' }}>Delete</button>
+                  style={{ color: 'var(--brand-crimson)' }}>
+                  {t('admin.content.social.btn.delete')}
+                </button>
               </>
             }
           />
@@ -343,20 +358,20 @@ export function SocialTab() {
       <AlertDialog open={!!socialAlertTarget} onOpenChange={open => { if (!open) setSocialAlertTarget(null) }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete post</AlertDialogTitle>
+            <AlertDialogTitle>{t('admin.content.social.dialog.title')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Delete this post? This cannot be undone.
+              {t('admin.content.social.dialog.body')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('admin.content.social.dialog.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 if (socialAlertTarget) deleteSocialPost.mutate(socialAlertTarget.id)
                 setSocialAlertTarget(null)
               }}
             >
-              Delete
+              {t('admin.content.social.dialog.confirm')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

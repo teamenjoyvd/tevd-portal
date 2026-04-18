@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Drawer } from '@/components/ui/Drawer'
 import {
@@ -18,9 +18,11 @@ import { AdminStatusBadge } from '@/app/admin/components/AdminStatusBadge'
 import { useAdminDrawer } from '@/app/admin/components/useAdminDrawer'
 import { makeDragHandlers } from './useDragSort'
 import { GuideForm, emptyGuide, type Guide } from './GuideForm'
+import { useLanguage } from '@/lib/hooks/useLanguage'
 
 export function GuidesTab() {
   const qc = useQueryClient()
+  const { t } = useLanguage()
   const guideDrawer = useAdminDrawer<Guide>()
   const [guidesMutError, setGuidesMutError] = useState<string | null>(null)
   const [guideAlertTarget, setGuideAlertTarget] = useState<{ id: string; name: string } | null>(null)
@@ -87,13 +89,18 @@ export function GuidesTab() {
         </p>
         <button onClick={() => { guideDrawer.openCreate(); setGuidesMutError(null) }}
           className="px-4 py-2 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-opacity"
-          style={{ backgroundColor: 'var(--brand-crimson)' }}>+ New Guide</button>
+          style={{ backgroundColor: 'var(--brand-crimson)' }}>
+          {t('admin.content.guides.btn.new')}
+        </button>
       </div>
 
       <Drawer
         open={guideDrawer.open}
         onClose={() => { guideDrawer.close(); setGuidesMutError(null) }}
-        title={guideDrawer.editing ? `Edit: ${guideDrawer.editing.title.en || guideDrawer.editing.slug}` : 'New Guide'}
+        title={guideDrawer.editing
+          ? t('admin.content.guides.drawer.editTitle').replace('{{name}}', guideDrawer.editing.title.en || guideDrawer.editing.slug)
+          : t('admin.content.guides.drawer.newTitle')
+        }
       >
         {guideDrawer.isCreating && (
           <GuideForm
@@ -123,7 +130,7 @@ export function GuidesTab() {
         </div>
       ) : guidesRaw.length === 0 ? (
         <div className="rounded-2xl border px-6 py-12 text-center" style={{ borderColor: 'var(--border-default)' }}>
-          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No guides yet. Create the first one.</p>
+          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t('admin.content.guides.empty')}</p>
         </div>
       ) : (
         <div className="space-y-1.5">
@@ -145,16 +152,20 @@ export function GuidesTab() {
                   <button onClick={() => toggleGuidePublish(guide)} disabled={updateGuide.isPending}
                     className="px-3 py-1 rounded-full text-xs font-semibold border transition-all disabled:opacity-50 hover:bg-black/5"
                     style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
-                    {guide.is_published ? 'Unpublish' : 'Publish'}
+                    {guide.is_published ? t('admin.content.guides.btn.unpublish') : t('admin.content.guides.btn.publish')}
                   </button>
                   <button onClick={() => { guideDrawer.openEdit(guide); setGuidesMutError(null) }}
                     className="px-3 py-1 rounded-lg text-xs font-semibold border transition-colors hover:bg-black/5"
-                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>Edit</button>
+                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
+                    {t('admin.content.guides.btn.edit')}
+                  </button>
                   <button
                     onClick={() => setGuideAlertTarget({ id: guide.id, name: guide.title.en || guide.slug })}
                     disabled={deleteGuide.isPending}
                     className="text-xs font-medium hover:opacity-70 transition-opacity disabled:opacity-50"
-                    style={{ color: 'var(--brand-crimson)' }}>Delete</button>
+                    style={{ color: 'var(--brand-crimson)' }}>
+                    {t('admin.content.guides.btn.delete')}
+                  </button>
                 </>
               }
             />
@@ -165,20 +176,20 @@ export function GuidesTab() {
       <AlertDialog open={!!guideAlertTarget} onOpenChange={open => { if (!open) setGuideAlertTarget(null) }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete guide</AlertDialogTitle>
+            <AlertDialogTitle>{t('admin.content.guides.dialog.title')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Delete &ldquo;{guideAlertTarget?.name}&rdquo;? This cannot be undone.
+              {t('admin.content.guides.dialog.body').replace('{{name}}', guideAlertTarget?.name ?? '')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('admin.content.guides.dialog.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 if (guideAlertTarget) deleteGuide.mutate(guideAlertTarget.id)
                 setGuideAlertTarget(null)
               }}
             >
-              Delete
+              {t('admin.content.guides.dialog.confirm')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
