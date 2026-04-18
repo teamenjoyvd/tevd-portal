@@ -2,6 +2,7 @@
 
 import { formatDate, formatCurrency } from '@/lib/format'
 import { BackButton } from './shared'
+import { TripMessagesTile } from './TripMessagesTile'
 import type { Tables } from '@/types/supabase'
 import type { TripProfile, TripPayment } from '../page'
 
@@ -49,6 +50,9 @@ export function ArchivedView({
             </div>
           </div>
         </div>
+
+        {/* Trip Messages — between hero card and Final Ledger */}
+        <TripMessagesTile tripId={trip.id} />
 
         <div className="rounded-2xl overflow-hidden"
           style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
