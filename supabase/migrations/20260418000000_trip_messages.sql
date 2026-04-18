@@ -9,6 +9,8 @@ CREATE TABLE trip_messages (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
+CREATE INDEX idx_trip_messages_trip_id ON trip_messages(trip_id);
+
 -- Keep updated_at current on every UPDATE
 CREATE TRIGGER set_trip_messages_updated_at
   BEFORE UPDATE ON trip_messages
@@ -16,7 +18,7 @@ CREATE TRIGGER set_trip_messages_updated_at
 
 ALTER TABLE trip_messages ENABLE ROW LEVEL SECURITY;
 
--- Approved attendees (or admin) can read messages for their trip
+-- Approved attendees (non-cancelled, or admin) can read messages for their trip
 CREATE POLICY "trip_messages_select" ON trip_messages FOR SELECT
   USING (
     get_my_role() = 'admin'
@@ -25,12 +27,13 @@ CREATE POLICY "trip_messages_select" ON trip_messages FOR SELECT
       WHERE tr.trip_id = trip_messages.trip_id
         AND tr.profile_id = get_my_profile_id()
         AND tr.status = 'approved'
+        AND tr.cancelled_at IS NULL
     )
   );
 
 -- Admin only: write operations
 CREATE POLICY "trip_messages_insert" ON trip_messages FOR INSERT
-  WITH CHECK (get_my_role() = 'admin');
+  WITH CHECK (get_my_role() = 'admin' AND created_by = get_my_profile_id());
 
 CREATE POLICY "trip_messages_update" ON trip_messages FOR UPDATE
   USING (get_my_role() = 'admin');
