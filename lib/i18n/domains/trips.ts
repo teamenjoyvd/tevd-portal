@@ -32,4 +32,8 @@ export const trips = {
   'trips.daysToGo':           { en: 'days to go',              bg: 'дни до тръгване'                    },
   'trips.todayBadge':         { en: 'Today!',                  bg: 'Днес!'                              },
   'trips.messages':           { en: 'Trip Messages',           bg: 'Съобщения за пътуването'            },
+  'trips.documents':          { en: 'Trip Documents',          bg: 'Документи от пътуването'            },
+  'trips.retry':              { en: '↺ Retry',                 bg: '↺ Опитай отново'                    },
+  'trips.retrying':           { en: 'Retrying…',               bg: 'Зарежда…'                           },
+  'trips.openFile':           { en: 'Open ↗',                  bg: 'Отвори ↗'                           },
 } as const

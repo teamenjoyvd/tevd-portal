@@ -62,7 +62,7 @@ export function TripMessagesTile({ tripId }: { tripId: string }) {
             className="text-xs hover:opacity-70 transition-opacity disabled:opacity-40"
             style={{ color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer' }}
           >
-            {isFetching ? 'Retrying…' : '↺ Retry'}
+            {isFetching ? t('trips.retrying') : t('trips.retry')}
           </button>
         </div>
       </div>
