@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Drawer } from '@/components/ui/Drawer'
 import {
@@ -16,6 +16,7 @@ import {
 import { AdminListCard } from '@/app/admin/components/AdminListCard'
 import { useAdminDrawer } from '@/app/admin/components/useAdminDrawer'
 import { makeDragHandlers } from './useDragSort'
+import { useLanguage } from '@/lib/hooks/useLanguage'
 
 type SiteLink = {
   id: string
@@ -29,6 +30,7 @@ const ALL_ROLES = ['guest', 'member', 'core', 'admin']
 
 export function LinksTab() {
   const qc = useQueryClient()
+  const { t } = useLanguage()
   const linkDrawer = useAdminDrawer<SiteLink>()
   const [linkAlertTarget, setLinkAlertTarget] = useState<{ id: string; name: string } | null>(null)
   const [lDragging, setLDragging] = useState<string | null>(null)
@@ -121,22 +123,22 @@ export function LinksTab() {
       <div className="rounded-2xl border p-6 mb-4 space-y-4" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-xs font-semibold uppercase tracking-widest mb-1 block" style={{ color: 'var(--text-secondary)' }}>Label (EN)</label>
+            <label className="text-xs font-semibold uppercase tracking-widest mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.content.links.lbl.labelEn')}</label>
             <input value={lForm.label.en} onChange={e => setLForm(f => ({ ...f, label: { ...f.label, en: e.target.value } }))}
-              placeholder="Label in English"
+              placeholder={t('admin.content.links.placeholder.labelEn')}
               className="w-full border rounded-xl px-3 py-2.5 text-sm"
               style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
           </div>
           <div>
-            <label className="text-xs font-semibold uppercase tracking-widest mb-1 block" style={{ color: 'var(--text-secondary)' }}>Label (BG)</label>
+            <label className="text-xs font-semibold uppercase tracking-widest mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.content.links.lbl.labelBg')}</label>
             <input value={lForm.label.bg} onChange={e => setLForm(f => ({ ...f, label: { ...f.label, bg: e.target.value } }))}
-              placeholder="Етикет на български"
+              placeholder={t('admin.content.links.placeholder.labelBg')}
               className="w-full border rounded-xl px-3 py-2.5 text-sm"
               style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
           </div>
         </div>
         <div>
-          <label className="text-xs font-semibold uppercase tracking-widest mb-1 block" style={{ color: 'var(--text-secondary)' }}>URL</label>
+          <label className="text-xs font-semibold uppercase tracking-widest mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.content.links.lbl.url')}</label>
           <input value={lForm.url} onChange={e => setLForm(f => ({ ...f, url: e.target.value }))}
             placeholder="https://…"
             className="w-full border rounded-xl px-3 py-2.5 text-sm"
@@ -156,7 +158,7 @@ export function LinksTab() {
           disabled={createLink.isPending || !lForm.label.en || !lForm.url}
           className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
           style={{ backgroundColor: 'var(--brand-crimson)' }}>
-          {createLink.isPending ? 'Adding…' : 'Add link'}
+          {createLink.isPending ? t('admin.content.links.btn.adding') : t('admin.content.links.btn.add')}
         </button>
       </div>
 
@@ -176,18 +178,22 @@ export function LinksTab() {
               <>
                 <button onClick={() => startEditingLink(l)}
                   className="text-xs font-medium border px-2.5 py-1 rounded-full hover:bg-black/5 transition-colors"
-                  style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>Edit</button>
+                  style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
+                  {t('admin.content.links.btn.edit')}
+                </button>
                 <button
                   onClick={() => setLinkAlertTarget({ id: l.id, name: l.label.en })}
                   className="text-xs font-medium hover:opacity-70 transition-opacity"
-                  style={{ color: 'var(--brand-crimson)' }}>Delete</button>
+                  style={{ color: 'var(--brand-crimson)' }}>
+                  {t('admin.content.links.btn.delete')}
+                </button>
               </>
             }
           />
         ))}
         {localLinks.length === 0 && (
           <div className="rounded-2xl border px-6 py-10 text-center" style={{ borderColor: 'var(--border-default)' }}>
-            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No links yet. Add one above.</p>
+            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t('admin.content.links.empty')}</p>
           </div>
         )}
       </div>
@@ -195,25 +201,25 @@ export function LinksTab() {
       <Drawer
         open={linkDrawer.open}
         onClose={linkDrawer.close}
-        title={linkDrawer.editing ? `Edit: ${linkDrawer.editing.label.en}` : 'Edit link'}
+        title={linkDrawer.editing ? t('admin.content.links.drawer.editTitleNamed').replace('{{name}}', linkDrawer.editing.label.en) : t('admin.content.links.drawer.editTitle')}
       >
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-semibold uppercase tracking-widest mb-1 block" style={{ color: 'var(--text-secondary)' }}>Label (EN)</label>
+              <label className="text-xs font-semibold uppercase tracking-widest mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.content.links.lbl.labelEn')}</label>
               <input value={editLForm.label.en} onChange={e => setEditLForm(f => ({ ...f, label: { ...f.label, en: e.target.value } }))}
                 className="w-full border rounded-xl px-3 py-2.5 text-sm"
                 style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
             </div>
             <div>
-              <label className="text-xs font-semibold uppercase tracking-widest mb-1 block" style={{ color: 'var(--text-secondary)' }}>Label (BG)</label>
+              <label className="text-xs font-semibold uppercase tracking-widest mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.content.links.lbl.labelBg')}</label>
               <input value={editLForm.label.bg} onChange={e => setEditLForm(f => ({ ...f, label: { ...f.label, bg: e.target.value } }))}
                 className="w-full border rounded-xl px-3 py-2.5 text-sm"
                 style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
             </div>
           </div>
           <div>
-            <label className="text-xs font-semibold uppercase tracking-widest mb-1 block" style={{ color: 'var(--text-secondary)' }}>URL</label>
+            <label className="text-xs font-semibold uppercase tracking-widest mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.content.links.lbl.url')}</label>
             <input value={editLForm.url} onChange={e => setEditLForm(f => ({ ...f, url: e.target.value }))}
               className="w-full border rounded-xl px-3 py-2.5 text-sm"
               style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
@@ -233,11 +239,13 @@ export function LinksTab() {
               disabled={updateLink.isPending || !editLForm.label.en || !editLForm.url}
               className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
               style={{ backgroundColor: 'var(--brand-crimson)' }}>
-              {updateLink.isPending ? 'Saving…' : 'Save changes'}
+              {updateLink.isPending ? t('admin.content.links.btn.saving') : t('admin.content.links.btn.saveChanges')}
             </button>
             <button onClick={linkDrawer.close}
               className="px-5 py-2 rounded-xl text-sm font-semibold border transition-colors hover:bg-black/5"
-              style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>Cancel</button>
+              style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
+              {t('admin.content.links.btn.cancel')}
+            </button>
           </div>
         </div>
       </Drawer>
@@ -245,20 +253,20 @@ export function LinksTab() {
       <AlertDialog open={!!linkAlertTarget} onOpenChange={open => { if (!open) setLinkAlertTarget(null) }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete link</AlertDialogTitle>
+            <AlertDialogTitle>{t('admin.content.links.dialog.title')}</AlertDialogTitle>
             <AlertDialogDescription>
               Delete &ldquo;{linkAlertTarget?.name}&rdquo;? This cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('admin.content.links.dialog.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 if (linkAlertTarget) deleteLink.mutate(linkAlertTarget.id)
                 setLinkAlertTarget(null)
               }}
             >
-              Delete
+              {t('admin.content.links.dialog.confirm')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

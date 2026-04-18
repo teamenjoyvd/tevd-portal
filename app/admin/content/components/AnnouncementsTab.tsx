@@ -21,6 +21,7 @@ import { RoleSelector } from '@/app/admin/components/RoleSelector'
 import { LangTabs } from '@/app/admin/components/LangTabs'
 import { I18nField } from '@/app/admin/components/I18nField'
 import { formatDate } from '@/lib/format'
+import { useLanguage } from '@/lib/hooks/useLanguage'
 
 type Announcement = {
   id: string; titles: Record<string,string>; contents: Record<string,string>
@@ -36,6 +37,7 @@ function emptyI18n() {
 
 export function AnnouncementsTab() {
   const qc = useQueryClient()
+  const { t } = useLanguage()
   const announcementDrawer = useAdminDrawer<Announcement>()
   const [announcementAlertTarget, setAnnouncementAlertTarget] = useState<{ id: string; name: string } | null>(null)
   const [aDragging, setADragging] = useState<string | null>(null)
@@ -159,7 +161,7 @@ export function AnnouncementsTab() {
           disabled={createAnnouncement.isPending || !aForm.titles.en}
           className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
           style={{ backgroundColor: 'var(--brand-crimson)' }}>
-          {createAnnouncement.isPending ? 'Publishing…' : 'Publish'}
+          {createAnnouncement.isPending ? t('admin.content.announcements.btn.publishing') : t('admin.content.announcements.btn.publish')}
         </button>
       </div>
 
@@ -179,21 +181,25 @@ export function AnnouncementsTab() {
               <>
                 <button onClick={() => startEditingAnnouncement(a)}
                   className="text-xs px-2.5 py-1 rounded-full font-medium border hover:bg-black/5 transition-colors"
-                  style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>Edit</button>
+                  style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
+                  {t('admin.content.announcements.btn.edit')}
+                </button>
                 <button onClick={() => toggleAnnouncement.mutate({ id: a.id, is_active: !a.is_active })}>
                   <AdminStatusBadge variant={a.is_active ? 'active' : 'inactive'} label={a.is_active ? 'Active' : 'Inactive'} />
                 </button>
                 <button
                   onClick={() => setAnnouncementAlertTarget({ id: a.id, name: a.titles.en ?? a.titles.bg ?? 'Untitled' })}
                   className="text-xs font-medium hover:opacity-70 transition-opacity"
-                  style={{ color: 'var(--brand-crimson)' }}>Delete</button>
+                  style={{ color: 'var(--brand-crimson)' }}>
+                  {t('admin.content.announcements.btn.delete')}
+                </button>
               </>
             }
           />
         ))}
       </div>
 
-      <Drawer open={announcementDrawer.open} onClose={announcementDrawer.close} title="Edit announcement">
+      <Drawer open={announcementDrawer.open} onClose={announcementDrawer.close} title={t('admin.content.announcements.drawer.editTitle')}>
         <div className="space-y-3">
           <LangTabs langs={LANGS} active={editALang} onChange={setEditALang} />
           <I18nField
@@ -219,11 +225,13 @@ export function AnnouncementsTab() {
               disabled={updateAnnouncement.isPending || !editAForm.titles.en}
               className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
               style={{ backgroundColor: 'var(--brand-crimson)' }}>
-              {updateAnnouncement.isPending ? 'Saving…' : 'Save changes'}
+              {updateAnnouncement.isPending ? t('admin.content.announcements.btn.saving') : t('admin.content.announcements.btn.saveChanges')}
             </button>
             <button onClick={announcementDrawer.close}
               className="px-5 py-2 rounded-xl text-sm font-semibold border transition-colors hover:bg-black/5"
-              style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>Cancel</button>
+              style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
+              {t('admin.content.announcements.btn.cancel')}
+            </button>
           </div>
         </div>
       </Drawer>
@@ -231,20 +239,20 @@ export function AnnouncementsTab() {
       <AlertDialog open={!!announcementAlertTarget} onOpenChange={open => { if (!open) setAnnouncementAlertTarget(null) }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete announcement</AlertDialogTitle>
+            <AlertDialogTitle>{t('admin.content.announcements.dialog.title')}</AlertDialogTitle>
             <AlertDialogDescription>
               Delete &ldquo;{announcementAlertTarget?.name}&rdquo;? This cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('admin.content.announcements.dialog.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 if (announcementAlertTarget) deleteAnnouncement.mutate(announcementAlertTarget.id)
                 setAnnouncementAlertTarget(null)
               }}
             >
-              Delete
+              {t('admin.content.announcements.dialog.confirm')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -3,17 +3,21 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useBentoConfig, type BentoConfigEntry } from '@/lib/hooks/useBentoConfig'
+import { useLanguage } from '@/lib/hooks/useLanguage'
 
-const TILE_LABELS: Record<string, string> = {
-  events:        'Events tile',
-  trips:         'Trips tile',
-  announcements: 'Announcements tile',
-  howtos:        'Howtos tile',
-  links:         'Links & Guides tile',
+type BentoTileKey = 'admin.content.bento.tile.events' | 'admin.content.bento.tile.trips' | 'admin.content.bento.tile.announcements' | 'admin.content.bento.tile.howtos' | 'admin.content.bento.tile.links'
+
+const TILE_LABEL_KEYS: Record<string, BentoTileKey> = {
+  events:        'admin.content.bento.tile.events',
+  trips:         'admin.content.bento.tile.trips',
+  announcements: 'admin.content.bento.tile.announcements',
+  howtos:        'admin.content.bento.tile.howtos',
+  links:         'admin.content.bento.tile.links',
 }
 
 export function BentoTab() {
   const qc = useQueryClient()
+  const { t } = useLanguage()
   const { data: config = [], isLoading } = useBentoConfig()
   const [draft, setDraft] = useState<Record<string, number>>({})
   const [saved, setSaved] = useState(false)
@@ -47,7 +51,7 @@ export function BentoTab() {
     <section>
       <div className="rounded-2xl border p-6" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
         <p className="text-xs mb-5" style={{ color: 'var(--text-secondary)' }}>
-          Maximum number of items shown per tile on the homepage.
+          {t('admin.content.bento.desc')}
         </p>
         {isLoading ? (
           <div className="space-y-3">
@@ -60,7 +64,7 @@ export function BentoTab() {
             {config.map(entry => (
               <div key={entry.tile_key} className="flex items-center justify-between gap-4">
                 <label className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                  {TILE_LABELS[entry.tile_key] ?? entry.tile_key}
+                  {TILE_LABEL_KEYS[entry.tile_key] ? t(TILE_LABEL_KEYS[entry.tile_key]) : entry.tile_key}
                 </label>
                 <input
                   type="number"
@@ -81,7 +85,7 @@ export function BentoTab() {
           className="mt-5 px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity"
           style={{ backgroundColor: 'var(--brand-crimson)' }}
         >
-          {saveMutation.isPending ? 'Saving…' : saved ? 'Saved ✓' : 'Save'}
+          {saveMutation.isPending ? t('admin.content.bento.btn.saving') : saved ? t('admin.content.bento.btn.saved') : t('admin.content.bento.btn.save')}
         </button>
       </div>
     </section>

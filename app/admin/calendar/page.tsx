@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { formatDateTime } from '@/lib/format'
 import { Drawer } from '@/components/ui/Drawer'
+import { useLanguage } from '@/lib/hooks/useLanguage'
 
 type CalEvent = {
   id: string
@@ -65,25 +66,26 @@ function EventForm({
   label: string
   formError: string | null
 }) {
+  const { t } = useLanguage()
   return (
     <div className="space-y-4">
       <input value={f.title} onChange={e => setF(p => ({ ...p, title: e.target.value }))}
-        placeholder="Title" className="w-full border rounded-xl px-3 py-2.5 text-sm"
+        placeholder={t('admin.calendar.placeholder.title')} className="w-full border rounded-xl px-3 py-2.5 text-sm"
         style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
       <textarea value={f.description ?? ''} onChange={e => setF(p => ({ ...p, description: e.target.value }))}
-        placeholder="Description (optional)" rows={2}
+        placeholder={t('admin.calendar.placeholder.description')} rows={2}
         className="w-full border rounded-xl px-3 py-2.5 text-sm resize-none"
         style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Start</label>
+          <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.calendar.lbl.start')}</label>
           <input type="datetime-local" value={f.start_time}
             onChange={e => setF(p => ({ ...p, start_time: e.target.value }))}
             className="w-full border rounded-xl px-3 py-2.5 text-sm"
             style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
         </div>
         <div>
-          <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>End</label>
+          <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.calendar.lbl.end')}</label>
           <input type="datetime-local" value={f.end_time}
             onChange={e => setF(p => ({ ...p, end_time: e.target.value }))}
             className="w-full border rounded-xl px-3 py-2.5 text-sm"
@@ -92,7 +94,7 @@ function EventForm({
       </div>
       <div className="flex flex-wrap gap-4 items-start">
         <div>
-          <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Category</label>
+          <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.calendar.lbl.category')}</label>
           <div className="flex gap-2">
             {CATEGORIES.map(c => (
               <button key={c} onClick={() => setF(p => ({ ...p, category: c }))}
@@ -104,19 +106,19 @@ function EventForm({
           </div>
         </div>
         <div>
-          <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Type</label>
+          <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.calendar.lbl.type')}</label>
           <div className="flex gap-2">
-            {EVENT_TYPES.map(t => (
-              <button key={t} onClick={() => setF(p => ({ ...p, event_type: f.event_type === t ? null : t }))}
+            {EVENT_TYPES.map(t2 => (
+              <button key={t2} onClick={() => setF(p => ({ ...p, event_type: f.event_type === t2 ? null : t2 }))}
                 className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
-                style={{ backgroundColor: f.event_type === t ? 'var(--brand-teal)' : 'rgba(0,0,0,0.06)', color: f.event_type === t ? 'white' : 'var(--text-secondary)' }}>
-                {t}
+                style={{ backgroundColor: f.event_type === t2 ? 'var(--brand-teal)' : 'rgba(0,0,0,0.06)', color: f.event_type === t2 ? 'white' : 'var(--text-secondary)' }}>
+                {t2}
               </button>
             ))}
           </div>
         </div>
         <div>
-          <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Visible to</label>
+          <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.calendar.lbl.visibleTo')}</label>
           <div className="flex gap-2">
             {ALL_ROLES.map(role => (
               <button key={role} onClick={() => setF(p => ({
@@ -138,12 +140,12 @@ function EventForm({
         <button onClick={onSave} disabled={isPending || !f.title || !f.start_time || !f.end_time}
           className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity"
           style={{ backgroundColor: 'var(--brand-crimson)' }}>
-          {isPending ? 'Saving…' : label}
+          {isPending ? t('admin.calendar.btn.saving') : label}
         </button>
         <button onClick={onCancel}
           className="px-6 py-2.5 rounded-xl text-sm font-semibold border transition-colors hover:bg-black/5"
           style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
-          Cancel
+          {t('admin.calendar.btn.cancel')}
         </button>
       </div>
     </div>
@@ -154,6 +156,7 @@ function EventForm({
 
 export default function AdminCalendarPage() {
   const qc = useQueryClient()
+  const { t } = useLanguage()
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [editing, setEditing] = useState<CalEvent | null>(null)
   const [form, setForm] = useState<EventFormState>(emptyForm())
@@ -233,15 +236,17 @@ export default function AdminCalendarPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-display text-2xl font-semibold" style={{ color: 'var(--text-primary)' }}>Calendar Events</h1>
+          <h1 className="font-display text-2xl font-semibold" style={{ color: 'var(--text-primary)' }}>
+            {t('admin.calendar.pageTitle')}
+          </h1>
           <p className="text-sm mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-            Create, edit, and delete calendar events. Google Calendar sync also populates this table.
+            {t('admin.calendar.pageDesc')}
           </p>
         </div>
         <button onClick={openCreate}
           className="px-4 py-2 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-opacity"
           style={{ backgroundColor: 'var(--brand-crimson)' }}>
-          + New event
+          {t('admin.calendar.btn.new')}
         </button>
       </div>
 
@@ -252,7 +257,7 @@ export default function AdminCalendarPage() {
           ))}
         </div>
       ) : events.length === 0 ? (
-        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No events yet.</p>
+        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t('admin.calendar.empty')}</p>
       ) : (
         <div className="rounded-2xl border overflow-hidden" style={{ borderColor: 'var(--border-default)' }}>
           {events.map((ev, i) => (
@@ -273,7 +278,9 @@ export default function AdminCalendarPage() {
                   )}
                   {ev.google_event_id && (
                     <span className="text-[10px] px-2 py-0.5 rounded-full"
-                      style={{ backgroundColor: 'rgba(0,0,0,0.05)', color: 'var(--text-secondary)' }}>Google</span>
+                      style={{ backgroundColor: 'rgba(0,0,0,0.05)', color: 'var(--text-secondary)' }}>
+                      {t('admin.calendar.badge.google')}
+                    </span>
                   )}
                 </div>
                 <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
@@ -283,10 +290,14 @@ export default function AdminCalendarPage() {
               </div>
               <div className="flex items-center gap-3 flex-shrink-0">
                 <button onClick={() => openEdit(ev)}
-                  className="text-xs hover:opacity-70 transition-opacity" style={{ color: 'var(--text-secondary)' }}>Edit</button>
-                <button onClick={() => { if (confirm(`Delete "${ev.title}"?`)) deleteMutation.mutate(ev.id) }}
+                  className="text-xs hover:opacity-70 transition-opacity" style={{ color: 'var(--text-secondary)' }}>
+                  {t('admin.calendar.btn.edit')}
+                </button>
+                <button onClick={() => { if (confirm(t('admin.calendar.confirm.delete').replace('{{title}}', ev.title))) deleteMutation.mutate(ev.id) }}
                   disabled={deleteMutation.isPending}
-                  className="text-xs hover:opacity-70 transition-opacity disabled:opacity-30" style={{ color: 'var(--brand-crimson)' }}>Delete</button>
+                  className="text-xs hover:opacity-70 transition-opacity disabled:opacity-30" style={{ color: 'var(--brand-crimson)' }}>
+                  {t('admin.calendar.btn.delete')}
+                </button>
               </div>
             </div>
           ))}
@@ -296,7 +307,10 @@ export default function AdminCalendarPage() {
       <Drawer
         open={drawerOpen}
         onClose={handleClose}
-        title={editing ? `Edit: ${editing.title}` : 'New event'}
+        title={editing
+          ? t('admin.calendar.drawer.editTitle').replace('{{title}}', editing.title)
+          : t('admin.calendar.drawer.newTitle')
+        }
       >
         <EventForm
           f={form}
@@ -304,7 +318,7 @@ export default function AdminCalendarPage() {
           onSave={() => editing ? updateMutation.mutate({ id: editing.id, ...form }) : createMutation.mutate(form)}
           onCancel={handleClose}
           isPending={createMutation.isPending || updateMutation.isPending}
-          label={editing ? 'Save changes' : 'Create event'}
+          label={editing ? t('admin.calendar.btn.saveChanges') : t('admin.calendar.btn.createEvent')}
           formError={formError}
         />
       </Drawer>
