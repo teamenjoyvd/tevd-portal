@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useLanguage } from '@/lib/hooks/useLanguage'
 
 interface Attachment {
   id: string
@@ -40,6 +41,7 @@ function ImageIcon() {
 }
 
 export function TripDocumentsTile({ tripId }: { tripId: string }) {
+  const { t } = useLanguage()
   const [retrying, setRetrying] = useState(false)
 
   const { data: attachments, isLoading, isError, error, refetch } = useQuery<Attachment[], ApiError>({
@@ -71,7 +73,7 @@ export function TripDocumentsTile({ tripId }: { tripId: string }) {
         <div className="px-6 py-4 flex items-center justify-between">
           <p className="text-xs font-semibold tracking-widest uppercase"
             style={{ color: 'var(--text-secondary)' }}>
-            Trip Documents
+            {t('trips.documents')}
           </p>
           <button
             onClick={async () => { setRetrying(true); await refetch(); setRetrying(false) }}
@@ -79,7 +81,7 @@ export function TripDocumentsTile({ tripId }: { tripId: string }) {
             className="text-xs hover:opacity-70 transition-opacity disabled:opacity-40"
             style={{ color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer' }}
           >
-            {retrying ? 'Retrying…' : '↺ Retry'}
+            {retrying ? t('trips.retrying') : t('trips.retry')}
           </button>
         </div>
       </div>
@@ -98,7 +100,7 @@ export function TripDocumentsTile({ tripId }: { tripId: string }) {
           className="text-xs font-semibold tracking-widest uppercase"
           style={{ color: 'var(--text-secondary)' }}
         >
-          Trip Documents
+          {t('trips.documents')}
         </p>
       </div>
       <div className="px-6 pb-5">
@@ -127,7 +129,7 @@ export function TripDocumentsTile({ tripId }: { tripId: string }) {
                 className="text-xs flex-shrink-0 hover:opacity-70 transition-opacity"
                 style={{ color: 'var(--brand-teal)' }}
               >
-                Open ↗
+                {t('trips.openFile')}
               </a>
             </div>
           ))}

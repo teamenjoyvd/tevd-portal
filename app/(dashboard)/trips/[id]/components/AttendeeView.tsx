@@ -7,6 +7,7 @@ import { getRoleColors } from '@/lib/role-colors'
 import { Drawer } from '@/components/ui/Drawer'
 import { PaymentForm } from '@/components/payment/PaymentForm'
 import { TripDocumentsTile } from './TripDocumentsTile'
+import { TripMessagesTile } from './TripMessagesTile'
 import { BackButton, TripHero } from './shared'
 import type { Tables } from '@/types/supabase'
 import type { TripProfile, TripPayment, TeamAttendee } from '../page'
@@ -254,6 +255,9 @@ export function AttendeeView({
 
         {/* Who's Going */}
         <WhosGoingTile attendees={teamAttendees} />
+
+        {/* Trip Messages */}
+        <TripMessagesTile tripId={trip.id} />
 
         {/* Trip Documents */}
         <TripDocumentsTile tripId={trip.id} />
