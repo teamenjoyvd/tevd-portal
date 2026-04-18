@@ -241,7 +241,7 @@ export function AnnouncementsTab() {
           <AlertDialogHeader>
             <AlertDialogTitle>{t('admin.content.announcements.dialog.title')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Delete &ldquo;{announcementAlertTarget?.name}&rdquo;? This cannot be undone.
+              {t('admin.content.announcements.dialog.body').replace('{{name}}', announcementAlertTarget?.name ?? '')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

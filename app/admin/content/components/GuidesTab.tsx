@@ -178,7 +178,7 @@ export function GuidesTab() {
           <AlertDialogHeader>
             <AlertDialogTitle>{t('admin.content.guides.dialog.title')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Delete &ldquo;{guideAlertTarget?.name}&rdquo;? This cannot be undone.
+              {t('admin.content.guides.dialog.body').replace('{{name}}', guideAlertTarget?.name ?? '')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -255,7 +255,7 @@ export function LinksTab() {
           <AlertDialogHeader>
             <AlertDialogTitle>{t('admin.content.links.dialog.title')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Delete &ldquo;{linkAlertTarget?.name}&rdquo;? This cannot be undone.
+              {t('admin.content.links.dialog.body').replace('{{name}}', linkAlertTarget?.name ?? '')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
