@@ -59,7 +59,7 @@ function PostForm({
       <textarea
         value={body}
         onChange={e => setBody(e.target.value)}
-        placeholder="Write a message…"
+        placeholder="Write a message\u2026"
         rows={3}
         className="w-full rounded-lg px-3 py-2 text-sm resize-none outline-none focus:ring-2"
         style={{
@@ -77,7 +77,7 @@ function PostForm({
         className="px-4 py-1.5 rounded-lg text-xs font-semibold text-white hover:opacity-90 transition-opacity disabled:opacity-50"
         style={{ backgroundColor: 'var(--brand-crimson)' }}
       >
-        {mutation.isPending ? 'Posting…' : 'Post'}
+        {mutation.isPending ? 'Posting\u2026' : 'Post'}
       </button>
     </div>
   )
@@ -137,7 +137,7 @@ function EditForm({
           className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white hover:opacity-90 transition-opacity disabled:opacity-50"
           style={{ backgroundColor: 'var(--brand-crimson)' }}
         >
-          {mutation.isPending ? 'Saving…' : 'Save'}
+          {mutation.isPending ? 'Saving\u2026' : 'Save'}
         </button>
         <button
           onClick={onCancel}
@@ -168,8 +168,10 @@ export function TripMessagesSection({ tripId }: { tripId: string }) {
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (messageId: string) =>
-      fetch(`/api/admin/trips/${tripId}/messages/${messageId}`, { method: 'DELETE' }),
+    mutationFn: async (messageId: string) => {
+      const r = await fetch(`/api/admin/trips/${tripId}/messages/${messageId}`, { method: 'DELETE' })
+      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || 'Failed to delete')
+    },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['trip-messages-admin', tripId] }),
   })
 

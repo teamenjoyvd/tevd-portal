@@ -61,10 +61,12 @@ export function TripFilesSection({ tripId }: { tripId: string }) {
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (attachmentId: string) =>
-      fetch(`/api/admin/trips/${tripId}/attachments/${attachmentId}`, {
+    mutationFn: async (attachmentId: string) => {
+      const r = await fetch(`/api/admin/trips/${tripId}/attachments/${attachmentId}`, {
         method: 'DELETE',
-      }),
+      })
+      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || 'Failed to delete')
+    },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['trip-attachments-admin', tripId] }),
   })
 
@@ -96,7 +98,7 @@ export function TripFilesSection({ tripId }: { tripId: string }) {
           style={{ backgroundColor: 'var(--brand-crimson)' }}
         >
           <Upload size={13} />
-          {uploadMutation.isPending ? 'Uploading…' : 'Upload'}
+          {uploadMutation.isPending ? 'Uploading\u2026' : 'Upload'}
         </button>
         <input
           ref={fileInputRef}
