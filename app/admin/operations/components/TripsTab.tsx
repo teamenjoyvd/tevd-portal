@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { formatDate, formatCurrency } from '@/lib/format'
 import { Drawer } from '@/components/ui/Drawer'
@@ -152,6 +153,13 @@ export function TripsTab({ trips, isLoading }: { trips: Trip[]; isLoading: boole
                 </p>
               </div>
               <div className="flex items-center gap-3 flex-shrink-0">
+                <Link
+                  href={`/admin/trips/${trip.id}`}
+                  className="text-xs hover:opacity-70 transition-opacity font-medium"
+                  style={{ color: 'var(--text-primary)' }}
+                >
+                  Manage →
+                </Link>
                 <button onClick={() => openEdit(trip)} className="text-xs hover:opacity-70 transition-opacity" style={{ color: 'var(--text-secondary)' }}>{t('admin.operations.trips.btn.edit', 'en')}</button>
                 <button
                   onClick={() => setAlertTarget({ id: trip.id, name: trip.title })}
