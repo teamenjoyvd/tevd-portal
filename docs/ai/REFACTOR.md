@@ -64,10 +64,10 @@ wc -c _audit/repomix-full.txt
 ### Domain split (only if pack exceeds limit)
 
 ```bash
-npx repomix --include "app/**,middleware.ts" --output _audit/pack-app.txt .
-npx repomix --include "components/**"        --output _audit/pack-components.txt .
-npx repomix --include "lib/**,types/**"      --output _audit/pack-lib.txt .
-npx repomix --include "supabase/**"          --output _audit/pack-supabase.txt .
+npx repomix --include "app/**,proxy.ts" --output _audit/pack-app.txt .
+npx repomix --include "components/**"   --output _audit/pack-components.txt .
+npx repomix --include "lib/**,types/**" --output _audit/pack-lib.txt .
+npx repomix --include "supabase/**"     --output _audit/pack-supabase.txt .
 ```
 
 ### Record snapshot hash
@@ -96,7 +96,7 @@ Save output as: `_audit/raw-security.md`
 Based on the codebase above, audit for security vulnerabilities and authentication gaps only.
 
 Focus on:
-- Clerk: missing auth guards, wrong session validation, token misuse, middleware gaps, public routes that should be protected
+- Clerk: missing auth guards, wrong session validation, token misuse, proxy gaps, public routes that should be protected
 - Supabase RLS: tables without policies, logical gaps in policies, anon key misuse, service role key exposed or used client-side
 - Server actions / API routes: missing auth checks, IDOR vectors, missing input validation
 - Environment variables: secrets referenced client-side, missing server-side validation
@@ -385,9 +385,9 @@ These are structural shapes based on what a codebase of this type and scale typi
 
 **Clerk auth guards across all protected routes**
 
-Clerk middleware and per-route auth checks may be missing or incorrectly configured. Covers all auth guard gaps from Session A.
+Clerk auth guards and per-route checks may be missing or incorrectly configured. Covers all auth guard gaps from Session A.
 
-Files: `middleware.ts` / `proxy.ts`, `app/(dashboard)/layout.tsx`, `app/api/**/route.ts`, `lib/auth/*.ts`
+Files: `proxy.ts`, `app/(dashboard)/layout.tsx`, `app/api/**/route.ts`, `lib/auth/*.ts`
 
 Acceptance: All protected routes return 401/redirect for unauthenticated requests. No route accessible without a valid Clerk session unless explicitly marked public.
 
