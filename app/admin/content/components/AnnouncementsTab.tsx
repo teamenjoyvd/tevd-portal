@@ -160,10 +160,10 @@ export function AnnouncementsTab() {
           <input
             type="text"
             value={aForm.slug}
-            onChange={e => setAForm(f => ({ ...f, slug: e.target.value }))}
+            onChange={e => setAForm(f => ({ ...f, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') }))}
             placeholder="slug (e.g. my-announcement)"
-            className="w-full px-3 py-2 rounded-xl text-sm border"
-            style={{ borderColor: 'var(--border-default)', backgroundColor: 'var(--bg-global)', color: 'var(--text-primary)' }}
+            className="w-full px-3 py-2.5 rounded-xl text-sm border"
+            style={{ borderColor: 'var(--border-default)', backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)' }}
           />
         </div>
         <RoleSelector
@@ -233,10 +233,10 @@ export function AnnouncementsTab() {
             <input
               type="text"
               value={editAForm.slug}
-              onChange={e => setEditAForm(f => ({ ...f, slug: e.target.value }))}
+              onChange={e => setEditAForm(f => ({ ...f, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') }))}
               placeholder="slug (e.g. my-announcement)"
-              className="w-full px-3 py-2 rounded-xl text-sm border"
-              style={{ borderColor: 'var(--border-default)', backgroundColor: 'var(--bg-global)', color: 'var(--text-primary)' }}
+              className="w-full px-3 py-2.5 rounded-xl text-sm border"
+              style={{ borderColor: 'var(--border-default)', backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)' }}
             />
           </div>
           <RoleSelector

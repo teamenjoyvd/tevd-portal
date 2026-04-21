@@ -36,7 +36,7 @@ export async function POST(req: Request) {
     contents:     body.contents,
     access_roles: body.access_roles ?? ['member', 'core', 'admin'],
     is_active:    body.is_active ?? true,
-    slug:         body.slug ?? null,
+    slug:         body.slug || null,
   }).select().single()
   if (error) return Response.json({ error: error.message }, { status: 500 })
   return Response.json(data, { status: 201 })
