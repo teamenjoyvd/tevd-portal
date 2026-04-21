@@ -191,10 +191,10 @@ export default function ProfilePage() {
 
   const collapseAll = useCallback(() => {
     setBentoCollapsed(prev => {
-      const next = orderedBentosRef.current.reduce<Record<string, boolean>>(
-        (acc, { id }) => ({ ...acc, [id]: true }),
-        prev
-      )
+      const next = { ...prev }
+      orderedBentosRef.current.forEach(({ id }) => {
+        next[id] = true
+      })
       setBentoOrder(order => { persistPrefs(order, next); return order })
       return next
     })

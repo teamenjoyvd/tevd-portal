@@ -85,7 +85,7 @@ export function SortableBento({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id })
+  } = useSortable({ id, disabled: disableDrag })
 
   const style: React.CSSProperties = {
     ...(disableDrag ? {} : { gridColumn: `span ${colSpan}` }),
