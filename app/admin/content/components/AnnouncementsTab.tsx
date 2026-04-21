@@ -25,7 +25,8 @@ import { useLanguage } from '@/lib/hooks/useLanguage'
 
 type Announcement = {
   id: string; titles: Record<string,string>; contents: Record<string,string>
-  access_level: string[]; is_active: boolean; created_at: string; sort_order: number
+  access_roles: string[]; is_active: boolean; created_at: string; sort_order: number
+  slug: string | null
 }
 
 const LANGS = ['en', 'bg', 'sk']
@@ -48,14 +49,16 @@ export function AnnouncementsTab() {
     titles: emptyI18n() as Record<string,string>,
     contents: emptyI18n() as Record<string,string>,
     is_active: true,
-    access_level: [...ALL_ROLES] as string[],
+    access_roles: [...ALL_ROLES] as string[],
+    slug: '' as string,
   })
 
   const [editAForm, setEditAForm] = useState({
     titles: emptyI18n() as Record<string,string>,
     contents: emptyI18n() as Record<string,string>,
     is_active: true,
-    access_level: [...ALL_ROLES] as string[],
+    access_roles: [...ALL_ROLES] as string[],
+    slug: '' as string,
   })
 
   const { data: announcementsRaw = [] } = useQuery<Announcement[]>({
@@ -87,7 +90,7 @@ export function AnnouncementsTab() {
       }).then(r => r.json()),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['announcements'] })
-      setAForm({ titles: emptyI18n(), contents: emptyI18n(), is_active: true, access_level: [...ALL_ROLES] })
+      setAForm({ titles: emptyI18n(), contents: emptyI18n(), is_active: true, access_roles: [...ALL_ROLES], slug: '' })
     },
   })
 
@@ -123,7 +126,8 @@ export function AnnouncementsTab() {
       titles: { ...emptyI18n(), ...a.titles },
       contents: { ...emptyI18n(), ...a.contents },
       is_active: a.is_active,
-      access_level: Array.isArray(a.access_level) ? a.access_level : [...ALL_ROLES],
+      access_roles: Array.isArray(a.access_roles) ? a.access_roles : [...ALL_ROLES],
+      slug: a.slug ?? '',
     })
     setEditALang('en')
     announcementDrawer.openEdit(a)
@@ -152,10 +156,20 @@ export function AnnouncementsTab() {
           placeholder="Content"
           multiline
         />
+        <div>
+          <input
+            type="text"
+            value={aForm.slug}
+            onChange={e => setAForm(f => ({ ...f, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') }))}
+            placeholder="slug (e.g. my-announcement)"
+            className="w-full px-3 py-2.5 rounded-xl text-sm border"
+            style={{ borderColor: 'var(--border-default)', backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)' }}
+          />
+        </div>
         <RoleSelector
           roles={ALL_ROLES}
-          selected={aForm.access_level}
-          onChange={access_level => setAForm(f => ({ ...f, access_level }))}
+          selected={aForm.access_roles}
+          onChange={access_roles => setAForm(f => ({ ...f, access_roles }))}
         />
         <button onClick={() => createAnnouncement.mutate(aForm)}
           disabled={createAnnouncement.isPending || !aForm.titles.en}
@@ -215,10 +229,20 @@ export function AnnouncementsTab() {
             placeholder="Content"
             multiline
           />
+          <div>
+            <input
+              type="text"
+              value={editAForm.slug}
+              onChange={e => setEditAForm(f => ({ ...f, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') }))}
+              placeholder="slug (e.g. my-announcement)"
+              className="w-full px-3 py-2.5 rounded-xl text-sm border"
+              style={{ borderColor: 'var(--border-default)', backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)' }}
+            />
+          </div>
           <RoleSelector
             roles={ALL_ROLES}
-            selected={editAForm.access_level}
-            onChange={access_level => setEditAForm(f => ({ ...f, access_level }))}
+            selected={editAForm.access_roles}
+            onChange={access_roles => setEditAForm(f => ({ ...f, access_roles }))}
           />
           <div className="flex gap-3 pt-2">
             <button onClick={() => announcementDrawer.editing && updateAnnouncement.mutate({ id: announcementDrawer.editing.id, ...editAForm })}

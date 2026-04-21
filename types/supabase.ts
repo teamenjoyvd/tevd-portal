@@ -60,29 +60,32 @@ export type Database = {
       }
       announcements: {
         Row: {
-          access_level: Database["public"]["Enums"]["user_role"][]
+          access_roles: Database["public"]["Enums"]["user_role"][]
           contents: Json
           created_at: string
           id: string
           is_active: boolean
+          slug: string | null
           sort_order: number
           titles: Json
         }
         Insert: {
-          access_level?: Database["public"]["Enums"]["user_role"][]
+          access_roles?: Database["public"]["Enums"]["user_role"][]
           contents?: Json
           created_at?: string
           id?: string
           is_active?: boolean
+          slug?: string | null
           sort_order?: number
           titles?: Json
         }
         Update: {
-          access_level?: Database["public"]["Enums"]["user_role"][]
+          access_roles?: Database["public"]["Enums"]["user_role"][]
           contents?: Json
           created_at?: string
           id?: string
           is_active?: boolean
+          slug?: string | null
           sort_order?: number
           titles?: Json
         }
@@ -381,6 +384,7 @@ export type Database = {
           access_roles: string[]
           created_at: string
           id: string
+          is_active: boolean
           label: Json
           sort_order: number
           url: string
@@ -389,6 +393,7 @@ export type Database = {
           access_roles?: string[]
           created_at?: string
           id?: string
+          is_active?: boolean
           label?: Json
           sort_order?: number
           url: string
@@ -397,6 +402,7 @@ export type Database = {
           access_roles?: string[]
           created_at?: string
           id?: string
+          is_active?: boolean
           label?: Json
           sort_order?: number
           url?: string

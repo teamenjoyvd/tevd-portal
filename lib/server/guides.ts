@@ -1,5 +1,5 @@
 // ── lib/server/guides.ts ────────────────────────────────────────────────────────────
-// Single source of truth for role-scoped guides and links queries.
+// Single source of truth for role-scoped guides, links, and news queries.
 // Used by: /api/guides, /api/links, app/(dashboard)/guides/page.tsx (RSC).
 // Server-only — never import from client components.
 import { auth } from '@clerk/nextjs/server'
@@ -44,6 +44,15 @@ export type SiteLink = {
   sort_order: number
 }
 
+export type NewsItem = {
+  id: string
+  slug: string | null
+  titles: { en?: string; bg?: string }
+  contents: { en?: string; bg?: string }
+  is_active: boolean
+  created_at: string
+}
+
 /** Role-scoped published guides, newest first. */
 export async function listGuidesForRole({
   role,
@@ -64,7 +73,7 @@ export async function listGuidesForRole({
   return (data ?? []) as Guide[]
 }
 
-/** Role-scoped links, ordered by sort_order. */
+/** Role-scoped links, ordered by sort_order. Active only. */
 export async function listLinksForRole({
   role,
   limit = 100,
@@ -76,9 +85,30 @@ export async function listLinksForRole({
   const { data, error } = await supabase
     .from('links')
     .select('id, label, url, access_roles, sort_order')
+    .eq('is_active', true)
     .contains('access_roles', [role])
     .order('sort_order')
     .limit(limit)
   if (error) throw new Error(error.message)
   return (data ?? []) as SiteLink[]
+}
+
+/** Role-scoped active news (announcements), newest first. */
+export async function listNewsForRole({
+  role,
+  limit = 100,
+}: {
+  role: string
+  limit?: number
+}): Promise<NewsItem[]> {
+  const supabase = createServiceClient()
+  const { data, error } = await supabase
+    .from('announcements')
+    .select('id, slug, titles, contents, is_active, created_at')
+    .eq('is_active', true)
+    .contains('access_roles', [role])
+    .order('created_at', { ascending: false })
+    .limit(limit)
+  if (error) throw new Error(error.message)
+  return (data ?? []) as NewsItem[]
 }
