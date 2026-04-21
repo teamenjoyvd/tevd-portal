@@ -71,7 +71,7 @@ export default async function HomePage() {
       <div className="hidden md:block">
         <BentoGrid
           className="py-4 pb-16"
-          style={{ gridTemplateRows: 'repeat(4, minmax(160px, auto))' }}
+          style={{ gridTemplateRows: 'repeat(4, minmax(220px, auto))' }}
         >
 
           <BentoCard
