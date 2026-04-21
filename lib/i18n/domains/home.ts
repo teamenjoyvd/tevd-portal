@@ -5,6 +5,8 @@ export const home = {
   'home.cal.typeInPerson':   { en: 'In-Person',            bg: 'На живо'                 },
   'home.cal.typeOnline':     { en: 'Online',               bg: 'Онлайн'                  },
   'home.cal.typeHybrid':     { en: 'Hybrid',               bg: 'Хибридно'                },
+  'home.cal.today':          { en: 'TODAY',                bg: 'ДНЕС'                    },
+  'home.cal.tomorrow':       { en: 'TOMORROW',             bg: 'УТРЕ'                    },
   // GuidesTile
   'home.guides.title':       { en: 'Guides',               bg: 'Наръчници'               },
   'home.guides.viewAll':     { en: 'View all →',           bg: 'Виж всички →'            },

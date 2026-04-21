@@ -68,9 +68,9 @@ export default function CalendarTile({ events = [], colSpan, mobileColSpan, rowS
       mobileColSpan={mobileColSpan}
       rowSpan={rowSpan}
       className="bento-tile flex flex-col"
-      style={{ animationDelay: '150ms', paddingTop: 12, paddingBottom: 12, ...style }}
+      style={{ animationDelay: '150ms', paddingTop: 10, paddingBottom: 10, ...style }}
     >
-      <div className="flex items-center justify-end mb-4">
+      <div className="flex items-center justify-end mb-3">
         <Link href="/calendar" className="font-body text-[11px] font-bold tracking-widest uppercase pill-link-crimson">
           {t('home.cal.eventsLink')}
         </Link>
@@ -83,7 +83,7 @@ export default function CalendarTile({ events = [], colSpan, mobileColSpan, rowS
           </p>
         </div>
       ) : (
-        <div className="flex flex-col gap-2 flex-1">
+        <div className="flex flex-col gap-1.5 flex-1">
           {events.map(event => {
             const duration = eventDuration(event.start_time, event.end_time)
             const typeParts = [
@@ -92,7 +92,13 @@ export default function CalendarTile({ events = [], colSpan, mobileColSpan, rowS
               duration || null,
             ].filter(Boolean).join(' · ')
 
-            const urgent = daysUntil(event.start_time) <= 1
+            const days = daysUntil(event.start_time)
+            const pipLabel = days === 0
+              ? t('home.cal.today')
+              : days === 1
+                ? t('home.cal.tomorrow')
+                : null
+
             const monthLabel = calMonthLocale(event.start_time, lang)
             const dayLabel = calDay(event.start_time)
 
@@ -100,12 +106,20 @@ export default function CalendarTile({ events = [], colSpan, mobileColSpan, rowS
               <Link
                 key={event.id}
                 href={`/calendar?event=${event.id}`}
-                className="flex items-center justify-between gap-3 py-2.5 border-b last:border-0 hover:opacity-70 transition-opacity"
+                className="flex items-center justify-between gap-3 py-2 border-b last:border-0 hover:opacity-70 transition-opacity"
                 style={{ borderColor: 'var(--border-default)', textDecoration: 'none' }}
               >
                 <div className="flex-1 min-w-0">
                   <p className="font-body text-sm font-semibold leading-snug" style={{ color: 'var(--text-primary)' }}>
                     {event.title}
+                    {pipLabel && (
+                      <span
+                        className="ml-1.5 text-[9px] font-bold tracking-widest align-middle"
+                        style={{ color: '#bc4749' }}
+                      >
+                        {pipLabel}
+                      </span>
+                    )}
                   </p>
                   {typeParts && (
                     <p className="font-body text-[10px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
@@ -114,13 +128,10 @@ export default function CalendarTile({ events = [], colSpan, mobileColSpan, rowS
                   )}
                 </div>
 
-                {/* Date badge — tear-off calendar tile */}
+                {/* Date badge */}
                 <div
-                  className={[
-                    'flex flex-col items-center flex-shrink-0 rounded-md overflow-hidden',
-                    urgent ? 'ring-2 ring-offset-1 ring-[#bc4749]' : '',
-                  ].join(' ')}
-                  style={{ width: 48, height: 56 }}
+                  className="flex flex-col items-center flex-shrink-0 rounded-md overflow-hidden"
+                  style={{ width: 44, height: 52 }}
                 >
                   {/* Month strip */}
                   <div
@@ -134,7 +145,7 @@ export default function CalendarTile({ events = [], colSpan, mobileColSpan, rowS
                       {monthLabel}
                     </span>
                   </div>
-                  {/* Optional 1px divider */}
+                  {/* 1px divider */}
                   <div style={{ height: 1, width: '100%', backgroundColor: 'var(--border-default)', flexShrink: 0 }} />
                   {/* Day number */}
                   <div
