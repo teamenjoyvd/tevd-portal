@@ -189,6 +189,18 @@ export default function ProfilePage() {
     })
   }, [persistPrefs])
 
+  const collapseAll = useCallback(() => {
+    setBentoCollapsed(prev => {
+      const next = { ...prev }
+      orderedBentosRef.current.forEach(({ id }) => {
+        next[id] = true
+      })
+      setBentoOrder(order => { persistPrefs(order, next); return order })
+      return next
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [persistPrefs])
+
   const resetLayout = useCallback(() => {
     setBentoOrder(DEFAULT_ORDER)
     setBentoCollapsed({})
@@ -260,8 +272,6 @@ export default function ProfilePage() {
       node: (
         <EmailPrefsSection
           prefs={p.notification_prefs ?? DEFAULT_NOTIFICATION_PREFS}
-          open={!bentoCollapsed[BENTO_IDS.EMAIL_PREFS]}
-          onToggleOpen={() => toggleCollapse(BENTO_IDS.EMAIL_PREFS)}
         />
       ),
     } : null,
@@ -291,11 +301,22 @@ export default function ProfilePage() {
     .map(id => ({ id, entry: bentoMap[id] ?? null }))
     .filter((b): b is { id: string; entry: BentoEntry } => b.entry !== null)
 
+  // Stable ref for collapseAll to read current orderedBentos without stale closure
+  const orderedBentosRef = useRef(orderedBentos)
+  orderedBentosRef.current = orderedBentos
+
   return (
     <div className="py-8 pb-16">
       <div className="max-w-[1280px] mx-auto px-4 sm:px-6 xl:px-8">
 
-        <div className="flex justify-end mb-3">
+        <div className="flex justify-end gap-4 mb-3">
+          <button
+            onClick={collapseAll}
+            className="text-xs font-medium hover:opacity-70 transition-opacity"
+            style={{ color: 'var(--text-secondary)' }}
+          >
+            {t('profile.collapseAll')}
+          </button>
           <button
             onClick={resetLayout}
             className="text-xs font-medium hover:opacity-70 transition-opacity"
@@ -305,24 +326,45 @@ export default function ProfilePage() {
           </button>
         </div>
 
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-          <SortableContext items={orderedBentos.map(b => b.id)} strategy={rectSortingStrategy}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: '12px' }}>
-              {orderedBentos.map(({ id, entry }) => (
-                <SortableBento
-                  key={id}
-                  id={id}
-                  collapsed={!!bentoCollapsed[id]}
-                  onToggleCollapse={() => toggleCollapse(id)}
-                  colSpan={entry.colSpan}
-                  minHeight={entry.minHeight}
-                >
-                  {entry.node}
-                </SortableBento>
-              ))}
-            </div>
-          </SortableContext>
-        </DndContext>
+        {/* ── DESKTOP (md+) — DnD grid ──────────────────────────────────── */}
+        <div className="hidden md:block">
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={orderedBentos.map(b => b.id)} strategy={rectSortingStrategy}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: '12px' }}>
+                {orderedBentos.map(({ id, entry }) => (
+                  <SortableBento
+                    key={id}
+                    id={id}
+                    collapsed={!!bentoCollapsed[id]}
+                    onToggleCollapse={() => toggleCollapse(id)}
+                    colSpan={entry.colSpan}
+                    minHeight={entry.minHeight}
+                  >
+                    {entry.node}
+                  </SortableBento>
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
+        </div>
+
+        {/* ── MOBILE (< md) — stacked flex, no DnD ─────────────────────── */}
+        <div className="md:hidden flex flex-col gap-3">
+          {orderedBentos.map(({ id, entry }) => (
+            <SortableBento
+              key={id}
+              id={id}
+              collapsed={!!bentoCollapsed[id]}
+              onToggleCollapse={() => toggleCollapse(id)}
+              colSpan={entry.colSpan}
+              minHeight={entry.minHeight}
+              disableDrag
+            >
+              {entry.node}
+            </SortableBento>
+          ))}
+        </div>
+
       </div>
     </div>
   )
