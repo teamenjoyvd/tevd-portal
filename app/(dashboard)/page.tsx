@@ -69,7 +69,10 @@ export default async function HomePage() {
 
       {/* ── DESKTOP (md+) ────────────────────────────────────────────────── */}
       <div className="hidden md:block">
-        <BentoGrid className="py-4 pb-16">
+        <BentoGrid
+          className="py-4 pb-16"
+          style={{ gridTemplateRows: 'repeat(4, minmax(160px, auto))' }}
+        >
 
           <BentoCard
             variant="forest"
