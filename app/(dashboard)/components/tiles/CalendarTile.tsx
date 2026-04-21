@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import BentoCard from '@/components/bento/BentoCard'
 import { useLanguage } from '@/lib/hooks/useLanguage'
-import { formatTime, calDay, calMonth } from '@/lib/format'
+import { formatTime, calDay, TZ } from '@/lib/format'
 
 export type CalendarEvent = {
   id: string
@@ -12,6 +12,10 @@ export type CalendarEvent = {
   end_time: string | null
   event_type: string | null
 }
+
+// Module-level formatters — Intl construction is expensive; hoist out of render loop.
+const monthFormatterEn = new Intl.DateTimeFormat('en-GB', { month: 'short', timeZone: TZ })
+const monthFormatterBg = new Intl.DateTimeFormat('bg-BG', { month: 'short', timeZone: TZ })
 
 function eventDuration(startIso: string, endIso: string | null | undefined): string {
   if (!endIso) return ''
@@ -25,6 +29,36 @@ function eventDuration(startIso: string, endIso: string | null | undefined): str
   return `${m}m`
 }
 
+/** Returns abbreviated month in the active locale, uppercase. e.g. "MAR" or "МАР" */
+function calMonthLocale(iso: string, lang: 'en' | 'bg'): string {
+  const formatter = lang === 'bg' ? monthFormatterBg : monthFormatterEn
+  return formatter.format(new Date(iso)).toUpperCase()
+}
+
+/**
+ * Days from now to event date in Europe/Sofia timezone.
+ * Uses Sofia midnight on both sides to avoid time-of-day skew.
+ * Negative = past, 0 = today, 1 = tomorrow.
+ */
+function daysUntil(iso: string): number {
+  const toSofiaMidnightMs = (date: Date): number => {
+    // Extract Sofia calendar date via Intl, then reconstruct as UTC midnight equivalent
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: TZ,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(date)
+    const y = Number(parts.find(p => p.type === 'year')!.value)
+    const mo = Number(parts.find(p => p.type === 'month')!.value)
+    const d = Number(parts.find(p => p.type === 'day')!.value)
+    return Date.UTC(y, mo - 1, d)
+  }
+  return Math.floor(
+    (toSofiaMidnightMs(new Date(iso)) - toSofiaMidnightMs(new Date())) / 86400000
+  )
+}
+
 type Props = {
   events?: CalendarEvent[]
   colSpan?: number
@@ -34,7 +68,7 @@ type Props = {
 }
 
 export default function CalendarTile({ events = [], colSpan, mobileColSpan, rowSpan, style }: Props) {
-  const { t } = useLanguage()
+  const { lang, t } = useLanguage()
 
   const EVENT_TYPE_LABELS: Record<string, string> = {
     'in-person': t('home.cal.typeInPerson'),
@@ -49,9 +83,9 @@ export default function CalendarTile({ events = [], colSpan, mobileColSpan, rowS
       mobileColSpan={mobileColSpan}
       rowSpan={rowSpan}
       className="bento-tile flex flex-col"
-      style={{ animationDelay: '150ms', ...style }}
+      style={{ animationDelay: '150ms', paddingTop: 10, paddingBottom: 10, ...style }}
     >
-      <div className="flex items-center justify-end mb-4">
+      <div className="flex items-center justify-end mb-3">
         <Link href="/calendar" className="font-body text-[11px] font-bold tracking-widest uppercase pill-link-crimson">
           {t('home.cal.eventsLink')}
         </Link>
@@ -64,7 +98,7 @@ export default function CalendarTile({ events = [], colSpan, mobileColSpan, rowS
           </p>
         </div>
       ) : (
-        <div className="flex flex-col gap-3 flex-1">
+        <div className="flex flex-col gap-1.5 flex-1">
           {events.map(event => {
             const duration = eventDuration(event.start_time, event.end_time)
             const typeParts = [
@@ -72,6 +106,16 @@ export default function CalendarTile({ events = [], colSpan, mobileColSpan, rowS
               formatTime(event.start_time),
               duration || null,
             ].filter(Boolean).join(' · ')
+
+            const days = daysUntil(event.start_time)
+            const pipLabel = days === 0
+              ? t('home.cal.today')
+              : days === 1
+                ? t('home.cal.tomorrow')
+                : null
+
+            const monthLabel = calMonthLocale(event.start_time, lang)
+            const dayLabel = calDay(event.start_time)
 
             return (
               <Link
@@ -83,6 +127,14 @@ export default function CalendarTile({ events = [], colSpan, mobileColSpan, rowS
                 <div className="flex-1 min-w-0">
                   <p className="font-body text-sm font-semibold leading-snug" style={{ color: 'var(--text-primary)' }}>
                     {event.title}
+                    {pipLabel && (
+                      <span
+                        className="ml-1.5 text-[9px] font-bold tracking-widest align-middle"
+                        style={{ color: '#bc4749' }}
+                      >
+                        {pipLabel}
+                      </span>
+                    )}
                   </p>
                   {typeParts && (
                     <p className="font-body text-[10px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
@@ -90,30 +142,36 @@ export default function CalendarTile({ events = [], colSpan, mobileColSpan, rowS
                     </p>
                   )}
                 </div>
+
+                {/* Date badge */}
                 <div
-                  className="flex flex-col items-center flex-shrink-0 rounded-lg overflow-hidden"
-                  style={{ width: 40 }}
+                  className="flex flex-col items-center flex-shrink-0 rounded-md overflow-hidden"
+                  style={{ width: 44, height: 52 }}
                 >
-                  <div
-                    className="w-full text-center py-0.5"
-                    style={{ backgroundColor: 'var(--brand-crimson)', flex: '0 0 33%' }}
-                  >
-                    <span
-                      className="text-[8px] font-bold tracking-widest uppercase"
-                      style={{ color: 'rgba(255,255,255,0.9)' }}
-                    >
-                      {calMonth(event.start_time)}
-                    </span>
-                  </div>
+                  {/* Month strip */}
                   <div
                     className="w-full text-center"
-                    style={{ backgroundColor: 'var(--bg-card)', flex: '0 0 67%', paddingTop: 3, paddingBottom: 4 }}
+                    style={{ backgroundColor: 'var(--brand-crimson)', flex: '0 0 30%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                   >
                     <span
-                      className="font-display text-2xl font-bold leading-none"
+                      className="text-[10px] font-medium tracking-widest uppercase leading-none"
+                      style={{ color: 'rgba(255,255,255,0.92)' }}
+                    >
+                      {monthLabel}
+                    </span>
+                  </div>
+                  {/* 1px divider */}
+                  <div style={{ height: 1, width: '100%', backgroundColor: 'var(--border-default)', flexShrink: 0 }} />
+                  {/* Day number */}
+                  <div
+                    className="w-full text-center flex items-center justify-center"
+                    style={{ backgroundColor: 'var(--bg-card)', flex: '1 1 0' }}
+                  >
+                    <span
+                      className="font-display text-3xl font-black leading-none"
                       style={{ color: 'var(--brand-crimson)' }}
                     >
-                      {calDay(event.start_time)}
+                      {dayLabel}
                     </span>
                   </div>
                 </div>
