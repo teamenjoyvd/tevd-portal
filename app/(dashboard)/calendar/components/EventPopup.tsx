@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { formatTime, formatLongDate } from '@/lib/format'
 import { VaulDrawer } from '@/components/ui/vaul-drawer'
+import { X, Check } from 'lucide-react'
 import {
   Popover,
   PopoverAnchor,
@@ -126,7 +127,7 @@ export default function EventPopup({
     : (event?.role_requests ?? []).filter(r => r.profile?.id === userProfileId)
   const isMutating = requestMutation.isPending || cancelMutation.isPending
 
-  function Header() {
+  function renderHeader() {
     return (
       <div className="px-4 pt-3 pb-3 border-b border-black/5 flex-shrink-0">
         <div className="flex items-start justify-between gap-2">
@@ -152,16 +153,16 @@ export default function EventPopup({
           </div>
           <button onClick={onClose}
             className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-black/5 transition-colors flex-shrink-0 mt-0.5"
-            style={{ color: 'var(--text-secondary)', fontSize: 14 }}>
-            \u2715
+            style={{ color: 'var(--text-secondary)' }}>
+            <X size={14} />
           </button>
         </div>
       </div>
     )
   }
 
-  /** Roles section — extracted so it can be rendered first in the bottom sheet */
-  function RolesSection() {
+  /** Roles section — rendered first in the bottom sheet */
+  function renderRolesSection() {
     if (isGuest || isLoading || !event) return null
     return (
       <div className="px-4 py-3 border-b border-black/5">
@@ -190,10 +191,10 @@ export default function EventPopup({
                         <>
                           <button onClick={() => adminApproveMutation.mutate({ requestId: r.id, status: 'approved' })}
                             className="text-[10px] px-2 py-0.5 rounded-full font-semibold text-white"
-                            style={{ backgroundColor: 'var(--brand-teal)' }}>\u2713</button>
+                            style={{ backgroundColor: 'var(--brand-teal)' }}><Check size={10} /></button>
                           <button onClick={() => adminApproveMutation.mutate({ requestId: r.id, status: 'denied' })}
                             className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-black/10"
-                            style={{ color: 'var(--text-secondary)' }}>\u2715</button>
+                            style={{ color: 'var(--text-secondary)' }}><X size={10} /></button>
                         </>
                       )}
                     </div>
@@ -223,8 +224,8 @@ export default function EventPopup({
                     border: activeStyle ? `1px solid ${activeStyle.color}33` : '1px solid transparent',
                   }}>
                   {role}
-                  {isActive && myRequest!.status === 'pending' && <span className="opacity-60">\u2715</span>}
-                  {isActive && myRequest!.status === 'approved' && <span>\u2713</span>}
+                  {isActive && myRequest!.status === 'pending' && <X size={10} className="opacity-60" />}
+                  {isActive && myRequest!.status === 'approved' && <Check size={10} />}
                 </button>
               )
             })}
@@ -235,7 +236,7 @@ export default function EventPopup({
   }
 
   /** Metadata + description — date, time, link, share, description */
-  function MetaSection() {
+  function renderMetaSection() {
     if (isLoading) {
       return (
         <div className="p-4 space-y-2">
@@ -307,11 +308,11 @@ export default function EventPopup({
   if (isBottomSheet) {
     return (
       <VaulDrawer open onClose={onClose} snapPoints={[0.5, 0.92]} fadeFromIndex={1}>
-        <Header />
+        {renderHeader()}
         {/* Scrollable content area with fade gradient at bottom */}
         <div className="flex-1 overflow-y-auto relative" style={{ overscrollBehavior: 'contain' }}>
-          <RolesSection />
-          <MetaSection />
+          {renderRolesSection()}
+          {renderMetaSection()}
           {/* Scroll-fade gradient */}
           <div
             aria-hidden
@@ -341,10 +342,10 @@ export default function EventPopup({
         style={{ width: 320, overflow: 'hidden' }}
         onOpenAutoFocus={e => e.preventDefault()}
       >
-        <Header />
+        {renderHeader()}
         <div className="overflow-y-auto" style={{ maxHeight: 360 }}>
-          <MetaSection />
-          {!isGuest && <RolesSection />}
+          {renderMetaSection()}
+          {!isGuest && renderRolesSection()}
         </div>
       </PopoverContent>
     </Popover>
