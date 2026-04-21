@@ -13,7 +13,7 @@ type BentoGridProps = {
 export default function BentoGrid({ children, className = '', style }: BentoGridProps) {
   return (
     <div className="max-w-[1280px] mx-auto px-4 sm:px-6 xl:px-8 overflow-x-hidden">
-      <div className={`bento-grid ${className}`} style={style}>
+      <div className={`bento-grid ${className}`.trim()} style={style}>
         {children}
       </div>
     </div>
