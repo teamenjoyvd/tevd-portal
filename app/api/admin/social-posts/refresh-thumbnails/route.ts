@@ -28,7 +28,7 @@ export async function POST() {
   const results = { updated: 0, skipped: 0, failed: 0 }
 
   for (const post of posts ?? []) {
-    const url: string = post.thumbnail_url
+    const url = post.thumbnail_url
     if (!url || isStorageUrl(url)) { results.skipped++; continue }
 
     const mirrored = await mirrorToStorage(url, supabase)
