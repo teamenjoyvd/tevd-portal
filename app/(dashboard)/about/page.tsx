@@ -1,42 +1,9 @@
 import Image from 'next/image'
 import AboutMapTileDynamic from './components/AboutMapTileDynamic'
 import MailtoTile from './components/MailtoTile'
+import AboutContent from './components/AboutContent'
 
-// ── Shared content blocks ────────────────────────────────────────────────────
-
-const HEADING = (
-  <div className="flex items-center justify-end h-full px-2 py-4">
-    <h1
-      className="font-display text-3xl font-semibold text-right"
-      style={{ color: 'var(--text-primary)' }}
-    >
-      About Us
-    </h1>
-  </div>
-)
-
-const BODY = (
-  <div className="flex flex-col gap-4">
-    <p className="text-base leading-relaxed font-body" style={{ color: 'var(--text-secondary)' }}>
-      We&apos;re Vera &amp; Deniz, two folks living it up in the vibrant city of Sofia, Bulgaria.
-      We&apos;re all about good vibes, delicious grub, and that perfect cup of coffee ☕️
-    </p>
-    <p className="text-base leading-relaxed font-body" style={{ color: 'var(--text-secondary)' }}>
-      But hey, there&apos;s more to us than just our love for the simple pleasures. We&apos;re all
-      about forging meaningful connections that stand the test of time. We&apos;re on a mission
-      to build rock-solid relationships with like-minded individuals who share our passion
-      and vision.
-    </p>
-    <p className="text-base leading-relaxed font-body" style={{ color: 'var(--text-secondary)' }}>
-      So, if you&apos;ve made it to our corner of the web, you must be on the hunt for
-      something special. Reach out to the person who directed you here to dig deeper into
-      what we&apos;re all about. If you stumbled upon us all by yourself, kudos! Slide into
-      our DMs and let&apos;s have a chat. We love meeting new folks.
-    </p>
-  </div>
-)
-
-// ── Page ─────────────────────────────────────────────────────────────────────────────
+// ── Page ─────────────────────────────────────────────────────────────────────
 
 export default function AboutPage() {
   return (
@@ -44,63 +11,37 @@ export default function AboutPage() {
 
       {/* ════════════════════════════════════════════════════════════════════
           DESKTOP layout (md+)
-          12-col CSS grid, explicit placement
-          Row 1: [col 1–3 empty][col 4–6 heading][col 7–9 text rowspan 2][col 10–12 empty]
-          Row 2: [col 1–6 empty]               [col 7–9 text cont.]    [col 10–12 empty]
-          Row 3: [col 1–3 hero][col 4–6 empty] [col 7–9 mailto]        [col 10–12 map]
+          12-col CSS grid, max-w-[860px] centred
+          Row 1: [1–2 gutter] [3–6 heading+content island] [7–10 photo] [11–12 gutter]
+          Row 2: [1–2 gutter] [3–6 mailto]                 [7–10 map]   [11–12 gutter]
           ════════════════════════════════════════════════════════════════════ */}
-      <div className="hidden md:block max-w-[1280px] mx-auto px-4 sm:px-6 xl:px-8">
+      <div className="hidden md:block max-w-[860px] mx-auto px-4">
         <div
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
             gap: '12px',
-            gridAutoRows: 'minmax(120px, auto)',
+            gridAutoRows: 'minmax(160px, auto)',
           }}
         >
-          {/* Row 1 col 1–3: empty */}
-          <div style={{ gridColumn: '1 / span 3', gridRow: '1' }} />
-
-          {/* Row 1 col 4–6: heading — transparent */}
+          {/* Row 1 col 3–6: heading + content island (transparent) */}
           <div
             style={{
-              gridColumn: '4 / span 3',
+              gridColumn: '3 / span 4',
               gridRow: '1',
               borderRadius: 'var(--bento-radius)',
               padding: 'var(--bento-padding)',
             }}
           >
-            {HEADING}
+            <AboutContent />
           </div>
 
-          {/* Row 1–2 col 7–9: body text — transparent, rowspan 2 */}
-          <div
-            style={{
-              gridColumn: '7 / span 3',
-              gridRow: '1 / span 2',
-              borderRadius: 'var(--bento-radius)',
-              padding: 'var(--bento-padding)',
-            }}
-          >
-            {BODY}
-          </div>
-
-          {/* Row 1 col 10–12: empty */}
-          <div style={{ gridColumn: '10 / span 3', gridRow: '1' }} />
-
-          {/* Row 2 col 1–6: empty */}
-          <div style={{ gridColumn: '1 / span 6', gridRow: '2' }} />
-
-          {/* Row 2 col 10–12: empty */}
-          <div style={{ gridColumn: '10 / span 3', gridRow: '2' }} />
-
-          {/* Row 3 col 1–3: square hero image */}
+          {/* Row 1 col 7–10: hero photo */}
           <div
             className="rounded-2xl overflow-hidden relative"
             style={{
-              gridColumn: '1 / span 3',
-              gridRow: '3',
-              aspectRatio: '1 / 1',
+              gridColumn: '7 / span 4',
+              gridRow: '1',
             }}
           >
             <Image
@@ -112,38 +53,36 @@ export default function AboutPage() {
             />
           </div>
 
-          {/* Row 3 col 4–6: empty */}
-          <div style={{ gridColumn: '4 / span 3', gridRow: '3' }} />
-
-          {/* Row 3 col 7–9: mailto tile (client component — interactive-lift) */}
-          <MailtoTile style={{ gridColumn: '7 / span 3', gridRow: '3' }} />
-
-          {/* Row 3 col 10–12: map — client-only via dynamic wrapper */}
-          <AboutMapTileDynamic
-            gridColumn="10 / span 3"
-            style={{ gridColumn: '10 / span 3', gridRow: '3', minHeight: 120 }}
+          {/* Row 2 col 3–6: mailto tile */}
+          <MailtoTile
+            style={{
+              gridColumn: '3 / span 4',
+              gridRow: '2',
+            }}
           />
 
+          {/* Row 2 col 7–10: map tile */}
+          <AboutMapTileDynamic
+            gridColumn="7 / span 4"
+            style={{
+              gridColumn: '7 / span 4',
+              gridRow: '2',
+              minHeight: 160,
+            }}
+          />
         </div>
       </div>
 
       {/* ════════════════════════════════════════════════════════════════════
           MOBILE layout (< md)
+          Stack: photo → heading/content island → mailto + map (2-col row)
           ════════════════════════════════════════════════════════════════════ */}
       <div className="md:hidden flex flex-col gap-3 px-4">
 
+        {/* Photo */}
         <div
-          style={{
-            borderRadius: 'var(--bento-radius)',
-            padding: 'var(--bento-padding)',
-          }}
-        >
-          {HEADING}
-        </div>
-
-        <div
-          className="rounded-2xl overflow-hidden relative"
-          style={{ aspectRatio: '1 / 1', width: '100%' }}
+          className="rounded-2xl overflow-hidden relative w-full"
+          style={{ aspectRatio: '4 / 3' }}
         >
           <Image
             src="/about-hero.png"
@@ -154,15 +93,17 @@ export default function AboutPage() {
           />
         </div>
 
+        {/* Heading + body content island */}
         <div
           style={{
             borderRadius: 'var(--bento-radius)',
             padding: 'var(--bento-padding)',
           }}
         >
-          {BODY}
+          <AboutContent />
         </div>
 
+        {/* Mailto + map side-by-side */}
         <div className="grid grid-cols-2 gap-3">
           <MailtoTile style={{ minHeight: 96 }} />
           <AboutMapTileDynamic style={{ minHeight: 96 }} />
