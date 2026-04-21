@@ -12,8 +12,8 @@ import { useLanguage } from '@/lib/hooks/useLanguage'
 
 const TABS = [
   { key: 'announcements', labelKey: 'admin.content.page.tab.announcements' },
-  { key: 'links',         labelKey: 'admin.content.page.tab.links'         },
   { key: 'guides',        labelKey: 'admin.content.page.tab.guides'        },
+  { key: 'links',         labelKey: 'admin.content.page.tab.links'         },
   { key: 'socials',       labelKey: 'admin.content.page.tab.socials'       },
   { key: 'bento',         labelKey: 'admin.content.page.tab.bento'         },
 ] as const
@@ -42,8 +42,8 @@ function ContentPageInner() {
         onValueChange={(val) => router.replace(`?tab=${val}`, { scroll: false })}
       >
         <TabsContent value="announcements"><AnnouncementsTab /></TabsContent>
-        <TabsContent value="links"><LinksTab /></TabsContent>
         <TabsContent value="guides"><GuidesTab /></TabsContent>
+        <TabsContent value="links"><LinksTab /></TabsContent>
         <TabsContent value="socials"><SocialTab /></TabsContent>
         <TabsContent value="bento"><BentoTab /></TabsContent>
       </AdminTabs>

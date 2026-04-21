@@ -14,6 +14,7 @@ import {
   AlertDialogCancel,
 } from '@/components/ui/alert-dialog'
 import { AdminListCard } from '@/app/admin/components/AdminListCard'
+import { AdminStatusBadge } from '@/app/admin/components/AdminStatusBadge'
 import { useAdminDrawer } from '@/app/admin/components/useAdminDrawer'
 import { makeDragHandlers } from './useDragSort'
 import { useLanguage } from '@/lib/hooks/useLanguage'
@@ -24,6 +25,7 @@ type SiteLink = {
   url: string
   access_roles: string[]
   sort_order: number
+  is_active: boolean
 }
 
 const ALL_ROLES = ['guest', 'member', 'core', 'admin']
@@ -105,6 +107,18 @@ export function LinksTab() {
     },
   })
 
+  const toggleLinkActive = useMutation({
+    mutationFn: ({ id, is_active }: { id: string; is_active: boolean }) =>
+      fetch(`/api/admin/links/${id}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_active }),
+      }).then(r => r.json()),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-links'] })
+      qc.invalidateQueries({ queryKey: ['links', 'list'] })
+    },
+  })
+
   function startEditingLink(l: SiteLink) {
     setEditLForm({
       label: { en: l.label.en ?? '', bg: l.label.bg ?? '' },
@@ -180,6 +194,12 @@ export function LinksTab() {
                   className="text-xs font-medium border px-2.5 py-1 rounded-full hover:bg-black/5 transition-colors"
                   style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
                   {t('admin.content.links.btn.edit')}
+                </button>
+                <button onClick={() => toggleLinkActive.mutate({ id: l.id, is_active: !l.is_active })}>
+                  <AdminStatusBadge
+                    variant={l.is_active ? 'active' : 'inactive'}
+                    label={l.is_active ? t('admin.content.links.btn.toggleActive') : t('admin.content.links.btn.toggleInactive')}
+                  />
                 </button>
                 <button
                   onClick={() => setLinkAlertTarget({ id: l.id, name: l.label.en })}

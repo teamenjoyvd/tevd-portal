@@ -21,7 +21,7 @@ export const admin = {
   'admin.members.btn.next': { en: 'Next', bg: 'Следваща' },
 
   'admin.members.summary.losLinked': { en: '{{total}} in LOS · {{linked}} linked to portal accounts', bg: '{{total}} в LOS · {{linked}} свързани акаунти' },
-  'admin.members.pendingVerification': { en: 'Pending verification', bg: 'Чакaщи потвърждение' },
+  'admin.members.pendingVerification': { en: 'Pending verification', bg: 'Чакащи потвърждение' },
 
   'admin.members.verify.claimsAbo': { en: 'Claims ABO', bg: 'Заявява СБА' },
   'admin.members.verify.upline': { en: 'upline', bg: 'горна линия' },
@@ -269,7 +269,7 @@ export const admin = {
 
   // -- Content: page --
   'admin.content.page.heading': { en: 'Content', bg: 'Съдържание' },
-  'admin.content.page.tab.announcements': { en: 'Announcements', bg: 'Обявления' },
+  'admin.content.page.tab.announcements': { en: 'News', bg: 'Новини' },
   'admin.content.page.tab.links': { en: 'Links', bg: 'Връзки' },
   'admin.content.page.tab.guides': { en: 'Guides', bg: 'Ръководства' },
   'admin.content.page.tab.socials': { en: 'Social Posts', bg: 'Публикации' },
@@ -345,6 +345,8 @@ export const admin = {
   'admin.content.links.empty': { en: 'No links yet. Add one above.', bg: 'Все още няма връзки. Добавете по-горе.' },
   'admin.content.links.btn.edit': { en: 'Edit', bg: 'Редактирай' },
   'admin.content.links.btn.delete': { en: 'Delete', bg: 'Изтрий' },
+  'admin.content.links.btn.toggleActive': { en: 'Active', bg: 'Активна' },
+  'admin.content.links.btn.toggleInactive': { en: 'Inactive', bg: 'Неактивна' },
   'admin.content.links.drawer.editTitle': { en: 'Edit link', bg: 'Редактиране на връзка' },
   'admin.content.links.drawer.editTitleNamed': { en: 'Edit: {{name}}', bg: 'Редактиране: {{name}}' },
   'admin.content.links.btn.saving': { en: 'Saving…', bg: 'Запазване…' },
