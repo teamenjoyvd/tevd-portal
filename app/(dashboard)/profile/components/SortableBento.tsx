@@ -93,7 +93,7 @@ export function SortableBento({
     transition,
     opacity: isDragging ? 0.5 : 1,
     position: 'relative',
-    // Mobile stack (disableDrag): no minHeight — let content size the card
+    // Mobile stack (disableDrag): no minHeight — cards size to their content
     minHeight: disableDrag || collapsed ? undefined : minHeight,
   }
 
@@ -140,8 +140,12 @@ export function SortableBento({
               ▾
             </button>
           </div>
-          {/* Mobile stack: no height constraint — let section content determine card height */}
-          <div style={{ overflow: 'hidden', height: disableDrag ? undefined : '100%' }}>{children}</div>
+          {/*
+            Desktop: height 100% fills the grid cell (minHeight set on parent).
+            Mobile (disableDrag): height auto — parent has no fixed height, so
+            h-full children resolve to auto and the card sizes to its content.
+          */}
+          <div style={{ overflow: 'hidden', height: disableDrag ? 'auto' : '100%' }}>{children}</div>
         </>
       )}
     </div>
