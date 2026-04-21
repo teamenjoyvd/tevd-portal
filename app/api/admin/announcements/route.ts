@@ -34,8 +34,9 @@ export async function POST(req: Request) {
   const { data, error } = await supabase.from('announcements').insert({
     titles:       body.titles,
     contents:     body.contents,
-    access_level: body.access_level ?? ['member', 'core', 'admin'],
+    access_roles: body.access_roles ?? ['member', 'core', 'admin'],
     is_active:    body.is_active ?? true,
+    slug:         body.slug ?? null,
   }).select().single()
   if (error) return Response.json({ error: error.message }, { status: 500 })
   return Response.json(data, { status: 201 })

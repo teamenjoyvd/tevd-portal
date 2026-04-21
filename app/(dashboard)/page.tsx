@@ -38,8 +38,8 @@ export default async function HomePage() {
 
   const [announcementsRes, linksRes, tripsRes, guidesRes, eventsRes] = await Promise.all([
     supabase.from('announcements').select('*').eq('is_active', true)
-      .contains('access_level', [role]).order('created_at', { ascending: false }).limit(5),
-    supabase.from('links').select('id, label, url').contains('access_roles', [role]).order('sort_order').limit(4),
+      .contains('access_roles', [role]).order('created_at', { ascending: false }).limit(5),
+    supabase.from('links').select('id, label, url').eq('is_active', true).contains('access_roles', [role]).order('sort_order').limit(4),
     supabase.from('trips').select('id, title, destination, start_date, image_url')
       .contains('visibility_roles', [role]).order('start_date').limit(3),
     supabase.from('guides').select('id, slug, title, emoji')
