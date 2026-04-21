@@ -2,12 +2,18 @@
 
 import { useLanguage } from '@/lib/hooks/useLanguage'
 
+const MISSION_WORD: Record<'en' | 'bg', string> = {
+  en: 'mission',
+  bg: '\u043c\u0438\u0441\u0438\u044f',
+}
+
 export default function AboutContent() {
-  const { t } = useLanguage()
+  const { lang, t } = useLanguage()
 
   const title = t('about.title')
-  const titleParts = title.split('mission')
-  const hasMissionWord = titleParts.length > 1
+  const keyword = MISSION_WORD[lang]
+  const titleParts = title.split(keyword)
+  const hasKeyword = titleParts.length > 1
 
   return (
     <div className="flex flex-col justify-center gap-3 px-1 py-2">
@@ -19,15 +25,15 @@ export default function AboutContent() {
         {t('about.eyebrow')}
       </p>
 
-      {/* Display title — italic teal on the word "mission" (EN only) */}
+      {/* Display title — italic teal on the mission/мисия keyword */}
       <h1
         className="font-display text-2xl font-semibold leading-snug"
         style={{ color: 'var(--text-primary)' }}
       >
-        {hasMissionWord ? (
+        {hasKeyword ? (
           <>
             {titleParts[0]}
-            <em style={{ color: 'var(--brand-teal)', fontStyle: 'italic' }}>mission</em>
+            <em style={{ color: 'var(--brand-teal)', fontStyle: 'italic' }}>{keyword}</em>
             {titleParts[1]}
           </>
         ) : (
