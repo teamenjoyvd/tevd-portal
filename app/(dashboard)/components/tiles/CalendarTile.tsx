@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import BentoCard from '@/components/bento/BentoCard'
 import { useLanguage } from '@/lib/hooks/useLanguage'
-import { formatTime, calDay } from '@/lib/format'
+import { formatTime, calDay, TZ } from '@/lib/format'
 
 export type CalendarEvent = {
   id: string
@@ -13,7 +13,9 @@ export type CalendarEvent = {
   event_type: string | null
 }
 
-const TZ = 'Europe/Sofia'
+// Module-level formatters — Intl construction is expensive; hoist out of render loop.
+const monthFormatterEn = new Intl.DateTimeFormat('en-GB', { month: 'short', timeZone: TZ })
+const monthFormatterBg = new Intl.DateTimeFormat('bg-BG', { month: 'short', timeZone: TZ })
 
 function eventDuration(startIso: string, endIso: string | null | undefined): string {
   if (!endIso) return ''
@@ -29,19 +31,32 @@ function eventDuration(startIso: string, endIso: string | null | undefined): str
 
 /** Returns abbreviated month in the active locale, uppercase. e.g. "MAR" or "МАР" */
 function calMonthLocale(iso: string, lang: 'en' | 'bg'): string {
-  const locale = lang === 'bg' ? 'bg-BG' : 'en-GB'
-  return new Intl.DateTimeFormat(locale, { month: 'short', timeZone: TZ })
-    .format(new Date(iso))
-    .toUpperCase()
+  const formatter = lang === 'bg' ? monthFormatterBg : monthFormatterEn
+  return formatter.format(new Date(iso)).toUpperCase()
 }
 
-/** Days from now to event date (negative = past). Uses local midnight to avoid time-of-day skew. */
+/**
+ * Days from now to event date in Europe/Sofia timezone.
+ * Uses Sofia midnight on both sides to avoid time-of-day skew.
+ * Negative = past, 0 = today, 1 = tomorrow.
+ */
 function daysUntil(iso: string): number {
-  const now = new Date()
-  const nowMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
-  const eventDate = new Date(iso)
-  const eventMidnight = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate()).getTime()
-  return Math.floor((eventMidnight - nowMidnight) / 86400000)
+  const toSofiaMidnightMs = (date: Date): number => {
+    // Extract Sofia calendar date via Intl, then reconstruct as UTC midnight equivalent
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: TZ,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(date)
+    const y = Number(parts.find(p => p.type === 'year')!.value)
+    const mo = Number(parts.find(p => p.type === 'month')!.value)
+    const d = Number(parts.find(p => p.type === 'day')!.value)
+    return Date.UTC(y, mo - 1, d)
+  }
+  return Math.floor(
+    (toSofiaMidnightMs(new Date(iso)) - toSofiaMidnightMs(new Date())) / 86400000
+  )
 }
 
 type Props = {

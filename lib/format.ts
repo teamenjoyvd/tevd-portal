@@ -6,7 +6,7 @@
 
 import { TranslationKey } from '@/lib/i18n/translations'
 
-const TZ = 'Europe/Sofia'
+export const TZ = 'Europe/Sofia'
 
 /** 18.03.2026 */
 export function formatDate(iso: string): string {
