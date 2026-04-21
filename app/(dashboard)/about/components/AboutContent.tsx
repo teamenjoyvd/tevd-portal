@@ -12,8 +12,9 @@ export default function AboutContent() {
 
   const title = t('about.title')
   const keyword = MISSION_WORD[lang]
-  const titleParts = title.split(keyword)
-  const hasKeyword = titleParts.length > 1
+  // Capturing group in the regex preserves the matched text in the split array,
+  // and the 'i' flag makes the match case-insensitive.
+  const titleParts = title.split(new RegExp(`(${keyword})`, 'i'))
 
   return (
     <div className="flex flex-col justify-center gap-3 px-1 py-2">
@@ -30,14 +31,12 @@ export default function AboutContent() {
         className="font-display text-2xl font-semibold leading-snug"
         style={{ color: 'var(--text-primary)' }}
       >
-        {hasKeyword ? (
-          <>
-            {titleParts[0]}
-            <em style={{ color: 'var(--brand-teal)', fontStyle: 'italic' }}>{keyword}</em>
-            {titleParts[1]}
-          </>
-        ) : (
-          title
+        {titleParts.map((part, i) =>
+          part.toLowerCase() === keyword.toLowerCase() ? (
+            <em key={i} style={{ color: 'var(--brand-teal)', fontStyle: 'italic' }}>{part}</em>
+          ) : (
+            part
+          )
         )}
       </h1>
 

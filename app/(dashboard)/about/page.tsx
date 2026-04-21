@@ -63,7 +63,6 @@ export default function AboutPage() {
 
           {/* Row 2 col 7–10: map tile */}
           <AboutMapTileDynamic
-            gridColumn="7 / span 4"
             style={{
               gridColumn: '7 / span 4',
               gridRow: '2',
