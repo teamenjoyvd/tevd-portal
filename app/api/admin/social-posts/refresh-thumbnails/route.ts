@@ -1,7 +1,10 @@
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { requireAdmin } from '@/lib/supabase/guards'
-import { mirrorToStorage, isStorageUrl } from '@/lib/social-thumbnail'
+import { mirrorToStorage } from '@/lib/social-thumbnail'
+
+const STORAGE_URL_FRAGMENT = '/storage/v1/object/public/social-thumbnails/'
+const CONCURRENCY = 5
 
 /**
  * POST /api/admin/social-posts/refresh-thumbnails
@@ -18,30 +21,40 @@ export async function POST() {
   const guard = await requireAdmin(userId, supabase)
   if (guard) return guard
 
+  // Filter at the DB level — only fetch rows that are not already in Storage.
   const { data: posts, error } = await supabase
     .from('social_posts')
     .select('id, thumbnail_url')
     .not('thumbnail_url', 'is', null)
+    .not('thumbnail_url', 'ilike', `%${STORAGE_URL_FRAGMENT}%`)
 
   if (error) return Response.json({ error: error.message }, { status: 500 })
 
   const results = { updated: 0, skipped: 0, failed: 0 }
 
-  for (const post of posts ?? []) {
-    const url = post.thumbnail_url
-    if (!url || isStorageUrl(url)) { results.skipped++; continue }
+  // Process in parallel with a fixed concurrency cap to avoid serverless timeouts.
+  const queue = [...(posts ?? [])]
 
-    const mirrored = await mirrorToStorage(url, supabase)
-    if (!mirrored) { results.failed++; continue }
+  async function processChunk() {
+    while (queue.length > 0) {
+      const post = queue.shift()!
+      const url = post.thumbnail_url
+      if (!url) { results.skipped++; continue }
 
-    const { error: updateError } = await supabase
-      .from('social_posts')
-      .update({ thumbnail_url: mirrored })
-      .eq('id', post.id)
+      const mirrored = await mirrorToStorage(url, supabase)
+      if (!mirrored) { results.failed++; continue }
 
-    if (updateError) { results.failed++; continue }
-    results.updated++
+      const { error: updateError } = await supabase
+        .from('social_posts')
+        .update({ thumbnail_url: mirrored })
+        .eq('id', post.id)
+
+      if (updateError) { results.failed++; continue }
+      results.updated++
+    }
   }
+
+  await Promise.all(Array.from({ length: CONCURRENCY }, processChunk))
 
   return Response.json(results)
 }

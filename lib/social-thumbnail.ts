@@ -27,8 +27,11 @@ export async function mirrorToStorage(
   if (!url) return null
   if (isStorageUrl(url)) return url
 
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 8_000)
+
   try {
-    const res = await fetch(url)
+    const res = await fetch(url, { signal: controller.signal })
     if (!res.ok) return null
 
     const contentType = res.headers.get('content-type') ?? 'image/jpeg'
@@ -49,5 +52,7 @@ export async function mirrorToStorage(
     return `${STORAGE_URL_PREFIX}${filename}`
   } catch {
     return null
+  } finally {
+    clearTimeout(timeout)
   }
 }
