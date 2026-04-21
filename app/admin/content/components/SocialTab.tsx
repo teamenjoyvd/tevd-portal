@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Drawer } from '@/components/ui/Drawer'
 import {
@@ -18,6 +18,7 @@ import { AdminStatusBadge } from '@/app/admin/components/AdminStatusBadge'
 import { useAdminDrawer } from '@/app/admin/components/useAdminDrawer'
 import { makeDragHandlers } from './useDragSort'
 import { useLanguage } from '@/lib/hooks/useLanguage'
+import { isCdnUrl, isStorageUrl } from '@/lib/social-thumbnail'
 
 type SocialPost = {
   id: string
@@ -73,6 +74,13 @@ function SocialPostForm({
   const [form, setForm] = useState(initial)
   const [previewing, setPreviewing] = useState(false)
   const [previewHint, setPreviewHint] = useState<string | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // CDN URL guard: block save if thumbnail_url is an ephemeral CDN URL
+  const thumbnailIsCdn = form.thumbnail_url ? isCdnUrl(form.thumbnail_url) : false
+  const thumbnailIsStorage = form.thumbnail_url ? isStorageUrl(form.thumbnail_url) : false
+  const thumbnailIsBlocked = thumbnailIsCdn && !thumbnailIsStorage
 
   async function fetchOgPreview(url: string) {
     if (!url) return
@@ -94,6 +102,27 @@ function SocialPostForm({
       setPreviewHint(t('admin.content.social.previewUnavailable'))
     } finally {
       setPreviewing(false)
+    }
+  }
+
+  async function handleFileUpload(file: File) {
+    setUploading(true)
+    try {
+      // Upload via signed URL using the anon client — service role not available client-side.
+      // We POST to a dedicated upload endpoint instead.
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await fetch('/api/admin/social-posts/upload-thumbnail', {
+        method: 'POST',
+        body: formData,
+      })
+      if (!res.ok) throw new Error('Upload failed')
+      const { url } = await res.json() as { url: string }
+      setForm(f => ({ ...f, thumbnail_url: url }))
+    } catch {
+      setPreviewHint(t('admin.content.social.previewUnavailable'))
+    } finally {
+      setUploading(false)
     }
   }
 
@@ -129,18 +158,59 @@ function SocialPostForm({
         className="w-full border rounded-xl px-3 py-2.5 text-sm resize-none"
         style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
       />
-      <input
-        value={form.thumbnail_url}
-        onChange={e => setForm(f => ({ ...f, thumbnail_url: e.target.value }))}
-        placeholder={t('admin.content.social.placeholder.thumbnailUrl')}
-        className="w-full border rounded-xl px-3 py-2.5 text-sm"
-        style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
-      />
+
+      {/* Thumbnail — file upload primary, text fallback */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="px-3 py-1.5 rounded-xl text-xs font-semibold border transition-colors hover:bg-black/5 disabled:opacity-50"
+            style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+          >
+            {uploading ? t('admin.content.social.btn.uploading') : t('admin.content.social.btn.uploadThumbnail')}
+          </button>
+          {form.thumbnail_url && thumbnailIsStorage && (
+            <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+              ✓ {t('admin.content.social.thumbnailStored')}
+            </span>
+          )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            className="hidden"
+            onChange={e => {
+              const file = e.target.files?.[0]
+              if (file) handleFileUpload(file)
+              e.target.value = ''
+            }}
+          />
+        </div>
+        <input
+          value={form.thumbnail_url}
+          onChange={e => setForm(f => ({ ...f, thumbnail_url: e.target.value }))}
+          placeholder={t('admin.content.social.placeholder.thumbnailUrl')}
+          className="w-full border rounded-xl px-3 py-2.5 text-sm"
+          style={{
+            borderColor: thumbnailIsBlocked ? 'var(--brand-crimson)' : 'var(--border-default)',
+            color: 'var(--text-primary)',
+            backgroundColor: 'var(--bg-card)',
+          }}
+        />
+        {thumbnailIsBlocked && (
+          <p className="text-xs" style={{ color: 'var(--brand-crimson)' }}>
+            {t('admin.content.social.cdnUrlWarning')}
+          </p>
+        )}
+      </div>
+
       {error && <p className="text-xs" style={{ color: 'var(--brand-crimson)' }}>{error}</p>}
       <div className="flex gap-3 pt-2">
         <button
           onClick={() => onSave(form)}
-          disabled={isPending || !form.post_url}
+          disabled={isPending || !form.post_url || thumbnailIsBlocked}
           className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40 transition-opacity hover:opacity-90"
           style={{ backgroundColor: 'var(--brand-crimson)' }}>
           {isPending ? t('admin.content.social.btn.saving') : t('admin.content.social.btn.save')}

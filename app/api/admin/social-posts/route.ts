@@ -2,6 +2,7 @@ import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { scrapeOgTags } from '@/lib/og-scrape'
 import { requireAdmin } from '@/lib/supabase/guards'
+import { mirrorToStorage, isCdnUrl } from '@/lib/social-thumbnail'
 
 export async function GET() {
   const { userId } = await auth()
@@ -61,6 +62,12 @@ export async function POST(req: Request) {
     const scraped = await scrapeOgTags(body.post_url)
     if (!thumbnail_url) thumbnail_url = scraped.thumbnail_url
     if (!caption) caption = scraped.caption
+  }
+
+  // Mirror CDN thumbnails to Storage before insert
+  if (thumbnail_url && isCdnUrl(thumbnail_url)) {
+    const mirrored = await mirrorToStorage(thumbnail_url, supabase)
+    if (mirrored) thumbnail_url = mirrored
   }
 
   const { data, error } = await supabase

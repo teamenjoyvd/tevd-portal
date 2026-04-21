@@ -1,5 +1,6 @@
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { mirrorToStorage, isCdnUrl } from '@/lib/social-thumbnail'
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { userId } = await auth()
@@ -18,6 +19,12 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     is_pinned: boolean
     sort_order: number
   }> = await req.json()
+
+  // Mirror CDN thumbnails to Storage before update
+  if (body.thumbnail_url && isCdnUrl(body.thumbnail_url)) {
+    const mirrored = await mirrorToStorage(body.thumbnail_url, supabase)
+    if (mirrored) body.thumbnail_url = mirrored
+  }
 
   // Pin swap: use atomic RPC to avoid race condition (ISS-0171)
   if (body.is_pinned === true) {
