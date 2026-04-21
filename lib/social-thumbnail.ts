@@ -7,6 +7,10 @@ const CDN_PATTERNS = [
   /\.cdninstagram\.com\//,
 ]
 
+// Common browser UA — required to avoid 403s from FB/IG CDNs on headless fetches.
+const FETCH_USER_AGENT =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+
 export function isCdnUrl(url: string): boolean {
   return CDN_PATTERNS.some(p => p.test(url))
 }
@@ -31,7 +35,10 @@ export async function mirrorToStorage(
   const timeout = setTimeout(() => controller.abort(), 8_000)
 
   try {
-    const res = await fetch(url, { signal: controller.signal })
+    const res = await fetch(url, {
+      signal: controller.signal,
+      headers: { 'User-Agent': FETCH_USER_AGENT },
+    })
     if (!res.ok) return null
 
     const contentType = res.headers.get('content-type') ?? 'image/jpeg'

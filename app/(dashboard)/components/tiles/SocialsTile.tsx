@@ -20,7 +20,15 @@ type SocialsData = {
   post: SocialPost | null
 }
 
+const STORAGE_URL_FRAGMENT = '/storage/v1/object/public/social-thumbnails/'
+
+/**
+ * Storage URLs are public — serve directly.
+ * CDN URLs (fbcdn, cdninstagram) require the server-side proxy to bypass
+ * hotlink protection. Any URL not matching Storage is assumed to need proxying.
+ */
 function thumbnailSrc(url: string): string {
+  if (url.includes(STORAGE_URL_FRAGMENT)) return url
   return `/api/socials/thumbnail?src=${encodeURIComponent(url)}`
 }
 
