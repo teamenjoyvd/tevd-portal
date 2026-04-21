@@ -6,6 +6,26 @@ import { CSS } from '@dnd-kit/utilities'
 
 // ── Drag handle ───────────────────────────────────────────────────────────────
 
+function GripIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 14 14"
+      fill="none"
+      className="flex-shrink-0"
+      style={{ color: 'var(--text-secondary)', cursor: 'grab' }}
+    >
+      <circle cx="4" cy="3" r="1.2" fill="currentColor" />
+      <circle cx="4" cy="7" r="1.2" fill="currentColor" />
+      <circle cx="4" cy="11" r="1.2" fill="currentColor" />
+      <circle cx="10" cy="3" r="1.2" fill="currentColor" />
+      <circle cx="10" cy="7" r="1.2" fill="currentColor" />
+      <circle cx="10" cy="11" r="1.2" fill="currentColor" />
+    </svg>
+  )
+}
+
 const DragHandle = forwardRef<HTMLSpanElement, React.HTMLAttributes<HTMLSpanElement>>(
   function DragHandle(props, ref) {
     return (
@@ -13,9 +33,9 @@ const DragHandle = forwardRef<HTMLSpanElement, React.HTMLAttributes<HTMLSpanElem
         {...props}
         ref={ref}
         title="Drag to reorder"
-        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 44, minHeight: 44, cursor: 'grab', touchAction: 'none', userSelect: 'none', fontSize: 14, lineHeight: 1, color: 'var(--text-secondary)', opacity: 0.5, flexShrink: 0 }}
+        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 44, minHeight: 44, cursor: 'grab', touchAction: 'none', userSelect: 'none', opacity: 0.5, flexShrink: 0 }}
       >
-        ⠇
+        <GripIcon />
       </span>
     )
   }
@@ -46,6 +66,7 @@ export function SortableBento({
   onToggleCollapse,
   colSpan,
   minHeight,
+  disableDrag,
   children,
 }: {
   id: string
@@ -53,6 +74,7 @@ export function SortableBento({
   onToggleCollapse: () => void
   colSpan: number
   minHeight: number
+  disableDrag?: boolean
   children: ReactNode
 }) {
   const {
@@ -66,7 +88,7 @@ export function SortableBento({
   } = useSortable({ id })
 
   const style: React.CSSProperties = {
-    gridColumn: `span ${colSpan}`,
+    ...(disableDrag ? {} : { gridColumn: `span ${colSpan}` }),
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
@@ -77,7 +99,7 @@ export function SortableBento({
   return (
     <div
       ref={setNodeRef}
-      className={colSpan === 6 ? 'bento-mobile-full' : ''}
+      className={!disableDrag && colSpan === 6 ? 'bento-mobile-full' : ''}
       style={style}
     >
       {collapsed ? (
@@ -86,7 +108,9 @@ export function SortableBento({
           style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}
         >
           <div className="flex items-center gap-3">
-            <DragHandle ref={setActivatorNodeRef} {...attributes} {...listeners} />
+            {!disableDrag && (
+              <DragHandle ref={setActivatorNodeRef} {...attributes} {...listeners} />
+            )}
             <span className="text-xs font-semibold tracking-[0.2em] uppercase" style={{ color: 'var(--text-secondary)' }}>
               {BENTO_LABELS[id] ?? id}
             </span>
@@ -103,7 +127,9 @@ export function SortableBento({
       ) : (
         <>
           <div style={{ position: 'absolute', top: 18, right: 16, display: 'flex', alignItems: 'center', gap: 6, zIndex: 10 }}>
-            <DragHandle ref={setActivatorNodeRef} {...attributes} {...listeners} />
+            {!disableDrag && (
+              <DragHandle ref={setActivatorNodeRef} {...attributes} {...listeners} />
+            )}
             <button
               type="button"
               onClick={onToggleCollapse}

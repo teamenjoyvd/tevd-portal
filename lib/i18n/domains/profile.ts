@@ -45,6 +45,7 @@ export const profile = {
   'profile.role.label.guest':   { en: 'Guest',                   bg: 'Гост'                     },
   'profile.incompleteHint':     { en: 'Complete your profile to get started.', bg: 'Попълнете профила си, за да започнете.' },
   'profile.resetLayout':        { en: 'Reset layout',            bg: 'Нулирай оформлението'     },
+  'profile.collapseAll':        { en: 'Collapse all',            bg: 'Свий всички'              },
   'profile.tile.personalDetails': { en: 'Personal Details', bg: 'Лични данни'           },
   'profile.tile.aboInfo':         { en: 'ABO Information',  bg: 'ABO Информация'        },
   'profile.tile.travelDoc':       { en: 'Travel Document',  bg: 'Документ за пътуване'  },
