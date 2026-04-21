@@ -93,7 +93,8 @@ export function SortableBento({
     transition,
     opacity: isDragging ? 0.5 : 1,
     position: 'relative',
-    minHeight: collapsed ? undefined : minHeight,
+    // Mobile stack (disableDrag): no minHeight — let content size the card
+    minHeight: disableDrag || collapsed ? undefined : minHeight,
   }
 
   return (
@@ -139,7 +140,8 @@ export function SortableBento({
               ▾
             </button>
           </div>
-          <div style={{ overflow: 'hidden', height: '100%' }}>{children}</div>
+          {/* Mobile stack: no height constraint — let section content determine card height */}
+          <div style={{ overflow: 'hidden', height: disableDrag ? undefined : '100%' }}>{children}</div>
         </>
       )}
     </div>
