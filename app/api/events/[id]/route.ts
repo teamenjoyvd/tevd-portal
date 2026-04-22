@@ -1,6 +1,5 @@
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { createClient } from '@/lib/supabase/server'
 
 export async function GET(
   _req: Request,
@@ -10,9 +9,10 @@ export async function GET(
 
   if (!userId) {
     const { id } = await params
-    const supabase = await createClient()
+    const supabase = createServiceClient()
     const { data: event, error } = await supabase
       .from('calendar_events').select('*').eq('id', id).single()
+    if (error?.code === 'PGRST116') return Response.json({ error: 'Not found' }, { status: 404 })
     if (error) return Response.json({ error: error.message }, { status: 500 })
     return Response.json({ ...event, role_requests: [], caller_request: null })
   }
