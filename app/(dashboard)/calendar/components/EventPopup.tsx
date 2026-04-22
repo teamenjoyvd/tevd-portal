@@ -126,7 +126,7 @@ export default function EventPopup({
             <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
               <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
                 style={{ backgroundColor: event?.category === 'N21' ? 'var(--brand-forest)' : 'var(--brand-crimson)', color: 'rgba(255,255,255,0.9)' }}>
-                {event?.category ?? '\u2026'}
+                {event?.category ?? '…'}
               </span>
               {eventTypeStyle && (
                 <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
@@ -139,7 +139,7 @@ export default function EventPopup({
               )}
             </div>
             <p className="font-display text-base font-semibold leading-snug" style={{ color: 'var(--text-primary)' }}>
-              {isLoading ? '\u2026' : event?.title}
+              {isLoading ? '…' : event?.title}
             </p>
           </div>
           <button onClick={onClose}
@@ -167,7 +167,7 @@ export default function EventPopup({
                         <div className="flex-1 min-w-0">
                           <p className="text-[10px] font-medium mb-0.5" style={{ color: 'var(--text-primary)' }}>
                             {r.profile?.first_name} {r.profile?.last_name}
-                            {r.profile?.abo_number && <span style={{ color: 'var(--text-secondary)' }}> \u00b7 {r.profile.abo_number}</span>}
+                            {r.profile?.abo_number && <span style={{ color: 'var(--text-secondary)' }}> · {r.profile.abo_number}</span>}
                           </p>
                           <p className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>{r.role_label}</p>
                         </div>
@@ -249,7 +249,7 @@ export default function EventPopup({
                   <circle cx="12" cy="12" r="10"/>
                   <polyline points="12 6 12 12 16 14"/>
                 </svg>
-                <span>{formatTime(event.start_time)} \u2013 {formatTime(event.end_time)}</span>
+                <span>{formatTime(event.start_time)} – {formatTime(event.end_time)}</span>
               </div>
               {!isGuest && event.meeting_url && (
                 <div className="flex items-center gap-2 text-xs mt-1">
