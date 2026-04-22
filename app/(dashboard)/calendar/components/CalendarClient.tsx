@@ -4,6 +4,8 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { DAYS_I18N, MONTHS_I18N } from '@/lib/i18n/translations'
+import { VaulDrawer } from '@/components/ui/vaul-drawer'
+import { Dialog, DialogContent, DialogOverlay, DialogPortal } from '@/components/ui/dialog'
 import EventPopup from '@/app/(dashboard)/calendar/components/EventPopup'
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -31,7 +33,7 @@ type Props = {
   isAuthenticated: boolean
 }
 
-// ── Constants ────────────────────────────────────────────────────────
+// ── Constants ─────────────────────────────────────────────────────────────
 
 const HOURS  = Array.from({ length: 24 }, (_, i) => i)
 const HOUR_HEIGHT = 60
@@ -41,7 +43,7 @@ const CATEGORY_COLOR: Record<string, { bg: string; text: string }> = {
   Personal: { bg: 'var(--sienna)', text: 'rgba(255,255,255,0.95)' },
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// ── Helpers ─────────────────────────────────────────────────────────────────────
 
 function isoWeek(date: Date): number {
   const d = new Date(date)
@@ -92,13 +94,13 @@ function eventDurationMinutes(start: string, end: string): number {
   return Math.max(30, (new Date(end).getTime() - new Date(start).getTime()) / 60000)
 }
 
-// ── Event pill ────────────────────────────────────────────────────────────────────────
+// ── Event pill ──────────────────────────────────────────────────────────────────────────────
 
 function EventPill({
   event, onClick, compact = false,
 }: {
   event: CalendarEvent
-  onClick: (el: HTMLElement) => void
+  onClick: () => void
   compact?: boolean
 }) {
   const c = CATEGORY_COLOR[event.category]
@@ -106,7 +108,7 @@ function EventPill({
     <button
       onClick={e => {
         e.stopPropagation()
-        onClick(e.currentTarget)
+        onClick()
       }}
       className="w-full text-left rounded-md px-1.5 transition-opacity hover:opacity-80 active:opacity-60"
       style={{
@@ -128,14 +130,14 @@ function EventPill({
   )
 }
 
-// ── Month View ────────────────────────────────────────────────────────────────────────
+// ── Month View ────────────────────────────────────────────────────────────────────────────
 
 function MonthView({
   current, events, onEventClick, onDayClick,
 }: {
   current: Date
   events: CalendarEvent[]
-  onEventClick: (id: string, el: HTMLElement) => void
+  onEventClick: (id: string) => void
   onDayClick: (date: Date) => void
 }) {
   const { lang, t } = useLanguage()
@@ -200,7 +202,7 @@ function MonthView({
                           key={ev.id}
                           event={ev}
                           compact
-                          onClick={(el) => onEventClick(ev.id, el)}
+                          onClick={() => onEventClick(ev.id)}
                         />
                       ))}
                       {dayEvents.length > 3 && (
@@ -221,13 +223,13 @@ function MonthView({
   )
 }
 
-// ── Agenda View ────────────────────────────────────────────────────────────────────────────
+// ── Agenda View ───────────────────────────────────────────────────────────────────────────────
 
 function AgendaView({
   events, onEventClick, isLoading, highlightId,
 }: {
   events: CalendarEvent[]
-  onEventClick: (id: string, el: HTMLElement) => void
+  onEventClick: (id: string) => void
   isLoading: boolean
   highlightId?: string | null
 }) {
@@ -307,7 +309,7 @@ function AgendaView({
                   <button
                     key={ev.id}
                     ref={isHighlighted ? highlightRef : null}
-                    onClick={e => onEventClick(ev.id, e.currentTarget)}
+                    onClick={() => onEventClick(ev.id)}
                     className="w-full text-left rounded-xl border overflow-hidden hover:shadow-sm transition-shadow flex"
                     style={{
                       backgroundColor: 'var(--bg-card)',
@@ -327,7 +329,7 @@ function AgendaView({
                         </span>
                       </div>
                       <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                        {formatTime(ev.start_time)} – {formatTime(ev.end_time)}
+                        {formatTime(ev.start_time)} &ndash; {formatTime(ev.end_time)}
                         {' · '}
                         <span style={{ color: c.bg }}>{ev.category}</span>
                       </p>
@@ -349,7 +351,7 @@ function AgendaView({
   )
 }
 
-// ── Main ─────────────────────────────────────────────────────────────────────────────
+// ── Main ─────────────────────────────────────────────────────────────────────────────────
 
 export default function CalendarClient({
   initialEvents,
@@ -367,14 +369,11 @@ export default function CalendarClient({
     const [y, m] = initialMonth.split('-').map(Number)
     return new Date(y, m - 1, 1)
   })
-  // Deep-link: highlight the agenda row, but do NOT auto-open the popup.
-  // selectedEventId is only set from user interaction (click), not from initialEventId.
-  const [selectedEventId, setSelectedEventId]     = useState<string | null>(null)
-  const [anchorEl, setAnchorEl]                   = useState<HTMLElement | null>(null)
-  const [showN21, setShowN21]                     = useState(true)
-  const [showPersonal, setShowPersonal]           = useState(true)
-  const [filterType, setFilterType]               = useState<'in-person' | 'online' | 'hybrid' | null>(null)
-  const [deepLinkId, setDeepLinkId]               = useState<string | null>(initialEventId)
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null)
+  const [showN21, setShowN21]                 = useState(true)
+  const [showPersonal, setShowPersonal]       = useState(true)
+  const [filterType, setFilterType]           = useState<'in-person' | 'online' | 'hybrid' | null>(null)
+  const [deepLinkId, setDeepLinkId]           = useState<string | null>(initialEventId)
 
   const canSeePersonal = isAuthenticated && userRole !== 'guest'
 
@@ -417,9 +416,13 @@ export default function CalendarClient({
 
   const goToday = useCallback(() => setCurrent(new Date()), [])
 
-  const handleEventClick = useCallback((id: string, el: HTMLElement) => {
+  const handleEventClick = useCallback((id: string) => {
     setSelectedEventId(id)
-    setAnchorEl(el)
+  }, [])
+
+  const handleClose = useCallback(() => {
+    setSelectedEventId(null)
+    setDeepLinkId(null)
   }, [])
 
   const handleDayClick = (date: Date) => {
@@ -440,7 +443,7 @@ export default function CalendarClient({
   return (
     <div className="w-full" style={{ backgroundColor: 'var(--bg-global)' }}>
 
-      {/* Mobile: top-toolbar layout */}
+      {/* ── MOBILE ────────────────────────────────────────────────────── */}
       <div className="md:hidden">
         <div className="flex-shrink-0 border-b" style={{ backgroundColor: 'var(--bg-global)', borderColor: 'var(--border-default)' }}>
           <div className="max-w-[1024px] mx-auto px-4">
@@ -540,9 +543,21 @@ export default function CalendarClient({
             <AgendaView events={events} onEventClick={handleEventClick} isLoading={agendaPending} highlightId={deepLinkId} />
           )}
         </div>
+
+        {/* Mobile event sheet */}
+        {selectedEventId && (
+          <VaulDrawer open onClose={handleClose} snapPoints={[0.5, 0.92]} fadeFromIndex={1}>
+            <EventPopup
+              eventId={selectedEventId}
+              onClose={handleClose}
+              userRole={userRole}
+              userProfileId={userProfileId}
+            />
+          </VaulDrawer>
+        )}
       </div>
 
-      {/* Desktop: col-2 nav sidebar + col-10 calendar */}
+      {/* ── DESKTOP ──────────────────────────────────────────────────── */}
       <div className="hidden md:block py-8 pb-16">
         <div className="max-w-[1440px] mx-auto px-4 md:px-8 xl:px-12">
           <div
@@ -558,7 +573,6 @@ export default function CalendarClient({
               style={{ gridColumn: 'span 2', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}
               className="rounded-2xl p-4 flex flex-col gap-4 sticky top-24"
             >
-              {/* Period nav */}
               <div>
                 <p className="font-display text-base font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
                   {periodLabel}
@@ -588,7 +602,6 @@ export default function CalendarClient({
                 </button>
               </div>
 
-              {/* View switcher */}
               <div>
                 <p className="text-[10px] font-semibold tracking-widest uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>{t('cal.view')}</p>
                 <div className="flex flex-col gap-0.5">
@@ -606,7 +619,6 @@ export default function CalendarClient({
                 </div>
               </div>
 
-              {/* Category filters */}
               <div>
                 <p className="text-[10px] font-semibold tracking-widest uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>{t('cal.category')}</p>
                 <div className="flex flex-col gap-1.5">
@@ -635,7 +647,6 @@ export default function CalendarClient({
                 </div>
               </div>
 
-              {/* Event type filters */}
               <div>
                 <p className="text-[10px] font-semibold tracking-widest uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>{t('cal.format')}</p>
                 <div className="flex flex-col gap-1">
@@ -677,18 +688,42 @@ export default function CalendarClient({
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Floating event popover */}
-      {selectedEventId && (
-        <EventPopup
-          eventId={selectedEventId}
-          anchorEl={anchorEl}
-          onClose={() => { setSelectedEventId(null); setAnchorEl(null); setDeepLinkId(null) }}
-          userRole={userRole}
-          userProfileId={userProfileId}
-        />
-      )}
+        {/* Desktop event modal — shadcn Dialog (Radix): Portal, focus trap, Escape, body scroll lock */}
+        <Dialog open={!!selectedEventId} onOpenChange={open => { if (!open) handleClose() }}>
+          <DialogPortal>
+            <DialogOverlay
+              style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}
+            />
+            <DialogContent
+              style={{
+                position: 'fixed',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: 360,
+                maxHeight: '80vh',
+                display: 'flex',
+                flexDirection: 'column',
+                borderRadius: '1rem',
+                backgroundColor: 'var(--bg-global)',
+                boxShadow: '0 8px 40px rgba(0,0,0,0.22)',
+                overflow: 'hidden',
+                padding: 0,
+              }}
+            >
+              {selectedEventId && (
+                <EventPopup
+                  eventId={selectedEventId}
+                  onClose={handleClose}
+                  userRole={userRole}
+                  userProfileId={userProfileId}
+                />
+              )}
+            </DialogContent>
+          </DialogPortal>
+        </Dialog>
+      </div>
     </div>
   )
 }
