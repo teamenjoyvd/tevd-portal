@@ -1,14 +1,19 @@
 'use client'
 
 import Link from 'next/link'
+import { Suspense } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { Skeleton } from '@/components/ui/Skeleton'
-import type { Guide, SiteLink } from '@/lib/server/guides'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { formatDate } from '@/lib/format'
+import type { Guide, SiteLink, NewsItem } from '@/lib/server/guides'
 
 type Props = {
   initialGuides: Guide[]
   initialLinks: SiteLink[]
+  initialNews: NewsItem[]
   initialDataUpdatedAt: number
 }
 
@@ -55,15 +60,29 @@ function IconBook({ size = 16 }: { size?: number }) {
   )
 }
 
+function IconNews({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="1" y="2" width="14" height="12" rx="1.5" />
+      <path d="M4 6h8M4 9h6M4 12h4" />
+    </svg>
+  )
+}
+
 const cardStyle: React.CSSProperties = {
   backgroundColor: 'var(--bg-card)',
   border: '1px solid var(--border-default)',
 }
 
-// ── Main client component ─────────────────────────────────────────────────────────
+type TabValue = 'all' | 'news' | 'guides' | 'links'
 
-export default function GuidesClient({ initialGuides, initialLinks, initialDataUpdatedAt }: Props) {
+// ── Inner client — reads searchParams ─────────────────────────────────────────
+
+function GuidesInner({ initialGuides, initialLinks, initialNews, initialDataUpdatedAt }: Props) {
   const { lang, t } = useLanguage()
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const tab = (searchParams.get('type') ?? 'all') as TabValue
 
   const { data: guides = initialGuides, isLoading: guidesLoading } = useQuery<Guide[]>({
     queryKey: ['guides', 'list'],
@@ -79,7 +98,14 @@ export default function GuidesClient({ initialGuides, initialLinks, initialDataU
     initialDataUpdatedAt,
   })
 
-  const isLoading = guidesLoading || linksLoading
+  const { data: news = initialNews, isLoading: newsLoading } = useQuery<NewsItem[]>({
+    queryKey: ['news', 'list'],
+    queryFn: () => fetch('/api/news').then(r => r.json()),
+    initialData: initialNews,
+    initialDataUpdatedAt,
+  })
+
+  const isLoading = guidesLoading || linksLoading || newsLoading
 
   function guideTitle(g: Guide) {
     return (g.title as Record<string, string>)[lang] ?? g.title.en ?? ''
@@ -87,30 +113,23 @@ export default function GuidesClient({ initialGuides, initialLinks, initialDataU
   function linkLabel(l: SiteLink) {
     return (l.label as Record<string, string>)[lang] ?? l.label.en ?? ''
   }
+  function newsTitle(n: NewsItem) {
+    return n.titles[lang as 'en' | 'bg'] ?? n.titles.en ?? ''
+  }
+  function newsExcerpt(n: NewsItem) {
+    return n.contents[lang as 'en' | 'bg'] ?? n.contents.en ?? ''
+  }
 
   // ── Skeletons ───────────────────────────────────────────────────────────────
-
   const skeletons = (
-    <>
-      <div className="md:hidden flex flex-col gap-3">
-        {[...Array(5)].map((_, i) => (
-          <Skeleton key={i} className="rounded-2xl" style={{ height: 76 }} />
-        ))}
-      </div>
-      <div className="hidden md:flex gap-0" style={{ alignItems: 'flex-start' }}>
-        <div className="flex flex-col gap-3" style={{ width: '38%' }}>
-          {[...Array(3)].map((_, i) => <Skeleton key={i} className="rounded-2xl" style={{ height: 68 }} />)}
-        </div>
-        <div className="shrink-0" style={{ width: 1, alignSelf: 'stretch', backgroundColor: 'var(--border-default)', margin: '0 28px' }} />
-        <div className="flex flex-col gap-3" style={{ flex: 1 }}>
-          {[...Array(3)].map((_, i) => <Skeleton key={i} className="rounded-2xl" style={{ height: 88 }} />)}
-        </div>
-      </div>
-    </>
+    <div className="flex flex-col gap-3">
+      {[...Array(5)].map((_, i) => (
+        <Skeleton key={i} className="rounded-2xl" style={{ height: 76 }} />
+      ))}
+    </div>
   )
 
-  // ── Cards ──────────────────────────────────────────────────────────────────────
-
+  // ── Cards ──────────────────────────────────────────────────────────────────
   function LinkCard({ l }: { l: SiteLink }) {
     return (
       <a
@@ -160,56 +179,105 @@ export default function GuidesClient({ initialGuides, initialLinks, initialDataU
     )
   }
 
-  // ── Layout ──────────────────────────────────────────────────────────────────────
+  function NewsCard({ n }: { n: NewsItem }) {
+    const title = newsTitle(n)
+    const excerpt = newsExcerpt(n)
+    const inner = (
+      <div className="flex items-start gap-4 px-5 py-4 rounded-2xl hover:brightness-95 active:scale-[0.98] transition-all" style={{ ...cardStyle, minHeight: 80 }}>
+        <span className="shrink-0 mt-0.5" style={{ color: 'var(--brand-crimson)', opacity: 0.75 }}>
+          <IconNews size={18} />
+        </span>
+        <div className="flex flex-col min-w-0 flex-1">
+          <p className="font-display text-base font-semibold leading-snug" style={{ color: 'var(--text-primary)' }}>
+            {title}
+          </p>
+          {excerpt && (
+            <p className="font-body text-xs leading-relaxed mt-1 line-clamp-2" style={{ color: 'var(--text-secondary)' }}>
+              {excerpt}
+            </p>
+          )}
+        </div>
+        <span className="text-xs shrink-0 mt-1" style={{ color: 'var(--text-secondary)' }}>
+          {formatDate(n.created_at)}
+        </span>
+      </div>
+    )
+    if (n.slug) {
+      return <Link href={`/news/${n.slug}`}>{inner}</Link>
+    }
+    return inner
+  }
 
+  // ── Tab content helpers ─────────────────────────────────────────────────────
+  function AllTab() {
+    const empty = news.length === 0 && guides.length === 0 && links.length === 0
+    return (
+      <div className="flex flex-col gap-3">
+        {news.map(n => <NewsCard key={n.id} n={n} />)}
+        {guides.map(g => <GuideCard key={g.id} g={g} />)}
+        {links.map(l => <LinkCard key={l.id} l={l} />)}
+        {empty && <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t('guides.emptyAll')}</p>}
+      </div>
+    )
+  }
+
+  function NewsTab() {
+    return (
+      <div className="flex flex-col gap-3">
+        {news.map(n => <NewsCard key={n.id} n={n} />)}
+        {news.length === 0 && <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t('guides.emptyNews')}</p>}
+      </div>
+    )
+  }
+
+  function GuidesTab() {
+    return (
+      <div className="flex flex-col gap-3">
+        {guides.map(g => <GuideCard key={g.id} g={g} />)}
+        {guides.length === 0 && <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t('guides.emptyGuides')}</p>}
+      </div>
+    )
+  }
+
+  function LinksTab() {
+    return (
+      <div className="flex flex-col gap-3">
+        {links.map(l => <LinkCard key={l.id} l={l} />)}
+        {links.length === 0 && <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t('guides.emptyLinks')}</p>}
+      </div>
+    )
+  }
+
+  // ── Layout ──────────────────────────────────────────────────────────────────
   return (
     <div className="py-8 pb-24">
       <div className="max-w-[900px] mx-auto px-4 sm:px-6 xl:px-8">
-
         {isLoading ? skeletons : (
-          <>
-            {/* ── MOBILE: links then guides, single column ── */}
-            <div className="md:hidden flex flex-col gap-3">
-              {links.map(l => <LinkCard key={l.id} l={l} />)}
-              {guides.map(g => <GuideCard key={g.id} g={g} />)}
-              {links.length === 0 && guides.length === 0 && (
-                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t('guides.emptyAll')}</p>
-              )}
-            </div>
-
-            {/* ── DESKTOP: links left | divider | guides right ── */}
-            <div className="hidden md:flex gap-0" style={{ alignItems: 'flex-start' }}>
-
-              <div className="flex flex-col gap-3" style={{ width: '38%' }}>
-                {links.map(l => <LinkCard key={l.id} l={l} />)}
-                {links.length === 0 && (
-                  <p className="text-sm px-1" style={{ color: 'var(--text-secondary)' }}>{t('guides.emptyLinks')}</p>
-                )}
-              </div>
-
-              <div
-                className="shrink-0"
-                style={{
-                  width: 1,
-                  alignSelf: 'stretch',
-                  minHeight: 200,
-                  backgroundColor: 'var(--border-default)',
-                  margin: '0 28px',
-                }}
-              />
-
-              <div className="flex flex-col gap-3" style={{ flex: 1 }}>
-                {guides.map(g => <GuideCard key={g.id} g={g} />)}
-                {guides.length === 0 && (
-                  <p className="text-sm px-1" style={{ color: 'var(--text-secondary)' }}>{t('guides.emptyGuides')}</p>
-                )}
-              </div>
-
-            </div>
-          </>
+          <Tabs
+            value={tab}
+            onValueChange={(val) => router.replace(`?type=${val}`, { scroll: false })}
+          >
+            <TabsList className="mb-6">
+              <TabsTrigger value="all">{t('guides.filter.all')}</TabsTrigger>
+              <TabsTrigger value="news">{t('guides.filter.news')}</TabsTrigger>
+              <TabsTrigger value="guides">{t('guides.filter.guides')}</TabsTrigger>
+              <TabsTrigger value="links">{t('guides.filter.links')}</TabsTrigger>
+            </TabsList>
+            <TabsContent value="all"><AllTab /></TabsContent>
+            <TabsContent value="news"><NewsTab /></TabsContent>
+            <TabsContent value="guides"><GuidesTab /></TabsContent>
+            <TabsContent value="links"><LinksTab /></TabsContent>
+          </Tabs>
         )}
-
       </div>
     </div>
+  )
+}
+
+export default function GuidesClient(props: Props) {
+  return (
+    <Suspense>
+      <GuidesInner {...props} />
+    </Suspense>
   )
 }

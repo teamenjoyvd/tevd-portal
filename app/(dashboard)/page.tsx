@@ -18,7 +18,7 @@ export const dynamic = 'force-dynamic'
 
 type Announcement = {
   id: string; titles: Record<string, string>; contents: Record<string, string>
-  is_active: boolean
+  is_active: boolean; slug: string | null
 }
 type SiteLink = { id: string; label: { en: string; bg: string }; url: string }
 type Guide = { id: string; slug: string; title: { en: string; bg: string }; emoji: string | null }
@@ -37,7 +37,7 @@ export default async function HomePage() {
   }
 
   const [announcementsRes, linksRes, tripsRes, guidesRes, eventsRes] = await Promise.all([
-    supabase.from('announcements').select('*').eq('is_active', true)
+    supabase.from('announcements').select('id, titles, contents, is_active, slug').eq('is_active', true)
       .contains('access_roles', [role]).order('created_at', { ascending: false }).limit(5),
     supabase.from('links').select('id, label, url').eq('is_active', true).contains('access_roles', [role]).order('sort_order').limit(4),
     supabase.from('trips').select('id, title, destination, start_date, image_url')
@@ -62,12 +62,13 @@ export default async function HomePage() {
   const featuredAnnouncement = announcements[0] ?? null
   const announcementTitle   = featuredAnnouncement?.titles?.en ?? featuredAnnouncement?.titles?.bg ?? null
   const announcementContent = featuredAnnouncement?.contents?.en ?? featuredAnnouncement?.contents?.bg ?? null
+  const announcementSlug    = featuredAnnouncement?.slug ?? null
   const nextTrip = trips[0] ?? null
 
   return (
     <div style={{ backgroundColor: 'var(--bg-global)' }}>
 
-      {/* ── DESKTOP (md+) ────────────────────────────────────────────────── */}
+      {/* ── DESKTOP (md+) ──────────────────────────────────────────────────────── */}
       <div className="hidden md:block">
         <BentoGrid
           className="py-4 pb-16"
@@ -117,7 +118,7 @@ export default async function HomePage() {
               className="bento-tile flex flex-col"
               style={{ gridColumn: '1 / span 3', gridRow: '3 / span 1', animationDelay: '250ms' }}
             >
-              <AnnouncementTile title={announcementTitle} content={announcementContent} />
+              <AnnouncementTile title={announcementTitle} content={announcementContent} slug={announcementSlug} />
             </BentoCard>
           )}
 
@@ -166,7 +167,7 @@ export default async function HomePage() {
         </BentoGrid>
       </div>
 
-      {/* ── MOBILE (< md) ────────────────────────────────────────────────── */}
+      {/* ── MOBILE (< md) ──────────────────────────────────────────────────────── */}
       <div className="md:hidden flex flex-col gap-3 px-4 py-4 pb-24">
 
         <BentoCard variant="forest" className="relative overflow-hidden" style={{ minHeight: 200 }}>
@@ -185,7 +186,7 @@ export default async function HomePage() {
 
         {featuredAnnouncement && announcementTitle && (
           <BentoCard variant="default" className="flex flex-col">
-            <AnnouncementTile title={announcementTitle} content={announcementContent} />
+            <AnnouncementTile title={announcementTitle} content={announcementContent} slug={announcementSlug} />
           </BentoCard>
         )}
 

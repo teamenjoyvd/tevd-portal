@@ -1,19 +1,20 @@
-import { getRoleForAccess, listGuidesForRole, listLinksForRole } from '@/lib/server/guides'
-import type { Guide, SiteLink } from '@/lib/server/guides'
+import { getRoleForAccess, listGuidesForRole, listLinksForRole, listNewsForRole } from '@/lib/server/guides'
+import type { Guide, SiteLink, NewsItem } from '@/lib/server/guides'
 import GuidesClient from './GuidesClient'
 
 export default async function GuidesPage() {
-  // Parallel server fetch — role resolved once, both queries run concurrently.
   const role = await getRoleForAccess()
-  const [guides, links] = await Promise.all([
+  const [guides, links, news] = await Promise.all([
     listGuidesForRole({ role }),
     listLinksForRole({ role }),
+    listNewsForRole({ role }),
   ])
 
   return (
     <GuidesClient
       initialGuides={guides}
       initialLinks={links}
+      initialNews={news}
       initialDataUpdatedAt={0}
     />
   )
