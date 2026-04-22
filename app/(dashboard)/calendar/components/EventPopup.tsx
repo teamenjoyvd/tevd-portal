@@ -26,6 +26,7 @@ type EventDetail = {
   title: string
   description: string | null
   meeting_url: string | null
+  allow_guest_registration: boolean
   start_time: string
   end_time: string
   category: 'N21' | 'Personal'
@@ -250,7 +251,7 @@ export default function EventPopup({
                 </svg>
                 <span>{formatTime(event.start_time)} \u2013 {formatTime(event.end_time)}</span>
               </div>
-              {event.meeting_url && (
+              {!isGuest && event.meeting_url && (
                 <div className="flex items-center gap-2 text-xs mt-1">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
                     stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -263,19 +264,21 @@ export default function EventPopup({
                   </a>
                 </div>
               )}
-              <button onClick={handleShare}
-                className="mt-3 flex items-center gap-1.5 text-xs font-medium hover:opacity-70 transition-opacity"
-                style={{ color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
-                  stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="18" cy="5" r="3"/>
-                  <circle cx="6" cy="12" r="3"/>
-                  <circle cx="18" cy="19" r="3"/>
-                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
-                  <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-                </svg>
-                {shareCopied ? t('cal.linkCopied') : t('cal.shareEvent')}
-              </button>
+              {event.allow_guest_registration && (
+                <button onClick={handleShare}
+                  className="mt-3 flex items-center gap-1.5 text-xs font-medium hover:opacity-70 transition-opacity"
+                  style={{ color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="18" cy="5" r="3"/>
+                    <circle cx="6" cy="12" r="3"/>
+                    <circle cx="18" cy="19" r="3"/>
+                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+                    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                  </svg>
+                  {shareCopied ? t('cal.linkCopied') : t('cal.shareEvent')}
+                </button>
+              )}
             </div>
             {event.description && event.description !== event.meeting_url && (
               <div className="px-4 py-3">
