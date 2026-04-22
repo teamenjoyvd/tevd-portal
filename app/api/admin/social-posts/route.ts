@@ -36,6 +36,7 @@ export async function POST(req: Request) {
     post_url?: string
     caption?: string
     thumbnail_url?: string
+    posted_at?: string
     items?: { id: string; sort_order: number }[]
   } = await req.json()
 
@@ -77,6 +78,7 @@ export async function POST(req: Request) {
       post_url: body.post_url,
       caption,
       thumbnail_url,
+      posted_at: body.posted_at ?? null,
     })
     .select()
     .single()
