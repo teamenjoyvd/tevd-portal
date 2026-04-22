@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { DAYS_I18N, MONTHS_I18N } from '@/lib/i18n/translations'
 import { VaulDrawer } from '@/components/ui/vaul-drawer'
+import { Dialog, DialogContent, DialogOverlay, DialogPortal } from '@/components/ui/dialog'
 import EventPopup from '@/app/(dashboard)/calendar/components/EventPopup'
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -328,8 +329,8 @@ function AgendaView({
                         </span>
                       </div>
                       <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                        {formatTime(ev.start_time)} \u2013 {formatTime(ev.end_time)}
-                        {' \u00b7 '}
+                        {formatTime(ev.start_time)} &ndash; {formatTime(ev.end_time)}
+                        {' · '}
                         <span style={{ color: c.bg }}>{ev.category}</span>
                       </p>
                       {ev.description && (
@@ -688,21 +689,13 @@ export default function CalendarClient({
           </div>
         </div>
 
-        {/* Desktop centered modal */}
-        {selectedEventId && (
-          <>
-            {/* Backdrop */}
-            <div
-              onClick={handleClose}
-              style={{
-                position: 'fixed',
-                inset: 0,
-                backgroundColor: 'rgba(0,0,0,0.4)',
-                zIndex: 49,
-              }}
+        {/* Desktop event modal — shadcn Dialog (Radix): Portal, focus trap, Escape, body scroll lock */}
+        <Dialog open={!!selectedEventId} onOpenChange={open => { if (!open) handleClose() }}>
+          <DialogPortal>
+            <DialogOverlay
+              style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}
             />
-            {/* Card */}
-            <div
+            <DialogContent
               style={{
                 position: 'fixed',
                 top: '50%',
@@ -710,24 +703,26 @@ export default function CalendarClient({
                 transform: 'translate(-50%, -50%)',
                 width: 360,
                 maxHeight: '80vh',
-                zIndex: 50,
                 display: 'flex',
                 flexDirection: 'column',
                 borderRadius: '1rem',
                 backgroundColor: 'var(--bg-global)',
                 boxShadow: '0 8px 40px rgba(0,0,0,0.22)',
                 overflow: 'hidden',
+                padding: 0,
               }}
             >
-              <EventPopup
-                eventId={selectedEventId}
-                onClose={handleClose}
-                userRole={userRole}
-                userProfileId={userProfileId}
-              />
-            </div>
-          </>
-        )}
+              {selectedEventId && (
+                <EventPopup
+                  eventId={selectedEventId}
+                  onClose={handleClose}
+                  userRole={userRole}
+                  userProfileId={userProfileId}
+                />
+              )}
+            </DialogContent>
+          </DialogPortal>
+        </Dialog>
       </div>
     </div>
   )
