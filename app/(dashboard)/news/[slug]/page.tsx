@@ -1,8 +1,8 @@
-import { auth } from '@clerk/nextjs/server'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createServiceClient } from '@/lib/supabase/service'
+import { getRoleForAccess } from '@/lib/server/guides'
 import { translate } from '@/lib/i18n/translations'
 import { formatDate } from '@/lib/format'
 import type { Lang } from '@/lib/i18n/translations'
@@ -24,16 +24,7 @@ export default async function NewsDetailPage({
 }) {
   const { slug } = await params
 
-  let role = 'guest'
-  try {
-    const { userId } = await auth()
-    if (userId) {
-      const supabase = createServiceClient()
-      const { data: profile } = await supabase
-        .from('profiles').select('role').eq('clerk_id', userId).single()
-      if (profile?.role) role = profile.role
-    }
-  } catch { /* unauthenticated */ }
+  const role = await getRoleForAccess()
 
   const supabase = createServiceClient()
   const { data: announcement } = await supabase
