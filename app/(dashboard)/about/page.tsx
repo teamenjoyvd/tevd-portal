@@ -1,5 +1,4 @@
 import Image from 'next/image'
-import AboutMapTileDynamic from './components/AboutMapTileDynamic'
 import MailtoTile from './components/MailtoTile'
 import AboutContent from './components/AboutContent'
 
@@ -12,8 +11,8 @@ export default function AboutPage() {
       {/* ════════════════════════════════════════════════════════════════════
           DESKTOP layout (md+)
           12-col CSS grid, max-w-[860px] centred
-          Row 1: [1–2 gutter] [3–6 heading+content island] [7–10 photo] [11–12 gutter]
-          Row 2: [1–2 gutter] [3–6 mailto]                 [7–10 map]   [11–12 gutter]
+          Row 1: [1–2 gutter] [3–6 content — spans 2 rows] [7–10 photo]  [11–12 gutter]
+          Row 2: [1–2 gutter] [3–6 content continued]      [7–10 mailto] [11–12 gutter]
           ════════════════════════════════════════════════════════════════════ */}
       <div className="hidden md:block max-w-[860px] mx-auto px-4">
         <div
@@ -24,11 +23,11 @@ export default function AboutPage() {
             gridAutoRows: 'minmax(160px, auto)',
           }}
         >
-          {/* Row 1 col 3–6: heading + content island (transparent) */}
+          {/* Rows 1–2 col 3–6: content island spans both rows */}
           <div
             style={{
               gridColumn: '3 / span 4',
-              gridRow: '1',
+              gridRow: '1 / span 2',
               borderRadius: 'var(--bento-radius)',
               padding: 'var(--bento-padding)',
             }}
@@ -53,20 +52,11 @@ export default function AboutPage() {
             />
           </div>
 
-          {/* Row 2 col 3–6: mailto tile */}
+          {/* Row 2 col 7–10: mailto tile */}
           <MailtoTile
-            style={{
-              gridColumn: '3 / span 4',
-              gridRow: '2',
-            }}
-          />
-
-          {/* Row 2 col 7–10: map tile */}
-          <AboutMapTileDynamic
             style={{
               gridColumn: '7 / span 4',
               gridRow: '2',
-              minHeight: 160,
             }}
           />
         </div>
@@ -74,7 +64,7 @@ export default function AboutPage() {
 
       {/* ════════════════════════════════════════════════════════════════════
           MOBILE layout (< md)
-          Stack: photo → heading/content island → mailto + map (2-col row)
+          Stack: photo → content island → mailto (full-width)
           ════════════════════════════════════════════════════════════════════ */}
       <div className="md:hidden flex flex-col gap-3 px-4">
 
@@ -92,7 +82,7 @@ export default function AboutPage() {
           />
         </div>
 
-        {/* Heading + body content island */}
+        {/* Content island */}
         <div
           style={{
             borderRadius: 'var(--bento-radius)',
@@ -102,11 +92,8 @@ export default function AboutPage() {
           <AboutContent />
         </div>
 
-        {/* Mailto + map side-by-side */}
-        <div className="grid grid-cols-2 gap-3">
-          <MailtoTile style={{ minHeight: 96 }} />
-          <AboutMapTileDynamic style={{ minHeight: 96 }} />
-        </div>
+        {/* Mailto — full width */}
+        <MailtoTile style={{ minHeight: 96 }} />
 
       </div>
 
