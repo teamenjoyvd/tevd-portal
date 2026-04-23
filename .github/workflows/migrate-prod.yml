@@ -19,7 +19,7 @@ jobs:
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
         with:
-          version: 1.207.9
+          version: 2.93.0
 
       - name: Push migrations
         run: |
