@@ -60,7 +60,7 @@ export default async function HomePage() {
     .eq('is_active', true)
     .order('sort_order', { ascending: true })
     .limit(6)
-  const links = (linksRaw ?? []) as SiteLink[]
+  const links = (linksRaw ?? []) as unknown as SiteLink[]
 
   // Guides
   const { data: guidesRaw } = await supabase
@@ -69,7 +69,7 @@ export default async function HomePage() {
     .eq('is_published', true)
     .order('sort_order', { ascending: true })
     .limit(4)
-  const guides = (guidesRaw ?? []) as Guide[]
+  const guides = (guidesRaw ?? []) as unknown as Guide[]
 
   return (
     <div style={{ backgroundColor: 'var(--bg-global)' }}>
