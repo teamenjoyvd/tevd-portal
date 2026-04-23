@@ -9,6 +9,6 @@ export const about = {
   },
   'about.body3': {
     en: "Reach out to the person who directed you here to dig deeper into what we're all about. And if you stumbled upon us all by yourself, kudos! Slide into our DMs and let's have a chat. We love meeting new folks.",
-    bg: 'Свържи се с човека, насочил те тук, за да разбереш повече за нас. А ако си ни намерил сам — браво! Пишни ни и нека поговорим. Обичаме да опознаваме нови хора.'
+    bg: 'Свържи се с човека, насочил те тук, за да разбереш повече за нас. А ако си ни намерил сам — браво! Пиши ни и нека поговорим. Обичаме да опознаваме нови хора.'
   },
 } as const
