@@ -866,6 +866,7 @@ export type Database = {
           is_visible: boolean
           platform: string
           post_url: string
+          posted_at: string | null
           sort_order: number
           thumbnail_url: string | null
         }
@@ -877,6 +878,7 @@ export type Database = {
           is_visible?: boolean
           platform: string
           post_url: string
+          posted_at?: string | null
           sort_order?: number
           thumbnail_url?: string | null
         }
@@ -888,6 +890,7 @@ export type Database = {
           is_visible?: boolean
           platform?: string
           post_url?: string
+          posted_at?: string | null
           sort_order?: number
           thumbnail_url?: string | null
         }

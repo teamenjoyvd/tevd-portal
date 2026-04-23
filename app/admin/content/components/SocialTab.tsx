@@ -30,6 +30,7 @@ type SocialPost = {
   is_pinned: boolean
   sort_order: number
   created_at: string
+  posted_at: string | null
 }
 
 type SocialPostFormData = {
@@ -37,6 +38,7 @@ type SocialPostFormData = {
   post_url: string
   caption: string
   thumbnail_url: string
+  posted_at: string
 }
 
 function InstagramIcon() {
@@ -77,7 +79,6 @@ function SocialPostForm({
   const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // CDN URL guard: block save if thumbnail_url is an ephemeral CDN URL
   const thumbnailIsCdn = form.thumbnail_url ? isCdnUrl(form.thumbnail_url) : false
   const thumbnailIsStorage = form.thumbnail_url ? isStorageUrl(form.thumbnail_url) : false
   const thumbnailIsBlocked = thumbnailIsCdn && !thumbnailIsStorage
@@ -108,8 +109,6 @@ function SocialPostForm({
   async function handleFileUpload(file: File) {
     setUploading(true)
     try {
-      // Upload via signed URL using the anon client — service role not available client-side.
-      // We POST to a dedicated upload endpoint instead.
       const formData = new FormData()
       formData.append('file', file)
       const res = await fetch('/api/admin/social-posts/upload-thumbnail', {
@@ -124,6 +123,10 @@ function SocialPostForm({
     } finally {
       setUploading(false)
     }
+  }
+
+  function handleSave() {
+    onSave(form)
   }
 
   return (
@@ -159,7 +162,24 @@ function SocialPostForm({
         style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
       />
 
-      {/* Thumbnail — file upload primary, text fallback */}
+      {/* Post date */}
+      <div>
+        <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>
+          Post date (optional)
+        </label>
+        <input
+          type="datetime-local"
+          value={form.posted_at}
+          onChange={e => setForm(f => ({ ...f, posted_at: e.target.value }))}
+          className="w-full border rounded-xl px-3 py-2.5 text-sm"
+          style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
+        />
+        <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)', opacity: 0.7 }}>
+          Actual published date. Shown on the bento tile. Falls back to creation time if left empty.
+        </p>
+      </div>
+
+      {/* Thumbnail */}
       <div className="space-y-2">
         <div className="flex items-center gap-2">
           <button
@@ -209,7 +229,7 @@ function SocialPostForm({
       {error && <p className="text-xs" style={{ color: 'var(--brand-crimson)' }}>{error}</p>}
       <div className="flex gap-3 pt-2">
         <button
-          onClick={() => onSave(form)}
+          onClick={handleSave}
           disabled={isPending || !form.post_url || thumbnailIsBlocked}
           className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40 transition-opacity hover:opacity-90"
           style={{ backgroundColor: 'var(--brand-crimson)' }}>
@@ -255,16 +275,20 @@ export function SocialTab() {
   })
 
   const createSocialPost = useMutation({
-    mutationFn: (body: SocialPostFormData) =>
-      fetch('/api/admin/social-posts', {
+    mutationFn: (data: SocialPostFormData) => {
+      const body = {
+        platform: data.platform,
+        post_url: data.post_url,
+        caption: data.caption || undefined,
+        thumbnail_url: data.thumbnail_url || undefined,
+        posted_at: data.posted_at || null,
+      }
+      return fetch('/api/admin/social-posts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...body,
-          caption: body.caption || undefined,
-          thumbnail_url: body.thumbnail_url || undefined,
-        }),
-      }).then(async r => { if (!r.ok) throw new Error((await r.json()).error ?? 'Failed'); return r.json() }),
+        body: JSON.stringify(body),
+      }).then(async r => { if (!r.ok) throw new Error((await r.json()).error ?? 'Failed'); return r.json() })
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-social-posts'] })
       qc.invalidateQueries({ queryKey: ['socials'] })
@@ -275,16 +299,20 @@ export function SocialTab() {
   })
 
   const updateSocialPost = useMutation({
-    mutationFn: ({ id, ...body }: { id: string } & SocialPostFormData) =>
-      fetch(`/api/admin/social-posts/${id}`, {
+    mutationFn: ({ id, ...data }: { id: string } & SocialPostFormData) => {
+      const body = {
+        platform: data.platform,
+        post_url: data.post_url,
+        caption: data.caption || undefined,
+        thumbnail_url: data.thumbnail_url || undefined,
+        posted_at: data.posted_at || null,
+      }
+      return fetch(`/api/admin/social-posts/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...body,
-          caption: body.caption || undefined,
-          thumbnail_url: body.thumbnail_url || undefined,
-        }),
-      }).then(async r => { if (!r.ok) throw new Error((await r.json()).error ?? 'Failed'); return r.json() }),
+        body: JSON.stringify(body),
+      }).then(async r => { if (!r.ok) throw new Error((await r.json()).error ?? 'Failed'); return r.json() })
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-social-posts'] })
       qc.invalidateQueries({ queryKey: ['socials'] })
@@ -341,7 +369,7 @@ export function SocialTab() {
       >
         {socialDrawer.isCreating && (
           <SocialPostForm
-            initial={{ platform: 'instagram', post_url: '', caption: '', thumbnail_url: '' }}
+            initial={{ platform: 'instagram', post_url: '', caption: '', thumbnail_url: '', posted_at: '' }}
             onSave={data => createSocialPost.mutate(data)}
             onCancel={() => { socialDrawer.close(); setSocialMutError(null) }}
             isPending={createSocialPost.isPending}
@@ -355,6 +383,9 @@ export function SocialTab() {
               post_url: socialDrawer.editing.post_url,
               caption: socialDrawer.editing.caption ?? '',
               thumbnail_url: socialDrawer.editing.thumbnail_url ?? '',
+              posted_at: socialDrawer.editing.posted_at
+                ? new Date(new Date(socialDrawer.editing.posted_at).getTime() - new Date(socialDrawer.editing.posted_at).getTimezoneOffset() * 60000).toISOString().slice(0, 16)
+                : '',
             }}
             onSave={data => updateSocialPost.mutate({ id: socialDrawer.editing!.id, ...data })}
             onCancel={() => { socialDrawer.close(); setSocialMutError(null) }}
