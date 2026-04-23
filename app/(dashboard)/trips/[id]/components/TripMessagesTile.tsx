@@ -1,5 +1,6 @@
 'use client'
 
+import { type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { formatDateTime } from '@/lib/format'
 import { useLanguage } from '@/lib/hooks/useLanguage'
@@ -13,6 +14,39 @@ interface TripMessage {
 interface ApiError {
   status?: number
   message: string
+}
+
+const URL_PATTERN = /https?:\/\/[^\s<>"']+/g
+
+function renderMessageBody(body: string): ReactNode {
+  const parts: ReactNode[] = []
+  let lastIndex = 0
+  let match: RegExpExecArray | null
+
+  URL_PATTERN.lastIndex = 0
+  while ((match = URL_PATTERN.exec(body)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(<span key={lastIndex}>{body.slice(lastIndex, match.index)}</span>)
+    }
+    const url = match[0]
+    parts.push(
+      <a
+        key={match.index}
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="hover:opacity-70 transition-opacity underline"
+        style={{ color: 'var(--brand-teal)' }}
+      >
+        {url}
+      </a>
+    )
+    lastIndex = match.index + url.length
+  }
+  if (lastIndex < body.length) {
+    parts.push(<span key={lastIndex}>{body.slice(lastIndex)}</span>)
+  }
+  return <>{parts}</>
 }
 
 export function TripMessagesTile({ tripId }: { tripId: string }) {
@@ -47,12 +81,16 @@ export function TripMessagesTile({ tripId }: { tripId: string }) {
     return (
       <div
         className="rounded-2xl overflow-hidden"
-        style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}
+        style={{
+          backgroundColor: 'var(--bg-card)',
+          border: '1px solid var(--border-default)',
+          borderLeft: '3px solid var(--brand-teal)',
+        }}
       >
         <div className="px-6 py-4 flex items-center justify-between">
           <p
             className="text-xs font-semibold tracking-widest uppercase"
-            style={{ color: 'var(--text-secondary)' }}
+            style={{ color: 'var(--brand-teal)' }}
           >
             {t('trips.messages')}
           </p>
@@ -74,12 +112,16 @@ export function TripMessagesTile({ tripId }: { tripId: string }) {
   return (
     <div
       className="rounded-2xl overflow-hidden"
-      style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}
+      style={{
+        backgroundColor: 'var(--bg-card)',
+        border: '1px solid var(--border-default)',
+        borderLeft: '3px solid var(--brand-teal)',
+      }}
     >
       <div className="px-6 pt-5 pb-2">
         <p
           className="text-xs font-semibold tracking-widest uppercase"
-          style={{ color: 'var(--text-secondary)' }}
+          style={{ color: 'var(--brand-teal)' }}
         >
           {t('trips.messages')}
         </p>
@@ -96,7 +138,7 @@ export function TripMessagesTile({ tripId }: { tripId: string }) {
                 className="text-sm"
                 style={{ color: 'var(--text-primary)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
               >
-                {m.body}
+                {renderMessageBody(m.body)}
               </p>
               <p
                 className="text-xs mt-1"

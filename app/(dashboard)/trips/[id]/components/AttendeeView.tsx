@@ -136,6 +136,9 @@ export function AttendeeView({
           )}
         </div>
 
+        {/* Trip Messages — immediately below countdown */}
+        <TripMessagesTile tripId={trip.id} />
+
         {/* Payment ledger */}
         <div className="rounded-2xl overflow-hidden"
           style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
@@ -255,9 +258,6 @@ export function AttendeeView({
 
         {/* Who's Going */}
         <WhosGoingTile attendees={teamAttendees} />
-
-        {/* Trip Messages */}
-        <TripMessagesTile tripId={trip.id} />
 
         {/* Trip Documents */}
         <TripDocumentsTile tripId={trip.id} />
