@@ -20,7 +20,7 @@ export const PUBLIC_NAV: NavItem[] = [
 ]
 
 export const MEMBER_NAV: NavItem[] = [
-  { href: '/guides',  labels: { en: 'Library',    bg: 'Библиотека'   }, minRole: 'member' },
+  { href: '/library', labels: { en: 'Library',    bg: 'Библиотека'   }, minRole: 'member' },
   { href: '/los',     labels: { en: 'My Network', bg: 'Моята мрежа'  }, minRole: 'member' },
   { href: '/profile', labels: { en: 'Profile',    bg: 'Профил'       }, minRole: 'member' },
 ]

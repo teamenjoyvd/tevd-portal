@@ -15,7 +15,8 @@ export async function GET(
       .from('calendar_events').select('*').eq('id', id).single()
     if (error?.code === 'PGRST116') return Response.json({ error: 'Not found' }, { status: 404 })
     if (error) return Response.json({ error: error.message }, { status: 500 })
-    return Response.json({ ...event, role_requests: [], caller_request: null })
+    // Unauthenticated callers are guests — redact meeting_url server-side.
+    return Response.json({ ...event, meeting_url: null, role_requests: [], caller_request: null })
   }
 
   const { id } = await params
@@ -43,7 +44,9 @@ export async function GET(
 
   // Role requests for other people (PII: first_name, last_name, abo_number) — only admins and core see all.
   if (callerProfile.role !== 'admin' && callerProfile.role !== 'core') {
-    return Response.json({ ...event, role_requests: [], caller_request: callerRequest ?? null })
+    // Guests must not receive meeting_url even in the API response.
+    const meeting_url = callerProfile.role === 'guest' ? null : event.meeting_url
+    return Response.json({ ...event, meeting_url, role_requests: [], caller_request: callerRequest ?? null })
   }
 
   const { data: roleRequests } = await supabase

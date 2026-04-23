@@ -15,6 +15,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const body: Partial<{
     caption: string
     thumbnail_url: string
+    posted_at: string | null
     is_visible: boolean
     is_pinned: boolean
     sort_order: number
@@ -32,7 +33,6 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     if (rpcError) {
       return Response.json({ error: rpcError.message }, { status: 409 })
     }
-    // Remove is_pinned from the body — already handled by RPC
     const { is_pinned: _removed, ...rest } = body
     if (Object.keys(rest).length === 0) {
       const { data, error } = await supabase

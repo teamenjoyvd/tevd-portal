@@ -10,6 +10,20 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [
+      {
+        source: '/guides',
+        destination: '/library',
+        permanent: true,
+      },
+      {
+        source: '/guides/:slug',
+        destination: '/library/:slug',
+        permanent: true,
+      },
+    ]
+  },
 }
 
 export default nextConfig
