@@ -9,6 +9,7 @@ import AboutTile from './components/tiles/AboutTile'
 import AnnouncementTile from './components/tiles/AnnouncementTile'
 import TripHeroTile from './components/tiles/TripHeroTile'
 import LinksGuidesTile from './components/tiles/LinksGuidesTile'
+import type { SiteLink, Guide } from './components/tiles/LinksGuidesTile'
 import LocationTileLazy from './components/tiles/LocationTileLazy'
 import ThemeTile from './components/tiles/ThemeTile'
 import FontSizeTile from './components/tiles/FontSizeTile'
@@ -31,7 +32,7 @@ export default async function HomePage() {
   // Next trip
   const { data: nextTrip } = await supabase
     .from('trips')
-    .select('id, title, start_date, end_date, image_url, location')
+    .select('id, title, destination, start_date, image_url')
     .gte('end_date', new Date().toISOString().split('T')[0])
     .order('start_date', { ascending: true })
     .limit(1)
@@ -52,23 +53,23 @@ export default async function HomePage() {
   const announcementContent = announcementContents?.en ?? announcementContents?.bg ?? null
   const announcementSlug = announcement?.slug ?? null
 
-  // Quick links
+  // Links
   const { data: linksRaw } = await supabase
     .from('links')
     .select('id, label, url, is_active')
     .eq('is_active', true)
     .order('sort_order', { ascending: true })
     .limit(6)
-  const links = linksRaw ?? []
+  const links = (linksRaw ?? []) as SiteLink[]
 
   // Guides
   const { data: guidesRaw } = await supabase
     .from('guides')
-    .select('id, titles, slug, emoji')
+    .select('id, title, slug, emoji')
     .eq('is_published', true)
     .order('sort_order', { ascending: true })
     .limit(4)
-  const guides = guidesRaw ?? []
+  const guides = (guidesRaw ?? []) as Guide[]
 
   return (
     <div style={{ backgroundColor: 'var(--bg-global)' }}>

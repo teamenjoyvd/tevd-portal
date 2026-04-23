@@ -4,13 +4,13 @@ import Link from 'next/link'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import BentoCard from '@/components/bento/BentoCard'
 
-type SiteLink = {
+export type SiteLink = {
   id: string
   label: { en: string; bg: string }
   url: string
 }
 
-type Guide = {
+export type Guide = {
   id: string
   slug: string
   title: { en: string; bg: string }
