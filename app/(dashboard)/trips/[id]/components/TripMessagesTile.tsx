@@ -17,6 +17,7 @@ interface ApiError {
 }
 
 const URL_PATTERN = /https?:\/\/[^\s<>"']+/g
+const TRAILING_PUNCT = /[.,;:!?)]+$/
 
 function renderMessageBody(body: string): ReactNode {
   const parts: ReactNode[] = []
@@ -28,7 +29,10 @@ function renderMessageBody(body: string): ReactNode {
     if (match.index > lastIndex) {
       parts.push(<span key={lastIndex}>{body.slice(lastIndex, match.index)}</span>)
     }
-    const url = match[0]
+    const rawUrl = match[0]
+    const trailingMatch = rawUrl.match(TRAILING_PUNCT)
+    const url = trailingMatch ? rawUrl.slice(0, rawUrl.length - trailingMatch[0].length) : rawUrl
+    const trailing = trailingMatch ? trailingMatch[0] : ''
     parts.push(
       <a
         key={match.index}
@@ -41,7 +45,10 @@ function renderMessageBody(body: string): ReactNode {
         {url}
       </a>
     )
-    lastIndex = match.index + url.length
+    if (trailing) {
+      parts.push(<span key={`${match.index}-trail`}>{trailing}</span>)
+    }
+    lastIndex = match.index + rawUrl.length
   }
   if (lastIndex < body.length) {
     parts.push(<span key={lastIndex}>{body.slice(lastIndex)}</span>)
