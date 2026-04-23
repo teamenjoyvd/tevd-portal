@@ -1,128 +1,174 @@
+import { createServiceClient } from '@/lib/supabase/service'
 import { auth } from '@clerk/nextjs/server'
-import { createClient } from '@/lib/supabase/server'
 import BentoGrid from '@/components/bento/BentoGrid'
 import BentoCard from '@/components/bento/BentoCard'
-import ProfileTile from './components/tiles/ProfileTile'
-import CalendarTile from './components/tiles/CalendarTile'
-import HeroTile from './components/tiles/HeroTile'
-import AboutTile from './components/tiles/AboutTile'
-import AnnouncementTile from './components/tiles/AnnouncementTile'
-import TripHeroTile from './components/tiles/TripHeroTile'
-import LinksGuidesTile from './components/tiles/LinksGuidesTile'
-import type { SiteLink, Guide } from './components/tiles/LinksGuidesTile'
-import LocationTileLazy from './components/tiles/LocationTileLazy'
-import ThemeTile from './components/tiles/ThemeTile'
-import FontSizeTile from './components/tiles/FontSizeTile'
-import SocialsTileDesktop from './components/tiles/SocialsTileDesktop'
-import SocialsTileMobile from './components/tiles/SocialsTileMobile'
+import ProfileTile from '@/app/(dashboard)/components/tiles/ProfileTile'
+import LinksGuidesTile from '@/app/(dashboard)/components/tiles/LinksGuidesTile'
+import LocationTile from '@/app/(dashboard)/components/tiles/LocationTileLazy'
+import ThemeTile from '@/app/(dashboard)/components/tiles/ThemeTile'
+import FontSizeTile from '@/app/(dashboard)/components/tiles/FontSizeTile'
+import SocialsTileDesktop from '@/app/(dashboard)/components/tiles/SocialsTileDesktop'
+import SocialsTileMobile from '@/app/(dashboard)/components/tiles/SocialsTileMobile'
+import CalendarTile from '@/app/(dashboard)/components/tiles/CalendarTile'
+import HeroTile from '@/app/(dashboard)/components/tiles/HeroTile'
+import AboutTile from '@/app/(dashboard)/components/tiles/AboutTile'
+import AnnouncementTile from '@/app/(dashboard)/components/tiles/AnnouncementTile'
+import TripHeroTile from '@/app/(dashboard)/components/tiles/TripHeroTile'
+
+export const dynamic = 'force-dynamic'
+
+type Announcement = {
+  id: string; titles: Record<string, string>; contents: Record<string, string>
+  is_active: boolean; slug: string | null
+}
+type SiteLink = { id: string; label: { en: string; bg: string }; url: string }
+type Guide = { id: string; slug: string; title: { en: string; bg: string }; emoji: string | null }
+type Trip = { id: string; title: string; destination: string; start_date: string; image_url: string | null }
+type CalendarEvent = { id: string; title: string; start_time: string; end_time: string | null; event_type: string | null }
 
 export default async function HomePage() {
-  const { userId } = await auth()
-  const supabase = await createClient()
+  let userId: string | null = null
+  try { const session = await auth(); userId = session.userId } catch { userId = null }
 
-  // Calendar events
-  const { data: eventsRaw } = await supabase
-    .from('calendar_events')
-    .select('id, title, start_time, end_time, event_type, category')
-    .gte('end_time', new Date().toISOString())
-    .order('start_time', { ascending: true })
-    .limit(5)
-  const events = eventsRaw ?? []
+  const supabase = createServiceClient()
+  let role = 'guest'
+  if (userId) {
+    const { data: profile } = await supabase.from('profiles').select('role').eq('clerk_id', userId).single()
+    if (profile?.role) role = profile.role
+  }
 
-  // Next trip
-  const { data: nextTrip } = await supabase
-    .from('trips')
-    .select('id, title, destination, start_date, image_url')
-    .gte('end_date', new Date().toISOString().split('T')[0])
-    .order('start_date', { ascending: true })
-    .limit(1)
-    .maybeSingle()
+  const [announcementsRes, linksRes, tripsRes, guidesRes, eventsRes] = await Promise.all([
+    supabase.from('announcements').select('id, titles, contents, is_active, slug').eq('is_active', true)
+      .contains('access_roles', [role]).order('created_at', { ascending: false }).limit(5),
+    supabase.from('links').select('id, label, url').eq('is_active', true).contains('access_roles', [role]).order('sort_order').limit(4),
+    supabase.from('trips').select('id, title, destination, start_date, image_url')
+      .contains('visibility_roles', [role]).order('start_date').limit(3),
+    supabase.from('guides').select('id, slug, title, emoji')
+      .eq('is_published', true).contains('access_roles', [role])
+      .order('created_at', { ascending: false }).limit(4),
+    supabase.from('calendar_events')
+      .select('id, title, start_time, end_time, event_type')
+      .contains('visibility_roles', [role])
+      .gte('start_time', new Date().toISOString())
+      .order('start_time')
+      .limit(3),
+  ])
 
-  // Featured announcement
-  const { data: announcement } = await supabase
-    .from('announcements')
-    .select('titles, contents, slug')
-    .eq('is_active', true)
-    .order('sort_order', { ascending: true })
-    .limit(1)
-    .maybeSingle()
+  const announcements  = (announcementsRes.data ?? []) as unknown as Announcement[]
+  const links          = (linksRes.data ?? []) as unknown as SiteLink[]
+  const trips          = (tripsRes.data ?? []) as unknown as Trip[]
+  const guides         = (guidesRes.data ?? []) as unknown as Guide[]
+  const events         = (eventsRes.data ?? []) as unknown as CalendarEvent[]
 
-  const announcementTitles = announcement?.titles as Record<string, string> | null | undefined
-  const announcementContents = announcement?.contents as Record<string, string> | null | undefined
-  const announcementTitle = announcementTitles?.en ?? announcementTitles?.bg ?? null
-  const announcementContent = announcementContents?.en ?? announcementContents?.bg ?? null
-  const announcementSlug = announcement?.slug ?? null
-
-  // Links
-  const { data: linksRaw } = await supabase
-    .from('links')
-    .select('id, label, url, is_active')
-    .eq('is_active', true)
-    .order('sort_order', { ascending: true })
-    .limit(6)
-  const links = (linksRaw ?? []) as unknown as SiteLink[]
-
-  // Guides
-  const { data: guidesRaw } = await supabase
-    .from('guides')
-    .select('id, title, slug, emoji')
-    .eq('is_published', true)
-    .order('sort_order', { ascending: true })
-    .limit(4)
-  const guides = (guidesRaw ?? []) as unknown as Guide[]
+  const featuredAnnouncement = announcements[0] ?? null
+  const announcementTitle   = featuredAnnouncement?.titles?.en ?? featuredAnnouncement?.titles?.bg ?? null
+  const announcementContent = featuredAnnouncement?.contents?.en ?? featuredAnnouncement?.contents?.bg ?? null
+  const announcementSlug    = featuredAnnouncement?.slug ?? null
+  const nextTrip = trips[0] ?? null
 
   return (
     <div style={{ backgroundColor: 'var(--bg-global)' }}>
 
-      {/* ── DESKTOP (md+) ──────────────────────────────────────────────────────────────── */}
+      {/* ── DESKTOP (md+) ──────────────────────────────────────────────────────── */}
       <div className="hidden md:block">
-        <BentoGrid className="py-4 pb-16">
-          {/* Row 1 */}
-          <BentoCard variant="forest" colSpan={6} rowSpan={2} className="relative overflow-hidden p-0">
+        <BentoGrid
+          className="py-4 pb-16"
+          style={{ gridTemplateRows: 'repeat(4, minmax(220px, auto))' }}
+        >
+
+          <BentoCard
+            variant="forest"
+            colSpan={6}
+            rowSpan={2}
+            className="bento-tile relative overflow-hidden"
+            style={{ gridColumn: '1 / span 6', gridRow: '1 / span 2', animationDelay: '0ms' }}
+          >
             <HeroTile />
           </BentoCard>
-          <ProfileTile colSpan={3} rowSpan={2} />
-          <CalendarTile events={events} colSpan={3} rowSpan={4} />
 
-          {/* Row 2 — ProfileTile continues */}
+          <BentoCard
+            variant="default"
+            colSpan={3}
+            rowSpan={1}
+            className="bento-tile flex flex-col"
+            style={{ gridColumn: '7 / span 3', gridRow: '1 / span 1', animationDelay: '100ms' }}
+          >
+            <AboutTile />
+          </BentoCard>
 
-          {/* Row 3 */}
-          {nextTrip ? (
-            <BentoCard variant="crimson" colSpan={3} rowSpan={2} className="relative overflow-hidden p-0">
-              <TripHeroTile trip={nextTrip} />
-            </BentoCard>
-          ) : (
-            <BentoCard variant="crimson" colSpan={3} rowSpan={2} />
-          )}
-          <SocialsTileDesktop colSpan={3} rowSpan={2} />
+          <CalendarTile
+            events={events}
+            colSpan={3}
+            rowSpan={2}
+            style={{ gridColumn: '10 / span 3', gridRow: '1 / span 2' }}
+          />
 
-          {/* Row 4 — CalendarTile, TripHeroTile, SocialsTile continue */}
+          <LinksGuidesTile
+            links={links}
+            guides={guides}
+            colSpan={3}
+            rowSpan={2}
+            style={{ gridColumn: '7 / span 3', gridRow: '2 / span 2' }}
+          />
 
-          {/* Row 5 */}
-          {announcementTitle && (
-            <BentoCard variant="default" colSpan={3} className="flex flex-col">
+          {featuredAnnouncement && announcementTitle && (
+            <BentoCard
+              variant="default"
+              colSpan={3}
+              rowSpan={1}
+              className="bento-tile flex flex-col"
+              style={{ gridColumn: '1 / span 3', gridRow: '3 / span 1', animationDelay: '250ms' }}
+            >
               <AnnouncementTile title={announcementTitle} content={announcementContent} slug={announcementSlug} />
             </BentoCard>
           )}
-          <LinksGuidesTile links={links} guides={guides} colSpan={3} />
-          <BentoCard variant="default" colSpan={3} className="flex flex-col">
-            <AboutTile />
-          </BentoCard>
-          <LocationTileLazy colSpan={3} />
 
-          {/* Row 6 */}
-          <BentoCard variant="default" colSpan={9}>
-            {/* placeholder */}
-          </BentoCard>
-          <div className="col-span-3 grid grid-cols-2 gap-3">
-            <ThemeTile />
-            <FontSizeTile />
-          </div>
+          <LocationTile
+            colSpan={3}
+            rowSpan={1}
+            style={{ gridColumn: '4 / span 3', gridRow: '3 / span 1' }}
+          />
+
+          <ProfileTile
+            colSpan={3}
+            rowSpan={1}
+            style={{ gridColumn: '10 / span 3', gridRow: '3 / span 1' }}
+          />
+
+          {nextTrip && (
+            <BentoCard
+              variant="crimson"
+              colSpan={3}
+              rowSpan={1}
+              className="bento-tile relative overflow-hidden p-0"
+              style={{ gridColumn: '1 / span 3', gridRow: '4 / span 1', animationDelay: '200ms' }}
+            >
+              <TripHeroTile trip={nextTrip} />
+            </BentoCard>
+          )}
+
+          <SocialsTileDesktop
+            colSpan={3}
+            rowSpan={1}
+            style={{ gridColumn: '4 / span 3', gridRow: '4 / span 1' }}
+          />
+
+          <FontSizeTile
+            colSpan={3}
+            rowSpan={1}
+            style={{ gridColumn: '7 / span 3', gridRow: '4 / span 1' }}
+          />
+
+          <ThemeTile
+            colSpan={3}
+            rowSpan={1}
+            style={{ gridColumn: '10 / span 3', gridRow: '4 / span 1' }}
+          />
 
         </BentoGrid>
       </div>
 
-      {/* ── MOBILE (< md) ──────────────────────────────────────────────────────────────── */}
+      {/* ── MOBILE (< md) ──────────────────────────────────────────────────────── */}
       <div className="md:hidden flex flex-col gap-3 px-4 py-4 pb-24">
 
         <BentoCard variant="forest" className="relative overflow-hidden" style={{ minHeight: 200 }}>
@@ -139,7 +185,7 @@ export default async function HomePage() {
           </BentoCard>
         )}
 
-        {announcementTitle && (
+        {featuredAnnouncement && announcementTitle && (
           <BentoCard variant="default" className="flex flex-col" style={{ minHeight: 200 }}>
             <AnnouncementTile title={announcementTitle} content={announcementContent} slug={announcementSlug} />
           </BentoCard>
@@ -151,7 +197,7 @@ export default async function HomePage() {
           <AboutTile />
         </BentoCard>
 
-        <LocationTileLazy style={{ minHeight: 200 }} />
+        <LocationTile style={{ minHeight: 200 }} />
 
         <div className="grid grid-cols-2 gap-3" style={{ minHeight: 200 }}>
           <ThemeTile />
@@ -161,6 +207,7 @@ export default async function HomePage() {
         <SocialsTileMobile />
 
       </div>
+
     </div>
   )
 }
