@@ -53,8 +53,8 @@ export default async function HomePage() {
 
   // Quick links
   const { data: links = [] } = await supabase
-    .from('quick_links')
-    .select('id, labels, url, is_active')
+    .from('links')
+    .select('id, label, url, is_active')
     .eq('is_active', true)
     .order('sort_order', { ascending: true })
     .limit(6)
