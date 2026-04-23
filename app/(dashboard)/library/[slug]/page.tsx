@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { marked } from 'marked'
+import sanitizeHtml from 'sanitize-html'
 import { createServiceClient } from '@/lib/supabase/service'
 import BentoCard from '@/components/bento/BentoCard'
 import { translate } from '@/lib/i18n/translations'
@@ -30,11 +31,17 @@ function getContent(block: Block, lang: string): string {
     ?? ''
 }
 
-// Parse inline markdown (bold, italic, code, etc.) to HTML.
-// Used for paragraph and callout blocks only — headings stay plain text.
-// marked.parseInline with { async: false } returns a string synchronously.
+// Allowlist for sanitize-html: inline formatting only.
+// No anchors, no iframes, no script — just typographic markup.
+const SANITIZE_OPTS: sanitizeHtml.IOptions = {
+  allowedTags: ['strong', 'em', 'code', 'del', 'u', 'br'],
+  allowedAttributes: {},
+}
+
+// Parse inline markdown then sanitize to allowlisted tags only.
 function renderInline(text: string): string {
-  return marked.parseInline(text, { async: false }) as string
+  const raw = marked.parseInline(text, { async: false }) as string
+  return sanitizeHtml(raw, SANITIZE_OPTS)
 }
 
 export default async function LibraryDetailPage({
