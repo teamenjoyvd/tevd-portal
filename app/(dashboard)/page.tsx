@@ -7,8 +7,7 @@ import LinksGuidesTile from '@/app/(dashboard)/components/tiles/LinksGuidesTile'
 import LocationTile from '@/app/(dashboard)/components/tiles/LocationTileLazy'
 import ThemeTile from '@/app/(dashboard)/components/tiles/ThemeTile'
 import FontSizeTile from '@/app/(dashboard)/components/tiles/FontSizeTile'
-import SocialsTileDesktop from '@/app/(dashboard)/components/tiles/SocialsTileDesktop'
-import SocialsTileMobile from '@/app/(dashboard)/components/tiles/SocialsTileMobile'
+import SocialsTile from '@/app/(dashboard)/components/tiles/SocialsTile'
 import CalendarTile from '@/app/(dashboard)/components/tiles/CalendarTile'
 import HeroTile from '@/app/(dashboard)/components/tiles/HeroTile'
 import AboutTile from '@/app/(dashboard)/components/tiles/AboutTile'
@@ -147,7 +146,7 @@ export default async function HomePage() {
             </BentoCard>
           )}
 
-          <SocialsTileDesktop
+          <SocialsTile
             colSpan={3}
             rowSpan={1}
             style={{ gridColumn: '4 / span 3', gridRow: '4 / span 1' }}
@@ -206,7 +205,7 @@ export default async function HomePage() {
           <FontSizeTile />
         </div>
 
-        <SocialsTileMobile />
+        <SocialsTile />
 
       </div>
 
