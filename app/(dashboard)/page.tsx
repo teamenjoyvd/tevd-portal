@@ -20,12 +20,13 @@ export default async function HomePage() {
   const supabase = await createClient()
 
   // Calendar events
-  const { data: events = [] } = await supabase
+  const { data: eventsRaw } = await supabase
     .from('calendar_events')
     .select('id, title, start_time, end_time, event_type, category')
     .gte('end_time', new Date().toISOString())
     .order('start_time', { ascending: true })
     .limit(5)
+  const events = eventsRaw ?? []
 
   // Next trip
   const { data: nextTrip } = await supabase
@@ -52,20 +53,22 @@ export default async function HomePage() {
   const announcementSlug = announcement?.slug ?? null
 
   // Quick links
-  const { data: links = [] } = await supabase
+  const { data: linksRaw } = await supabase
     .from('links')
     .select('id, label, url, is_active')
     .eq('is_active', true)
     .order('sort_order', { ascending: true })
     .limit(6)
+  const links = linksRaw ?? []
 
   // Guides
-  const { data: guides = [] } = await supabase
+  const { data: guidesRaw } = await supabase
     .from('guides')
     .select('id, titles, slug, emoji')
     .eq('is_published', true)
     .order('sort_order', { ascending: true })
     .limit(4)
+  const guides = guidesRaw ?? []
 
   return (
     <div style={{ backgroundColor: 'var(--bg-global)' }}>
