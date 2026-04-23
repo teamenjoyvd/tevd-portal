@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import BentoCard from '@/components/bento/BentoCard'
 import { useLanguage } from '@/lib/hooks/useLanguage'
@@ -63,9 +63,11 @@ export default function SocialsTileDesktop({
   })
 
   const post = data?.post ?? null
-  const [now] = useState(() => Date.now())
+  const [now, setNow] = useState<number | null>(null)
+  useEffect(() => { setNow(Date.now()) }, [])
 
   function timeAgo(dateStr: string): string {
+    if (now === null) return ''
     return timeAgoMs(now - new Date(dateStr).getTime(), t)
   }
 
@@ -122,9 +124,11 @@ export default function SocialsTileDesktop({
               <span className="text-xs font-medium capitalize" style={{ color: 'var(--text-secondary)' }}>
                 {post.platform}
               </span>
-              <span className="text-xs" style={{ color: 'var(--text-secondary)', opacity: 0.55 }}>
-                · {timeAgo(post.posted_at ?? post.created_at)}
-              </span>
+              {now !== null && (
+                <span className="text-xs" style={{ color: 'var(--text-secondary)', opacity: 0.55 }}>
+                  · {timeAgo(post.posted_at ?? post.created_at)}
+                </span>
+              )}
             </div>
             {post.caption ? (
               <p

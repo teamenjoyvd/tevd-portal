@@ -15,7 +15,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const body: Partial<{
     caption: string
     thumbnail_url: string
-    posted_at: string
+    posted_at: string | null
     is_visible: boolean
     is_pinned: boolean
     sort_order: number

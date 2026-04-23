@@ -78,7 +78,7 @@ export async function POST(req: Request) {
       post_url: body.post_url,
       caption,
       thumbnail_url,
-      posted_at: body.posted_at ?? null,
+      posted_at: body.posted_at || null,
     })
     .select()
     .single()

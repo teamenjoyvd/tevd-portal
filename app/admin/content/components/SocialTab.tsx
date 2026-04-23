@@ -126,12 +126,7 @@ function SocialPostForm({
   }
 
   function handleSave() {
-    const payload: SocialPostFormData = {
-      ...form,
-      // Strip empty string — datetime-local returns '' when cleared
-      posted_at: form.posted_at || '',
-    }
-    onSave(payload)
+    onSave(form)
   }
 
   return (
@@ -286,7 +281,7 @@ export function SocialTab() {
         post_url: data.post_url,
         caption: data.caption || undefined,
         thumbnail_url: data.thumbnail_url || undefined,
-        posted_at: data.posted_at || undefined,
+        posted_at: data.posted_at || null,
       }
       return fetch('/api/admin/social-posts', {
         method: 'POST',
@@ -310,7 +305,7 @@ export function SocialTab() {
         post_url: data.post_url,
         caption: data.caption || undefined,
         thumbnail_url: data.thumbnail_url || undefined,
-        posted_at: data.posted_at || undefined,
+        posted_at: data.posted_at || null,
       }
       return fetch(`/api/admin/social-posts/${id}`, {
         method: 'PATCH',
@@ -389,7 +384,7 @@ export function SocialTab() {
               caption: socialDrawer.editing.caption ?? '',
               thumbnail_url: socialDrawer.editing.thumbnail_url ?? '',
               posted_at: socialDrawer.editing.posted_at
-                ? new Date(socialDrawer.editing.posted_at).toISOString().slice(0, 16)
+                ? new Date(new Date(socialDrawer.editing.posted_at).getTime() - new Date(socialDrawer.editing.posted_at).getTimezoneOffset() * 60000).toISOString().slice(0, 16)
                 : '',
             }}
             onSave={data => updateSocialPost.mutate({ id: socialDrawer.editing!.id, ...data })}
@@ -450,7 +445,7 @@ export function SocialTab() {
                 </button>
                 <button
                   onClick={() => setSocialAlertTarget({ id: post.id, name: post.caption ?? post.post_url })}
-            disabled={deleteSocialPost.isPending}
+                  disabled={deleteSocialPost.isPending}
                   className="text-xs font-medium hover:opacity-70 transition-opacity disabled:opacity-40"
                   style={{ color: 'var(--brand-crimson)' }}>
                   {t('admin.content.social.btn.delete')}
