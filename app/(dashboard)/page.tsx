@@ -7,7 +7,8 @@ import LinksGuidesTile from '@/app/(dashboard)/components/tiles/LinksGuidesTile'
 import LocationTile from '@/app/(dashboard)/components/tiles/LocationTileLazy'
 import ThemeTile from '@/app/(dashboard)/components/tiles/ThemeTile'
 import FontSizeTile from '@/app/(dashboard)/components/tiles/FontSizeTile'
-import SocialsTile from '@/app/(dashboard)/components/tiles/SocialsTile'
+import SocialsTileDesktop from '@/app/(dashboard)/components/tiles/SocialsTileDesktop'
+import SocialsTileMobile from '@/app/(dashboard)/components/tiles/SocialsTileMobile'
 import CalendarTile from '@/app/(dashboard)/components/tiles/CalendarTile'
 import HeroTile from '@/app/(dashboard)/components/tiles/HeroTile'
 import AboutTile from '@/app/(dashboard)/components/tiles/AboutTile'
@@ -68,7 +69,7 @@ export default async function HomePage() {
   return (
     <div style={{ backgroundColor: 'var(--bg-global)' }}>
 
-      {/* ── DESKTOP (md+) ──────────────────────────────────────────────────────── */}
+      {/* ── DESKTOP (md+) ──────────────────────────────────────────────────────────── */}
       <div className="hidden md:block">
         <BentoGrid
           className="py-4 pb-16"
@@ -146,7 +147,7 @@ export default async function HomePage() {
             </BentoCard>
           )}
 
-          <SocialsTile
+          <SocialsTileDesktop
             colSpan={3}
             rowSpan={1}
             style={{ gridColumn: '4 / span 3', gridRow: '4 / span 1' }}
@@ -167,16 +168,14 @@ export default async function HomePage() {
         </BentoGrid>
       </div>
 
-      {/* ── MOBILE (< md) ──────────────────────────────────────────────────────── */}
+      {/* ── MOBILE (< md) ──────────────────────────────────────────────────────────── */}
       <div className="md:hidden flex flex-col gap-3 px-4 py-4 pb-24">
 
         <BentoCard variant="forest" className="relative overflow-hidden" style={{ minHeight: 200 }}>
           <HeroTile />
         </BentoCard>
 
-        <BentoCard variant="default" className="flex flex-col" style={{ minHeight: 200 }}>
-          <ProfileTile />
-        </BentoCard>
+        <ProfileTile />
 
         <CalendarTile events={events} style={{ minHeight: 200 }} />
 
@@ -205,7 +204,7 @@ export default async function HomePage() {
           <FontSizeTile />
         </div>
 
-        <SocialsTile />
+        <SocialsTileMobile />
 
       </div>
 
