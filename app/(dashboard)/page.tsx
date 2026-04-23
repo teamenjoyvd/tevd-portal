@@ -72,11 +72,7 @@ export default async function HomePage() {
 
       {/* ── DESKTOP (md+) ──────────────────────────────────────────────────────────────── */}
       <div className="hidden md:block">
-        <BentoGrid
-          className="py-4 pb-16"
-          cols={12}
-          gap={3}
-        >
+        <BentoGrid className="py-4 pb-16">
           {/* Row 1 */}
           <BentoCard variant="forest" colSpan={6} rowSpan={2} className="relative overflow-hidden p-0">
             <HeroTile />
