@@ -42,7 +42,7 @@ export default function LinksGuidesTile({
   rowSpan?: number
   style?: React.CSSProperties
 }) {
-  const { lang } = useLanguage()
+  const { lang, t } = useLanguage()
 
   const visibleLinks  = linksProp.slice(0, MAX_LINKS)
   const guideSlotsAvailable = MAX_GUIDES + (MAX_LINKS - visibleLinks.length)
@@ -71,8 +71,8 @@ export default function LinksGuidesTile({
       style={style}
     >
       <div className="flex items-center justify-end mb-4">
-        <Link href="/guides" className="font-body text-[11px] font-bold tracking-widest uppercase pill-link-crimson">
-          Guides →
+        <Link href="/library" className="font-body text-[11px] font-bold tracking-widest uppercase pill-link-crimson">
+          {t('home.guides.libraryLink')}
         </Link>
       </div>
 
@@ -110,7 +110,7 @@ export default function LinksGuidesTile({
       {visibleGuides.map(g => (
         <Link
           key={g.id}
-          href={`/guides/${g.slug}`}
+          href={`/library/${g.slug}`}
           className="flex items-center gap-2.5 px-2 py-[7px] rounded-lg hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
         >
           <span
