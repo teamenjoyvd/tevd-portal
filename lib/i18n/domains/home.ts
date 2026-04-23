@@ -1,6 +1,6 @@
 export const home = {
   // CalendarTile
-  'home.cal.calendarLink':   { en: 'Calendar →',           bg: 'Календар →'              },
+  'home.cal.calendarLink':   { en: 'Calendar →',           bg: 'Календар →'               },
   'home.cal.noEvents':       { en: 'No upcoming events',   bg: 'Няма предстоящи събития'  },
   'home.cal.typeInPerson':   { en: 'In-Person',            bg: 'На живо'                  },
   'home.cal.typeOnline':     { en: 'Online',               bg: 'Онлайн'                   },
