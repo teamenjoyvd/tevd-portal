@@ -370,6 +370,7 @@ export const admin = {
   'admin.content.announcements.dialog.body': { en: 'Delete "{{name}}"? This cannot be undone.', bg: 'Изтриване на "{{name}}"? Действието е необратимо.' },
   'admin.content.announcements.dialog.cancel': { en: 'Cancel', bg: 'Откажи' },
   'admin.content.announcements.dialog.confirm': { en: 'Delete', bg: 'Изтрий' },
+  'admin.content.announcements.slug.hint': { en: "If left empty, this announcement won't show a link on the homepage.", bg: 'Ако е оставено празно, обявлението няма да показва връзка на началната страница.' },
 
   // -- Content: Bento --
   'admin.content.bento.desc': { en: 'Maximum number of items shown per tile on the homepage.', bg: 'Максимален брой елементи на плочка на началната страница.' },

@@ -166,7 +166,7 @@ export function AnnouncementsTab() {
             style={{ borderColor: 'var(--border-default)', backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)' }}
           />
           <p className="mt-1.5 text-xs" style={{ color: 'var(--text-secondary)' }}>
-            If left empty, this announcement won&apos;t show a link on the homepage.
+            {t('admin.content.announcements.slug.hint')}
           </p>
         </div>
         <RoleSelector
@@ -242,7 +242,7 @@ export function AnnouncementsTab() {
               style={{ borderColor: 'var(--border-default)', backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)' }}
             />
             <p className="mt-1.5 text-xs" style={{ color: 'var(--text-secondary)' }}>
-              If left empty, this announcement won&apos;t show a link on the homepage.
+              {t('admin.content.announcements.slug.hint')}
             </p>
           </div>
           <RoleSelector
