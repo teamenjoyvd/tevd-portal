@@ -45,8 +45,10 @@ export default async function HomePage() {
     .limit(1)
     .maybeSingle()
 
-  const announcementTitle = announcement?.titles?.en ?? announcement?.titles?.bg ?? null
-  const announcementContent = announcement?.contents?.en ?? announcement?.contents?.bg ?? null
+  const announcementTitles = announcement?.titles as Record<string, string> | null | undefined
+  const announcementContents = announcement?.contents as Record<string, string> | null | undefined
+  const announcementTitle = announcementTitles?.en ?? announcementTitles?.bg ?? null
+  const announcementContent = announcementContents?.en ?? announcementContents?.bg ?? null
   const announcementSlug = announcement?.slug ?? null
 
   // Quick links
@@ -68,7 +70,7 @@ export default async function HomePage() {
   return (
     <div style={{ backgroundColor: 'var(--bg-global)' }}>
 
-      {/* ── DESKTOP (md+) ──────────────────────────────────────────────────────────── */}
+      {/* ── DESKTOP (md+) ──────────────────────────────────────────────────────────────── */}
       <div className="hidden md:block">
         <BentoGrid
           className="py-4 pb-16"
@@ -120,7 +122,7 @@ export default async function HomePage() {
         </BentoGrid>
       </div>
 
-      {/* ── MOBILE (< md) ──────────────────────────────────────────────────────────── */}
+      {/* ── MOBILE (< md) ──────────────────────────────────────────────────────────────── */}
       <div className="md:hidden flex flex-col gap-3 px-4 py-4 pb-24">
 
         <BentoCard variant="forest" className="relative overflow-hidden" style={{ minHeight: 200 }}>
@@ -137,7 +139,7 @@ export default async function HomePage() {
           </BentoCard>
         )}
 
-        {featuredAnnouncement && announcementTitle && (
+        {announcementTitle && (
           <BentoCard variant="default" className="flex flex-col" style={{ minHeight: 200 }}>
             <AnnouncementTile title={announcementTitle} content={announcementContent} slug={announcementSlug} />
           </BentoCard>
