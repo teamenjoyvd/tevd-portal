@@ -87,7 +87,7 @@ export default function CalendarTile({ events = [], colSpan, mobileColSpan, rowS
     >
       <div className="flex items-center justify-end mb-3">
         <Link href="/calendar" className="font-body text-[11px] font-bold tracking-widest uppercase pill-link-crimson">
-          {t('home.cal.eventsLink')}
+          {t('home.cal.calendarLink')}
         </Link>
       </div>
 

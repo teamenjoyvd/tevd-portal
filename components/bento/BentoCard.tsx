@@ -5,7 +5,7 @@ import React from 'react'
 type CardVariant = 'default' | 'forest' | 'crimson' | 'teal' | 'edge-info' | 'edge-alert'
 
 type BentoCardProps = {
-  children: React.ReactNode
+  children?: React.ReactNode
   variant?: CardVariant
   colSpan?: number
   mobileColSpan?: number
@@ -15,11 +15,11 @@ type BentoCardProps = {
   onClick?: React.MouseEventHandler<HTMLDivElement>
 }
 
-// ── Interactive class constant ─────────────────────────────────────────────
+// ── Interactive class constant ─────────────────────────────────────────────────
 
 export const BENTO_INTERACTIVE_CLASSES = 'hover:brightness-95 active:scale-[0.98] transition-all'
 
-// ── Eyebrow sub-component ──────────────────────────────────────────────────
+// ── Eyebrow sub-component ────────────────────────────────────────────────────
 
 export function Eyebrow({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
   return (
@@ -32,7 +32,7 @@ export function Eyebrow({ children, style }: { children: React.ReactNode; style?
   )
 }
 
-// ── BentoCard ──────────────────────────────────────────────────────────────
+// ── BentoCard ──────────────────────────────────────────────────────────────────
 
 export default function BentoCard({
   children,

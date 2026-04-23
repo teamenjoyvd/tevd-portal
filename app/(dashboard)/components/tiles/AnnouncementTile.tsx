@@ -1,4 +1,7 @@
+'use client'
+
 import Link from 'next/link'
+import { useLanguage } from '@/lib/hooks/useLanguage'
 
 type Props = {
   title: string
@@ -7,12 +10,16 @@ type Props = {
 }
 
 export default function AnnouncementTile({ title, content, slug }: Props) {
+  const { t } = useLanguage()
+
   return (
     <>
       <div className="flex items-center justify-end mb-4">
-        <Link href="/guides?type=news" className="font-body text-[11px] font-bold tracking-widest uppercase pill-link-crimson">
-          View all →
-        </Link>
+        {slug && (
+          <Link href={`/news/${slug}`} className="font-body text-[11px] font-bold tracking-widest uppercase pill-link-crimson">
+            {t('home.ann.moreLink')}
+          </Link>
+        )}
       </div>
       <div className="flex-1">
         {slug ? (

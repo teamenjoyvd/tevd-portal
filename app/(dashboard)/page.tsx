@@ -175,31 +175,31 @@ export default async function HomePage() {
           <HeroTile />
         </BentoCard>
 
-        <ProfileTile />
+        <ProfileTile style={{ minHeight: 200 }} />
 
-        <CalendarTile events={events} />
+        <CalendarTile events={events} style={{ minHeight: 200 }} />
 
         {nextTrip && (
-          <BentoCard variant="crimson" className="relative overflow-hidden p-0" style={{ minHeight: 180 }}>
+          <BentoCard variant="crimson" className="relative overflow-hidden p-0" style={{ minHeight: 200 }}>
             <TripHeroTile trip={nextTrip} />
           </BentoCard>
         )}
 
         {featuredAnnouncement && announcementTitle && (
-          <BentoCard variant="default" className="flex flex-col">
+          <BentoCard variant="default" className="flex flex-col" style={{ minHeight: 200 }}>
             <AnnouncementTile title={announcementTitle} content={announcementContent} slug={announcementSlug} />
           </BentoCard>
         )}
 
-        <LinksGuidesTile links={links} guides={guides} />
+        <LinksGuidesTile links={links} guides={guides} style={{ minHeight: 200 }} />
 
-        <BentoCard variant="default" className="flex flex-col">
+        <BentoCard variant="default" className="flex flex-col" style={{ minHeight: 200 }}>
           <AboutTile />
         </BentoCard>
 
         <LocationTile style={{ minHeight: 200 }} />
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3" style={{ minHeight: 200 }}>
           <ThemeTile />
           <FontSizeTile />
         </div>
