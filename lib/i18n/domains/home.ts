@@ -10,7 +10,7 @@ export const home = {
   // GuidesTile / LinksGuidesTile
   'home.guides.title':       { en: 'Guides',               bg: 'Наръчници'               },
   'home.guides.viewAll':     { en: 'View all →',           bg: 'Виж всички →'            },
-  'home.guides.libraryLink': { en: 'Library →',           bg: 'Библиотека →'           },
+  'home.guides.libraryLink': { en: 'Library →',            bg: 'Библиотека →'            },
   // TripHeroTile
   'home.trips.nextTrip':     { en: 'NEXT TRIP',            bg: 'СЛЕДВАЩО ПЪТУВАНЕ'       },
   // ProfileTile
