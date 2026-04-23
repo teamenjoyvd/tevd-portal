@@ -7,7 +7,8 @@ import LinksGuidesTile from '@/app/(dashboard)/components/tiles/LinksGuidesTile'
 import LocationTile from '@/app/(dashboard)/components/tiles/LocationTileLazy'
 import ThemeTile from '@/app/(dashboard)/components/tiles/ThemeTile'
 import FontSizeTile from '@/app/(dashboard)/components/tiles/FontSizeTile'
-import SocialsTile from '@/app/(dashboard)/components/tiles/SocialsTile'
+import SocialsTileDesktop from '@/app/(dashboard)/components/tiles/SocialsTileDesktop'
+import SocialsTileMobile from '@/app/(dashboard)/components/tiles/SocialsTileMobile'
 import CalendarTile from '@/app/(dashboard)/components/tiles/CalendarTile'
 import HeroTile from '@/app/(dashboard)/components/tiles/HeroTile'
 import AboutTile from '@/app/(dashboard)/components/tiles/AboutTile'
@@ -146,7 +147,7 @@ export default async function HomePage() {
             </BentoCard>
           )}
 
-          <SocialsTile
+          <SocialsTileDesktop
             colSpan={3}
             rowSpan={1}
             style={{ gridColumn: '4 / span 3', gridRow: '4 / span 1' }}
@@ -174,36 +175,38 @@ export default async function HomePage() {
           <HeroTile />
         </BentoCard>
 
-        <ProfileTile />
+        <BentoCard variant="default" className="flex flex-col" style={{ minHeight: 200 }}>
+          <ProfileTile />
+        </BentoCard>
 
-        <CalendarTile events={events} />
+        <CalendarTile events={events} style={{ minHeight: 200 }} />
 
         {nextTrip && (
-          <BentoCard variant="crimson" className="relative overflow-hidden p-0" style={{ minHeight: 180 }}>
+          <BentoCard variant="crimson" className="relative overflow-hidden p-0" style={{ minHeight: 200 }}>
             <TripHeroTile trip={nextTrip} />
           </BentoCard>
         )}
 
         {featuredAnnouncement && announcementTitle && (
-          <BentoCard variant="default" className="flex flex-col">
+          <BentoCard variant="default" className="flex flex-col" style={{ minHeight: 200 }}>
             <AnnouncementTile title={announcementTitle} content={announcementContent} slug={announcementSlug} />
           </BentoCard>
         )}
 
-        <LinksGuidesTile links={links} guides={guides} />
+        <LinksGuidesTile links={links} guides={guides} style={{ minHeight: 200 }} />
 
-        <BentoCard variant="default" className="flex flex-col">
+        <BentoCard variant="default" className="flex flex-col" style={{ minHeight: 200 }}>
           <AboutTile />
         </BentoCard>
 
         <LocationTile style={{ minHeight: 200 }} />
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3" style={{ minHeight: 200 }}>
           <ThemeTile />
           <FontSizeTile />
         </div>
 
-        <SocialsTile />
+        <SocialsTileMobile />
 
       </div>
 

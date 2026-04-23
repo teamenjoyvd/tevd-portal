@@ -1,5 +1,8 @@
+'use client'
+
 import Link from 'next/link'
 import { formatDate } from '@/lib/format'
+import { useLanguage } from '@/lib/hooks/useLanguage'
 
 type Trip = {
   id: string
@@ -14,6 +17,8 @@ type Props = {
 }
 
 export default function TripHeroTile({ trip }: Props) {
+  const { t } = useLanguage()
+
   return (
     <>
       {trip.image_url && (
@@ -39,8 +44,14 @@ export default function TripHeroTile({ trip }: Props) {
         </Link>
       </div>
       <div className="absolute bottom-0 left-0 right-0 px-5 pb-5 z-10">
+        <span
+          className="inline-block font-body text-[10px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-full mb-2"
+          style={{ backgroundColor: 'rgba(255,255,255,0.18)', color: 'var(--brand-parchment)' }}
+        >
+          {t('home.trips.nextTrip')}
+        </span>
         <h3
-          className="font-display text-2xl font-semibold leading-tight"
+          className="font-display text-3xl font-semibold leading-tight"
           style={{ color: 'var(--brand-parchment)' }}
         >
           {trip.title}

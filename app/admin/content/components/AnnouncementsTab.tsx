@@ -165,6 +165,9 @@ export function AnnouncementsTab() {
             className="w-full px-3 py-2.5 rounded-xl text-sm border"
             style={{ borderColor: 'var(--border-default)', backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)' }}
           />
+          <p className="mt-1.5 text-xs" style={{ color: 'var(--text-secondary)' }}>
+            If left empty, this announcement won&apos;t show a link on the homepage.
+          </p>
         </div>
         <RoleSelector
           roles={ALL_ROLES}
@@ -238,6 +241,9 @@ export function AnnouncementsTab() {
               className="w-full px-3 py-2.5 rounded-xl text-sm border"
               style={{ borderColor: 'var(--border-default)', backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)' }}
             />
+            <p className="mt-1.5 text-xs" style={{ color: 'var(--text-secondary)' }}>
+              If left empty, this announcement won&apos;t show a link on the homepage.
+            </p>
           </div>
           <RoleSelector
             roles={ALL_ROLES}
