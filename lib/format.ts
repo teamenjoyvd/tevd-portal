@@ -91,6 +91,59 @@ export function formatDateLongEn(iso: string): string {
   })
 }
 
+// Cached formatter for Sofia datetime-local input conversion.
+// Shared by toSofiaLocalInput and fromSofiaLocalInput — creating a new
+// Intl.DateTimeFormat instance on every call is expensive.
+const SOFIA_INPUT_FMT = new Intl.DateTimeFormat('sv-SE', {
+  timeZone: TZ,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  hour12: false,
+})
+
+/**
+ * Converts a UTC ISO string to a "YYYY-MM-DDTHH:mm" string in Europe/Sofia
+ * for use as the value of a <input type="datetime-local">.
+ *
+ * sv-SE locale produces "YYYY-MM-DD HH:mm:ss" natively — replace the space
+ * with "T" and slice to 16 chars.
+ */
+export function toSofiaLocalInput(iso: string): string {
+  return SOFIA_INPUT_FMT.format(new Date(iso)).replace(' ', 'T').slice(0, 16)
+}
+
+/**
+ * Converts a "datetime-local" string (interpreted as Europe/Sofia local time)
+ * to a UTC ISO string suitable for API/DB submission.
+ *
+ * Strategy: construct a Date from the naive string (JS treats it as local TZ),
+ * then measure the Sofia offset at that instant via a sv-SE round-trip and
+ * correct the UTC value. Handles DST automatically.
+ *
+ * Call this client-side only (uses Intl — already guaranteed since the form
+ * component is 'use client').
+ */
+export function fromSofiaLocalInput(local: string): string {
+  // Parse the naive datetime-local string as a UTC instant first
+  const naiveDate = new Date(local + ':00Z')
+
+  // Format that instant in Sofia TZ to get the Sofia wall-clock representation
+  const sofiaWall = SOFIA_INPUT_FMT.format(naiveDate)
+
+  // Parse that wall-clock back as UTC to measure the offset
+  const sofiaAsUtc = new Date(sofiaWall.replace(' ', 'T') + 'Z')
+
+  // Offset in ms: how many ms ahead Sofia is relative to UTC at this instant
+  const offsetMs = naiveDate.getTime() - sofiaAsUtc.getTime()
+
+  // True UTC = naive UTC minus offset
+  return new Date(naiveDate.getTime() + offsetMs).toISOString()
+}
+
 /**
  * Canonical relative-time formatter. Accepts an elapsed-ms diff and a typed
  * translation function. Handles clock skew (negative diff) and sub-minute

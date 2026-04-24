@@ -43,6 +43,18 @@ const CATEGORY_COLOR: Record<string, { bg: string; text: string }> = {
   Personal: { bg: 'var(--sienna)', text: 'rgba(255,255,255,0.95)' },
 }
 
+// ── Module-level cached formatters ────────────────────────────────────────
+// Instantiating Intl.DateTimeFormat inside render functions or tight loops
+// is expensive. Cache at module scope — formatters are stateless and reusable.
+
+/** Sofia date formatter (YYYY-MM-DD via sv-SE). Used for day-key comparisons. */
+const SOFIA_DATE_FMT = new Intl.DateTimeFormat('sv-SE', {
+  timeZone: 'Europe/Sofia',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+})
+
 // ── Helpers ─────────────────────────────────────────────────────────────────────
 
 function isoWeek(date: Date): number {
@@ -67,18 +79,22 @@ function addDays(date: Date, n: number): Date {
   return d
 }
 
-function sameDay(a: Date, b: Date): boolean {
-  return a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
+/** Compare two dates by their calendar day in Europe/Sofia TZ. */
+function sameDaySofia(a: Date, b: Date): boolean {
+  return SOFIA_DATE_FMT.format(a) === SOFIA_DATE_FMT.format(b)
 }
 
 function toMonthParam(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
 }
 
+/** Format a UTC ISO string as HH:mm in Europe/Sofia. */
 function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Sofia' })
+  return new Date(iso).toLocaleTimeString('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'Europe/Sofia',
+  })
 }
 
 function formatShortDate(date: Date): string {
@@ -147,20 +163,21 @@ function MonthView({
   const gridStart = startOfWeek(firstOfMonth)
   const cells = Array.from({ length: 42 }, (_, i) => addDays(gridStart, i))
 
-  // Pre-group events by Sofia-local date key to avoid O(42×N) filter in render
-  const eventsByDay = useMemo(() => {
+  // Pre-compute a map of Sofia-date-key → events to avoid O(N×M) filtering
+  // inside the 42-cell render loop.
+  const eventsBySofiaDate = useMemo(() => {
     const map: Record<string, CalendarEvent[]> = {}
-    for (const e of events) {
+    events.forEach(e => {
       const key = new Date(e.start_time).toLocaleDateString('sv-SE', { timeZone: 'Europe/Sofia' })
       if (!map[key]) map[key] = []
       map[key].push(e)
-    }
+    })
     return map
   }, [events])
 
-  const eventsOnDay = (date: Date): CalendarEvent[] => {
-    const key = date.toLocaleDateString('sv-SE', { timeZone: 'Europe/Sofia' })
-    return eventsByDay[key] ?? []
+  const eventsOnDay = (date: Date) => {
+    const dateKey = SOFIA_DATE_FMT.format(date)
+    return eventsBySofiaDate[dateKey] ?? []
   }
 
   return (
@@ -187,7 +204,7 @@ function MonthView({
                 </span>
               </div>
               {weekDays.map((date, di) => {
-                const isToday = sameDay(date, today)
+                const isToday = sameDaySofia(date, today)
                 const isCurrentMonth = date.getMonth() === current.getMonth()
                 const dayEvents = eventsOnDay(date)
                 return (
@@ -294,13 +311,18 @@ function AgendaView({
     )
   }
 
+  // Current day in Sofia — computed once outside the loop for correctness and
+  // efficiency. Comparing against the already-Sofia-local dateKey is more
+  // reliable than constructing a local Date and calling sameDaySofia.
+  const todaySofia = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Sofia' })
+
   return (
     <div className="overflow-y-auto px-4 py-2" style={{ height: 'var(--cal-height)', minHeight: 300 }}>
       {dates.map(dateKey => {
         // Parse Sofia-local date key (sv-SE = YYYY-MM-DD)
         const [y, mo, d] = dateKey.split('-').map(Number)
         const date = new Date(y, mo - 1, d)
-        const isToday = sameDay(date, new Date())
+        const isToday = dateKey === todaySofia
         return (
           <div key={dateKey} className="mb-6">
             <div className="flex items-center gap-3 mb-2 sticky top-0 py-2" style={{ backgroundColor: 'var(--bg-global)' }}>
