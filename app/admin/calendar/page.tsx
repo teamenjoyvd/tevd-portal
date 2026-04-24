@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { formatDateTime } from '@/lib/format'
 import { Drawer } from '@/components/ui/Drawer'
@@ -233,7 +233,28 @@ function EventForm({
   )
 }
 
+// ── Pill hoisted to module scope to prevent remount on parent render ──────
+
+function Pill({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all flex-shrink-0"
+      style={{
+        backgroundColor: active ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)',
+        color: active ? 'var(--brand-parchment)' : 'var(--text-secondary)',
+      }}
+    >
+      {children}
+    </button>
+  )
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
+
+type TimeScope = 'upcoming' | 'past' | 'all'
+type CategoryFilter = 'All' | 'N21' | 'Personal'
 
 export default function AdminCalendarPage() {
   const qc = useQueryClient()
@@ -243,10 +264,61 @@ export default function AdminCalendarPage() {
   const [form, setForm] = useState<EventFormState>(emptyForm())
   const [formError, setFormError] = useState<string | null>(null)
 
+  // ── Filter state ──────────────────────────────────────────────────────────
+  const [search, setSearch] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('All')
+  const [timeScope, setTimeScope] = useState<TimeScope>('upcoming')
+  const [monthFilter, setMonthFilter] = useState<string>('')
+
   const { data: events = [], isLoading } = useQuery<CalEvent[]>({
     queryKey: ['admin-calendar'],
     queryFn: () => fetch('/api/admin/calendar').then(r => r.json()),
   })
+
+  // ── Derived filter options ────────────────────────────────────────────────
+  const availableMonths = useMemo(() => {
+    const seen = new Set<string>()
+    const months: { value: string; label: string }[] = []
+    for (const ev of events) {
+      const d = new Date(ev.start_time)
+      const value = d.toLocaleDateString('sv-SE', { timeZone: 'Europe/Sofia' }).slice(0, 7)
+      if (!seen.has(value)) {
+        seen.add(value)
+        months.push({
+          value,
+          label: d.toLocaleDateString('bg-BG', { month: 'long', year: 'numeric', timeZone: 'Europe/Sofia' }),
+        })
+      }
+    }
+    return months
+  }, [events])
+
+  // Reset month filter when time scope changes
+  const handleTimeScopeChange = (scope: TimeScope) => {
+    setTimeScope(scope)
+    setMonthFilter('')
+  }
+
+  // ── Filtered events ───────────────────────────────────────────────────────
+  const filteredEvents = useMemo(() => {
+    const now = new Date()
+    return events.filter(ev => {
+      // Search
+      if (search && !ev.title.toLowerCase().includes(search.toLowerCase())) return false
+      // Category
+      if (categoryFilter !== 'All' && ev.category !== categoryFilter) return false
+      // Time scope
+      const start = new Date(ev.start_time)
+      if (timeScope === 'upcoming' && start < now) return false
+      if (timeScope === 'past' && start >= now) return false
+      // Month
+      if (monthFilter) {
+        const evMonth = new Date(ev.start_time).toLocaleDateString('sv-SE', { timeZone: 'Europe/Sofia' }).slice(0, 7)
+        if (evMonth !== monthFilter) return false
+      }
+      return true
+    })
+  }, [events, search, categoryFilter, timeScope, monthFilter])
 
   const createMutation = useMutation({
     mutationFn: (body: EventFormState) =>
@@ -336,17 +408,78 @@ export default function AdminCalendarPage() {
         </button>
       </div>
 
+      {/* ── Filter bar ─────────────────────────────────────────────────────── */}
+      <div className="space-y-2.5">
+        {/* Row 1: search + month jump */}
+        <div className="flex gap-2 flex-wrap">
+          <div className="relative flex-1 min-w-[180px]">
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search events…"
+              className="w-full border rounded-xl px-3 py-2 text-sm pr-8"
+              style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-sm leading-none hover:opacity-70"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                ×
+              </button>
+            )}
+          </div>
+          <select
+            value={monthFilter}
+            onChange={e => setMonthFilter(e.target.value)}
+            className="border rounded-xl px-3 py-2 text-sm"
+            style={{ borderColor: 'var(--border-default)', color: monthFilter ? 'var(--text-primary)' : 'var(--text-secondary)', backgroundColor: 'var(--bg-card)' }}
+          >
+            <option value="">All months</option>
+            {availableMonths.map(m => (
+              <option key={m.value} value={m.value}>{m.label}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Row 2: category + time scope */}
+        <div className="flex gap-2 flex-wrap items-center">
+          <div className="flex gap-1.5">
+            {(['All', 'N21', 'Personal'] as CategoryFilter[]).map(c => (
+              <Pill key={c} active={categoryFilter === c} onClick={() => setCategoryFilter(c)}>{c}</Pill>
+            ))}
+          </div>
+          <div className="w-px h-4 flex-shrink-0" style={{ backgroundColor: 'var(--border-default)' }} />
+          <div className="flex gap-1.5">
+            {([
+              { value: 'upcoming', label: 'Upcoming' },
+              { value: 'past',     label: 'Past'     },
+              { value: 'all',      label: 'All'      },
+            ] as { value: TimeScope; label: string }[]).map(s => (
+              <Pill key={s.value} active={timeScope === s.value} onClick={() => handleTimeScopeChange(s.value)}>
+                {s.label}
+              </Pill>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Event list ─────────────────────────────────────────────────────── */}
       {isLoading ? (
         <div className="space-y-2">
           {[...Array(4)].map((_, i) => (
             <div key={i} className="h-14 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--border-default)' }} />
           ))}
         </div>
-      ) : events.length === 0 ? (
-        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t('admin.calendar.empty')}</p>
+      ) : filteredEvents.length === 0 ? (
+        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+          {events.length === 0 ? t('admin.calendar.empty') : 'No events match the current filters.'}
+        </p>
       ) : (
         <div className="rounded-2xl border overflow-hidden" style={{ borderColor: 'var(--border-default)' }}>
-          {events.map((ev, i) => (
+          {filteredEvents.map((ev, i) => (
             <div key={ev.id} className="px-5 py-4 flex items-center gap-4"
               style={{ borderTop: i > 0 ? '1px solid var(--border-default)' : 'none', backgroundColor: i % 2 === 0 ? 'white' : 'var(--bg-global)' }}>
               <div className="flex-1 min-w-0">
