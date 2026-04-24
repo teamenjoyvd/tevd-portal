@@ -155,7 +155,7 @@ export function NewsTab() {
             <AdminListCard
               key={item.id}
               grip
-              title={item.titles.en ?? item.titles.bg ?? 'Untitled'}
+              title={item.titles.en || item.titles.bg || 'Untitled'}
               sub={formatDate(item.created_at)}
               dragging={drag.isDragging(item.id)}
               onDragStart={() => drag.onDragStart(item.id)}
@@ -172,10 +172,10 @@ export function NewsTab() {
                     {t('admin.content.news.btn.edit')}
                   </button>
                   <button onClick={() => toggleItem.mutate({ id: item.id, is_active: !item.is_active })}>
-                    <AdminStatusBadge variant={item.is_active ? 'active' : 'inactive'} label={item.is_active ? 'Active' : 'Inactive'} />
+                    <AdminStatusBadge variant={item.is_active ? 'active' : 'inactive'} label={item.is_active ? t('admin.content.news.status.active') : t('admin.content.news.status.inactive')} />
                   </button>
                   <button
-                    onClick={() => setAlertTarget({ id: item.id, name: item.titles.en ?? item.titles.bg ?? 'Untitled' })}
+                    onClick={() => setAlertTarget({ id: item.id, name: item.titles.en || item.titles.bg || 'Untitled' })}
                     className="text-xs font-medium hover:opacity-70 transition-opacity"
                     style={{ color: 'var(--brand-crimson)' }}
                   >

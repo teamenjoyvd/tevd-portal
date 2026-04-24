@@ -160,7 +160,7 @@ export function NewsForm({
               value={form.contents[lang]}
               onChange={e => setForm(f => ({ ...f, contents: { ...f.contents, [lang]: e.target.value } }))}
               rows={5}
-              className="w-full border rounded-xl px-3 py-2 text-sm resize-none"
+              className="w-full border rounded-xl px-3 py-2 text-sm resize-y"
               style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
             />
             <p className="text-[10px] mt-1" style={{ color: 'var(--text-tertiary)' }}>
