@@ -1,6 +1,5 @@
 import { nav }           from './domains/nav'
 import { roles }         from './domains/roles'
-import { announcements } from './domains/announcements'
 import { time }          from './domains/time'
 import { guides }        from './domains/guides'
 import { notifications } from './domains/notifications'
@@ -42,14 +41,13 @@ function assertNoDuplicateKeys(
 }
 
 assertNoDuplicateKeys([
-  nav, roles, announcements, time, guides,
+  nav, roles, time, guides,
   notifications, profile, trips, calendar, events, los, admin, payment, home, about,
 ])
 
 export const translations = {
   ...nav,
   ...roles,
-  ...announcements,
   ...time,
   ...guides,
   ...notifications,
