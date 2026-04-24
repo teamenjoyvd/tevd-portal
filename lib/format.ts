@@ -91,6 +91,20 @@ export function formatDateLongEn(iso: string): string {
   })
 }
 
+// Cached formatter for Sofia datetime-local input conversion.
+// Shared by toSofiaLocalInput and fromSofiaLocalInput — creating a new
+// Intl.DateTimeFormat instance on every call is expensive.
+const SOFIA_INPUT_FMT = new Intl.DateTimeFormat('sv-SE', {
+  timeZone: TZ,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  hour12: false,
+})
+
 /**
  * Converts a UTC ISO string to a "YYYY-MM-DDTHH:mm" string in Europe/Sofia
  * for use as the value of a <input type="datetime-local">.
@@ -99,17 +113,7 @@ export function formatDateLongEn(iso: string): string {
  * with "T" and slice to 16 chars.
  */
 export function toSofiaLocalInput(iso: string): string {
-  const fmt = new Intl.DateTimeFormat('sv-SE', {
-    timeZone: TZ,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-  })
-  return fmt.format(new Date(iso)).replace(' ', 'T').slice(0, 16)
+  return SOFIA_INPUT_FMT.format(new Date(iso)).replace(' ', 'T').slice(0, 16)
 }
 
 /**
@@ -128,16 +132,7 @@ export function fromSofiaLocalInput(local: string): string {
   const naiveDate = new Date(local + ':00Z')
 
   // Format that instant in Sofia TZ to get the Sofia wall-clock representation
-  const sofiaWall = new Intl.DateTimeFormat('sv-SE', {
-    timeZone: TZ,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-  }).format(naiveDate)
+  const sofiaWall = SOFIA_INPUT_FMT.format(naiveDate)
 
   // Parse that wall-clock back as UTC to measure the offset
   const sofiaAsUtc = new Date(sofiaWall.replace(' ', 'T') + 'Z')

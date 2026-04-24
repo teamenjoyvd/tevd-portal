@@ -43,6 +43,18 @@ const CATEGORY_COLOR: Record<string, { bg: string; text: string }> = {
   Personal: { bg: 'var(--sienna)', text: 'rgba(255,255,255,0.95)' },
 }
 
+// ── Module-level cached formatters ────────────────────────────────────────
+// Instantiating Intl.DateTimeFormat inside render functions or tight loops
+// is expensive. Cache at module scope — formatters are stateless and reusable.
+
+/** Sofia date formatter (YYYY-MM-DD via sv-SE). Used for day-key comparisons. */
+const SOFIA_DATE_FMT = new Intl.DateTimeFormat('sv-SE', {
+  timeZone: 'Europe/Sofia',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+})
+
 // ── Helpers ─────────────────────────────────────────────────────────────────────
 
 function isoWeek(date: Date): number {
@@ -69,8 +81,7 @@ function addDays(date: Date, n: number): Date {
 
 /** Compare two dates by their calendar day in Europe/Sofia TZ. */
 function sameDaySofia(a: Date, b: Date): boolean {
-  const opts: Intl.DateTimeFormatOptions = { timeZone: 'Europe/Sofia', year: 'numeric', month: '2-digit', day: '2-digit' }
-  return a.toLocaleDateString('sv-SE', opts) === b.toLocaleDateString('sv-SE', opts)
+  return SOFIA_DATE_FMT.format(a) === SOFIA_DATE_FMT.format(b)
 }
 
 function toMonthParam(date: Date): string {
@@ -152,12 +163,21 @@ function MonthView({
   const gridStart = startOfWeek(firstOfMonth)
   const cells = Array.from({ length: 42 }, (_, i) => addDays(gridStart, i))
 
-  const eventsOnDay = (date: Date) => {
-    const dateKey = date.toLocaleDateString('sv-SE', { timeZone: 'Europe/Sofia' })
-    return events.filter(e => {
-      const evKey = new Date(e.start_time).toLocaleDateString('sv-SE', { timeZone: 'Europe/Sofia' })
-      return evKey === dateKey
+  // Pre-compute a map of Sofia-date-key → events to avoid O(N×M) filtering
+  // inside the 42-cell render loop.
+  const eventsBySofiaDate = useMemo(() => {
+    const map: Record<string, CalendarEvent[]> = {}
+    events.forEach(e => {
+      const key = new Date(e.start_time).toLocaleDateString('sv-SE', { timeZone: 'Europe/Sofia' })
+      if (!map[key]) map[key] = []
+      map[key].push(e)
     })
+    return map
+  }, [events])
+
+  const eventsOnDay = (date: Date) => {
+    const dateKey = SOFIA_DATE_FMT.format(date)
+    return eventsBySofiaDate[dateKey] ?? []
   }
 
   return (
@@ -291,13 +311,18 @@ function AgendaView({
     )
   }
 
+  // Current day in Sofia — computed once outside the loop for correctness and
+  // efficiency. Comparing against the already-Sofia-local dateKey is more
+  // reliable than constructing a local Date and calling sameDaySofia.
+  const todaySofia = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Sofia' })
+
   return (
     <div className="overflow-y-auto px-4 py-2" style={{ height: 'var(--cal-height)', minHeight: 300 }}>
       {dates.map(dateKey => {
         // Parse Sofia-local date key (sv-SE = YYYY-MM-DD)
         const [y, mo, d] = dateKey.split('-').map(Number)
         const date = new Date(y, mo - 1, d)
-        const isToday = sameDaySofia(date, new Date())
+        const isToday = dateKey === todaySofia
         return (
           <div key={dateKey} className="mb-6">
             <div className="flex items-center gap-3 mb-2 sticky top-0 py-2" style={{ backgroundColor: 'var(--bg-global)' }}>
