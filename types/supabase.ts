@@ -112,6 +112,7 @@ export type Database = {
       calendar_events: {
         Row: {
           allow_guest_registration: boolean
+          available_roles: string[]
           category: Database["public"]["Enums"]["event_category"]
           created_at: string
           created_by: string | null
@@ -128,6 +129,7 @@ export type Database = {
         }
         Insert: {
           allow_guest_registration?: boolean
+          available_roles?: string[]
           category?: Database["public"]["Enums"]["event_category"]
           created_at?: string
           created_by?: string | null
@@ -144,6 +146,7 @@ export type Database = {
         }
         Update: {
           allow_guest_registration?: boolean
+          available_roles?: string[]
           category?: Database["public"]["Enums"]["event_category"]
           created_at?: string
           created_by?: string | null
@@ -1285,6 +1288,8 @@ export type Database = {
         | "event_fetched"
         | "doc_expiry"
         | "los_digest"
+        | "trip_message"
+        | "trip_attachment"
       registration_status: "pending" | "approved" | "denied"
       user_role: "admin" | "core" | "member" | "guest"
     }
@@ -1425,6 +1430,8 @@ export const Constants = {
         "event_fetched",
         "doc_expiry",
         "los_digest",
+        "trip_message",
+        "trip_attachment",
       ],
       registration_status: ["pending", "approved", "denied"],
       user_role: ["admin", "core", "member", "guest"],
