@@ -78,7 +78,7 @@ function toMonthParam(date: Date): string {
 }
 
 function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+  return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Sofia' })
 }
 
 function formatShortDate(date: Date): string {
@@ -147,8 +147,13 @@ function MonthView({
   const gridStart = startOfWeek(firstOfMonth)
   const cells = Array.from({ length: 42 }, (_, i) => addDays(gridStart, i))
 
-  const eventsOnDay = (date: Date) =>
-    events.filter(e => sameDay(new Date(e.start_time), date))
+  const eventsOnDay = (date: Date) => {
+    const dateKey = date.toLocaleDateString('sv-SE', { timeZone: 'Europe/Sofia' })
+    return events.filter(e => {
+      const evKey = new Date(e.start_time).toLocaleDateString('sv-SE', { timeZone: 'Europe/Sofia' })
+      return evKey === dateKey
+    })
+  }
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
@@ -244,7 +249,8 @@ function AgendaView({
       .filter(e => new Date(e.start_time) >= today)
       .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
       .forEach(e => {
-        const key = new Date(e.start_time).toDateString()
+        // Group by Sofia-local date to avoid UTC midnight bucketing errors
+        const key = new Date(e.start_time).toLocaleDateString('sv-SE', { timeZone: 'Europe/Sofia' })
         if (!map[key]) map[key] = []
         map[key].push(e)
       })
@@ -283,7 +289,9 @@ function AgendaView({
   return (
     <div className="overflow-y-auto px-4 py-2" style={{ height: 'var(--cal-height)', minHeight: 300 }}>
       {dates.map(dateKey => {
-        const date = new Date(dateKey)
+        // Parse Sofia-local date key (sv-SE = YYYY-MM-DD)
+        const [y, mo, d] = dateKey.split('-').map(Number)
+        const date = new Date(y, mo - 1, d)
         const isToday = sameDay(date, new Date())
         return (
           <div key={dateKey} className="mb-6">
@@ -447,36 +455,37 @@ export default function CalendarClient({
       <div className="md:hidden">
         <div className="flex-shrink-0 border-b" style={{ backgroundColor: 'var(--bg-global)', borderColor: 'var(--border-default)' }}>
           <div className="max-w-[1024px] mx-auto px-4">
-            {/* Row 1: period nav */}
-            <div className="flex items-center gap-2 py-2.5">
-              <button onClick={() => navigate(-1)}
-                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5"
-                style={{ color: 'var(--text-primary)' }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-                  stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="15 18 9 12 15 6"/>
-                </svg>
-              </button>
-              <button onClick={goToday}
-                className="px-2.5 py-1 rounded-lg text-xs font-semibold border"
-                style={{ borderColor: 'var(--crimson)', color: 'var(--crimson)' }}>
-                {t('cal.today')}
-              </button>
-              <button onClick={() => navigate(1)}
-                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5"
-                style={{ color: 'var(--text-primary)' }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-                  stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="9 18 15 12 9 6"/>
-                </svg>
-              </button>
-              <p className="flex-1 text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
-                {periodLabel}
-              </p>
-            </div>
-            {/* Row 2: view switcher */}
-            <div className="flex items-center justify-between gap-2 pb-2">
-              <div className="flex gap-0.5 p-0.5 rounded-lg" style={{ backgroundColor: 'rgba(0,0,0,0.05)' }}>
+
+            {/* Row 1: nav + period label (left) | view switcher (right) */}
+            <div className="flex items-center justify-between gap-2 py-2.5">
+              <div className="flex items-center gap-1 min-w-0">
+                <button onClick={() => navigate(-1)}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5 flex-shrink-0"
+                  style={{ color: 'var(--text-primary)' }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="15 18 9 12 15 6"/>
+                  </svg>
+                </button>
+                <button onClick={goToday}
+                  className="px-2.5 py-1 rounded-lg text-xs font-semibold border flex-shrink-0"
+                  style={{ borderColor: 'var(--crimson)', color: 'var(--crimson)' }}>
+                  {t('cal.today')}
+                </button>
+                <button onClick={() => navigate(1)}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5 flex-shrink-0"
+                  style={{ color: 'var(--text-primary)' }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
+                </button>
+                <p className="text-sm font-semibold truncate ml-1" style={{ color: 'var(--text-primary)' }}>
+                  {periodLabel}
+                </p>
+              </div>
+              {/* View switcher — right side of Row 1 */}
+              <div className="flex gap-0.5 p-0.5 rounded-lg flex-shrink-0" style={{ backgroundColor: 'rgba(0,0,0,0.05)' }}>
                 {views.map(v => (
                   <button key={v.key} onClick={() => setView(v.key)}
                     className="px-2.5 py-1 rounded-md text-xs font-medium transition-all"
@@ -490,7 +499,8 @@ export default function CalendarClient({
                 ))}
               </div>
             </div>
-            {/* Row 3: category + format filter chips */}
+
+            {/* Row 2: category + format filter chips */}
             <div className="flex items-center gap-1.5 pb-2.5 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
               <button
                 onClick={() => setShowN21(v => !v)}
@@ -689,7 +699,7 @@ export default function CalendarClient({
           </div>
         </div>
 
-        {/* Desktop event modal — shadcn Dialog (Radix): Portal, focus trap, Escape, body scroll lock */}
+        {/* Desktop event modal */}
         <Dialog open={!!selectedEventId} onOpenChange={open => { if (!open) handleClose() }}>
           <DialogPortal>
             <DialogOverlay
