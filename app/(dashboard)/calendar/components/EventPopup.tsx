@@ -27,6 +27,7 @@ type EventDetail = {
   description: string | null
   meeting_url: string | null
   allow_guest_registration: boolean
+  available_roles: string[]
   start_time: string
   end_time: string
   category: 'N21' | 'Personal'
@@ -42,8 +43,6 @@ type Props = {
   userRole: 'admin' | 'core' | 'member' | 'guest' | null
   userProfileId: string | null
 }
-
-const ROLE_PILLS = ['HOST', 'SPEAKER', 'PRODUCT']
 
 const STATUS_STYLES = {
   pending:  { bg: '#f2cc8f33', color: '#7a5c00'  },
@@ -112,6 +111,7 @@ export default function EventPopup({
   }
 
   const eventTypeStyle = event?.event_type ? EVENT_TYPE_STYLES[event.event_type] : null
+  const availableRoles = event?.available_roles ?? ['HOST', 'SPEAKER', 'PRODUCTS']
   const visibleRoleRequests = isAdmin
     ? (event?.role_requests ?? [])
     : (event?.role_requests ?? []).filter(r => r.profile?.id === userProfileId)
@@ -195,7 +195,7 @@ export default function EventPopup({
             )}
             {!isAdmin && canRequestRole && (
               <div className="flex gap-2">
-                {ROLE_PILLS.map(role => {
+                {availableRoles.map(role => {
                   const isActive = myRequest?.role_label === role
                   const isDisabled = (!isActive && !!myRequest) || isMutating
                   const activeStyle = isActive ? STATUS_STYLES[myRequest!.status] : null

@@ -17,6 +17,9 @@ type CalEvent = {
   event_type: 'in-person' | 'online' | 'hybrid' | null
   visibility_roles: string[]
   google_event_id: string | null
+  meeting_url: string | null
+  allow_guest_registration: boolean
+  available_roles: string[]
 }
 
 const ALL_ROLES = ['guest', 'member', 'core', 'admin']
@@ -32,6 +35,9 @@ type EventFormState = {
   category: 'N21' | 'Personal'
   event_type: 'in-person' | 'online' | 'hybrid' | null
   visibility_roles: string[]
+  meeting_url: string
+  allow_guest_registration: boolean
+  available_roles: string[]
 }
 
 function emptyForm(): EventFormState {
@@ -44,6 +50,9 @@ function emptyForm(): EventFormState {
     category: 'N21',
     event_type: null,
     visibility_roles: [...ALL_ROLES],
+    meeting_url: '',
+    allow_guest_registration: true,
+    available_roles: ['HOST', 'SPEAKER', 'PRODUCTS'],
   }
 }
 
@@ -67,6 +76,20 @@ function EventForm({
   formError: string | null
 }) {
   const { t } = useLanguage()
+  const [roleInput, setRoleInput] = useState('')
+
+  function addRole() {
+    const role = roleInput.trim().toUpperCase()
+    if (role && !f.available_roles.includes(role)) {
+      setF(p => ({ ...p, available_roles: [...p.available_roles, role] }))
+    }
+    setRoleInput('')
+  }
+
+  function removeRole(role: string) {
+    setF(p => ({ ...p, available_roles: p.available_roles.filter(r => r !== role) }))
+  }
+
   return (
     <div className="space-y-4">
       <input value={f.title} onChange={e => setF(p => ({ ...p, title: e.target.value }))}
@@ -92,12 +115,22 @@ function EventForm({
             style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
         </div>
       </div>
+
+      {/* Meeting URL */}
+      <div>
+        <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.calendar.lbl.meetingUrl')}</label>
+        <input type="url" value={f.meeting_url} onChange={e => setF(p => ({ ...p, meeting_url: e.target.value }))}
+          placeholder={t('admin.calendar.placeholder.meetingUrl')}
+          className="w-full border rounded-xl px-3 py-2.5 text-sm"
+          style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
+      </div>
+
       <div className="flex flex-wrap gap-4 items-start">
         <div>
           <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.calendar.lbl.category')}</label>
           <div className="flex gap-2">
             {CATEGORIES.map(c => (
-              <button key={c} onClick={() => setF(p => ({ ...p, category: c }))}
+              <button key={c} type="button" onClick={() => setF(p => ({ ...p, category: c }))}
                 className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
                 style={{ backgroundColor: f.category === c ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)', color: f.category === c ? 'var(--brand-parchment)' : 'var(--text-secondary)' }}>
                 {c}
@@ -109,7 +142,7 @@ function EventForm({
           <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.calendar.lbl.type')}</label>
           <div className="flex gap-2">
             {EVENT_TYPES.map(t2 => (
-              <button key={t2} onClick={() => setF(p => ({ ...p, event_type: f.event_type === t2 ? null : t2 }))}
+              <button key={t2} type="button" onClick={() => setF(p => ({ ...p, event_type: f.event_type === t2 ? null : t2 }))}
                 className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
                 style={{ backgroundColor: f.event_type === t2 ? 'var(--brand-teal)' : 'rgba(0,0,0,0.06)', color: f.event_type === t2 ? 'white' : 'var(--text-secondary)' }}>
                 {t2}
@@ -121,7 +154,7 @@ function EventForm({
           <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.calendar.lbl.visibleTo')}</label>
           <div className="flex gap-2">
             {ALL_ROLES.map(role => (
-              <button key={role} onClick={() => setF(p => ({
+              <button key={role} type="button" onClick={() => setF(p => ({
                 ...p,
                 visibility_roles: p.visibility_roles.includes(role)
                   ? p.visibility_roles.filter(r => r !== role)
@@ -135,6 +168,54 @@ function EventForm({
           </div>
         </div>
       </div>
+
+      {/* Allow guest registration toggle */}
+      <div>
+        <label className="text-xs mb-2 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.calendar.lbl.allowGuestReg')}</label>
+        <button
+          type="button"
+          onClick={() => setF(p => ({ ...p, allow_guest_registration: !p.allow_guest_registration }))}
+          className="px-4 py-1.5 rounded-full text-xs font-semibold transition-all"
+          style={{
+            backgroundColor: f.allow_guest_registration ? 'var(--brand-teal)' : 'rgba(0,0,0,0.06)',
+            color: f.allow_guest_registration ? 'white' : 'var(--text-secondary)',
+          }}>
+          {f.allow_guest_registration ? 'ON' : 'OFF'}
+        </button>
+      </div>
+
+      {/* Available roles tag manager */}
+      <div>
+        <label className="text-xs mb-2 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.calendar.lbl.availableRoles')}</label>
+        <div className="flex flex-wrap gap-2 mb-2">
+          {f.available_roles.map(role => (
+            <span key={role} className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold"
+              style={{ backgroundColor: 'var(--brand-forest)', color: 'var(--brand-parchment)' }}>
+              {role}
+              <button type="button" onClick={() => removeRole(role)}
+                className="ml-0.5 leading-none hover:opacity-70 transition-opacity"
+                style={{ color: 'var(--brand-parchment)' }}>
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <input
+            value={roleInput}
+            onChange={e => setRoleInput(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addRole() } }}
+            placeholder={t('admin.calendar.placeholder.roleTag')}
+            className="flex-1 border rounded-xl px-3 py-2 text-xs"
+            style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
+          <button type="button" onClick={addRole}
+            className="px-3 py-2 rounded-xl text-xs font-semibold border transition-colors hover:bg-black/5"
+            style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
+            +
+          </button>
+        </div>
+      </div>
+
       {formError && <p className="text-sm" style={{ color: 'var(--brand-crimson)' }}>{formError}</p>}
       <div className="flex gap-3 pt-2">
         <button onClick={onSave} disabled={isPending || !f.title || !f.start_time || !f.end_time}
@@ -219,6 +300,11 @@ export default function AdminCalendarPage() {
       category: ev.category,
       event_type: ev.event_type,
       visibility_roles: Array.isArray(ev.visibility_roles) ? ev.visibility_roles : [...ALL_ROLES],
+      meeting_url: ev.meeting_url ?? '',
+      allow_guest_registration: ev.allow_guest_registration,
+      available_roles: Array.isArray(ev.available_roles)
+        ? ev.available_roles
+        : ['HOST', 'SPEAKER', 'PRODUCTS'],
     })
     setFormError(null)
     setEditing(ev)
@@ -282,6 +368,25 @@ export default function AdminCalendarPage() {
                       {t('admin.calendar.badge.google')}
                     </span>
                   )}
+                  {ev.meeting_url && (
+                    <a href={ev.meeting_url} target="_blank" rel="noopener noreferrer"
+                      className="text-[10px] px-2 py-0.5 rounded-full hover:opacity-70 transition-opacity"
+                      style={{ backgroundColor: 'rgba(62,119,133,0.12)', color: 'var(--brand-teal)' }}>
+                      🔗
+                    </a>
+                  )}
+                  {ev.allow_guest_registration && (
+                    <span className="text-[10px] px-2 py-0.5 rounded-full"
+                      style={{ backgroundColor: 'rgba(129,178,154,0.2)', color: '#2d6a4f' }}>
+                      {t('admin.calendar.badge.guestReg')}
+                    </span>
+                  )}
+                  {ev.available_roles?.map(role => (
+                    <span key={role} className="text-[10px] px-2 py-0.5 rounded-full"
+                      style={{ backgroundColor: 'rgba(0,0,0,0.05)', color: 'var(--text-secondary)' }}>
+                      {role}
+                    </span>
+                  ))}
                 </div>
                 <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
                   {formatDateTime(ev.start_time)} → {formatDateTime(ev.end_time)} · W{ev.week_number}
