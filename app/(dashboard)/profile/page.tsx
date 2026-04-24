@@ -190,15 +190,15 @@ export default function ProfilePage() {
   }, [persistPrefs])
 
   const toggleAll = useCallback(() => {
+    const ids = orderedBentosRef.current.map(b => b.id)
+    if (ids.length === 0) return
     setBentoCollapsed(prev => {
-      const ids = orderedBentosRef.current.map(b => b.id)
       const allCollapsed = ids.every(id => !!prev[id])
       const next = { ...prev }
       ids.forEach(id => { next[id] = !allCollapsed })
       setBentoOrder(order => { persistPrefs(order, next); return order })
       return next
     })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [persistPrefs])
 
   const resetLayout = useCallback(() => {
