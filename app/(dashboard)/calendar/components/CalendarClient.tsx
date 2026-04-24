@@ -147,12 +147,20 @@ function MonthView({
   const gridStart = startOfWeek(firstOfMonth)
   const cells = Array.from({ length: 42 }, (_, i) => addDays(gridStart, i))
 
-  const eventsOnDay = (date: Date) => {
-    const dateKey = date.toLocaleDateString('sv-SE', { timeZone: 'Europe/Sofia' })
-    return events.filter(e => {
-      const evKey = new Date(e.start_time).toLocaleDateString('sv-SE', { timeZone: 'Europe/Sofia' })
-      return evKey === dateKey
-    })
+  // Pre-group events by Sofia-local date key to avoid O(42×N) filter in render
+  const eventsByDay = useMemo(() => {
+    const map: Record<string, CalendarEvent[]> = {}
+    for (const e of events) {
+      const key = new Date(e.start_time).toLocaleDateString('sv-SE', { timeZone: 'Europe/Sofia' })
+      if (!map[key]) map[key] = []
+      map[key].push(e)
+    }
+    return map
+  }, [events])
+
+  const eventsOnDay = (date: Date): CalendarEvent[] => {
+    const key = date.toLocaleDateString('sv-SE', { timeZone: 'Europe/Sofia' })
+    return eventsByDay[key] ?? []
   }
 
   return (

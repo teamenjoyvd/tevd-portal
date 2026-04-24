@@ -233,6 +233,24 @@ function EventForm({
   )
 }
 
+// ── Pill hoisted to module scope to prevent remount on parent render ──────
+
+function Pill({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all flex-shrink-0"
+      style={{
+        backgroundColor: active ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)',
+        color: active ? 'var(--brand-parchment)' : 'var(--text-secondary)',
+      }}
+    >
+      {children}
+    </button>
+  )
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 type TimeScope = 'upcoming' | 'past' | 'all'
@@ -263,7 +281,7 @@ export default function AdminCalendarPage() {
     const months: { value: string; label: string }[] = []
     for (const ev of events) {
       const d = new Date(ev.start_time)
-      const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+      const value = d.toLocaleDateString('sv-SE', { timeZone: 'Europe/Sofia' }).slice(0, 7)
       if (!seen.has(value)) {
         seen.add(value)
         months.push({
@@ -295,7 +313,7 @@ export default function AdminCalendarPage() {
       if (timeScope === 'past' && start >= now) return false
       // Month
       if (monthFilter) {
-        const evMonth = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}`
+        const evMonth = new Date(ev.start_time).toLocaleDateString('sv-SE', { timeZone: 'Europe/Sofia' }).slice(0, 7)
         if (evMonth !== monthFilter) return false
       }
       return true
@@ -370,23 +388,6 @@ export default function AdminCalendarPage() {
     setEditing(null)
     setForm(emptyForm())
     setFormError(null)
-  }
-
-  // ── Pill helper ───────────────────────────────────────────────────────────
-  function Pill({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-    return (
-      <button
-        type="button"
-        onClick={onClick}
-        className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all flex-shrink-0"
-        style={{
-          backgroundColor: active ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)',
-          color: active ? 'var(--brand-parchment)' : 'var(--text-secondary)',
-        }}
-      >
-        {children}
-      </button>
-    )
   }
 
   return (
