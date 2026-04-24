@@ -46,6 +46,7 @@ export const profile = {
   'profile.incompleteHint':     { en: 'Complete your profile to get started.', bg: 'Попълнете профила си, за да започнете.' },
   'profile.resetLayout':        { en: 'Reset layout',            bg: 'Нулирай оформлението'     },
   'profile.collapseAll':        { en: 'Collapse all',            bg: 'Свий всички'              },
+  'profile.expandAll':          { en: 'Expand all',              bg: 'Разгъни всички'           },
   'profile.tile.personalDetails': { en: 'Personal Details', bg: 'Лични данни'           },
   'profile.tile.aboInfo':         { en: 'ABO Information',  bg: 'ABO Информация'        },
   'profile.tile.travelDoc':       { en: 'Travel Document',  bg: 'Документ за пътуване'  },

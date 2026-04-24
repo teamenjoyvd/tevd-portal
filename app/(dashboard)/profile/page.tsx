@@ -189,16 +189,16 @@ export default function ProfilePage() {
     })
   }, [persistPrefs])
 
-  const collapseAll = useCallback(() => {
+  const toggleAll = useCallback(() => {
+    const ids = orderedBentosRef.current.map(b => b.id)
+    if (ids.length === 0) return
     setBentoCollapsed(prev => {
+      const allCollapsed = ids.every(id => !!prev[id])
       const next = { ...prev }
-      orderedBentosRef.current.forEach(({ id }) => {
-        next[id] = true
-      })
+      ids.forEach(id => { next[id] = !allCollapsed })
       setBentoOrder(order => { persistPrefs(order, next); return order })
       return next
     })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [persistPrefs])
 
   const resetLayout = useCallback(() => {
@@ -301,9 +301,11 @@ export default function ProfilePage() {
     .map(id => ({ id, entry: bentoMap[id] ?? null }))
     .filter((b): b is { id: string; entry: BentoEntry } => b.entry !== null)
 
-  // Stable ref for collapseAll to read current orderedBentos without stale closure
+  // Stable ref for toggleAll to read current orderedBentos without stale closure
   const orderedBentosRef = useRef(orderedBentos)
   orderedBentosRef.current = orderedBentos
+
+  const allCollapsed = orderedBentos.every(({ id }) => !!bentoCollapsed[id])
 
   return (
     <div className="py-8 pb-16">
@@ -311,11 +313,11 @@ export default function ProfilePage() {
 
         <div className="flex justify-end gap-4 mb-3">
           <button
-            onClick={collapseAll}
+            onClick={toggleAll}
             className="text-xs font-medium hover:opacity-70 transition-opacity"
             style={{ color: 'var(--text-secondary)' }}
           >
-            {t('profile.collapseAll')}
+            {allCollapsed ? t('profile.expandAll') : t('profile.collapseAll')}
           </button>
           <button
             onClick={resetLayout}
