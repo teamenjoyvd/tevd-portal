@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { formatDateTime } from '@/lib/format'
+import { formatDateTime, toSofiaLocalInput, fromSofiaLocalInput } from '@/lib/format'
 import { Drawer } from '@/components/ui/Drawer'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 
@@ -53,6 +53,18 @@ function emptyForm(): EventFormState {
     meeting_url: '',
     allow_guest_registration: true,
     available_roles: ['HOST', 'SPEAKER', 'PRODUCTS'],
+  }
+}
+
+/**
+ * Convert form time fields (Sofia local "datetime-local" strings) to UTC ISO
+ * before API submission. All other fields pass through unchanged.
+ */
+function normalizeFormTimes(f: EventFormState): EventFormState {
+  return {
+    ...f,
+    start_time: f.start_time ? fromSofiaLocalInput(f.start_time) : f.start_time,
+    end_time:   f.end_time   ? fromSofiaLocalInput(f.end_time)   : f.end_time,
   }
 }
 
@@ -252,7 +264,7 @@ export default function AdminCalendarPage() {
     mutationFn: (body: EventFormState) =>
       fetch('/api/admin/calendar', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: JSON.stringify(normalizeFormTimes(body)),
       }).then(async r => { if (!r.ok) throw new Error((await r.json()).error); return r.json() }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-calendar'] })
@@ -267,7 +279,7 @@ export default function AdminCalendarPage() {
     mutationFn: ({ id, ...body }: { id: string } & EventFormState) =>
       fetch(`/api/admin/calendar/${id}`, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: JSON.stringify(normalizeFormTimes(body)),
       }).then(async r => { if (!r.ok) throw new Error((await r.json()).error); return r.json() }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-calendar'] })
@@ -294,8 +306,8 @@ export default function AdminCalendarPage() {
     setForm({
       title: ev.title,
       description: ev.description ?? '',
-      start_time: ev.start_time.slice(0, 16),
-      end_time: ev.end_time.slice(0, 16),
+      start_time: toSofiaLocalInput(ev.start_time),
+      end_time:   toSofiaLocalInput(ev.end_time),
       week_number: ev.week_number,
       category: ev.category,
       event_type: ev.event_type,

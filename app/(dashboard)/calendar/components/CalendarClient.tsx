@@ -67,18 +67,23 @@ function addDays(date: Date, n: number): Date {
   return d
 }
 
-function sameDay(a: Date, b: Date): boolean {
-  return a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
+/** Compare two dates by their calendar day in Europe/Sofia TZ. */
+function sameDaySofia(a: Date, b: Date): boolean {
+  const opts: Intl.DateTimeFormatOptions = { timeZone: 'Europe/Sofia', year: 'numeric', month: '2-digit', day: '2-digit' }
+  return a.toLocaleDateString('sv-SE', opts) === b.toLocaleDateString('sv-SE', opts)
 }
 
 function toMonthParam(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
 }
 
+/** Format a UTC ISO string as HH:mm in Europe/Sofia. */
 function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+  return new Date(iso).toLocaleTimeString('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'Europe/Sofia',
+  })
 }
 
 function formatShortDate(date: Date): string {
@@ -147,8 +152,13 @@ function MonthView({
   const gridStart = startOfWeek(firstOfMonth)
   const cells = Array.from({ length: 42 }, (_, i) => addDays(gridStart, i))
 
-  const eventsOnDay = (date: Date) =>
-    events.filter(e => sameDay(new Date(e.start_time), date))
+  const eventsOnDay = (date: Date) => {
+    const dateKey = date.toLocaleDateString('sv-SE', { timeZone: 'Europe/Sofia' })
+    return events.filter(e => {
+      const evKey = new Date(e.start_time).toLocaleDateString('sv-SE', { timeZone: 'Europe/Sofia' })
+      return evKey === dateKey
+    })
+  }
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
@@ -174,7 +184,7 @@ function MonthView({
                 </span>
               </div>
               {weekDays.map((date, di) => {
-                const isToday = sameDay(date, today)
+                const isToday = sameDaySofia(date, today)
                 const isCurrentMonth = date.getMonth() === current.getMonth()
                 const dayEvents = eventsOnDay(date)
                 return (
@@ -244,7 +254,8 @@ function AgendaView({
       .filter(e => new Date(e.start_time) >= today)
       .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
       .forEach(e => {
-        const key = new Date(e.start_time).toDateString()
+        // Group by Sofia-local date to avoid UTC midnight bucketing errors
+        const key = new Date(e.start_time).toLocaleDateString('sv-SE', { timeZone: 'Europe/Sofia' })
         if (!map[key]) map[key] = []
         map[key].push(e)
       })
@@ -283,8 +294,10 @@ function AgendaView({
   return (
     <div className="overflow-y-auto px-4 py-2" style={{ height: 'var(--cal-height)', minHeight: 300 }}>
       {dates.map(dateKey => {
-        const date = new Date(dateKey)
-        const isToday = sameDay(date, new Date())
+        // Parse Sofia-local date key (sv-SE = YYYY-MM-DD)
+        const [y, mo, d] = dateKey.split('-').map(Number)
+        const date = new Date(y, mo - 1, d)
+        const isToday = sameDaySofia(date, new Date())
         return (
           <div key={dateKey} className="mb-6">
             <div className="flex items-center gap-3 mb-2 sticky top-0 py-2" style={{ backgroundColor: 'var(--bg-global)' }}>
