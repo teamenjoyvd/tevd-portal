@@ -1,9 +1,14 @@
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { requireAdmin } from '@/lib/supabase/guards'
+import { getCallerContext } from '@/lib/supabase/guards'
 
 export async function GET(): Promise<Response> {
+  const { userId } = await auth()
+  if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
   const supabase = createServiceClient()
+  const ctx = await getCallerContext(userId, supabase, 'admin')
+  if (ctx.guard) return ctx.guard
+
   const { data, error } = await supabase
     .from('links').select('*').order('sort_order')
   if (error) return Response.json({ error: error.message }, { status: 500 })
@@ -14,8 +19,8 @@ export async function POST(req: Request): Promise<Response> {
   const { userId } = await auth()
   if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
   const supabase = createServiceClient()
-  const guard = await requireAdmin(userId, supabase)
-  if (guard) return guard
+  const ctx = await getCallerContext(userId, supabase, 'admin')
+  if (ctx.guard) return ctx.guard
 
   const body = await req.json() as Record<string, unknown>
 
