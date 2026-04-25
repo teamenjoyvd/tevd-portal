@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { apiClient } from '@/lib/apiClient'
 
 type Props = {
   tripId: string
@@ -14,13 +15,9 @@ export default function RegisterButton({ tripId, profileId }: Props) {
 
   const mutation = useMutation({
     mutationFn: () =>
-      fetch(`/api/trips/${tripId}/register`, {
+      apiClient(`/api/trips/${tripId}/register`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({}),
-      }).then(async r => {
-        if (!r.ok) throw new Error((await r.json()).error)
-        return r.json()
       }),
     onSuccess: () => {
       setLocalSuccess(true)
@@ -32,20 +29,18 @@ export default function RegisterButton({ tripId, profileId }: Props) {
         e.message.toLowerCase().includes('already') ||
         e.message.toLowerCase().includes('unique')
       if (isAlreadyRegistered) {
-        // Force re-fetch so the parent can swap to "View Trip Details"
         qc.invalidateQueries({ queryKey: ['registrations'] })
       }
     },
   })
 
-  // Optimistic success state — parent will re-render once query refetches
   if (localSuccess) {
     return (
       <div
         className="w-full py-3 rounded-xl text-sm font-medium text-center"
         style={{ backgroundColor: 'rgba(129,178,154,0.15)', color: '#2d6a4f' }}
       >
-        Registered — awaiting approval ✓
+        Registered \u2014 awaiting approval \u2713
       </div>
     )
   }
@@ -66,7 +61,7 @@ export default function RegisterButton({ tripId, profileId }: Props) {
           <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
         </svg>
       )}
-      {mutation.isPending ? 'Registering…' : 'Register for this trip'}
+      {mutation.isPending ? 'Registering\u2026' : 'Register for this trip'}
     </button>
   )
 }

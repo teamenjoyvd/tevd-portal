@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query'
 import BentoCard from '@/components/bento/BentoCard'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import type { TranslationKey } from '@/lib/i18n/translations'
+import { apiClient } from '@/lib/apiClient'
 
 type VerifRequest = { status: 'pending' | 'approved' | 'denied' } | null
 type Upline = { upline_name: string | null; upline_abo_number: string | null } | null
@@ -39,7 +40,7 @@ export default function ProfileTile({
 
   const { data: profile } = useQuery<Profile>({
     queryKey: ['profile'],
-    queryFn: () => fetch('/api/profile').then(r => r.json()),
+    queryFn: () => apiClient('/api/profile'),
     enabled: !!isSignedIn,
     staleTime: 5 * 60 * 1000,
   })
@@ -61,7 +62,6 @@ export default function ProfileTile({
     ?? profile?.first_name
     ?? null
 
-  // Loading state
   if (!isLoaded) {
     return (
       <BentoCard variant="teal" colSpan={colSpan} mobileColSpan={mobileColSpan} rowSpan={rowSpan} style={style} className="flex flex-col justify-between">
@@ -73,7 +73,6 @@ export default function ProfileTile({
     )
   }
 
-  // Unauthenticated guest
   if (!isSignedIn) {
     return (
       <BentoCard variant="teal" colSpan={colSpan} mobileColSpan={mobileColSpan} rowSpan={rowSpan} style={style} className="flex flex-col justify-between">
@@ -94,7 +93,6 @@ export default function ProfileTile({
     )
   }
 
-  // Unverified Member
   if (isUnverified) {
     return (
       <BentoCard variant="teal" colSpan={colSpan} mobileColSpan={mobileColSpan} rowSpan={rowSpan} style={style} className="flex flex-col justify-between">
@@ -121,7 +119,6 @@ export default function ProfileTile({
     )
   }
 
-  // Authenticated member+
   return (
     <BentoCard variant="teal" colSpan={colSpan} mobileColSpan={mobileColSpan} rowSpan={rowSpan} style={style} className="flex flex-col justify-between">
       <div className="flex items-center justify-end gap-3">
@@ -145,7 +142,7 @@ export default function ProfileTile({
           </span>
           {uplineData?.upline_name && (
             <span className="text-xs font-body" style={{ color: 'rgba(250,248,243,0.70)' }}>
-              ↑ {uplineData.upline_name}
+              \u2191 {uplineData.upline_name}
             </span>
           )}
         </div>

@@ -7,6 +7,7 @@ import { useLanguage } from '@/lib/hooks/useLanguage'
 import { useTileMaxItems } from '@/lib/hooks/useBentoConfig'
 import BentoCard from '@/components/bento/BentoCard'
 import { Eyebrow } from '@/components/bento/BentoCard'
+import { apiClient } from '@/lib/apiClient'
 
 type Guide = {
   id: string
@@ -22,7 +23,7 @@ export default function GuidesTile({ colSpan = 6, rowSpan, mobileColSpan }: { co
 
   const { data: guides = [], isLoading } = useQuery<Guide[]>({
     queryKey: ['guides', 'tile', maxItems],
-    queryFn: () => fetch(`/api/guides?limit=${maxItems}`).then(r => r.json()),
+    queryFn: () => apiClient(`/api/guides?limit=${maxItems}`),
     enabled: isLoaded,
     staleTime: 5 * 60 * 1000,
   })
@@ -62,7 +63,7 @@ export default function GuidesTile({ colSpan = 6, rowSpan, mobileColSpan }: { co
                 className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors hover:bg-black/[0.04] group"
               >
                 <span className="text-base flex-shrink-0 w-6 text-center">
-                  {g.emoji ?? '📄'}
+                  {g.emoji ?? '\ud83d\udcc4'}
                 </span>
                 <span className="flex-1 text-sm font-medium truncate font-body"
                   style={{ color: 'var(--text-primary)' }}>

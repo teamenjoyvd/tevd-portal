@@ -6,6 +6,7 @@ import { formatDate } from '@/lib/format'
 import { BackButton, TripHero } from './shared'
 import type { Tables } from '@/types/supabase'
 import type { TripProfile } from '../page'
+import { apiClient } from '@/lib/apiClient'
 
 type Trip = Tables<'trips'>
 type Registration = Tables<'trip_registrations'>
@@ -17,10 +18,7 @@ export function PendingView({
 
   const cancelMutation = useMutation({
     mutationFn: () =>
-      fetch(`/api/profile/trips/${trip.id}/cancel`, { method: 'POST' }).then(async r => {
-        if (!r.ok) throw new Error((await r.json()).error ?? 'Cancel failed')
-        return r.json()
-      }),
+      apiClient(`/api/profile/trips/${trip.id}/cancel`, { method: 'POST' }),
     onSuccess: () => router.push('/trips'),
   })
 
@@ -69,7 +67,7 @@ export function PendingView({
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium disabled:opacity-50 transition-opacity hover:opacity-80"
                 style={{ backgroundColor: 'var(--border-default)', color: 'var(--text-primary)' }}
               >
-                {cancelMutation.isPending ? 'Cancelling…' : 'Cancel Registration'}
+                {cancelMutation.isPending ? 'Cancelling\u2026' : 'Cancel Registration'}
               </button>
               {cancelMutation.isError && (
                 <p className="text-xs mt-2" style={{ color: '#bc4749' }}>

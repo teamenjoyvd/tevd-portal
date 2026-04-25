@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { formatTime, formatLongDate } from '@/lib/format'
 import { X, Check } from 'lucide-react'
+import { apiClient } from '@/lib/apiClient'
 
 type RoleRequest = {
   id: string
@@ -65,7 +66,7 @@ export default function EventPopup({
 
   const { data: event, isLoading } = useQuery<EventDetail>({
     queryKey: ['event', eventId],
-    queryFn: () => fetch(`/api/events/${eventId}`).then(r => r.json()),
+    queryFn: () => apiClient(`/api/events/${eventId}`),
   })
 
   const isAdmin = userRole === 'admin'
@@ -78,24 +79,24 @@ export default function EventPopup({
 
   const requestMutation = useMutation({
     mutationFn: (role_label: string) =>
-      fetch(`/api/events/${eventId}/request-role`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+      apiClient(`/api/events/${eventId}/request-role`, {
+        method: 'POST',
         body: JSON.stringify({ role_label }),
-      }).then(async r => { if (!r.ok) throw new Error((await r.json()).error); return r.json() }),
+      }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['event', eventId] }),
   })
 
   const cancelMutation = useMutation({
-    mutationFn: () => fetch(`/api/events/${eventId}/request-role`, { method: 'DELETE' }).then(r => r.json()),
+    mutationFn: () => apiClient(`/api/events/${eventId}/request-role`, { method: 'DELETE' }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['event', eventId] }),
   })
 
   const adminApproveMutation = useMutation({
     mutationFn: ({ requestId, status }: { requestId: string; status: 'approved' | 'denied' }) =>
-      fetch(`/api/admin/event-role-requests/${requestId}`, {
-        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      apiClient(`/api/admin/event-role-requests/${requestId}`, {
+        method: 'PATCH',
         body: JSON.stringify({ status }),
-      }).then(r => r.json()),
+      }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['event', eventId] }),
   })
 
@@ -126,7 +127,7 @@ export default function EventPopup({
             <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
               <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
                 style={{ backgroundColor: event?.category === 'N21' ? 'var(--brand-forest)' : 'var(--brand-crimson)', color: 'rgba(255,255,255,0.9)' }}>
-                {event?.category ?? '…'}
+                {event?.category ?? '\u2026'}
               </span>
               {eventTypeStyle && (
                 <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
@@ -139,7 +140,7 @@ export default function EventPopup({
               )}
             </div>
             <p className="font-display text-base font-semibold leading-snug" style={{ color: 'var(--text-primary)' }}>
-              {isLoading ? '…' : event?.title}
+              {isLoading ? '\u2026' : event?.title}
             </p>
           </div>
           <button onClick={onClose}
@@ -167,7 +168,7 @@ export default function EventPopup({
                         <div className="flex-1 min-w-0">
                           <p className="text-[10px] font-medium mb-0.5" style={{ color: 'var(--text-primary)' }}>
                             {r.profile?.first_name} {r.profile?.last_name}
-                            {r.profile?.abo_number && <span style={{ color: 'var(--text-secondary)' }}> · {r.profile.abo_number}</span>}
+                            {r.profile?.abo_number && <span style={{ color: 'var(--text-secondary)' }}> \u00b7 {r.profile.abo_number}</span>}
                           </p>
                           <p className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>{r.role_label}</p>
                         </div>
@@ -249,7 +250,7 @@ export default function EventPopup({
                   <circle cx="12" cy="12" r="10"/>
                   <polyline points="12 6 12 12 16 14"/>
                 </svg>
-                <span>{formatTime(event.start_time)} – {formatTime(event.end_time)}</span>
+                <span>{formatTime(event.start_time)} \u2013 {formatTime(event.end_time)}</span>
               </div>
               {!isGuest && event.meeting_url && (
                 <div className="flex items-center gap-2 text-xs mt-1">

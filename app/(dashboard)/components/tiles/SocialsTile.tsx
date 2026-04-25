@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import BentoCard from '@/components/bento/BentoCard'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { timeAgoMs } from '@/lib/format'
+import { apiClient } from '@/lib/apiClient'
 
 type SocialPost = {
   id: string
@@ -22,11 +23,6 @@ type SocialsData = {
 
 const STORAGE_URL_FRAGMENT = '/storage/v1/object/public/social-thumbnails/'
 
-/**
- * Storage URLs are public — serve directly.
- * CDN URLs (fbcdn, cdninstagram) require the server-side proxy to bypass
- * hotlink protection. Any URL not matching Storage is assumed to need proxying.
- */
 function thumbnailSrc(url: string): string {
   if (url.includes(STORAGE_URL_FRAGMENT)) return url
   return `/api/socials/thumbnail?src=${encodeURIComponent(url)}`
@@ -64,7 +60,7 @@ export default function SocialsTile({
   const { t } = useLanguage()
   const { data, isLoading } = useQuery<SocialsData>({
     queryKey: ['socials'],
-    queryFn: () => fetch('/api/socials').then(r => r.json()),
+    queryFn: () => apiClient('/api/socials'),
     staleTime: 300 * 1000,
   })
 
@@ -84,7 +80,6 @@ export default function SocialsTile({
       className="bento-tile flex flex-col relative overflow-hidden"
       style={{ animationDelay: '350ms', ...style }}
     >
-      {/* Decorative background image */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src="/socials-image.jpg"
@@ -127,7 +122,7 @@ export default function SocialsTile({
               <div className="flex items-center gap-1.5 mb-1.5" style={{ color: 'var(--text-secondary)' }}>
                 {post.platform === 'instagram' ? <InstagramIcon /> : <FacebookIcon />}
                 <span className="text-xs font-medium capitalize" style={{ color: 'var(--text-secondary)' }}>{post.platform}</span>
-                <span className="text-xs" style={{ color: 'var(--text-secondary)', opacity: 0.55 }}>· {timeAgo(post.created_at)}</span>
+                <span className="text-xs" style={{ color: 'var(--text-secondary)', opacity: 0.55 }}>\u00b7 {timeAgo(post.created_at)}</span>
               </div>
               {post.caption ? (
                 <p
