@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import BentoCard from '@/components/bento/BentoCard'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { timeAgoMs } from '@/lib/format'
+import { apiClient } from '@/lib/apiClient'
 
 type SocialPost = {
   id: string
@@ -64,7 +65,7 @@ export default function SocialsTile({
   const { t } = useLanguage()
   const { data, isLoading } = useQuery<SocialsData>({
     queryKey: ['socials'],
-    queryFn: () => fetch('/api/socials').then(r => r.json()),
+    queryFn: () => apiClient('/api/socials'),
     staleTime: 300 * 1000,
   })
 

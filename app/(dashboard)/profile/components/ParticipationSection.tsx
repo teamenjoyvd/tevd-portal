@@ -7,6 +7,7 @@ import { Drawer } from '@/components/ui/Drawer'
 import { formatDate } from '@/lib/format'
 import { type EventRoleRequest, VARIABLE_CAP, REG_STATUS_STYLES } from '../types'
 import { ShowMoreButton } from './shared'
+import { apiClient } from '@/lib/apiClient'
 
 export const PARTICIPATION_MIN_HEIGHT = 280
 
@@ -16,7 +17,7 @@ export function ParticipationSection({ profileId, role }: { profileId: string; r
 
   const { data: eventRolesData, isLoading } = useQuery<EventRoleRequest[]>({
     queryKey: ['profile-event-roles'],
-    queryFn: () => fetch('/api/profile/event-roles').then(r => r.json()),
+    queryFn: () => apiClient('/api/profile/event-roles'),
     enabled: !!profileId && role !== 'guest',
     staleTime: 5 * 60 * 1000,
   })

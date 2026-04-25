@@ -3,6 +3,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { type LosSummaryData } from '../types'
+import { apiClient } from '@/lib/apiClient'
 
 export const STATS_MIN_HEIGHT = 160
 
@@ -11,7 +12,7 @@ export function StatsSection({ role, aboNumber }: { role: string; aboNumber: str
 
   const { data: losSummary, isLoading } = useQuery<LosSummaryData>({
     queryKey: ['profile-los-summary'],
-    queryFn: () => fetch('/api/profile/los-summary').then(r => r.json()),
+    queryFn: () => apiClient('/api/profile/los-summary'),
     enabled: !!aboNumber,
     staleTime: 5 * 60 * 1000,
   })

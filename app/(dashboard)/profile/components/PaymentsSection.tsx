@@ -8,6 +8,7 @@ import { PaymentForm } from '@/components/payment/PaymentForm'
 import { formatCurrency } from '@/lib/format'
 import { type TripEntry, type GenericPayment, type PayableItem, VARIABLE_CAP } from '../types'
 import { PaymentRow, ShowMoreButton } from './shared'
+import { apiClient } from '@/lib/apiClient'
 
 export const PAYMENTS_MIN_HEIGHT = 280
 
@@ -54,21 +55,21 @@ export function PaymentsSection({ profileId, role }: { profileId: string; role: 
 
   const { data: paymentsData, isLoading } = useQuery<GenericPayment[]>({
     queryKey: ['profile-generic-payments'],
-    queryFn: () => fetch('/api/payments').then(r => r.json()),
+    queryFn: () => apiClient('/api/payments'),
     enabled,
     staleTime: 2 * 60 * 1000,
   })
 
   const { data: payableItems } = useQuery<PayableItem[]>({
     queryKey: ['payable-items'],
-    queryFn: () => fetch('/api/payable-items').then(r => r.json()),
+    queryFn: () => apiClient('/api/payable-items'),
     enabled,
     staleTime: 5 * 60 * 1000,
   })
 
   const { data: tripsData } = useQuery<TripEntry[]>({
     queryKey: ['profile-trips'],
-    queryFn: () => fetch('/api/profile/payments').then(r => r.json()),
+    queryFn: () => apiClient('/api/profile/payments'),
     enabled,
     staleTime: 2 * 60 * 1000,
   })

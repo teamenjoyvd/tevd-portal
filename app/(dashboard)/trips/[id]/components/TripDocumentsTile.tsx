@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useLanguage } from '@/lib/hooks/useLanguage'
+import { apiClient } from '@/lib/apiClient'
 
 interface Attachment {
   id: string
@@ -46,15 +47,14 @@ export function TripDocumentsTile({ tripId }: { tripId: string }) {
 
   const { data: attachments, isLoading, isError, error, refetch } = useQuery<Attachment[], ApiError>({
     queryKey: ['trip-attachments', tripId],
-    queryFn: () =>
-      fetch(`/api/trips/${tripId}/attachments`).then(async r => {
-        if (!r.ok) {
-          const body = await r.json().catch(() => ({}))
-          const err: ApiError = { status: r.status, message: body.error ?? 'Failed' }
+    queryFn: async () => {
+        try {
+          return await apiClient<Attachment[]>(`/api/trips/${tripId}/attachments`)
+        } catch (e) {
+          const err: ApiError = { status: (e as { status?: number }).status, message: (e as Error).message }
           throw err
         }
-        return r.json()
-      }),
+      },
     retry: false,
   })
 

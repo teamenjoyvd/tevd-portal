@@ -6,6 +6,7 @@ import { useLanguage } from '@/lib/hooks/useLanguage'
 import { Drawer } from '@/components/ui/Drawer'
 import { type TripEntry, VARIABLE_CAP } from '../types'
 import { TripRow, ShowMoreButton } from './shared'
+import { apiClient } from '@/lib/apiClient'
 
 export const TRIPS_MIN_HEIGHT = 280
 
@@ -16,17 +17,14 @@ export function TripsSection({ profileId, role }: { profileId: string; role: str
 
   const { data: tripsData, isLoading } = useQuery<TripEntry[]>({
     queryKey: ['profile-trips'],
-    queryFn: () => fetch('/api/profile/payments').then(r => r.json()),
+    queryFn: () => apiClient('/api/profile/payments'),
     enabled: !!profileId && role !== 'guest',
     staleTime: 2 * 60 * 1000,
   })
 
   const cancelTrip = useMutation({
     mutationFn: (tripId: string) =>
-      fetch(`/api/profile/trips/${tripId}/cancel`, { method: 'POST' }).then(async r => {
-        if (!r.ok) throw new Error((await r.json()).error)
-        return r.json()
-      }),
+      apiClient(`/api/profile/trips/${tripId}/cancel`, { method: 'POST' }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['profile-trips'] }),
   })
 

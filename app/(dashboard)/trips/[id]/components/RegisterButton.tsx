@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { apiClient } from '@/lib/apiClient'
 
 type Props = {
   tripId: string
@@ -14,13 +15,9 @@ export default function RegisterButton({ tripId, profileId }: Props) {
 
   const mutation = useMutation({
     mutationFn: () =>
-      fetch(`/api/trips/${tripId}/register`, {
+      apiClient(`/api/trips/${tripId}/register`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({}),
-      }).then(async r => {
-        if (!r.ok) throw new Error((await r.json()).error)
-        return r.json()
       }),
     onSuccess: () => {
       setLocalSuccess(true)
