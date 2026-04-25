@@ -1,23 +1,17 @@
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
-
-async function requireAdmin() {
-  const { userId } = await auth()
-  if (!userId) return null
-  const supabase = createServiceClient()
-  const { data: profile } = await supabase
-    .from('profiles').select('role').eq('clerk_id', userId).single()
-  if (profile?.role !== 'admin') return null
-  return supabase
-}
+import { getCallerContext } from '@/lib/supabase/guards'
 
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params
-  const supabase = await requireAdmin()
-  if (!supabase) return Response.json({ error: 'Forbidden' }, { status: 403 })
+  const { userId } = await auth()
+  if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  const supabase = createServiceClient()
+  const ctx = await getCallerContext(userId, supabase, 'admin')
+  if (ctx.guard) return ctx.guard
 
   const { data, error } = await supabase
     .from('guides').select('*').eq('id', id).single()
@@ -30,8 +24,11 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params
-  const supabase = await requireAdmin()
-  if (!supabase) return Response.json({ error: 'Forbidden' }, { status: 403 })
+  const { userId } = await auth()
+  if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  const supabase = createServiceClient()
+  const ctx = await getCallerContext(userId, supabase, 'admin')
+  if (ctx.guard) return ctx.guard
 
   const body = await req.json()
   const allowed = ['slug', 'title', 'cover_image_url', 'emoji', 'body', 'access_roles', 'is_published']
@@ -51,8 +48,11 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params
-  const supabase = await requireAdmin()
-  if (!supabase) return Response.json({ error: 'Forbidden' }, { status: 403 })
+  const { userId } = await auth()
+  if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  const supabase = createServiceClient()
+  const ctx = await getCallerContext(userId, supabase, 'admin')
+  if (ctx.guard) return ctx.guard
 
   const { error } = await supabase.from('guides').delete().eq('id', id)
   if (error) return Response.json({ error: error.message }, { status: 500 })
