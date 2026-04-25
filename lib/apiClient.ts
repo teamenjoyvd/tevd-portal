@@ -34,16 +34,14 @@ export async function apiClient<T>(url: string, options?: RequestInit): Promise<
       throw new ApiError(401, 'Unauthorized')
     }
     const text = await response.text().catch(() => '')
-    let message = `API Error: ${response.status}`
+    let message = text
     if (text) {
       try {
         const json = JSON.parse(text)
         message = json?.error ?? json?.message ?? text
-      } catch {
-        message = text
-      }
+      } catch { /* ignore */ }
     }
-    throw new ApiError(response.status, message)
+    throw new ApiError(response.status, message || `API Error: ${response.status}`)
   }
 
   const text = await response.text()

@@ -7,6 +7,7 @@ import { Drawer } from '@/components/ui/Drawer'
 import { isVitalRecorded } from '@/lib/vitals'
 import { type ProfileVitalSign, VARIABLE_CAP } from '../types'
 import { ShowMoreButton } from './shared'
+import { apiClient } from '@/lib/apiClient'
 
 export const VITALS_MIN_HEIGHT = 280
 
@@ -16,7 +17,7 @@ export function VitalsSection({ profileId, role }: { profileId: string; role: st
 
   const { data: vitalsData, isLoading } = useQuery<ProfileVitalSign[]>({
     queryKey: ['profile-vitals'],
-    queryFn: () => fetch('/api/profile/vital-signs').then(r => r.json()),
+    queryFn: () => apiClient('/api/profile/vital-signs'),
     enabled: !!profileId && role !== 'guest',
     staleTime: 5 * 60 * 1000,
   })

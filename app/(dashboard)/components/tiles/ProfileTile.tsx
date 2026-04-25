@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query'
 import BentoCard from '@/components/bento/BentoCard'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import type { TranslationKey } from '@/lib/i18n/translations'
+import { apiClient } from '@/lib/apiClient'
 
 type VerifRequest = { status: 'pending' | 'approved' | 'denied' } | null
 type Upline = { upline_name: string | null; upline_abo_number: string | null } | null
@@ -39,7 +40,7 @@ export default function ProfileTile({
 
   const { data: profile } = useQuery<Profile>({
     queryKey: ['profile'],
-    queryFn: () => fetch('/api/profile').then(r => r.json()),
+    queryFn: () => apiClient('/api/profile'),
     enabled: !!isSignedIn,
     staleTime: 5 * 60 * 1000,
   })

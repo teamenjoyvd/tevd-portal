@@ -6,6 +6,7 @@ import { useLanguage } from '@/lib/hooks/useLanguage'
 import { Drawer } from '@/components/ui/Drawer'
 import { PersonalDrawerForm } from './PersonalDrawerForm'
 import { type Profile } from '../types'
+import { apiClient } from '@/lib/apiClient'
 
 // ── Validation ────────────────────────────────────────────────────────────────
 
@@ -93,13 +94,10 @@ export const PersonalDetailsContent = memo(function PersonalDetailsContent({
         phone:         form.phone || null,
         contact_email: form.contact_email || null,
       }
-      const r = await fetch('/api/profile', {
+      return apiClient<Profile>('/api/profile', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       })
-      if (!r.ok) throw new Error((await r.json()).error ?? 'Save failed')
-      return r.json() as Promise<Profile>
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['profile'] })

@@ -11,6 +11,7 @@ import { PinIcon } from './components/TripShared'
 import TripCardMobile from './components/TripCardMobile'
 import TripCardDesktop from './components/TripCardDesktop'
 import type { Trip } from './page'
+import { apiClient } from '@/lib/apiClient'
 
 type ProfilePaymentRow = {
   registration_id: string
@@ -163,13 +164,13 @@ export default function TripsClient({ initialTrips }: { initialTrips: Trip[] }) 
 
   const { data: profile, isLoading: profileLoading } = useQuery<UserProfile>({
     queryKey: ['profile'],
-    queryFn: () => fetch('/api/profile').then(r => r.json()),
+    queryFn: () => apiClient('/api/profile'),
     enabled: !!isSignedIn,
   })
 
   const { data: trips = initialTrips } = useQuery<Trip[]>({
     queryKey: ['trips'],
-    queryFn: () => fetch('/api/trips').then(r => r.json()),
+    queryFn: () => apiClient('/api/trips'),
     initialData: initialTrips,
     enabled: isLoaded,
     staleTime: 30_000,
@@ -177,7 +178,7 @@ export default function TripsClient({ initialTrips }: { initialTrips: Trip[] }) 
 
   const { data: profilePayments = [], isLoading: regLoading } = useQuery<ProfilePaymentRow[]>({
     queryKey: ['profile-payments'],
-    queryFn: () => fetch('/api/profile/payments').then(r => r.json()),
+    queryFn: () => apiClient('/api/profile/payments'),
     enabled: !!isSignedIn,
   })
 
@@ -189,10 +190,7 @@ export default function TripsClient({ initialTrips }: { initialTrips: Trip[] }) 
 
   const cancelMutation = useMutation({
     mutationFn: (tripId: string) =>
-      fetch(`/api/profile/trips/${tripId}/cancel`, { method: 'POST' }).then(async r => {
-        if (!r.ok) throw new Error((await r.json()).error)
-        return r.json()
-      }),
+      apiClient(`/api/profile/trips/${tripId}/cancel`, { method: 'POST' }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['profile-payments'] }),
   })
 
