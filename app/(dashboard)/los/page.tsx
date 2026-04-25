@@ -7,23 +7,8 @@ import { formatDate } from '@/lib/format'
 import { OrgChartCanvas } from './components/OrgChartCanvas'
 import { displayName, roleColors, isVitalRecorded } from './lib/los-utils'
 import type { LOSNode, TreeResponse } from './lib/los-utils'
-
-// ── Tree builder ──────────────────────────────────────────────────────────────
-
-function buildTree(nodes: LOSNode[], rootAbo: string | null): LOSNode[] {
-  const byAbo: Record<string, LOSNode> = {}
-  for (const n of nodes) {
-    if (n.abo_number) byAbo[n.abo_number] = { ...n, children: [] }
-  }
-  const roots: LOSNode[] = []
-  for (const n of Object.values(byAbo)) {
-    const parent = n.sponsor_abo_number ? byAbo[n.sponsor_abo_number] : null
-    if (parent) parent.children!.push(n)
-    else roots.push(n)
-  }
-  if (rootAbo && byAbo[rootAbo]) return [byAbo[rootAbo]]
-  return roots
-}
+import { buildTree } from './lib/los'
+import { apiClient } from '@/lib/apiClient'
 
 // ── Stat subcomponent ─────────────────────────────────────────────────────────
 
@@ -227,7 +212,7 @@ function LOSPageInner() {
 
   const { data, isLoading, isError } = useQuery<TreeResponse>({
     queryKey: ['los-tree'],
-    queryFn: () => fetch('/api/los/tree').then(r => r.json()),
+    queryFn: () => apiClient<TreeResponse>('/api/los/tree'),
     staleTime: 5 * 60 * 1000,
   })
 
