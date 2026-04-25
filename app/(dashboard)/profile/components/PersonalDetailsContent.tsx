@@ -3,7 +3,7 @@
 import { memo, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useLanguage } from '@/lib/hooks/useLanguage'
-import { Drawer } from '@/components/ui/Drawer'
+import { Drawer } from '@/components/ui/drawer'
 import { PersonalDrawerForm } from './PersonalDrawerForm'
 import { type Profile } from '../types'
 

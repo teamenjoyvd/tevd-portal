@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { formatDate, formatCurrency } from '@/lib/format'
-import { Drawer } from '@/components/ui/Drawer'
+import { Drawer } from '@/components/ui/drawer'
 import {
   AlertDialog,
   AlertDialogContent,

@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Drawer } from '@/components/ui/Drawer'
+import { Drawer } from '@/components/ui/drawer'
 import {
   AlertDialog,
   AlertDialogContent,

@@ -3,7 +3,7 @@
 import { useState, useCallback } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLanguage } from '@/lib/hooks/useLanguage'
-import { Drawer } from '@/components/ui/Drawer'
+import { Drawer } from '@/components/ui/drawer'
 import { PaymentForm } from '@/components/payment/PaymentForm'
 import { formatCurrency } from '@/lib/format'
 import { type TripEntry, type GenericPayment, type PayableItem, VARIABLE_CAP } from '../types'

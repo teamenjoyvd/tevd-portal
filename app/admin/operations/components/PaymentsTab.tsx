@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { formatDate, formatCurrency } from '@/lib/format'
-import { Drawer } from '@/components/ui/Drawer'
+import { Drawer } from '@/components/ui/drawer'
 import {
   Select,
   SelectTrigger,

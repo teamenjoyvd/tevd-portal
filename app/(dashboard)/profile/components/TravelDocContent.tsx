@@ -4,7 +4,7 @@ import { memo, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { formatDate } from '@/lib/format'
-import { Drawer } from '@/components/ui/Drawer'
+import { Drawer } from '@/components/ui/drawer'
 import { TravelDocDrawerForm } from './TravelDocDrawerForm'
 import { type Profile } from '../types'
 
