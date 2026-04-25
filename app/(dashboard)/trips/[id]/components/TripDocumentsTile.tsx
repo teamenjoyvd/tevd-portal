@@ -3,18 +3,13 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useLanguage } from '@/lib/hooks/useLanguage'
-import { apiClient } from '@/lib/apiClient'
+import { apiClient, ApiError } from '@/lib/apiClient'
 
 interface Attachment {
   id: string
   file_url: string
   file_name: string
   file_type: 'pdf' | 'image'
-}
-
-interface ApiError {
-  status?: number
-  message: string
 }
 
 function PdfIcon() {
@@ -47,21 +42,14 @@ export function TripDocumentsTile({ tripId }: { tripId: string }) {
 
   const { data: attachments, isLoading, isError, error, refetch } = useQuery<Attachment[], ApiError>({
     queryKey: ['trip-attachments', tripId],
-    queryFn: async () => {
-        try {
-          return await apiClient<Attachment[]>(`/api/trips/${tripId}/attachments`)
-        } catch (e) {
-          const err: ApiError = { status: (e as { status?: number }).status, message: (e as Error).message }
-          throw err
-        }
-      },
+    queryFn: () => apiClient<Attachment[]>(`/api/trips/${tripId}/attachments`),
     retry: false,
   })
 
   if (isLoading) return null
 
   // 403 = no approved registration — expected, render nothing
-  if (isError && (error as ApiError)?.status === 403) return null
+  if (isError && error?.status === 403) return null
 
   // 5xx or network error — show discreet retry, no alarming message
   if (isError) {
