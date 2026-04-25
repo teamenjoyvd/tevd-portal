@@ -16,7 +16,9 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params
-  const supabase = createServiceClient()
+  const supabase = await requireAdmin()
+  if (!supabase) return Response.json({ error: 'Forbidden' }, { status: 403 })
+
   const { data, error } = await supabase
     .from('guides').select('*').eq('id', id).single()
   if (error) return Response.json({ error: error.message }, { status: 404 })
