@@ -44,7 +44,7 @@ export default function DashboardError({
         </button>
         <a
           href="/"
-          className="px-5 py-2.5 rounded-xl text-sm font-semibold border transition-colors hover:bg-black/5"
+          className="px-5 py-2.5 rounded-xl text-sm font-semibold border transition-opacity hover:opacity-90"
           style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
         >
           {t('error.home')}

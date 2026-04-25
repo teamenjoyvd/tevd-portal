@@ -14,7 +14,7 @@ export default function AdminError({
   return (
     <div
       className="min-h-[60vh] flex flex-col items-center justify-center px-6 text-center"
-      style={{ backgroundColor: 'var(--bg-global)' }}
+      style={{ backgroundColor: 'var(--bg-card)' }}
     >
       <p
         className="text-4xl mb-4"
@@ -44,7 +44,7 @@ export default function AdminError({
         </button>
         <a
           href="/admin"
-          className="px-5 py-2.5 rounded-xl text-sm font-semibold border transition-colors hover:bg-black/5"
+          className="px-5 py-2.5 rounded-xl text-sm font-semibold border transition-opacity hover:opacity-90"
           style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
         >
           {t('error.home')}
@@ -53,7 +53,7 @@ export default function AdminError({
       {process.env.NODE_ENV !== 'production' && error.message && (
         <p
           className="mt-6 text-xs font-mono px-3 py-2 rounded-lg max-w-sm break-all"
-          style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-secondary)', border: '1px solid var(--border-default)' }}
+          style={{ backgroundColor: 'var(--bg-global)', color: 'var(--text-secondary)', border: '1px solid var(--border-default)' }}
         >
           {error.message}
         </p>
