@@ -21,6 +21,10 @@ export async function verifyMember({ id, action, admin_note }: VerifyPayload) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ action, admin_note }),
   })
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}))
+    throw new Error((error as { error?: string }).error ?? res.statusText)
+  }
   return res.json()
 }
 
@@ -31,5 +35,9 @@ export async function promoteMember({ profileId, role }: PromotePayload) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ role }),
   })
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}))
+    throw new Error((error as { error?: string }).error ?? res.statusText)
+  }
   return res.json()
 }

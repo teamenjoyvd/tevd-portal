@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useMemo } from 'react'
 import {
   useReactTable,
   getCoreRowModel,
@@ -27,8 +27,10 @@ import type { LOSMember } from './MembersTab'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
+const numberFormatter = new Intl.NumberFormat('en-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
 function formatNum(n: number) {
-  return new Intl.NumberFormat('en-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)
+  return numberFormatter.format(n)
 }
 
 const LEVEL_BG: Record<string, { bg: string; color: string }> = {
@@ -69,7 +71,7 @@ export function MembersTable({
     debounceRef.current = setTimeout(() => setDebouncedFilter(value), 300)
   }, [])
 
-  const columns = [
+  const columns = useMemo(() => [
     colHelper.accessor(row => row.profile
       ? `${row.profile.first_name} ${row.profile.last_name}`
       : (row.name ?? row.abo_number), {
@@ -184,7 +186,7 @@ export function MembersTable({
         )
       },
     }),
-  ]
+  ], [t, onPromote, promotePending])
 
   const table = useReactTable({
     data: members,
