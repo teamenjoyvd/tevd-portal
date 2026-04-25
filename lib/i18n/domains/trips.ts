@@ -37,4 +37,8 @@ export const trips = {
   'trips.retry':              { en: '↺ Retry',                 bg: '↺ Опитай отново'                    },
   'trips.retrying':           { en: 'Retrying…',               bg: 'Зарежда…'                           },
   'trips.openFile':           { en: 'Open ↗',                  bg: 'Отвори ↗'                           },
+  'trips.files':              { en: 'Files',                   bg: 'Файлове'                            },
+  'trips.upload':             { en: 'Upload',                  bg: 'Качи'                               },
+  'trips.uploading':          { en: 'Uploading…',              bg: 'Качва се…'                          },
+  'trips.delete':             { en: 'Delete',                  bg: 'Изтрий'                             },
 } as const

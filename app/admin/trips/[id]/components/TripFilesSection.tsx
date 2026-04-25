@@ -91,7 +91,7 @@ export function TripFilesSection({ tripId }: { tripId: string }) {
     >
       <div className="flex items-center justify-between">
         <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
-          Files
+          {t('trips.files')}
         </h2>
         <button
           onClick={() => fileInputRef.current?.click()}
@@ -100,7 +100,7 @@ export function TripFilesSection({ tripId }: { tripId: string }) {
           style={{ backgroundColor: 'var(--brand-crimson)' }}
         >
           <Upload size={13} />
-          {uploadMutation.isPending ? 'Uploading\u2026' : 'Upload'}
+          {uploadMutation.isPending ? t('trips.uploading') : t('trips.upload')}
         </button>
         <input
           ref={fileInputRef}
@@ -169,7 +169,7 @@ export function TripFilesSection({ tripId }: { tripId: string }) {
                 setDeleteTarget(null)
               }}
             >
-              Delete
+              {t('trips.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
