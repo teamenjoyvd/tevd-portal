@@ -7,6 +7,7 @@ import { formatDate } from '@/lib/format'
 import { Drawer } from '@/components/ui/Drawer'
 import { TravelDocDrawerForm } from './TravelDocDrawerForm'
 import { type Profile } from '../types'
+import { apiClient } from '@/lib/apiClient'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -76,13 +77,10 @@ export const TravelDocContent = memo(function TravelDocContent({
         passport_number: form.passport_number || null,
         valid_through:   form.valid_through   || null,
       }
-      const r = await fetch('/api/profile', {
+      return apiClient<Profile>('/api/profile', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       })
-      if (!r.ok) throw new Error((await r.json()).error ?? 'Save failed')
-      return r.json() as Promise<Profile>
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['profile'] })

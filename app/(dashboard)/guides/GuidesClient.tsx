@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { formatDate } from '@/lib/format'
 import type { Guide, SiteLink, NewsItem } from '@/lib/server/guides'
+import { apiClient } from '@/lib/apiClient'
 
 type Props = {
   initialGuides: Guide[]
@@ -86,21 +87,21 @@ function GuidesInner({ initialGuides, initialLinks, initialNews, initialDataUpda
 
   const { data: guides = initialGuides, isLoading: guidesLoading } = useQuery<Guide[]>({
     queryKey: ['guides', 'list'],
-    queryFn: () => fetch('/api/guides').then(r => r.json()),
+    queryFn: () => apiClient('/api/guides'),
     initialData: initialGuides,
     initialDataUpdatedAt,
   })
 
   const { data: links = initialLinks, isLoading: linksLoading } = useQuery<SiteLink[]>({
     queryKey: ['links', 'list'],
-    queryFn: () => fetch('/api/links').then(r => r.json()),
+    queryFn: () => apiClient('/api/links'),
     initialData: initialLinks,
     initialDataUpdatedAt,
   })
 
   const { data: news = initialNews, isLoading: newsLoading } = useQuery<NewsItem[]>({
     queryKey: ['news', 'list'],
-    queryFn: () => fetch('/api/news').then(r => r.json()),
+    queryFn: () => apiClient('/api/news'),
     initialData: initialNews,
     initialDataUpdatedAt,
   })

@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { type NotificationPrefs } from '../types'
+import { apiClient } from '@/lib/apiClient'
 
 export const EMAIL_PREFS_MIN_HEIGHT = 280
 
@@ -69,13 +70,9 @@ export function EmailPrefsSection({
 
   const save = useMutation({
     mutationFn: (next: NotificationPrefs) =>
-      fetch('/api/profile', {
+      apiClient('/api/profile', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ notification_prefs: next }),
-      }).then(async r => {
-        if (!r.ok) throw new Error((await r.json()).error)
-        return r.json()
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['profile'] })

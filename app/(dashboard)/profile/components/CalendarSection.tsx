@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { useLanguage } from '@/lib/hooks/useLanguage'
+import { apiClient } from '@/lib/apiClient'
 
 export const CALENDAR_MIN_HEIGHT = 160
 
@@ -12,13 +13,13 @@ export function CalendarSection({ profileId }: { profileId: string }) {
 
   const { data: calData, refetch: refetchCal } = useQuery<{ url: string }>({
     queryKey: ['cal-feed-token'],
-    queryFn: () => fetch('/api/calendar/feed-token').then(r => r.json()),
+    queryFn: () => apiClient('/api/calendar/feed-token'),
     enabled: !!profileId,
     staleTime: Infinity,
   })
 
   const regenerateCal = useMutation({
-    mutationFn: () => fetch('/api/calendar/feed-token', { method: 'POST' }).then(r => r.json()),
+    mutationFn: () => apiClient('/api/calendar/feed-token', { method: 'POST' }),
     onSuccess: () => refetchCal(),
   })
 
