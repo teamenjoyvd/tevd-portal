@@ -10,11 +10,19 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const ctx = await getCallerContext(userId, supabase, 'admin')
   if (ctx.guard) return ctx.guard
 
-  const body = await req.json()
+  const body = await req.json().catch(() => null)
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return Response.json({ error: 'Invalid or empty request body' }, { status: 400 })
+  }
+
   const allowed = ['titles', 'contents', 'access_roles', 'is_active', 'slug', 'sort_order']
   const update: Record<string, unknown> = {}
   for (const key of allowed) {
     if (key in body) update[key] = body[key]
+  }
+
+  if (Object.keys(update).length === 0) {
+    return Response.json({ error: 'No valid fields provided for update' }, { status: 400 })
   }
 
   const { data, error } = await supabase

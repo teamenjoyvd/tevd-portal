@@ -10,7 +10,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const ctx = await getCallerContext(userId, supabase, 'admin')
   if (ctx.guard) return ctx.guard
 
-  const body = await req.json()
+  const body = await req.json().catch(() => null)
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return Response.json({ error: 'Invalid or empty request body' }, { status: 400 })
+  }
+
   const allowed = [
     'title', 'description', 'start_time', 'end_time', 'category',
     'event_type', 'meeting_url', 'visibility_roles', 'available_roles',
@@ -19,6 +23,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const update: Record<string, unknown> = {}
   for (const key of allowed) {
     if (key in body) update[key] = body[key]
+  }
+
+  if (Object.keys(update).length === 0) {
+    return Response.json({ error: 'No valid fields provided for update' }, { status: 400 })
   }
 
   const { data, error } = await supabase.from('calendar_events').update(update).eq('id', id).select().single()
