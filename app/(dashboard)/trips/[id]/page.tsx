@@ -59,17 +59,24 @@ export default async function TripDetailPage({
 
   const supabase = createServiceClient()
 
-  // profile + trip in parallel; registration + payments need profile.id so they follow
-  const [{ data: profile }, { data: trip }] = await Promise.all([
-    supabase
-      .from('profiles')
-      .select('id, role, valid_through, document_active_type')
-      .eq('clerk_id', userId)
-      .single(),
-    supabase.from('trips').select('*').eq('id', id).single(),
-  ])
+  // Fetch profile first — we need the role for visibility filtering
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('id, role, valid_through, document_active_type')
+    .eq('clerk_id', userId)
+    .single()
 
-  if (!profile || !trip) redirect('/trips')
+  if (!profile) redirect('/trips')
+
+  // Enforce visibility_roles — only return trip if user's role is included
+  const { data: trip } = await supabase
+    .from('trips')
+    .select('*')
+    .eq('id', id)
+    .contains('visibility_roles', [profile.role])
+    .single()
+
+  if (!trip) redirect('/trips')
 
   const [{ data: registration }, { data: payments }] = await Promise.all([
     supabase
