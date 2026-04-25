@@ -408,6 +408,7 @@ export const admin = {
   'admin.calendar.btn.saveChanges': { en: 'Save changes', bg: 'Запази промените' },
   'admin.calendar.btn.createEvent': { en: 'Create event', bg: 'Създай събитие' },
   'admin.calendar.btn.cancel': { en: 'Cancel', bg: 'Откажи' },
+  'admin.calendar.allMonths': { en: 'All months', bg: 'Всички месеци' },
   'admin.calendar.placeholder.title': { en: 'Title', bg: 'Заглавие' },
   'admin.calendar.placeholder.description': { en: 'Description (optional)', bg: 'Описание (незадължително)' },
   'admin.calendar.placeholder.meetingUrl': { en: 'https://zoom.us/j/…', bg: 'https://zoom.us/j/…' },

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import BentoCard, { Eyebrow } from '@/components/bento/BentoCard'
 import { useFontSize, type FontSize } from '@/lib/hooks/useFontSize'
+import { useLanguage } from '@/lib/hooks/useLanguage'
 
 const STEPS: { value: FontSize; label: string; iconSize: number }[] = [
   { value: 'md', label: 'Default', iconSize: 18 },
@@ -47,6 +48,7 @@ export default function FontSizeTile({
 }) {
   const { fontSize, setFontSize } = useFontSize()
   const [hoveredStep, setHoveredStep] = useState<FontSize | null>(null)
+  const { t } = useLanguage()
 
   return (
     <BentoCard
@@ -57,7 +59,7 @@ export default function FontSizeTile({
       className="flex flex-col items-center justify-center"
       style={{ minHeight: 120, ...style }}
     >
-      <Eyebrow style={{ marginBottom: '0.75rem' }}>Text Size</Eyebrow>
+      <Eyebrow style={{ marginBottom: '0.75rem' }}>{t('profile.textSize')}</Eyebrow>
       <div className="flex items-center justify-center gap-2">
         {STEPS.map(({ value, label, iconSize }) => {
           const active = fontSize === value

@@ -10,6 +10,7 @@ export const trips = {
   'trips.total':              { en: 'total',                   bg: 'общо'                               },
   'trips.paidPercent':        { en: '% paid',                  bg: '% платено'                          },
   'trips.cancel':             { en: 'Cancel',                  bg: 'Откажи'                             },
+  'trips.totalCost':          { en: 'Total cost',              bg: 'Обща цена'                          },
   'trips.status.pending':     { en: 'Pending approval',        bg: 'Изчаква одобрение'                  },
   'trips.status.pendingLong': {
     en: 'Registration submitted — awaiting approval',

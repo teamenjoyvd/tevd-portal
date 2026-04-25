@@ -13,6 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { useLanguage } from '@/lib/hooks/useLanguage'
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -32,6 +33,7 @@ export function TripFilesSection({ tripId }: { tripId: string }) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
+  const { t } = useLanguage()
 
   const { data: attachments = [], isLoading } = useQuery<Attachment[]>({
     queryKey: ['trip-attachments-admin', tripId],
@@ -160,7 +162,7 @@ export function TripFilesSection({ tripId }: { tripId: string }) {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('trips.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 if (deleteTarget) deleteMutation.mutate(deleteTarget.id)

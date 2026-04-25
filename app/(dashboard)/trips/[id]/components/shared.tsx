@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { formatDate, formatCurrency } from '@/lib/format'
 import type { Tables } from '@/types/supabase'
 import type { TripProfile } from '../page'
+import { useLanguage } from '@/lib/hooks/useLanguage'
 
 type Trip = Tables<'trips'>
 type Milestone = { label: string; amount: number; due_date: string }
@@ -24,6 +25,7 @@ export function BackButton() {
 }
 
 export function TripHero({ trip, profile }: { trip: Trip; profile: TripProfile }) {
+  const { t } = useLanguage()
   const milestones: Milestone[] = Array.isArray(trip.milestones)
     ? (trip.milestones as Milestone[])
     : []
@@ -72,7 +74,7 @@ export function TripHero({ trip, profile }: { trip: Trip; profile: TripProfile }
               <p className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>
                 {formatCurrency(trip.total_cost)}
               </p>
-              <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Total cost</p>
+              <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('trips.totalCost')}</p>
             </div>
           )}
         </div>
