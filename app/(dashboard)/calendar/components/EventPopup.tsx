@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { formatTime, formatLongDate } from '@/lib/format'
 import { X, Check } from 'lucide-react'
+import { apiClient } from '@/lib/apiClient'
 
 type RoleRequest = {
   id: string
@@ -65,7 +66,7 @@ export default function EventPopup({
 
   const { data: event, isLoading } = useQuery<EventDetail>({
     queryKey: ['event', eventId],
-    queryFn: () => fetch(`/api/events/${eventId}`).then(r => r.json()),
+    queryFn: () => apiClient(`/api/events/${eventId}`),
   })
 
   const isAdmin = userRole === 'admin'
@@ -78,24 +79,24 @@ export default function EventPopup({
 
   const requestMutation = useMutation({
     mutationFn: (role_label: string) =>
-      fetch(`/api/events/${eventId}/request-role`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+      apiClient(`/api/events/${eventId}/request-role`, {
+        method: 'POST',
         body: JSON.stringify({ role_label }),
-      }).then(async r => { if (!r.ok) throw new Error((await r.json()).error); return r.json() }),
+      }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['event', eventId] }),
   })
 
   const cancelMutation = useMutation({
-    mutationFn: () => fetch(`/api/events/${eventId}/request-role`, { method: 'DELETE' }).then(r => r.json()),
+    mutationFn: () => apiClient(`/api/events/${eventId}/request-role`, { method: 'DELETE' }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['event', eventId] }),
   })
 
   const adminApproveMutation = useMutation({
     mutationFn: ({ requestId, status }: { requestId: string; status: 'approved' | 'denied' }) =>
-      fetch(`/api/admin/event-role-requests/${requestId}`, {
-        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      apiClient(`/api/admin/event-role-requests/${requestId}`, {
+        method: 'PATCH',
         body: JSON.stringify({ status }),
-      }).then(r => r.json()),
+      }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['event', eventId] }),
   })
 

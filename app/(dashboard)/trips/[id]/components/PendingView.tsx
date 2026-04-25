@@ -6,6 +6,7 @@ import { formatDate } from '@/lib/format'
 import { BackButton, TripHero } from './shared'
 import type { Tables } from '@/types/supabase'
 import type { TripProfile } from '../page'
+import { apiClient } from '@/lib/apiClient'
 
 type Trip = Tables<'trips'>
 type Registration = Tables<'trip_registrations'>
@@ -17,10 +18,7 @@ export function PendingView({
 
   const cancelMutation = useMutation({
     mutationFn: () =>
-      fetch(`/api/profile/trips/${trip.id}/cancel`, { method: 'POST' }).then(async r => {
-        if (!r.ok) throw new Error((await r.json()).error ?? 'Cancel failed')
-        return r.json()
-      }),
+      apiClient(`/api/profile/trips/${trip.id}/cancel`, { method: 'POST' }),
     onSuccess: () => router.push('/trips'),
   })
 

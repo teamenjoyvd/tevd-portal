@@ -7,6 +7,7 @@ import { formatDate } from '@/lib/format'
 import { OrgChartCanvas } from './components/OrgChartCanvas'
 import { displayName, roleColors, isVitalRecorded } from './lib/los-utils'
 import type { LOSNode, TreeResponse } from './lib/los-utils'
+import { apiClient } from '@/lib/apiClient'
 
 // ── Tree builder ──────────────────────────────────────────────────────────────
 
@@ -227,7 +228,7 @@ function LOSPageInner() {
 
   const { data, isLoading, isError } = useQuery<TreeResponse>({
     queryKey: ['los-tree'],
-    queryFn: () => fetch('/api/los/tree').then(r => r.json()),
+    queryFn: () => apiClient('/api/los/tree'),
     staleTime: 5 * 60 * 1000,
   })
 

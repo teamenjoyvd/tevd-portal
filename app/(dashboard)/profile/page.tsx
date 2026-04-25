@@ -31,6 +31,7 @@ import { StatsSection, STATS_MIN_HEIGHT } from './components/StatsSection'
 import { AdminSection } from './components/AdminSection'
 import { EmailPrefsSection, EMAIL_PREFS_MIN_HEIGHT } from './components/EmailPrefsSection'
 import { type Profile, type VerificationRequest, type UplineData, type NotificationPrefs, DEFAULT_NOTIFICATION_PREFS } from './types'
+import { apiClient } from '@/lib/apiClient'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -98,7 +99,7 @@ export default function ProfilePage() {
   // ── Profile query (page gate) ─────────────────────────────────────────────
   const { data: profile, isLoading } = useQuery<Profile>({
     queryKey: ['profile'],
-    queryFn: () => fetch('/api/profile').then(r => r.json()),
+    queryFn: () => apiClient('/api/profile'),
   })
 
   const validProfile = profile?.id ? profile : null
@@ -106,36 +107,32 @@ export default function ProfilePage() {
   // ── ABO queries (needed for AboInfoContent + bento gating) ───────────────
   const { data: verRequest } = useQuery<VerificationRequest | null>({
     queryKey: ['verify-abo'],
-    queryFn: () => fetch('/api/profile/verify-abo').then(r => r.json()),
+    queryFn: () => apiClient('/api/profile/verify-abo'),
     enabled: !!validProfile && validProfile.role === 'guest',
   })
 
   const { data: uplineData } = useQuery<UplineData>({
     queryKey: ['profile-upline'],
-    queryFn: () => fetch('/api/profile/upline').then(r => r.json()),
+    queryFn: () => apiClient('/api/profile/upline'),
     enabled: !!validProfile?.abo_number,
     staleTime: 10 * 60 * 1000,
   })
 
   const submitVerification = useMutation({
     mutationFn: (params: { claimed_abo?: string; claimed_upline_abo: string; request_type: 'standard' | 'manual' }) =>
-      fetch('/api/profile/verify-abo', {
+      apiClient('/api/profile/verify-abo', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(
           params.request_type === 'manual'
             ? { request_type: 'manual', claimed_upline_abo: params.claimed_upline_abo }
             : { claimed_abo: params.claimed_abo, claimed_upline_abo: params.claimed_upline_abo }
         ),
-      }).then(async r => {
-        if (!r.ok) throw new Error((await r.json()).error)
-        return r.json()
       }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['verify-abo'] }),
   })
 
   const cancelVerification = useMutation({
-    mutationFn: () => fetch('/api/profile/verify-abo', { method: 'DELETE' }).then(r => r.json()),
+    mutationFn: () => apiClient('/api/profile/verify-abo', { method: 'DELETE' }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['verify-abo'] }),
   })
 
@@ -161,9 +158,8 @@ export default function ProfilePage() {
   const persistPrefs = useCallback((order: string[], collapsed: Record<string, boolean>) => {
     if (persistDebounceRef.current) clearTimeout(persistDebounceRef.current)
     persistDebounceRef.current = setTimeout(() => {
-      fetch('/api/profile', {
+      apiClient('/api/profile', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ui_prefs: { bento_order: order, bento_collapsed: collapsed } }),
       }).catch(() => { /* silent */ })
     }, 500)

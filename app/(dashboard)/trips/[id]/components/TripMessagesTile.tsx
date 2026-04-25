@@ -4,6 +4,7 @@ import { type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { formatDateTime } from '@/lib/format'
 import { useLanguage } from '@/lib/hooks/useLanguage'
+import { apiClient } from '@/lib/apiClient'
 
 interface TripMessage {
   id: string
@@ -62,15 +63,14 @@ export function TripMessagesTile({ tripId }: { tripId: string }) {
   const { data: messages, isLoading, isError, error, refetch, isFetching } =
     useQuery<TripMessage[], ApiError>({
       queryKey: ['trip-messages', tripId],
-      queryFn: () =>
-        fetch(`/api/trips/${encodeURIComponent(tripId)}/messages`).then(async r => {
-          if (!r.ok) {
-            const body = await r.json().catch(() => ({}))
-            const err: ApiError = { status: r.status, message: body.error ?? 'Failed' }
-            throw err
-          }
-          return r.json()
-        }),
+      queryFn: async () => {
+        try {
+          return await apiClient<TripMessage[]>(`/api/trips/${encodeURIComponent(tripId)}/messages`)
+        } catch (e) {
+          const err: ApiError = { status: (e as { status?: number }).status, message: (e as Error).message }
+          throw err
+        }
+      },
       retry: false,
       select: (data) =>
         [...data].sort(
