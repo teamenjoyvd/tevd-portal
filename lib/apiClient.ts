@@ -5,7 +5,7 @@
  * - TypeScript generics (no `any` returns)
  * - `response.ok` check (fetch does not throw on 4xx/5xx)
  * - 401 interception (redirects to sign-in)
- * - Baseline `Content-Type: application/json` header
+ * - `Content-Type: application/json` header (skipped for FormData or bodyless requests)
  *
  * Client-only — do NOT import in RSC pages, route handlers, or server actions.
  */
@@ -19,7 +19,7 @@ export class ApiError extends Error {
 
 export async function apiClient<T>(url: string, options?: RequestInit): Promise<T> {
   const headers = new Headers(options?.headers)
-  if (!headers.has('Content-Type')) {
+  if (!headers.has('Content-Type') && options?.body && !(options.body instanceof FormData)) {
     headers.set('Content-Type', 'application/json')
   }
 
@@ -33,9 +33,19 @@ export async function apiClient<T>(url: string, options?: RequestInit): Promise<
       }
       throw new ApiError(401, 'Unauthorized')
     }
-    const body = await response.text().catch(() => '')
-    throw new ApiError(response.status, body || `API Error: ${response.status}`)
+    const text = await response.text().catch(() => '')
+    let message = `API Error: ${response.status}`
+    if (text) {
+      try {
+        const json = JSON.parse(text)
+        message = json?.error ?? json?.message ?? text
+      } catch {
+        message = text
+      }
+    }
+    throw new ApiError(response.status, message)
   }
 
-  return response.json() as Promise<T>
+  const text = await response.text()
+  return (text ? JSON.parse(text) : {}) as T
 }
