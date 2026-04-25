@@ -7,6 +7,7 @@ import { DAYS_I18N, MONTHS_I18N } from '@/lib/i18n/translations'
 import { VaulDrawer } from '@/components/ui/vaul-drawer'
 import { Dialog, DialogContent, DialogOverlay, DialogPortal } from '@/components/ui/dialog'
 import EventPopup from '@/app/(dashboard)/calendar/components/EventPopup'
+import { apiClient } from '@/lib/apiClient'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -418,7 +419,7 @@ export default function CalendarClient({
   const { data: monthEvents = [] } = useQuery<CalendarEvent[]>({
     queryKey: ['events-month', toMonthParam(current)],
     queryFn: () =>
-      fetch(`/api/calendar?month=${toMonthParam(current)}`).then(r => r.json()),
+      apiClient<CalendarEvent[]>(`/api/calendar?month=${toMonthParam(current)}`),
     initialData: toMonthParam(current) === initialMonth ? initialEvents : undefined,
     staleTime: 60_000,
     enabled: view === 'month',
@@ -426,7 +427,7 @@ export default function CalendarClient({
 
   const { data: agendaEvents = [], isPending: agendaPending } = useQuery<CalendarEvent[]>({
     queryKey: ['events-agenda'],
-    queryFn: () => fetch('/api/calendar').then(r => r.json()),
+    queryFn: () => apiClient<CalendarEvent[]>('/api/calendar'),
     staleTime: 0,
     enabled: view === 'agenda',
   })
