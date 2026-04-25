@@ -2,7 +2,7 @@
 
 // SEQ267: Drawer is now a thin wrapper around shadcn Sheet.
 // The external API (open, onClose, title, children) is preserved exactly —
-// all call sites continue to import { Drawer } from '@/components/ui/Drawer'
+// all call sites continue to import { Drawer } from '@/components/ui/drawer'
 // with zero changes required at each consumer.
 // SEQ373: SheetContent widened to sm:max-w-2xl (672px) on desktop to
 // accommodate GuideForm's two-column grid layouts comfortably.

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useLanguage } from '@/lib/hooks/useLanguage'
-import { Drawer } from '@/components/ui/Drawer'
+import { Drawer } from '@/components/ui/drawer'
 import { isVitalRecorded } from '@/lib/vitals'
 import { type ProfileVitalSign, VARIABLE_CAP } from '../types'
 import { ShowMoreButton } from './shared'

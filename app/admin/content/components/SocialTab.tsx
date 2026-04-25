@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Drawer } from '@/components/ui/Drawer'
+import { Drawer } from '@/components/ui/drawer'
 import {
   AlertDialog,
   AlertDialogContent,
@@ -162,7 +162,6 @@ function SocialPostForm({
         style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
       />
 
-      {/* Post date */}
       <div>
         <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>
           Post date (optional)
@@ -179,7 +178,6 @@ function SocialPostForm({
         </p>
       </div>
 
-      {/* Thumbnail */}
       <div className="space-y-2">
         <div className="flex items-center gap-2">
           <button

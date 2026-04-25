@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useLanguage } from '@/lib/hooks/useLanguage'
-import { Drawer } from '@/components/ui/Drawer'
+import { Drawer } from '@/components/ui/drawer'
 import { formatDate } from '@/lib/format'
 import { type EventRoleRequest, VARIABLE_CAP, REG_STATUS_STYLES } from '../types'
 import { ShowMoreButton } from './shared'

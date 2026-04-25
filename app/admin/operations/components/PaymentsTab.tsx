@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { formatDate, formatCurrency } from '@/lib/format'
-import { Drawer } from '@/components/ui/Drawer'
+import { Drawer } from '@/components/ui/drawer'
 import {
   Select,
   SelectTrigger,
@@ -19,7 +19,7 @@ import type { PayableItem } from './ItemsTab'
 import { useQuery } from '@tanstack/react-query'
 import { t } from '@/lib/i18n'
 
-// ── Types ────────────────────────────────────────────────────────
+// ── Types ────────────────────────────────────────────────
 
 type Payment = {
   id: string
@@ -46,7 +46,7 @@ export type MembersResponse = {
 
 type MemberProfile = { id: string; first_name: string; last_name: string; abo_number: string | null }
 
-// ── Helpers ──────────────────────────────────────────────────────
+// ── Helpers ──────────────────────────────────────────────
 
 function statusPill(status: string) {
   if (status === 'approved' || status === 'completed') {
@@ -58,7 +58,7 @@ function statusPill(status: string) {
   return { bg: '#f2cc8f33', color: '#7a5c00' }
 }
 
-// ── Component ────────────────────────────────────────────────────
+// ── Component ────────────────────────────────────────────
 
 export function PaymentsTab({ trips, membersData }: { trips: Trip[]; membersData: MembersResponse | undefined }) {
   const qc = useQueryClient()

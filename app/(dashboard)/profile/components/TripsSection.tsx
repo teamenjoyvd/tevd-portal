@@ -3,7 +3,7 @@
 import { useState, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useLanguage } from '@/lib/hooks/useLanguage'
-import { Drawer } from '@/components/ui/Drawer'
+import { Drawer } from '@/components/ui/drawer'
 import { type TripEntry, VARIABLE_CAP } from '../types'
 import { TripRow, ShowMoreButton } from './shared'
 import { apiClient } from '@/lib/apiClient'

@@ -3,7 +3,7 @@
 // next/dynamic with ssr:false must live in a Client Component.
 // This thin wrapper is the client boundary; the RSC imports this file instead.
 import dynamic from 'next/dynamic'
-import { Skeleton } from '@/components/ui/Skeleton'
+import { Skeleton } from '@/components/ui/skeleton'
 
 const LocationTileDynamic = dynamic(
   () => import('@/app/(dashboard)/components/tiles/LocationTile'),

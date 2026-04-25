@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { formatDate, formatCurrency } from '@/lib/format'
-import { Drawer } from '@/components/ui/Drawer'
+import { Drawer } from '@/components/ui/drawer'
 import {
   AlertDialog,
   AlertDialogContent,
@@ -18,7 +18,7 @@ import {
 import { TripForm, type TripFormState, type MilestoneInputState } from './TripForm'
 import { t } from '@/lib/i18n'
 
-// ── Types ────────────────────────────────────────────────────────
+// ── Types ────────────────────────────────────────────────
 
 export type Milestone = { label: string; amount: number; due_date: string }
 
@@ -32,11 +32,11 @@ export type Trip = {
   visibility_roles: string[]
 }
 
-// ── Constants ────────────────────────────────────────────────────
+// ── Constants ────────────────────────────────────────────
 
 export const ALL_ROLES = ['guest', 'member', 'core', 'admin']
 
-// ── Helpers ──────────────────────────────────────────────────────
+// ── Helpers ──────────────────────────────────────────────
 
 const emptyTrip = (): TripFormState => ({
   title: '', destination: '', description: '',
@@ -46,7 +46,7 @@ const emptyTrip = (): TripFormState => ({
   visibility_roles: [...ALL_ROLES],
 })
 
-// ── Component ────────────────────────────────────────────────────
+// ── Component ────────────────────────────────────────────
 
 export function TripsTab({ trips, isLoading }: { trips: Trip[]; isLoading: boolean }) {
   const qc = useQueryClient()
