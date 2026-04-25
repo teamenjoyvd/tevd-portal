@@ -449,7 +449,7 @@ export default function AdminCalendarPage() {
             className="border rounded-xl px-3 py-2 text-sm"
             style={{ borderColor: 'var(--border-default)', color: monthFilter ? 'var(--text-primary)' : 'var(--text-secondary)', backgroundColor: 'var(--bg-card)' }}
           >
-            <option value="">All months</option>
+            <option value="">{t('admin.calendar.allMonths')}</option>
             {availableMonths.map(m => (
               <option key={m.value} value={m.value}>{m.label}</option>
             ))}

@@ -13,6 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { useLanguage } from '@/lib/hooks/useLanguage'
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -32,6 +33,7 @@ export function TripFilesSection({ tripId }: { tripId: string }) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
+  const { t } = useLanguage()
 
   const { data: attachments = [], isLoading } = useQuery<Attachment[]>({
     queryKey: ['trip-attachments-admin', tripId],
@@ -89,7 +91,7 @@ export function TripFilesSection({ tripId }: { tripId: string }) {
     >
       <div className="flex items-center justify-between">
         <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
-          Files
+          {t('trips.files')}
         </h2>
         <button
           onClick={() => fileInputRef.current?.click()}
@@ -98,7 +100,7 @@ export function TripFilesSection({ tripId }: { tripId: string }) {
           style={{ backgroundColor: 'var(--brand-crimson)' }}
         >
           <Upload size={13} />
-          {uploadMutation.isPending ? 'Uploading\u2026' : 'Upload'}
+          {uploadMutation.isPending ? t('trips.uploading') : t('trips.upload')}
         </button>
         <input
           ref={fileInputRef}
@@ -160,14 +162,14 @@ export function TripFilesSection({ tripId }: { tripId: string }) {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('trips.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 if (deleteTarget) deleteMutation.mutate(deleteTarget.id)
                 setDeleteTarget(null)
               }}
             >
-              Delete
+              {t('trips.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -10,6 +10,7 @@ export const trips = {
   'trips.total':              { en: 'total',                   bg: 'общо'                               },
   'trips.paidPercent':        { en: '% paid',                  bg: '% платено'                          },
   'trips.cancel':             { en: 'Cancel',                  bg: 'Откажи'                             },
+  'trips.totalCost':          { en: 'Total cost',              bg: 'Обща цена'                          },
   'trips.status.pending':     { en: 'Pending approval',        bg: 'Изчаква одобрение'                  },
   'trips.status.pendingLong': {
     en: 'Registration submitted — awaiting approval',
@@ -36,4 +37,8 @@ export const trips = {
   'trips.retry':              { en: '↺ Retry',                 bg: '↺ Опитай отново'                    },
   'trips.retrying':           { en: 'Retrying…',               bg: 'Зарежда…'                           },
   'trips.openFile':           { en: 'Open ↗',                  bg: 'Отвори ↗'                           },
+  'trips.files':              { en: 'Files',                   bg: 'Файлове'                            },
+  'trips.upload':             { en: 'Upload',                  bg: 'Качи'                               },
+  'trips.uploading':          { en: 'Uploading…',              bg: 'Качва се…'                          },
+  'trips.delete':             { en: 'Delete',                  bg: 'Изтрий'                             },
 } as const
