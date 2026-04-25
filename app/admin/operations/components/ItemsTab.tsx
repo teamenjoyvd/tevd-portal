@@ -14,7 +14,7 @@ import {
 import type { Trip } from './TripsTab'
 import { t } from '@/lib/i18n'
 
-// ── Types ────────────────────────────────────────────────────────
+// ── Types ────────────────────────────────────────────────
 
 export type PayableItem = {
   id: string
@@ -35,18 +35,18 @@ type ItemForm = {
   linked_trip_id: string; is_active: boolean
 }
 
-// ── Constants ────────────────────────────────────────────────────
+// ── Constants ────────────────────────────────────────────
 
 const ITEM_TYPES = ['merchandise', 'ticket', 'food', 'book', 'other'] as const
 
-// ── Helpers ──────────────────────────────────────────────────────
+// ── Helpers ──────────────────────────────────────────────
 
 const emptyItem = (): ItemForm => ({
   title: '', description: '', amount: '', currency: 'EUR',
   item_type: 'other', linked_trip_id: '', is_active: true,
 })
 
-// ── Component ────────────────────────────────────────────────────
+// ── Component ────────────────────────────────────────────
 
 export function ItemsTab({ trips }: { trips: Trip[] }) {
   const qc = useQueryClient()
