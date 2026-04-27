@@ -4,44 +4,16 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { formatCurrency } from '@/lib/format'
 import { Drawer } from '@/components/ui/drawer'
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from '@/components/ui/select'
-import type { Trip } from './TripsTab'
+import { ItemForm } from './ItemForm'
+import type { Trip, PayableItem, ItemFormState } from './operations-types'
 import { t } from '@/lib/i18n'
 
-// ── Types ────────────────────────────────────────────────
-
-export type PayableItem = {
-  id: string
-  title: string
-  description: string | null
-  amount: number
-  currency: string
-  item_type: 'merchandise' | 'ticket' | 'food' | 'book' | 'other'
-  linked_trip_id: string | null
-  is_active: boolean
-  created_at: string
-  trips: { title: string } | null
-}
-
-type ItemForm = {
-  title: string; description: string; amount: string; currency: string
-  item_type: 'merchandise' | 'ticket' | 'food' | 'book' | 'other'
-  linked_trip_id: string; is_active: boolean
-}
-
-// ── Constants ────────────────────────────────────────────
-
-const ITEM_TYPES = ['merchandise', 'ticket', 'food', 'book', 'other'] as const
+// Re-export for backwards compat (PaymentsTab imports PayableItem from here historically)
+export type { PayableItem } from './operations-types'
 
 // ── Helpers ──────────────────────────────────────────────
 
-const emptyItem = (): ItemForm => ({
+const emptyItem = (): ItemFormState => ({
   title: '', description: '', amount: '', currency: 'EUR',
   item_type: 'other', linked_trip_id: '', is_active: true,
 })
@@ -52,7 +24,7 @@ export function ItemsTab({ trips }: { trips: Trip[] }) {
   const qc = useQueryClient()
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [editing, setEditing] = useState<PayableItem | null>(null)
-  const [form, setForm] = useState<ItemForm>(emptyItem())
+  const [form, setForm] = useState<ItemFormState>(emptyItem())
   const [error, setError] = useState<string | null>(null)
 
   const { data: items = [], isLoading } = useQuery<PayableItem[]>({
@@ -82,9 +54,9 @@ export function ItemsTab({ trips }: { trips: Trip[] }) {
     setDrawerOpen(true)
   }
 
-  type ItemPayload = Omit<ItemForm, 'amount' | 'linked_trip_id'> & { amount: number; linked_trip_id: string | null }
+  type ItemPayload = Omit<ItemFormState, 'amount' | 'linked_trip_id'> & { amount: number; linked_trip_id: string | null }
 
-  function toPayload(f: ItemForm): ItemPayload {
+  function toPayload(f: ItemFormState): ItemPayload {
     return { ...f, amount: Number(f.amount), linked_trip_id: f.linked_trip_id || null }
   }
 
@@ -183,66 +155,17 @@ export function ItemsTab({ trips }: { trips: Trip[] }) {
       )}
 
       <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title={editing ? t('admin.operations.items.title.edit', 'en').replace('{{title}}', editing.title) : t('admin.operations.items.btn.create', 'en')}>
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.operations.items.lbl.title', 'en')}</label>
-              <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-                className="w-full border rounded-xl px-3 py-2.5 text-sm"
-                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
-            </div>
-            <div>
-              <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.operations.items.lbl.type', 'en')}</label>
-              <Select
-                value={form.item_type}
-                onValueChange={val => setForm(f => ({ ...f, item_type: val as ItemForm['item_type'] }))}
-              >
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {ITEM_TYPES.map(tp => <SelectItem key={tp} value={tp}>{t(`admin.operations.items.type.${tp}` as Parameters<typeof t>[0], 'en')}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div>
-            <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.operations.items.lbl.description', 'en')}</label>
-            <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-              rows={2} className="w-full border rounded-xl px-3 py-2.5 text-sm resize-none"
-              style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.operations.items.lbl.amount', 'en')}</label>
-              <input type="number" step="0.01" min="0" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
-                className="w-full border rounded-xl px-3 py-2.5 text-sm"
-                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
-            </div>
-            <div>
-              <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.operations.items.lbl.currency', 'en')}</label>
-              <input value={form.currency} onChange={e => setForm(f => ({ ...f, currency: e.target.value }))}
-                className="w-full border rounded-xl px-3 py-2.5 text-sm"
-                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
-            </div>
-          </div>
-          <div>
-            <button onClick={() => setForm(f => ({ ...f, is_active: !f.is_active }))}
-              className="text-xs font-semibold px-3 py-1.5 rounded-full transition-all"
-              style={{ backgroundColor: form.is_active ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)', color: form.is_active ? 'var(--brand-parchment)' : 'var(--text-secondary)' }}>
-              {form.is_active ? t('admin.operations.items.toggle.active', 'en') : t('admin.operations.items.toggle.inactive', 'en')}
-            </button>
-          </div>
-          {error && <p className="text-sm" style={{ color: 'var(--brand-crimson)' }}>{error}</p>}
-          <div className="flex gap-3 pt-2">
-            <button onClick={handleSave} disabled={isPending || !isValid}
-              className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity"
-              style={{ backgroundColor: 'var(--brand-crimson)' }}>
-              {isPending ? t('admin.operations.items.btn.saving', 'en') : editing ? t('admin.operations.items.btn.saveChanges', 'en') : t('admin.operations.items.btn.create', 'en')}
-            </button>
-            <button onClick={() => setDrawerOpen(false)}
-              className="px-6 py-2.5 rounded-xl text-sm font-semibold border transition-colors hover:bg-black/5"
-              style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>{t('admin.operations.items.btn.cancel', 'en')}</button>
-          </div>
-        </div>
+        <ItemForm
+          form={form}
+          setForm={setForm}
+          trips={trips}
+          error={error}
+          isPending={isPending}
+          isValid={isValid}
+          editing={editing}
+          onSave={handleSave}
+          onClose={() => setDrawerOpen(false)}
+        />
       </Drawer>
     </section>
   )

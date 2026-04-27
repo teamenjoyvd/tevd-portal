@@ -16,25 +16,8 @@ import {
   AlertDialogCancel,
 } from '@/components/ui/alert-dialog'
 import { TripForm, type TripFormState, type MilestoneInputState } from './TripForm'
+import { ALL_ROLES, type Trip } from './operations-types'
 import { t } from '@/lib/i18n'
-
-// ── Types ────────────────────────────────────────────────
-
-export type Milestone = { label: string; amount: number; due_date: string }
-
-export type Trip = {
-  id: string; title: string; destination: string
-  start_date: string; end_date: string
-  total_cost: number; milestones: Milestone[]
-  currency: string; description: string
-  location: string | null; accommodation_type: string | null
-  inclusions: string[]; trip_type: string | null
-  visibility_roles: string[]
-}
-
-// ── Constants ────────────────────────────────────────────
-
-export const ALL_ROLES = ['guest', 'member', 'core', 'admin']
 
 // ── Helpers ──────────────────────────────────────────────
 
