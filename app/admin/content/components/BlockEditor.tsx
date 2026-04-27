@@ -14,7 +14,7 @@ export function BlockEditor({
   const safeBlocks = Array.isArray(blocks) ? blocks : []
 
   function addBlock(type: Block['type']) {
-    onChange([...safeBlocks, { type, content: { en: '', bg: '' }, emoji: type === 'callout' ? '\uD83D\uDCA1' : undefined }])
+    onChange([...safeBlocks, { type, content: { en: '', bg: '' }, emoji: type === 'callout' ? '💡' : undefined }])
   }
   function updateBlock(i: number, partial: Partial<Block>) {
     onChange(safeBlocks.map((b, idx) => idx === i ? { ...b, ...partial } : b))
@@ -52,6 +52,7 @@ export function BlockEditor({
                   value={block.emoji ?? ''}
                   onChange={e => updateBlock(i, { emoji: e.target.value })}
                   placeholder="emoji"
+                  aria-label={`Callout emoji for block ${i + 1}`}
                   className="w-14 border rounded-lg px-2 py-1 text-sm text-center"
                   style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                 />
@@ -59,12 +60,15 @@ export function BlockEditor({
             </div>
             <div className="flex items-center gap-1">
               <button onClick={() => moveBlock(i, -1)} disabled={i === 0}
+                aria-label={`Move block ${i + 1} up`}
                 className="w-6 h-6 flex items-center justify-center rounded hover:bg-black/5 disabled:opacity-30 text-xs"
                 style={{ color: 'var(--text-secondary)' }}>↑</button>
               <button onClick={() => moveBlock(i, 1)} disabled={i === safeBlocks.length - 1}
+                aria-label={`Move block ${i + 1} down`}
                 className="w-6 h-6 flex items-center justify-center rounded hover:bg-black/5 disabled:opacity-30 text-xs"
                 style={{ color: 'var(--text-secondary)' }}>↓</button>
               <button onClick={() => removeBlock(i)}
+                aria-label={`Remove block ${i + 1}`}
                 className="w-6 h-6 flex items-center justify-center rounded hover:bg-black/5 text-xs"
                 style={{ color: 'var(--brand-crimson)' }}>✕</button>
             </div>

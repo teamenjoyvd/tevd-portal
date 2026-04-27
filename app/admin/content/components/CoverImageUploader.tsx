@@ -6,9 +6,11 @@ import { useLanguage } from '@/lib/hooks/useLanguage'
 export function CoverImageUploader({
   value,
   onChange,
+  onUploading,
 }: {
   value: string | null
   onChange: (url: string | null) => void
+  onUploading?: (uploading: boolean) => void
 }): React.JSX.Element {
   const { t } = useLanguage()
   const [coverFile, setCoverFile] = useState<File | null>(null)
@@ -17,6 +19,7 @@ export function CoverImageUploader({
   async function handleFileUpload(file: File) {
     setCoverFile(file)
     setUploading(true)
+    onUploading?.(true)
     try {
       const fd = new FormData()
       fd.append('file', file)
@@ -28,6 +31,7 @@ export function CoverImageUploader({
       alert((e as Error).message)
     } finally {
       setUploading(false)
+      onUploading?.(false)
     }
   }
 

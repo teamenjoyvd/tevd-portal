@@ -123,7 +123,8 @@ export function GuideForm({
             style={{ color: 'var(--text-secondary)' }}>{t('admin.content.guides.lbl.coverImage')}</label>
           <CoverImageUploader
             value={form.cover_image_url}
-            onChange={url => { setCoverUploading(false); setForm(f => ({ ...f, cover_image_url: url })) }}
+            onUploading={setCoverUploading}
+            onChange={url => setForm(f => ({ ...f, cover_image_url: url }))}
           />
         </div>
       </div>
