@@ -86,7 +86,7 @@ export function collectEdges(
 }
 
 export function canvasBounds(nodes: LayoutNode[]): { maxX: number; maxY: number } {
-  let maxX = -Infinity, maxY = -Infinity
+  let maxX = 0, maxY = 0
   for (const n of nodes) {
     maxX = Math.max(maxX, n.x + CARD_W / 2)
     maxY = Math.max(maxY, n.y + CARD_H)

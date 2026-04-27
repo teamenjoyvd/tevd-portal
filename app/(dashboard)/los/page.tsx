@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, Suspense } from 'react'
+import { useState, useMemo, Suspense } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { formatDate } from '@/lib/format'
@@ -228,9 +228,10 @@ function LOSPageInner() {
     })
   }
 
-  const tree: LOSNode[] = data
-    ? buildTree(data.nodes, data.scope === 'subtree' ? data.caller_abo : null)
-    : []
+  const tree = useMemo(() => {
+    if (!data) return []
+    return buildTree(data.nodes, data.scope === 'subtree' ? data.caller_abo : null)
+  }, [data])
 
   const searchLower = search.toLowerCase().trim()
   const filteredTree: LOSNode[] = searchLower
