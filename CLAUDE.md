@@ -98,6 +98,7 @@ Output format:
 | GitHub    | ✅/❌ |
 | In flight | [YYMM]-[TYPE]-[GH#] <title> / None |
 | Handoff   | IN PROGRESS: <next action> / DONE / CLAIM-complete: ready for GATHER / No active PR |
+| Commands  | SSU · PLAN · CLAIM · BUILD · PIU · GCR |
 ```
 If GitHub ❌ — stop.
 
