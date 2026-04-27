@@ -37,9 +37,6 @@ export function TripForm({
   onSave: () => void
   onClose: () => void
 }): React.JSX.Element {
-  // Milestone type is used via TripFormState.milestones — keep import for completeness
-  void (null as unknown as Milestone)
-
   function addMilestone() {
     if (!milestoneInput.label || !milestoneInput.amount || !milestoneInput.due_date) return
     setForm(f => ({
@@ -48,7 +45,7 @@ export function TripForm({
         label: milestoneInput.label,
         amount: Number(milestoneInput.amount),
         due_date: milestoneInput.due_date,
-      }],
+      } satisfies Milestone],
     }))
     setMilestoneInput({ label: '', amount: '', due_date: '' })
   }
