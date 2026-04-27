@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 
-const ALL_ROLES = ['guest', 'member', 'core', 'admin']
+export const ALL_ROLES = ['guest', 'member', 'core', 'admin']
 
 export type LinkFormData = {
   label: { en: string; bg: string }
@@ -60,7 +60,7 @@ export function LinkForm({
         <input
           value={form.url}
           onChange={e => setForm(f => ({ ...f, url: e.target.value }))}
-          placeholder="https://\u2026"
+          placeholder="https://…"
           className="w-full border rounded-xl px-3 py-2.5 text-sm"
           style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
         />

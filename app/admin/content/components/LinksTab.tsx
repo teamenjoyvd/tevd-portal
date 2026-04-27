@@ -17,7 +17,7 @@ import { AdminStatusBadge } from '@/app/admin/components/AdminStatusBadge'
 import { useAdminDrawer } from '@/app/admin/components/useAdminDrawer'
 import { makeDragHandlers } from './useDragSort'
 import { useLanguage } from '@/lib/hooks/useLanguage'
-import { LinkForm } from './LinkForm'
+import { LinkForm, ALL_ROLES } from './LinkForm'
 import { LinkEditDrawer } from './LinkEditDrawer'
 import type { LinkFormData } from './LinkForm'
 
@@ -33,7 +33,7 @@ type SiteLink = {
 const DEFAULT_FORM: LinkFormData = {
   label: { en: '', bg: '' },
   url: '',
-  access_roles: ['guest', 'member', 'core', 'admin'],
+  access_roles: [...ALL_ROLES],
 }
 
 export function LinksTab() {
@@ -43,6 +43,7 @@ export function LinksTab() {
   const [linkAlertTarget, setLinkAlertTarget] = useState<{ id: string; name: string } | null>(null)
   const [lDragging, setLDragging] = useState<string | null>(null)
   const [editInitial, setEditInitial] = useState<LinkFormData>(DEFAULT_FORM)
+  const [createKey, setCreateKey] = useState(0)
 
   const { data: linksRaw = [] } = useQuery<SiteLink[]>({
     queryKey: ['admin-links'],
@@ -74,6 +75,7 @@ export function LinksTab() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-links'] })
       qc.invalidateQueries({ queryKey: ['links', 'list'] })
+      setCreateKey(k => k + 1)
     },
   })
 
@@ -115,7 +117,7 @@ export function LinksTab() {
     setEditInitial({
       label: { en: l.label.en ?? '', bg: l.label.bg ?? '' },
       url: l.url,
-      access_roles: Array.isArray(l.access_roles) ? l.access_roles : ['guest', 'member', 'core', 'admin'],
+      access_roles: Array.isArray(l.access_roles) ? l.access_roles : [...ALL_ROLES],
     })
     linkDrawer.openEdit(l)
   }
@@ -127,6 +129,7 @@ export function LinksTab() {
       {/* Inline create card — intentional exception per CLAUDE.md */}
       <div className="rounded-2xl border p-6 mb-4" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
         <LinkForm
+          key={createKey}
           initial={DEFAULT_FORM}
           onSave={data => createLink.mutate(data)}
           isPending={createLink.isPending}
@@ -177,6 +180,7 @@ export function LinksTab() {
       </div>
 
       <LinkEditDrawer
+        key={linkDrawer.editing?.id ?? 'new'}
         open={linkDrawer.open}
         onClose={linkDrawer.close}
         title={linkDrawer.editing
