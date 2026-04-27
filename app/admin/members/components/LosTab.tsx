@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getRoleColors } from '@/lib/role-colors'
 import { useLanguage } from '@/lib/hooks/useLanguage'
@@ -124,6 +124,7 @@ export function LosTab() {
   const { t } = useLanguage()
   const qc = useQueryClient()
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const expandedInitialised = useRef(false)
 
   const { data: treeResponse, isLoading: treeLoading, refetch: refetchTree } = useQuery<LosTreeResponse>({
     queryKey: ['los-tree'],
@@ -137,17 +138,17 @@ export function LosTab() {
   })
 
   // Initialise expand state: all nodes at depth < 2 pre-expanded.
-  // Runs once when tree data first arrives.
+  // Runs exactly once on first data arrival — ref flag prevents re-init on refetch
+  // and correctly handles the case where the user collapses all nodes.
   useEffect(() => {
     if (!treeResponse?.nodes) return
-    setExpanded(prev => {
-      if (prev.size > 0) return prev // already initialised
-      const keys = new Set<string>()
-      for (const n of treeResponse.nodes) {
-        if (n.depth !== null && n.depth < 2) keys.add(n.abo_number)
-      }
-      return keys
-    })
+    if (expandedInitialised.current) return
+    expandedInitialised.current = true
+    const keys = new Set<string>()
+    for (const n of treeResponse.nodes) {
+      if (n.depth !== null && n.depth < 2) keys.add(n.abo_number)
+    }
+    setExpanded(keys)
   }, [treeResponse])
 
   const flatNodes = treeResponse?.nodes ?? []

@@ -44,11 +44,12 @@ export function buildTree(nodes: TreeNode[]): TreeNode[] {
   const byAbo: Record<string, TreeNode> = {}
   const roots: TreeNode[] = []
   for (const n of nodes) { byAbo[n.abo_number] = { ...n, children: [] } }
-  for (const n of Object.values(byAbo)) {
-    if (n.sponsor_abo_number && byAbo[n.sponsor_abo_number]) {
-      byAbo[n.sponsor_abo_number].children!.push(n)
+  for (const n of nodes) {
+    const node = byAbo[n.abo_number]
+    if (node.sponsor_abo_number && byAbo[node.sponsor_abo_number]) {
+      byAbo[node.sponsor_abo_number].children!.push(node)
     } else {
-      roots.push(n)
+      roots.push(node)
     }
   }
   return roots
