@@ -129,7 +129,7 @@ export function splitCSVLine(line: string): string[] {
 
 export function parseCSV(text: string): Record<string, string>[] {
   const cleaned = text.replace(/^\uFEFF/, '')
-  const allLines = cleaned.trim().split('\n')
+  const allLines = cleaned.trim().split(/\r?\n/)
 
   const headerIdx = allLines.findIndex(
     l => l.includes('ABO Number') || l.includes('Номер на СБА')
