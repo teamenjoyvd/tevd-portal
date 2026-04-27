@@ -202,6 +202,8 @@ export const admin = {
   'admin.operations.items.lbl.description': { en: 'Description', bg: 'Описание' },
   'admin.operations.items.lbl.amount': { en: 'Amount *', bg: 'Сума *' },
   'admin.operations.items.lbl.currency': { en: 'Currency', bg: 'Валута' },
+  'admin.operations.items.lbl.linkedTrip': { en: 'Linked trip', bg: 'Свързано пътуване' },
+  'admin.operations.items.lbl.noTrip': { en: 'No trip', bg: 'Без пътуване' },
   'admin.operations.items.toggle.active': { en: 'Active', bg: 'Активен' },
   'admin.operations.items.toggle.inactive': { en: 'Inactive', bg: 'Неактивен' },
   'admin.operations.items.btn.saving': { en: 'Saving…', bg: 'Запазване…' },
