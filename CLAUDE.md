@@ -90,14 +90,14 @@ Run at the start of every session. Warms up tools and establishes ground truth b
 
 3. `list_pull_requests` — check for any open PRs.
    - **Open PR found:** read its `## Session State` block and report what's in flight before doing anything else.
-   - **No open PR, but a CLAIM-complete issue exists** (has `## Branch` block, no PR): report as CLAIM-complete/BUILD-not-started → ready to proceed to GATHER.
+   - **No open PR, but a CLAIM-complete issue exists** (has `## Branch` block, no PR): report as CLAIM-complete/BUILD-not-started → ready to proceed to SHAPE.
    - **Nothing in flight:** report ready to pick up next issue.
 
 Output format:
 ```
 | GitHub    | ✅/❌ |
 | In flight | [YYMM]-[TYPE]-[GH#] <title> / None |
-| Handoff   | IN PROGRESS: <next action> / DONE / CLAIM-complete: ready for GATHER / No active PR |
+| Handoff   | IN PROGRESS: <next action> / DONE / CLAIM-complete: ready for SHAPE / No active PR |
 | Commands  | SSU · PLAN · CLAIM · BUILD · PIU · GCR |
 ```
 If GitHub ❌ — stop.
@@ -163,7 +163,7 @@ Default mode. Executes against a CLAIM-complete issue.
 
 **Precondition:** Read the issue body. Verify `## Design Checklist` exists with all four items checked AND `## Branch` exists with the branch name. If either is absent or any item unchecked — stop, state exactly what is missing, do not proceed.
 
-**READ** → Check open GitHub Issues. Resume any in-progress issue (open PR exists). If a CLAIM-complete issue has no open PR, that is the next issue — read `## Branch` from its body and proceed to GATHER. Otherwise pick the highest `priority:high` open issue without the `blocked` label. If none, pick the next unlabelled issue by creation order.
+**READ** → Check open GitHub Issues. Resume any in-progress issue (open PR exists). If a CLAIM-complete issue has no open PR, that is the next issue — read `## Branch` from its body and proceed to SHAPE. Otherwise pick the highest `priority:high` open issue without the `blocked` label. If none, pick the next unlabelled issue by creation order.
 
 **SHAPE (read-only)** → Verify the DoD is still coherent against current codebase state. Read relevant architecture docs:
    - Auth / role / Clerk sync → `FLOWS.md §1`
@@ -217,7 +217,7 @@ See `docs/ai/GCR.md`.
 
 ---
 
-## DESIGN-Complete Definition
+## CLAIM-Complete Definition
 
 An issue is CLAIM-complete (ready for BUILD) when its body contains:
 1. A `## Design Checklist` section with all four items checked.
