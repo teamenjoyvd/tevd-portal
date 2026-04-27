@@ -1,208 +1,30 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getRoleColors } from '@/lib/role-colors'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { formatDate } from '@/lib/format'
-
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-type VitalSign = {
-  definition_id: string
-  label: string
-  is_active: boolean
-  recorded_at: string | null
-  note: string | null
-}
-
-type VitalSignDefinition = {
-  id: string
-  category: string
-  label: string | null
-  is_active: boolean
-  sort_order: number
-}
-
-type TreeNode = {
-  profile_id: string
-  abo_number: string
-  name: string | null
-  first_name: string
-  last_name: string
-  role: string
-  abo_level: string | null
-  depth: number | null
-  sponsor_abo_number: string | null
-  vital_signs: VitalSign[]
-  children?: TreeNode[]
-}
-
-type LosTreeResponse = {
-  scope: string
-  nodes: TreeNode[]
-  caller_abo: string | null
-}
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function buildTree(nodes: TreeNode[]): TreeNode[] {
-  if (!Array.isArray(nodes)) return []
-  const byAbo: Record<string, TreeNode> = {}
-  const roots: TreeNode[] = []
-  for (const n of nodes) { byAbo[n.abo_number] = { ...n, children: [] } }
-  for (const n of Object.values(byAbo)) {
-    if (n.sponsor_abo_number && byAbo[n.sponsor_abo_number]) {
-      byAbo[n.sponsor_abo_number].children!.push(n)
-    } else {
-      roots.push(n)
-    }
-  }
-  return roots
-}
-
-async function apiFetch(url: string, options: RequestInit): Promise<void> {
-  const res = await fetch(url, options)
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}))
-    throw new Error(body.error ?? `Request failed: ${res.status}`)
-  }
-}
-
-// ── VitalSignsConfig ──────────────────────────────────────────────────────────
-
-function VitalSignsConfig({ definitions, onRefetch }: {
-  definitions: VitalSignDefinition[]
-  onRefetch: () => void
-}) {
-  const qc = useQueryClient()
-  const [dragging, setDragging] = useState<string | null>(null)
-  const [localDefs, setLocalDefs] = useState<VitalSignDefinition[]>(() =>
-    [...definitions].sort((a, b) => a.sort_order - b.sort_order)
-  )
-
-  const defsKey = definitions.map(d => d.id + d.is_active + d.sort_order).join(',')
-  const [prevKey, setPrevKey] = useState(defsKey)
-  if (prevKey !== defsKey) {
-    setPrevKey(defsKey)
-    setLocalDefs([...definitions].sort((a, b) => a.sort_order - b.sort_order))
-  }
-
-  const toggleActiveMutation = useMutation({
-    mutationFn: ({ id, is_active }: { id: string; is_active: boolean }) =>
-      apiFetch(`/api/admin/vital-sign-definitions/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ is_active }),
-      }),
-    onMutate: ({ id, is_active }) => {
-      setLocalDefs(prev => prev.map(d => d.id === id ? { ...d, is_active } : d))
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['vital-sign-definitions'] })
-      onRefetch()
-    },
-    onError: (_err, { id, is_active }) => {
-      setLocalDefs(prev => prev.map(d => d.id === id ? { ...d, is_active: !is_active } : d))
-    },
-  })
-
-  const reorderMutation = useMutation({
-    mutationFn: (items: { id: string; sort_order: number }[]) =>
-      Promise.all(items.map(item =>
-        fetch(`/api/admin/vital-sign-definitions/${item.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sort_order: item.sort_order }),
-        })
-      )),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['vital-sign-definitions'] }),
-  })
-
-  function handleDragStart(id: string) { setDragging(id) }
-
-  function handleDragOver(e: React.DragEvent, targetId: string) {
-    e.preventDefault()
-    if (!dragging || dragging === targetId) return
-    setLocalDefs(prev => {
-      const from = prev.findIndex(d => d.id === dragging)
-      const to = prev.findIndex(d => d.id === targetId)
-      if (from === -1 || to === -1) return prev
-      const next = [...prev]
-      const [moved] = next.splice(from, 1)
-      next.splice(to, 0, moved)
-      return next
-    })
-  }
-
-  function handleDrop() {
-    setDragging(null)
-    const updates = localDefs.map((d, i) => ({ id: d.id, sort_order: i * 10 }))
-    reorderMutation.mutate(updates)
-  }
-
-  return (
-    <div className="rounded-xl p-4 mb-6"
-      style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-      <p className="text-xs font-semibold uppercase tracking-widest mb-3"
-        style={{ color: 'var(--brand-crimson)' }}>Vital Signs</p>
-      <div className="space-y-1.5">
-        {localDefs.map(def => (
-          <div
-            key={def.id}
-            draggable
-            onDragStart={() => handleDragStart(def.id)}
-            onDragOver={e => handleDragOver(e, def.id)}
-            onDrop={handleDrop}
-            onDragEnd={() => setDragging(null)}
-            className="flex items-center gap-3 px-3 py-2 rounded-lg transition-opacity"
-            style={{
-              backgroundColor: dragging === def.id ? 'rgba(0,0,0,0.06)' : 'transparent',
-              opacity: def.is_active ? 1 : 0.5,
-              cursor: 'grab',
-            }}
-          >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"
-              className="flex-shrink-0" style={{ color: 'var(--text-secondary)' }}>
-              <circle cx="4" cy="3" r="1.2" fill="currentColor"/>
-              <circle cx="4" cy="7" r="1.2" fill="currentColor"/>
-              <circle cx="4" cy="11" r="1.2" fill="currentColor"/>
-              <circle cx="10" cy="3" r="1.2" fill="currentColor"/>
-              <circle cx="10" cy="7" r="1.2" fill="currentColor"/>
-              <circle cx="10" cy="11" r="1.2" fill="currentColor"/>
-            </svg>
-            <span className="flex-1 text-sm font-body" style={{ color: 'var(--text-primary)' }}>
-              {def.label ?? def.category}
-            </span>
-            <button
-              disabled={toggleActiveMutation.isPending}
-              onClick={() => toggleActiveMutation.mutate({ id: def.id, is_active: !def.is_active })}
-              className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold transition-all disabled:opacity-50"
-              style={{
-                backgroundColor: def.is_active ? 'rgba(26,107,74,0.12)' : 'rgba(0,0,0,0.06)',
-                color: def.is_active ? '#1a6b4a' : 'var(--text-secondary)',
-              }}
-            >
-              {def.is_active ? 'Active' : 'Inactive'}
-            </button>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
+import { apiClient } from '@/lib/apiClient'
+import { VitalSignsConfig } from './VitalSignsConfig'
+import { buildTree } from './los-admin-types'
+import type { TreeNode, LosTreeResponse, VitalSignDefinition } from './los-admin-types'
 
 // ── NodeCard ──────────────────────────────────────────────────────────────────
+// Recursive — stays at module scope in LosTab.tsx (self-referential, single consumer).
 
 function NodeCard({
-  node, definitions, onToggle, isPending,
+  node, definitions, onToggle, isPending, expanded, onToggleExpand,
 }: {
   node: TreeNode
   definitions: VitalSignDefinition[]
   onToggle: (profileId: string, definitionId: string, currentlyActive: boolean) => void
   isPending: boolean
+  expanded: Set<string>
+  onToggleExpand: (key: string) => void
 }) {
-  const [expanded, setExpanded] = useState(node.depth !== null ? node.depth < 2 : true)
+  const key = node.abo_number
+  const isExpanded = expanded.has(key)
   const rc = getRoleColors(node.role)
   const hasChildren = (node.children?.length ?? 0) > 0
   const displayName = node.first_name
@@ -216,12 +38,12 @@ function NodeCard({
         style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
         <div className="flex items-start gap-3">
           {hasChildren ? (
-            <button onClick={() => setExpanded(e => !e)}
+            <button onClick={() => onToggleExpand(key)}
               className="w-5 h-5 flex items-center justify-center rounded flex-shrink-0 mt-0.5 transition-colors hover:bg-black/10"
               style={{ color: 'var(--text-secondary)' }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                style={{ transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }}>
+                style={{ transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }}>
                 <polyline points="9 18 15 12 9 6"/>
               </svg>
             </button>
@@ -283,11 +105,12 @@ function NodeCard({
           </span>
         </div>
       </div>
-      {hasChildren && expanded && (
+      {hasChildren && isExpanded && (
         <div className="ml-6 pl-4 border-l" style={{ borderColor: 'var(--border-default)' }}>
           {node.children!.map(child => (
             <NodeCard key={child.abo_number} node={child} definitions={definitions}
-              onToggle={onToggle} isPending={isPending} />
+              onToggle={onToggle} isPending={isPending}
+              expanded={expanded} onToggleExpand={onToggleExpand} />
           ))}
         </div>
       )}
@@ -300,25 +123,43 @@ function NodeCard({
 export function LosTab() {
   const { t } = useLanguage()
   const qc = useQueryClient()
+  const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const expandedInitialised = useRef(false)
 
   const { data: treeResponse, isLoading: treeLoading, refetch: refetchTree } = useQuery<LosTreeResponse>({
     queryKey: ['los-tree'],
-    queryFn: () => fetch('/api/los/tree').then(r => r.json()),
+    queryFn: () => apiClient('/api/los/tree'),
   })
 
   const { data: definitionsRaw, refetch: refetchDefs } = useQuery<VitalSignDefinition[]>({
     queryKey: ['vital-sign-definitions'],
-    queryFn: () => fetch('/api/admin/vital-sign-definitions').then(r => r.json()),
+    queryFn: () => apiClient('/api/admin/vital-sign-definitions'),
     staleTime: 5 * 60 * 1000,
   })
+
+  // Initialise expand state: all nodes at depth < 2 pre-expanded.
+  // Runs exactly once on first data arrival — ref flag prevents re-init on refetch
+  // and correctly handles the case where the user collapses all nodes.
+  useEffect(() => {
+    if (!treeResponse?.nodes) return
+    if (expandedInitialised.current) return
+    expandedInitialised.current = true
+    const keys = new Set<string>()
+    for (const n of treeResponse.nodes) {
+      if (n.depth !== null && n.depth < 2) keys.add(n.abo_number)
+    }
+    setExpanded(keys)
+  }, [treeResponse])
 
   const flatNodes = treeResponse?.nodes ?? []
   const allDefinitions = Array.isArray(definitionsRaw) ? definitionsRaw : []
   const definitions = allDefinitions.filter(d => d.is_active)
 
+  const treeRoots = useMemo(() => buildTree(flatNodes), [flatNodes])
+
   const activateMutation = useMutation({
     mutationFn: ({ profileId, definitionId }: { profileId: string; definitionId: string }) =>
-      apiFetch(`/api/admin/members/${profileId}/vital-signs`, {
+      apiClient(`/api/admin/members/${profileId}/vital-signs`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ definition_id: definitionId }),
@@ -344,7 +185,7 @@ export function LosTab() {
 
   const deactivateMutation = useMutation({
     mutationFn: ({ profileId, definitionId }: { profileId: string; definitionId: string }) =>
-      apiFetch(`/api/admin/members/${profileId}/vital-signs/${definitionId}`, {
+      apiClient(`/api/admin/members/${profileId}/vital-signs/${definitionId}`, {
         method: 'PATCH',
       }),
     onMutate: ({ profileId, definitionId }) => {
@@ -373,12 +214,19 @@ export function LosTab() {
     else activateMutation.mutate({ profileId, definitionId })
   }
 
+  function handleToggleExpand(key: string) {
+    setExpanded(prev => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
+
   function handleConfigRefetch() {
     refetchDefs()
     refetchTree()
   }
-
-  const treeRoots = buildTree(flatNodes)
 
   return (
     <div className="space-y-6">
@@ -401,8 +249,8 @@ export function LosTab() {
         <div className="space-y-1">
           {treeRoots.map(node => (
             <NodeCard key={node.abo_number} node={node} definitions={definitions}
-              onToggle={handleToggle}
-              isPending={isPending} />
+              onToggle={handleToggle} isPending={isPending}
+              expanded={expanded} onToggleExpand={handleToggleExpand} />
           ))}
         </div>
       )}
