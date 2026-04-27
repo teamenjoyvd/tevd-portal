@@ -70,14 +70,16 @@ Violation = immediate stop, no exceptions.
 - **shadcn/ui for all interactive primitives** — dialog, popover, dropdown, sheet, tooltip, select, combobox, alert dialog.
 - **Component co-location** — new components scoped to one route go in `app/[route]/components/`. Promote to `/components` only when used by 2+ unrelated routes.
 - **Dual layout law** — NEVER a single responsive layout. Two complete separate layouts only. Canonical ref: `app/(dashboard)/about/page.tsx`.
-- **NEVER call `create_or_update_file` or `push_files` before PLAN's CLAIM is complete.** No file writes until the feature branch exists and is confirmed.
-- **PLAN and BUILD are mutually exclusive within a session.** PLAN does no file writes. BUILD does no PLAN-mode design work. Violation = immediate stop.
+- **NEVER call `create_or_update_file` or `push_files` before CLAIM is complete.** No file writes until the feature branch exists and is confirmed.
+- **SSU, PLAN, CLAIM, and BUILD are mutually exclusive within a session.** PLAN does no writes of any kind. CLAIM does no file writes. BUILD does no design work. Violation = immediate stop.
 
 ---
 
 ## Commands
 
-**SSU** — System Status Update. Run at session start:
+### SSU — System Startup
+
+Run at the start of every session. Warms up tools and establishes ground truth before any other action.
 
 1. **Tool warm-up (before anything else):**
    - `tool_search("get file contents github")`
@@ -88,86 +90,82 @@ Violation = immediate stop, no exceptions.
 
 3. `list_pull_requests` — check for any open PRs.
    - **Open PR found:** read its `## Session State` block and report what's in flight before doing anything else.
-   - **No open PR, but a PLAN-complete issue exists** (has `## Branch` block, no PR): report as CLAIM-complete/EXECUTE-not-started → proceed to GATHER in BUILD.
+   - **No open PR, but a CLAIM-complete issue exists** (has `## Branch` block, no PR): report as CLAIM-complete/BUILD-not-started → ready to proceed to SHAPE.
    - **Nothing in flight:** report ready to pick up next issue.
 
 Output format:
 ```
 | GitHub    | ✅/❌ |
 | In flight | [YYMM]-[TYPE]-[GH#] <title> / None |
-| Handoff   | IN PROGRESS: <next action> / DONE / PLAN-complete: ready for GATHER / No active PR |
+| Handoff   | IN PROGRESS: <next action> / DONE / CLAIM-complete: ready for SHAPE / No active PR |
+| Commands  | SSU · PLAN · CLAIM · BUILD · PIU · GCR |
 ```
 If GitHub ❌ — stop.
 
-**PIU** — Pack It Up. Run at session end:
-1. Confirm PR `## Session State` is `DONE` — write it now if not already done.
-2. If REF.md needs updates (schema changed, new routes, new env vars) — update and push in a single `push_files` call together with any other changed docs.
-3. If nothing changed in REF.md — done. No other writes required.
+---
 
-**GCR** — Address Gemini Code Review. See `docs/ai/GCR.md`.
+### PLAN — Read-only design
 
-**PLAN** — Enter design-only mode for this session.
+Pure thinking mode. **Zero writes of any kind.** No GitHub API calls except reads.
 
-Prefix the session with `PLAN` to enter this mode.
+Invoke for a ticket or batch of tickets when the design is not yet settled.
 
-- For each issue in the batch:
-  1. Read relevant REF.md / FLOWS.md sections freely — no competing write budget.
-  2. Produce a DoD as **specific verifiable checklist items with file paths**, not directional statements. Example:
-     ```
-     ## DoD
-     - [ ] `app/[route]/components/X.tsx` renders without overflow at 390px
-     - [ ] `api/y/route.ts` returns 403 for non-admin Clerk userId
-     ```
-  3. Output a verdict: **READY** or **BLOCKED: [single specific question]**.
-  4. If BLOCKED:
-     - `create_issue` with title (no ID yet), body with DoD and blocked status.
-     - Read `GH#` from response. Rename title to `[YYMM-TYPE-GH#] description`.
-     - Apply `blocked` label.
-     - Write `## Blocking Unknown` section to the issue body with the single question.
-     - Stop processing dependent tickets.
-     - Re-entry: user resolves the question → re-run `PLAN` scoped to that ticket → READY or new BLOCKED.
-  5. If READY — **CLAIM:**
-     1. `create_issue` — title (no ID yet), body with DoD and Design Checklist (all items checked).
-     2. Read `GH#` from the response — this is the canonical identifier.
-     3. `update_issue` — rename title to `[YYMM-TYPE-GH#] description`.
-     4. `create_branch` → `feature/[YYMM]-[TYPE]-[GH#]` from `main`.
-     5. Confirm branch exists (check the returned ref).
-     6. **HARD GATE: if branch creation fails — comment `BLOCKED: branch creation failed` on the issue, apply `blocked` label, STOP. Do not proceed.**
-     7. `update_issue` — write `## Branch` followed by a newline and `` `feature/[YYMM]-[TYPE]-[GH#]` `` into the issue body.
+For each ticket:
+1. Read relevant REF.md / FLOWS.md / DECISIONS.md sections freely — no competing write budget.
+2. Assess feasibility against the current codebase.
+3. Produce a DoD as **specific verifiable checklist items with file paths**, not directional statements:
+   ```
+   ## DoD
+   - [ ] `app/[route]/components/X.tsx` renders without overflow at 390px
+   - [ ] `api/y/route.ts` returns 403 for non-admin Clerk userId
+   ```
+4. List affected files by path.
+5. Flag applicable gotchas from the Gotchas table.
+6. State verdict: **READY** or **BLOCKED: [single specific question]**.
 
-Permitted writes: GitHub issue creation, issue body, branch creation.
-Forbidden: `create_or_update_file`, `push_files`.
+Output lives in the conversation only. Nothing is written anywhere.
+
+Re-entry: after a BLOCKED verdict is resolved, re-run PLAN scoped to that ticket to produce a READY verdict before CLAIM.
+
+**Permitted:** GitHub reads (`get_file_contents`, `get_issue`, etc.)
+**Forbidden:** `create_issue`, `update_issue`, `create_branch`, `create_or_update_file`, `push_files` — any write.
 
 ---
 
-## DESIGN-Complete Definition
+### CLAIM — Issue + branch scaffolding
 
-An issue is DESIGN-complete when its body contains:
-1. A `## Design Checklist` section with all four items checked.
-2. A `## Branch` section with the feature branch name.
+Materialises a PLAN READY verdict into GitHub. Requires a READY verdict in the current session context, or a reference to an existing open issue that has a complete DoD but no `## Branch` section.
 
-```
-## Design Checklist
-- [x] DoD defined (specific, file-path-level)
-- [x] Affected files listed by path
-- [x] Gotchas flagged against Gotchas table
-- [x] Blocking unknowns: none
+**If READY:**
+1. `create_issue` — title (no ID yet), body containing DoD + affected files + gotchas + Design Checklist (all four items checked).
+2. Read `GH#` from the response — this is the canonical identifier.
+3. `update_issue` — rename title to `[YYMM-TYPE-GH#] description`.
+4. `create_branch` → `feature/[YYMM]-[TYPE]-[GH#]` from `main`.
+5. Confirm branch exists (check the returned ref).
+6. **HARD GATE: if branch creation fails — comment `BLOCKED: branch creation failed` on the issue, apply `blocked` label, STOP.**
+7. `update_issue` — write `## Branch` followed by `` `feature/[YYMM]-[TYPE]-[GH#]` `` into the issue body.
 
-## Branch
-`feature/YYMM-TYPE-GH#`
-```
+**If BLOCKED verdict from PLAN:**
+1. `create_issue` with `blocked` label, body with DoD and `## Blocking Unknown` section containing the single question.
+2. Read `GH#`, rename title to `[YYMM-TYPE-GH#] description`.
+3. Stop — no branch creation.
 
-This is the gate between PLAN and BUILD. BUILD mode verifies both at SSU. If either section is absent or any checklist item is unchecked, BUILD refuses and states exactly what is missing.
+Re-entry (existing issue, no branch): read the issue body, verify DoD is complete, then execute steps 4–7 above.
+
+**Permitted:** `create_issue`, `update_issue`, `create_branch`.
+**Forbidden:** `create_or_update_file`, `push_files`.
 
 ---
 
-## BUILD Workflow
+### BUILD — File execution
 
-**Precondition (SSU):** Read the issue body. Verify `## Design Checklist` exists with all four items checked AND `## Branch` exists with the branch name. If either is absent or incomplete — stop, state exactly what is missing, do not proceed.
+Default mode. Executes against a CLAIM-complete issue.
 
-**READ** → Check open GitHub Issues. Resume any in-progress issue (open PR exists). If a PLAN-complete issue has no open PR, that is the next issue to pick up — read the `## Branch` value from its body and proceed to GATHER. Otherwise pick the highest `priority:high` open issue without the `blocked` label. If none, pick the next unlabelled issue by creation order.
+**Precondition:** Read the issue body. Verify `## Design Checklist` exists with all four items checked AND `## Branch` exists with the branch name. If either is absent or any item unchecked — stop, state exactly what is missing, do not proceed.
 
-**SHAPE (read-only)** → Verify the DoD from the issue body is still coherent against the current codebase state. Read any relevant architecture doc:
+**READ** → Check open GitHub Issues. Resume any in-progress issue (open PR exists). If a CLAIM-complete issue has no open PR, that is the next issue — read `## Branch` from its body and proceed to SHAPE. Otherwise pick the highest `priority:high` open issue without the `blocked` label. If none, pick the next unlabelled issue by creation order.
+
+**SHAPE (read-only)** → Verify the DoD is still coherent against current codebase state. Read relevant architecture docs:
    - Auth / role / Clerk sync → `FLOWS.md §1`
    - Registration → `FLOWS.md §2`
    - Payments → `FLOWS.md §3`
@@ -200,7 +198,43 @@ The PR description is the sole handoff document.
 **Next:** single specific action for incoming instance
 ```
 
-Write `IN PROGRESS` before starting a large task. Write `DONE` after verifying. If OOT hits mid-task, the skeleton commit is the fallback — it must exist before implementation begins.
+Write `IN PROGRESS` before starting a large task. Write `DONE` after verifying. If context runs out mid-task, the skeleton commit is the fallback — it must exist before implementation begins.
+
+---
+
+### PIU — Pack It Up
+
+Run at session end:
+1. Confirm PR `## Session State` is `DONE` — write it now if not already done.
+2. If REF.md needs updates (schema changed, new routes, new env vars) — update and push in a single `push_files` call together with any other changed docs.
+3. If nothing changed in REF.md — done.
+
+---
+
+### GCR — Address Gemini Code Review
+
+See `docs/ai/GCR.md`.
+
+---
+
+## CLAIM-Complete Definition
+
+An issue is CLAIM-complete (ready for BUILD) when its body contains:
+1. A `## Design Checklist` section with all four items checked.
+2. A `## Branch` section with the feature branch name.
+
+```
+## Design Checklist
+- [x] DoD defined (specific, file-path-level)
+- [x] Affected files listed by path
+- [x] Gotchas flagged against Gotchas table
+- [x] Blocking unknowns: none
+
+## Branch
+`feature/YYMM-TYPE-GH#`
+```
+
+BUILD verifies both at startup. If either section is absent or any checklist item is unchecked, BUILD refuses and states exactly what is missing.
 
 ---
 
