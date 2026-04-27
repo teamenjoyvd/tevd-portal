@@ -8,9 +8,6 @@ import { ItemForm } from './ItemForm'
 import type { Trip, PayableItem, ItemFormState } from './operations-types'
 import { t } from '@/lib/i18n'
 
-// Re-export for backwards compat (PaymentsTab imports PayableItem from here historically)
-export type { PayableItem } from './operations-types'
-
 // ── Helpers ──────────────────────────────────────────────
 
 const emptyItem = (): ItemFormState => ({

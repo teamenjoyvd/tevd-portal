@@ -29,9 +29,6 @@ type Payment = {
   payable_items: { title: string; item_type: string; currency: string } | null
 }
 
-// Re-export for page.tsx backwards compat (page still imports MembersResponse from here)
-export type { MembersResponse } from './operations-types'
-
 // ── Helpers ──────────────────────────────────────────────
 
 function statusPill(status: string) {
@@ -196,10 +193,8 @@ export function PaymentsTab({ trips, membersData }: { trips: Trip[]; membersData
           trips={trips}
           items={items}
           allMembers={allMembers}
-          onSubmit={payload => {
-            if (!payload.profile_id) { setDrawerOpen(false); setPayError(null); return }
-            logMutation.mutate(payload)
-          }}
+          onSave={logMutation.mutate}
+          onClose={() => { setDrawerOpen(false); setPayError(null) }}
           isPending={logMutation.isPending}
           externalError={payError}
         />

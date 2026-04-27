@@ -18,14 +18,16 @@ export function LogPaymentForm({
   trips,
   items,
   allMembers,
-  onSubmit,
+  onSave,
+  onClose,
   isPending,
   externalError,
 }: {
   trips: Trip[]
   items: PayableItem[]
   allMembers: MemberProfile[]
-  onSubmit: (payload: Record<string, unknown>) => void
+  onSave: (payload: Record<string, unknown>) => void
+  onClose: () => void
   isPending: boolean
   externalError: string | null
 }) {
@@ -54,7 +56,7 @@ export function LogPaymentForm({
     }
     if (type === 'trip') body.trip_id = id
     else body.payable_item_id = id
-    onSubmit(body)
+    onSave(body)
   }
 
   return (
@@ -152,7 +154,7 @@ export function LogPaymentForm({
           {isPending ? t('admin.operations.payments.btn.saving', 'en') : t('admin.operations.payments.btn.log2', 'en')}
         </button>
         <button
-          onClick={() => onSubmit({} as Record<string, unknown>)}
+          onClick={onClose}
           className="px-6 py-2.5 rounded-xl text-sm font-semibold border transition-colors hover:bg-black/5"
           style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
         >{t('admin.operations.payments.btn.cancel', 'en')}</button>
