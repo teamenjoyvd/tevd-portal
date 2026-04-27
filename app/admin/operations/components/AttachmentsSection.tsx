@@ -55,9 +55,7 @@ export function AttachmentsSection({ tripId }: { tripId: string }) {
 
   const deleteMutation = useMutation({
     mutationFn: (attachment: TripAttachment) =>
-      fetch(`/api/admin/trips/${tripId}/attachments/${attachment.id}`, { method: 'DELETE' }).then(r => {
-        if (!r.ok && r.status !== 204) throw new Error('Delete failed')
-      }),
+      apiClient(`/api/admin/trips/${tripId}/attachments/${attachment.id}`, { method: 'DELETE' }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['trip-attachments-admin', tripId] })
       setDeleteTarget(null)
