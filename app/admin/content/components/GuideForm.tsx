@@ -8,9 +8,6 @@ import { ALL_ROLES, slugify, type Guide } from './guide-types'
 import { BlockEditor } from './BlockEditor'
 import { CoverImageUploader } from './CoverImageUploader'
 
-export type { Block, Guide } from './guide-types'
-export { ALL_ROLES, slugify, emptyGuide } from './guide-types'
-
 export function GuideForm({
   initial,
   onSave,
@@ -116,7 +113,7 @@ export function GuideForm({
           <input
             value={form.emoji ?? ''}
             onChange={e => setForm(f => ({ ...f, emoji: e.target.value || null }))}
-            placeholder="e.g. \uD83D\uDCE6"
+            placeholder="e.g. 📦"
             className="w-full border rounded-xl px-3 py-2 text-sm text-center"
             style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
           />
