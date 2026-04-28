@@ -1,47 +1,15 @@
 'use client'
 
-import { useSyncExternalStore, useCallback } from 'react'
-import { translate, TranslationKey, Lang } from '@/lib/i18n/translations'
-
-const COOKIE_KEY = 'tevd_lang'
-const LANG_EVENT = 'language-changed'
-const DEFAULT: Lang = 'en'
-
-function getCookieLang(): Lang {
-  if (typeof document === 'undefined') return DEFAULT
-  const match = document.cookie
-    .split('; ')
-    .find(row => row.startsWith(`${COOKIE_KEY}=`))
-  const value = match?.split('=')[1]
-  return value === 'bg' ? 'bg' : DEFAULT
-}
-
-function setCookieLang(lang: Lang): void {
-  // 1-year expiry, path=/ so all routes see it
-  document.cookie = `${COOKIE_KEY}=${lang}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`
-}
-
-function subscribe(callback: () => void): () => void {
-  window.addEventListener(LANG_EVENT, callback)
-  return () => window.removeEventListener(LANG_EVENT, callback)
-}
-
-export function useLanguage() {
-  const lang = useSyncExternalStore(
-    subscribe,
-    getCookieLang,
-    () => DEFAULT, // getServerSnapshot — SSR always gets default
-  )
-
-  const toggle = useCallback(() => {
-    const next: Lang = getCookieLang() === 'en' ? 'bg' : 'en'
-    setCookieLang(next)
-    window.dispatchEvent(new Event(LANG_EVENT))
-  }, [])
-
-  const t = useCallback((key: TranslationKey): string => {
-    return translate(key, lang)
-  }, [lang])
-
-  return { lang, toggle, t }
-}
+/**
+ * Thin re-export — useLanguage delegates to the LangProvider context.
+ * Public API (lang, toggle, t) is unchanged; all callsites require zero edits.
+ *
+ * Previous implementation used useSyncExternalStore + document.cookie which:
+ *   - always returned 'en' from getServerSnapshot, causing a hydration flash for BG users
+ *   - relied on a window event bus for cross-component updates
+ *
+ * LangProvider in app/(dashboard)/layout.tsx resolves the correct lang server-side
+ * from the tevd_lang cookie and passes it as initialLang, fixing the SSR mismatch.
+ * All consumers update synchronously via React state — no window events needed.
+ */
+export { useLang as useLanguage } from '@/lib/context/LangProvider'
