@@ -1,23 +1,11 @@
 'use client'
 
 import { memo, useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { getRoleColors } from '@/lib/role-colors'
-
-type VerificationRequest = {
-  id: string
-  claimed_abo: string | null
-  claimed_upline_abo: string
-  status: 'pending' | 'approved' | 'denied'
-  admin_note: string | null
-  created_at: string
-  request_type: string
-}
-
-type UplineData = {
-  upline_name: string | null
-  upline_abo_number: string | null
-}
+import { type VerificationRequest, type UplineData, type Profile } from '../types'
+import { apiClient } from '@/lib/apiClient'
 
 type AboInfoMode = 'form' | 'pending' | 'confirmed' | 'member_manual'
 
@@ -25,34 +13,74 @@ const ROLE_LABELS: Record<string, string> = {
   admin: 'Admin', core: 'Core', member: 'Member', guest: 'Guest',
 }
 
-export const AboInfoContent = memo(function AboInfoContent({
-  mode,
-  role,
-  aboNumber,
-  uplineData,
-  verRequest,
-  onSubmitVerification,
-  onCancelVerification,
-  submitPending,
-  cancelPending,
-  submitError,
-}: {
-  mode: AboInfoMode
-  role: string
-  aboNumber: string | null
-  uplineData: UplineData | undefined
-  verRequest: VerificationRequest | null | undefined
-  onSubmitVerification: (params: { claimed_abo?: string; claimed_upline_abo: string; request_type: 'standard' | 'manual' }) => void
-  onCancelVerification: () => void
-  submitPending: boolean
-  cancelPending: boolean
-  submitError: string | null
-}) {
+export const AboInfoContent = memo(function AboInfoContent() {
+  const qc = useQueryClient()
   const { t } = useLanguage()
+
+  const { data: profile } = useQuery<Profile>({ queryKey: ['profile'] })
+  const role = profile?.role ?? 'guest'
+  const aboNumber = profile?.abo_number ?? null
+
   const rc = getRoleColors(role)
   const [verificationMode, setVerificationMode] = useState<'standard' | 'manual'>('standard')
   const [aboInput, setAboInput] = useState('')
   const [uplineInput, setUplineInput] = useState('')
+
+  const { data: verRequest, isPending: isVerPending } = useQuery<VerificationRequest | null>({
+    queryKey: ['verify-abo'],
+    queryFn: () => apiClient('/api/profile/verify-abo'),
+    enabled: role === 'guest',
+  })
+
+  const { data: uplineData } = useQuery<UplineData>({
+    queryKey: ['profile-upline'],
+    queryFn: () => apiClient('/api/profile/upline'),
+    enabled: !!aboNumber,
+    staleTime: 10 * 60 * 1000,
+  })
+
+  const submitVerification = useMutation({
+    mutationFn: (params: { claimed_abo?: string; claimed_upline_abo: string; request_type: 'standard' | 'manual' }) =>
+      apiClient('/api/profile/verify-abo', {
+        method: 'POST',
+        body: JSON.stringify(
+          params.request_type === 'manual'
+            ? { request_type: 'manual', claimed_upline_abo: params.claimed_upline_abo }
+            : { claimed_abo: params.claimed_abo, claimed_upline_abo: params.claimed_upline_abo }
+        ),
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['verify-abo'] }),
+  })
+
+  const cancelVerification = useMutation({
+    mutationFn: () => apiClient('/api/profile/verify-abo', { method: 'DELETE' }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['verify-abo'] }),
+  })
+
+  // While the verify-abo query is in flight for a guest, defer mode resolution
+  // to avoid the form flashing before the pending/denied state is known.
+  if (role === 'guest' && isVerPending) {
+    return (
+      <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+        <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-5 pr-16" style={{ color: 'var(--brand-crimson)' }}>
+          {t('profile.tile.aboInfo')}
+        </p>
+        <div className="space-y-3 animate-pulse">
+          <div className="h-4 rounded-lg w-3/4" style={{ backgroundColor: 'var(--border-default)' }} />
+          <div className="h-4 rounded-lg w-1/2" style={{ backgroundColor: 'var(--border-default)' }} />
+        </div>
+      </div>
+    )
+  }
+
+  let aboMode: AboInfoMode = 'form'
+  if (aboNumber) {
+    aboMode = 'confirmed'
+  } else if (role !== 'guest') {
+    aboMode = 'member_manual'
+  } else if (verRequest && (verRequest.status === 'pending' || verRequest.status === 'denied')) {
+    aboMode = 'pending'
+  }
 
   return (
     <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
@@ -60,7 +88,7 @@ export const AboInfoContent = memo(function AboInfoContent({
         {t('profile.tile.aboInfo')}
       </p>
 
-      {mode === 'confirmed' && (
+      {aboMode === 'confirmed' && (
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <p className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>{t('profile.access')}</p>
@@ -94,7 +122,7 @@ export const AboInfoContent = memo(function AboInfoContent({
         </div>
       )}
 
-      {mode === 'member_manual' && (
+      {aboMode === 'member_manual' && (
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <p className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>{t('profile.access')}</p>
@@ -126,7 +154,7 @@ export const AboInfoContent = memo(function AboInfoContent({
         </div>
       )}
 
-      {mode === 'pending' && (
+      {aboMode === 'pending' && (
         <div className="space-y-3">
           {verRequest?.status === 'denied' && (
             <div className="rounded-xl px-4 py-3 mb-2" style={{ backgroundColor: '#bc474915' }}>
@@ -154,8 +182,8 @@ export const AboInfoContent = memo(function AboInfoContent({
                   : `ABO ${verRequest.claimed_abo} · Upline ${verRequest.claimed_upline_abo}`}
               </p>
               <button
-                onClick={onCancelVerification}
-                disabled={cancelPending}
+                onClick={() => cancelVerification.mutate()}
+                disabled={cancelVerification.isPending}
                 className="text-xs mt-2 font-medium hover:underline disabled:opacity-50"
                 style={{ color: 'var(--brand-crimson)' }}
               >
@@ -171,20 +199,20 @@ export const AboInfoContent = memo(function AboInfoContent({
               onModeChange={setVerificationMode}
               onAboChange={setAboInput}
               onUplineChange={setUplineInput}
-              onSubmit={() => onSubmitVerification(
+              onSubmit={() => submitVerification.mutate(
                 verificationMode === 'manual'
                   ? { request_type: 'manual', claimed_upline_abo: uplineInput.trim() }
                   : { request_type: 'standard', claimed_abo: aboInput.trim(), claimed_upline_abo: uplineInput.trim() }
               )}
-              submitPending={submitPending}
-              submitError={submitError}
+              submitPending={submitVerification.isPending}
+              submitError={submitVerification.isError ? (submitVerification.error as Error).message : null}
               t={t}
             />
           )}
         </div>
       )}
 
-      {mode === 'form' && (
+      {aboMode === 'form' && (
         <VerificationForm
           verificationMode={verificationMode}
           aboInput={aboInput}
@@ -192,13 +220,13 @@ export const AboInfoContent = memo(function AboInfoContent({
           onModeChange={setVerificationMode}
           onAboChange={setAboInput}
           onUplineChange={setUplineInput}
-          onSubmit={() => onSubmitVerification(
+          onSubmit={() => submitVerification.mutate(
             verificationMode === 'manual'
               ? { request_type: 'manual', claimed_upline_abo: uplineInput.trim() }
               : { request_type: 'standard', claimed_abo: aboInput.trim(), claimed_upline_abo: uplineInput.trim() }
           )}
-          submitPending={submitPending}
-          submitError={submitError}
+          submitPending={submitVerification.isPending}
+          submitError={submitVerification.isError ? (submitVerification.error as Error).message : null}
           t={t}
         />
       )}
