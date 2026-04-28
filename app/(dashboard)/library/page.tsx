@@ -15,7 +15,7 @@ export default async function LibraryPage() {
       initialGuides={guides}
       initialLinks={links}
       initialNews={news}
-      initialDataUpdatedAt={Infinity}
+      guideHrefPrefix="/library"
     />
   )
 }
