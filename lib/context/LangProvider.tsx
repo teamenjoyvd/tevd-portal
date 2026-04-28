@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState, useCallback } from 'react'
+import { createContext, useContext, useState, useCallback, useMemo } from 'react'
 import { translate, TranslationKey, Lang } from '@/lib/i18n/translations'
 
 const COOKIE_KEY = 'tevd_lang'
@@ -35,8 +35,10 @@ export function LangProvider({
     [lang],
   )
 
+  const value = useMemo(() => ({ lang, toggle, t }), [lang, toggle, t])
+
   return (
-    <LangContext.Provider value={{ lang, toggle, t }}>
+    <LangContext.Provider value={value}>
       {children}
     </LangContext.Provider>
   )
