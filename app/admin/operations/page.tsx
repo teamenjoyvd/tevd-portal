@@ -7,8 +7,8 @@ import AdminTabs, { TabsContent } from '@/app/admin/components/AdminTabs'
 import { TripsTab } from './components/TripsTab'
 import { ItemsTab } from './components/ItemsTab'
 import { PaymentsTab } from './components/PaymentsTab'
-import type { Trip } from './components/TripsTab'
-import type { MembersResponse } from './components/PaymentsTab'
+import type { Trip } from './components/operations-types'
+import type { MembersResponse } from './components/operations-types'
 
 // ── Constants ────────────────────────────────────────────────────
 

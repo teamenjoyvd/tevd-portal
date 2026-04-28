@@ -1,21 +1,3 @@
-import { getRoleForAccess, listGuidesForRole, listLinksForRole, listNewsForRole } from '@/lib/server/guides'
-import type { Guide, SiteLink, NewsItem } from '@/lib/server/guides'
-import GuidesClient from './GuidesClient'
-
-export default async function GuidesPage() {
-  const role = await getRoleForAccess()
-  const [guides, links, news] = await Promise.all([
-    listGuidesForRole({ role }),
-    listLinksForRole({ role }),
-    listNewsForRole({ role }),
-  ])
-
-  return (
-    <GuidesClient
-      initialGuides={guides}
-      initialLinks={links}
-      initialNews={news}
-      initialDataUpdatedAt={0}
-    />
-  )
-}
+import { redirect } from 'next/navigation'
+// /guides permanently redirected to /library via next.config.ts. Safety net stub.
+export default function GuidesPage() { redirect('/library') }

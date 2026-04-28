@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Drawer } from '@/components/ui/drawer'
 import {
   AlertDialog,
   AlertDialogContent,
@@ -18,6 +17,9 @@ import { AdminStatusBadge } from '@/app/admin/components/AdminStatusBadge'
 import { useAdminDrawer } from '@/app/admin/components/useAdminDrawer'
 import { makeDragHandlers } from './useDragSort'
 import { useLanguage } from '@/lib/hooks/useLanguage'
+import { LinkForm, ALL_ROLES } from './LinkForm'
+import { LinkEditDrawer } from './LinkEditDrawer'
+import type { LinkFormData } from './LinkForm'
 
 type SiteLink = {
   id: string
@@ -28,7 +30,11 @@ type SiteLink = {
   is_active: boolean
 }
 
-const ALL_ROLES = ['guest', 'member', 'core', 'admin']
+const DEFAULT_FORM: LinkFormData = {
+  label: { en: '', bg: '' },
+  url: '',
+  access_roles: [...ALL_ROLES],
+}
 
 export function LinksTab() {
   const qc = useQueryClient()
@@ -36,20 +42,8 @@ export function LinksTab() {
   const linkDrawer = useAdminDrawer<SiteLink>()
   const [linkAlertTarget, setLinkAlertTarget] = useState<{ id: string; name: string } | null>(null)
   const [lDragging, setLDragging] = useState<string | null>(null)
-
-  const [lForm, setLForm] = useState({
-    label: { en: '', bg: '' },
-    url: '',
-    access_roles: ['guest', 'member', 'core', 'admin'] as string[],
-    sort_order: 0,
-  })
-
-  const [editLForm, setEditLForm] = useState({
-    label: { en: '', bg: '' },
-    url: '',
-    access_roles: ['guest', 'member', 'core', 'admin'] as string[],
-    sort_order: 0,
-  })
+  const [editInitial, setEditInitial] = useState<LinkFormData>(DEFAULT_FORM)
+  const [createKey, setCreateKey] = useState(0)
 
   const { data: linksRaw = [] } = useQuery<SiteLink[]>({
     queryKey: ['admin-links'],
@@ -73,15 +67,15 @@ export function LinksTab() {
   })
 
   const createLink = useMutation({
-    mutationFn: (body: typeof lForm) =>
+    mutationFn: (data: LinkFormData) =>
       fetch('/api/admin/links', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: JSON.stringify(data),
       }).then(r => r.json()),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-links'] })
       qc.invalidateQueries({ queryKey: ['links', 'list'] })
-      setLForm({ label: { en: '', bg: '' }, url: '', access_roles: ['guest','member','core','admin'], sort_order: 0 })
+      setCreateKey(k => k + 1)
     },
   })
 
@@ -95,10 +89,10 @@ export function LinksTab() {
   })
 
   const updateLink = useMutation({
-    mutationFn: ({ id, ...body }: { id: string } & typeof editLForm) =>
+    mutationFn: ({ id, ...data }: { id: string } & LinkFormData) =>
       fetch(`/api/admin/links/${id}`, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: JSON.stringify(data),
       }).then(r => r.json()),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-links'] })
@@ -120,11 +114,10 @@ export function LinksTab() {
   })
 
   function startEditingLink(l: SiteLink) {
-    setEditLForm({
+    setEditInitial({
       label: { en: l.label.en ?? '', bg: l.label.bg ?? '' },
       url: l.url,
-      access_roles: Array.isArray(l.access_roles) ? l.access_roles : ['guest','member','core','admin'],
-      sort_order: l.sort_order,
+      access_roles: Array.isArray(l.access_roles) ? l.access_roles : [...ALL_ROLES],
     })
     linkDrawer.openEdit(l)
   }
@@ -134,46 +127,14 @@ export function LinksTab() {
   return (
     <section>
       {/* Inline create card — intentional exception per CLAUDE.md */}
-      <div className="rounded-2xl border p-6 mb-4 space-y-4" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="text-xs font-semibold uppercase tracking-widest mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.content.links.lbl.labelEn')}</label>
-            <input value={lForm.label.en} onChange={e => setLForm(f => ({ ...f, label: { ...f.label, en: e.target.value } }))}
-              placeholder={t('admin.content.links.placeholder.labelEn')}
-              className="w-full border rounded-xl px-3 py-2.5 text-sm"
-              style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
-          </div>
-          <div>
-            <label className="text-xs font-semibold uppercase tracking-widest mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.content.links.lbl.labelBg')}</label>
-            <input value={lForm.label.bg} onChange={e => setLForm(f => ({ ...f, label: { ...f.label, bg: e.target.value } }))}
-              placeholder={t('admin.content.links.placeholder.labelBg')}
-              className="w-full border rounded-xl px-3 py-2.5 text-sm"
-              style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
-          </div>
-        </div>
-        <div>
-          <label className="text-xs font-semibold uppercase tracking-widest mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.content.links.lbl.url')}</label>
-          <input value={lForm.url} onChange={e => setLForm(f => ({ ...f, url: e.target.value }))}
-            placeholder="https://…"
-            className="w-full border rounded-xl px-3 py-2.5 text-sm"
-            style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          {ALL_ROLES.map(role => (
-            <button key={role}
-              onClick={() => setLForm(f => ({ ...f, access_roles: f.access_roles.includes(role) ? f.access_roles.filter(r => r !== role) : [...f.access_roles, role] }))}
-              className="px-3 py-1 rounded-full text-xs font-semibold transition-all"
-              style={{ backgroundColor: lForm.access_roles.includes(role) ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)', color: lForm.access_roles.includes(role) ? 'var(--brand-parchment)' : 'var(--text-secondary)' }}>
-              {role}
-            </button>
-          ))}
-        </div>
-        <button onClick={() => createLink.mutate(lForm)}
-          disabled={createLink.isPending || !lForm.label.en || !lForm.url}
-          className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
-          style={{ backgroundColor: 'var(--brand-crimson)' }}>
-          {createLink.isPending ? t('admin.content.links.btn.adding') : t('admin.content.links.btn.add')}
-        </button>
+      <div className="rounded-2xl border p-6 mb-4" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
+        <LinkForm
+          key={createKey}
+          initial={DEFAULT_FORM}
+          onSave={data => createLink.mutate(data)}
+          isPending={createLink.isPending}
+          submitLabel={createLink.isPending ? t('admin.content.links.btn.adding') : t('admin.content.links.btn.add')}
+        />
       </div>
 
       <div className="space-y-1.5">
@@ -218,57 +179,19 @@ export function LinksTab() {
         )}
       </div>
 
-      <Drawer
+      <LinkEditDrawer
+        key={linkDrawer.editing?.id ?? 'new'}
         open={linkDrawer.open}
         onClose={linkDrawer.close}
-        title={linkDrawer.editing ? t('admin.content.links.drawer.editTitleNamed').replace('{{name}}', linkDrawer.editing.label.en) : t('admin.content.links.drawer.editTitle')}
-      >
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs font-semibold uppercase tracking-widest mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.content.links.lbl.labelEn')}</label>
-              <input value={editLForm.label.en} onChange={e => setEditLForm(f => ({ ...f, label: { ...f.label, en: e.target.value } }))}
-                className="w-full border rounded-xl px-3 py-2.5 text-sm"
-                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
-            </div>
-            <div>
-              <label className="text-xs font-semibold uppercase tracking-widest mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.content.links.lbl.labelBg')}</label>
-              <input value={editLForm.label.bg} onChange={e => setEditLForm(f => ({ ...f, label: { ...f.label, bg: e.target.value } }))}
-                className="w-full border rounded-xl px-3 py-2.5 text-sm"
-                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
-            </div>
-          </div>
-          <div>
-            <label className="text-xs font-semibold uppercase tracking-widest mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.content.links.lbl.url')}</label>
-            <input value={editLForm.url} onChange={e => setEditLForm(f => ({ ...f, url: e.target.value }))}
-              className="w-full border rounded-xl px-3 py-2.5 text-sm"
-              style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
-          </div>
-          <div className="flex gap-2 flex-wrap">
-            {ALL_ROLES.map(role => (
-              <button key={role}
-                onClick={() => setEditLForm(f => ({ ...f, access_roles: f.access_roles.includes(role) ? f.access_roles.filter(r => r !== role) : [...f.access_roles, role] }))}
-                className="px-3 py-1 rounded-full text-xs font-semibold transition-all"
-                style={{ backgroundColor: editLForm.access_roles.includes(role) ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)', color: editLForm.access_roles.includes(role) ? 'var(--brand-parchment)' : 'var(--text-secondary)' }}>
-                {role}
-              </button>
-            ))}
-          </div>
-          <div className="flex gap-3 pt-2">
-            <button onClick={() => linkDrawer.editing && updateLink.mutate({ id: linkDrawer.editing.id, ...editLForm })}
-              disabled={updateLink.isPending || !editLForm.label.en || !editLForm.url}
-              className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
-              style={{ backgroundColor: 'var(--brand-crimson)' }}>
-              {updateLink.isPending ? t('admin.content.links.btn.saving') : t('admin.content.links.btn.saveChanges')}
-            </button>
-            <button onClick={linkDrawer.close}
-              className="px-5 py-2 rounded-xl text-sm font-semibold border transition-colors hover:bg-black/5"
-              style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
-              {t('admin.content.links.btn.cancel')}
-            </button>
-          </div>
-        </div>
-      </Drawer>
+        title={linkDrawer.editing
+          ? t('admin.content.links.drawer.editTitleNamed').replace('{{name}}', linkDrawer.editing.label.en)
+          : t('admin.content.links.drawer.editTitle')
+        }
+        initial={editInitial}
+        onSave={data => linkDrawer.editing && updateLink.mutate({ id: linkDrawer.editing.id, ...data })}
+        isPending={updateLink.isPending}
+        submitLabel={updateLink.isPending ? t('admin.content.links.btn.saving') : t('admin.content.links.btn.saveChanges')}
+      />
 
       <AlertDialog open={!!linkAlertTarget} onOpenChange={open => { if (!open) setLinkAlertTarget(null) }}>
         <AlertDialogContent>

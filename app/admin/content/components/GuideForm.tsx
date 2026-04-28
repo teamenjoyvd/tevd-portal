@@ -4,155 +4,9 @@ import { useState } from 'react'
 import { AdminStatusBadge } from '@/app/admin/components/AdminStatusBadge'
 import { RoleSelector } from '@/app/admin/components/RoleSelector'
 import { useLanguage } from '@/lib/hooks/useLanguage'
-
-// ── Types ────────────────────────────────────────────────────────
-
-export type Block = {
-  type: 'heading' | 'paragraph' | 'callout'
-  content: { en: string; bg: string }
-  emoji?: string
-}
-
-export type Guide = {
-  id: string
-  slug: string
-  title: { en: string; bg: string }
-  cover_image_url: string | null
-  emoji: string | null
-  body: Block[]
-  access_roles: string[]
-  is_published: boolean
-  created_at: string
-  updated_at: string
-  sort_order: number
-}
-
-export const ALL_ROLES = ['guest', 'member', 'core', 'admin']
-
-export function slugify(str: string): string {
-  return str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
-}
-
-export function emptyGuide(): Omit<Guide, 'id' | 'created_at' | 'updated_at'> {
-  return {
-    slug: '',
-    title: { en: '', bg: '' },
-    cover_image_url: null,
-    emoji: null,
-    body: [],
-    access_roles: [...ALL_ROLES],
-    is_published: false,
-    sort_order: 0,
-  }
-}
-
-// ── BlockEditor ──────────────────────────────────────────────────
-
-export function BlockEditor({ blocks, onChange }: { blocks: Block[]; onChange: (b: Block[]) => void }): React.JSX.Element {
-  const { t } = useLanguage()
-  const safeBlocks = Array.isArray(blocks) ? blocks : []
-
-  function addBlock(type: Block['type']) {
-    onChange([...safeBlocks, { type, content: { en: '', bg: '' }, emoji: type === 'callout' ? '\uD83D\uDCA1' : undefined }])
-  }
-  function updateBlock(i: number, partial: Partial<Block>) {
-    onChange(safeBlocks.map((b, idx) => idx === i ? { ...b, ...partial } : b))
-  }
-  function updateContent(i: number, lang: 'en' | 'bg', value: string) {
-    updateBlock(i, { content: { ...safeBlocks[i].content, [lang]: value } })
-  }
-  function moveBlock(i: number, dir: -1 | 1) {
-    const next = [...safeBlocks]
-    const j = i + dir
-    if (j < 0 || j >= next.length) return
-    ;[next[i], next[j]] = [next[j], next[i]]
-    onChange(next)
-  }
-  function removeBlock(i: number) {
-    onChange(safeBlocks.filter((_, idx) => idx !== i))
-  }
-
-  return (
-    <div className="space-y-3">
-      {safeBlocks.map((block, i) => (
-        <div key={i} className="rounded-xl border p-4 space-y-3"
-          style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full uppercase tracking-widest"
-                style={{
-                  backgroundColor: block.type === 'heading' ? 'var(--brand-forest)' : block.type === 'callout' ? 'var(--brand-teal)' : 'rgba(0,0,0,0.06)',
-                  color: block.type === 'paragraph' ? 'var(--text-secondary)' : 'var(--brand-parchment)',
-                }}>
-                {block.type}
-              </span>
-              {block.type === 'callout' && (
-                <input
-                  value={block.emoji ?? ''}
-                  onChange={e => updateBlock(i, { emoji: e.target.value })}
-                  placeholder="emoji"
-                  className="w-14 border rounded-lg px-2 py-1 text-sm text-center"
-                  style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
-                />
-              )}
-            </div>
-            <div className="flex items-center gap-1">
-              <button onClick={() => moveBlock(i, -1)} disabled={i === 0}
-                className="w-6 h-6 flex items-center justify-center rounded hover:bg-black/5 disabled:opacity-30 text-xs"
-                style={{ color: 'var(--text-secondary)' }}>↑</button>
-              <button onClick={() => moveBlock(i, 1)} disabled={i === safeBlocks.length - 1}
-                className="w-6 h-6 flex items-center justify-center rounded hover:bg-black/5 disabled:opacity-30 text-xs"
-                style={{ color: 'var(--text-secondary)' }}>↓</button>
-              <button onClick={() => removeBlock(i)}
-                className="w-6 h-6 flex items-center justify-center rounded hover:bg-black/5 text-xs"
-                style={{ color: 'var(--brand-crimson)' }}>✕</button>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            {(['en', 'bg'] as const).map(lang => (
-              <div key={lang}>
-                <label className="text-[10px] font-semibold uppercase tracking-widest mb-1 block"
-                  style={{ color: 'var(--text-secondary)' }}>{lang.toUpperCase()}</label>
-                {block.type === 'paragraph' || block.type === 'callout' ? (
-                  <>
-                    <textarea
-                      value={block.content[lang]}
-                      onChange={e => updateContent(i, lang, e.target.value)}
-                      rows={3}
-                      className="w-full border rounded-xl px-3 py-2 text-sm resize-none"
-                      style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
-                    />
-                    <p className="text-[10px] mt-1" style={{ color: 'var(--text-tertiary)' }}>
-                      {t('admin.content.guides.markdownHint')}
-                    </p>
-                  </>
-                ) : (
-                  <input
-                    value={block.content[lang]}
-                    onChange={e => updateContent(i, lang, e.target.value)}
-                    className="w-full border rounded-xl px-3 py-2 text-sm"
-                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
-      <div className="flex gap-2 pt-1">
-        {(['heading', 'paragraph', 'callout'] as const).map(type => (
-          <button key={type} onClick={() => addBlock(type)}
-            className="px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors hover:bg-black/5"
-            style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
-            + {type}
-          </button>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-// ── GuideForm ────────────────────────────────────────────────────
+import { ALL_ROLES, slugify, type Guide } from './guide-types'
+import { BlockEditor } from './BlockEditor'
+import { CoverImageUploader } from './CoverImageUploader'
 
 export function GuideForm({
   initial,
@@ -175,7 +29,6 @@ export function GuideForm({
   })
   const [slugManual, setSlugManual] = useState(!!initial.slug)
   const [copied, setCopied] = useState(false)
-  const [coverFile, setCoverFile] = useState<File | null>(null)
   const [coverUploading, setCoverUploading] = useState(false)
 
   function copySlugUrl() {
@@ -191,23 +44,6 @@ export function GuideForm({
       title: { ...f.title, en: val },
       slug: slugManual ? f.slug : slugify(val),
     }))
-  }
-
-  async function handleCoverFileChange(file: File) {
-    setCoverFile(file)
-    setCoverUploading(true)
-    try {
-      const fd = new FormData()
-      fd.append('file', file)
-      const res = await fetch('/api/admin/guides/upload', { method: 'POST', body: fd })
-      if (!res.ok) throw new Error((await res.json()).error ?? 'Upload failed')
-      const { url } = await res.json() as { url: string }
-      setForm(f => ({ ...f, cover_image_url: url }))
-    } catch (e) {
-      alert((e as Error).message)
-    } finally {
-      setCoverUploading(false)
-    }
   }
 
   return (
@@ -277,7 +113,7 @@ export function GuideForm({
           <input
             value={form.emoji ?? ''}
             onChange={e => setForm(f => ({ ...f, emoji: e.target.value || null }))}
-            placeholder="e.g. \uD83D\uDCE6"
+            placeholder="e.g. 📦"
             className="w-full border rounded-xl px-3 py-2 text-sm text-center"
             style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
           />
@@ -285,43 +121,11 @@ export function GuideForm({
         <div>
           <label className="text-xs font-semibold uppercase tracking-widest mb-1 block"
             style={{ color: 'var(--text-secondary)' }}>{t('admin.content.guides.lbl.coverImage')}</label>
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <label
-                className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold border cursor-pointer hover:bg-black/5 transition-colors flex-shrink-0"
-                style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
-              >
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                  <polyline points="17 8 12 3 7 8"/>
-                  <line x1="12" x2="12" y1="3" y2="15"/>
-                </svg>
-                {coverUploading ? t('admin.content.guides.btn.uploading') : t('admin.content.guides.btn.upload')}
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={e => { const f = e.target.files?.[0]; if (f) handleCoverFileChange(f) }}
-                />
-              </label>
-              {coverFile && !coverUploading && (
-                <span className="text-[11px] truncate max-w-[120px]" style={{ color: 'var(--brand-teal)' }}>
-                  {coverFile.name}
-                </span>
-              )}
-            </div>
-            <input
-              value={form.cover_image_url ?? ''}
-              onChange={e => setForm(f => ({ ...f, cover_image_url: e.target.value || null }))}
-              placeholder={t('admin.content.guides.placeholder.pasteUrl')}
-              className="w-full border rounded-xl px-3 py-2 text-xs"
-              style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)', backgroundColor: 'var(--bg-card)' }}
-            />
-            {form.cover_image_url && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={form.cover_image_url} alt="" className="rounded-lg object-cover" style={{ width: '100%', height: 80 }} />
-            )}
-          </div>
+          <CoverImageUploader
+            value={form.cover_image_url}
+            onUploading={setCoverUploading}
+            onChange={url => setForm(f => ({ ...f, cover_image_url: url }))}
+          />
         </div>
       </div>
 

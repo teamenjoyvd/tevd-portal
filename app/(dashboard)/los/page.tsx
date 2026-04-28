@@ -1,30 +1,15 @@
 'use client'
 
-import { useState, Suspense } from 'react'
+import { useState, useMemo, Suspense } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { formatDate } from '@/lib/format'
 import { OrgChartCanvas } from './components/OrgChartCanvas'
+import { LosToolbar } from './components/LosToolbar'
 import { displayName, roleColors, isVitalRecorded } from './lib/los-utils'
 import type { LOSNode, TreeResponse } from './lib/los-utils'
 import { apiClient } from '@/lib/apiClient'
-
-// ── Tree builder ──────────────────────────────────────────────────────────────
-
-function buildTree(nodes: LOSNode[], rootAbo: string | null): LOSNode[] {
-  const byAbo: Record<string, LOSNode> = {}
-  for (const n of nodes) {
-    if (n.abo_number) byAbo[n.abo_number] = { ...n, children: [] }
-  }
-  const roots: LOSNode[] = []
-  for (const n of Object.values(byAbo)) {
-    const parent = n.sponsor_abo_number ? byAbo[n.sponsor_abo_number] : null
-    if (parent) parent.children!.push(n)
-    else roots.push(n)
-  }
-  if (rootAbo && byAbo[rootAbo]) return [byAbo[rootAbo]]
-  return roots
-}
+import { buildTree } from '@/lib/los'
 
 // ── Stat subcomponent ─────────────────────────────────────────────────────────
 
@@ -98,7 +83,6 @@ function MemberCard({ node, isExpanded, onToggle }: {
           </div>
         )}
       </div>
-
       {isExpanded && (
         <div className="px-4 pb-4 pt-2 space-y-3" style={{ borderTop: '1px solid var(--border-default)' }}>
           {hasStats && (
@@ -164,10 +148,8 @@ function TreeNode({ node, depth, expanded, onToggleExpand }: {
           {node.children!.map((child, ci) => (
             <TreeNode
               key={child.abo_number ?? child.profile_id ?? `child-${ci}`}
-              node={child}
-              depth={depth + 1}
-              expanded={expanded}
-              onToggleExpand={onToggleExpand}
+              node={child} depth={depth + 1}
+              expanded={expanded} onToggleExpand={onToggleExpand}
             />
           ))}
         </div>
@@ -176,7 +158,7 @@ function TreeNode({ node, depth, expanded, onToggleExpand }: {
   )
 }
 
-// ── Guest view helper ────────────────────────────────────────────────────────
+// ── Guest view ────────────────────────────────────────────────────────────────
 
 function SimpleRow({ node, label }: { node: LOSNode; label: string }) {
   const rc = roleColors(node.role)
@@ -204,12 +186,9 @@ function SimpleRow({ node, label }: { node: LOSNode; label: string }) {
   )
 }
 
-// ── Guest view ────────────────────────────────────────────────────────────────
-
 function GuestView({ nodes, callerAbo }: { nodes: LOSNode[]; callerAbo: string | null }) {
   const self = nodes.find(n => n.abo_number === callerAbo) ?? nodes[0]
   const upline = nodes.find(n => n.abo_number !== callerAbo)
-
   return (
     <div className="space-y-4">
       {upline && <SimpleRow node={upline} label="Your Upline" />}
@@ -225,15 +204,14 @@ function LOSPageInner() {
   const searchParams = useSearchParams()
   const view = (searchParams.get('view') ?? 'list') as 'list' | 'chart'
   const [chartDepth, setChartDepth] = useState(3)
+  const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const [search, setSearch] = useState('')
 
   const { data, isLoading, isError } = useQuery<TreeResponse>({
     queryKey: ['los-tree'],
     queryFn: () => apiClient('/api/los/tree'),
     staleTime: 5 * 60 * 1000,
   })
-
-  const [expanded, setExpanded] = useState<Set<string>>(new Set())
-  const [search, setSearch] = useState('')
 
   function setView(v: 'list' | 'chart') {
     const params = new URLSearchParams(searchParams.toString())
@@ -250,20 +228,10 @@ function LOSPageInner() {
     })
   }
 
-  function expandAll(nodes: LOSNode[]) {
-    const keys = new Set<string>()
-    function collect(n: LOSNode) {
-      if (n.abo_number) keys.add(n.abo_number)
-      else if (n.profile_id) keys.add(n.profile_id)
-      for (const c of n.children ?? []) collect(c)
-    }
-    nodes.forEach(collect)
-    setExpanded(keys)
-  }
-
-  const tree: LOSNode[] = data
-    ? buildTree(data.nodes, data.scope === 'subtree' ? data.caller_abo : null)
-    : []
+  const tree = useMemo(() => {
+    if (!data) return []
+    return buildTree(data.nodes, data.scope === 'subtree' ? data.caller_abo : null)
+  }, [data])
 
   const searchLower = search.toLowerCase().trim()
   const filteredTree: LOSNode[] = searchLower
@@ -290,16 +258,13 @@ function LOSPageInner() {
         {/* Header */}
         <div className="flex items-center justify-between mb-6 gap-4">
           <div>
-            <h1 className="font-display text-2xl font-semibold" style={{ color: 'var(--text-primary)' }}>
-              LOS
-            </h1>
+            <h1 className="font-display text-2xl font-semibold" style={{ color: 'var(--text-primary)' }}>LOS</h1>
             {data && (
               <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
                 {scopeLabel} · {data.nodes.length} member{data.nodes.length !== 1 ? 's' : ''}
               </p>
             )}
           </div>
-
           {/* Legend */}
           <div className="flex items-center gap-3 flex-shrink-0">
             {(['core', 'member', 'guest'] as const).map(role => {
@@ -319,80 +284,16 @@ function LOSPageInner() {
           </div>
         </div>
 
-        {/* View switcher — non-guest only */}
-        {!isGuest && data && (
-          <div className="flex items-center gap-2 mb-5 flex-wrap">
-            {(['list', 'chart'] as const).map(v => (
-              <button
-                key={v}
-                onClick={() => setView(v)}
-                className="px-4 py-1.5 rounded-lg text-xs font-semibold border transition-colors"
-                style={{
-                  borderColor: view === v ? 'var(--text-primary)' : 'var(--border-default)',
-                  backgroundColor: view === v ? 'var(--text-primary)' : 'transparent',
-                  color: view === v ? 'var(--bg-global)' : 'var(--text-secondary)',
-                }}
-              >
-                {v === 'list' ? 'List' : 'Chart'}
-              </button>
-            ))}
-
-            {/* Depth control — chart view only */}
-            {view === 'chart' && (
-              <div className="flex items-center gap-2 ml-4">
-                <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Depth:</span>
-                {[1, 2, 3, 4, 5].map(d => (
-                  <button
-                    key={d}
-                    onClick={() => setChartDepth(d)}
-                    className="w-6 h-6 rounded text-xs font-semibold border transition-colors"
-                    style={{
-                      borderColor: chartDepth === d ? 'var(--text-primary)' : 'var(--border-default)',
-                      backgroundColor: chartDepth === d ? 'var(--text-primary)' : 'transparent',
-                      color: chartDepth === d ? 'var(--bg-global)' : 'var(--text-secondary)',
-                    }}
-                  >
-                    {d}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Search + expand controls — list view only */}
-        {!isGuest && view === 'list' && (
-          <div className="flex items-center gap-3 mb-5">
-            <input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search by name or ABO…"
-              className="flex-1 border rounded-xl px-3 py-2 text-sm"
-              style={{
-                borderColor: 'var(--border-default)',
-                color: 'var(--text-primary)',
-                backgroundColor: 'var(--bg-global)',
-              }}
-            />
-            {!searchLower && (
-              <>
-                <button
-                  onClick={() => expandAll(tree)}
-                  className="px-3 py-2 rounded-xl text-xs font-semibold border transition-colors hover:bg-black/5 flex-shrink-0"
-                  style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
-                >
-                  Expand all
-                </button>
-                <button
-                  onClick={() => setExpanded(new Set())}
-                  className="px-3 py-2 rounded-xl text-xs font-semibold border transition-colors hover:bg-black/5 flex-shrink-0"
-                  style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
-                >
-                  Collapse all
-                </button>
-              </>
-            )}
-          </div>
+        {/* Toolbar — view switcher, depth, search, expand/collapse */}
+        {data && (
+          <LosToolbar
+            isGuest={isGuest}
+            view={view} setView={setView}
+            chartDepth={chartDepth} setChartDepth={setChartDepth}
+            search={search} setSearch={setSearch}
+            expanded={expanded} setExpanded={setExpanded}
+            tree={tree}
+          />
         )}
 
         {/* Loading skeleton */}
@@ -432,10 +333,8 @@ function LOSPageInner() {
             {filteredTree.map((node, ni) => (
               <TreeNode
                 key={node.abo_number ?? node.profile_id ?? `node-${ni}`}
-                node={node}
-                depth={0}
-                expanded={expanded}
-                onToggleExpand={toggleExpand}
+                node={node} depth={0}
+                expanded={expanded} onToggleExpand={toggleExpand}
               />
             ))}
           </>
@@ -445,7 +344,7 @@ function LOSPageInner() {
   )
 }
 
-// ── Page — Suspense boundary for useSearchParams ──────────────────────────────
+// ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function LOSPage() {
   return (

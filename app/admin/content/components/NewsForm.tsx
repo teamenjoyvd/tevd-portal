@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { RoleSelector } from '@/app/admin/components/RoleSelector'
 import { useLanguage } from '@/lib/hooks/useLanguage'
-import { slugify, ALL_ROLES } from './GuideForm'
+import { slugify, ALL_ROLES } from './guide-types'
 
 // ── Types ────────────────────────────────────────────────────────
 

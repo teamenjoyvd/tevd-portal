@@ -17,7 +17,8 @@ import { AdminListCard } from '@/app/admin/components/AdminListCard'
 import { AdminStatusBadge } from '@/app/admin/components/AdminStatusBadge'
 import { useAdminDrawer } from '@/app/admin/components/useAdminDrawer'
 import { makeDragHandlers } from './useDragSort'
-import { GuideForm, emptyGuide, type Guide } from './GuideForm'
+import { GuideForm } from './GuideForm'
+import { emptyGuide, type Guide } from './guide-types'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 
 export function GuidesTab() {

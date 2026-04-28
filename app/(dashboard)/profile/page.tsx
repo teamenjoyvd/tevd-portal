@@ -1,6 +1,6 @@
 'use client'
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import {
@@ -30,7 +30,7 @@ import { CalendarSection, CALENDAR_MIN_HEIGHT } from './components/CalendarSecti
 import { StatsSection, STATS_MIN_HEIGHT } from './components/StatsSection'
 import { AdminSection } from './components/AdminSection'
 import { EmailPrefsSection, EMAIL_PREFS_MIN_HEIGHT } from './components/EmailPrefsSection'
-import { type Profile, type VerificationRequest, type UplineData, type NotificationPrefs, DEFAULT_NOTIFICATION_PREFS } from './types'
+import { type Profile, type NotificationPrefs } from './types'
 import { apiClient } from '@/lib/apiClient'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -103,38 +103,6 @@ export default function ProfilePage() {
   })
 
   const validProfile = profile?.id ? profile : null
-
-  // ── ABO queries (needed for AboInfoContent + bento gating) ───────────────
-  const { data: verRequest } = useQuery<VerificationRequest | null>({
-    queryKey: ['verify-abo'],
-    queryFn: () => apiClient('/api/profile/verify-abo'),
-    enabled: !!validProfile && validProfile.role === 'guest',
-  })
-
-  const { data: uplineData } = useQuery<UplineData>({
-    queryKey: ['profile-upline'],
-    queryFn: () => apiClient('/api/profile/upline'),
-    enabled: !!validProfile?.abo_number,
-    staleTime: 10 * 60 * 1000,
-  })
-
-  const submitVerification = useMutation({
-    mutationFn: (params: { claimed_abo?: string; claimed_upline_abo: string; request_type: 'standard' | 'manual' }) =>
-      apiClient('/api/profile/verify-abo', {
-        method: 'POST',
-        body: JSON.stringify(
-          params.request_type === 'manual'
-            ? { request_type: 'manual', claimed_upline_abo: params.claimed_upline_abo }
-            : { claimed_abo: params.claimed_abo, claimed_upline_abo: params.claimed_upline_abo }
-        ),
-      }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['verify-abo'] }),
-  })
-
-  const cancelVerification = useMutation({
-    mutationFn: () => apiClient('/api/profile/verify-abo', { method: 'DELETE' }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['verify-abo'] }),
-  })
 
   // ── Restore persisted bento layout ───────────────────────────────────────
   useEffect(() => {
@@ -215,16 +183,6 @@ export default function ProfilePage() {
   const isGuest = p.role === 'guest' && !p.abo_number
   const isAdmin = p.role === 'admin'
 
-  type AboMode = 'form' | 'pending' | 'confirmed' | 'member_manual'
-  let aboMode: AboMode = 'form'
-  if (p.abo_number) {
-    aboMode = 'confirmed'
-  } else if (p.role !== 'guest') {
-    aboMode = 'member_manual'
-  } else if (verRequest && (verRequest.status === 'pending' || verRequest.status === 'denied')) {
-    aboMode = 'pending'
-  }
-
   // ── Bento map ─────────────────────────────────────────────────────────────
   type BentoEntry = { colSpan: number; minHeight: number; node: React.ReactNode }
 
@@ -235,17 +193,7 @@ export default function ProfilePage() {
     },
     [BENTO_IDS.ABO_INFO]: {
       colSpan: 6, minHeight: BENTO_HEIGHT.M,
-      node: (
-        <AboInfoContent
-          mode={aboMode} role={p.role} aboNumber={p.abo_number}
-          uplineData={uplineData} verRequest={verRequest}
-          onSubmitVerification={params => submitVerification.mutate(params)}
-          onCancelVerification={() => cancelVerification.mutate()}
-          submitPending={submitVerification.isPending}
-          cancelPending={cancelVerification.isPending}
-          submitError={submitVerification.isError ? (submitVerification.error as Error).message : null}
-        />
-      ),
+      node: <AboInfoContent />,
     },
     [BENTO_IDS.TRAVEL_DOC]: !isGuest ? {
       colSpan: 6, minHeight: BENTO_HEIGHT.S,
@@ -265,11 +213,7 @@ export default function ProfilePage() {
     } : null,
     [BENTO_IDS.EMAIL_PREFS]: !isGuest ? {
       colSpan: 6, minHeight: EMAIL_PREFS_MIN_HEIGHT,
-      node: (
-        <EmailPrefsSection
-          prefs={p.notification_prefs ?? DEFAULT_NOTIFICATION_PREFS}
-        />
-      ),
+      node: <EmailPrefsSection />,
     } : null,
     [BENTO_IDS.VITALS]: !isGuest ? {
       colSpan: 6, minHeight: VITALS_MIN_HEIGHT,
