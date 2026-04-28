@@ -175,7 +175,7 @@ export function AboVerificationTab() {
       {/* ── Direct verify (Path C) ── */}
       <DirectVerifyForm
         candidates={directCandidates}
-        onSubmit={directVerify.mutate}
+        onSubmit={directVerify.mutateAsync}
         isPending={directVerify.isPending}
       />
 
