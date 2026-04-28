@@ -52,7 +52,7 @@ const STATUS_BADGE: Record<string, string> = {
 // ── Component ────────────────────────────────────────────────────
 
 export function AboVerificationTab() {
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
   const qc = useQueryClient()
 
   const { data, isLoading } = useQuery<AdminMembersResponse>({
@@ -109,7 +109,7 @@ export function AboVerificationTab() {
       {/* ── Standard ABO requests ── */}
       <div>
         <p className="text-xs font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
-          {t('admin.approval.verify.standardTitle', { count: standardPending.length })}
+          {t('admin.approval.verify.standardTitle').replace('{{count}}', String(standardPending.length))}
         </p>
         <VerificationList
           items={standardPending}
@@ -124,7 +124,7 @@ export function AboVerificationTab() {
       {/* ── Manual requests ── */}
       <div>
         <p className="text-xs font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
-          {t('admin.approval.verify.manualTitle', { count: manualPending.length })}
+          {t('admin.approval.verify.manualTitle').replace('{{count}}', String(manualPending.length))}
         </p>
         <VerificationList
           items={manualPending}
@@ -140,7 +140,7 @@ export function AboVerificationTab() {
       {manualNoAbo.length > 0 && (
         <div>
           <p className="text-xs font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
-            {t('admin.approval.verify.awaitingPosTitle', { count: manualNoAbo.length })}
+            {t('admin.approval.verify.awaitingPosTitle').replace('{{count}}', String(manualNoAbo.length))}
           </p>
           <div className="space-y-2">
             {manualNoAbo.map(m => (
