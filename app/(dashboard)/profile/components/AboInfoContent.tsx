@@ -26,7 +26,7 @@ export const AboInfoContent = memo(function AboInfoContent() {
   const [aboInput, setAboInput] = useState('')
   const [uplineInput, setUplineInput] = useState('')
 
-  const { data: verRequest } = useQuery<VerificationRequest | null>({
+  const { data: verRequest, isPending: isVerPending } = useQuery<VerificationRequest | null>({
     queryKey: ['verify-abo'],
     queryFn: () => apiClient('/api/profile/verify-abo'),
     enabled: role === 'guest',
@@ -56,6 +56,22 @@ export const AboInfoContent = memo(function AboInfoContent() {
     mutationFn: () => apiClient('/api/profile/verify-abo', { method: 'DELETE' }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['verify-abo'] }),
   })
+
+  // While the verify-abo query is in flight for a guest, defer mode resolution
+  // to avoid the form flashing before the pending/denied state is known.
+  if (role === 'guest' && isVerPending) {
+    return (
+      <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+        <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-5 pr-16" style={{ color: 'var(--brand-crimson)' }}>
+          {t('profile.tile.aboInfo')}
+        </p>
+        <div className="space-y-3 animate-pulse">
+          <div className="h-4 rounded-lg w-3/4" style={{ backgroundColor: 'var(--border-default)' }} />
+          <div className="h-4 rounded-lg w-1/2" style={{ backgroundColor: 'var(--border-default)' }} />
+        </div>
+      </div>
+    )
+  }
 
   let aboMode: AboInfoMode = 'form'
   if (aboNumber) {

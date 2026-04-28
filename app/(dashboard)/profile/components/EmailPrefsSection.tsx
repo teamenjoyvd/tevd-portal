@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { type Profile, type NotificationPrefs, DEFAULT_NOTIFICATION_PREFS } from '../types'
@@ -66,6 +66,12 @@ export function EmailPrefsSection() {
 
   const [local, setLocal] = useState<NotificationPrefs>(prefs)
   const [saved, setSaved] = useState(false)
+
+  // Sync local toggle state when the profile cache is refreshed externally
+  // (e.g. after a save invalidation or background refetch).
+  useEffect(() => {
+    setLocal(profile?.notification_prefs ?? DEFAULT_NOTIFICATION_PREFS)
+  }, [profile])
 
   const save = useMutation({
     mutationFn: (next: NotificationPrefs) =>
