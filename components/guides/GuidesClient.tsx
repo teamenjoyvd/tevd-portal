@@ -77,7 +77,7 @@ type TabValue = typeof TAB_VALUES[number]
 
 // ── Inner client — reads searchParams ─────────────────────────────────────────────────
 
-function GuidesInner({ initialGuides, initialLinks, initialNews, guideHrefPrefix }: Props) {
+function GuidesInner({ initialGuides: guides, initialLinks: links, initialNews: news, guideHrefPrefix }: Props) {
   const { lang, t } = useLanguage()
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -86,9 +86,6 @@ function GuidesInner({ initialGuides, initialLinks, initialNews, guideHrefPrefix
 
   // Data is always present from SSR — no client fetching, no loading state.
   // To pick up content changes, the RSC page re-runs on router.refresh().
-  const guides = initialGuides
-  const links  = initialLinks
-  const news   = initialNews
 
   function guideTitle(g: Guide) {
     return (g.title as Record<string, string>)[lang] ?? g.title.en ?? ''
