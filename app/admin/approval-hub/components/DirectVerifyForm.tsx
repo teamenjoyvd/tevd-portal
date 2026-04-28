@@ -6,7 +6,7 @@ import { useLanguage } from '@/lib/hooks/useLanguage'
 
 type Props = {
   candidates: GuestProfile[]
-  onSubmit: (args: { profile_id: string; upline_abo_number: string }) => void
+  onSubmit: (args: { profile_id: string; upline_abo_number: string }) => Promise<void>
   isPending: boolean
 }
 
@@ -17,15 +17,18 @@ export function DirectVerifyForm({ candidates, onSubmit, isPending }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
 
-  function handleSubmit() {
+  async function handleSubmit() {
     setError(null)
-    onSubmit({ profile_id: profileId, upline_abo_number: upline.trim() })
+    try {
+      await onSubmit({ profile_id: profileId, upline_abo_number: upline.trim() })
+      setProfileId('')
+      setUpline('')
+      setSuccess(true)
+      setTimeout(() => setSuccess(false), 3000)
+    } catch (e) {
+      setError((e as Error).message)
+    }
   }
-
-  // Success/error state is driven by parent via onSubmit outcome.
-  // Parent resets candidates list on success (query invalidation).
-  // Local success flag is managed here for the button label.
-  void success // consumed by button label below — suppress lint
 
   return (
     <div>
@@ -77,7 +80,9 @@ export function DirectVerifyForm({ candidates, onSubmit, isPending }: Props) {
         >
           {isPending
             ? t('admin.approval.verify.btn.verifying')
-            : t('admin.approval.verify.btn.verifyMember')}
+            : success
+              ? t('admin.approval.verify.btn.verified')
+              : t('admin.approval.verify.btn.verifyMember')}
         </button>
         {candidates.length === 0 && (
           <p className="text-xs text-center" style={{ color: 'var(--text-secondary)' }}>
