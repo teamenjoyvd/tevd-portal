@@ -41,7 +41,7 @@ export function VerificationList({ items, onApprove, onDeny, isPending, showNoAb
                   className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
                   style={{ backgroundColor: 'rgba(62,119,133,0.15)', color: '#3E7785' }}
                 >
-                  No ABO
+                  {t('admin.approval.verify.noAboBadge')}
                 </span>
               )}
             </div>
