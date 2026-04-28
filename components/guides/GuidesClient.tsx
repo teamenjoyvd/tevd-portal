@@ -76,7 +76,8 @@ const cardStyle: React.CSSProperties = {
   border: '1px solid var(--border-default)',
 }
 
-type TabValue = 'all' | 'news' | 'guides' | 'links'
+const TAB_VALUES = ['all', 'news', 'guides', 'links'] as const
+type TabValue = typeof TAB_VALUES[number]
 
 // ── Inner client — reads searchParams ─────────────────────────────────────────────────
 
@@ -84,7 +85,8 @@ function GuidesInner({ initialGuides, initialLinks, initialNews, initialDataUpda
   const { lang, t } = useLanguage()
   const searchParams = useSearchParams()
   const router = useRouter()
-  const tab = (searchParams.get('type') ?? 'all') as TabValue
+  const rawTab = searchParams.get('type') ?? 'all'
+  const tab: TabValue = (TAB_VALUES as readonly string[]).includes(rawTab) ? rawTab as TabValue : 'all'
 
   const { data: guides = initialGuides, isLoading: guidesLoading } = useQuery<Guide[]>({
     queryKey: ['guides', 'list'],
@@ -257,7 +259,11 @@ function GuidesInner({ initialGuides, initialLinks, initialNews, initialDataUpda
         {isLoading ? skeletons : (
           <Tabs
             value={tab}
-            onValueChange={(val) => router.replace(`?type=${val}`, { scroll: false })}
+            onValueChange={(val) => {
+              const params = new URLSearchParams(searchParams.toString())
+              params.set('type', val)
+              router.replace(`?${params.toString()}`, { scroll: false })
+            }}
           >
             <TabsList className="mb-6">
               <TabsTrigger value="all">{t('guides.filter.all')}</TabsTrigger>
