@@ -3,19 +3,15 @@
 import Link from 'next/link'
 import { Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { useQuery } from '@tanstack/react-query'
 import { useLanguage } from '@/lib/hooks/useLanguage'
-import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { formatDate } from '@/lib/format'
 import type { Guide, SiteLink, NewsItem } from '@/lib/server/guides'
-import { apiClient } from '@/lib/apiClient'
 
 export type Props = {
   initialGuides: Guide[]
   initialLinks: SiteLink[]
   initialNews: NewsItem[]
-  initialDataUpdatedAt: number
   guideHrefPrefix: string
 }
 
@@ -81,35 +77,18 @@ type TabValue = typeof TAB_VALUES[number]
 
 // ── Inner client — reads searchParams ─────────────────────────────────────────────────
 
-function GuidesInner({ initialGuides, initialLinks, initialNews, initialDataUpdatedAt, guideHrefPrefix }: Props) {
+function GuidesInner({ initialGuides, initialLinks, initialNews, guideHrefPrefix }: Props) {
   const { lang, t } = useLanguage()
   const searchParams = useSearchParams()
   const router = useRouter()
   const rawTab = searchParams.get('type') ?? 'all'
   const tab: TabValue = (TAB_VALUES as readonly string[]).includes(rawTab) ? rawTab as TabValue : 'all'
 
-  const { data: guides = initialGuides, isLoading: guidesLoading } = useQuery<Guide[]>({
-    queryKey: ['guides', 'list'],
-    queryFn: () => apiClient('/api/guides'),
-    initialData: initialGuides,
-    initialDataUpdatedAt,
-  })
-
-  const { data: links = initialLinks, isLoading: linksLoading } = useQuery<SiteLink[]>({
-    queryKey: ['links', 'list'],
-    queryFn: () => apiClient('/api/links'),
-    initialData: initialLinks,
-    initialDataUpdatedAt,
-  })
-
-  const { data: news = initialNews, isLoading: newsLoading } = useQuery<NewsItem[]>({
-    queryKey: ['news', 'list'],
-    queryFn: () => apiClient('/api/news'),
-    initialData: initialNews,
-    initialDataUpdatedAt,
-  })
-
-  const isLoading = guidesLoading || linksLoading || newsLoading
+  // Data is always present from SSR — no client fetching, no loading state.
+  // To pick up content changes, the RSC page re-runs on router.refresh().
+  const guides = initialGuides
+  const links  = initialLinks
+  const news   = initialNews
 
   function guideTitle(g: Guide) {
     return (g.title as Record<string, string>)[lang] ?? g.title.en ?? ''
@@ -123,15 +102,6 @@ function GuidesInner({ initialGuides, initialLinks, initialNews, initialDataUpda
   function newsExcerpt(n: NewsItem) {
     return n.contents[lang as 'en' | 'bg'] ?? n.contents.en ?? ''
   }
-
-  // ── Skeletons ───────────────────────────────────────────────────────────────────────
-  const skeletons = (
-    <div className="flex flex-col gap-3">
-      {[...Array(5)].map((_, i) => (
-        <Skeleton key={i} className="rounded-2xl" style={{ height: 76 }} />
-      ))}
-    </div>
-  )
 
   // ── Cards ──────────────────────────────────────────────────────────────────────────
   function LinkCard({ l }: { l: SiteLink }) {
@@ -256,27 +226,25 @@ function GuidesInner({ initialGuides, initialLinks, initialNews, initialDataUpda
   return (
     <div className="py-8 pb-24">
       <div className="max-w-[900px] mx-auto px-4 sm:px-6 xl:px-8">
-        {isLoading ? skeletons : (
-          <Tabs
-            value={tab}
-            onValueChange={(val) => {
-              const params = new URLSearchParams(searchParams.toString())
-              params.set('type', val)
-              router.replace(`?${params.toString()}`, { scroll: false })
-            }}
-          >
-            <TabsList className="mb-6">
-              <TabsTrigger value="all">{t('guides.filter.all')}</TabsTrigger>
-              <TabsTrigger value="news">{t('guides.filter.news')}</TabsTrigger>
-              <TabsTrigger value="guides">{t('guides.filter.guides')}</TabsTrigger>
-              <TabsTrigger value="links">{t('guides.filter.links')}</TabsTrigger>
-            </TabsList>
-            <TabsContent value="all"><AllTab /></TabsContent>
-            <TabsContent value="news"><NewsTab /></TabsContent>
-            <TabsContent value="guides"><GuidesTab /></TabsContent>
-            <TabsContent value="links"><LinksTab /></TabsContent>
-          </Tabs>
-        )}
+        <Tabs
+          value={tab}
+          onValueChange={(val) => {
+            const params = new URLSearchParams(searchParams.toString())
+            params.set('type', val)
+            router.replace(`?${params.toString()}`, { scroll: false })
+          }}
+        >
+          <TabsList className="mb-6">
+            <TabsTrigger value="all">{t('guides.filter.all')}</TabsTrigger>
+            <TabsTrigger value="news">{t('guides.filter.news')}</TabsTrigger>
+            <TabsTrigger value="guides">{t('guides.filter.guides')}</TabsTrigger>
+            <TabsTrigger value="links">{t('guides.filter.links')}</TabsTrigger>
+          </TabsList>
+          <TabsContent value="all"><AllTab /></TabsContent>
+          <TabsContent value="news"><NewsTab /></TabsContent>
+          <TabsContent value="guides"><GuidesTab /></TabsContent>
+          <TabsContent value="links"><LinksTab /></TabsContent>
+        </Tabs>
       </div>
     </div>
   )
