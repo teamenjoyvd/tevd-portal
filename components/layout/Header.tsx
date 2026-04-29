@@ -9,7 +9,7 @@ import { useLanguage } from '@/lib/hooks/useLanguage'
 import UserDropdown from '@/components/layout/UserDropdown'
 import UserPopup from '@/components/layout/UserPopup'
 import BellButton from '@/components/layout/BellButton'
-import { PUBLIC_NAV, MEMBER_NAV, filterNav } from '@/lib/nav'
+import { PUBLIC_NAV, FOOTER_MEMBER_NAV, filterNav } from '@/lib/nav'
 
 export default function Header() {
   const { isSignedIn, user } = useUser()
@@ -33,11 +33,7 @@ export default function Header() {
 
   const role = user?.publicMetadata?.role as string | undefined
 
-  // Header shows library + profile for members, but not /los
-  const NAV_LINKS = filterNav(
-    [...PUBLIC_NAV, ...MEMBER_NAV.filter(item => item.href !== '/los')],
-    role
-  )
+  const NAV_LINKS = filterNav([...PUBLIC_NAV, ...FOOTER_MEMBER_NAV], role)
 
   return (
     <header className="fixed top-4 left-0 right-0 z-50 px-4">

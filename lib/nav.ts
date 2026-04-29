@@ -2,7 +2,7 @@
 // Adding, removing, or renaming a route = one edit here, propagates everywhere.
 //
 // Consumer guide:
-//   Header    — PUBLIC_NAV + MEMBER_NAV (filters /los)
+//   Header    — PUBLIC_NAV + FOOTER_MEMBER_NAV (library + profile, no /los)
 //   Footer    — PUBLIC_NAV + FOOTER_MEMBER_NAV (library + profile, no /los)
 //   AdminNav  — ADMIN_NAV
 
@@ -14,7 +14,7 @@ export type NavItem = {
 
 // Role hierarchy — higher rank = more access.
 // Signed-out users receive rank -1 (filtered from all member items).
-const ROLE_RANK: Record<string, number> = {
+const ROLE_RANK: Record<'guest' | NonNullable<NavItem['minRole']>, number> = {
   guest:  0,
   member: 1,
   core:   2,
@@ -27,7 +27,7 @@ const ROLE_RANK: Record<string, number> = {
  * Pass `role = undefined` for signed-out users — they see PUBLIC_NAV only.
  */
 export function filterNav(items: NavItem[], role: string | undefined): NavItem[] {
-  const rank = role !== undefined ? (ROLE_RANK[role] ?? -1) : -1
+  const rank = role !== undefined ? (ROLE_RANK[role as keyof typeof ROLE_RANK] ?? -1) : -1
   return items.filter(item => !item.minRole || rank >= ROLE_RANK[item.minRole])
 }
 
@@ -44,7 +44,7 @@ export const MEMBER_NAV: NavItem[] = [
   { href: '/profile', labels: { en: 'Profile',    bg: 'Профил'      }, minRole: 'member' },
 ]
 
-// Footer shows library + profile but not /los
+// Footer and Header both show library + profile but not /los
 export const FOOTER_MEMBER_NAV: NavItem[] = MEMBER_NAV.filter(
   item => item.href !== '/los'
 )
