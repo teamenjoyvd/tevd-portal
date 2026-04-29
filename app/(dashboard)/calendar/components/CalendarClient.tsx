@@ -1,29 +1,17 @@
 'use client'
 
-import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useMemo } from 'react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
-import { DAYS_I18N, MONTHS_I18N } from '@/lib/i18n/translations'
+import { MONTHS_I18N } from '@/lib/i18n/translations'
 import { VaulDrawer } from '@/components/ui/vaul-drawer'
 import { Dialog, DialogContent, DialogOverlay, DialogPortal } from '@/components/ui/dialog'
 import EventPopup from '@/app/(dashboard)/calendar/components/EventPopup'
-import { apiClient } from '@/lib/apiClient'
+import { useCalendar } from '@/app/(dashboard)/calendar/components/useCalendar'
+import { MonthView } from '@/app/(dashboard)/calendar/components/MonthView'
+import { AgendaView } from '@/app/(dashboard)/calendar/components/AgendaView'
+import { type CalendarEvent, type View } from '@/app/(dashboard)/calendar/types'
 
-// ── Types ──────────────────────────────────────────────────────────────────
-
-type CalendarEvent = {
-  id: string
-  title: string
-  description: string | null
-  start_time: string
-  end_time: string
-  category: 'N21' | 'Personal'
-  event_type: 'in-person' | 'online' | 'hybrid' | null
-  week_number: number
-  visibility_roles: string[]
-}
-
-type View = 'month' | 'agenda'
+// ── Props ─────────────────────────────────────────────────────────────────
 
 type Props = {
   initialEvents: CalendarEvent[]
@@ -34,363 +22,7 @@ type Props = {
   isAuthenticated: boolean
 }
 
-// ── Constants ─────────────────────────────────────────────────────────────
-
-const HOURS  = Array.from({ length: 24 }, (_, i) => i)
-const HOUR_HEIGHT = 60
-
-const CATEGORY_COLOR: Record<string, { bg: string; text: string }> = {
-  N21:      { bg: 'var(--forest)',  text: 'rgba(255,255,255,0.95)' },
-  Personal: { bg: 'var(--sienna)', text: 'rgba(255,255,255,0.95)' },
-}
-
-// ── Module-level cached formatters ────────────────────────────────────────
-// Instantiating Intl.DateTimeFormat inside render functions or tight loops
-// is expensive. Cache at module scope — formatters are stateless and reusable.
-
-/** Sofia date formatter (YYYY-MM-DD via sv-SE). Used for day-key comparisons. */
-const SOFIA_DATE_FMT = new Intl.DateTimeFormat('sv-SE', {
-  timeZone: 'Europe/Sofia',
-  year: 'numeric',
-  month: '2-digit',
-  day: '2-digit',
-})
-
-// ── Helpers ─────────────────────────────────────────────────────────────────────
-
-function isoWeek(date: Date): number {
-  const d = new Date(date)
-  d.setHours(0, 0, 0, 0)
-  d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7))
-  const w1 = new Date(d.getFullYear(), 0, 4)
-  return 1 + Math.round(((d.getTime() - w1.getTime()) / 86400000 - 3 + ((w1.getDay() + 6) % 7)) / 7)
-}
-
-function startOfWeek(date: Date): Date {
-  const d = new Date(date)
-  const day = d.getDay()
-  d.setDate(d.getDate() + (day === 0 ? -6 : 1 - day))
-  d.setHours(0, 0, 0, 0)
-  return d
-}
-
-function addDays(date: Date, n: number): Date {
-  const d = new Date(date)
-  d.setDate(d.getDate() + n)
-  return d
-}
-
-/** Compare two dates by their calendar day in Europe/Sofia TZ. */
-function sameDaySofia(a: Date, b: Date): boolean {
-  return SOFIA_DATE_FMT.format(a) === SOFIA_DATE_FMT.format(b)
-}
-
-function toMonthParam(date: Date): string {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-}
-
-/** Format a UTC ISO string as HH:mm in Europe/Sofia. */
-function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString('en-GB', {
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZone: 'Europe/Sofia',
-  })
-}
-
-function formatShortDate(date: Date): string {
-  return date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
-}
-
-function eventMinutesFromMidnight(iso: string): number {
-  const d = new Date(iso)
-  return d.getHours() * 60 + d.getMinutes()
-}
-
-function eventDurationMinutes(start: string, end: string): number {
-  return Math.max(30, (new Date(end).getTime() - new Date(start).getTime()) / 60000)
-}
-
-// ── Event pill ──────────────────────────────────────────────────────────────────────────────
-
-function EventPill({
-  event, onClick, compact = false,
-}: {
-  event: CalendarEvent
-  onClick: () => void
-  compact?: boolean
-}) {
-  const c = CATEGORY_COLOR[event.category]
-  return (
-    <button
-      onClick={e => {
-        e.stopPropagation()
-        onClick()
-      }}
-      className="w-full text-left rounded-md px-1.5 transition-opacity hover:opacity-80 active:opacity-60"
-      style={{
-        backgroundColor: c.bg,
-        color: c.text,
-        fontSize: compact ? '10px' : '11px',
-        fontWeight: 500,
-        lineHeight: compact ? '18px' : '20px',
-        minHeight: compact ? '18px' : '20px',
-        overflow: 'hidden',
-        whiteSpace: 'nowrap',
-        textOverflow: 'ellipsis',
-        display: 'block',
-        maxWidth: '100%',
-      }}
-    >
-      {compact ? event.title : `${formatTime(event.start_time)} ${event.title}`}
-    </button>
-  )
-}
-
-// ── Month View ────────────────────────────────────────────────────────────────────────────
-
-function MonthView({
-  current, events, onEventClick, onDayClick,
-}: {
-  current: Date
-  events: CalendarEvent[]
-  onEventClick: (id: string) => void
-  onDayClick: (date: Date) => void
-}) {
-  const { lang, t } = useLanguage()
-  const DAYS = DAYS_I18N[lang]
-  const today = new Date()
-  const firstOfMonth = new Date(current.getFullYear(), current.getMonth(), 1)
-  const gridStart = startOfWeek(firstOfMonth)
-  const cells = Array.from({ length: 42 }, (_, i) => addDays(gridStart, i))
-
-  // Pre-compute a map of Sofia-date-key → events to avoid O(N×M) filtering
-  // inside the 42-cell render loop.
-  const eventsBySofiaDate = useMemo(() => {
-    const map: Record<string, CalendarEvent[]> = {}
-    events.forEach(e => {
-      const key = new Date(e.start_time).toLocaleDateString('sv-SE', { timeZone: 'Europe/Sofia' })
-      if (!map[key]) map[key] = []
-      map[key].push(e)
-    })
-    return map
-  }, [events])
-
-  const eventsOnDay = (date: Date) => {
-    const dateKey = SOFIA_DATE_FMT.format(date)
-    return eventsBySofiaDate[dateKey] ?? []
-  }
-
-  return (
-    <div className="flex flex-col flex-1 min-h-0">
-      <div className="grid grid-cols-[40px_repeat(7,1fr)] border-b border-black/5 flex-shrink-0">
-        <div />
-        {DAYS.map(d => (
-          <div key={d} className="py-2 text-center text-xs font-semibold tracking-wide"
-            style={{ color: 'var(--text-secondary)' }}>
-            {d}
-          </div>
-        ))}
-      </div>
-      <div className="flex-1 overflow-y-auto">
-        {Array.from({ length: 6 }, (_, week) => {
-          const weekDays = cells.slice(week * 7, week * 7 + 7)
-          return (
-            <div key={week}
-              className="grid grid-cols-[40px_repeat(7,1fr)] border-b border-black/5"
-              style={{ minHeight: 90 }}>
-              <div className="flex items-start justify-center pt-2 flex-shrink-0">
-                <span className="text-[10px] font-semibold" style={{ color: 'var(--text-secondary)' }}>
-                  W{isoWeek(weekDays[0])}
-                </span>
-              </div>
-              {weekDays.map((date, di) => {
-                const isToday = sameDaySofia(date, today)
-                const isCurrentMonth = date.getMonth() === current.getMonth()
-                const dayEvents = eventsOnDay(date)
-                return (
-                  <div
-                    key={di}
-                    onClick={() => onDayClick(date)}
-                    className="border-l border-black/5 p-1 cursor-pointer hover:bg-black/[0.02] transition-colors overflow-hidden"
-                    style={{ minHeight: 90 }}
-                  >
-                    <div className="flex justify-center mb-1">
-                      <span
-                        className="w-6 h-6 flex items-center justify-center rounded-full text-xs font-medium flex-shrink-0"
-                        style={{
-                          backgroundColor: isToday ? 'var(--crimson)' : 'transparent',
-                          color: isToday ? 'white' : isCurrentMonth ? 'var(--text-primary)' : 'var(--text-secondary)',
-                          opacity: isCurrentMonth ? 1 : 0.4,
-                        }}
-                      >
-                        {date.getDate()}
-                      </span>
-                    </div>
-                    <div className="space-y-0.5 overflow-hidden">
-                      {dayEvents.slice(0, 3).map(ev => (
-                        <EventPill
-                          key={ev.id}
-                          event={ev}
-                          compact
-                          onClick={() => onEventClick(ev.id)}
-                        />
-                      ))}
-                      {dayEvents.length > 3 && (
-                        <p className="text-[10px] font-medium pl-1 truncate"
-                          style={{ color: 'var(--text-secondary)' }}>
-                          +{dayEvents.length - 3} {t('cal.moreEvents')}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
-
-// ── Agenda View ───────────────────────────────────────────────────────────────────────────────
-
-function AgendaView({
-  events, onEventClick, isLoading, highlightId,
-}: {
-  events: CalendarEvent[]
-  onEventClick: (id: string) => void
-  isLoading: boolean
-  highlightId?: string | null
-}) {
-  const { t } = useLanguage()
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const highlightRef = useRef<HTMLButtonElement | null>(null)
-
-  const grouped = useMemo(() => {
-    const map: Record<string, CalendarEvent[]> = {}
-    events
-      .filter(e => new Date(e.start_time) >= today)
-      .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
-      .forEach(e => {
-        // Group by Sofia-local date to avoid UTC midnight bucketing errors
-        const key = new Date(e.start_time).toLocaleDateString('sv-SE', { timeZone: 'Europe/Sofia' })
-        if (!map[key]) map[key] = []
-        map[key].push(e)
-      })
-    return map
-  }, [events])
-
-  useEffect(() => {
-    if (highlightRef.current) {
-      highlightRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    }
-  }, [grouped])
-
-  const dates = Object.keys(grouped)
-
-  if (isLoading) {
-    return (
-      <div className="overflow-y-auto px-4 py-4 space-y-4" style={{ height: 'var(--cal-height)', minHeight: 300 }}>
-        {[...Array(4)].map((_, i) => (
-          <div key={i} className="space-y-2">
-            <div className="h-6 w-32 rounded-full animate-pulse" style={{ backgroundColor: 'rgba(0,0,0,0.06)' }} />
-            <div className="h-16 rounded-xl animate-pulse" style={{ backgroundColor: 'rgba(0,0,0,0.04)' }} />
-          </div>
-        ))}
-      </div>
-    )
-  }
-
-  if (dates.length === 0) {
-    return (
-      <div className="flex-1 flex items-center justify-center">
-        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t('cal.noEvents')}</p>
-      </div>
-    )
-  }
-
-  // Current day in Sofia — computed once outside the loop for correctness and
-  // efficiency. Comparing against the already-Sofia-local dateKey is more
-  // reliable than constructing a local Date and calling sameDaySofia.
-  const todaySofia = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Sofia' })
-
-  return (
-    <div className="overflow-y-auto px-4 py-2" style={{ height: 'var(--cal-height)', minHeight: 300 }}>
-      {dates.map(dateKey => {
-        // Parse Sofia-local date key (sv-SE = YYYY-MM-DD)
-        const [y, mo, d] = dateKey.split('-').map(Number)
-        const date = new Date(y, mo - 1, d)
-        const isToday = dateKey === todaySofia
-        return (
-          <div key={dateKey} className="mb-6">
-            <div className="flex items-center gap-3 mb-2 sticky top-0 py-2" style={{ backgroundColor: 'var(--bg-global)' }}>
-              <div
-                className="flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold"
-                style={{
-                  backgroundColor: isToday ? 'var(--crimson)' : 'rgba(0,0,0,0.06)',
-                  color: isToday ? 'white' : 'var(--text-primary)',
-                }}
-              >
-                {formatShortDate(date)}
-              </div>
-              <span className="text-[10px] font-semibold" style={{ color: 'var(--text-secondary)' }}>
-                W{isoWeek(date)}
-              </span>
-            </div>
-            <div className="space-y-2">
-              {grouped[dateKey].map(ev => {
-                const c = CATEGORY_COLOR[ev.category]
-                const isHighlighted = ev.id === highlightId
-                return (
-                  <button
-                    key={ev.id}
-                    ref={isHighlighted ? highlightRef : null}
-                    onClick={() => onEventClick(ev.id)}
-                    className="w-full text-left rounded-xl border overflow-hidden hover:shadow-sm transition-shadow flex"
-                    style={{
-                      backgroundColor: 'var(--bg-card)',
-                      borderColor: isHighlighted ? 'var(--brand-crimson)' : 'rgba(0,0,0,0.05)',
-                      boxShadow: isHighlighted ? '0 0 0 2px rgba(188,71,73,0.25)' : undefined,
-                    }}
-                  >
-                    <div className="w-1 flex-shrink-0" style={{ backgroundColor: c.bg }} />
-                    <div className="flex-1 px-4 py-3 min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
-                          {ev.title}
-                        </p>
-                        <span className="text-xs flex-shrink-0 font-medium"
-                          style={{ color: 'var(--text-secondary)' }}>
-                          {formatTime(ev.start_time)}
-                        </span>
-                      </div>
-                      <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                        {formatTime(ev.start_time)} &ndash; {formatTime(ev.end_time)}
-                        {' · '}
-                        <span style={{ color: c.bg }}>{ev.category}</span>
-                      </p>
-                      {ev.description && (
-                        <p className="text-xs mt-1.5 line-clamp-2 leading-relaxed"
-                          style={{ color: 'var(--text-secondary)' }}>
-                          {ev.description}
-                        </p>
-                      )}
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-// ── Main ─────────────────────────────────────────────────────────────────────────────────
+// ── Component ─────────────────────────────────────────────────────────────
 
 export default function CalendarClient({
   initialEvents,
@@ -403,81 +35,45 @@ export default function CalendarClient({
   const { lang, t } = useLanguage()
   const MONTHS = MONTHS_I18N[lang]
 
-  const [view, setView]       = useState<View>(initialEventId ? 'agenda' : 'month')
-  const [current, setCurrent] = useState(() => {
-    const [y, m] = initialMonth.split('-').map(Number)
-    return new Date(y, m - 1, 1)
+  const {
+    view,
+    setView,
+    current,
+    showN21,
+    setShowN21,
+    showPersonal,
+    setShowPersonal,
+    filterType,
+    setFilterType,
+    canSeePersonal,
+    events,
+    agendaPending,
+    deepLinkId,
+    selectedEventId,
+    navigate,
+    goToday,
+    handleEventClick,
+    handleClose,
+    handleDayClick,
+  } = useCalendar({
+    initialEvents,
+    initialMonth,
+    initialEventId,
+    userRole,
+    isAuthenticated,
   })
-  const [selectedEventId, setSelectedEventId] = useState<string | null>(null)
-  const [showN21, setShowN21]                 = useState(true)
-  const [showPersonal, setShowPersonal]       = useState(true)
-  const [filterType, setFilterType]           = useState<'in-person' | 'online' | 'hybrid' | null>(null)
-  const [deepLinkId, setDeepLinkId]           = useState<string | null>(initialEventId)
 
-  const canSeePersonal = isAuthenticated && userRole !== 'guest'
-
-  const { data: monthEvents = [] } = useQuery<CalendarEvent[]>({
-    queryKey: ['events-month', toMonthParam(current)],
-    queryFn: () =>
-      apiClient<CalendarEvent[]>(`/api/calendar?month=${toMonthParam(current)}`),
-    initialData: toMonthParam(current) === initialMonth ? initialEvents : undefined,
-    staleTime: 60_000,
-    enabled: view === 'month',
-  })
-
-  const { data: agendaEvents = [], isPending: agendaPending } = useQuery<CalendarEvent[]>({
-    queryKey: ['events-agenda'],
-    queryFn: () => apiClient<CalendarEvent[]>('/api/calendar'),
-    staleTime: 0,
-    enabled: view === 'agenda',
-  })
-
-  const rawEvents = view === 'agenda' ? agendaEvents : monthEvents
-
-  const events = useMemo(() =>
-    rawEvents.filter(e => {
-      if (e.category === 'N21')      return showN21
-      if (e.category === 'Personal') return canSeePersonal && showPersonal
-      return true
-    }).filter(e =>
-      filterType === null || e.event_type === filterType
-    ),
-    [rawEvents, showN21, showPersonal, canSeePersonal, filterType]
+  const periodLabel = useMemo(
+    () => `${MONTHS[current.getMonth()]} ${current.getFullYear()}`,
+    [current, MONTHS]
   )
-
-  const navigate = useCallback((dir: 1 | -1) => {
-    setCurrent(prev => {
-      const d = new Date(prev)
-      d.setMonth(d.getMonth() + dir)
-      return d
-    })
-  }, [])
-
-  const goToday = useCallback(() => setCurrent(new Date()), [])
-
-  const handleEventClick = useCallback((id: string) => {
-    setSelectedEventId(id)
-  }, [])
-
-  const handleClose = useCallback(() => {
-    setSelectedEventId(null)
-    setDeepLinkId(null)
-  }, [])
-
-  const handleDayClick = (date: Date) => {
-    setCurrent(date)
-  }
-
-  const periodLabel = useMemo(() => {
-    return `${MONTHS[current.getMonth()]} ${current.getFullYear()}`
-  }, [view, current, MONTHS])
 
   const views: { key: View; label: string }[] = [
     { key: 'agenda', label: t('cal.agenda') },
     { key: 'month',  label: t('cal.month')  },
   ]
 
-  const TYPE_FILTERS = (['in-person', 'online', 'hybrid'] as const)
+  const TYPE_FILTERS = ['in-person', 'online', 'hybrid'] as const
 
   return (
     <div className="w-full" style={{ backgroundColor: 'var(--bg-global)' }}>
