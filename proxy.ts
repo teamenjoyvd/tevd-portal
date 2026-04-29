@@ -1,20 +1,7 @@
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
+import { clerkMiddleware } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
-
-const isPublicRoute = createRouteMatcher([
-  '/',
-  '/about',
-  '/calendar',
-  '/trips',
-  '/events/(.*)',
-  '/sign-in(.*)',
-  '/sign-up(.*)',
-  '/api/webhooks/(.*)',
-  '/api/calendar(.*)',
-  '/api/events/:id',
-  '/api/socials',
-  '/api/socials/(.*)',
-])
+import { createRouteMatcher } from '@clerk/nextjs/server'
+import { isPublicRoute } from '@/lib/public-routes'
 
 const isAdminApiRoute = createRouteMatcher(['/api/admin/(.*)'])
 const isAdminPageRoute = createRouteMatcher(['/admin/(.*)'])
@@ -44,7 +31,7 @@ export default clerkMiddleware(async (auth, req) => {
 
 export const config = {
   matcher: [
-    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
+    '/((?!_next|[^?]*\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
     '/(api|trpc)(.*)',
   ],
 }
