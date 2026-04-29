@@ -7,6 +7,7 @@ import { useLanguage } from '@/lib/hooks/useLanguage'
 export const ALL_ROLES = ['guest', 'member', 'core', 'admin']
 export const CATEGORIES = ['N21', 'Personal'] as const
 export const EVENT_TYPES = ['in-person', 'online', 'hybrid'] as const
+export const DEFAULT_AVAILABLE_ROLES = ['HOST', 'SPEAKER', 'PRODUCTS']
 
 export type EventFormState = {
   title: string
@@ -34,7 +35,7 @@ export function emptyForm(): EventFormState {
     visibility_roles: [...ALL_ROLES],
     meeting_url: '',
     allow_guest_registration: true,
-    available_roles: ['HOST', 'SPEAKER', 'PRODUCTS'],
+    available_roles: [...DEFAULT_AVAILABLE_ROLES],
   }
 }
 

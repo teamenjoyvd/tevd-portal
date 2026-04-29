@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { formatDateTime, toSofiaLocalInput } from '@/lib/format'
 import { Drawer } from '@/components/ui/drawer'
 import { useLanguage } from '@/lib/hooks/useLanguage'
-import { EventForm, emptyForm, normalizeFormTimes, ALL_ROLES, type EventFormState } from './EventForm'
+import { EventForm, emptyForm, normalizeFormTimes, ALL_ROLES, DEFAULT_AVAILABLE_ROLES, type EventFormState } from './EventForm'
 import { Pill } from './Pill'
 
 type CalEvent = {
@@ -143,7 +143,7 @@ export default function AdminCalendarClient() {
       allow_guest_registration: ev.allow_guest_registration,
       available_roles: Array.isArray(ev.available_roles)
         ? ev.available_roles
-        : ['HOST', 'SPEAKER', 'PRODUCTS'],
+        : [...DEFAULT_AVAILABLE_ROLES],
     })
     setFormError(null)
     setEditing(ev)
