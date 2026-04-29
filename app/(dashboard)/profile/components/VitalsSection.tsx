@@ -57,10 +57,7 @@ export function VitalsSection({ profileId, role }: { profileId: string; role: st
     staleTime: 5 * 60 * 1000,
   })
 
-  if (isLoading) {
-    return <div className="rounded-2xl animate-pulse h-full" style={{ backgroundColor: 'var(--border-default)' }} />
-  }
-
+  // Must be above the isLoading guard — hooks cannot be called conditionally.
   // Filter out rows with no definition (avoids rendering UUID fallback),
   // sort by sort_order ascending, then cap at VARIABLE_CAP for the bento view.
   const vitals = useMemo(
@@ -70,6 +67,10 @@ export function VitalsSection({ profileId, role }: { profileId: string; role: st
         .sort((a, b) => a.vital_sign_definitions!.sort_order - b.vital_sign_definitions!.sort_order),
     [vitalsData],
   )
+
+  if (isLoading) {
+    return <div className="rounded-2xl animate-pulse h-full" style={{ backgroundColor: 'var(--border-default)' }} />
+  }
 
   const visible = vitals.slice(0, VARIABLE_CAP)
   const overflow = vitals.length - VARIABLE_CAP
