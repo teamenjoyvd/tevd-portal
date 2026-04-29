@@ -13,14 +13,15 @@ export default function AboutPage() {
           12-col CSS grid, max-w-[860px] centred
           Row 1: [1–2 gutter] [3–6 content — spans 2 rows] [7–10 photo]  [11–12 gutter]
           Row 2: [1–2 gutter] [3–6 content continued]      [7–10 mailto] [11–12 gutter]
+          Rows sized 3fr / minmax(96px, 1fr) → hero ~75%, mailto ~25% min 96px
           ════════════════════════════════════════════════════════════════════ */}
       <div className="hidden md:block max-w-[860px] mx-auto px-4">
         <div
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
+            gridTemplateRows: '3fr minmax(96px, 1fr)',
             gap: '12px',
-            gridAutoRows: 'minmax(160px, auto)',
           }}
         >
           {/* Rows 1–2 col 3–6: content island spans both rows */}
