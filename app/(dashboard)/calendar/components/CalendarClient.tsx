@@ -7,8 +7,8 @@ import { VaulDrawer } from '@/components/ui/vaul-drawer'
 import { Dialog, DialogContent, DialogOverlay, DialogPortal } from '@/components/ui/dialog'
 import EventPopup from '@/app/(dashboard)/calendar/components/EventPopup'
 import { useCalendar } from '@/app/(dashboard)/calendar/components/useCalendar'
-import MonthView from '@/app/(dashboard)/calendar/components/MonthView'
-import AgendaView from '@/app/(dashboard)/calendar/components/AgendaView'
+import { MonthView } from '@/app/(dashboard)/calendar/components/MonthView'
+import { AgendaView } from '@/app/(dashboard)/calendar/components/AgendaView'
 import { type CalendarEvent, type View } from '@/app/(dashboard)/calendar/types'
 
 // ── Props ─────────────────────────────────────────────────────────────────
