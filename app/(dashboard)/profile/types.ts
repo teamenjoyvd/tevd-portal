@@ -146,7 +146,8 @@ export type LosSummaryData = {
 
 // ── Shared constants ──────────────────────────────────────────────────────────
 
-export const VARIABLE_CAP = 5
+// Raised to 6 to support the 2×3 vitals card grid.
+export const VARIABLE_CAP = 6
 
 export const PAYMENT_STATUS_STYLES: Record<string, { bg: string; color: string }> = {
   pending:   { bg: '#f2cc8f33', color: '#7a5c00' },
