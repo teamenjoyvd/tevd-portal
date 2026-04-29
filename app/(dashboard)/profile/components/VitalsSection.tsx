@@ -11,7 +11,8 @@ import { apiClient } from '@/lib/apiClient'
 
 export const VITALS_MIN_HEIGHT = 280
 
-function VitalCard({ vs, t }: { vs: ProfileVitalSign; t: (key: string) => string }) {
+function VitalCard({ vs }: { vs: ProfileVitalSign }) {
+  const { t } = useLanguage()
   const label    = vs.vital_sign_definitions!.label
   const category = vs.vital_sign_definitions!.category
   const recorded = isVitalRecorded(vs)
@@ -80,7 +81,7 @@ export function VitalsSection({ profileId, role }: { profileId: string; role: st
           {t('profile.vitalSigns')}
         </p>
         <div className="grid grid-cols-2 gap-2">
-          {visible.map(vs => <VitalCard key={vs.definition_id} vs={vs} t={t} />)}
+          {visible.map(vs => <VitalCard key={vs.definition_id} vs={vs} />)}
         </div>
         {overflow > 0 && (
           <div>
@@ -91,7 +92,7 @@ export function VitalsSection({ profileId, role }: { profileId: string; role: st
 
       <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title={t('profile.allVitalSigns')}>
         <div className="grid grid-cols-2 gap-2">
-          {vitals.map(vs => <VitalCard key={vs.definition_id} vs={vs} t={t} />)}
+          {vitals.map(vs => <VitalCard key={vs.definition_id} vs={vs} />)}
         </div>
       </Drawer>
     </>
