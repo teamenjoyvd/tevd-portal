@@ -1,20 +1,6 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
-
-const isPublicRoute = createRouteMatcher([
-  '/',
-  '/about',
-  '/calendar',
-  '/trips',
-  '/events/(.*)',
-  '/sign-in(.*)',
-  '/sign-up(.*)',
-  '/api/webhooks/(.*)',
-  '/api/calendar(.*)',
-  '/api/events/:id',
-  '/api/socials',
-  '/api/socials/(.*)',
-])
+import { isPublicRoute } from '@/lib/public-routes'
 
 const isAdminApiRoute = createRouteMatcher(['/api/admin/(.*)'])
 const isAdminPageRoute = createRouteMatcher(['/admin/(.*)'])
