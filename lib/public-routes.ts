@@ -5,6 +5,8 @@ export const PUBLIC_ROUTE_PATTERNS = [
   '/about',
   '/calendar',
   '/trips',
+  '/news/(.*)',
+  '/guides(.*)',
   '/events/(.*)',
   '/sign-in(.*)',
   '/sign-up(.*)',
