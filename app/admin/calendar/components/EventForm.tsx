@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { fromSofiaLocalInput } from '@/lib/format'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 
 export const ALL_ROLES = ['guest', 'member', 'core', 'admin']
@@ -48,8 +49,6 @@ export function normalizeFormTimes(f: EventFormState): EventFormState {
     end_time:   f.end_time   ? fromSofiaLocalInput(f.end_time)   : f.end_time,
   }
 }
-
-import { fromSofiaLocalInput } from '@/lib/format'
 
 // ── EventForm hoisted to module scope to prevent remount on parent render ──
 
