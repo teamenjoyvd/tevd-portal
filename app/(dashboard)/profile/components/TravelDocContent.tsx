@@ -3,7 +3,6 @@
 import { memo, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useLanguage } from '@/lib/hooks/useLanguage'
-import { formatDate } from '@/lib/format'
 import { Drawer } from '@/components/ui/drawer'
 import { TravelDocDrawerForm } from './TravelDocDrawerForm'
 import { type Profile } from '../types'
@@ -126,10 +125,13 @@ export const TravelDocContent = memo(function TravelDocContent({
     ? profile.passport_number
     : profile.id_number
 
-  const EXPIRY_LABELS = {
-    ok:       t('profile.expiry.ok'),
-    warning:  t('profile.expiry.warning'),
-    critical: t('profile.expiry.critical'),
+  // Expiry text shown in the grid cell (no date — pill carries the colour signal)
+  function getExpiryText(): string {
+    if (!profile.valid_through) return '—'
+    if (expiryState === 'ok')       return t('profile.expiry.okLabel')
+    if (expiryState === 'warning')  return t('profile.expiry.warning')
+    if (expiryState === 'critical') return t('profile.expiry.critical')
+    return '—'
   }
 
   return (
@@ -151,7 +153,7 @@ export const TravelDocContent = memo(function TravelDocContent({
         <div className="space-y-3">
           <div>
             <p className="text-[10px] font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>
-              {t('profile.travelDoc')}
+              {t('profile.docType.label')}
             </p>
             <span
               className="text-xs font-semibold tracking-widest uppercase px-2 py-1 rounded-lg"
@@ -164,7 +166,7 @@ export const TravelDocContent = memo(function TravelDocContent({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-[10px] font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>
-                {profile.document_active_type === 'passport' ? t('profile.passportNumber') : t('profile.idNumber')}
+                {t('profile.docNumber')}
               </p>
               <p className="text-sm font-mono" style={{ color: docNumber ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
                 {docNumber || '—'}
@@ -175,21 +177,14 @@ export const TravelDocContent = memo(function TravelDocContent({
                 {t('profile.validThrough')}
               </p>
               <p className="text-sm" style={{ color: profile.valid_through ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
-                {profile.valid_through ? formatDate(profile.valid_through) : '—'}
+                {getExpiryText()}
               </p>
             </div>
           </div>
 
           {expiryState && (
             <div className={`mt-2 rounded-xl border px-3 py-2.5 text-xs font-medium ${EXPIRY_STYLES[expiryState]}`}>
-              {EXPIRY_LABELS[expiryState]}
-              {profile.valid_through && (
-                <span className="font-normal ml-1 opacity-70">
-                  · {new Date(profile.valid_through).toLocaleDateString('en-GB', {
-                    day: 'numeric', month: 'long', year: 'numeric',
-                  })}
-                </span>
-              )}
+              {expiryState === 'ok' ? t('profile.expiry.ok') : expiryState === 'warning' ? t('profile.expiry.warning') : t('profile.expiry.critical')}
             </div>
           )}
         </div>
