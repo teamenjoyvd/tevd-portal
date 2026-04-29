@@ -43,7 +43,7 @@ export default function AdminCalendarClient() {
 
   const { data: events = [], isLoading } = useQuery<CalEvent[]>({
     queryKey: ['admin-calendar'],
-    queryFn: () => fetch('/api/admin/calendar').then(r => r.json()),
+    queryFn: () => fetch('/api/admin/calendar').then(async r => { if (!r.ok) throw new Error('Failed to fetch events'); return r.json() }),
   })
 
   // ── Derived filter options ────────────────────────────────────────────────
@@ -51,10 +51,10 @@ export default function AdminCalendarClient() {
     const seen = new Set<string>()
     const months: { value: string; label: string }[] = []
     for (const ev of events) {
-      const d = new Date(ev.start_time)
-      const value = d.toLocaleDateString('sv-SE', { timeZone: 'Europe/Sofia' }).slice(0, 7)
+      const value = toSofiaLocalInput(ev.start_time).slice(0, 7)
       if (!seen.has(value)) {
         seen.add(value)
+        const d = new Date(ev.start_time)
         months.push({
           value,
           label: d.toLocaleDateString('bg-BG', { month: 'long', year: 'numeric', timeZone: 'Europe/Sofia' }),
@@ -71,8 +71,8 @@ export default function AdminCalendarClient() {
   }
 
   // ── Filtered events ───────────────────────────────────────────────────────
+  const now = new Date()
   const filteredEvents = useMemo(() => {
-    const now = new Date()
     return events.filter(ev => {
       if (search && !ev.title.toLowerCase().includes(search.toLowerCase())) return false
       if (categoryFilter !== 'All' && ev.category !== categoryFilter) return false
@@ -80,7 +80,7 @@ export default function AdminCalendarClient() {
       if (timeScope === 'upcoming' && start < now) return false
       if (timeScope === 'past' && start >= now) return false
       if (monthFilter) {
-        const evMonth = new Date(ev.start_time).toLocaleDateString('sv-SE', { timeZone: 'Europe/Sofia' }).slice(0, 7)
+        const evMonth = toSofiaLocalInput(ev.start_time).slice(0, 7)
         if (evMonth !== monthFilter) return false
       }
       return true
@@ -118,7 +118,7 @@ export default function AdminCalendarClient() {
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => fetch(`/api/admin/calendar/${id}`, { method: 'DELETE' }),
+    mutationFn: (id: string) => fetch(`/api/admin/calendar/${id}`, { method: 'DELETE' }).then(async r => { if (!r.ok) throw new Error('Failed to delete event'); return r.json() }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-calendar'] }),
   })
 
@@ -246,7 +246,7 @@ export default function AdminCalendarClient() {
         <div className="rounded-2xl border overflow-hidden" style={{ borderColor: 'var(--border-default)' }}>
           {filteredEvents.map((ev, i) => (
             <div key={ev.id} className="px-5 py-4 flex items-center gap-4"
-              style={{ borderTop: i > 0 ? '1px solid var(--border-default)' : 'none', backgroundColor: i % 2 === 0 ? 'white' : 'var(--bg-global)' }}>
+              style={{ borderTop: i > 0 ? '1px solid var(--border-default)' : 'none', backgroundColor: i % 2 === 0 ? 'var(--bg-card)' : 'var(--bg-global)' }}>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap mb-0.5">
                   <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{ev.title}</p>
