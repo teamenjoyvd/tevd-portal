@@ -70,7 +70,12 @@ export function formatTime(iso: string): string {
 }
 
 export function formatShortDate(date: Date): string {
-  return date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+  return date.toLocaleDateString('en-GB', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'Europe/Sofia',
+  })
 }
 
 export function eventMinutesFromMidnight(iso: string): number {

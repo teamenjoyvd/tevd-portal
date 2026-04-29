@@ -36,7 +36,7 @@ export function MonthView({
   const eventsBySofiaDate = useMemo(() => {
     const map: Record<string, CalendarEvent[]> = {}
     events.forEach(e => {
-      const key = new Date(e.start_time).toLocaleDateString('sv-SE', { timeZone: 'Europe/Sofia' })
+      const key = SOFIA_DATE_FMT.format(new Date(e.start_time))
       if (!map[key]) map[key] = []
       map[key].push(e)
     })

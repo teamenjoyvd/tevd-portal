@@ -3,7 +3,7 @@
 import { useMemo, useRef, useEffect } from 'react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { type CalendarEvent } from '@/app/(dashboard)/calendar/types'
-import { CATEGORY_COLOR, isoWeek, formatTime, formatShortDate } from '@/app/(dashboard)/calendar/utils'
+import { CATEGORY_COLOR, SOFIA_DATE_FMT, isoWeek, formatTime, formatShortDate } from '@/app/(dashboard)/calendar/utils'
 
 export function AgendaView({
   events,
@@ -17,18 +17,17 @@ export function AgendaView({
   highlightId?: string | null
 }) {
   const { t } = useLanguage()
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
   const highlightRef = useRef<HTMLButtonElement | null>(null)
 
   const grouped = useMemo(() => {
+    const todayKey = SOFIA_DATE_FMT.format(new Date())
     const map: Record<string, CalendarEvent[]> = {}
     events
-      .filter(e => new Date(e.start_time) >= today)
+      .filter(e => SOFIA_DATE_FMT.format(new Date(e.start_time)) >= todayKey)
       .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
       .forEach(e => {
         // Group by Sofia-local date to avoid UTC midnight bucketing errors
-        const key = new Date(e.start_time).toLocaleDateString('sv-SE', { timeZone: 'Europe/Sofia' })
+        const key = SOFIA_DATE_FMT.format(new Date(e.start_time))
         if (!map[key]) map[key] = []
         map[key].push(e)
       })
@@ -67,14 +66,13 @@ export function AgendaView({
   // Current day in Sofia — computed once outside the loop for correctness and
   // efficiency. Comparing against the already-Sofia-local dateKey is more
   // reliable than constructing a local Date and calling sameDaySofia.
-  const todaySofia = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Sofia' })
+  const todaySofia = SOFIA_DATE_FMT.format(new Date())
 
   return (
     <div className="overflow-y-auto px-4 py-2" style={{ height: 'var(--cal-height)', minHeight: 300 }}>
       {dates.map(dateKey => {
-        // Parse Sofia-local date key (sv-SE = YYYY-MM-DD)
-        const [y, mo, d] = dateKey.split('-').map(Number)
-        const date = new Date(y, mo - 1, d)
+        // Anchor to UTC noon to prevent TZ offset from shifting the displayed date
+        const date = new Date(`${dateKey}T12:00:00Z`)
         const isToday = dateKey === todaySofia
         return (
           <div key={dateKey} className="mb-6">
