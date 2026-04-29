@@ -12,6 +12,8 @@ const isPublicRoute = createRouteMatcher([
   '/api/webhooks/(.*)',
   '/api/calendar(.*)',
   '/api/events/:id',
+  '/api/socials',
+  '/api/socials/(.*)',
 ])
 
 const isAdminApiRoute = createRouteMatcher(['/api/admin/(.*)'])
