@@ -9,7 +9,7 @@ import { useLanguage } from '@/lib/hooks/useLanguage'
 import UserDropdown from '@/components/layout/UserDropdown'
 import UserPopup from '@/components/layout/UserPopup'
 import BellButton from '@/components/layout/BellButton'
-import { PUBLIC_NAV, MEMBER_NAV } from '@/lib/nav'
+import { PUBLIC_NAV, MEMBER_NAV, filterNav } from '@/lib/nav'
 
 export default function Header() {
   const { isSignedIn, user } = useUser()
@@ -31,15 +31,13 @@ export default function Header() {
   const isActive = (href: string) =>
     href === '/' ? pathname === '/' : pathname?.startsWith(href)
 
-  const isNonGuest = !!user && (user?.publicMetadata?.role as string) !== 'guest'
+  const role = user?.publicMetadata?.role as string | undefined
 
-  // Header shows guides + profile for members, but not /los
-  const HEADER_MEMBER_NAV = MEMBER_NAV.filter(item => item.href !== '/los')
-
-  const NAV_LINKS = [
-    ...PUBLIC_NAV,
-    ...(isNonGuest ? HEADER_MEMBER_NAV : []),
-  ]
+  // Header shows library + profile for members, but not /los
+  const NAV_LINKS = filterNav(
+    [...PUBLIC_NAV, ...MEMBER_NAV.filter(item => item.href !== '/los')],
+    role
+  )
 
   return (
     <header className="fixed top-4 left-0 right-0 z-50 px-4">

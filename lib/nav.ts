@@ -3,13 +3,32 @@
 //
 // Consumer guide:
 //   Header    — PUBLIC_NAV + MEMBER_NAV (filters /los)
-//   Footer    — PUBLIC_NAV + FOOTER_MEMBER_NAV (guides + profile, no /los)
+//   Footer    — PUBLIC_NAV + FOOTER_MEMBER_NAV (library + profile, no /los)
 //   AdminNav  — ADMIN_NAV
 
 export type NavItem = {
   href: string
   labels: { en: string; bg: string }
   minRole?: 'member' | 'core' | 'admin'
+}
+
+// Role hierarchy — higher rank = more access.
+// Signed-out users receive rank -1 (filtered from all member items).
+const ROLE_RANK: Record<string, number> = {
+  guest:  0,
+  member: 1,
+  core:   2,
+  admin:  3,
+}
+
+/**
+ * Returns only the nav items the given role is permitted to see.
+ * Items without minRole are always included.
+ * Pass `role = undefined` for signed-out users — they see PUBLIC_NAV only.
+ */
+export function filterNav(items: NavItem[], role: string | undefined): NavItem[] {
+  const rank = role !== undefined ? (ROLE_RANK[role] ?? -1) : -1
+  return items.filter(item => !item.minRole || rank >= ROLE_RANK[item.minRole])
 }
 
 export const PUBLIC_NAV: NavItem[] = [
@@ -20,12 +39,12 @@ export const PUBLIC_NAV: NavItem[] = [
 ]
 
 export const MEMBER_NAV: NavItem[] = [
-  { href: '/library', labels: { en: 'Library',    bg: 'Библиотека'   }, minRole: 'member' },
-  { href: '/los',     labels: { en: 'My Network', bg: 'Моята мрежа'  }, minRole: 'member' },
-  { href: '/profile', labels: { en: 'Profile',    bg: 'Профил'       }, minRole: 'member' },
+  { href: '/library', labels: { en: 'Library',    bg: 'Библиотека'  }, minRole: 'member' },
+  { href: '/los',     labels: { en: 'My Network', bg: 'Моята мрежа' }, minRole: 'member' },
+  { href: '/profile', labels: { en: 'Profile',    bg: 'Профил'      }, minRole: 'member' },
 ]
 
-// Footer shows guides + profile but not /los
+// Footer shows library + profile but not /los
 export const FOOTER_MEMBER_NAV: NavItem[] = MEMBER_NAV.filter(
   item => item.href !== '/los'
 )
