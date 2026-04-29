@@ -66,10 +66,6 @@ export default function AboutContent() {
 
   return (
     <div className="flex flex-col justify-center gap-4 px-1 py-2">
-      <div
-        className="h-px w-8 rounded-full"
-        style={{ backgroundColor: 'var(--brand-crimson)', opacity: 0.4 }}
-      />
       <HighlightedParagraph raw={t('about.body1')} highlights={P1_HIGHLIGHTS[lang]} />
 
       <div
