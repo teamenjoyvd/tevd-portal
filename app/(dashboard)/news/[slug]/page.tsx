@@ -34,11 +34,11 @@ export default async function NewsDetailPage({
     .eq('is_active', true)
     .single()
 
-  if (!announcement) redirect('/guides?type=news')
+  if (!announcement) redirect('/library?type=news')
 
   const a = announcement as unknown as Announcement
   const accessRoles = a.access_roles as string[]
-  if (!accessRoles.includes(role)) redirect('/guides?type=news')
+  if (!accessRoles.includes(role)) redirect('/library?type=news')
 
   const cookieStore = await cookies()
   const lang: Lang = cookieStore.get('tevd_lang')?.value === 'bg' ? 'bg' : 'en'
@@ -52,7 +52,7 @@ export default async function NewsDetailPage({
       {/* ── MOBILE ── */}
       <div className="md:hidden">
         <Link
-          href="/guides?type=news"
+          href="/library?type=news"
           className="inline-flex items-center gap-1.5 text-sm font-medium mb-6 pill-link-crimson"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -79,7 +79,7 @@ export default async function NewsDetailPage({
       {/* ── DESKTOP ── */}
       <div className="hidden md:block">
         <Link
-          href="/guides?type=news"
+          href="/library?type=news"
           className="inline-flex items-center gap-1.5 text-sm font-medium mb-8 pill-link-crimson"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
