@@ -37,6 +37,18 @@ function getExpiryState(validThrough: string | null): 'ok' | 'warning' | 'critic
   return 'ok'
 }
 
+function getExpiryText(
+  profile: Profile,
+  expiryState: 'ok' | 'warning' | 'critical' | null,
+  t: (key: string) => string,
+): string {
+  if (!profile.valid_through) return '—'
+  if (expiryState === 'ok')       return t('profile.expiry.okLabel')
+  if (expiryState === 'warning')  return t('profile.expiry.warning')
+  if (expiryState === 'critical') return t('profile.expiry.critical')
+  return '—'
+}
+
 const EXPIRY_STYLES = {
   ok:       'bg-[#81b29a]/10 border-[#81b29a]/30 text-[#2d6a4f]',
   warning:  'bg-[#f2cc8f]/20 border-[#f2cc8f] text-[#7a5c00]',
@@ -145,14 +157,6 @@ export const TravelDocContent = memo(function TravelDocContent() {
     ? profile.passport_number
     : profile.id_number
 
-  function getExpiryText(): string {
-    if (!profile.valid_through) return '—'
-    if (expiryState === 'ok')       return t('profile.expiry.okLabel')
-    if (expiryState === 'warning')  return t('profile.expiry.warning')
-    if (expiryState === 'critical') return t('profile.expiry.critical')
-    return '—'
-  }
-
   return (
     <>
       <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
@@ -196,7 +200,7 @@ export const TravelDocContent = memo(function TravelDocContent() {
                 {t('profile.validThrough')}
               </p>
               <p className="text-sm" style={{ color: profile.valid_through ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
-                {getExpiryText()}
+                {getExpiryText(profile, expiryState, t)}
               </p>
             </div>
           </div>
