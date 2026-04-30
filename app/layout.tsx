@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import { Playfair_Display, Montserrat, Cormorant_Garamond, DM_Sans } from 'next/font/google'
 import { ClerkProvider } from '@clerk/nextjs'
 import { cookies } from 'next/headers'
+import type { Lang } from '@/lib/i18n/translations'
+import { LangProvider } from '@/lib/context/LangProvider'
 import Providers from './providers'
 import './globals.css'
 import '../styles/brand-tokens.css'
@@ -47,6 +49,7 @@ function resolveFont(raw: string | undefined): FontSizeCookie {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = await cookies()
   const fontSizeCookie = resolveFont(cookieStore.get('tevd-font-size')?.value)
+  const lang = (cookieStore.get('tevd_lang')?.value === 'bg' ? 'bg' : 'en') as Lang
 
   return (
     <ClerkProvider afterSignOutUrl="/">
@@ -80,9 +83,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           />
         </head>
         <body className="font-body" style={{ backgroundColor: 'var(--bg-global)', color: 'var(--text-primary)' }}>
-          <Providers>
-            {children}
-          </Providers>
+          <LangProvider initialLang={lang}>
+            <Providers>
+              {children}
+            </Providers>
+          </LangProvider>
         </body>
       </html>
     </ClerkProvider>
