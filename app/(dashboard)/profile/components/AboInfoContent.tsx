@@ -17,7 +17,10 @@ export const AboInfoContent = memo(function AboInfoContent() {
   const qc = useQueryClient()
   const { t } = useLanguage()
 
-  const { data: profile } = useQuery<Profile>({ queryKey: ['profile'] })
+  const { data: profile } = useQuery<Profile>({
+    queryKey: ['profile'],
+    queryFn: () => apiClient('/api/profile'),
+  })
   const role = profile?.role ?? 'guest'
   const aboNumber = profile?.abo_number ?? null
 

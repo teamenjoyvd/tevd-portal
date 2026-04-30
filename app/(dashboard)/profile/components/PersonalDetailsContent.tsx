@@ -1,7 +1,7 @@
 'use client'
 
-import { memo, useState } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { memo, useState, useEffect } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { Drawer } from '@/components/ui/drawer'
 import { PersonalDrawerForm } from './PersonalDrawerForm'
@@ -57,33 +57,38 @@ function validatePersonalField(field: keyof PersonalFormFields, value: string): 
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export const PersonalDetailsContent = memo(function PersonalDetailsContent({
-  profile,
-  incomplete,
-}: {
-  profile: Profile
-  incomplete: boolean
-}) {
+export const PersonalDetailsContent = memo(function PersonalDetailsContent() {
   const qc = useQueryClient()
   const { t } = useLanguage()
-  const dn = (profile.display_names ?? {}) as Record<string, string>
 
-  const [drawerOpen, setDrawerOpen]   = useState(false)
-  const [saved, setSaved]             = useState(false)
+  const { data: profile, isLoading } = useQuery<Profile>({
+    queryKey: ['profile'],
+    queryFn: () => apiClient('/api/profile'),
+  })
+
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [saved, setSaved]           = useState(false)
   const [form, setForm] = useState<{
     first_name?: string
     last_name?: string
     display_names?: Record<string, string>
     phone?: string
     contact_email?: string
-  }>(() => ({
-    first_name:    profile.first_name,
-    last_name:     profile.last_name,
-    display_names: profile.display_names ?? {},
-    phone:         profile.phone ?? '',
-    contact_email: profile.contact_email ?? '',
-  }))
+  }>({})
   const [errors, setErrors] = useState<Partial<Record<keyof PersonalFormFields, string>>>({})
+
+  // Seed form once on first profile load
+  useEffect(() => {
+    if (!profile) return
+    setForm({
+      first_name:    profile.first_name,
+      last_name:     profile.last_name,
+      display_names: profile.display_names ?? {},
+      phone:         profile.phone ?? '',
+      contact_email: profile.contact_email ?? '',
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.id])
 
   const savePersonal = useMutation({
     mutationFn: async () => {
@@ -128,7 +133,32 @@ export const PersonalDetailsContent = memo(function PersonalDetailsContent({
     setDrawerOpen(false)
     setErrors({})
     savePersonal.reset()
+    // Reset form to current profile data so unsaved edits are discarded
+    if (profile) {
+      setForm({
+        first_name:    profile.first_name,
+        last_name:     profile.last_name,
+        display_names: profile.display_names ?? {},
+        phone:         profile.phone ?? '',
+        contact_email: profile.contact_email ?? '',
+      })
+    }
   }
+
+  if (isLoading || !profile) {
+    return (
+      <div className="rounded-2xl p-6 h-full animate-pulse" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+        <div className="h-3 rounded w-1/2 mb-5" style={{ backgroundColor: 'var(--border-default)' }} />
+        <div className="space-y-3">
+          <div className="h-3 rounded w-3/4" style={{ backgroundColor: 'var(--border-default)' }} />
+          <div className="h-3 rounded w-1/2" style={{ backgroundColor: 'var(--border-default)' }} />
+        </div>
+      </div>
+    )
+  }
+
+  const incomplete = !profile.first_name
+  const dn = (profile.display_names ?? {}) as Record<string, string>
 
   return (
     <>
