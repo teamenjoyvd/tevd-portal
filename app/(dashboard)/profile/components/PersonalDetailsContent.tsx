@@ -133,6 +133,16 @@ export const PersonalDetailsContent = memo(function PersonalDetailsContent() {
     setDrawerOpen(false)
     setErrors({})
     savePersonal.reset()
+    // Reset form to current profile data so unsaved edits are discarded
+    if (profile) {
+      setForm({
+        first_name:    profile.first_name,
+        last_name:     profile.last_name,
+        display_names: profile.display_names ?? {},
+        phone:         profile.phone ?? '',
+        contact_email: profile.contact_email ?? '',
+      })
+    }
   }
 
   if (isLoading || !profile) {

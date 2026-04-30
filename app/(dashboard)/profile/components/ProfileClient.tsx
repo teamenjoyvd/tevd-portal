@@ -96,6 +96,13 @@ export function ProfileClient({ profileId, role, aboNumber }: Props) {
   const [layoutRestored, setLayoutRestored] = useState(false)
   const persistDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // Clear debounce timer on unmount to prevent stale API calls
+  useEffect(() => {
+    return () => {
+      if (persistDebounceRef.current) clearTimeout(persistDebounceRef.current)
+    }
+  }, [])
+
   // ── Restore persisted bento layout from full profile cache ───────────────
   useEffect(() => {
     if (layoutRestored || !fullProfile?.id) return
@@ -126,21 +133,27 @@ export function ProfileClient({ profileId, role, aboNumber }: Props) {
     }, 500)
   }, [])
 
+  // Stable ref for bentoCollapsed — allows event handlers to read current
+  // collapsed state without stale closures, without re-creating callbacks.
+  const bentoCollapsedRef = useRef(bentoCollapsed)
+  useEffect(() => {
+    bentoCollapsedRef.current = bentoCollapsed
+  }, [bentoCollapsed])
+
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event
     if (!over || active.id === over.id) return
-    setBentoOrder(prev => {
-      const oldIndex = prev.indexOf(active.id as string)
-      const newIndex = prev.indexOf(over.id as string)
-      const next = arrayMove(prev, oldIndex, newIndex)
-      persistPrefs(next, bentoCollapsed)
-      return next
-    })
-  }, [bentoCollapsed, persistPrefs])
+    const oldIndex = bentoOrder.indexOf(active.id as string)
+    const newIndex = bentoOrder.indexOf(over.id as string)
+    const next = arrayMove(bentoOrder, oldIndex, newIndex)
+    setBentoOrder(next)
+    persistPrefs(next, bentoCollapsedRef.current)
+  }, [bentoOrder, persistPrefs])
 
   const toggleCollapse = useCallback((id: string) => {
     setBentoCollapsed(prev => {
       const next = { ...prev, [id]: !prev[id] }
+      // Read current order from state setter arg to avoid stale closure
       setBentoOrder(order => { persistPrefs(order, next); return order })
       return next
     })
@@ -151,13 +164,11 @@ export function ProfileClient({ profileId, role, aboNumber }: Props) {
   const toggleAll = useCallback(() => {
     const ids = orderedBentosRef.current.map(b => b.id)
     if (ids.length === 0) return
-    setBentoCollapsed(prev => {
-      const allCollapsed = ids.every(id => !!prev[id])
-      const next = { ...prev }
-      ids.forEach(id => { next[id] = !allCollapsed })
-      setBentoOrder(order => { persistPrefs(order, next); return order })
-      return next
-    })
+    const allCollapsed = ids.every(id => !!bentoCollapsedRef.current[id])
+    const next = { ...bentoCollapsedRef.current }
+    ids.forEach(id => { next[id] = !allCollapsed })
+    setBentoCollapsed(next)
+    setBentoOrder(order => { persistPrefs(order, next); return order })
   }, [persistPrefs])
 
   const resetLayout = useCallback(() => {
@@ -229,7 +240,10 @@ export function ProfileClient({ profileId, role, aboNumber }: Props) {
     .map(id => ({ id, entry: bentoMap[id] ?? null }))
     .filter((b): b is { id: string; entry: BentoEntry } => b.entry !== null)
 
-  orderedBentosRef.current = orderedBentos
+  // Keep ref in sync via effect — safe for concurrent rendering
+  useEffect(() => {
+    orderedBentosRef.current = orderedBentos
+  }, [orderedBentos])
 
   const allCollapsed = orderedBentos.every(({ id }) => !!bentoCollapsed[id])
 

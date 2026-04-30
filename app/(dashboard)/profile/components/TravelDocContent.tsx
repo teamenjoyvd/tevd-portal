@@ -139,6 +139,15 @@ export const TravelDocContent = memo(function TravelDocContent() {
     setDrawerOpen(false)
     setErrors({})
     saveTravelDoc.reset()
+    // Reset form to current profile data so unsaved edits are discarded
+    if (profile) {
+      setForm({
+        document_active_type: profile.document_active_type,
+        id_number:            profile.id_number ?? '',
+        passport_number:      profile.passport_number ?? '',
+        valid_through:        profile.valid_through ?? '',
+      })
+    }
   }
 
   if (isLoading || !profile) {
