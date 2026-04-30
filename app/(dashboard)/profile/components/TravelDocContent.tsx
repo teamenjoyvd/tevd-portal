@@ -7,7 +7,6 @@ import { Drawer } from '@/components/ui/drawer'
 import { TravelDocDrawerForm } from './TravelDocDrawerForm'
 import { type Profile } from '../types'
 import { apiClient } from '@/lib/apiClient'
-import { type TranslationKey } from '@/lib/i18n/translations'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -38,15 +37,13 @@ function getExpiryState(validThrough: string | null): 'ok' | 'warning' | 'critic
   return 'ok'
 }
 
-function getExpiryText(
-  profile: Profile,
-  _expiryState: 'ok' | 'warning' | 'critical' | null,
-): string {
+function getExpiryText(profile: Profile): string {
   if (!profile.valid_through) return '—'
   return new Date(profile.valid_through).toLocaleDateString('en-GB', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
+    timeZone: 'UTC',
   })
 }
 
@@ -210,7 +207,7 @@ export const TravelDocContent = memo(function TravelDocContent() {
                 {t('profile.validThrough')}
               </p>
               <p className="text-sm" style={{ color: profile.valid_through ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
-                {getExpiryText(profile, expiryState)}
+                {getExpiryText(profile)}
               </p>
             </div>
           </div>
