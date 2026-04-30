@@ -54,7 +54,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <ClerkProvider afterSignOutUrl="/">
       <html
-        lang="en"
+        lang={lang}
         data-font-size={fontSizeCookie}
         className={`${playfair.variable} ${montserrat.variable} ${cormorant.variable} ${dmSans.variable}`}
       >
