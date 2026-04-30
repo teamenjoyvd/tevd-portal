@@ -264,7 +264,7 @@ export function GuideEditLayout({ guide }: { guide: Guide }) {
             Guides
           </button>
           <h1 className="text-base font-bold mb-6 truncate" style={{ color: 'var(--text-primary)' }}>
-            {guide.title.en || guide.slug}
+            {form.title.en || form.slug}
           </h1>
           <LeftPanel {...sharedPanelProps} />
         </div>
@@ -294,7 +294,7 @@ export function GuideEditLayout({ guide }: { guide: Guide }) {
           Guides
         </button>
         <h1 className="text-base font-bold truncate" style={{ color: 'var(--text-primary)' }}>
-          {guide.title.en || guide.slug}
+          {form.title.en || form.slug}
         </h1>
         <LeftPanel {...sharedPanelProps} />
         <div>

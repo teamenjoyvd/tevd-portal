@@ -70,7 +70,7 @@ export function GuidesTab() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       }).then(async r => { if (!r.ok) throw new Error((await r.json()).error); return r.json() }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-guides'] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-guides'] }); setGuidesMutError(null) },
     onError: (e: Error) => setGuidesMutError(e.message),
   })
 

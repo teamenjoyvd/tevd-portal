@@ -61,6 +61,25 @@ export function BlockEditor({
     const [moved] = next.splice(draggingIdx, 1)
     next.splice(targetIdx, 0, moved)
     onChange(next)
+
+    // Remap collapsed state to follow block positions after reorder
+    setCollapsed(prev => {
+      const nextColl: Record<number, boolean> = {}
+      Object.entries(prev).forEach(([k, v]) => {
+        const ki = Number(k)
+        let newIdx = ki
+        if (ki === draggingIdx) {
+          newIdx = targetIdx
+        } else if (draggingIdx < targetIdx && ki > draggingIdx && ki <= targetIdx) {
+          newIdx = ki - 1
+        } else if (draggingIdx > targetIdx && ki < draggingIdx && ki >= targetIdx) {
+          newIdx = ki + 1
+        }
+        nextColl[newIdx] = v
+      })
+      return nextColl
+    })
+
     setDraggingIdx(null)
     setDragOverIdx(null)
   }
@@ -210,8 +229,11 @@ export function BlockEditor({
         )
       })}
 
-      {/* Add block controls — always at bottom */}
-      <div className="flex gap-2 pt-1 sticky bottom-0 pb-2">
+      {/* Add block controls — always at bottom, background prevents bleed-through on scroll */}
+      <div
+        className="flex gap-2 pt-3 sticky bottom-0 pb-2 -mx-4 px-4 mt-2 border-t"
+        style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}
+      >
         {(['heading', 'paragraph', 'callout'] as const).map(type => (
           <button
             key={type}
