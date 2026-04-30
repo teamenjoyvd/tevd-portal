@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Drawer } from '@/components/ui/drawer'
 import {
@@ -23,8 +24,9 @@ import { useLanguage } from '@/lib/hooks/useLanguage'
 
 export function GuidesTab() {
   const qc = useQueryClient()
+  const router = useRouter()
   const { t } = useLanguage()
-  const guideDrawer = useAdminDrawer<Guide>()
+  const createDrawer = useAdminDrawer<Guide>()
   const [guidesMutError, setGuidesMutError] = useState<string | null>(null)
   const [guideAlertTarget, setGuideAlertTarget] = useState<{ id: string; name: string } | null>(null)
   const [gDragging, setGDragging] = useState<string | null>(null)
@@ -57,7 +59,7 @@ export function GuidesTab() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       }).then(async r => { if (!r.ok) throw new Error((await r.json()).error); return r.json() }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-guides'] }); guideDrawer.close(); setGuidesMutError(null) },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-guides'] }); createDrawer.close(); setGuidesMutError(null) },
     onError: (e: Error) => setGuidesMutError(e.message),
   })
 
@@ -68,7 +70,7 @@ export function GuidesTab() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       }).then(async r => { if (!r.ok) throw new Error((await r.json()).error); return r.json() }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-guides'] }); guideDrawer.close(); setGuidesMutError(null) },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-guides'] }); setGuidesMutError(null) },
     onError: (e: Error) => setGuidesMutError(e.message),
   })
 
@@ -88,36 +90,25 @@ export function GuidesTab() {
         <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
           {guidesRaw.length} guide{guidesRaw.length !== 1 ? 's' : ''}
         </p>
-        <button onClick={() => { guideDrawer.openCreate(); setGuidesMutError(null) }}
+        <button onClick={() => { createDrawer.openCreate(); setGuidesMutError(null) }}
           className="px-4 py-2 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-opacity"
           style={{ backgroundColor: 'var(--brand-crimson)' }}>
           {t('admin.content.guides.btn.new')}
         </button>
       </div>
 
+      {/* Create drawer — unchanged */}
       <Drawer
-        open={guideDrawer.open}
-        onClose={() => { guideDrawer.close(); setGuidesMutError(null) }}
-        title={guideDrawer.editing
-          ? t('admin.content.guides.drawer.editTitle').replace('{{name}}', guideDrawer.editing.title.en || guideDrawer.editing.slug)
-          : t('admin.content.guides.drawer.newTitle')
-        }
+        open={createDrawer.open}
+        onClose={() => { createDrawer.close(); setGuidesMutError(null) }}
+        title={t('admin.content.guides.drawer.newTitle')}
       >
-        {guideDrawer.isCreating && (
+        {createDrawer.isCreating && (
           <GuideForm
             initial={emptyGuide()}
             onSave={data => createGuide.mutate(data)}
-            onCancel={() => { guideDrawer.close(); setGuidesMutError(null) }}
+            onCancel={() => { createDrawer.close(); setGuidesMutError(null) }}
             isPending={createGuide.isPending}
-            error={guidesMutError}
-          />
-        )}
-        {guideDrawer.isEditing && guideDrawer.editing && (
-          <GuideForm
-            initial={{ slug: guideDrawer.editing.slug, title: guideDrawer.editing.title, cover_image_url: guideDrawer.editing.cover_image_url, emoji: guideDrawer.editing.emoji, body: guideDrawer.editing.body, access_roles: guideDrawer.editing.access_roles, is_published: guideDrawer.editing.is_published, sort_order: guideDrawer.editing.sort_order }}
-            onSave={data => updateGuide.mutate({ id: guideDrawer.editing!.id, ...data })}
-            onCancel={() => { guideDrawer.close(); setGuidesMutError(null) }}
-            isPending={updateGuide.isPending}
             error={guidesMutError}
           />
         )}
@@ -155,7 +146,8 @@ export function GuidesTab() {
                     style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
                     {guide.is_published ? t('admin.content.guides.btn.unpublish') : t('admin.content.guides.btn.publish')}
                   </button>
-                  <button onClick={() => { guideDrawer.openEdit(guide); setGuidesMutError(null) }}
+                  <button
+                    onClick={() => router.push(`/admin/content/guides/${guide.id}/edit`)}
                     className="px-3 py-1 rounded-lg text-xs font-semibold border transition-colors hover:bg-black/5"
                     style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
                     {t('admin.content.guides.btn.edit')}
