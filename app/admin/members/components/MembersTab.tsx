@@ -73,7 +73,10 @@ export function MembersTab() {
 
   const { data, isLoading } = useQuery<MembersData>({
     queryKey: ['admin-members-full'],
-    queryFn: () => fetch('/api/admin/members').then(r => r.json()),
+    queryFn: () => fetch('/api/admin/members').then(r => {
+      if (!r.ok) throw new Error(r.statusText)
+      return r.json()
+    }),
   })
 
   const verifyMutation = useMutation({
