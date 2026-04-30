@@ -1,6 +1,6 @@
 'use client'
 
-import { memo, useState } from 'react'
+import { memo, useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { Drawer } from '@/components/ui/drawer'
@@ -66,8 +66,8 @@ export const PersonalDetailsContent = memo(function PersonalDetailsContent() {
     queryFn: () => apiClient('/api/profile'),
   })
 
-  const [drawerOpen, setDrawerOpen]   = useState(false)
-  const [saved, setSaved]             = useState(false)
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [saved, setSaved]           = useState(false)
   const [form, setForm] = useState<{
     first_name?: string
     last_name?: string
@@ -77,10 +77,9 @@ export const PersonalDetailsContent = memo(function PersonalDetailsContent() {
   }>({})
   const [errors, setErrors] = useState<Partial<Record<keyof PersonalFormFields, string>>>({})
 
-  // Sync form when profile loads (runs once on first data arrival)
-  const formInitialised = useState(() => false)
-  if (profile && !formInitialised[0]) {
-    formInitialised[1](true)
+  // Seed form once on first profile load
+  useEffect(() => {
+    if (!profile) return
     setForm({
       first_name:    profile.first_name,
       last_name:     profile.last_name,
@@ -88,7 +87,8 @@ export const PersonalDetailsContent = memo(function PersonalDetailsContent() {
       phone:         profile.phone ?? '',
       contact_email: profile.contact_email ?? '',
     })
-  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.id])
 
   const savePersonal = useMutation({
     mutationFn: async () => {
