@@ -3,6 +3,8 @@
 import { forwardRef, type ReactNode } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { useLanguage } from '@/lib/hooks/useLanguage'
+import { type TranslationKey } from '@/lib/i18n/translations'
 
 // ── Drag handle ───────────────────────────────────────────────────────────────
 
@@ -41,21 +43,21 @@ const DragHandle = forwardRef<HTMLSpanElement, React.HTMLAttributes<HTMLSpanElem
   }
 )
 
-// ── Bento label map ───────────────────────────────────────────────────────────
+// ── Bento id → i18n key map ───────────────────────────────────────────────────
 
-const BENTO_LABELS: Record<string, string> = {
-  'personal-details': 'Personal Details',
-  'abo-info':         'ABO Information',
-  'travel-doc':       'Travel Document',
-  'settings':         'Settings',
-  'trips':            'Trips',
-  'payments':         'Payments',
-  'email_prefs':      'Email Notifications',
-  'vitals':           'Vital Signs',
-  'participation':    'Participation',
-  'calendar':         'Calendar',
-  'stats':            'Stats',
-  'admin':            'Admin Tools',
+const BENTO_KEY_MAP: Record<string, TranslationKey> = {
+  'personal-details': 'profile.bento.personalDetails',
+  'abo-info':         'profile.bento.aboInfo',
+  'travel-doc':       'profile.bento.travelDoc',
+  'settings':         'profile.bento.settings',
+  'trips':            'profile.bento.trips',
+  'payments':         'profile.bento.payments',
+  'email_prefs':      'profile.bento.emailPrefs',
+  'vitals':           'profile.bento.vitals',
+  'participation':    'profile.bento.participation',
+  'calendar':         'profile.bento.calendar',
+  'stats':            'profile.bento.stats',
+  'admin':            'profile.bento.admin',
 }
 
 // ── SortableBento ─────────────────────────────────────────────────────────────
@@ -77,6 +79,8 @@ export function SortableBento({
   disableDrag?: boolean
   children: ReactNode
 }) {
+  const { t } = useLanguage()
+
   const {
     attributes,
     listeners,
@@ -97,6 +101,9 @@ export function SortableBento({
     minHeight: disableDrag || collapsed ? undefined : minHeight,
   }
 
+  const bentoKey = BENTO_KEY_MAP[id]
+  const label = bentoKey ? t(bentoKey) : id
+
   return (
     <div
       ref={setNodeRef}
@@ -113,13 +120,13 @@ export function SortableBento({
               <DragHandle ref={setActivatorNodeRef} {...attributes} {...listeners} />
             )}
             <span className="text-xs font-semibold tracking-[0.2em] uppercase" style={{ color: 'var(--text-secondary)' }}>
-              {BENTO_LABELS[id] ?? id}
+              {label}
             </span>
           </div>
           <button
             type="button"
             onClick={onToggleCollapse}
-            title="Expand"
+            title={t('profile.bento.expand')}
             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 12, lineHeight: 1, color: 'var(--text-secondary)', opacity: 0.5, flexShrink: 0 }}
           >
             ▸
@@ -134,7 +141,7 @@ export function SortableBento({
             <button
               type="button"
               onClick={onToggleCollapse}
-              title="Collapse"
+              title={t('profile.bento.collapse')}
               style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 12, lineHeight: 1, color: 'var(--text-secondary)', opacity: 0.5, flexShrink: 0 }}
             >
               ▾

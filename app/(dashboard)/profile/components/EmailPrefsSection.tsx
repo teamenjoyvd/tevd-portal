@@ -92,7 +92,7 @@ export function EmailPrefsSection() {
       save.mutate(next)
       return next
     })
-  }, [save])
+  }, [save.mutate])
 
   return (
     <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
