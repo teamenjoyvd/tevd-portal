@@ -14,13 +14,15 @@ export default async function ProfilePage() {
     .eq('clerk_id', userId)
     .single()
 
-  // Profile not found (Clerk user exists but no profile row yet) — show client
-  // with null identity; ProfileClient will render skeleton until profile exists.
+  // No profile row — Clerk webhook missed or first-sign-up race.
+  // Redirect rather than rendering a skeleton that never resolves.
+  if (!data) redirect('/')
+
   return (
     <ProfileClient
-      profileId={data?.id ?? null}
-      role={data?.role ?? null}
-      aboNumber={data?.abo_number ?? null}
+      profileId={data.id}
+      role={data.role}
+      aboNumber={data.abo_number ?? null}
     />
   )
 }
