@@ -7,6 +7,7 @@ import { Drawer } from '@/components/ui/drawer'
 import { TravelDocDrawerForm } from './TravelDocDrawerForm'
 import { type Profile } from '../types'
 import { apiClient } from '@/lib/apiClient'
+import { type TranslationKey } from '@/lib/translations'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -40,7 +41,7 @@ function getExpiryState(validThrough: string | null): 'ok' | 'warning' | 'critic
 function getExpiryText(
   profile: Profile,
   expiryState: 'ok' | 'warning' | 'critical' | null,
-  t: (key: string) => string,
+  t: (key: TranslationKey) => string,
 ): string {
   if (!profile.valid_through) return '—'
   if (expiryState === 'ok')       return t('profile.expiry.okLabel')
