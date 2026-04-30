@@ -7,7 +7,7 @@ import { Drawer } from '@/components/ui/drawer'
 import { TravelDocDrawerForm } from './TravelDocDrawerForm'
 import { type Profile } from '../types'
 import { apiClient } from '@/lib/apiClient'
-import { type TranslationKey } from '@/lib/translations'
+import { type TranslationKey } from '@/lib/i18n/translations'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
