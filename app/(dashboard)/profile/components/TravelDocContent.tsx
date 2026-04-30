@@ -1,6 +1,6 @@
 'use client'
 
-import { memo, useState } from 'react'
+import { memo, useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { Drawer } from '@/components/ui/drawer'
@@ -64,17 +64,17 @@ export const TravelDocContent = memo(function TravelDocContent() {
   }>({})
   const [errors, setErrors] = useState<{ doc_number?: string; valid_through?: string }>({})
 
-  // Sync form when profile loads (runs once on first data arrival)
-  const formInitialised = useState(() => false)
-  if (profile && !formInitialised[0]) {
-    formInitialised[1](true)
+  // Seed form once on first profile load
+  useEffect(() => {
+    if (!profile) return
     setForm({
       document_active_type: profile.document_active_type,
       id_number:            profile.id_number ?? '',
       passport_number:      profile.passport_number ?? '',
       valid_through:        profile.valid_through ?? '',
     })
-  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.id])
 
   const saveTravelDoc = useMutation({
     mutationFn: async () => {
@@ -146,7 +146,7 @@ export const TravelDocContent = memo(function TravelDocContent() {
     : profile.id_number
 
   function getExpiryText(): string {
-    if (!profile!.valid_through) return '—'
+    if (!profile.valid_through) return '—'
     if (expiryState === 'ok')       return t('profile.expiry.okLabel')
     if (expiryState === 'warning')  return t('profile.expiry.warning')
     if (expiryState === 'critical') return t('profile.expiry.critical')
