@@ -30,6 +30,7 @@ import { CalendarSection, CALENDAR_MIN_HEIGHT } from './CalendarSection'
 import { StatsSection, STATS_MIN_HEIGHT } from './StatsSection'
 import { AdminSection } from './AdminSection'
 import { EmailPrefsSection, EMAIL_PREFS_MIN_HEIGHT } from './EmailPrefsSection'
+import { type Profile } from '../types'
 import { apiClient } from '@/lib/apiClient'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -97,30 +98,31 @@ function ProfileSkeleton() {
 export function ProfileClient() {
   const { t } = useLanguage()
 
-  // ── Identity query ────────────────────────────────────────────────────────
+  // ── Identity query — gates bento visibility only ──────────────────────────
+  // Lightweight: { id, role, abo_number }. No joins. ~5ms.
   const { data: identity, isLoading } = useQuery<ProfileIdentity>({
     queryKey: ['profile-identity'],
     queryFn: () => apiClient('/api/profile/identity'),
   })
 
+  // ── Full profile — read from cache for ui_prefs once content components ───
+  // populate it. No queryFn here — ProfileClient never fetches full profile.
+  // PersonalDetailsContent / AboInfoContent / TravelDocContent own the fetch.
+  const { data: fullProfile } = useQuery<Profile>({
+    queryKey: ['profile'],
+    enabled: false, // never fetch from here — read cache only
+  })
+
   // ── Layout state ─────────────────────────────────────────────────────────
   const [bentoOrder, setBentoOrder]         = useState<string[]>(DEFAULT_ORDER)
   const [bentoCollapsed, setBentoCollapsed] = useState<Record<string, boolean>>({})
+  const [layoutRestored, setLayoutRestored] = useState(false)
   const persistDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // ── Restore persisted bento layout ───────────────────────────────────────
-  // ui_prefs lives on the full profile — we fetch it lazily here via a
-  // separate lightweight call rather than blocking on the full profile shape.
-  const { data: uiPrefsProfile } = useQuery<{ ui_prefs?: Record<string, unknown> }>({
-    queryKey: ['profile-ui-prefs'],
-    queryFn: () => apiClient<{ ui_prefs?: Record<string, unknown> }>('/api/profile/ui-prefs'),
-    enabled: !!identity?.id,
-    staleTime: Infinity,
-  })
-
+  // ── Restore persisted bento layout from full profile cache ───────────────
   useEffect(() => {
-    if (!uiPrefsProfile) return
-    const prefs = uiPrefsProfile.ui_prefs ?? {}
+    if (layoutRestored || !fullProfile?.id) return
+    const prefs = (fullProfile.ui_prefs ?? {}) as Record<string, unknown>
     if (Array.isArray(prefs.bento_order) && (prefs.bento_order as string[]).length > 0) {
       const savedOrder = prefs.bento_order as string[]
       const merged = [
@@ -132,8 +134,9 @@ export function ProfileClient() {
     if (prefs.bento_collapsed && typeof prefs.bento_collapsed === 'object') {
       setBentoCollapsed(prefs.bento_collapsed as Record<string, boolean>)
     }
+    setLayoutRestored(true)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [uiPrefsProfile])
+  }, [fullProfile?.id])
 
   // ── Persist bento prefs ───────────────────────────────────────────────────
   const persistPrefs = useCallback((order: string[], collapsed: Record<string, boolean>) => {
