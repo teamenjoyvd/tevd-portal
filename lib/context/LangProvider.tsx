@@ -54,16 +54,19 @@ export function useLang(): LangContextValue {
   return ctx
 }
 
+// Stable fallback — defined at module level to avoid allocating a new object
+// on every render when useLangSafe is called outside the provider tree.
+const FALLBACK_CONTEXT: LangContextValue = {
+  lang: 'en',
+  toggle: () => {},
+  t: (key: TranslationKey) => translate(key, 'en'),
+}
+
 /**
  * Safe variant — returns an 'en' fallback when context is null.
  * Use ONLY in error boundaries (error.tsx), which Next.js mounts outside the
  * layout provider tree and therefore cannot access LangContext.
  */
 export function useLangSafe(): LangContextValue {
-  const ctx = useContext(LangContext)
-  return ctx ?? {
-    lang: 'en' as Lang,
-    toggle: () => {},
-    t: (key: TranslationKey) => translate(key, 'en'),
-  }
+  return useContext(LangContext) ?? FALLBACK_CONTEXT
 }
