@@ -44,8 +44,29 @@ export function LangProvider({
   )
 }
 
+/**
+ * Standard hook — throws if used outside LangProvider.
+ * Use in all components guaranteed to render inside app/(dashboard)/layout.tsx.
+ */
 export function useLang(): LangContextValue {
   const ctx = useContext(LangContext)
   if (!ctx) throw new Error('useLang must be used within LangProvider')
   return ctx
+}
+
+// Stable fallback — defined at module level to avoid allocating a new object
+// on every render when useLangSafe is called outside the provider tree.
+const FALLBACK_CONTEXT: LangContextValue = {
+  lang: 'en',
+  toggle: () => {},
+  t: (key: TranslationKey) => translate(key, 'en'),
+}
+
+/**
+ * Safe variant — returns an 'en' fallback when context is null.
+ * Use ONLY in error boundaries (error.tsx), which Next.js mounts outside the
+ * layout provider tree and therefore cannot access LangContext.
+ */
+export function useLangSafe(): LangContextValue {
+  return useContext(LangContext) ?? FALLBACK_CONTEXT
 }

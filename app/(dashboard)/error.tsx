@@ -1,6 +1,6 @@
 'use client'
 
-import { useLanguage } from '@/lib/hooks/useLanguage'
+import { useLangSafe } from '@/lib/context/LangProvider'
 
 export default function DashboardError({
   error,
@@ -9,7 +9,7 @@ export default function DashboardError({
   error: Error & { digest?: string }
   reset: () => void
 }) {
-  const { t } = useLanguage()
+  const { t } = useLangSafe()
 
   return (
     <div
