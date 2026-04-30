@@ -1,7 +1,7 @@
 'use client'
 
 import { memo, useState } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { Drawer } from '@/components/ui/drawer'
 import { TravelDocDrawerForm } from './TravelDocDrawerForm'
@@ -45,13 +45,14 @@ const EXPIRY_STYLES = {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export const TravelDocContent = memo(function TravelDocContent({
-  profile,
-}: {
-  profile: Profile
-}) {
+export const TravelDocContent = memo(function TravelDocContent() {
   const qc = useQueryClient()
   const { t } = useLanguage()
+
+  const { data: profile, isLoading } = useQuery<Profile>({
+    queryKey: ['profile'],
+    queryFn: () => apiClient('/api/profile'),
+  })
 
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [saved, setSaved]           = useState(false)
@@ -60,13 +61,20 @@ export const TravelDocContent = memo(function TravelDocContent({
     id_number?: string
     passport_number?: string
     valid_through?: string
-  }>(() => ({
-    document_active_type: profile.document_active_type,
-    id_number:            profile.id_number ?? '',
-    passport_number:      profile.passport_number ?? '',
-    valid_through:        profile.valid_through ?? '',
-  }))
+  }>({})
   const [errors, setErrors] = useState<{ doc_number?: string; valid_through?: string }>({})
+
+  // Sync form when profile loads (runs once on first data arrival)
+  const formInitialised = useState(() => false)
+  if (profile && !formInitialised[0]) {
+    formInitialised[1](true)
+    setForm({
+      document_active_type: profile.document_active_type,
+      id_number:            profile.id_number ?? '',
+      passport_number:      profile.passport_number ?? '',
+      valid_through:        profile.valid_through ?? '',
+    })
+  }
 
   const saveTravelDoc = useMutation({
     mutationFn: async () => {
@@ -120,14 +128,25 @@ export const TravelDocContent = memo(function TravelDocContent({
     saveTravelDoc.reset()
   }
 
+  if (isLoading || !profile) {
+    return (
+      <div className="rounded-2xl p-6 h-full animate-pulse" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+        <div className="h-3 rounded w-1/2 mb-5" style={{ backgroundColor: 'var(--border-default)' }} />
+        <div className="space-y-3">
+          <div className="h-3 rounded w-3/4" style={{ backgroundColor: 'var(--border-default)' }} />
+          <div className="h-3 rounded w-1/2" style={{ backgroundColor: 'var(--border-default)' }} />
+        </div>
+      </div>
+    )
+  }
+
   const expiryState = getExpiryState(profile.valid_through)
   const docNumber = profile.document_active_type === 'passport'
     ? profile.passport_number
     : profile.id_number
 
-  // Expiry text shown in the grid cell (no date — pill carries the colour signal)
   function getExpiryText(): string {
-    if (!profile.valid_through) return '—'
+    if (!profile!.valid_through) return '—'
     if (expiryState === 'ok')       return t('profile.expiry.okLabel')
     if (expiryState === 'warning')  return t('profile.expiry.warning')
     if (expiryState === 'critical') return t('profile.expiry.critical')
