@@ -36,8 +36,8 @@ import { apiClient } from '@/lib/apiClient'
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type Props = {
-  profileId: string | null
-  role: string | null
+  profileId: string
+  role: string
   aboNumber: string | null
 }
 
@@ -75,24 +75,6 @@ const DEFAULT_ORDER: string[] = [
   BENTO_IDS.ADMIN,
 ]
 
-// ── Skeleton ──────────────────────────────────────────────────────────────────
-
-function ProfileSkeleton() {
-  return (
-    <div className="py-8 pb-16">
-      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 xl:px-8">
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: '12px' }}>
-          {[...Array(4)].map((_, i) => (
-            <div key={i} style={{ gridColumn: 'span 6', minHeight: BENTO_HEIGHT.M }} className="bento-mobile-full">
-              <div className="h-full rounded-2xl animate-pulse" style={{ backgroundColor: 'var(--border-default)' }} />
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  )
-}
-
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function ProfileClient({ profileId, role, aboNumber }: Props) {
@@ -105,24 +87,16 @@ export function ProfileClient({ profileId, role, aboNumber }: Props) {
     enabled: false, // never fetch from here — read cache only
   })
 
-  // ── Guard: no profile row yet ─────────────────────────────────────────────
-  if (!profileId || !role) return <ProfileSkeleton />
-
   const isGuest = role === 'guest' && !aboNumber
   const isAdmin = role === 'admin'
 
   // ── Layout state ─────────────────────────────────────────────────────────
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   const [bentoOrder, setBentoOrder]         = useState<string[]>(DEFAULT_ORDER)
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   const [bentoCollapsed, setBentoCollapsed] = useState<Record<string, boolean>>({})
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   const [layoutRestored, setLayoutRestored] = useState(false)
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   const persistDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // ── Restore persisted bento layout from full profile cache ───────────────
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
     if (layoutRestored || !fullProfile?.id) return
     const prefs = (fullProfile.ui_prefs ?? {}) as Record<string, unknown>
@@ -142,7 +116,6 @@ export function ProfileClient({ profileId, role, aboNumber }: Props) {
   }, [fullProfile?.id])
 
   // ── Persist bento prefs ───────────────────────────────────────────────────
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   const persistPrefs = useCallback((order: string[], collapsed: Record<string, boolean>) => {
     if (persistDebounceRef.current) clearTimeout(persistDebounceRef.current)
     persistDebounceRef.current = setTimeout(() => {
@@ -153,7 +126,6 @@ export function ProfileClient({ profileId, role, aboNumber }: Props) {
     }, 500)
   }, [])
 
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event
     if (!over || active.id === over.id) return
@@ -166,7 +138,6 @@ export function ProfileClient({ profileId, role, aboNumber }: Props) {
     })
   }, [bentoCollapsed, persistPrefs])
 
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   const toggleCollapse = useCallback((id: string) => {
     setBentoCollapsed(prev => {
       const next = { ...prev, [id]: !prev[id] }
@@ -175,10 +146,8 @@ export function ProfileClient({ profileId, role, aboNumber }: Props) {
     })
   }, [persistPrefs])
 
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   const orderedBentosRef = useRef<{ id: string; entry: { colSpan: number; minHeight: number; node: React.ReactNode } }[]>([])
 
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   const toggleAll = useCallback(() => {
     const ids = orderedBentosRef.current.map(b => b.id)
     if (ids.length === 0) return
@@ -191,14 +160,12 @@ export function ProfileClient({ profileId, role, aboNumber }: Props) {
     })
   }, [persistPrefs])
 
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   const resetLayout = useCallback(() => {
     setBentoOrder(DEFAULT_ORDER)
     setBentoCollapsed({})
     persistPrefs(DEFAULT_ORDER, {})
   }, [persistPrefs])
 
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
