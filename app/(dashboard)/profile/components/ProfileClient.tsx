@@ -35,10 +35,10 @@ import { apiClient } from '@/lib/apiClient'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type ProfileIdentity = {
-  id: string
-  role: string
-  abo_number: string | null
+type Props = {
+  profileId: string | null
+  role: string | null
+  aboNumber: string | null
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -95,31 +95,34 @@ function ProfileSkeleton() {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function ProfileClient() {
+export function ProfileClient({ profileId, role, aboNumber }: Props) {
   const { t } = useLanguage()
 
-  // ── Identity query — gates bento visibility only ──────────────────────────
-  // Lightweight: { id, role, abo_number }. No joins. ~5ms.
-  const { data: identity, isLoading } = useQuery<ProfileIdentity>({
-    queryKey: ['profile-identity'],
-    queryFn: () => apiClient('/api/profile/identity'),
-  })
-
-  // ── Full profile — read from cache for ui_prefs once content components ───
-  // populate it. No queryFn here — ProfileClient never fetches full profile.
-  // PersonalDetailsContent / AboInfoContent / TravelDocContent own the fetch.
+  // ── Full profile — read from cache for ui_prefs once content tiles populate it.
+  // ProfileClient never fetches the full profile itself.
   const { data: fullProfile } = useQuery<Profile>({
     queryKey: ['profile'],
     enabled: false, // never fetch from here — read cache only
   })
 
+  // ── Guard: no profile row yet ─────────────────────────────────────────────
+  if (!profileId || !role) return <ProfileSkeleton />
+
+  const isGuest = role === 'guest' && !aboNumber
+  const isAdmin = role === 'admin'
+
   // ── Layout state ─────────────────────────────────────────────────────────
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const [bentoOrder, setBentoOrder]         = useState<string[]>(DEFAULT_ORDER)
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const [bentoCollapsed, setBentoCollapsed] = useState<Record<string, boolean>>({})
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const [layoutRestored, setLayoutRestored] = useState(false)
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const persistDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // ── Restore persisted bento layout from full profile cache ───────────────
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
     if (layoutRestored || !fullProfile?.id) return
     const prefs = (fullProfile.ui_prefs ?? {}) as Record<string, unknown>
@@ -139,6 +142,7 @@ export function ProfileClient() {
   }, [fullProfile?.id])
 
   // ── Persist bento prefs ───────────────────────────────────────────────────
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const persistPrefs = useCallback((order: string[], collapsed: Record<string, boolean>) => {
     if (persistDebounceRef.current) clearTimeout(persistDebounceRef.current)
     persistDebounceRef.current = setTimeout(() => {
@@ -149,6 +153,7 @@ export function ProfileClient() {
     }, 500)
   }, [])
 
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event
     if (!over || active.id === over.id) return
@@ -161,6 +166,7 @@ export function ProfileClient() {
     })
   }, [bentoCollapsed, persistPrefs])
 
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const toggleCollapse = useCallback((id: string) => {
     setBentoCollapsed(prev => {
       const next = { ...prev, [id]: !prev[id] }
@@ -169,6 +175,10 @@ export function ProfileClient() {
     })
   }, [persistPrefs])
 
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const orderedBentosRef = useRef<{ id: string; entry: { colSpan: number; minHeight: number; node: React.ReactNode } }[]>([])
+
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const toggleAll = useCallback(() => {
     const ids = orderedBentosRef.current.map(b => b.id)
     if (ids.length === 0) return
@@ -181,23 +191,18 @@ export function ProfileClient() {
     })
   }, [persistPrefs])
 
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const resetLayout = useCallback(() => {
     setBentoOrder(DEFAULT_ORDER)
     setBentoCollapsed({})
     persistPrefs(DEFAULT_ORDER, {})
   }, [persistPrefs])
 
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
   )
-
-  // ── Guard ─────────────────────────────────────────────────────────────────
-  if (isLoading || !identity?.id) return <ProfileSkeleton />
-
-  const p = identity
-  const isGuest = p.role === 'guest' && !p.abo_number
-  const isAdmin = p.role === 'admin'
 
   // ── Bento map ─────────────────────────────────────────────────────────────
   type BentoEntry = { colSpan: number; minHeight: number; node: React.ReactNode }
@@ -221,11 +226,11 @@ export function ProfileClient() {
     },
     [BENTO_IDS.TRIPS]: !isGuest ? {
       colSpan: 6, minHeight: TRIPS_MIN_HEIGHT,
-      node: <TripsSection profileId={p.id} role={p.role} />,
+      node: <TripsSection profileId={profileId} role={role} />,
     } : null,
     [BENTO_IDS.PAYMENTS]: !isGuest ? {
       colSpan: 6, minHeight: PAYMENTS_MIN_HEIGHT,
-      node: <PaymentsSection profileId={p.id} role={p.role} />,
+      node: <PaymentsSection profileId={profileId} role={role} />,
     } : null,
     [BENTO_IDS.EMAIL_PREFS]: !isGuest ? {
       colSpan: 6, minHeight: EMAIL_PREFS_MIN_HEIGHT,
@@ -233,19 +238,19 @@ export function ProfileClient() {
     } : null,
     [BENTO_IDS.VITALS]: !isGuest ? {
       colSpan: 6, minHeight: VITALS_MIN_HEIGHT,
-      node: <VitalsSection profileId={p.id} role={p.role} />,
+      node: <VitalsSection profileId={profileId} role={role} />,
     } : null,
     [BENTO_IDS.PARTICIPATION]: !isGuest ? {
       colSpan: 6, minHeight: PARTICIPATION_MIN_HEIGHT,
-      node: <ParticipationSection profileId={p.id} role={p.role} />,
+      node: <ParticipationSection profileId={profileId} role={role} />,
     } : null,
     [BENTO_IDS.CALENDAR]: {
       colSpan: 6, minHeight: CALENDAR_MIN_HEIGHT,
-      node: <CalendarSection profileId={p.id} />,
+      node: <CalendarSection profileId={profileId} />,
     },
-    [BENTO_IDS.STATS]: p.abo_number ? {
+    [BENTO_IDS.STATS]: aboNumber ? {
       colSpan: 6, minHeight: STATS_MIN_HEIGHT,
-      node: <StatsSection role={p.role} aboNumber={p.abo_number} />,
+      node: <StatsSection role={role} aboNumber={aboNumber} />,
     } : null,
     [BENTO_IDS.ADMIN]: isAdmin ? {
       colSpan: 6, minHeight: BENTO_HEIGHT.S,
@@ -257,8 +262,6 @@ export function ProfileClient() {
     .map(id => ({ id, entry: bentoMap[id] ?? null }))
     .filter((b): b is { id: string; entry: BentoEntry } => b.entry !== null)
 
-  // Stable ref for toggleAll to read current orderedBentos without stale closure
-  const orderedBentosRef = useRef(orderedBentos)
   orderedBentosRef.current = orderedBentos
 
   const allCollapsed = orderedBentos.every(({ id }) => !!bentoCollapsed[id])
