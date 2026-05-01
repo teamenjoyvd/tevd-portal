@@ -4,13 +4,18 @@ import Link from 'next/link'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 
 type Props = {
-  title: string
-  content: string | null
+  titles: Record<string, string>
+  contents: Record<string, string> | null
   slug?: string | null
 }
 
-export default function AnnouncementTile({ title, content, slug }: Props) {
-  const { t } = useLanguage()
+export default function AnnouncementTile({ titles, contents, slug }: Props) {
+  const { lang, t } = useLanguage()
+
+  const resolve = (obj: Record<string, string> | null) =>
+    obj ? (obj[lang] ?? obj['en'] ?? Object.values(obj)[0] ?? null) : null
+  const title   = resolve(titles) ?? ''
+  const content = resolve(contents)
 
   return (
     <>

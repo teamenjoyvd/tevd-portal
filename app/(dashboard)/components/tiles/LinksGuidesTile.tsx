@@ -85,25 +85,22 @@ export default function LinksGuidesTile({
           className="flex items-center gap-2.5 px-2 py-[7px] rounded-lg hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
         >
           <span
-            className="flex-shrink-0 flex items-center justify-center rounded-[6px]"
-            style={{ width: 22, height: 22, background: '#bc474914' }}
-          >
-            <svg
-              width="11" height="11" viewBox="0 0 24 24" fill="none"
-              stroke="var(--text-secondary)" strokeWidth="2.5"
-              strokeLinecap="round" strokeLinejoin="round"
-            >
-              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-              <polyline points="15 3 21 3 21 9" />
-              <line x1="10" y1="14" x2="21" y2="3" />
-            </svg>
-          </span>
-          <span
             className="flex-1 text-[13px] font-medium truncate"
             style={{ color: 'var(--text-primary)' }}
           >
             {resolveLabel(link)}
           </span>
+          <svg
+            width="10" height="10" viewBox="0 0 24 24" fill="none"
+            stroke="var(--text-secondary)" strokeWidth="2.5"
+            strokeLinecap="round" strokeLinejoin="round"
+            aria-hidden="true"
+            style={{ flexShrink: 0 }}
+          >
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+            <polyline points="15 3 21 3 21 9" />
+            <line x1="10" y1="14" x2="21" y2="3" />
+          </svg>
         </a>
       ))}
 

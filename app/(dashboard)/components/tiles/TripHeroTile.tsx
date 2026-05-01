@@ -40,13 +40,13 @@ export default function TripHeroTile({ trip }: Props) {
       )}
       <div className="absolute top-0 left-0 right-0 flex items-start justify-end px-5 pt-5 z-10">
         <Link href="/trips" className="font-body text-[11px] font-bold tracking-widest uppercase pill-link-parchment">
-          Trips →
+          {t('home.trips.tripsLink')}
         </Link>
       </div>
       <div className="absolute bottom-0 left-0 right-0 px-5 pb-5 z-10">
         <span
-          className="inline-block font-body text-[10px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-full mb-2"
-          style={{ backgroundColor: 'rgba(255,255,255,0.18)', color: 'var(--brand-parchment)' }}
+          className="inline-block font-body text-[9px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-full mb-2"
+          style={{ backgroundColor: 'rgba(255,255,255,0.18)', color: 'var(--brand-parchment)', opacity: 0.55 }}
         >
           {t('home.trips.nextTrip')}
         </span>

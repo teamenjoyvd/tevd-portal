@@ -61,9 +61,7 @@ export default async function HomePage() {
   const events         = (eventsRes.data ?? []) as unknown as CalendarEvent[]
 
   const featuredAnnouncement = announcements[0] ?? null
-  const announcementTitle   = featuredAnnouncement?.titles?.en ?? featuredAnnouncement?.titles?.bg ?? null
-  const announcementContent = featuredAnnouncement?.contents?.en ?? featuredAnnouncement?.contents?.bg ?? null
-  const announcementSlug    = featuredAnnouncement?.slug ?? null
+  const announcementSlug     = featuredAnnouncement?.slug ?? null
   const nextTrip = trips[0] ?? null
 
   return (
@@ -111,7 +109,7 @@ export default async function HomePage() {
             style={{ gridColumn: '7 / span 3', gridRow: '2 / span 2' }}
           />
 
-          {featuredAnnouncement && announcementTitle && (
+          {featuredAnnouncement && Object.keys(featuredAnnouncement.titles).length > 0 && (
             <BentoCard
               variant="default"
               colSpan={3}
@@ -119,7 +117,11 @@ export default async function HomePage() {
               className="bento-tile flex flex-col"
               style={{ gridColumn: '1 / span 3', gridRow: '3 / span 1', animationDelay: '250ms' }}
             >
-              <AnnouncementTile title={announcementTitle} content={announcementContent} slug={announcementSlug} />
+              <AnnouncementTile
+                titles={featuredAnnouncement.titles}
+                contents={featuredAnnouncement.contents}
+                slug={announcementSlug}
+              />
             </BentoCard>
           )}
 
@@ -185,9 +187,13 @@ export default async function HomePage() {
           </BentoCard>
         )}
 
-        {featuredAnnouncement && announcementTitle && (
+        {featuredAnnouncement && Object.keys(featuredAnnouncement.titles).length > 0 && (
           <BentoCard variant="default" className="flex flex-col" style={{ minHeight: 200 }}>
-            <AnnouncementTile title={announcementTitle} content={announcementContent} slug={announcementSlug} />
+            <AnnouncementTile
+              titles={featuredAnnouncement.titles}
+              contents={featuredAnnouncement.contents}
+              slug={announcementSlug}
+            />
           </BentoCard>
         )}
 
