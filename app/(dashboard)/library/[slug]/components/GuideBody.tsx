@@ -41,6 +41,11 @@ function getContent(block: TextBlock, lang: string): string {
   return (block.content as Record<string, string>)[lang] ?? block.content.en ?? ''
 }
 
+function getCaption(block: ImageBlock, lang: string): string {
+  if (!block.caption) return ''
+  return (block.caption as Record<string, string>)[lang] ?? block.caption.en ?? ''
+}
+
 export default function GuideBody({
   blocks,
   lang,
@@ -48,123 +53,158 @@ export default function GuideBody({
   blocks: unknown[] | null
   lang: string
 }) {
-  const [lightbox, setLightbox] = useState<string | null>(null)
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
+  const [lightboxCaption, setLightboxCaption] = useState<string>('')
+
+  function openLightbox(url: string, caption: string) {
+    setLightboxUrl(url)
+    setLightboxCaption(caption)
+  }
+
+  function closeLightbox() {
+    setLightboxUrl(null)
+    setLightboxCaption('')
+  }
 
   if (!blocks || blocks.length === 0) return null
+
+  const typedBlocks = blocks as Block[]
+
+  // Collect runs of consecutive image blocks to render as thumbnail strips
+  const rendered: React.ReactNode[] = []
+  let i = 0
+
+  while (i < typedBlocks.length) {
+    const block = typedBlocks[i]
+
+    if (block.type === 'image') {
+      // Collect the full run of consecutive image blocks
+      const run: ImageBlock[] = []
+      while (i < typedBlocks.length && typedBlocks[i].type === 'image') {
+        run.push(typedBlocks[i] as ImageBlock)
+        i++
+      }
+
+      rendered.push(
+        <div key={`img-run-${i}`} className="flex flex-row flex-wrap gap-2">
+          {run.map((imgBlock, j) => {
+            if (!imgBlock.url) return null
+            const caption = getCaption(imgBlock, lang)
+            return (
+              <div key={j} className="flex flex-col items-center" style={{ width: 88 }}>
+                <button
+                  type="button"
+                  className="cursor-zoom-in rounded-lg overflow-hidden focus:outline-none focus-visible:ring-2"
+                  style={{ width: 88, height: 88, flexShrink: 0 }}
+                  onClick={() => openLightbox(imgBlock.url, caption)}
+                  aria-label={caption || 'View image'}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={imgBlock.url}
+                    alt={caption || ''}
+                    style={{ width: 88, height: 88, objectFit: 'cover', display: 'block' }}
+                  />
+                </button>
+                {caption && (
+                  <span
+                    className="mt-1 text-center leading-tight"
+                    style={{
+                      fontSize: 10,
+                      width: 88,
+                      color: 'var(--text-secondary)',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      display: 'block',
+                    }}
+                    title={caption}
+                  >
+                    {caption}
+                  </span>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )
+      continue
+    }
+
+    const content = getContent(block as TextBlock, lang)
+    if (!content) { i++; continue }
+
+    if (block.type === 'heading') {
+      rendered.push(
+        <h2
+          key={i}
+          className="font-display text-xl font-semibold pt-4"
+          style={{ color: 'var(--text-primary)' }}
+        >
+          {content}
+        </h2>
+      )
+    } else if (block.type === 'callout') {
+      rendered.push(
+        <BentoCard key={i} variant="edge-info" colSpan={12}>
+          <div className="flex items-start gap-3">
+            {block.emoji && (
+              <span className="text-xl flex-shrink-0 mt-0.5">{block.emoji}</span>
+            )}
+            <div
+              className="text-sm leading-relaxed font-body prose-sm"
+              style={{ color: 'var(--text-primary)' }}
+              dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }}
+            />
+          </div>
+        </BentoCard>
+      )
+    } else {
+      // paragraph
+      rendered.push(
+        <div
+          key={i}
+          className="text-base leading-relaxed font-body prose-sm"
+          style={{ color: 'var(--text-secondary)' }}
+          dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }}
+        />
+      )
+    }
+
+    i++
+  }
 
   return (
     <>
       <div className="guide-body max-w-2xl space-y-6">
-        {(blocks as Block[]).map((block, i) => {
-          if (block.type === 'image') {
-            if (!block.url) return null
-            const caption = block.caption
-              ? (block.caption as Record<string, string>)[lang] ?? block.caption.en ?? ''
-              : ''
-            return (
-              <figure key={i}>
-                <div
-                  className="relative overflow-hidden rounded-2xl cursor-zoom-in group"
-                  onClick={() => setLightbox(block.url)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') setLightbox(block.url) }}
-                  aria-label="Click to enlarge"
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={block.url}
-                    alt={caption || ''}
-                    className="w-full object-cover"
-                    style={{ maxHeight: 320, display: 'block' }}
-                  />
-                  {/* Hover overlay */}
-                  <div
-                    className="absolute inset-0 flex items-end justify-center pb-3 opacity-0 group-hover:opacity-100 transition-opacity"
-                    aria-hidden
-                  >
-                    <span
-                      className="text-xs font-semibold px-3 py-1.5 rounded-full"
-                      style={{ backgroundColor: 'rgba(0,0,0,0.6)', color: '#fff' }}
-                    >
-                      Click to enlarge
-                    </span>
-                  </div>
-                </div>
-                {caption && (
-                  <figcaption
-                    className="text-xs text-center mt-2 font-body"
-                    style={{ color: 'var(--text-secondary)' }}
-                  >
-                    {caption}
-                  </figcaption>
-                )}
-              </figure>
-            )
-          }
-
-          const content = getContent(block, lang)
-          if (!content) return null
-
-          if (block.type === 'heading') {
-            return (
-              <h2
-                key={i}
-                className="font-display text-xl font-semibold pt-4"
-                style={{ color: 'var(--text-primary)' }}
-              >
-                {content}
-              </h2>
-            )
-          }
-
-          if (block.type === 'callout') {
-            return (
-              <BentoCard key={i} variant="edge-info" colSpan={12}>
-                <div className="flex items-start gap-3">
-                  {block.emoji && (
-                    <span className="text-xl flex-shrink-0 mt-0.5">{block.emoji}</span>
-                  )}
-                  <div
-                    className="text-sm leading-relaxed font-body prose-sm"
-                    style={{ color: 'var(--text-primary)' }}
-                    dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }}
-                  />
-                </div>
-              </BentoCard>
-            )
-          }
-
-          // paragraph
-          return (
-            <div
-              key={i}
-              className="text-base leading-relaxed font-body prose-sm"
-              style={{ color: 'var(--text-secondary)' }}
-              dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }}
-            />
-          )
-        })}
+        {rendered}
       </div>
 
       {/* Lightbox */}
-      <Dialog open={!!lightbox} onOpenChange={open => { if (!open) setLightbox(null) }}>
-        <DialogOverlay
-          style={{ backgroundColor: 'rgba(0,0,0,0.85)' }}
-        />
+      <Dialog open={!!lightboxUrl} onOpenChange={open => { if (!open) closeLightbox() }}>
+        <DialogOverlay style={{ backgroundColor: 'rgba(0,0,0,0.85)' }} />
         <DialogContent
-          className="fixed inset-0 flex items-center justify-center p-4"
-          style={{ maxWidth: '100vw', backgroundColor: 'transparent', border: 'none', boxShadow: 'none' }}
+          className="bg-transparent border-none shadow-none p-0 max-w-[90vw] flex flex-col items-center gap-3 [&>button]:text-white [&>button]:opacity-100 [&>button]:bg-black/40 [&>button]:rounded-full [&>button]:p-1"
           aria-label="Image lightbox"
         >
-          {lightbox && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={lightbox}
-              alt=""
-              className="max-w-full rounded-xl"
-              style={{ maxHeight: '85vh', objectFit: 'contain', width: 'auto' }}
-            />
+          {lightboxUrl && (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={lightboxUrl}
+                alt={lightboxCaption || ''}
+                className="rounded-xl max-w-full"
+                style={{ maxHeight: '80vh', objectFit: 'contain', width: 'auto' }}
+              />
+              {lightboxCaption && (
+                <p
+                  className="text-sm text-center font-body"
+                  style={{ color: 'rgba(255,255,255,0.8)' }}
+                >
+                  {lightboxCaption}
+                </p>
+              )}
+            </>
           )}
         </DialogContent>
       </Dialog>
