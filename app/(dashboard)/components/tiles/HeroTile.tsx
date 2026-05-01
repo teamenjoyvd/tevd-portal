@@ -29,7 +29,7 @@ export default function HeroTile() {
       <div className="absolute inset-0 flex flex-col justify-end px-8 py-10 z-10">
         <div className="max-w-[58%]">
           <h1
-            className="font-serif leading-tight mb-2 text-[22px] md:text-[34px] font-black text-brand-parchment tracking-[-0.01em]"
+            className="font-serif leading-tight mb-2 text-[17px] md:text-[34px] font-black text-brand-parchment tracking-[-0.01em] whitespace-nowrap"
           >
             TEAMENJOYVD
           </h1>

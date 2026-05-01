@@ -14,9 +14,6 @@ export default function AboutTile() {
         </Link>
       </div>
       <div className="flex-1">
-        <h2 className="font-display text-xl font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>
-          Hey there!
-        </h2>
         <p
           className="font-body text-sm leading-relaxed"
           style={{
