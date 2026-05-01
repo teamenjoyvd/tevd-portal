@@ -15,6 +15,9 @@ export const home = {
   'home.guides.libraryLink': { en: 'Library →',            bg: 'Библиотека →'            },
   // TripHeroTile
   'home.trips.nextTrip':     { en: 'NEXT TRIP',            bg: 'СЛЕДВАЩО ПЪТУВАНЕ'       },
+  'home.trips.tripsLink':    { en: 'Trips →',              bg: 'Пътувания →'             },
+  // AboutTile
+  'home.about.aboutLink':    { en: 'About us →',           bg: 'За нас →'                },
   // ProfileTile
   'home.profile.there':      { en: 'there',                bg: 'приятел'                 },
   // SocialsTile
