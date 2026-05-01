@@ -51,8 +51,36 @@ export default function Footer() {
             ))}
           </nav>
 
-          {/* Col 3 — Socials + contact */}
+          {/* Col 3 — Socials + contact: Tickets → Mail → Instagram → Facebook */}
           <div className="flex items-center gap-3 md:justify-end">
+
+            {/* Tickets */}
+            <a href="https://epaygo.bg/3640737494" target="_blank" rel="noopener noreferrer"
+              aria-label="Tickets"
+              className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-white/10"
+              style={{ border: '1px solid rgba(255,255,255,0.15)' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                stroke="rgba(242,239,232,0.6)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="1" y="7" width="22" height="10" rx="2" ry="2"/>
+                <path d="M1 12h3M20 12h3"/>
+                <circle cx="4" cy="12" r="1.5" fill="var(--brand-forest)" stroke="rgba(242,239,232,0.6)" strokeWidth="1.8"/>
+                <circle cx="20" cy="12" r="1.5" fill="var(--brand-forest)" stroke="rgba(242,239,232,0.6)" strokeWidth="1.8"/>
+              </svg>
+            </a>
+
+            {/* Mail */}
+            <a href="mailto:teamenjoyvd@gmail.com"
+              aria-label="Email"
+              className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-white/10"
+              style={{ border: '1px solid rgba(255,255,255,0.15)' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                stroke="rgba(242,239,232,0.6)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <rect width="20" height="16" x="2" y="4" rx="2"/>
+                <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+              </svg>
+            </a>
+
+            {/* Instagram */}
             <a href="https://www.instagram.com/teamenjoyvd/" target="_blank" rel="noopener noreferrer"
               aria-label="Instagram"
               className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-white/10"
@@ -64,6 +92,8 @@ export default function Footer() {
                 <line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/>
               </svg>
             </a>
+
+            {/* Facebook */}
             <a href="https://www.facebook.com/teamenjoyvd/" target="_blank" rel="noopener noreferrer"
               aria-label="Facebook"
               className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-white/10"
@@ -72,16 +102,7 @@ export default function Footer() {
                 <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
               </svg>
             </a>
-            <a href="mailto:teamenjoyvd@gmail.com"
-              aria-label="Email"
-              className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-white/10"
-              style={{ border: '1px solid rgba(255,255,255,0.15)' }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                stroke="rgba(242,239,232,0.6)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <rect width="20" height="16" x="2" y="4" rx="2"/>
-                <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
-              </svg>
-            </a>
+
           </div>
 
         </div>

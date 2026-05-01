@@ -9,7 +9,7 @@
 export type NavItem = {
   href: string
   labels: { en: string; bg: string }
-  minRole?: 'member' | 'core' | 'admin'
+  minRole?: 'guest' | 'member' | 'core' | 'admin'
 }
 
 // Role hierarchy — higher rank = more access.
@@ -41,7 +41,7 @@ export const PUBLIC_NAV: NavItem[] = [
 export const MEMBER_NAV: NavItem[] = [
   { href: '/library', labels: { en: 'Library',    bg: 'Библиотека'  }, minRole: 'member' },
   { href: '/los',     labels: { en: 'My Network', bg: 'Моята мрежа' }, minRole: 'member' },
-  { href: '/profile', labels: { en: 'Profile',    bg: 'Профил'      }, minRole: 'member' },
+  { href: '/profile', labels: { en: 'Profile',    bg: 'Профил'      }, minRole: 'guest'  },
 ]
 
 // Footer and Header both show library + profile but not /los
