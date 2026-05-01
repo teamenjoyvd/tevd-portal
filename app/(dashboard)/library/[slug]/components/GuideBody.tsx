@@ -184,7 +184,7 @@ export default function GuideBody({
       <Dialog open={!!lightboxUrl} onOpenChange={open => { if (!open) closeLightbox() }}>
         <DialogOverlay style={{ backgroundColor: 'rgba(0,0,0,0.85)' }} />
         <DialogContent
-          className="bg-transparent border-none shadow-none p-0 max-w-[90vw] flex flex-col items-center gap-3 [&>button]:text-white [&>button]:opacity-100 [&>button]:bg-black/40 [&>button]:rounded-full [&>button]:p-1"
+          className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-transparent border-none shadow-none p-0 max-w-[90vw] flex flex-col items-center gap-3 [&>button]:text-white [&>button]:opacity-100 [&>button]:bg-black/40 [&>button]:rounded-full [&>button]:p-1"
           aria-label="Image lightbox"
         >
           {lightboxUrl && (
