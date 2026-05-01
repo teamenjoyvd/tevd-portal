@@ -38,7 +38,7 @@ export const AboInfoContent = memo(function AboInfoContent() {
   const { data: uplineData } = useQuery<UplineData>({
     queryKey: ['profile-upline'],
     queryFn: () => apiClient('/api/profile/upline'),
-    enabled: !!aboNumber,
+    enabled: role !== 'guest',
     staleTime: 10 * 60 * 1000,
   })
 
