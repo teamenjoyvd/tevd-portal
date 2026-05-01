@@ -105,9 +105,15 @@ body {
   z-index: 100 !important;
 }
 
-/* ── Guide body — list styling ── */
-/* Tailwind preflight strips browser default list styles globally.
+/* ── Guide body — list and paragraph styling ── */
+/* Tailwind preflight strips browser default list styles and margins globally.
    .guide-body scopes the restore to guide content only. */
+.guide-body p,
+.guide-body ul,
+.guide-body ol {
+  margin-bottom: 1rem;
+}
+
 .guide-body ol {
   list-style-type: decimal;
   margin-left: 1.5rem;
@@ -120,4 +126,10 @@ body {
 
 .guide-body li + li {
   margin-top: 0.25rem;
+}
+
+.guide-body p:last-child,
+.guide-body ul:last-child,
+.guide-body ol:last-child {
+  margin-bottom: 0;
 }
