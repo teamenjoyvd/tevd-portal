@@ -109,7 +109,7 @@ export default async function HomePage() {
             style={{ gridColumn: '7 / span 3', gridRow: '2 / span 2' }}
           />
 
-          {featuredAnnouncement && (
+          {featuredAnnouncement && Object.keys(featuredAnnouncement.titles).length > 0 && (
             <BentoCard
               variant="default"
               colSpan={3}
@@ -187,7 +187,7 @@ export default async function HomePage() {
           </BentoCard>
         )}
 
-        {featuredAnnouncement && (
+        {featuredAnnouncement && Object.keys(featuredAnnouncement.titles).length > 0 && (
           <BentoCard variant="default" className="flex flex-col" style={{ minHeight: 200 }}>
             <AnnouncementTile
               titles={featuredAnnouncement.titles}

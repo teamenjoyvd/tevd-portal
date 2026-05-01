@@ -12,8 +12,10 @@ type Props = {
 export default function AnnouncementTile({ titles, contents, slug }: Props) {
   const { lang, t } = useLanguage()
 
-  const title   = titles[lang] ?? titles['en'] ?? Object.values(titles)[0] ?? ''
-  const content = contents ? (contents[lang] ?? contents['en'] ?? Object.values(contents)[0] ?? null) : null
+  const resolve = (obj: Record<string, string> | null) =>
+    obj ? (obj[lang] ?? obj['en'] ?? Object.values(obj)[0] ?? null) : null
+  const title   = resolve(titles) ?? ''
+  const content = resolve(contents)
 
   return (
     <>
