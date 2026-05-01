@@ -9,32 +9,54 @@ export async function GET() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('abo_number')
+    .select('abo_number, upline_abo_number')
     .eq('clerk_id', userId)
     .single()
 
-  if (!profile?.abo_number) {
-    return Response.json({ upline_name: null, upline_abo_number: null })
+  // Determine which ABO to use for the los_members lookup.
+  // Standard path: profile.abo_number exists → look up sponsor via los_members.
+  // Manual path: abo_number is null but upline_abo_number was set at approval time
+  //              → use it directly as the upline ABO, then resolve the name.
+  const memberAbo = profile?.abo_number ?? null
+  const directUplineAbo = profile?.upline_abo_number ?? null
+
+  if (memberAbo) {
+    // Standard path: resolve sponsor via los_members tree
+    const { data: losMember } = await supabase
+      .from('los_members')
+      .select('sponsor_abo_number')
+      .eq('abo_number', memberAbo)
+      .single()
+
+    if (!losMember?.sponsor_abo_number) {
+      return Response.json({ upline_name: null, upline_abo_number: null })
+    }
+
+    const { data: upline } = await supabase
+      .from('los_members')
+      .select('abo_number, name')
+      .eq('abo_number', losMember.sponsor_abo_number)
+      .single()
+
+    return Response.json({
+      upline_name: upline?.name ?? null,
+      upline_abo_number: upline?.abo_number ?? losMember.sponsor_abo_number,
+    })
   }
 
-  const { data: losMember } = await supabase
-    .from('los_members')
-    .select('sponsor_abo_number')
-    .eq('abo_number', profile.abo_number)
-    .single()
+  if (directUplineAbo) {
+    // Manual path: upline ABO is already known, just resolve the name
+    const { data: upline } = await supabase
+      .from('los_members')
+      .select('abo_number, name')
+      .eq('abo_number', directUplineAbo)
+      .single()
 
-  if (!losMember?.sponsor_abo_number) {
-    return Response.json({ upline_name: null, upline_abo_number: null })
+    return Response.json({
+      upline_name: upline?.name ?? null,
+      upline_abo_number: upline?.abo_number ?? directUplineAbo,
+    })
   }
 
-  const { data: upline } = await supabase
-    .from('los_members')
-    .select('abo_number, name')
-    .eq('abo_number', losMember.sponsor_abo_number)
-    .single()
-
-  return Response.json({
-    upline_name: upline?.name ?? null,
-    upline_abo_number: upline?.abo_number ?? null,
-  })
+  return Response.json({ upline_name: null, upline_abo_number: null })
 }
