@@ -54,7 +54,7 @@ export default function GuideBody({
 
   return (
     <>
-      <div className="max-w-2xl space-y-6">
+      <div className="guide-body max-w-2xl space-y-6">
         {(blocks as Block[]).map((block, i) => {
           if (block.type === 'image') {
             if (!block.url) return null
