@@ -40,7 +40,7 @@ export async function GET() {
 
     return Response.json({
       upline_name: upline?.name ?? null,
-      upline_abo_number: upline?.abo_number ?? null,
+      upline_abo_number: upline?.abo_number ?? losMember.sponsor_abo_number,
     })
   }
 
