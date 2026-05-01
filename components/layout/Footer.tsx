@@ -63,8 +63,8 @@ export default function Footer() {
                 stroke="rgba(242,239,232,0.6)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="1" y="7" width="22" height="10" rx="2" ry="2"/>
                 <path d="M1 12h3M20 12h3"/>
-                <circle cx="4" cy="12" r="1.5" fill="var(--brand-forest)" stroke="rgba(242,239,232,0.6)" strokeWidth="1.8"/>
-                <circle cx="20" cy="12" r="1.5" fill="var(--brand-forest)" stroke="rgba(242,239,232,0.6)" strokeWidth="1.8"/>
+                <circle cx="4" cy="12" r="1.5" fill="transparent"/>
+                <circle cx="20" cy="12" r="1.5" fill="transparent"/>
               </svg>
             </a>
 
