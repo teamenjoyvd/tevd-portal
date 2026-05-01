@@ -104,3 +104,20 @@ body {
 [data-radix-popper-content-wrapper] {
   z-index: 100 !important;
 }
+
+/* ── Guide body — list styling ── */
+/* Tailwind preflight strips browser default list styles globally.
+   .guide-body scopes the restore to guide content only. */
+.guide-body ol {
+  list-style-type: decimal;
+  margin-left: 1.5rem;
+}
+
+.guide-body ul {
+  list-style-type: disc;
+  margin-left: 1.5rem;
+}
+
+.guide-body li + li {
+  margin-top: 0.25rem;
+}
