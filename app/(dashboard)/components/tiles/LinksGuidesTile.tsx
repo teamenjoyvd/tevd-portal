@@ -111,12 +111,6 @@ export default function LinksGuidesTile({
           className="flex items-center gap-2.5 px-2 py-[7px] rounded-lg hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
         >
           <span
-            className="flex-shrink-0 flex items-center justify-center"
-            style={{ width: 22, height: 22, fontSize: 14 }}
-          >
-            {g.emoji ?? '📄'}
-          </span>
-          <span
             className="flex-1 text-[13px] font-medium truncate"
             style={{ color: 'var(--text-primary)' }}
           >
