@@ -54,9 +54,16 @@ export function ParticipationSection({ profileId, role }: { profileId: string; r
     <>
       <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
         <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-6 pr-16" style={{ color: 'var(--brand-crimson)' }}>{t('profile.participation')}</p>
-        <div className="space-y-2">
-          {visible.map(er => <RoleRow key={er.id} er={er} />)}
-        </div>
+        {roles.length === 0 ? (
+          <div className="space-y-1">
+            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('profile.participation.empty')}</p>
+            <p className="text-xs" style={{ color: 'var(--text-secondary)', opacity: 0.7 }}>{t('profile.participation.emptyHint')}</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {visible.map(er => <RoleRow key={er.id} er={er} />)}
+          </div>
+        )}
         {overflow > 0 && <ShowMoreButton count={overflow} onClick={() => setDrawerOpen(true)} />}
       </div>
 

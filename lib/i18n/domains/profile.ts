@@ -97,6 +97,7 @@ export const profile = {
   'profile.allVitalSigns':            { en: 'All Vital Signs',                                  bg: 'Всички жизнени показатели'                       },
   'profile.vitalRecorded':            { en: '✓ Recorded',                                       bg: '✓ Записано'                                      },
   'profile.vitalNotRecorded':         { en: '○ Not recorded',                                   bg: '○ Не е записано'                                 },
+  'profile.vitalSigns.adminNote':     { en: 'Your coach logs these after events.',               bg: 'Вашият треньор записва тези след събития.'        },
   // StatsSection
   'profile.stats':                    { en: 'STATS',                                            bg: 'СТАТИСТИКА'                                      },
   'profile.statsDepth':               { en: 'Depth',                                            bg: 'Дълбочина'                                       },
@@ -106,9 +107,13 @@ export const profile = {
   // ParticipationSection
   'profile.participation':            { en: 'Participation',                                    bg: 'Участие'                                         },
   'profile.allParticipation':         { en: 'All Participation',                                bg: 'Всички участия'                                  },
+  'profile.participation.empty':      { en: 'No activity logged yet. Your participation in meetings will appear here over time.', bg: 'Няма записана активност. Участието ви в срещи ще се появи тук с времето.' },
+  'profile.participation.emptyHint':  { en: 'To request participation, visit the Calendar section.', bg: 'За да заявите участие, посетете раздела с Календар.' },
   // TripsSection
   'profile.trips':                    { en: 'Trips',                                            bg: 'Пътувания'                                       },
   'profile.allTrips':                 { en: 'All Trips',                                        bg: 'Всички пътувания'                                },
+  'profile.trips.empty':              { en: 'No trips logged yet. Your trips participation will appear here over time.', bg: 'Няма записани пътувания. Участието ви в пътувания ще се появи тук с времето.' },
+  'profile.trips.emptyHint':          { en: 'To join a trip, visit the Trips section.',         bg: 'За да се присъедините към пътуване, посетете раздела с Пътувания.' },
   // SortableBento
   'profile.bento.personalDetails':    { en: 'Personal Details',      bg: 'Лични данни'                     },
   'profile.bento.aboInfo':            { en: 'ABO Information',        bg: 'ABO Информация'                  },

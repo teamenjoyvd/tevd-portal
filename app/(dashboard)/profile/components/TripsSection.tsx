@@ -42,11 +42,18 @@ export function TripsSection({ profileId, role }: { profileId: string; role: str
     <>
       <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
         <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-4 pr-16" style={{ color: 'var(--brand-crimson)' }}>{t('profile.trips')}</p>
-        <div className="space-y-2">
-          {visible.map(entry => (
-            <TripRow key={entry.registration_id} entry={entry} onCancel={handleCancel} cancelPending={cancelTrip.isPending} />
-          ))}
-        </div>
+        {trips.length === 0 ? (
+          <div className="space-y-1">
+            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('profile.trips.empty')}</p>
+            <p className="text-xs" style={{ color: 'var(--text-secondary)', opacity: 0.7 }}>{t('profile.trips.emptyHint')}</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {visible.map(entry => (
+              <TripRow key={entry.registration_id} entry={entry} onCancel={handleCancel} cancelPending={cancelTrip.isPending} />
+            ))}
+          </div>
+        )}
         {overflow > 0 && <ShowMoreButton count={overflow} onClick={() => setDrawerOpen(true)} />}
       </div>
 
