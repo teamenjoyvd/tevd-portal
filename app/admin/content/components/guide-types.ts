@@ -1,11 +1,19 @@
 // Shared domain types and utilities for guide/news content.
 // No 'use client' — plain TypeScript module.
 
-export type Block = {
+export type TextBlock = {
   type: 'heading' | 'paragraph' | 'callout'
   content: { en: string; bg: string }
   emoji?: string
 }
+
+export type ImageBlock = {
+  type: 'image'
+  url: string
+  caption?: { en: string; bg: string }
+}
+
+export type Block = TextBlock | ImageBlock
 
 export type Guide = {
   id: string

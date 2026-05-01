@@ -2,18 +2,10 @@ import { auth } from '@clerk/nextjs/server'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { marked } from 'marked'
-import sanitizeHtml from 'sanitize-html'
 import { createServiceClient } from '@/lib/supabase/service'
-import BentoCard from '@/components/bento/BentoCard'
 import { translate } from '@/lib/i18n/translations'
 import type { Lang } from '@/lib/i18n/translations'
-
-type Block = {
-  type: 'heading' | 'paragraph' | 'callout'
-  content: { en: string; bg: string }
-  emoji?: string
-}
+import GuideBody from './components/GuideBody'
 
 type Guide = {
   id: string
@@ -21,27 +13,8 @@ type Guide = {
   title: { en: string; bg: string }
   emoji: string | null
   cover_image_url: string | null
-  body: Block[]
+  body: unknown[] | null
   access_roles: string[]
-}
-
-function getContent(block: Block, lang: string): string {
-  return (block.content as Record<string, string>)[lang]
-    ?? block.content.en
-    ?? ''
-}
-
-// Allowlist for sanitize-html: inline formatting only.
-// No anchors, no iframes, no script — just typographic markup.
-const SANITIZE_OPTS: sanitizeHtml.IOptions = {
-  allowedTags: ['strong', 'em', 'code', 'del', 'u', 'br'],
-  allowedAttributes: {},
-}
-
-// Parse inline markdown then sanitize to allowlisted tags only.
-function renderInline(text: string): string {
-  const raw = marked.parseInline(text, { async: false }) as string
-  return sanitizeHtml(raw, SANITIZE_OPTS)
 }
 
 export default async function LibraryDetailPage({
@@ -108,7 +81,7 @@ export default async function LibraryDetailPage({
         </div>
       )}
 
-      {/* Title — shown below image, only once */}
+      {/* Title */}
       <h1
         className="font-display text-3xl font-semibold leading-tight mb-8"
         style={{ color: 'var(--text-primary)' }}
@@ -117,45 +90,7 @@ export default async function LibraryDetailPage({
       </h1>
 
       {/* Body */}
-      <div className="max-w-2xl space-y-6">
-        {(g.body as Block[]).map((block, i) => {
-          const content = getContent(block, lang)
-          if (!content) return null
-
-          if (block.type === 'heading') {
-            return (
-              <h2 key={i} className="font-display text-xl font-semibold pt-4"
-                style={{ color: 'var(--text-primary)' }}>
-                {content}
-              </h2>
-            )
-          }
-
-          if (block.type === 'callout') {
-            return (
-              <BentoCard key={i} variant="edge-info" colSpan={12}>
-                <div className="flex items-start gap-3">
-                  {block.emoji && (
-                    <span className="text-xl flex-shrink-0 mt-0.5">{block.emoji}</span>
-                  )}
-                  <p className="text-sm leading-relaxed font-body"
-                    style={{ color: 'var(--text-primary)' }}
-                    dangerouslySetInnerHTML={{ __html: renderInline(content) }}
-                  />
-                </div>
-              </BentoCard>
-            )
-          }
-
-          // paragraph
-          return (
-            <p key={i} className="text-base leading-relaxed font-body"
-              style={{ color: 'var(--text-secondary)' }}
-              dangerouslySetInnerHTML={{ __html: renderInline(content) }}
-            />
-          )
-        })}
-      </div>
+      <GuideBody blocks={g.body} lang={lang} />
     </div>
   )
 }

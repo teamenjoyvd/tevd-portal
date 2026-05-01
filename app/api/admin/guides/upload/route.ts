@@ -17,7 +17,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   if (!file) return NextResponse.json({ error: 'No file provided' }, { status: 400 })
 
   const ext = file.name.split('.').pop() ?? 'bin'
-  const fileName = `covers/${Date.now()}.${ext}`
+  // ?type=image uploads go to images/ prefix; everything else is a cover
+  const type = req.nextUrl.searchParams.get('type')
+  const prefix = type === 'image' ? 'images' : 'covers'
+  const fileName = `${prefix}/${Date.now()}.${ext}`
 
   const arrayBuffer = await file.arrayBuffer()
   const buffer = Buffer.from(arrayBuffer)
