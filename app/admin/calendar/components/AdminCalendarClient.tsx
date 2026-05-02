@@ -288,7 +288,7 @@ export default function AdminCalendarClient() {
                 </div>
                 <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
                   {formatDateTime(ev.start_time)} → {formatDateTime(ev.end_time)} · W{ev.week_number}
-                  {' · '}{ev.access_roles.join(', ')}
+                  {' · '}{(ev.access_roles ?? []).join(', ')}
                 </p>
               </div>
               <div className="flex items-center gap-3 flex-shrink-0">
