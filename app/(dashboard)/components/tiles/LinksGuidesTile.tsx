@@ -17,8 +17,8 @@ export type Guide = {
   emoji: string | null
 }
 
-const MAX_LINKS  = 2
-const MAX_GUIDES = 2
+const MAX_LINKS  = 6
+const MAX_GUIDES = 6
 
 function normaliseUrl(raw: string): string {
   const trimmed = raw.trim()

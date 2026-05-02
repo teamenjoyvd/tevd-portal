@@ -17,7 +17,7 @@ export type EventFormState = {
   week_number: number
   category: 'N21' | 'Personal'
   event_type: 'in-person' | 'online' | 'hybrid' | null
-  visibility_roles: string[]
+  access_roles: string[]
   meeting_url: string
   allow_guest_registration: boolean
   available_roles: string[]
@@ -32,7 +32,7 @@ export function emptyForm(): EventFormState {
     week_number: 0,
     category: 'N21',
     event_type: null,
-    visibility_roles: [...ALL_ROLES],
+    access_roles: [...ALL_ROLES],
     meeting_url: '',
     allow_guest_registration: true,
     available_roles: [...DEFAULT_AVAILABLE_ROLES],
@@ -151,12 +151,12 @@ export function EventForm({
             {ALL_ROLES.map(role => (
               <button key={role} type="button" onClick={() => setF(p => ({
                 ...p,
-                visibility_roles: p.visibility_roles.includes(role)
-                  ? p.visibility_roles.filter(r => r !== role)
-                  : [...p.visibility_roles, role],
+                access_roles: p.access_roles.includes(role)
+                  ? p.access_roles.filter(r => r !== role)
+                  : [...p.access_roles, role],
               }))}
                 className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
-                style={{ backgroundColor: f.visibility_roles.includes(role) ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)', color: f.visibility_roles.includes(role) ? 'var(--brand-parchment)' : 'var(--text-secondary)' }}>
+                style={{ backgroundColor: f.access_roles.includes(role) ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)', color: f.access_roles.includes(role) ? 'var(--brand-parchment)' : 'var(--text-secondary)' }}>
                 {role}
               </button>
             ))}

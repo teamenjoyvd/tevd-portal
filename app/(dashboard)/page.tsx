@@ -40,18 +40,18 @@ export default async function HomePage() {
   const [announcementsRes, linksRes, tripsRes, guidesRes, eventsRes] = await Promise.all([
     supabase.from('announcements').select('id, titles, contents, is_active, slug').eq('is_active', true)
       .contains('access_roles', [role]).order('created_at', { ascending: false }).limit(5),
-    supabase.from('links').select('id, label, url').eq('is_active', true).contains('access_roles', [role]).order('sort_order').limit(4),
+    supabase.from('links').select('id, label, url').eq('is_active', true).contains('access_roles', [role]).order('sort_order').limit(6),
     supabase.from('trips').select('id, title, destination, start_date, image_url')
-      .contains('visibility_roles', [role]).order('start_date').limit(3),
+      .contains('access_roles', [role]).order('start_date').limit(3),
     supabase.from('guides').select('id, slug, title, emoji')
       .eq('is_published', true).contains('access_roles', [role])
-      .order('created_at', { ascending: false }).limit(4),
+      .order('created_at', { ascending: false }).limit(6),
     supabase.from('calendar_events')
       .select('id, title, start_time, end_time, event_type')
-      .contains('visibility_roles', [role])
+      .contains('access_roles', [role])
       .gte('start_time', new Date().toISOString())
       .order('start_time')
-      .limit(3),
+      .limit(5),
   ])
 
   const announcements  = (announcementsRes.data ?? []) as unknown as Announcement[]
