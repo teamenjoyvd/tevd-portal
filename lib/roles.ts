@@ -26,7 +26,10 @@ const ROLE_MAP: Record<MemberRole, 1> = {
  * All roles as a typed array. Safe to spread into Supabase array columns,
  * visibility_roles defaults, and UI role pickers.
  *
+ * Frozen to prevent accidental runtime mutation of this global constant.
+ * Spread at call sites when a mutable array is required: `[...ALL_ROLES]`.
+ *
  * The `Object.keys` cast is intentional and safe: keys are exactly the enum
  * members by construction of the Record constraint above.
  */
-export const ALL_ROLES = Object.keys(ROLE_MAP) as MemberRole[]
+export const ALL_ROLES = Object.freeze(Object.keys(ROLE_MAP)) as readonly MemberRole[]
