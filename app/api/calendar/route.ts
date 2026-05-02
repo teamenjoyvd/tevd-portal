@@ -20,9 +20,9 @@ export async function GET(req: Request) {
   let query = supabase
     .from('calendar_events')
     .select('*')
-    // Include events where visibility_roles contains the user's role,
-    // OR where visibility_roles is null (safe fallback for manually created events).
-    .or(`visibility_roles.cs.{${role}},visibility_roles.is.null`)
+    // Include events where access_roles contains the user's role,
+    // OR where access_roles is null (safe fallback for manually created events).
+    .or(`access_roles.cs.{${role}},access_roles.is.null`)
     .order('start_time')
 
   if (month) {
@@ -34,9 +34,10 @@ export async function GET(req: Request) {
     ).toISOString()
     query = query.gte('start_time', start).lt('start_time', end)
   } else {
-    // Agenda: fetch from this exact moment — not UTC midnight — so events
-    // earlier today that haven't ended yet and future events are all included.
-    query = query.gte('start_time', new Date().toISOString())
+    // Agenda: fetch 18 months back through all future events so users
+    // can browse past and upcoming events in the same view.
+    const eighteenMonthsAgo = new Date(Date.now() - 18 * 30 * 24 * 60 * 60 * 1000).toISOString()
+    query = query.gte('start_time', eighteenMonthsAgo)
   }
 
   const { data, error } = await query

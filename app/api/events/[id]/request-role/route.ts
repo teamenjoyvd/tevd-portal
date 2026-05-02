@@ -19,6 +19,21 @@ export async function POST(
     return Response.json({ error: 'Forbidden' }, { status: 403 })
   }
 
+  // Enforce 15-minute cutoff before event start. Admins bypass this gate.
+  if (profile.role !== 'admin') {
+    const { data: event } = await supabase
+      .from('calendar_events')
+      .select('start_time')
+      .eq('id', event_id)
+      .single()
+    if (event) {
+      const cutoff = new Date(event.start_time).getTime() - 15 * 60 * 1000
+      if (Date.now() >= cutoff) {
+        return Response.json({ error: 'Role requests closed' }, { status: 403 })
+      }
+    }
+  }
+
   const { role_label, note } = await req.json()
   if (!role_label) return Response.json({ error: 'role_label required' }, { status: 400 })
 

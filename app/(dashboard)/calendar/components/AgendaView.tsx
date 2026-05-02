@@ -18,15 +18,16 @@ export function AgendaView({
 }) {
   const { t } = useLanguage()
   const highlightRef = useRef<HTMLButtonElement | null>(null)
+  const todayRef = useRef<HTMLDivElement | null>(null)
+
+  const todaySofia = SOFIA_DATE_FMT.format(new Date())
 
   const grouped = useMemo(() => {
-    const todayKey = SOFIA_DATE_FMT.format(new Date())
     const map: Record<string, CalendarEvent[]> = {}
     events
-      .filter(e => SOFIA_DATE_FMT.format(new Date(e.start_time)) >= todayKey)
+      .slice()
       .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
       .forEach(e => {
-        // Group by Sofia-local date to avoid UTC midnight bucketing errors
         const key = SOFIA_DATE_FMT.format(new Date(e.start_time))
         if (!map[key]) map[key] = []
         map[key].push(e)
@@ -34,9 +35,12 @@ export function AgendaView({
     return map
   }, [events])
 
+  // Scroll to highlighted event if present, otherwise scroll to today.
   useEffect(() => {
     if (highlightRef.current) {
       highlightRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    } else if (todayRef.current) {
+      todayRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
   }, [grouped])
 
@@ -63,19 +67,19 @@ export function AgendaView({
     )
   }
 
-  // Current day in Sofia — computed once outside the loop for correctness and
-  // efficiency. Comparing against the already-Sofia-local dateKey is more
-  // reliable than constructing a local Date and calling sameDaySofia.
-  const todaySofia = SOFIA_DATE_FMT.format(new Date())
-
   return (
     <div className="overflow-y-auto px-4 py-2" style={{ height: 'var(--cal-height)', minHeight: 300 }}>
       {dates.map(dateKey => {
-        // Anchor to UTC noon to prevent TZ offset from shifting the displayed date
         const date = new Date(`${dateKey}T12:00:00Z`)
         const isToday = dateKey === todaySofia
+        const isPast = dateKey < todaySofia
         return (
-          <div key={dateKey} className="mb-6">
+          <div
+            key={dateKey}
+            ref={isToday ? todayRef : null}
+            className="mb-6"
+            style={{ opacity: isPast ? 0.5 : 1 }}
+          >
             <div className="flex items-center gap-3 mb-2 sticky top-0 py-2" style={{ backgroundColor: 'var(--bg-global)' }}>
               <div
                 className="flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold"
