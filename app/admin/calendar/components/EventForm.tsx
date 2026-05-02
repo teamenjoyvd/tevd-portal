@@ -3,8 +3,8 @@
 import { useState } from 'react'
 import { fromSofiaLocalInput } from '@/lib/format'
 import { useLanguage } from '@/lib/hooks/useLanguage'
+import { ALL_ROLES } from '@/lib/roles'
 
-export const ALL_ROLES = ['guest', 'member', 'core', 'admin']
 export const CATEGORIES = ['N21', 'Personal'] as const
 export const EVENT_TYPES = ['in-person', 'online', 'hybrid'] as const
 export const DEFAULT_AVAILABLE_ROLES = ['HOST', 'SPEAKER', 'PRODUCTS']

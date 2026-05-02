@@ -5,7 +5,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { formatDateTime, toSofiaLocalInput } from '@/lib/format'
 import { Drawer } from '@/components/ui/drawer'
 import { useLanguage } from '@/lib/hooks/useLanguage'
-import { EventForm, emptyForm, normalizeFormTimes, ALL_ROLES, DEFAULT_AVAILABLE_ROLES, type EventFormState } from './EventForm'
+import { ALL_ROLES } from '@/lib/roles'
+import { EventForm, emptyForm, normalizeFormTimes, DEFAULT_AVAILABLE_ROLES, type EventFormState } from './EventForm'
 import { Pill } from './Pill'
 
 type CalEvent = {
@@ -35,7 +36,7 @@ export default function AdminCalendarClient() {
   const [form, setForm] = useState<EventFormState>(emptyForm())
   const [formError, setFormError] = useState<string | null>(null)
 
-  // ── Filter state ──────────────────────────────────────────────────────────
+  // ── Filter state ─────────────────────────────────────────────────────────────────────
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('All')
   const [timeScope, setTimeScope] = useState<TimeScope>('upcoming')
@@ -46,7 +47,7 @@ export default function AdminCalendarClient() {
     queryFn: () => fetch('/api/admin/calendar').then(async r => { if (!r.ok) throw new Error('Failed to fetch events'); return r.json() }),
   })
 
-  // ── Derived filter options ────────────────────────────────────────────────
+  // ── Derived filter options ───────────────────────────────────────────────────────────
   const availableMonths = useMemo(() => {
     const seen = new Set<string>()
     const months: { value: string; label: string }[] = []
@@ -70,7 +71,7 @@ export default function AdminCalendarClient() {
     setMonthFilter('')
   }
 
-  // ── Filtered events ───────────────────────────────────────────────────────
+  // ── Filtered events ───────────────────────────────────────────────────────────────────
   const now = new Date()
   const filteredEvents = useMemo(() => {
     return events.filter(ev => {
@@ -175,7 +176,7 @@ export default function AdminCalendarClient() {
         </button>
       </div>
 
-      {/* ── Filter bar ─────────────────────────────────────────────────────── */}
+      {/* ── Filter bar ──────────────────────────────────────────────────────────────────── */}
       <div className="space-y-2.5">
         <div className="flex gap-2 flex-wrap">
           <div className="relative flex-1 min-w-[180px]">
@@ -231,7 +232,7 @@ export default function AdminCalendarClient() {
         </div>
       </div>
 
-      {/* ── Event list ─────────────────────────────────────────────────────── */}
+      {/* ── Event list ──────────────────────────────────────────────────────────────────── */}
       {isLoading ? (
         <div className="space-y-2">
           {[...Array(4)].map((_, i) => (
