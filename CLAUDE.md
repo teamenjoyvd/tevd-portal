@@ -247,7 +247,7 @@ BUILD verifies both at startup. If either section is absent or any checklist ite
 | Clerk shadow DOM | CSS vars unavailable in Clerk components. Use hardcoded hex (`#bc4749`). |
 | Role promotion | Every `profiles.role` update MUST also call `clerk.users.updateUserMetadata`. Routes: `/api/admin/verify`, `/api/admin/members/[id]` PATCH, `/api/admin/members/verify/[id]`. |
 | `payments` FK | Two FKs to `profiles`. PostgREST MUST use `profiles!profile_id(...)` — without it, 500. |
-| `types/supabase.ts` | Regenerate via `Supabase:generate_typescript_types` MCP only — CLI not installed. |
+| `types/supabase.ts` | Regenerate via `Supabase:generate_typescript_types` MCP only — CLI not installed. Regeneration is mandatory after any migration that touches an enum; `lib/roles.ts` derives `MemberRole` and `ALL_ROLES` from this file and will emit a compile error on missing/extra keys. |
 | Supabase DDL | `apply_migration` only. Never raw `execute_sql` for DDL. Always save to `supabase/migrations/YYYYMMDDNNNNNN_name.sql`. |
 | Large GitHub files | `create_or_update_file` times out above ~10KB. Use `push_files`. |
 | Mapbox | CDN only — never npm. Dupe guard on load. |
@@ -266,9 +266,3 @@ BUILD verifies both at startup. If either section is absent or any checklist ite
 | `BottomNav.tsx` | Dead stub. Do not import. |
 | Profile prerender | Guard ALL `validProfile!` accesses with `if (isLoading \|\| !validProfile) return <ProfileSkeleton />`. |
 | `TeamAttendee` type | Exported from `app/(dashboard)/trips/[id]/page.tsx`. Do not redeclare. |
-
----
-
-## When This File Is Wrong
-
-If any instruction contradicts Next.js 16 / Clerk v7 / Supabase current SDK behaviour — stop, state the contradiction, cite correct behaviour, ask for a decision.

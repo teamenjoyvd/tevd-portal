@@ -1,5 +1,6 @@
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { ALL_ROLES } from '@/lib/roles'
 
 export async function GET() {
   const supabase = createServiceClient()
@@ -48,7 +49,7 @@ export async function POST(req: Request) {
       currency:           'EUR',
       total_cost:         body.total_cost ?? 0,
       milestones:         body.milestones ?? [],
-      visibility_roles:   body.visibility_roles ?? ['guest', 'member', 'core', 'admin'],
+      visibility_roles:   body.visibility_roles ?? ALL_ROLES,
       location:           body.location ?? null,
       accommodation_type: body.accommodation_type ?? null,
       inclusions:         body.inclusions ?? [],
