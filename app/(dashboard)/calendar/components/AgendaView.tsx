@@ -18,7 +18,7 @@ export function AgendaView({
 }) {
   const { t } = useLanguage()
   const highlightRef = useRef<HTMLButtonElement | null>(null)
-  const todayRef = useRef<HTMLDivElement | null>(null)
+  const anchorRef = useRef<HTMLDivElement | null>(null)
 
   const todaySofia = SOFIA_DATE_FMT.format(new Date())
 
@@ -26,7 +26,7 @@ export function AgendaView({
     const map: Record<string, CalendarEvent[]> = {}
     events
       .slice()
-      .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
+      .sort((a, b) => a.start_time.localeCompare(b.start_time))
       .forEach(e => {
         const key = SOFIA_DATE_FMT.format(new Date(e.start_time))
         if (!map[key]) map[key] = []
@@ -35,14 +35,21 @@ export function AgendaView({
     return map
   }, [events])
 
-  // Scroll to highlighted event if present, otherwise scroll to today.
+  // The anchor is the first date >= today (i.e. today if it has events, otherwise
+  // the next upcoming date). Falls back to the last date if all events are past.
+  const anchorDateKey = useMemo(() => {
+    const dates = Object.keys(grouped)
+    return dates.find(d => d >= todaySofia) ?? dates[dates.length - 1]
+  }, [grouped, todaySofia])
+
+  // Scroll to highlighted event if present, otherwise scroll to anchor date.
   useEffect(() => {
     if (highlightRef.current) {
       highlightRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    } else if (todayRef.current) {
-      todayRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    } else if (anchorRef.current) {
+      anchorRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
-  }, [grouped])
+  }, [grouped, highlightId])
 
   const dates = Object.keys(grouped)
 
@@ -76,7 +83,7 @@ export function AgendaView({
         return (
           <div
             key={dateKey}
-            ref={isToday ? todayRef : null}
+            ref={dateKey === anchorDateKey ? anchorRef : null}
             className="mb-6"
             style={{ opacity: isPast ? 0.5 : 1 }}
           >

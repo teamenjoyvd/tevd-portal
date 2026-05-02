@@ -26,11 +26,10 @@ export async function POST(
       .select('start_time')
       .eq('id', event_id)
       .single()
-    if (event) {
-      const cutoff = new Date(event.start_time).getTime() - 15 * 60 * 1000
-      if (Date.now() >= cutoff) {
-        return Response.json({ error: 'Role requests closed' }, { status: 403 })
-      }
+    if (!event) return Response.json({ error: 'Event not found' }, { status: 404 })
+    const cutoff = new Date(event.start_time).getTime() - 15 * 60 * 1000
+    if (Date.now() >= cutoff) {
+      return Response.json({ error: 'Role requests closed' }, { status: 403 })
     }
   }
 

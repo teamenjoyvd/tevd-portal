@@ -36,8 +36,9 @@ export async function GET(req: Request) {
   } else {
     // Agenda: fetch 18 months back through all future events so users
     // can browse past and upcoming events in the same view.
-    const eighteenMonthsAgo = new Date(Date.now() - 18 * 30 * 24 * 60 * 60 * 1000).toISOString()
-    query = query.gte('start_time', eighteenMonthsAgo)
+    const eighteenMonthsAgo = new Date()
+    eighteenMonthsAgo.setMonth(eighteenMonthsAgo.getMonth() - 18)
+    query = query.gte('start_time', eighteenMonthsAgo.toISOString())
   }
 
   const { data, error } = await query
