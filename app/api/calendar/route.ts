@@ -20,9 +20,9 @@ export async function GET(req: Request) {
   let query = supabase
     .from('calendar_events')
     .select('*')
-    // Include events where visibility_roles contains the user's role,
-    // OR where visibility_roles is null (safe fallback for manually created events).
-    .or(`visibility_roles.cs.{${role}},visibility_roles.is.null`)
+    // Include events where access_roles contains the user's role,
+    // OR where access_roles is null (safe fallback for manually created events).
+    .or(`access_roles.cs.{${role}},access_roles.is.null`)
     .order('start_time')
 
   if (month) {
