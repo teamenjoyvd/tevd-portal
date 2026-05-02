@@ -18,15 +18,16 @@ export function AgendaView({
 }) {
   const { t } = useLanguage()
   const highlightRef = useRef<HTMLButtonElement | null>(null)
+  const anchorRef = useRef<HTMLDivElement | null>(null)
+
+  const todaySofia = SOFIA_DATE_FMT.format(new Date())
 
   const grouped = useMemo(() => {
-    const todayKey = SOFIA_DATE_FMT.format(new Date())
     const map: Record<string, CalendarEvent[]> = {}
     events
-      .filter(e => SOFIA_DATE_FMT.format(new Date(e.start_time)) >= todayKey)
-      .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
+      .slice()
+      .sort((a, b) => a.start_time.localeCompare(b.start_time))
       .forEach(e => {
-        // Group by Sofia-local date to avoid UTC midnight bucketing errors
         const key = SOFIA_DATE_FMT.format(new Date(e.start_time))
         if (!map[key]) map[key] = []
         map[key].push(e)
@@ -34,11 +35,21 @@ export function AgendaView({
     return map
   }, [events])
 
+  // The anchor is the first date >= today (i.e. today if it has events, otherwise
+  // the next upcoming date). Falls back to the last date if all events are past.
+  const anchorDateKey = useMemo(() => {
+    const dates = Object.keys(grouped)
+    return dates.find(d => d >= todaySofia) ?? dates[dates.length - 1]
+  }, [grouped, todaySofia])
+
+  // Scroll to highlighted event if present, otherwise scroll to anchor date.
   useEffect(() => {
     if (highlightRef.current) {
       highlightRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    } else if (anchorRef.current) {
+      anchorRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
-  }, [grouped])
+  }, [grouped, highlightId])
 
   const dates = Object.keys(grouped)
 
@@ -63,19 +74,19 @@ export function AgendaView({
     )
   }
 
-  // Current day in Sofia — computed once outside the loop for correctness and
-  // efficiency. Comparing against the already-Sofia-local dateKey is more
-  // reliable than constructing a local Date and calling sameDaySofia.
-  const todaySofia = SOFIA_DATE_FMT.format(new Date())
-
   return (
     <div className="overflow-y-auto px-4 py-2" style={{ height: 'var(--cal-height)', minHeight: 300 }}>
       {dates.map(dateKey => {
-        // Anchor to UTC noon to prevent TZ offset from shifting the displayed date
         const date = new Date(`${dateKey}T12:00:00Z`)
         const isToday = dateKey === todaySofia
+        const isPast = dateKey < todaySofia
         return (
-          <div key={dateKey} className="mb-6">
+          <div
+            key={dateKey}
+            ref={dateKey === anchorDateKey ? anchorRef : null}
+            className="mb-6"
+            style={{ opacity: isPast ? 0.5 : 1 }}
+          >
             <div className="flex items-center gap-3 mb-2 sticky top-0 py-2" style={{ backgroundColor: 'var(--bg-global)' }}>
               <div
                 className="flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold"

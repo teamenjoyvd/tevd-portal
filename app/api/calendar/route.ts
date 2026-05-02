@@ -34,9 +34,11 @@ export async function GET(req: Request) {
     ).toISOString()
     query = query.gte('start_time', start).lt('start_time', end)
   } else {
-    // Agenda: fetch from this exact moment — not UTC midnight — so events
-    // earlier today that haven't ended yet and future events are all included.
-    query = query.gte('start_time', new Date().toISOString())
+    // Agenda: fetch 18 months back through all future events so users
+    // can browse past and upcoming events in the same view.
+    const eighteenMonthsAgo = new Date()
+    eighteenMonthsAgo.setMonth(eighteenMonthsAgo.getMonth() - 18)
+    query = query.gte('start_time', eighteenMonthsAgo.toISOString())
   }
 
   const { data, error } = await query
