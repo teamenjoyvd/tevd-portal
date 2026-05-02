@@ -73,6 +73,10 @@ export default function EventPopup({
   const canRequestRole = userRole && userRole !== 'guest'
   const isGuest = userRole === 'guest' || userRole === null
 
+  // Role requests are closed 15 minutes before start. Admins always see the full UI.
+  const isClosed = !isAdmin && !!event &&
+    Date.now() >= new Date(event.start_time).getTime() - 15 * 60 * 1000
+
   const myRequest: CallerRequest | undefined = isAdmin
     ? event?.role_requests.find(r => r.profile?.id === userProfileId)
     : (event?.caller_request ?? undefined)
@@ -159,6 +163,8 @@ export default function EventPopup({
             <p className="text-[10px] font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
               {t('event.roles')}
             </p>
+
+            {/* Admin: full request list with approve/deny */}
             {isAdmin && (
               visibleRoleRequests.length > 0 ? (
                 <div className="space-y-2">
@@ -194,32 +200,58 @@ export default function EventPopup({
                 </div>
               ) : <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('cal.noRequests')}</p>
             )}
-            {!isAdmin && canRequestRole && (
-              <div className="flex gap-2">
-                {availableRoles.map(role => {
-                  const isActive = myRequest?.role_label === role
-                  const isDisabled = (!isActive && !!myRequest) || isMutating
-                  const activeStyle = isActive ? STATUS_STYLES[myRequest!.status] : null
-                  return (
-                    <button key={role}
-                      onClick={() => {
-                        if (isActive && myRequest!.status === 'pending') cancelMutation.mutate()
-                        else if (!myRequest) requestMutation.mutate(role)
-                      }}
-                      disabled={isDisabled || (isActive && myRequest!.status !== 'pending')}
-                      className="flex-1 flex items-center justify-center gap-1 py-2 rounded-xl text-[11px] font-bold tracking-wider uppercase transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-95 active:scale-[0.97]"
-                      style={{
-                        backgroundColor: activeStyle ? activeStyle.bg : 'rgba(0,0,0,0.05)',
-                        color: activeStyle ? activeStyle.color : 'var(--text-primary)',
-                        border: activeStyle ? `1px solid ${activeStyle.color}33` : '1px solid transparent',
-                      }}>
-                      {role}
-                      {isActive && myRequest!.status === 'pending' && <X size={10} className="opacity-60" />}
-                      {isActive && myRequest!.status === 'approved' && <Check size={10} />}
-                    </button>
-                  )
-                })}
+
+            {/* Non-admin: existing request always shown read-only */}
+            {!isAdmin && canRequestRole && myRequest && (
+              <div className="rounded-lg p-2.5 mb-3" style={{ backgroundColor: STATUS_STYLES[myRequest.status].bg }}>
+                <p className="text-[10px] font-medium mb-0.5" style={{ color: 'var(--text-secondary)' }}>
+                  {t('event.roles')}
+                </p>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>{myRequest.role_label}</p>
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                    style={{ backgroundColor: 'rgba(255,255,255,0.6)', color: STATUS_STYLES[myRequest.status].color }}>
+                    {myRequest.status}
+                  </span>
+                </div>
               </div>
+            )}
+
+            {/* Non-admin: role request buttons — hidden when closed */}
+            {!isAdmin && canRequestRole && (
+              isClosed ? (
+                !myRequest && (
+                  <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                    {t('cal.roleRequestsClosed')}
+                  </p>
+                )
+              ) : (
+                <div className="flex gap-2">
+                  {availableRoles.map(role => {
+                    const isActive = myRequest?.role_label === role
+                    const isDisabled = (!isActive && !!myRequest) || isMutating
+                    const activeStyle = isActive ? STATUS_STYLES[myRequest!.status] : null
+                    return (
+                      <button key={role}
+                        onClick={() => {
+                          if (isActive && myRequest!.status === 'pending') cancelMutation.mutate()
+                          else if (!myRequest) requestMutation.mutate(role)
+                        }}
+                        disabled={isDisabled || (isActive && myRequest!.status !== 'pending')}
+                        className="flex-1 flex items-center justify-center gap-1 py-2 rounded-xl text-[11px] font-bold tracking-wider uppercase transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-95 active:scale-[0.97]"
+                        style={{
+                          backgroundColor: activeStyle ? activeStyle.bg : 'rgba(0,0,0,0.05)',
+                          color: activeStyle ? activeStyle.color : 'var(--text-primary)',
+                          border: activeStyle ? `1px solid ${activeStyle.color}33` : '1px solid transparent',
+                        }}>
+                        {role}
+                        {isActive && myRequest!.status === 'pending' && <X size={10} className="opacity-60" />}
+                        {isActive && myRequest!.status === 'approved' && <Check size={10} />}
+                      </button>
+                    )
+                  })}
+                </div>
+              )
             )}
           </div>
         )}
