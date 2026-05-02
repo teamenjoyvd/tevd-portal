@@ -111,6 +111,7 @@ export type Database = {
       }
       calendar_events: {
         Row: {
+          access_roles: Database["public"]["Enums"]["user_role"][]
           allow_guest_registration: boolean
           available_roles: string[]
           category: Database["public"]["Enums"]["event_category"]
@@ -124,10 +125,10 @@ export type Database = {
           meeting_url: string | null
           start_time: string
           title: string
-          visibility_roles: Database["public"]["Enums"]["user_role"][]
           week_number: number
         }
         Insert: {
+          access_roles?: Database["public"]["Enums"]["user_role"][]
           allow_guest_registration?: boolean
           available_roles?: string[]
           category?: Database["public"]["Enums"]["event_category"]
@@ -141,10 +142,10 @@ export type Database = {
           meeting_url?: string | null
           start_time: string
           title: string
-          visibility_roles?: Database["public"]["Enums"]["user_role"][]
           week_number: number
         }
         Update: {
+          access_roles?: Database["public"]["Enums"]["user_role"][]
           allow_guest_registration?: boolean
           available_roles?: string[]
           category?: Database["public"]["Enums"]["event_category"]
@@ -158,7 +159,6 @@ export type Database = {
           meeting_url?: string | null
           start_time?: string
           title?: string
-          visibility_roles?: Database["public"]["Enums"]["user_role"][]
           week_number?: number
         }
         Relationships: [
@@ -1088,6 +1088,7 @@ export type Database = {
       }
       trips: {
         Row: {
+          access_roles: string[]
           accommodation_type: string | null
           created_at: string
           currency: string
@@ -1103,9 +1104,9 @@ export type Database = {
           title: string
           total_cost: number
           trip_type: string | null
-          visibility_roles: string[]
         }
         Insert: {
+          access_roles?: string[]
           accommodation_type?: string | null
           created_at?: string
           currency?: string
@@ -1121,9 +1122,9 @@ export type Database = {
           title: string
           total_cost?: number
           trip_type?: string | null
-          visibility_roles?: string[]
         }
         Update: {
+          access_roles?: string[]
           accommodation_type?: string | null
           created_at?: string
           currency?: string
@@ -1139,7 +1140,6 @@ export type Database = {
           title?: string
           total_cost?: number
           trip_type?: string | null
-          visibility_roles?: string[]
         }
         Relationships: []
       }

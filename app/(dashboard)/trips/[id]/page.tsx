@@ -59,7 +59,7 @@ export default async function TripDetailPage({
 
   const supabase = createServiceClient()
 
-  // Fetch profile first — we need the role for visibility filtering
+  // Fetch profile first — we need the role for access filtering
   const { data: profile } = await supabase
     .from('profiles')
     .select('id, role, valid_through, document_active_type')
@@ -68,12 +68,12 @@ export default async function TripDetailPage({
 
   if (!profile) redirect('/trips')
 
-  // Enforce visibility_roles — only return trip if user's role is included
+  // Enforce access_roles — only return trip if user's role is included
   const { data: trip } = await supabase
     .from('trips')
     .select('*')
     .eq('id', id)
-    .contains('visibility_roles', [profile.role])
+    .contains('access_roles', [profile.role])
     .single()
 
   if (!trip) redirect('/trips')

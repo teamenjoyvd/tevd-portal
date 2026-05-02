@@ -12,7 +12,7 @@ export type CalendarEvent = {
   category: 'N21' | 'Personal'
   event_type: 'in-person' | 'online' | 'hybrid' | null
   week_number: number
-  visibility_roles: string[]
+  access_roles: string[]
 }
 
 export type View = 'month' | 'agenda'

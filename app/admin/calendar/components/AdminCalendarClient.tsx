@@ -17,7 +17,7 @@ type CalEvent = {
   week_number: number
   category: 'N21' | 'Personal'
   event_type: 'in-person' | 'online' | 'hybrid' | null
-  visibility_roles: string[]
+  access_roles: string[]
   google_event_id: string | null
   meeting_url: string | null
   allow_guest_registration: boolean
@@ -138,7 +138,7 @@ export default function AdminCalendarClient() {
       week_number: ev.week_number,
       category: ev.category,
       event_type: ev.event_type,
-      visibility_roles: Array.isArray(ev.visibility_roles) ? ev.visibility_roles : [...ALL_ROLES],
+      access_roles: Array.isArray(ev.access_roles) ? ev.access_roles : [...ALL_ROLES],
       meeting_url: ev.meeting_url ?? '',
       allow_guest_registration: ev.allow_guest_registration,
       available_roles: Array.isArray(ev.available_roles)
@@ -288,7 +288,7 @@ export default function AdminCalendarClient() {
                 </div>
                 <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
                   {formatDateTime(ev.start_time)} → {formatDateTime(ev.end_time)} · W{ev.week_number}
-                  {' · '}{ev.visibility_roles.join(', ')}
+                  {' · '}{(ev.access_roles ?? []).join(', ')}
                 </p>
               </div>
               <div className="flex items-center gap-3 flex-shrink-0">

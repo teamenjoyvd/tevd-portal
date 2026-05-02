@@ -15,7 +15,7 @@ type Trip = {
   currency: 'EUR'
   total_cost: number
   milestones: unknown[]
-  visibility_roles: string[]
+  access_roles: string[]
   location: string | null
   accommodation_type: string | null
   inclusions: string[]
@@ -42,7 +42,7 @@ export default async function TripsPage() {
   const { data } = await supabase
     .from('trips')
     .select('*')
-    .contains('visibility_roles', [role])
+    .contains('access_roles', [role])
     .order('start_date')
 
   const initialTrips = (data ?? []) as Trip[]
