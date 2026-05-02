@@ -2,15 +2,14 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { useUser } from '@clerk/nextjs'
 import { useLanguage } from '@/lib/hooks/useLanguage'
+import { useRole } from '@/lib/hooks/useRole'
 import { PUBLIC_NAV, FOOTER_MEMBER_NAV, filterNav } from '@/lib/nav'
 
 export default function Footer() {
   const { lang } = useLanguage()
-  const { user } = useUser()
+  const role = useRole()
 
-  const role = user?.publicMetadata?.role as string | undefined
   const FOOTER_NAV = filterNav([...PUBLIC_NAV, ...FOOTER_MEMBER_NAV], role)
 
   return (

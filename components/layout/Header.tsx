@@ -6,15 +6,17 @@ import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
 import { useLanguage } from '@/lib/hooks/useLanguage'
+import { useRole } from '@/lib/hooks/useRole'
 import UserDropdown from '@/components/layout/UserDropdown'
 import UserPopup from '@/components/layout/UserPopup'
 import BellButton from '@/components/layout/BellButton'
 import { PUBLIC_NAV, FOOTER_MEMBER_NAV, filterNav } from '@/lib/nav'
 
 export default function Header() {
-  const { isSignedIn, user } = useUser()
+  const { isSignedIn } = useUser()
   const pathname = usePathname()
   const { lang } = useLanguage()
+  const role = useRole()
   const [guestPopupOpen, setGuestPopupOpen] = useState(false)
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
 
@@ -30,8 +32,6 @@ export default function Header() {
 
   const isActive = (href: string) =>
     href === '/' ? pathname === '/' : pathname?.startsWith(href)
-
-  const role = user?.publicMetadata?.role as string | undefined
 
   const NAV_LINKS = filterNav([...PUBLIC_NAV, ...FOOTER_MEMBER_NAV], role)
 
