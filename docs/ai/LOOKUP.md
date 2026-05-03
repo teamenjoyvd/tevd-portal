@@ -70,6 +70,8 @@
     /admin/vital-sign-definitions/route.ts
     /admin/vital-sign-definitions/[id]/route.ts
     /calendar/route.ts
+    /calendar/feed.ics/route.ts  # GET — iCal feed; JWT token auth
+    /calendar/feed-token/route.ts # GET/POST — issue/regenerate token
     /events/[id]/register/route.ts
     /guides/route.ts
     /home/route.ts
@@ -124,6 +126,7 @@
 /docs/architecture/FLOWS.md
 /docs/architecture/DECISIONS.md
 /supabase/migrations/
+/supabase/functions/sync-google-calendar/index.ts
 /types/supabase.ts
 ```
 
@@ -196,8 +199,11 @@
 - Soft-delete: `deleted_at IS NULL` on user queries.
 
 **`calendar_events`**
-`id, google_event_id, title, description, start_time, end_time, category, access_roles, week_number, event_type, allow_guest_registration, available_roles, meeting_url, created_at, created_by`
+`id, google_event_id, title, description, location, meeting_url, start_time, end_time, category, access_roles, week_number, event_type, allow_guest_registration, available_roles, created_at, created_by`
+- `location`: physical/named location from GCal `location` field (added migration `20260503000000`).
+- `meeting_url`: video join link (conferenceData or description href).
 - `access_roles` renamed from `visibility_roles` in migration `20260502075427`.
+- iCal export: `location` → `LOCATION`, `meeting_url` → `URL`.
 
 **`social_posts`**
 `id, platform, post_url, caption, thumbnail_url, is_visible, is_pinned, sort_order, posted_at, created_at`
@@ -263,6 +269,8 @@
 | `/api/payments` | GET, POST | Unified payment read/submit |
 | `/api/trips/[id]/payments` | GET | Payments for a specific trip |
 | `/api/calendar` | GET | Role-filtered events; no `?month` → agenda from today |
+| `/api/calendar/feed.ics` | GET | iCal feed; `?token=` JWT auth; emits `LOCATION` + `URL` |
+| `/api/calendar/feed-token` | GET, POST | Issue/regenerate iCal subscription token |
 | `/api/guides` | GET | Published guides (access_roles respected) |
 | `/api/links` | GET | Active links (role-filtered) |
 | `/api/home` | GET | home_settings for homepage RSC |

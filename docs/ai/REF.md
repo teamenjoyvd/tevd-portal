@@ -154,6 +154,8 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
     /admin/vital-sign-definitions/route.ts
     /admin/vital-sign-definitions/[id]/route.ts
     /calendar/route.ts
+    /calendar/feed.ics/route.ts    # GET — iCal feed; JWT token auth; emits UTC DTSTART:...Z
+    /calendar/feed-token/route.ts  # GET/POST — issue/regenerate iCal subscription token
     /events/[id]/register/route.ts # POST — guest registration (public)
     /guides/route.ts
     /home/route.ts                 # GET — home_settings for homepage RSC
@@ -208,6 +210,7 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
 /docs/architecture/FLOWS.md
 /docs/architecture/DECISIONS.md
 /supabase/migrations/
+/supabase/functions/sync-google-calendar/index.ts  # Edge function — GCal sync
 /types/supabase.ts
 ```
 
@@ -258,7 +261,9 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
 **`notifications`** — `id, profile_id, is_read, type, title, message, action_url, created_at, deleted_at`
 - Soft-delete: filter `deleted_at IS NULL`.
 
-**`calendar_events`** — `id, google_event_id, title, description, start_time, end_time, category, access_roles, week_number, event_type, allow_guest_registration, available_roles, meeting_url, created_at, created_by`
+**`calendar_events`** — `id, google_event_id, title, description, location, meeting_url, start_time, end_time, category, access_roles, week_number, event_type, allow_guest_registration, available_roles, created_at, created_by`
+- `location`: physical/named location from GCal `location` field (migration `20260503000000`).
+- `meeting_url`: video join link extracted from conferenceData or description href.
 - `access_roles` renamed from `visibility_roles` in migration `20260502075427`.
 
 **`social_posts`** — `id, platform, post_url, caption, thumbnail_url, is_visible, is_pinned, sort_order, posted_at, created_at`
@@ -317,6 +322,8 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
 | `/api/payments` | GET, POST | Unified |
 | `/api/trips/[id]/payments` | GET | |
 | `/api/calendar` | GET | Role-filtered; no `?month` → agenda from today |
+| `/api/calendar/feed.ics` | GET | iCal feed; `?token=` JWT auth; emits `location` + `url` (meeting_url) |
+| `/api/calendar/feed-token` | GET, POST | Issue/regenerate iCal subscription token |
 | `/api/guides` | GET | Published, access_roles respected |
 | `/api/links` | GET | Active links, role-filtered |
 | `/api/home` | GET | home_settings for homepage RSC |

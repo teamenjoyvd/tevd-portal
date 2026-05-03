@@ -38,7 +38,7 @@ export async function GET(req: Request) {
   // Fetch events filtered by role
   const { data: events } = await supabase
     .from('calendar_events')
-    .select('id, title, description, start_time, end_time, category')
+    .select('id, title, description, start_time, end_time, location, meeting_url')
     .contains('access_roles', [payload.role])
     .order('start_time')
 
@@ -56,6 +56,8 @@ export async function GET(req: Request) {
       description: event.description ?? undefined,
       start: new Date(event.start_time),
       end: new Date(event.end_time),
+      location: event.location ?? undefined,
+      url: event.meeting_url ?? undefined,
     })
   }
 
