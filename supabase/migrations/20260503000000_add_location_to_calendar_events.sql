@@ -1,0 +1,2 @@
+-- no-op: column `location` added to `calendar_events` via PR #251 (version 20260503000000, applied 2026-05-03).
+-- This file retained for filename continuity; executing it would error on the existing column.
