@@ -49,7 +49,7 @@ export async function POST(req: Request) {
       currency:           'EUR',
       total_cost:         body.total_cost ?? 0,
       milestones:         body.milestones ?? [],
-      access_roles:       body.access_roles ?? [...ALL_ROLES],
+      access_roles:       Array.isArray(body.access_roles) ? body.access_roles : [...ALL_ROLES],
       location:           body.location ?? null,
       accommodation_type: body.accommodation_type ?? null,
       inclusions:         body.inclusions ?? [],
