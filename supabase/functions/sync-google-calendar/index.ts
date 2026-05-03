@@ -126,6 +126,7 @@ Deno.serve(async (req: Request) => {
     const rawDesc    = item.description ? String(item.description) : null
     const meetingUrl = extractMeetingUrl(item, rawDesc)
     const cleanDesc  = rawDesc ? (stripHtml(rawDesc) || null) : null
+    const location   = typeof item.location === 'string' && item.location ? item.location : null
 
     const {data:ex} = await sb.from('calendar_events').select('id').eq('google_event_id', item.id).maybeSingle()
     const {error:ue} = await sb.from('calendar_events').upsert({
@@ -133,6 +134,7 @@ Deno.serve(async (req: Request) => {
       title:            String(item.summary ?? 'Untitled'),
       description:      cleanDesc,
       meeting_url:      meetingUrl,
+      location:         location,
       start_time:       st.toISOString(),
       end_time:         et.toISOString(),
       category:         personal ? 'Personal' : 'N21',
