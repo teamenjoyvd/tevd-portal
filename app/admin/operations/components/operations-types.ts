@@ -1,6 +1,9 @@
 // Shared domain types and constants for the operations area.
 // Plain TypeScript — no 'use client' directive.
 
+export const ALL_ROLES = ['guest', 'member', 'core', 'admin'] as const
+export type Role = (typeof ALL_ROLES)[number]
+
 export type Milestone = { label: string; amount: number; due_date: string }
 
 export type Trip = {
@@ -10,7 +13,7 @@ export type Trip = {
   currency: string; description: string
   location: string | null; accommodation_type: string | null
   inclusions: string[]; trip_type: string | null
-  visibility_roles: string[]
+  access_roles: Role[]
 }
 
 export type PayableItem = {
@@ -38,5 +41,3 @@ export type ItemFormState = {
   item_type: 'merchandise' | 'ticket' | 'food' | 'book' | 'other'
   linked_trip_id: string; is_active: boolean
 }
-
-export const ALL_ROLES = ['guest', 'member', 'core', 'admin']
