@@ -98,7 +98,7 @@ Output format:
 | GitHub    | ✅/❌ |
 | In flight | [YYMM]-[TYPE]-[GH#] <title> / None |
 | Handoff   | IN PROGRESS: <next action> / DONE / CLAIM-complete: ready for SHAPE / No active PR |
-| Commands  | SSU · PLAN · CLAIM · BUILD · PIU · GCR |
+| Commands  | SSU · PLAN · CLAIM · BUILD · GCR |
 ```
 If GitHub ❌ — stop.
 
@@ -122,6 +122,24 @@ For each ticket:
 4. List affected files by path.
 5. Flag applicable gotchas from the Gotchas table.
 6. State verdict: **READY** or **BLOCKED: [single specific question]**.
+
+**Output format:**
+```
+## PLAN: [YYMM-TYPE or topic]
+**Verdict:** READY | BLOCKED: <single blocking question>
+
+### DoD
+- [ ] `path/to/file`: what changes and why
+
+### Affected Files
+- `path/to/file`
+
+### Gotchas Flagged
+- [gotcha name]: relevance to this ticket
+
+### Notes
+[design reasoning that shaped the above]
+```
 
 Output lives in the conversation only. Nothing is written anywhere.
 
@@ -182,9 +200,9 @@ Default mode. Executes against a CLAIM-complete issue.
 **EXECUTE** → Change only lines required by DoD. All writes target the feature branch only. Push to trigger Vercel Preview.
 - Before any large task (>100 lines): write `IN PROGRESS` to PR `## Session State` first, then commit a skeleton with `// TODO:` items before implementing.
 
-**VERIFY** → DoD point-by-point. Vercel Preview READY. CI green. 390px check. No production side-effects.
+**VERIFY** → DoD point-by-point. Vercel Preview READY. CI green (`check-types` GitHub Actions run on the feature branch shows `success` — check via `GET /repos/teamenjoyvd/tevd-portal/actions/runs?branch=<feature-branch>`). 390px check. No production side-effects. If ticket touched auth or routing: confirm `middleware.ts` does not exist (`ls middleware.ts` returns an error).
 
-**FINALIZE** → Mark PR ready for review. User merges manually via GitHub UI. After merge: confirm production Vercel deployment READY. Issue closes automatically via `Closes #N` in PR body.
+**FINALIZE** → Verify PR body contains `Closes #<issue_number>` — if missing, update the PR body to add it now. Mark PR ready for review. If this ticket ran a migration or changed a column/table/route/env var: update **both** `docs/ai/REF.md` and `docs/ai/LOOKUP.md` in a single `push_files` call before marking DONE — never update one without the other. User merges manually via GitHub UI. After merge: confirm production Vercel deployment READY.
 
 ### PR Session State block
 
@@ -199,15 +217,6 @@ The PR description is the sole handoff document.
 ```
 
 Write `IN PROGRESS` before starting a large task. Write `DONE` after verifying. If context runs out mid-task, the skeleton commit is the fallback — it must exist before implementation begins.
-
----
-
-### PIU — Pack It Up
-
-Run at session end:
-1. Confirm PR `## Session State` is `DONE` — write it now if not already done.
-2. If REF.md needs updates (schema changed, new routes, new env vars) — update and push in a single `push_files` call together with any other changed docs.
-3. If nothing changed in REF.md — done.
 
 ---
 

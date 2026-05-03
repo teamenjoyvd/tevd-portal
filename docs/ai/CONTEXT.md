@@ -135,16 +135,7 @@ Fix flow: `generate_typescript_types` → write `types/supabase.ts` → `tsc --n
 
 ---
 
-## 5. Releases
+## 5. Release History
 
-| Version | Date | Notes |
-|---|---|---|
-| v2.0.1 | 2026-03-23 | SEQ221: guides stale state fix, cover image upload fix. SEQ222: canvas 1280px sitewide. |
-| v2.0.2 | 2026-03-23 | SEQ223: theme system overhaul. SEQ224: navbar dark mode, lg breakpoint fix. |
-| v2.0.3 | 2026-03-24 | Phase A: architecture docs, SHAPE step, CONTEXT/LOOKUP split, CLAUDE.md trim. |
-| v2.3.1 | 2026-04-10 | SEQ349: guest registration flow. SEQ361: transactional email dispatcher, sendEmail → sendNotificationEmail/sendTransactionalEmail rename, _dispatch extraction. |
-
-### Pending issues
-- ISS-0043 (SEQ221): Navbar dark mode contrast — resolved in SEQ224, open for close.
-- SEQ241-243: Vital signs feature — on hold pending SO clarification on state model.
-- PR14 (SEQ361): open against `feature/SEQ349-ISS349` — merge SEQ349 first, then PR14.
+> Not maintained here — always stale. Check GitHub commit history or Vercel deployment history for the current state.
+> For open issues: `GET /repos/teamenjoyvd/tevd-portal/issues?state=open`
