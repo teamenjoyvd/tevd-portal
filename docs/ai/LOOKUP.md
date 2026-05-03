@@ -1,7 +1,7 @@
 # LOOKUP.md — teamenjoyVD Portal Reference Tables
-> Last updated: 2026-04-10
+> Last updated: 2026-05-03
 > **Read on demand in GATHER only. Never read at SSU or at GATHER start.**
-> Pull only the sections the ticket needs. See section map in CONTEXT.md header.
+> Pull only the sections the ticket needs. See section map in REF.md header.
 
 ---
 
@@ -33,31 +33,49 @@
     /operations/page.tsx
     /payable-items/page.tsx      # redirect → /admin/operations?tab=items
   /api
+    /admin/announcements/route.ts
     /admin/calendar/route.ts
-    /admin/payments/route.ts
-    /admin/payments/[id]/route.ts
-    /admin/payable-items/route.ts
-    /admin/payable-items/[id]/route.ts
-    /admin/verify/route.ts
-    /admin/vital-sign-definitions/route.ts
-    /admin/vital-sign-definitions/[id]/route.ts
+    /admin/calendar-sync/route.ts
+    /admin/email-log/route.ts
+    /admin/event-role-requests/route.ts
+    /admin/event-role-requests/[id]/route.ts
+    /admin/guides/route.ts
+    /admin/guides/[id]/route.ts
+    /admin/guides/upload/route.ts
+    /admin/home-settings/route.ts
+    /admin/links/route.ts
+    /admin/links/[id]/route.ts
+    /admin/los-import/route.ts
+    /admin/los-tree/route.ts
     /admin/members/route.ts
     /admin/members/[id]/route.ts
     /admin/members/[id]/vital-signs/route.ts
     /admin/members/[id]/vital-signs/[definitionId]/route.ts
+    /admin/payable-items/route.ts
+    /admin/payable-items/[id]/route.ts
+    /admin/payments/route.ts
+    /admin/payments/[id]/route.ts
+    /admin/quick-links/route.ts
+    /admin/quick-links/[id]/route.ts
+    /admin/registrations/route.ts
+    /admin/registrations/[id]/route.ts
+    /admin/settings/route.ts
     /admin/social-posts/route.ts
     /admin/social-posts/[id]/route.ts
     /admin/social-posts/preview/route.ts
+    /admin/trips/route.ts
+    /admin/trips/[id]/route.ts
     /admin/trips/registrations/[id]/cancel/route.ts
-    /admin/registrations/route.ts                # GET all trip_registrations (flat, no N+1)
-    /admin/registrations/[id]/route.ts           # PATCH status
-    /admin/event-role-requests/route.ts          # GET all event_role_requests (flat, no N+1)
-    /admin/event-role-requests/[id]/route.ts     # PATCH status
-    /admin/guides/route.ts
-    /admin/guides/[id]/route.ts
-    /admin/guides/upload/route.ts
-    /api/guides/route.ts                 # Public GET (published only, respects access_roles)
-    /calendar/route.ts                   # Member-facing GET — role-filtered, agenda default
+    /admin/verify/route.ts
+    /admin/vital-sign-definitions/route.ts
+    /admin/vital-sign-definitions/[id]/route.ts
+    /calendar/route.ts
+    /events/[id]/register/route.ts
+    /guides/route.ts
+    /home/route.ts
+    /links/route.ts
+    /los/tree/route.ts
+    /notifications/route.ts
     /payable-items/route.ts
     /payments/route.ts
     /profile/payments/route.ts
@@ -96,11 +114,11 @@
   /supabase/server.ts
   /supabase/service.ts
   /i18n/translations.ts
-  /email/send.ts                 # Email dispatchers — see CONTEXT.md §1 for API
+  /email/send.ts
   /actions/guest-registration.ts
 /styles/brand-tokens.css
 /.github/workflows/check-types.yml
-/docs/ai/CONTEXT.md
+/docs/ai/REF.md
 /docs/ai/LOOKUP.md
 /docs/architecture/C4.md
 /docs/architecture/FLOWS.md
@@ -149,14 +167,29 @@
 - GREEN state = both `admin_status` and `member_status` = `'approved'`.
 - ⚠️ **FK ambiguity:** two FKs to `profiles`. Any PostgREST join MUST use `profiles!profile_id(...)`.
 
+**`trips`**
+`id, title, description, destination, start_date, end_date, access_roles, accommodation_type, currency, image_url, inclusions, location, milestones, total_cost, trip_type, created_at`
+- `access_roles`: array of role strings controlling who can see the trip.
+- PostgREST visibility filter: `.contains('access_roles', [role])`
+
 **`trip_registrations`**
-`id, trip_id, profile_id, status, created_at, cancelled_at, cancelled_by`
+`id, trip_id, profile_id, status, created_at, updated_at, cancelled_at, cancelled_by`
 - `status` enum: `pending | approved | denied`. No `cancelled` value.
 - Cancelled signal: `cancelled_at IS NOT NULL`.
 
+**`trip_attachments`**
+`id, trip_id, created_by, file_name, file_type, file_url, sort_order, created_at`
+
+**`trip_messages`**
+`id, trip_id, created_by, body, created_at, updated_at`
+
 **`event_role_requests`**
-`id, event_id, profile_id, role_label, status, created_at, note`
+`id, event_id, profile_id, role_label, status, created_at, updated_at, note`
 - `status` enum: `pending | approved | denied`.
+
+**`guest_registrations`**
+`id, event_id, name, email, token, status, expires_at, created_at`
+- `status`: `pending | confirmed`.
 
 **`notifications`**
 `id, profile_id, is_read, type (enum), title, message, action_url, created_at, deleted_at`
@@ -164,36 +197,52 @@
 
 **`calendar_events`**
 `id, google_event_id, title, description, start_time, end_time, category, access_roles, week_number, event_type, allow_guest_registration, available_roles, meeting_url, created_at, created_by`
-- `access_roles` (renamed from `visibility_roles` in migration `20260502075427`). Array of role strings controlling visibility.
+- `access_roles` renamed from `visibility_roles` in migration `20260502075427`.
 
 **`social_posts`**
-`id, platform, post_url, caption, thumbnail_url, is_visible, is_pinned, sort_order, created_at`
+`id, platform, post_url, caption, thumbnail_url, is_visible, is_pinned, sort_order, posted_at, created_at`
 - Single pinned post: partial unique index `social_posts_single_pinned (WHERE is_pinned=true)`.
 - Pin swap via `pin_social_post(p_id uuid)` RPC — atomic.
 
 **`announcements`**
-`id, titles, contents, access_level, is_active, sort_order, created_at`
+`id, titles, contents, access_roles, is_active, sort_order, created_at`
+
+**`links`**
+`id, label (jsonb {en,bg}), url, access_roles, is_active, sort_order, created_at`
+
+**`home_settings`**
+`id, caret_1_text, caret_2_text, caret_3_text, show_caret_1, show_caret_2, show_caret_3, featured_announcement_id, updated_at`
+
+**`bento_config`**
+`tile_key, max_items, updated_at`
+
+**`settings`**
+`key, value (jsonb)` — generic key/value config store.
+
+**`email_log`**
+`id, template, recipient, payload, status, resend_id, sent_at, error, created_at`
 
 **`vital_sign_definitions`**
 `id, category, label, is_active, sort_order, created_at`
 - 6 categories: N21 CONNECT, N21 CONNECT+, BBS, WES, CEP, CEP+. UNIQUE on category.
 
 **`member_vital_signs`**
-`id, profile_id, definition_id, recorded_at, note, created_at, recorded_by`
+`id, profile_id, definition_id, is_active, recorded_at, note, created_at, recorded_by`
 - UNIQUE on `(profile_id, definition_id)`.
 
 **`abo_verification_requests`**
 `id, profile_id, claimed_abo, claimed_upline_abo, request_type, status, admin_note, created_at, resolved_at`
 - `request_type`: `'standard' | 'manual'`
 
+**`role_change_audit`**
+`id, profile_id, old_role, new_role, changed_by, note, changed_at`
+
 **`tree_nodes`**
 `id, profile_id, parent_id, path (ltree), depth, created_at`
 - No-ABO label: `p_<uuid_no_hyphens>`. Renamed on ABO assignment → `rebuild_tree_paths` called.
 
-**`trips`**
-`id, title, description, destination, start_date, end_date, access_roles, accommodation_type, currency, image_url, inclusions, location, milestones, total_cost, trip_type, created_at`
-- `access_roles`: array of role strings controlling who can see the trip.
-- PostgREST visibility filter: `.contains('access_roles', [role])`
+**`los_members`**
+`abo_number (PK), sponsor_abo_number, name, abo_level, bonus_percent, gpv, ppv, annual_ppv, gbv, ruby_pv, customer_pv, customers, group_size, group_orders_count, personal_order_count, qualified_legs, sponsoring, points_to_next_level, phone, email, address, country, entry_date, renewal_date, last_synced_at`
 
 ---
 
@@ -214,35 +263,52 @@
 | `/api/payments` | GET, POST | Unified payment read/submit |
 | `/api/trips/[id]/payments` | GET | Payments for a specific trip |
 | `/api/calendar` | GET | Role-filtered events; no `?month` → agenda from today |
-| `/api/guides` | GET | Public guides (published, access_roles respected) |
+| `/api/guides` | GET | Published guides (access_roles respected) |
+| `/api/links` | GET | Active links (role-filtered) |
+| `/api/home` | GET | home_settings for homepage RSC |
+| `/api/los/tree` | GET | Member LOS tree |
+| `/api/notifications` | GET, PATCH | Own notifications; PATCH marks read |
 | `/api/socials` | GET | Social posts |
+| `/api/events/[id]/register` | POST | Guest event registration (public) |
 | `/api/webhooks/clerk` | POST | Clerk user lifecycle webhook |
 
 ### Admin routes
 | Route | Method | Purpose |
 |---|---|---|
+| `/api/admin/announcements` | GET, POST, PATCH, DELETE | Announcements CRUD |
+| `/api/admin/calendar` | GET, POST, PATCH, DELETE | Calendar event CRUD |
+| `/api/admin/calendar-sync` | POST | Triggers sync-google-calendar edge function |
+| `/api/admin/email-log` | GET | email_log audit (admin only) |
+| `/api/admin/event-role-requests` | GET | All event_role_requests joined with profile + calendar_events — no N+1 |
+| `/api/admin/event-role-requests/[id]` | PATCH | Update role request status |
+| `/api/admin/guides` | GET, POST | List + create guides |
+| `/api/admin/guides/[id]` | GET, PATCH, DELETE | Guide CRUD |
+| `/api/admin/guides/upload` | POST | Upload cover image to `guide-covers` bucket |
+| `/api/admin/home-settings` | GET, PATCH | home_settings table |
+| `/api/admin/links` | GET, POST | List + create links |
+| `/api/admin/links/[id]` | PATCH, DELETE | Update/delete link |
+| `/api/admin/los-import` | POST | Imports LOS CSV via `import_los_members` RPC |
+| `/api/admin/los-tree` | GET | Tree nodes for admin LOS view |
 | `/api/admin/members` | GET | LOS members + profiles + pending verifications + guests |
 | `/api/admin/members/[id]` | GET, PATCH | Member profile + unified data |
 | `/api/admin/members/[id]/vital-signs` | GET, POST | Read/record vital signs for member |
 | `/api/admin/members/[id]/vital-signs/[definitionId]` | PATCH, DELETE | Update/remove vital sign record |
-| `/api/admin/verify` | POST | Approve/deny ABO verification |
-| `/api/admin/members/verify/[id]` | POST | Path C direct verify |
-| `/api/admin/payments` | GET, POST | All payments + log payment |
-| `/api/admin/payments/[id]` | PATCH | Update admin_status + admin_note — triggers `sendNotificationEmail` |
 | `/api/admin/payable-items` | GET, POST | List + create payable items |
 | `/api/admin/payable-items/[id]` | PATCH, DELETE | Update/deactivate item |
-| `/api/admin/calendar` | GET, POST, PATCH, DELETE | Calendar event CRUD |
+| `/api/admin/payments` | GET, POST | All payments + log payment |
+| `/api/admin/payments/[id]` | PATCH | Update admin_status + admin_note — triggers `sendNotificationEmail` |
+| `/api/admin/quick-links` | GET, POST | List + create quick links |
+| `/api/admin/quick-links/[id]` | PATCH, DELETE | Update/delete quick link |
 | `/api/admin/registrations` | GET | All trip_registrations joined with profile + trip — no N+1 |
 | `/api/admin/registrations/[id]` | PATCH | Update registration status — triggers `sendNotificationEmail` |
-| `/api/admin/event-role-requests` | GET | All event_role_requests joined with profile + calendar_events — no N+1 |
-| `/api/admin/event-role-requests/[id]` | PATCH | Update role request status |
-| `/api/admin/trips/registrations/[id]/cancel` | POST | Admin cancel registration — triggers `sendNotificationEmail` |
-| `/api/admin/guides` | GET, POST | List + create guides |
-| `/api/admin/guides/[id]` | GET, PATCH, DELETE | Guide CRUD |
-| `/api/admin/guides/upload` | POST | Upload cover image to `guide-covers` bucket |
+| `/api/admin/settings` | GET, PATCH | settings key/value table |
 | `/api/admin/social-posts` | GET, POST | Social posts CRUD |
 | `/api/admin/social-posts/[id]` | PATCH, DELETE | Update/delete post |
 | `/api/admin/social-posts/preview` | GET | OG scrape (`?url=...`) |
+| `/api/admin/trips` | GET, POST | List + create trips |
+| `/api/admin/trips/[id]` | GET, PATCH, DELETE | Trip CRUD |
+| `/api/admin/trips/registrations/[id]/cancel` | POST | Admin cancel registration — triggers `sendNotificationEmail` |
+| `/api/admin/verify` | POST | Approve/deny ABO verification — MUST sync Clerk metadata |
 | `/api/admin/vital-sign-definitions` | GET, POST | List + create definitions |
 | `/api/admin/vital-sign-definitions/[id]` | PATCH, DELETE | Update/deactivate definition |
 
@@ -257,6 +323,11 @@
 | `pin_social_post(p_id uuid)` | Atomic pin swap — unpins current, pins new |
 | `get_core_ancestors(uuid)` | Returns Core-role profile UUIDs above a given node |
 | `rebuild_tree_paths` | Cascades ABO label rename down all descendants |
+| `approve_member_verification(p_request_id, p_admin_note?)` | Approve ABO verification request |
+| `patch_member_role(p_profile_id, p_new_role, p_changed_by, p_note?)` | Role update with audit trail — returns updated profile |
+| `get_trip_team_attendees(p_trip_id, p_viewer_profile)` | Returns Core/admin attendees for a trip |
+| `import_los_members(rows jsonb)` | Bulk upsert LOS data |
+| `get_los_members_with_profiles` | Joined LOS + profile data for admin view |
 | `notify_role_request` | Fan-out: admins + Core ancestors of requester |
 | `notify_trip_created` | Fan-out: all member/core/admin |
 | `notify_calendar_event_created` | Fan-out: descendants + Core ancestors (Core-created only) |

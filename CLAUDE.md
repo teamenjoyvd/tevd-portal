@@ -81,23 +81,24 @@ Violation = immediate stop, no exceptions.
 
 Run at the start of every session. Warms up tools and establishes ground truth before any other action.
 
-1. `mcp_github_get_file_contents` (`owner: teamenjoyvd`, `repo: tevd-portal`, `path: CLAUDE.md`) — confirms GitHub MCP connectivity and loads current state. If this fails — GitHub MCP is down. **Stop.**
+1. **Tool warm-up (before anything else):**
+   - `tool_search("get file contents github")`
+   - `tool_search("branch issue pull request create")`
+   Confirm both return results. If either fails — stop.
 
-2. `mcp_github_list_pull_requests` (`owner: teamenjoyvd`, `repo: tevd-portal`) — check for any open PRs.
+2. `get_file_contents` on `CLAUDE.md` — confirms GitHub connectivity and loads current state.
+
+3. `list_pull_requests` — check for any open PRs.
    - **Open PR found:** read its `## Session State` block and report what's in flight before doing anything else.
    - **No open PR, but a CLAIM-complete issue exists** (has `## Branch` block, no PR): report as CLAIM-complete/BUILD-not-started → ready to proceed to SHAPE.
    - **Nothing in flight:** report ready to pick up next issue.
-
-3. `git branch --show-current` — report active local branch.
-   If it differs from the in-flight PR's head branch: report the mismatch and suggest `git fetch origin && git checkout <PR-head-branch>` before BUILD proceeds.
 
 Output format:
 ```
 | GitHub    | ✅/❌ |
 | In flight | [YYMM]-[TYPE]-[GH#] <title> / None |
-| Local branch | <branch> (matches PR / MISMATCH: suggest checkout) |
 | Handoff   | IN PROGRESS: <next action> / DONE / CLAIM-complete: ready for SHAPE / No active PR |
-| Commands  | SSU · PLAN · CLAIM · BUILD · PIU · GCR |
+| Commands  | SSU · PLAN · CLAIM · BUILD · GCR |
 ```
 If GitHub ❌ — stop.
 
@@ -201,7 +202,7 @@ Default mode. Executes against a CLAIM-complete issue.
 
 **VERIFY** → DoD point-by-point. Vercel Preview READY. CI green (`check-types` GitHub Actions run on the feature branch shows `success` — check via `GET /repos/teamenjoyvd/tevd-portal/actions/runs?branch=<feature-branch>`). 390px check. No production side-effects. If ticket touched auth or routing: confirm `middleware.ts` does not exist (`ls middleware.ts` returns an error).
 
-**FINALIZE** → Verify PR body contains `Closes #<issue_number>` — if missing, update the PR body to add it now. Mark PR ready for review. User merges manually via GitHub UI. After merge: confirm production Vercel deployment READY.
+**FINALIZE** → Verify PR body contains `Closes #<issue_number>` — if missing, update the PR body to add it now. Mark PR ready for review. If this ticket ran a migration or changed a column/table/route/env var: update **both** `docs/ai/REF.md` and `docs/ai/LOOKUP.md` in a single `push_files` call before marking DONE — never update one without the other. User merges manually via GitHub UI. After merge: confirm production Vercel deployment READY.
 
 ### PR Session State block
 
@@ -216,15 +217,6 @@ The PR description is the sole handoff document.
 ```
 
 Write `IN PROGRESS` before starting a large task. Write `DONE` after verifying. If context runs out mid-task, the skeleton commit is the fallback — it must exist before implementation begins.
-
----
-
-### PIU — Pack It Up
-
-Run at session end:
-1. Confirm PR `## Session State` is `DONE` — write it now if not already done.
-2. If a migration ran or a column/table/route/env var changed — update **both** `docs/ai/REF.md` (§5–9) **and** `docs/ai/LOOKUP.md` (§2–6) in the same `push_files` call. Never update one without the other.
-3. If nothing changed — done.
 
 ---
 
