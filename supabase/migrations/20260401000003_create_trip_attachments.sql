@@ -1,3 +1,2 @@
--- SUPERSEDED: this migration was recorded in the DB as version 20260331232304.
--- The canonical file is 20260331232304_create_trip_attachments.sql.
--- This file is intentionally a no-op to prevent re-execution.
+-- no-op: DDL applied under version 20260331232304 (matches supabase_migrations history).
+-- This file retained for filename continuity; executing it would error on existing objects.
