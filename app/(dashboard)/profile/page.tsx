@@ -18,11 +18,18 @@ export default async function ProfilePage() {
   // Redirect rather than rendering a skeleton that never resolves.
   if (!data) redirect('/')
 
+  // Gate InvitesSection: cheap count query — avoids client-side fetch-then-hide.
+  const { count } = await supabase
+    .from('event_share_links')
+    .select('id', { count: 'exact', head: true })
+    .eq('profile_id', data.id)
+
   return (
     <ProfileClient
       profileId={data.id}
       role={data.role}
       aboNumber={data.abo_number ?? null}
+      hasInvites={(count ?? 0) > 0}
     />
   )
 }
