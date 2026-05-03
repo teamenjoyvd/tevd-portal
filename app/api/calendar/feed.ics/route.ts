@@ -42,11 +42,11 @@ export async function GET(req: Request) {
     .contains('access_roles', [payload.role])
     .order('start_time')
 
-  // Build iCal
+  // Build iCal — no timezone set so dates are emitted as UTC (DTSTART:...Z)
+  // start_time/end_time from Supabase are +00 UTC strings; new Date() preserves that.
   const calendar = ical({
     name: 'teamenjoyVD',
     prodId: { company: 'teamenjoyVD', product: 'tevd-portal' },
-    timezone: 'Europe/Sofia',
   })
 
   for (const event of events ?? []) {
