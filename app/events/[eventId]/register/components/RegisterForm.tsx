@@ -7,7 +7,15 @@ import { useLanguage } from '@/lib/hooks/useLanguage'
 
 const initialState: RegisterGuestState = { success: false }
 
-export function RegisterForm({ eventId, eventTitle }: { eventId: string; eventTitle: string }) {
+export function RegisterForm({
+  eventId,
+  eventTitle,
+  shareToken,
+}: {
+  eventId: string
+  eventTitle: string
+  shareToken?: string
+}) {
   const [state, formAction, isPending] = useActionState(registerGuest, initialState)
   const { t } = useLanguage()
 
@@ -38,6 +46,7 @@ export function RegisterForm({ eventId, eventTitle }: { eventId: string; eventTi
   return (
     <form action={formAction} className="space-y-4">
       <input type="hidden" name="eventId" value={eventId} />
+      {shareToken && <input type="hidden" name="shareToken" value={shareToken} />}
 
       <div>
         <label

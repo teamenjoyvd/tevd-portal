@@ -4,11 +4,15 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { RegisterForm } from './components/RegisterForm'
 import { t } from '@/lib/i18n'
 
-type Props = { params: Promise<{ eventId: string }> }
+type Props = {
+  params:       Promise<{ eventId: string }>
+  searchParams: Promise<{ share?: string }>
+}
 
-export default async function GuestRegisterPage({ params }: Props) {
-  const { eventId } = await params
-  const supabase = createServiceClient()
+export default async function GuestRegisterPage({ params, searchParams }: Props) {
+  const { eventId }  = await params
+  const { share }    = await searchParams
+  const supabase     = createServiceClient()
 
   const cookieStore = await cookies()
   const lang = cookieStore.get('tevd_lang')?.value === 'bg' ? 'bg' : 'en'
@@ -49,12 +53,12 @@ export default async function GuestRegisterPage({ params }: Props) {
             <p className="text-sm font-semibold mb-5" style={{ color: 'var(--text-primary)' }}>
               {t('event.register.registerToGet', lang)}
             </p>
-            <RegisterForm eventId={event.id} eventTitle={event.title} />
+            <RegisterForm eventId={event.id} eventTitle={event.title} shareToken={share} />
           </div>
         </div>
       </div>
 
-      {/* ── Mobile ─────────────────────────────────────────────────────────── */}
+      {/* ── Mobile ──────────────────────────────────────────────────────────── */}
       <div
         className="md:hidden min-h-screen px-5 pt-12 pb-8"
         style={{ backgroundColor: 'var(--bg-global, #f4f1eb)' }}
@@ -75,7 +79,7 @@ export default async function GuestRegisterPage({ params }: Props) {
           <p className="text-sm font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
             {t('event.register.registerToGet', lang)}
           </p>
-          <RegisterForm eventId={event.id} eventTitle={event.title} />
+          <RegisterForm eventId={event.id} eventTitle={event.title} shareToken={share} />
         </div>
       </div>
     </>
