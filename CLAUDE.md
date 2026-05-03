@@ -199,7 +199,7 @@ Default mode. Executes against a CLAIM-complete issue.
 **EXECUTE** → Change only lines required by DoD. All writes target the feature branch only. Push to trigger Vercel Preview.
 - Before any large task (>100 lines): write `IN PROGRESS` to PR `## Session State` first, then commit a skeleton with `// TODO:` items before implementing.
 
-**VERIFY** → DoD point-by-point. Vercel Preview READY. CI green (`check-types` GitHub Actions run on the feature branch shows `success` — check via `GET /repos/teamenjoyvd/tevd-portal/actions/runs?branch=<feature-branch>`). 390px check. No production side-effects. If ticket touched auth or routing: confirm `middleware.ts` does not exist (`grep -r "middleware.ts" app/ --include="*.ts"` returns zero results).
+**VERIFY** → DoD point-by-point. Vercel Preview READY. CI green (`check-types` GitHub Actions run on the feature branch shows `success` — check via `GET /repos/teamenjoyvd/tevd-portal/actions/runs?branch=<feature-branch>`). 390px check. No production side-effects. If ticket touched auth or routing: confirm `middleware.ts` does not exist (`ls middleware.ts` returns an error).
 
 **FINALIZE** → Verify PR body contains `Closes #<issue_number>` — if missing, update the PR body to add it now. Mark PR ready for review. User merges manually via GitHub UI. After merge: confirm production Vercel deployment READY.
 
