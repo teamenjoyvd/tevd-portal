@@ -10,7 +10,7 @@ export type Trip = {
   currency: string; description: string
   location: string | null; accommodation_type: string | null
   inclusions: string[]; trip_type: string | null
-  visibility_roles: string[]
+  access_roles: string[]
 }
 
 export type PayableItem = {

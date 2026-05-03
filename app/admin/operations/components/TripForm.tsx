@@ -149,14 +149,14 @@ export function TripForm({
           {ALL_ROLES.map(role => (
             <button key={role} onClick={() => setForm(f => ({
               ...f,
-              visibility_roles: f.visibility_roles.includes(role)
-                ? f.visibility_roles.filter(r => r !== role)
-                : [...f.visibility_roles, role],
+              access_roles: f.access_roles.includes(role)
+                ? f.access_roles.filter(r => r !== role)
+                : [...f.access_roles, role],
             }))}
               className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
               style={{
-                backgroundColor: form.visibility_roles.includes(role) ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)',
-                color: form.visibility_roles.includes(role) ? 'var(--brand-parchment)' : 'var(--text-secondary)',
+                backgroundColor: form.access_roles.includes(role) ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)',
+                color: form.access_roles.includes(role) ? 'var(--brand-parchment)' : 'var(--text-secondary)',
               }}>
               {role}
             </button>

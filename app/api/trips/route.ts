@@ -19,7 +19,7 @@ export async function GET() {
   const { data, error } = await supabase
     .from('trips')
     .select('*')
-    .contains('visibility_roles', [role])
+    .contains('access_roles', [role])
     .order('start_date')
 
   if (error) return Response.json({ error: error.message }, { status: 500 })
@@ -49,7 +49,7 @@ export async function POST(req: Request) {
       currency:           'EUR',
       total_cost:         body.total_cost ?? 0,
       milestones:         body.milestones ?? [],
-      visibility_roles:   body.visibility_roles ?? [...ALL_ROLES],
+      access_roles:       body.access_roles ?? [...ALL_ROLES],
       location:           body.location ?? null,
       accommodation_type: body.accommodation_type ?? null,
       inclusions:         body.inclusions ?? [],

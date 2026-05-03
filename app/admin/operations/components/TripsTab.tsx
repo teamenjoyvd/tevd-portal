@@ -26,7 +26,7 @@ const emptyTrip = (): TripFormState => ({
   start_date: '', end_date: '', total_cost: 0, milestones: [],
   location: null, accommodation_type: null,
   inclusions: [], trip_type: null,
-  visibility_roles: [...ALL_ROLES],
+  access_roles: [...ALL_ROLES],
 })
 
 // ── Component ────────────────────────────────────────────
@@ -62,7 +62,7 @@ export function TripsTab({ trips, isLoading }: { trips: Trip[]; isLoading: boole
       accommodation_type: trip.accommodation_type,
       inclusions: Array.isArray(trip.inclusions) ? trip.inclusions : [],
       trip_type: trip.trip_type,
-      visibility_roles: Array.isArray(trip.visibility_roles) ? trip.visibility_roles : [...ALL_ROLES],
+      access_roles: Array.isArray(trip.access_roles) ? trip.access_roles : [...ALL_ROLES],
     })
     setMilestoneInput({ label: '', amount: '', due_date: '' })
     setError(null)

@@ -136,7 +136,7 @@ Deno.serve(async (req: Request) => {
       start_time:       st.toISOString(),
       end_time:         et.toISOString(),
       category:         personal ? 'Personal' : 'N21',
-      visibility_roles: personal ? ['member','core','admin'] : ['admin','core','member','guest'],
+      access_roles:     personal ? ['member','core','admin'] : ['admin','core','member','guest'],
       week_number:      isoWeek(st),
     }, {onConflict: 'google_event_id'})
     if (ue) errors.push(String(item.id) + ': ' + ue.message)

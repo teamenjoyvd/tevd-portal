@@ -39,7 +39,7 @@ export async function GET(req: Request) {
   const { data: events } = await supabase
     .from('calendar_events')
     .select('id, title, description, start_time, end_time, category')
-    .contains('visibility_roles', [payload.role])
+    .contains('access_roles', [payload.role])
     .order('start_time')
 
   // Build iCal
