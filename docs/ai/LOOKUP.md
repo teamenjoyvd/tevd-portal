@@ -163,7 +163,8 @@
 - Soft-delete: `deleted_at IS NULL` on user queries.
 
 **`calendar_events`**
-`id, google_event_id, title, description, start_time, end_time, category, visibility_roles, week_number, event_type, created_at, created_by`
+`id, google_event_id, title, description, start_time, end_time, category, access_roles, week_number, event_type, created_at, created_by`
+- `access_roles` (renamed from `visibility_roles` in migration `20260502075427`). Array of role strings controlling visibility.
 
 **`social_posts`**
 `id, platform, post_url, caption, thumbnail_url, is_visible, is_pinned, sort_order, created_at`
@@ -188,6 +189,11 @@
 **`tree_nodes`**
 `id, profile_id, parent_id, path (ltree), depth, created_at`
 - No-ABO label: `p_<uuid_no_hyphens>`. Renamed on ABO assignment → `rebuild_tree_paths` called.
+
+**`trips`**
+`id, title, description, location, start_date, end_date, access_roles, max_participants, cover_image_url, is_published, created_by, created_at`
+- `access_roles`: array of role strings controlling who can see the trip.
+- PostgREST visibility filter: `.contains('access_roles', [role])`
 
 ---
 

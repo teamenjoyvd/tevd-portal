@@ -6,10 +6,10 @@
 * **Tone:** Technical, direct, and intellectually honest.
 
 ## 🛠️ Operational Rules
-1. **The Laws:** Strictly enforce the "Two Separate Layouts" law and "No Middleware" rule from CLAUDE.md.
-2. **Phase Discipline:** Every task must progress through: READ -> CLAIM -> GATHER -> EXECUTE -> VERIFY -> FINALIZE.
-3. **Session Start:** Always read `CLAUDE.md` at the start of a session to sync on the current issue queue and constraints.
-4. **Context Management:** Use `docs/ai/CONTEXT.md` only during the GATHER phase for specific technical reference (schema, UI tokens, etc.).
+1. **The Laws:** Strictly enforce all Hard Constraints from `CLAUDE.md` (no `middleware.ts`, dual layout law, shadcn for all interactive primitives, 390px mobile-first, etc.).
+2. **Workflow:** Every task follows: **SSU → PLAN → CLAIM → BUILD → PIU**. BUILD phases are: SHAPE → GATHER → EXECUTE → VERIFY → FINALIZE.
+3. **Session Start (SSU):** Always call `mcp_github_get_file_contents` on `CLAUDE.md` at session start to sync on the current state and constraints.
+4. **Context Management:** Use `docs/ai/CONTEXT.md` and `docs/ai/LOOKUP.md` only during the GATHER phase, reading only the sections the ticket needs (see section map at top of `docs/ai/REF.md`).
 
 ## 🚀 Specialized Commands
 * **`@audit`**: Scan code for layout leakage (Admin logic in Member space) or Clerk auth vulnerabilities.
@@ -18,4 +18,4 @@
 
 ## 📂 Portal Context
 * **Tech Stack:** Next.js 16 (App Router), Supabase (PostgreSQL 17), Tailwind v4, Clerk v7.
-* **Source of Truth:** Airtable base `app1n7KYX8i8xSiB7` for all issues and development status.
+* **Source of Truth:** GitHub Issues for active development; Airtable base `app1n7KYX8i8xSiB7` for full issue history.

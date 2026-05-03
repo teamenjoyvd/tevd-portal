@@ -27,7 +27,7 @@
     docs/ai/CONTEXT.md contains reference material (schema, directory tree, design
     system, navigation, CI detail). It is NEVER read at session start. Read only the
     sections relevant to the current ticket during GATHER, using the section map
-    in CLAUDE.md §9. In PLAN mode, read freely — there is no competing write budget.
+    at the top of `docs/ai/REF.md`. In PLAN mode, read freely — there is no competing write budget.
   </instructions>
 
   <optimal_mode>
