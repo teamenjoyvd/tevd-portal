@@ -322,7 +322,7 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
 | `/api/payments` | GET, POST | Unified |
 | `/api/trips/[id]/payments` | GET | |
 | `/api/calendar` | GET | Role-filtered; no `?month` → agenda from today |
-| `/api/calendar/feed.ics` | GET | iCal feed; `?token=` JWT auth; emits `location` + `url` (meeting_url) |
+| `/api/calendar/feed.ics` | GET | iCal feed; `?token=` JWT auth; emits LOCATION + URL + CATEGORIES |
 | `/api/calendar/feed-token` | GET, POST | Issue/regenerate iCal subscription token |
 | `/api/guides` | GET | Published, access_roles respected |
 | `/api/links` | GET | Active links, role-filtered |
