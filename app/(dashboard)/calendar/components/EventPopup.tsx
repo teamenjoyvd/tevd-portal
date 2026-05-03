@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { formatTime, formatLongDate } from '@/lib/format'
-import { X, Check } from 'lucide-react'
+import { X, Check, Users } from 'lucide-react'
 import { apiClient } from '@/lib/apiClient'
 
 type RoleRequest = {
@@ -20,6 +20,16 @@ type CallerRequest = {
   role_label: string
   status: 'pending' | 'approved' | 'denied'
   note: string | null
+}
+
+type GuestRegistration = {
+  id: string
+  name: string
+  email: string
+  status: string
+  attended_at: string | null
+  created_at: string
+  sharer_name: string | null
 }
 
 type EventDetail = {
@@ -57,12 +67,85 @@ const EVENT_TYPE_STYLES: Record<string, { bg: string; color: string; label: stri
   'hybrid':    { bg: 'rgba(242,204,143,0.35)', color: '#7a5c00',  label: 'Hybrid'    },
 }
 
+// ── Admin: guest registration list ────────────────────────────────────────────
+
+function AdminRegistrationsTab({ eventId }: { eventId: string }) {
+  const { data, isLoading } = useQuery<{ registrations: GuestRegistration[] }>({
+    queryKey: ['event-registrations', eventId],
+    queryFn: () => apiClient(`/api/admin/events/${eventId}/registrations`),
+  })
+
+  if (isLoading) {
+    return (
+      <div className="px-4 py-3 space-y-2">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="h-10 rounded-lg animate-pulse" style={{ backgroundColor: 'rgba(0,0,0,0.06)' }} />
+        ))}
+      </div>
+    )
+  }
+
+  const registrations = data?.registrations ?? []
+
+  if (registrations.length === 0) {
+    return (
+      <div className="px-4 py-6 text-center">
+        <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>No registrations yet.</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="px-4 py-3 space-y-2">
+      {registrations.map(g => {
+        const isAttended = !!g.attended_at
+        const statusColor = isAttended ? '#2d6a4f' : g.status === 'confirmed' ? '#3d405b' : '#7a5c00'
+        const statusBg    = isAttended ? 'rgba(129,178,154,0.2)' : g.status === 'confirmed' ? 'rgba(61,64,91,0.08)' : 'rgba(242,204,143,0.3)'
+        const statusLabel = isAttended ? 'Attended' : g.status === 'confirmed' ? 'Confirmed' : 'Pending'
+
+        return (
+          <div
+            key={g.id}
+            className="rounded-lg p-2.5"
+            style={{ backgroundColor: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.05)' }}
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{g.name}</p>
+                <p className="text-[10px] truncate" style={{ color: 'var(--text-secondary)' }}>{g.email}</p>
+                {g.sharer_name && (
+                  <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                    via <span style={{ color: 'var(--brand-teal)' }}>{g.sharer_name}</span>
+                  </p>
+                )}
+                {!g.sharer_name && (
+                  <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>Direct</p>
+                )}
+              </div>
+              <span
+                className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
+                style={{ backgroundColor: statusBg, color: statusColor }}
+              >
+                {statusLabel}
+              </span>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// ── Main component ──────────────────────────────────────────────────────────
+
 export default function EventPopup({
   eventId, onClose, userRole, userProfileId,
 }: Props) {
   const qc = useQueryClient()
   const { t } = useLanguage()
-  const [shareCopied, setShareCopied] = useState(false)
+  const [shareCopied, setShareCopied]     = useState(false)
+  const [shareLoading, setShareLoading]   = useState(false)
+  const [adminTab, setAdminTab]           = useState<'roles' | 'registrations'>('roles')
 
   const { data: event, isLoading } = useQuery<EventDetail>({
     queryKey: ['event', eventId],
@@ -105,14 +188,37 @@ export default function EventPopup({
   })
 
   async function handleShare() {
-    const shareUrl = `${window.location.origin}/events/${eventId}/register`
-    const shareData = { title: event?.title ?? '', text: `Register for ${event?.title ?? ''}`, url: shareUrl }
-    if (typeof navigator.share === 'function' && navigator.canShare?.(shareData)) {
-      try { await navigator.share(shareData); return } catch { /* cancelled */ }
+    if (!event?.allow_guest_registration || shareLoading) return
+    setShareLoading(true)
+    try {
+      // Determine share method optimistically before the sheet opens
+      const canNative = typeof navigator.share === 'function'
+      const method: 'native' | 'clipboard' = canNative ? 'native' : 'clipboard'
+
+      const { token } = await apiClient('/api/profile/event-shares', {
+        method: 'POST',
+        body: JSON.stringify({ event_id: eventId, share_method: method }),
+      })
+
+      const shareUrl  = `${window.location.origin}/events/${eventId}/register?share=${token}`
+      const shareData = { title: event.title, text: `Register for ${event.title}`, url: shareUrl }
+
+      if (canNative && navigator.canShare?.(shareData)) {
+        try { await navigator.share(shareData); return } catch { /* cancelled */ }
+      }
+      // Clipboard fallback
+      await navigator.clipboard.writeText(shareUrl)
+      setShareCopied(true)
+      setTimeout(() => setShareCopied(false), 2000)
+    } catch {
+      // If the API call fails, fall back to plain URL share without attribution
+      const fallbackUrl = `${window.location.origin}/events/${eventId}/register`
+      await navigator.clipboard.writeText(fallbackUrl).catch(() => {})
+      setShareCopied(true)
+      setTimeout(() => setShareCopied(false), 2000)
+    } finally {
+      setShareLoading(false)
     }
-    await navigator.clipboard.writeText(shareUrl)
-    setShareCopied(true)
-    setTimeout(() => setShareCopied(false), 2000)
   }
 
   const eventTypeStyle = event?.event_type ? EVENT_TYPE_STYLES[event.event_type] : null
@@ -157,8 +263,30 @@ export default function EventPopup({
 
       {/* Scrollable body */}
       <div className="flex-1 overflow-y-auto">
+
+        {/* Admin tab bar — only rendered for admins */}
+        {isAdmin && !isLoading && event && (
+          <div className="px-4 pt-3 pb-0 flex gap-1 border-b border-black/5">
+            {(['roles', 'registrations'] as const).map(tab => (
+              <button
+                key={tab}
+                onClick={() => setAdminTab(tab)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-t-lg text-xs font-semibold transition-colors"
+                style={{
+                  backgroundColor: adminTab === tab ? 'var(--bg-global)' : 'transparent',
+                  color: adminTab === tab ? 'var(--text-primary)' : 'var(--text-secondary)',
+                  borderBottom: adminTab === tab ? '2px solid var(--brand-crimson)' : '2px solid transparent',
+                }}
+              >
+                {tab === 'registrations' && <Users size={10} />}
+                {tab === 'roles' ? 'Roles' : 'Registrations'}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Roles */}
-        {!isGuest && !isLoading && event && (
+        {!isGuest && !isLoading && event && (adminTab === 'roles' || !isAdmin) && (
           <div className="px-4 py-3 border-b border-black/5">
             <p className="text-[10px] font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
               {t('event.roles')}
@@ -256,6 +384,11 @@ export default function EventPopup({
           </div>
         )}
 
+        {/* Admin: registrations tab content */}
+        {isAdmin && adminTab === 'registrations' && event && (
+          <AdminRegistrationsTab eventId={eventId} />
+        )}
+
         {/* Meta */}
         {isLoading ? (
           <div className="p-4 space-y-2">
@@ -263,7 +396,7 @@ export default function EventPopup({
               <div key={i} className="h-6 rounded animate-pulse" style={{ backgroundColor: 'rgba(0,0,0,0.06)' }} />
             ))}
           </div>
-        ) : event ? (
+        ) : event && adminTab !== 'registrations' ? (
           <>
             <div className="px-4 py-3 border-b border-black/5">
               <div className="flex items-center gap-2 text-xs mb-1" style={{ color: 'var(--text-primary)' }}>
@@ -297,10 +430,13 @@ export default function EventPopup({
                   </a>
                 </div>
               )}
-              {event.allow_guest_registration && (
-                <button onClick={handleShare}
-                  className="mt-3 flex items-center gap-1.5 text-xs font-medium hover:opacity-70 transition-opacity"
-                  style={{ color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+              {event.allow_guest_registration && !isGuest && (
+                <button
+                  onClick={handleShare}
+                  disabled={shareLoading}
+                  className="mt-3 flex items-center gap-1.5 text-xs font-medium hover:opacity-70 transition-opacity disabled:opacity-40"
+                  style={{ color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
                     stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="18" cy="5" r="3"/>
@@ -309,7 +445,7 @@ export default function EventPopup({
                     <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
                     <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
                   </svg>
-                  {shareCopied ? t('cal.linkCopied') : t('cal.shareEvent')}
+                  {shareLoading ? '…' : shareCopied ? t('cal.linkCopied') : t('cal.shareEvent')}
                 </button>
               )}
             </div>
