@@ -13,8 +13,8 @@ CREATE TABLE IF NOT EXISTS event_share_links (
   UNIQUE (profile_id, event_id)
 );
 
-CREATE INDEX idx_event_share_links_profile ON event_share_links (profile_id);
-CREATE INDEX idx_event_share_links_event   ON event_share_links (event_id);
+CREATE INDEX IF NOT EXISTS idx_event_share_links_profile ON event_share_links (profile_id);
+CREATE INDEX IF NOT EXISTS idx_event_share_links_event   ON event_share_links (event_id);
 
 -- ── increment_share_link_click RPC ────────────────────────────────────────
 -- Atomic counter increment. Called on guest registration — never on page load.
@@ -24,6 +24,7 @@ CREATE OR REPLACE FUNCTION increment_share_link_click(link_id uuid)
 RETURNS void
 LANGUAGE sql
 SECURITY DEFINER
+SET search_path = public
 AS $$
   UPDATE event_share_links
   SET    click_count = click_count + 1
@@ -37,9 +38,21 @@ ALTER TABLE guest_registrations
   ADD COLUMN IF NOT EXISTS attended_at   timestamptz;
 
 -- Unique constraint on (event_id, email) enables safe upsert deduplication.
--- Verified: zero duplicate rows in prod before applying.
-ALTER TABLE guest_registrations
-  ADD CONSTRAINT guest_registrations_event_email_unique UNIQUE (event_id, email);
+-- ADD CONSTRAINT IF NOT EXISTS is not valid PG syntax; guard via catalog check.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'guest_registrations_event_email_unique'
+      AND conrelid = 'guest_registrations'::regclass
+  ) THEN
+    ALTER TABLE guest_registrations
+      ADD CONSTRAINT guest_registrations_event_email_unique UNIQUE (event_id, email);
+  END IF;
+END;
+$$;
 
-CREATE INDEX idx_guest_reg_share_link ON guest_registrations (share_link_id)
+DROP INDEX IF EXISTS guest_registrations_event_id_idx;
+
+CREATE INDEX IF NOT EXISTS idx_guest_reg_share_link ON guest_registrations (share_link_id)
   WHERE share_link_id IS NOT NULL;
