@@ -1,2 +1,0 @@
--- no-op: DDL applied under version 20260331232304 (matches supabase_migrations history).
--- This file retained for filename continuity; executing it would error on existing objects.
