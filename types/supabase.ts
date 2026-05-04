@@ -258,34 +258,85 @@ export type Database = {
           },
         ]
       }
+      event_share_links: {
+        Row: {
+          click_count: number
+          created_at: string
+          event_id: string
+          id: string
+          profile_id: string
+          share_method: string
+          token: string
+        }
+        Insert: {
+          click_count?: number
+          created_at?: string
+          event_id: string
+          id?: string
+          profile_id: string
+          share_method: string
+          token: string
+        }
+        Update: {
+          click_count?: number
+          created_at?: string
+          event_id?: string
+          id?: string
+          profile_id?: string
+          share_method?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_share_links_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_share_links_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guest_registrations: {
         Row: {
+          attended_at: string | null
           created_at: string
           email: string
           event_id: string
           expires_at: string
           id: string
           name: string
+          share_link_id: string | null
           status: Database["public"]["Enums"]["guest_registration_status"]
           token: string
         }
         Insert: {
+          attended_at?: string | null
           created_at?: string
           email: string
           event_id: string
           expires_at: string
           id?: string
           name: string
+          share_link_id?: string | null
           status?: Database["public"]["Enums"]["guest_registration_status"]
           token: string
         }
         Update: {
+          attended_at?: string | null
           created_at?: string
           email?: string
           event_id?: string
           expires_at?: string
           id?: string
           name?: string
+          share_link_id?: string | null
           status?: Database["public"]["Enums"]["guest_registration_status"]
           token?: string
         }
@@ -295,6 +346,13 @@ export type Database = {
             columns: ["event_id"]
             isOneToOne: false
             referencedRelation: "calendar_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_registrations_share_link_id_fkey"
+            columns: ["share_link_id"]
+            isOneToOne: false
+            referencedRelation: "event_share_links"
             referencedColumns: ["id"]
           },
         ]
@@ -1173,6 +1231,24 @@ export type Database = {
         }
         Relationships: []
       }
+      waiting_list: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -1224,6 +1300,10 @@ export type Database = {
         }[]
       }
       import_los_members: { Args: { rows: Json }; Returns: Json }
+      increment_share_link_click: {
+        Args: { link_id: string }
+        Returns: undefined
+      }
       is_admin: { Args: never; Returns: boolean }
       patch_member_role: {
         Args: {
