@@ -38,9 +38,19 @@ ALTER TABLE guest_registrations
   ADD COLUMN IF NOT EXISTS attended_at   timestamptz;
 
 -- Unique constraint on (event_id, email) enables safe upsert deduplication.
--- Verified: zero duplicate rows in prod before applying.
-ALTER TABLE guest_registrations
-  ADD CONSTRAINT IF NOT EXISTS guest_registrations_event_email_unique UNIQUE (event_id, email);
+-- ADD CONSTRAINT IF NOT EXISTS is not valid PG syntax; guard via catalog check.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'guest_registrations_event_email_unique'
+      AND conrelid = 'guest_registrations'::regclass
+  ) THEN
+    ALTER TABLE guest_registrations
+      ADD CONSTRAINT guest_registrations_event_email_unique UNIQUE (event_id, email);
+  END IF;
+END;
+$$;
 
 DROP INDEX IF EXISTS guest_registrations_event_id_idx;
 
