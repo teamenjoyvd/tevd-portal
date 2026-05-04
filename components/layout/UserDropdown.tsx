@@ -21,12 +21,24 @@ const ROLE_LABELS: Record<string, string> = {
   guest:  'Guest',
 }
 
+type VerRequest = {
+  id: string
+  claimed_abo: string
+  claimed_upline_abo: string
+  status: string
+  admin_note: string | null
+  created_at: string
+  request_type: string
+} | null
+
 type ProfileData = {
   id: string
   first_name: string
   last_name: string
   role: string
   abo_number: string | null
+  upline: { upline_name: string | null; upline_abo_number: string | null } | null
+  verRequest: VerRequest
 }
 
 export default function UserDropdown() {
@@ -51,19 +63,9 @@ export default function UserDropdown() {
   const initials  = `${firstName[0] ?? ''}${lastName[0] ?? ''}`.toUpperCase() || '?'
   const fullName  = `${firstName} ${lastName}`.trim() || 'Member'
 
-  const { data: uplineData } = useQuery<{ upline_name: string | null }>({
-    queryKey: ['profile-upline'],
-    queryFn: () => fetch('/api/profile/upline').then(r => r.json()),
-    staleTime: 5 * 60 * 1000,
-  })
+  const uplineName = profileData?.upline?.upline_name ?? null
 
-  const { data: verRequest } = useQuery<{ status: string } | null>({
-    queryKey: ['verify-abo'],
-    queryFn: () => fetch('/api/profile/verify-abo').then(r => r.json()),
-    enabled: role === 'guest',
-    staleTime: 5 * 60 * 1000,
-  })
-
+  const verRequest = profileData?.verRequest ?? null
   const isUnverified = role === 'guest' &&
     !!verRequest &&
     (verRequest.status === 'pending' || verRequest.status === 'denied')
@@ -104,10 +106,10 @@ export default function UserDropdown() {
               </span>
             </div>
           </div>
-          {uplineData?.upline_name && (
+          {uplineName && (
             <p className="text-xs mt-3" style={{ color: 'var(--text-secondary)' }}>
               <span className="font-medium">Upline</span>{' '}
-              {uplineData.upline_name}
+              {uplineName}
             </p>
           )}
         </div>
