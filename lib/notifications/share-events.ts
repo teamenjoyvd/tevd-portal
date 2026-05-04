@@ -70,7 +70,7 @@ export function notifySharerOfRegistration(shareLinkId: string, guestName: strin
         meta:     { shareLinkId, guestName },
       })
     })
-    .catch(() => { /* silent — non-blocking */ })
+    .catch(err => { console.error('Failed to notify sharer of registration:', err) })
 }
 
 /** Fire-and-forget: notify sharer that a guest joined the meeting. */
@@ -93,5 +93,5 @@ export function notifySharerOfAttendance(shareLinkId: string, guestName: string)
         meta:     { shareLinkId, guestName },
       })
     })
-    .catch(() => { /* silent — non-blocking */ })
+    .catch(err => { console.error('Failed to notify sharer of attendance:', err) })
 }

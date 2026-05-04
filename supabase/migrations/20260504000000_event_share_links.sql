@@ -16,6 +16,20 @@ CREATE TABLE IF NOT EXISTS event_share_links (
 CREATE INDEX idx_event_share_links_profile ON event_share_links (profile_id);
 CREATE INDEX idx_event_share_links_event   ON event_share_links (event_id);
 
+-- ── increment_share_link_click RPC ────────────────────────────────────────
+-- Atomic counter increment. Called on guest registration — never on page load.
+-- Uses UPDATE directly to avoid read-then-write race conditions.
+
+CREATE OR REPLACE FUNCTION increment_share_link_click(link_id uuid)
+RETURNS void
+LANGUAGE sql
+SECURITY DEFINER
+AS $$
+  UPDATE event_share_links
+  SET    click_count = click_count + 1
+  WHERE  id = link_id;
+$$;
+
 -- ── guest_registrations additions ─────────────────────────────────────────
 
 ALTER TABLE guest_registrations

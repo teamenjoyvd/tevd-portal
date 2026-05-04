@@ -46,15 +46,33 @@ export async function POST(req: NextRequest): Promise<Response> {
     return Response.json({ error: 'Event does not allow guest registration' }, { status: 400 })
   }
 
-  // Generate url-safe token (16 bytes = 22 base64url chars)
+  // Check if a link already exists for this member+event pair.
+  // If it does, return the existing token — never regenerate it, as the member
+  // may have already distributed the previous link.
+  const { data: existing } = await supabase
+    .from('event_share_links')
+    .select('token')
+    .eq('profile_id', profile.id)
+    .eq('event_id', event_id)
+    .single()
+
+  if (existing) {
+    // Update share_method (last-write-wins) without touching the token.
+    await supabase
+      .from('event_share_links')
+      .update({ share_method })
+      .eq('profile_id', profile.id)
+      .eq('event_id', event_id)
+
+    return Response.json({ token: existing.token })
+  }
+
+  // No existing link — generate a fresh url-safe token (16 bytes = 22 base64url chars)
   const token = randomBytes(16).toString('base64url')
 
   const { data: link, error } = await supabase
     .from('event_share_links')
-    .upsert(
-      { profile_id: profile.id, event_id, token, share_method },
-      { onConflict: 'profile_id,event_id', ignoreDuplicates: false },
-    )
+    .insert({ profile_id: profile.id, event_id, token, share_method })
     .select('token')
     .single()
 
