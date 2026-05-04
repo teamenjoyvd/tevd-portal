@@ -37,8 +37,8 @@ type ShareLink = {
 
 export function generateInvitesPdf(links: ShareLink[], memberName: string): void {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
-  const brand = [26, 60, 46] as const   // #1a3c2e
-  const muted = [107, 114, 128] as const // #6b7280
+  const brand: [number, number, number] = [26, 60, 46]   // #1a3c2e
+  const muted: [number, number, number] = [107, 114, 128] // #6b7280
   const pageW = doc.internal.pageSize.getWidth()
 
   // ── Header ──────────────────────────────────────────────────────────────
