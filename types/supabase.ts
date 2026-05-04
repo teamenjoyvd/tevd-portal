@@ -1300,6 +1300,10 @@ export type Database = {
         }[]
       }
       import_los_members: { Args: { rows: Json }; Returns: Json }
+      increment_share_link_click: {
+        Args: { link_id: string }
+        Returns: undefined
+      }
       is_admin: { Args: never; Returns: boolean }
       patch_member_role: {
         Args: {

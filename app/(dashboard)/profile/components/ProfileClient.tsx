@@ -30,15 +30,17 @@ import { CalendarSection, CALENDAR_MIN_HEIGHT } from './CalendarSection'
 import { StatsSection, STATS_MIN_HEIGHT } from './StatsSection'
 import { AdminSection } from './AdminSection'
 import { EmailPrefsSection, EMAIL_PREFS_MIN_HEIGHT } from './EmailPrefsSection'
+import { InvitesSection, INVITES_MIN_HEIGHT } from './InvitesSection'
 import { type Profile } from '../types'
 import { apiClient } from '@/lib/apiClient'
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// ── Types ────────────────────────────────────────────────────────────────────
 
 type Props = {
-  profileId: string
-  role: string
-  aboNumber: string | null
+  profileId:  string
+  role:       string
+  aboNumber:  string | null
+  hasInvites: boolean
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -58,6 +60,7 @@ const BENTO_IDS = {
   CALENDAR:         'calendar',
   STATS:            'stats',
   ADMIN:            'admin',
+  INVITES:          'invites',
 }
 
 const DEFAULT_ORDER: string[] = [
@@ -72,38 +75,34 @@ const DEFAULT_ORDER: string[] = [
   BENTO_IDS.SETTINGS,
   BENTO_IDS.EMAIL_PREFS,
   BENTO_IDS.STATS,
+  BENTO_IDS.INVITES,
   BENTO_IDS.ADMIN,
 ]
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function ProfileClient({ profileId, role, aboNumber }: Props) {
+export function ProfileClient({ profileId, role, aboNumber, hasInvites }: Props) {
   const { t } = useLanguage()
 
-  // ── Full profile — read from cache for ui_prefs once content tiles populate it.
-  // ProfileClient never fetches the full profile itself.
   const { data: fullProfile } = useQuery<Profile>({
     queryKey: ['profile'],
-    enabled: false, // never fetch from here — read cache only
+    enabled: false,
   })
 
   const isGuest = role === 'guest' && !aboNumber
   const isAdmin = role === 'admin'
 
-  // ── Layout state ─────────────────────────────────────────────────────────
   const [bentoOrder, setBentoOrder]         = useState<string[]>(DEFAULT_ORDER)
   const [bentoCollapsed, setBentoCollapsed] = useState<Record<string, boolean>>({})
   const [layoutRestored, setLayoutRestored] = useState(false)
   const persistDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Clear debounce timer on unmount to prevent stale API calls
   useEffect(() => {
     return () => {
       if (persistDebounceRef.current) clearTimeout(persistDebounceRef.current)
     }
   }, [])
 
-  // ── Restore persisted bento layout from full profile cache ───────────────
   useEffect(() => {
     if (layoutRestored || !fullProfile?.id) return
     const prefs = (fullProfile.ui_prefs ?? {}) as Record<string, unknown>
@@ -122,7 +121,6 @@ export function ProfileClient({ profileId, role, aboNumber }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fullProfile?.id])
 
-  // ── Persist bento prefs ───────────────────────────────────────────────────
   const persistPrefs = useCallback((order: string[], collapsed: Record<string, boolean>) => {
     if (persistDebounceRef.current) clearTimeout(persistDebounceRef.current)
     persistDebounceRef.current = setTimeout(() => {
@@ -133,8 +131,6 @@ export function ProfileClient({ profileId, role, aboNumber }: Props) {
     }, 500)
   }, [])
 
-  // Stable ref for bentoCollapsed — allows event handlers to read current
-  // collapsed state without stale closures, without re-creating callbacks.
   const bentoCollapsedRef = useRef(bentoCollapsed)
   useEffect(() => {
     bentoCollapsedRef.current = bentoCollapsed
@@ -153,7 +149,6 @@ export function ProfileClient({ profileId, role, aboNumber }: Props) {
   const toggleCollapse = useCallback((id: string) => {
     setBentoCollapsed(prev => {
       const next = { ...prev, [id]: !prev[id] }
-      // Read current order from state setter arg to avoid stale closure
       setBentoOrder(order => { persistPrefs(order, next); return order })
       return next
     })
@@ -182,7 +177,6 @@ export function ProfileClient({ profileId, role, aboNumber }: Props) {
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
   )
 
-  // ── Bento map ─────────────────────────────────────────────────────────────
   type BentoEntry = { colSpan: number; minHeight: number; node: React.ReactNode }
 
   const bentoMap: Record<string, BentoEntry | null> = {
@@ -230,6 +224,10 @@ export function ProfileClient({ profileId, role, aboNumber }: Props) {
       colSpan: 6, minHeight: STATS_MIN_HEIGHT,
       node: <StatsSection role={role} aboNumber={aboNumber} />,
     } : null,
+    [BENTO_IDS.INVITES]: hasInvites ? {
+      colSpan: 12, minHeight: INVITES_MIN_HEIGHT,
+      node: <InvitesSection />,
+    } : null,
     [BENTO_IDS.ADMIN]: isAdmin ? {
       colSpan: 6, minHeight: BENTO_HEIGHT.S,
       node: <AdminSection />,
@@ -240,7 +238,6 @@ export function ProfileClient({ profileId, role, aboNumber }: Props) {
     .map(id => ({ id, entry: bentoMap[id] ?? null }))
     .filter((b): b is { id: string; entry: BentoEntry } => b.entry !== null)
 
-  // Keep ref in sync via effect — safe for concurrent rendering
   useEffect(() => {
     orderedBentosRef.current = orderedBentos
   }, [orderedBentos])
@@ -268,7 +265,7 @@ export function ProfileClient({ profileId, role, aboNumber }: Props) {
           </button>
         </div>
 
-        {/* ── DESKTOP (md+) — DnD grid ──────────────────────────────────── */}
+        {/* ── DESKTOP (md+) ─ DnD grid */}
         <div className="hidden md:block">
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext items={orderedBentos.map(b => b.id)} strategy={rectSortingStrategy}>
@@ -290,7 +287,7 @@ export function ProfileClient({ profileId, role, aboNumber }: Props) {
           </DndContext>
         </div>
 
-        {/* ── MOBILE (< md) — stacked flex, no DnD ─────────────────────── */}
+        {/* ── MOBILE (< md) ─ stacked flex, no DnD */}
         <div className="md:hidden flex flex-col gap-3">
           {orderedBentos.map(({ id, entry }) => (
             <SortableBento

@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import { createServiceClient } from '@/lib/supabase/service'
 import { JoinActions } from './components/JoinActions'
 import { t } from '@/lib/i18n'
+import { notifySharerOfAttendance } from '@/lib/notifications/share-events'
 
 type Props = {
   params:       Promise<{ eventId: string }>
@@ -90,13 +91,25 @@ export default async function GuestJoinPage({ params, searchParams }: Props) {
 
   const { data: reg } = await supabase
     .from('guest_registrations')
-    .select('id, name, event_id, expires_at, calendar_events(title, meeting_url, start_time, end_time)')
+    .select('id, name, event_id, expires_at, share_link_id, calendar_events(title, meeting_url, start_time, end_time)')
     .eq('token', token)
     .single()
 
   if (!reg)                                  return <InvalidState eventId={eventId} reason="invalid" lang={lang} />
   if (reg.event_id !== eventId)              return <InvalidState eventId={eventId} reason="invalid" lang={lang} />
   if (new Date(reg.expires_at) < new Date()) return <InvalidState eventId={eventId} reason="expired" lang={lang} />
+
+  // Stamp attendance — idempotent, only writes when not already set
+  await supabase
+    .from('guest_registrations')
+    .update({ attended_at: new Date().toISOString() })
+    .eq('id', reg.id)
+    .is('attended_at', null)
+
+  // Notify sharer — fire-and-forget, must not block render
+  if (reg.share_link_id) {
+    notifySharerOfAttendance(reg.share_link_id, reg.name)
+  }
 
   // Narrow joined relation -- PostgREST returns object for to-one FK
   const event = reg.calendar_events as unknown as {
