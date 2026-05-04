@@ -36,14 +36,15 @@ export default function UserDropdown() {
   const { theme, mounted: themeMounted, toggle: toggleTheme } = useTheme()
   const [open, setOpen] = useState(false)
 
-  const role = (user?.publicMetadata?.role as string) ?? 'guest'
-  const isAdmin = role === 'admin'
-
   const { data: profileData } = useQuery<ProfileData>({
     queryKey: ['profile'],
     queryFn: () => fetch('/api/profile').then(r => r.json()),
     staleTime: 5 * 60 * 1000,
   })
+
+  // Role sourced from DB via profile query — single source of truth
+  const role = profileData?.role ?? 'guest'
+  const isAdmin = role === 'admin'
 
   const firstName = profileData?.first_name || user?.firstName || ''
   const lastName  = profileData?.last_name  || user?.lastName  || ''
