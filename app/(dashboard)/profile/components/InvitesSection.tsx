@@ -62,6 +62,7 @@ export function InvitesSection() {
   const [filterTo,     setFilterTo]     = useState<string>('')
   const [filterQ,      setFilterQ]      = useState<string>('')
   const [expanded,     setExpanded]     = useState<Record<string, boolean>>({})
+  const [pdfLoading,   setPdfLoading]   = useState(false)
 
   const { data, isLoading } = useQuery<ApiResponse>({
     queryKey: ['invites'],
@@ -97,8 +98,8 @@ export function InvitesSection() {
       }))
   }, [allLinks, filterEvent, filterMethod, filterFrom, filterTo, filterStatus, filterQ])
 
-  function buildExportUrl(format: 'csv' | 'pdf'): string {
-    const p = new URLSearchParams({ format })
+  function buildCsvUrl(): string {
+    const p = new URLSearchParams({ format: 'csv' })
     if (filterEvent  !== 'all') p.set('event_id', filterEvent)
     if (filterStatus !== 'all') p.set('status', filterStatus)
     if (filterMethod !== 'all') p.set('method', filterMethod)
@@ -106,6 +107,20 @@ export function InvitesSection() {
     if (filterTo)               p.set('to', filterTo)
     if (filterQ)                p.set('q', filterQ)
     return `/api/profile/event-shares/export?${p.toString()}`
+  }
+
+  async function handlePdfExport() {
+    if (pdfLoading || filtered.length === 0) return
+    setPdfLoading(true)
+    try {
+      // Dynamic import keeps jspdf out of the initial bundle
+      const { generateInvitesPdf } = await import('@/lib/invites-pdf')
+      generateInvitesPdf(filtered, 'Member')
+    } catch (e) {
+      console.error('PDF export failed', e)
+    } finally {
+      setPdfLoading(false)
+    }
   }
 
   function toggleExpanded(id: string) {
@@ -130,24 +145,24 @@ export function InvitesSection() {
           {t('profile.invites.title')}
         </p>
 
-        {/* Export dropdown */}
+        {/* Export buttons */}
         <div className="flex gap-1">
           <a
-            href={buildExportUrl('csv')}
+            href={buildCsvUrl()}
             download
             className="text-[10px] font-semibold px-2.5 py-1 rounded-lg border transition-colors hover:opacity-70"
             style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
           >
             {t('profile.invites.exportCsv')}
           </a>
-          <a
-            href={buildExportUrl('pdf')}
-            download
-            className="text-[10px] font-semibold px-2.5 py-1 rounded-lg border transition-colors hover:opacity-70"
+          <button
+            onClick={handlePdfExport}
+            disabled={pdfLoading || filtered.length === 0}
+            className="text-[10px] font-semibold px-2.5 py-1 rounded-lg border transition-colors hover:opacity-70 disabled:opacity-40"
             style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
           >
-            {t('profile.invites.exportPdf')}
-          </a>
+            {pdfLoading ? '…' : t('profile.invites.exportPdf')}
+          </button>
         </div>
       </div>
 
@@ -259,13 +274,13 @@ export function InvitesSection() {
                   {/* Funnel summary */}
                   <div className="flex items-center gap-3 flex-shrink-0 text-[10px] font-semibold" style={{ color: 'var(--text-secondary)' }}>
                     <span>{link.click_count} {t('profile.invites.clicks')}</span>
-                    <span style={{ color: 'var(--text-secondary)' }}>→</span>
+                    <span>→</span>
                     <span>{guests.length} {t('profile.invites.registrations')}</span>
-                    <span style={{ color: 'var(--text-secondary)' }}>→</span>
+                    <span>→</span>
                     <span style={{ color: confirmed > 0 ? '#3d405b' : undefined }}>{confirmed} {t('profile.invites.confirmed')}</span>
-                    <span style={{ color: 'var(--text-secondary)' }}>→</span>
+                    <span>→</span>
                     <span style={{ color: attended > 0 ? '#2d6a4f' : undefined }}>{attended} {t('profile.invites.attended')}</span>
-                    <span style={{ color: 'var(--text-secondary)', fontSize: 10 }}>{isOpen ? '▲' : '▼'}</span>
+                    <span style={{ fontSize: 10 }}>{isOpen ? '▲' : '▼'}</span>
                   </div>
                 </button>
 
