@@ -1,11 +1,6 @@
-import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { Resend } from 'resend'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+import { createServiceClient } from '@/lib/supabase/service'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -16,6 +11,8 @@ export async function POST(req: Request) {
     if (!email || typeof email !== 'string' || !email.includes('@')) {
       return NextResponse.json({ error: 'Invalid email' }, { status: 400 })
     }
+
+    const supabase = createServiceClient()
 
     const { error } = await supabase
       .from('waiting_list')

@@ -14,8 +14,6 @@ const isWebhookRoute = createRouteMatcher(['/api/webhooks/(.*)', '/api/waiting-l
 
 function comingSoonGate(req: NextRequest): NextResponse | null {
   if (!COMING_SOON_ENABLED) return null
-  if (isComingSoonRoute(req)) return null
-  if (isWebhookRoute(req)) return null
 
   // Grant access via query param — set cookie and redirect to homepage
   const url = req.nextUrl
@@ -38,6 +36,9 @@ function comingSoonGate(req: NextRequest): NextResponse | null {
 }
 
 export default clerkMiddleware(async (auth, req) => {
+  // Fully exempt from Clerk — must return before auth() to prevent redirect loops
+  if (isComingSoonRoute(req) || isWebhookRoute(req)) return NextResponse.next()
+
   const gate = comingSoonGate(req)
   if (gate) return gate
 
