@@ -24,6 +24,7 @@ CREATE OR REPLACE FUNCTION increment_share_link_click(link_id uuid)
 RETURNS void
 LANGUAGE sql
 SECURITY DEFINER
+SET search_path = public
 AS $$
   UPDATE event_share_links
   SET    click_count = click_count + 1
@@ -40,6 +41,8 @@ ALTER TABLE guest_registrations
 -- Verified: zero duplicate rows in prod before applying.
 ALTER TABLE guest_registrations
   ADD CONSTRAINT guest_registrations_event_email_unique UNIQUE (event_id, email);
+
+DROP INDEX IF EXISTS guest_registrations_event_id_idx;
 
 CREATE INDEX idx_guest_reg_share_link ON guest_registrations (share_link_id)
   WHERE share_link_id IS NOT NULL;
