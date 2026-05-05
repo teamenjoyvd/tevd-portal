@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import { RefreshCw } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { formatDateTime, toSofiaLocalInput } from '@/lib/format'
 import { Drawer } from '@/components/ui/drawer'
@@ -88,6 +89,21 @@ export default function AdminCalendarClient() {
     })
   }, [events, search, categoryFilter, timeScope, monthFilter])
 
+  const syncMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch('/api/admin/calendar-sync', { method: 'POST' })
+      if (!res.ok) throw new Error('Failed to sync calendar')
+      return res.json()
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-calendar'] })
+      setTimeout(() => syncMutation.reset(), 2000)
+    },
+    onError: () => {
+      setTimeout(() => syncMutation.reset(), 2000)
+    },
+  })
+
   const createMutation = useMutation({
     mutationFn: (body: EventFormState) =>
       fetch('/api/admin/calendar', {
@@ -169,11 +185,29 @@ export default function AdminCalendarClient() {
             {t('admin.calendar.pageDesc')}
           </p>
         </div>
-        <button onClick={openCreate}
-          className="px-4 py-2 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-opacity"
-          style={{ backgroundColor: 'var(--brand-crimson)' }}>
-          {t('admin.calendar.btn.new')}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => syncMutation.mutate()}
+            disabled={syncMutation.status !== 'idle'}
+            aria-label="Sync calendar"
+            className="p-2 rounded-xl border transition-colors disabled:opacity-40"
+            style={{
+              borderColor: syncMutation.isError ? 'var(--brand-crimson)' : 'var(--border-default)',
+              color: syncMutation.isError ? 'var(--brand-crimson)' : syncMutation.isSuccess ? 'var(--brand-forest)' : 'var(--text-secondary)',
+              backgroundColor: 'var(--bg-card)',
+            }}
+          >
+            <RefreshCw
+              size={15}
+              className={syncMutation.isPending ? 'animate-spin' : ''}
+            />
+          </button>
+          <button onClick={openCreate}
+            className="px-4 py-2 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-opacity"
+            style={{ backgroundColor: 'var(--brand-crimson)' }}>
+            {t('admin.calendar.btn.new')}
+          </button>
+        </div>
       </div>
 
       {/* ── Filter bar ──────────────────────────────────────────────────────────────────── */}
