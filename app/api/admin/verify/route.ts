@@ -34,11 +34,20 @@ export async function POST(req: Request) {
   if (!targetProfile) return Response.json({ error: 'Profile not found' }, { status: 404 })
   if (targetProfile.role !== 'guest') return Response.json({ error: 'Profile is not a guest' }, { status: 409 })
 
-  // Insert a well-formed manual request row.
-  // ON CONFLICT DO NOTHING: if the guest already submitted a standard request,
-  // preserve it rather than clobbering claimed_abo. In that case we read back
-  // the existing row so the RPC gets the correct request id.
-  const { data: inserted } = await supabase
+  // Resolve the request row to pass to the RPC.
+  //
+  // Try inserting a new manual request first. On conflict (unique constraint
+  // on profile_id — covers pending, denied, and any other non-approved status):
+  //   - Update claimed_upline_abo to the admin's provided value so the admin's
+  //     intent wins regardless of what the guest submitted.
+  //   - Preserve claimed_abo so a pre-existing standard request keeps its ABO
+  //     number and the RPC standard path writes it correctly to the profile.
+  //   - Reset status to 'pending' and clear resolved_at so the RPC can approve it.
+  //
+  // The UPDATE is scoped to status != 'approved' as belt-and-suspenders, though
+  // the role !== 'guest' guard above already prevents reaching this point for
+  // already-approved members.
+  const { data: inserted, error: insertErr } = await supabase
     .from('abo_verification_requests')
     .insert({
       profile_id,
@@ -51,16 +60,28 @@ export async function POST(req: Request) {
     .select('id')
     .single()
 
-  // If insert returned nothing (conflict), read the existing pending row
   let requestId: string | null = inserted?.id ?? null
-  if (!requestId) {
-    const { data: existing } = await supabase
+
+  if (insertErr?.code === '23505') {
+    // Conflict: existing request row (any non-approved status).
+    // Update upline to admin's value; preserve claimed_abo; reset to pending.
+    const { data: updated, error: updateErr } = await supabase
       .from('abo_verification_requests')
-      .select('id')
+      .update({
+        claimed_upline_abo: upline_abo_number,
+        status: 'pending',
+        resolved_at: null,
+        admin_note: null,
+      })
       .eq('profile_id', profile_id)
-      .eq('status', 'pending')
+      .neq('status', 'approved')
+      .select('id')
       .single()
-    requestId = existing?.id ?? null
+
+    if (updateErr) return Response.json({ error: updateErr.message }, { status: 500 })
+    requestId = updated?.id ?? null
+  } else if (insertErr) {
+    return Response.json({ error: insertErr.message }, { status: 500 })
   }
 
   if (!requestId) {
