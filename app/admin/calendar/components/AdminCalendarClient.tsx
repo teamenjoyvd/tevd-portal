@@ -28,7 +28,6 @@ type CalEvent = {
 
 type TimeScope = 'upcoming' | 'past' | 'all'
 type CategoryFilter = 'All' | 'N21' | 'Personal'
-type SyncStatus = 'idle' | 'pending' | 'success' | 'error'
 
 export default function AdminCalendarClient() {
   const qc = useQueryClient()
@@ -37,7 +36,6 @@ export default function AdminCalendarClient() {
   const [editing, setEditing] = useState<CalEvent | null>(null)
   const [form, setForm] = useState<EventFormState>(emptyForm())
   const [formError, setFormError] = useState<string | null>(null)
-  const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle')
 
   // ── Filter state ─────────────────────────────────────────────────────────────────────
   const [search, setSearch] = useState('')
@@ -91,19 +89,20 @@ export default function AdminCalendarClient() {
     })
   }, [events, search, categoryFilter, timeScope, monthFilter])
 
-  async function handleSync() {
-    setSyncStatus('pending')
-    try {
+  const syncMutation = useMutation({
+    mutationFn: async () => {
       const res = await fetch('/api/admin/calendar-sync', { method: 'POST' })
-      if (!res.ok) throw new Error('sync failed')
-      await qc.invalidateQueries({ queryKey: ['admin-calendar'] })
-      setSyncStatus('success')
-      setTimeout(() => setSyncStatus('idle'), 2000)
-    } catch {
-      setSyncStatus('error')
-      setTimeout(() => setSyncStatus('idle'), 2000)
-    }
-  }
+      if (!res.ok) throw new Error('Failed to sync calendar')
+      return res.json()
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-calendar'] })
+      setTimeout(() => syncMutation.reset(), 2000)
+    },
+    onError: () => {
+      setTimeout(() => syncMutation.reset(), 2000)
+    },
+  })
 
   const createMutation = useMutation({
     mutationFn: (body: EventFormState) =>
@@ -188,19 +187,19 @@ export default function AdminCalendarClient() {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={handleSync}
-            disabled={syncStatus === 'pending'}
+            onClick={() => syncMutation.mutate()}
+            disabled={syncMutation.status !== 'idle'}
             aria-label="Sync calendar"
             className="p-2 rounded-xl border transition-colors disabled:opacity-40"
             style={{
-              borderColor: syncStatus === 'error' ? 'var(--brand-crimson)' : 'var(--border-default)',
-              color: syncStatus === 'error' ? 'var(--brand-crimson)' : syncStatus === 'success' ? 'var(--brand-forest)' : 'var(--text-secondary)',
+              borderColor: syncMutation.isError ? 'var(--brand-crimson)' : 'var(--border-default)',
+              color: syncMutation.isError ? 'var(--brand-crimson)' : syncMutation.isSuccess ? 'var(--brand-forest)' : 'var(--text-secondary)',
               backgroundColor: 'var(--bg-card)',
             }}
           >
             <RefreshCw
               size={15}
-              className={syncStatus === 'pending' ? 'animate-spin' : ''}
+              className={syncMutation.isPending ? 'animate-spin' : ''}
             />
           </button>
           <button onClick={openCreate}
