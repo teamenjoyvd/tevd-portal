@@ -130,33 +130,31 @@ Deno.serve(async (req: Request) => {
 
     const {data:ex} = await sb.from('calendar_events').select('id').eq('google_event_id', item.id).maybeSingle()
 
+    const eventPayload = {
+      title:       String(item.summary ?? 'Untitled'),
+      description: cleanDesc,
+      meeting_url: meetingUrl,
+      location:    location,
+      start_time:  st.toISOString(),
+      end_time:    et.toISOString(),
+      week_number: isoWeek(st),
+    }
+
     if (!ex) {
       // New event: full insert including category and access_roles
       const {error:ie} = await sb.from('calendar_events').insert({
-        google_event_id:  item.id,
-        title:            String(item.summary ?? 'Untitled'),
-        description:      cleanDesc,
-        meeting_url:      meetingUrl,
-        location:         location,
-        start_time:       st.toISOString(),
-        end_time:         et.toISOString(),
-        category:         personal ? 'Personal' : 'N21',
-        access_roles:     personal ? ['member','core','admin'] : ['admin','core','member','guest'],
-        week_number:      isoWeek(st),
+        ...eventPayload,
+        google_event_id: item.id,
+        category:        personal ? 'Personal' : 'N21',
+        access_roles:    personal ? ['member','core','admin'] : ['admin','core','member','guest'],
       })
       if (ie) errors.push(String(item.id) + ': ' + ie.message)
       else { upserted++; newEvents++ }
     } else {
       // Existing event: update scheduling and content only — never touch category or access_roles
-      const {error:ue} = await sb.from('calendar_events').update({
-        title:       String(item.summary ?? 'Untitled'),
-        description: cleanDesc,
-        meeting_url: meetingUrl,
-        location:    location,
-        start_time:  st.toISOString(),
-        end_time:    et.toISOString(),
-        week_number: isoWeek(st),
-      }).eq('google_event_id', item.id)
+      const {error:ue} = await sb.from('calendar_events')
+        .update(eventPayload)
+        .eq('google_event_id', item.id)
       if (ue) errors.push(String(item.id) + ': ' + ue.message)
       else upserted++
     }

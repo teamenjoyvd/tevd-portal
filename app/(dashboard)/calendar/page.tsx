@@ -28,7 +28,7 @@ export default async function CalendarPage({
 
   // Resolve the role for access_roles filtering.
   // Unauthenticated and authenticated-but-no-profile both resolve to 'guest'.
-  let resolvedRole: string = 'guest'
+  let resolvedRole: 'admin' | 'core' | 'member' | 'guest' = 'guest'
   let userRole: 'admin' | 'core' | 'member' | 'guest' | null = null
   let userProfileId: string | null = null
 
@@ -41,7 +41,7 @@ export default async function CalendarPage({
 
     if (profile) {
       resolvedRole  = profile.role
-      userRole      = profile.role as 'admin' | 'core' | 'member' | 'guest'
+      userRole      = profile.role
       userProfileId = profile.id
     }
     // no profile found: resolvedRole stays 'guest', userRole stays null
