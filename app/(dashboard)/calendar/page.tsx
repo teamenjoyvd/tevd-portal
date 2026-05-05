@@ -26,19 +26,9 @@ export default async function CalendarPage({
 
   const supabase = createServiceClient()
 
-  let query = supabase
-    .from('calendar_events')
-    .select('*')
-    .gte('start_time', start)
-    .lt('start_time', end)
-    .order('start_time')
-
-  if (!userId) {
-    query = query.eq('category', 'N21')
-  }
-
-  const { data: initialEvents } = await query
-
+  // Resolve the role for access_roles filtering.
+  // Unauthenticated and authenticated-but-no-profile both resolve to 'guest'.
+  let resolvedRole: 'admin' | 'core' | 'member' | 'guest' = 'guest'
   let userRole: 'admin' | 'core' | 'member' | 'guest' | null = null
   let userProfileId: string | null = null
 
@@ -49,9 +39,21 @@ export default async function CalendarPage({
       .eq('clerk_id', userId)
       .single()
 
-    userRole = (profile?.role ?? 'member') as 'admin' | 'core' | 'member' | 'guest'
-    userProfileId = profile?.id ?? null
+    if (profile) {
+      resolvedRole  = profile.role
+      userRole      = profile.role
+      userProfileId = profile.id
+    }
+    // no profile found: resolvedRole stays 'guest', userRole stays null
   }
+
+  const { data: initialEvents } = await supabase
+    .from('calendar_events')
+    .select('*')
+    .gte('start_time', start)
+    .lt('start_time', end)
+    .contains('access_roles', [resolvedRole])
+    .order('start_time')
 
   return (
     <CalendarClient

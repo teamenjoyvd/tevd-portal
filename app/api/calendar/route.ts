@@ -6,7 +6,8 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
   const month = searchParams.get('month')
 
-  // Resolve role for filtering
+  // Resolve role for access_roles filtering.
+  // Unauthenticated and authenticated-but-no-profile both resolve to 'guest'.
   let role = 'guest'
   try {
     const { userId } = await auth()
@@ -20,9 +21,7 @@ export async function GET(req: Request) {
   let query = supabase
     .from('calendar_events')
     .select('*')
-    // Include events where access_roles contains the user's role,
-    // OR where access_roles is null (safe fallback for manually created events).
-    .or(`access_roles.cs.{${role}},access_roles.is.null`)
+    .contains('access_roles', [role])
     .order('start_time')
 
   if (month) {
