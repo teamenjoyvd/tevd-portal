@@ -22,25 +22,6 @@ export const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
   document_expiring_soon: true,
 }
 
-export type Profile = {
-  id: string
-  clerk_id: string
-  first_name: string
-  last_name: string
-  abo_number: string | null
-  role: 'admin' | 'core' | 'member' | 'guest'
-  document_active_type: 'id' | 'passport'
-  id_number: string | null
-  passport_number: string | null
-  valid_through: string | null
-  display_names: Record<string, string>
-  created_at: string
-  phone: string | null
-  contact_email: string | null
-  ui_prefs: UiPrefs | null
-  notification_prefs: NotificationPrefs | null
-}
-
 export type VerificationRequest = {
   id: string
   claimed_abo: string | null
@@ -54,6 +35,29 @@ export type VerificationRequest = {
 export type UplineData = {
   upline_name: string | null
   upline_abo_number: string | null
+}
+
+export type Profile = {
+  id: string
+  clerk_id: string
+  first_name: string
+  last_name: string
+  abo_number: string | null
+  upline_abo_number: string | null
+  role: 'admin' | 'core' | 'member' | 'guest'
+  document_active_type: 'id' | 'passport'
+  id_number: string | null
+  passport_number: string | null
+  valid_through: string | null
+  display_names: Record<string, string>
+  created_at: string
+  phone: string | null
+  contact_email: string | null
+  ui_prefs: UiPrefs | null
+  notification_prefs: NotificationPrefs | null
+  // Eagerly joined by GET /api/profile — null when not applicable
+  upline: UplineData | null
+  verRequest: VerificationRequest | null
 }
 
 export type TripPayment = {
