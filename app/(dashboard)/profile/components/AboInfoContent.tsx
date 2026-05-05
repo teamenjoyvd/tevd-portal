@@ -4,7 +4,7 @@ import { memo, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { getRoleColors } from '@/lib/role-colors'
-import { type VerificationRequest, type UplineData, type Profile } from '../types'
+import { type Profile } from '../types'
 import { apiClient } from '@/lib/apiClient'
 
 type AboInfoMode = 'form' | 'pending' | 'confirmed' | 'member_manual'
@@ -17,30 +17,21 @@ export const AboInfoContent = memo(function AboInfoContent() {
   const qc = useQueryClient()
   const { t } = useLanguage()
 
-  const { data: profile } = useQuery<Profile>({
+  const { data: profile, isPending: profileIsPending } = useQuery<Profile>({
     queryKey: ['profile'],
     queryFn: () => apiClient('/api/profile'),
   })
+
   const role = profile?.role ?? 'guest'
   const aboNumber = profile?.abo_number ?? null
+  // upline and verRequest are eagerly joined by GET /api/profile
+  const uplineData = profile?.upline ?? null
+  const verRequest = profile?.verRequest ?? null
 
   const rc = getRoleColors(role)
   const [verificationMode, setVerificationMode] = useState<'standard' | 'manual'>('standard')
   const [aboInput, setAboInput] = useState('')
   const [uplineInput, setUplineInput] = useState('')
-
-  const { data: verRequest, isPending: isVerPending } = useQuery<VerificationRequest | null>({
-    queryKey: ['verify-abo'],
-    queryFn: () => apiClient('/api/profile/verify-abo'),
-    enabled: role === 'guest',
-  })
-
-  const { data: uplineData } = useQuery<UplineData>({
-    queryKey: ['profile-upline'],
-    queryFn: () => apiClient('/api/profile/upline'),
-    enabled: role !== 'guest',
-    staleTime: 10 * 60 * 1000,
-  })
 
   const submitVerification = useMutation({
     mutationFn: (params: { claimed_abo?: string; claimed_upline_abo: string; request_type: 'standard' | 'manual' }) =>
@@ -52,17 +43,19 @@ export const AboInfoContent = memo(function AboInfoContent() {
             : { claimed_abo: params.claimed_abo, claimed_upline_abo: params.claimed_upline_abo }
         ),
       }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['verify-abo'] }),
+    // ['profile'] is the single source of truth — invalidating it refetches
+    // role, abo_number, upline, and verRequest in one round-trip.
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['profile'] }),
   })
 
   const cancelVerification = useMutation({
     mutationFn: () => apiClient('/api/profile/verify-abo', { method: 'DELETE' }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['verify-abo'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['profile'] }),
   })
 
-  // While the verify-abo query is in flight for a guest, defer mode resolution
+  // While the profile query is in flight for a guest, defer mode resolution
   // to avoid the form flashing before the pending/denied state is known.
-  if (role === 'guest' && isVerPending) {
+  if (role === 'guest' && profileIsPending) {
     return (
       <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
         <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-5 pr-16" style={{ color: 'var(--brand-crimson)' }}>

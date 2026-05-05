@@ -23,10 +23,14 @@ export async function GET() {
   // Extract scalars before Promise.all — TS cannot narrow property accesses
   // through IIFE closure boundaries, so we capture as typed consts here.
   const aboNumber: string | null = data.abo_number
+  const uplineAboNumber: string | null = data.upline_abo_number ?? null
   const profileId: string = data.id
   const role: string = data.role
 
   const [upline, verRequest] = await Promise.all([
+    // Resolve upline for any verified member.
+    // Standard path: abo_number set — look up sponsor via los_members tree.
+    // Manual path: abo_number null but upline_abo_number set — resolve name directly.
     aboNumber
       ? (async () => {
           const { data: losMember } = await supabase
@@ -50,7 +54,21 @@ export async function GET() {
             upline_abo_number: uplineMember?.abo_number ?? null,
           }
         })()
-      : Promise.resolve(null),
+      : uplineAboNumber
+        ? (async () => {
+            // Manual path: upline ABO already known, just resolve the name
+            const { data: uplineMember } = await supabase
+              .from('los_members')
+              .select('abo_number, name')
+              .eq('abo_number', uplineAboNumber)
+              .single()
+
+            return {
+              upline_name: uplineMember?.name ?? null,
+              upline_abo_number: uplineMember?.abo_number ?? uplineAboNumber,
+            }
+          })()
+        : Promise.resolve(null),
     role === 'guest'
       ? (async () => {
           const { data: req } = await supabase
