@@ -1,10 +1,16 @@
 import { auth, clerkClient } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { requireAdmin } from '@/lib/supabase/guards'
-import { upsertTreeNode } from '@/lib/supabase/rpc'
 
 // Path C: admin directly verifies a guest with no prior submission.
-// Sets role=member, stores upline_abo_number, places a placeholder tree node.
+// Always manual (no ABO number) — sets role=member, stores upline_abo_number,
+// places a placeholder tree node.
+//
+// Refactored to go through approve_member_verification RPC — the single
+// write gate for all approval paths. Previously this route wrote to profiles
+// and tree_nodes directly and upserted abo_verification_requests with
+// claimed_abo: null, which could clobber an existing standard request row
+// and cause abo_number to remain null after approval.
 export async function POST(req: Request) {
   const { userId } = await auth()
   if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
@@ -18,66 +24,77 @@ export async function POST(req: Request) {
     return Response.json({ error: 'profile_id and upline_abo_number are required' }, { status: 400 })
   }
 
-  // Fetch target profile first to know its current role and contact info
+  // Fetch target profile for Clerk sync and notification copy
   const { data: targetProfile } = await supabase
     .from('profiles')
-    .select('role, first_name, contact_email')
+    .select('role, clerk_id, first_name, contact_email')
     .eq('id', profile_id)
     .single()
 
-  // Promote to member and store upline
-  const { error: profileErr } = await supabase
-    .from('profiles')
-    .update({ role: 'member', upline_abo_number })
-    .eq('id', profile_id)
+  if (!targetProfile) return Response.json({ error: 'Profile not found' }, { status: 404 })
+  if (targetProfile.role !== 'guest') return Response.json({ error: 'Profile is not a guest' }, { status: 409 })
 
-  if (profileErr) return Response.json({ error: profileErr.message }, { status: 500 })
+  // Insert a well-formed manual request row.
+  // ON CONFLICT DO NOTHING: if the guest already submitted a standard request,
+  // preserve it rather than clobbering claimed_abo. In that case we read back
+  // the existing row so the RPC gets the correct request id.
+  const { data: inserted } = await supabase
+    .from('abo_verification_requests')
+    .insert({
+      profile_id,
+      claimed_abo: null,
+      claimed_upline_abo: upline_abo_number,
+      request_type: 'manual',
+      status: 'pending',
+      resolved_at: null,
+    })
+    .select('id')
+    .single()
 
-  // Audit log: guest → member via direct verify (Path C)
+  // If insert returned nothing (conflict), read the existing pending row
+  let requestId: string | null = inserted?.id ?? null
+  if (!requestId) {
+    const { data: existing } = await supabase
+      .from('abo_verification_requests')
+      .select('id')
+      .eq('profile_id', profile_id)
+      .eq('status', 'pending')
+      .single()
+    requestId = existing?.id ?? null
+  }
+
+  if (!requestId) {
+    return Response.json({ error: 'Could not resolve verification request row' }, { status: 500 })
+  }
+
+  // Approve via RPC — atomic transaction: profiles update + request update + tree node
+  const { error: rpcErr } = await supabase
+    .rpc('approve_member_verification', {
+      p_request_id: requestId,
+      p_admin_note: 'Direct verification by admin (Path C)',
+    })
+
+  if (rpcErr) return Response.json({ error: rpcErr.message }, { status: 500 })
+
+  // Audit log — app layer only, consistent with Path B
   await supabase.from('role_change_audit').insert({
     profile_id,
     changed_by: userId,
-    old_role: targetProfile?.role || 'guest',
+    old_role: 'guest',
     new_role: 'member',
     note: 'direct verify (Path C)',
   })
 
-  // Sync role to Clerk publicMetadata so UserDropdown reflects immediately
-  const { data: promoted } = await supabase
-    .from('profiles').select('clerk_id').eq('id', profile_id).single()
-  if (promoted?.clerk_id) {
+  // Sync role to Clerk publicMetadata — RPC is pure Postgres, cannot call Clerk
+  if (targetProfile.clerk_id) {
     const clerk = await clerkClient()
-    await clerk.users.updateUserMetadata(promoted.clerk_id, {
+    await clerk.users.updateUserMetadata(targetProfile.clerk_id, {
       publicMetadata: { role: 'member' },
     })
   }
 
-  // p_abo_number=null triggers the no-ABO placeholder path in the function
-  const { error: treeErr } = await upsertTreeNode(supabase, {
-    p_profile_id: profile_id,
-    p_abo_number: null,
-    p_sponsor_abo_number: upline_abo_number,
-  })
-
-  if (treeErr) return Response.json({ error: treeErr.message }, { status: 500 })
-
-  // Create a resolved verification record (upsert in case a pending request exists)
-  const { data, error: reqErr } = await supabase
-    .from('abo_verification_requests')
-    .upsert(
-      {
-        profile_id,
-        claimed_abo: null,
-        claimed_upline_abo: upline_abo_number,
-        request_type: 'manual',
-        status: 'approved',
-        resolved_at: new Date().toISOString(),
-      },
-      { onConflict: 'profile_id' }
-    )
-    .select().single()
-
-  if (!reqErr && targetProfile?.contact_email) {
+  // Notify the user. Best-effort.
+  if (targetProfile.contact_email) {
     import('@/lib/email/send').then(({ sendNotificationEmail }) => {
       import('@/lib/email/templates/render').then(({ renderEmailTemplate }) => {
         import('@/lib/email/templates/AboVerificationEmail').then(({ AboVerificationEmail }) => {
@@ -91,7 +108,7 @@ export async function POST(req: Request) {
           ).then(html => {
             sendNotificationEmail({
               to: targetProfile.contact_email!,
-              subject: `ABO Verification Approved ✓`,
+              subject: 'ABO Verification Approved ✓',
               html,
               template: 'abo_verification_result',
               meta: { profile_id },
@@ -117,6 +134,13 @@ export async function POST(req: Request) {
     }).catch(console.error)
   }
 
-  if (reqErr) return Response.json({ error: reqErr.message }, { status: 500 })
+  // Read back the resolved request for the response
+  const { data, error } = await supabase
+    .from('abo_verification_requests')
+    .select()
+    .eq('id', requestId)
+    .single()
+
+  if (error) return Response.json({ error: error.message }, { status: 500 })
   return Response.json(data, { status: 201 })
 }
