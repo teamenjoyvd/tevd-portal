@@ -129,20 +129,37 @@ Deno.serve(async (req: Request) => {
     const location   = typeof item.location === 'string' && item.location ? item.location : null
 
     const {data:ex} = await sb.from('calendar_events').select('id').eq('google_event_id', item.id).maybeSingle()
-    const {error:ue} = await sb.from('calendar_events').upsert({
-      google_event_id:  item.id,
-      title:            String(item.summary ?? 'Untitled'),
-      description:      cleanDesc,
-      meeting_url:      meetingUrl,
-      location:         location,
-      start_time:       st.toISOString(),
-      end_time:         et.toISOString(),
-      category:         personal ? 'Personal' : 'N21',
-      access_roles:     personal ? ['member','core','admin'] : ['admin','core','member','guest'],
-      week_number:      isoWeek(st),
-    }, {onConflict: 'google_event_id'})
-    if (ue) errors.push(String(item.id) + ': ' + ue.message)
-    else { upserted++; if (!ex) newEvents++ }
+
+    if (!ex) {
+      // New event: full insert including category and access_roles
+      const {error:ie} = await sb.from('calendar_events').insert({
+        google_event_id:  item.id,
+        title:            String(item.summary ?? 'Untitled'),
+        description:      cleanDesc,
+        meeting_url:      meetingUrl,
+        location:         location,
+        start_time:       st.toISOString(),
+        end_time:         et.toISOString(),
+        category:         personal ? 'Personal' : 'N21',
+        access_roles:     personal ? ['member','core','admin'] : ['admin','core','member','guest'],
+        week_number:      isoWeek(st),
+      })
+      if (ie) errors.push(String(item.id) + ': ' + ie.message)
+      else { upserted++; newEvents++ }
+    } else {
+      // Existing event: update scheduling and content only — never touch category or access_roles
+      const {error:ue} = await sb.from('calendar_events').update({
+        title:       String(item.summary ?? 'Untitled'),
+        description: cleanDesc,
+        meeting_url: meetingUrl,
+        location:    location,
+        start_time:  st.toISOString(),
+        end_time:    et.toISOString(),
+        week_number: isoWeek(st),
+      }).eq('google_event_id', item.id)
+      if (ue) errors.push(String(item.id) + ': ' + ue.message)
+      else upserted++
+    }
   }
 
   if (newEvents > 0) {
