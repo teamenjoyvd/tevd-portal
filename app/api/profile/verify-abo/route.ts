@@ -20,9 +20,74 @@ export async function POST(req: Request) {
     if (!claimed_abo || !claimed_upline_abo) {
       return Response.json({ error: 'claimed_abo and claimed_upline_abo are required' }, { status: 400 })
     }
+
+    // LOS existence check
+    const { data: losMember } = await supabase
+      .from('los_members')
+      .select('abo_number, sponsor_abo_number, last_synced_at')
+      .eq('abo_number', claimed_abo)
+      .maybeSingle()
+
+    if (!losMember) {
+      const { data: anyLos } = await supabase
+        .from('los_members')
+        .select('last_synced_at')
+        .limit(1)
+        .maybeSingle()
+      const losAge = anyLos?.last_synced_at
+        ? Math.floor((Date.now() - new Date(anyLos.last_synced_at).getTime()) / 86_400_000)
+        : null
+      return Response.json(
+        {
+          error: losAge !== null
+            ? `ABO ${claimed_abo} not found in LOS data (${losAge} days old). Check your number or ask your admin to re-import the LOS.`
+            : `ABO ${claimed_abo} not found in LOS data. Ask your admin to import the LOS.`,
+          error_code: 'abo_not_in_los',
+        },
+        { status: 422 }
+      )
+    }
+
+    // Sponsor mismatch check
+    if (losMember.sponsor_abo_number !== claimed_upline_abo) {
+      return Response.json(
+        { error: `Your sponsor ABO does not match the LOS record for ${claimed_abo}.`, error_code: 'upline_mismatch' },
+        { status: 422 }
+      )
+    }
+
+    // Duplicate ABO check
+    const { data: existingHolder } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('abo_number', claimed_abo)
+      .neq('id', profile.id)
+      .maybeSingle()
+
+    if (existingHolder) {
+      return Response.json(
+        { error: `ABO ${claimed_abo} is already registered to another account.`, error_code: 'abo_already_claimed' },
+        { status: 409 }
+      )
+    }
   } else {
+    // Manual path
     if (!claimed_upline_abo) {
       return Response.json({ error: 'claimed_upline_abo is required' }, { status: 400 })
+    }
+
+    // Validate upline exists in LOS
+    const { data: uplineLos } = await supabase
+      .from('los_members')
+      .select('abo_number')
+      .eq('abo_number', claimed_upline_abo)
+      .maybeSingle()
+
+    if (!uplineLos) {
+      return Response.json(
+        { error: `Upline ABO ${claimed_upline_abo} not found in LOS data. Check the number or contact your admin.`, error_code: 'upline_not_in_los' },
+        { status: 422 }
+      )
     }
   }
 

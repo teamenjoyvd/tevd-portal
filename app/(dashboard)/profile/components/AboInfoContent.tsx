@@ -13,6 +13,22 @@ const ROLE_LABELS: Record<string, string> = {
   admin: 'Admin', core: 'Core', member: 'Member', guest: 'Guest',
 }
 
+/** Maps structured error_code values from /api/profile/verify-abo to i18n keys. */
+function resolveErrorMessage(
+  error: string | null,
+  error_code: string | undefined,
+  t: (key: import('@/lib/i18n/translations').TranslationKey) => string
+): string | null {
+  if (!error) return null
+  switch (error_code) {
+    case 'abo_not_in_los':     return t('profile.error.aboNotInLos')
+    case 'upline_mismatch':    return t('profile.error.uplineMismatch')
+    case 'abo_already_claimed': return t('profile.error.aboAlreadyClaimed')
+    case 'upline_not_in_los':  return t('profile.error.uplineNotInLos')
+    default:                   return error
+  }
+}
+
 export const AboInfoContent = memo(function AboInfoContent() {
   const qc = useQueryClient()
   const { t } = useLanguage()
@@ -24,7 +40,6 @@ export const AboInfoContent = memo(function AboInfoContent() {
 
   const role = profile?.role ?? 'guest'
   const aboNumber = profile?.abo_number ?? null
-  // upline and verRequest are eagerly joined by GET /api/profile
   const uplineData = profile?.upline ?? null
   const verRequest = profile?.verRequest ?? null
 
@@ -34,17 +49,24 @@ export const AboInfoContent = memo(function AboInfoContent() {
   const [uplineInput, setUplineInput] = useState('')
 
   const submitVerification = useMutation({
-    mutationFn: (params: { claimed_abo?: string; claimed_upline_abo: string; request_type: 'standard' | 'manual' }) =>
-      apiClient('/api/profile/verify-abo', {
+    mutationFn: async (params: { claimed_abo?: string; claimed_upline_abo: string; request_type: 'standard' | 'manual' }) => {
+      const res = await fetch('/api/profile/verify-abo', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(
           params.request_type === 'manual'
             ? { request_type: 'manual', claimed_upline_abo: params.claimed_upline_abo }
             : { claimed_abo: params.claimed_abo, claimed_upline_abo: params.claimed_upline_abo }
         ),
-      }),
-    // ['profile'] is the single source of truth — invalidating it refetches
-    // role, abo_number, upline, and verRequest in one round-trip.
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        const err = new Error(data.error ?? 'Submission failed') as Error & { error_code?: string }
+        err.error_code = data.error_code
+        throw err
+      }
+      return data
+    },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['profile'] }),
   })
 
@@ -53,8 +75,6 @@ export const AboInfoContent = memo(function AboInfoContent() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['profile'] }),
   })
 
-  // While the profile query is in flight for a guest, defer mode resolution
-  // to avoid the form flashing before the pending/denied state is known.
   if (role === 'guest' && profileIsPending) {
     return (
       <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
@@ -77,6 +97,20 @@ export const AboInfoContent = memo(function AboInfoContent() {
   } else if (verRequest && (verRequest.status === 'pending' || verRequest.status === 'denied')) {
     aboMode = 'pending'
   }
+
+  // Extract error_code from mutation error (attached by mutationFn)
+  const mutationError = submitVerification.isError ? submitVerification.error as Error & { error_code?: string } : null
+  const submitErrorMessage = resolveErrorMessage(
+    mutationError?.message ?? null,
+    mutationError?.error_code,
+    t
+  )
+
+  // Stale-LOS hint for denied requests (admin_note signals stale LOS)
+  const showStaleHint =
+    verRequest?.status === 'denied' &&
+    verRequest?.admin_note != null &&
+    /stale|old|outdated|re.import/i.test(verRequest.admin_note)
 
   return (
     <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
@@ -162,6 +196,11 @@ export const AboInfoContent = memo(function AboInfoContent() {
                   {verRequest.admin_note}
                 </p>
               )}
+              {showStaleHint && (
+                <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
+                  {t('profile.error.losStaleNote')}
+                </p>
+              )}
               <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
                 {t('profile.checkDetails')}
               </p>
@@ -201,7 +240,7 @@ export const AboInfoContent = memo(function AboInfoContent() {
                   : { request_type: 'standard', claimed_abo: aboInput.trim(), claimed_upline_abo: uplineInput.trim() }
               )}
               submitPending={submitVerification.isPending}
-              submitError={submitVerification.isError ? (submitVerification.error as Error).message : null}
+              submitError={submitErrorMessage}
               t={t}
             />
           )}
@@ -222,7 +261,7 @@ export const AboInfoContent = memo(function AboInfoContent() {
               : { request_type: 'standard', claimed_abo: aboInput.trim(), claimed_upline_abo: uplineInput.trim() }
           )}
           submitPending={submitVerification.isPending}
-          submitError={submitVerification.isError ? (submitVerification.error as Error).message : null}
+          submitError={submitErrorMessage}
           t={t}
         />
       )}
