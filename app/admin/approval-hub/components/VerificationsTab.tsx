@@ -39,6 +39,7 @@ export type AdminMembersResponse = {
   pending_verifications: VerificationRequest[]
   unverified_guests: GuestProfile[]
   manual_members_no_abo: ManualMemberNoAbo[]
+  los_last_synced_at: string | null
 }
 
 // ── Helpers ──────────────────────────────────────────────────────
@@ -48,6 +49,8 @@ const STATUS_BADGE: Record<string, string> = {
   approved: 'bg-[#81b29a]/20 text-[#2d6a4f] border border-[#81b29a]/50',
   denied:   'bg-[#bc4749]/10 text-[#bc4749] border border-[#bc4749]/30',
 }
+
+const LOS_STALE_DAYS = 7
 
 // ── Component ────────────────────────────────────────────────────
 
@@ -66,6 +69,12 @@ export function AboVerificationTab() {
   const pendingProfileIds = new Set(pendingVerifications.map(v => v.profile_id))
   const directCandidates = (data?.unverified_guests ?? []).filter(g => !pendingProfileIds.has(g.id))
   const manualNoAbo = data?.manual_members_no_abo ?? []
+
+  // LOS staleness
+  const losStaleDays = data?.los_last_synced_at
+    ? Math.floor((Date.now() - new Date(data.los_last_synced_at).getTime()) / 86_400_000)
+    : null
+  const losIsStale = losStaleDays !== null && losStaleDays >= LOS_STALE_DAYS
 
   const approveOrDeny = useMutation({
     mutationFn: ({ id, action }: { id: string; action: 'approve' | 'deny' }) =>
@@ -105,6 +114,19 @@ export function AboVerificationTab() {
 
   return (
     <div className="space-y-8">
+
+      {/* ── LOS staleness banner ── */}
+      {losIsStale && (
+        <div className="rounded-xl px-4 py-3 flex items-start gap-3" style={{ backgroundColor: '#f2cc8f33', border: '1px solid #f2cc8f' }}>
+          <span className="text-lg leading-none mt-0.5">⚠️</span>
+          <p className="text-sm" style={{ color: '#7a5c00' }}>
+            LOS data is <strong>{losStaleDays} days old</strong>. Re-import before approving.{' '}
+            <a href="/admin/members?tab=data" className="underline font-medium" style={{ color: '#7a5c00' }}>
+              Go to Data tab →
+            </a>
+          </p>
+        </div>
+      )}
 
       {/* ── Standard ABO requests ── */}
       <div>

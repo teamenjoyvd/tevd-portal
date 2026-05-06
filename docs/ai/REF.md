@@ -77,7 +77,7 @@ calMonth(iso)        // MAR
 
 | Page | Notes |
 |---|---|
-| `/admin/approval-hub` | ABO + manual verification + Path C direct-verify |
+| `/admin/approval-hub` | ABO + manual verification + Path C direct-verify. Staleness banner when LOS > 7 days old. |
 | `/admin/calendar` | Events ascending by `start_time`. Create/edit via Drawer. |
 | `/admin/content` | Tabs: Announcements \| Quick Links \| Guides \| Social Posts \| Bento. Edit via Drawer. |
 | `/admin/data-center` | LOS import (multi-file, 3-phase) + reconciliation panel |
@@ -237,6 +237,7 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
 **`profiles`** — `id, clerk_id, first_name, last_name, display_names, role, abo_number, upline_abo_number, document_active_type, id_number, passport_number, valid_through, ical_token, phone, contact_email, created_at, ui_prefs`
 - `role` default: `'guest'`
 - `ui_prefs` JSONB NOT NULL default `{}` — shape: `{ bento_order: string[], bento_collapsed: Record<string, boolean> }`
+- `upline_abo_number`: written by `approve_member_verification` (both paths) and by `import_los_members` on sponsor change.
 
 **`payments`** — `id, profile_id, trip_id, payable_item_id, amount, currency, transaction_date, admin_status, member_status, admin_reject_reason, member_reject_reason, payment_method, proof_url, note, admin_note, logged_by_admin, properties, created_at`
 - Exactly one of `trip_id` / `payable_item_id` non-null.
@@ -314,9 +315,9 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
 
 ### Member routes
 | Route | Method | Notes |
-|---|---|---|
+|---|---|
 | `/api/profile` | GET, PATCH | |
-| `/api/profile/verify-abo` | POST | |
+| `/api/profile/verify-abo` | POST | LOS-validated at submit: existence check + sponsor match + duplicate ABO check |
 | `/api/profile/vitals` | GET | |
 | `/api/profile/event-roles` | GET | |
 | `/api/profile/los-summary` | GET | |
@@ -357,7 +358,7 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
 | `/api/admin/los-import` | POST | Transactional import via `import_los_members` RPC; body: `{ rows, expected_row_count?, imported_by_profile_id? }` |
 | `/api/admin/los-import/rollback` | POST | Rolls back import by `import_id` via `rollback_los_import` RPC |
 | `/api/admin/los-tree` | GET | Tree nodes for admin LOS view |
-| `/api/admin/members` | GET | LOS + profiles + pending verifications + guests |
+| `/api/admin/members` | GET | LOS + profiles + pending verifications + guests + `los_last_synced_at` |
 | `/api/admin/members/[id]` | GET, PATCH | PATCH: role update MUST sync Clerk metadata |
 | `/api/admin/members/[id]/vital-signs` | GET, POST | |
 | `/api/admin/members/[id]/vital-signs/[definitionId]` | PATCH, DELETE | |
@@ -386,7 +387,8 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
 | `pin_social_post(p_id uuid)` | Atomic pin swap |
 | `get_core_ancestors(uuid)` | Core-role UUIDs above a node |
 | `rebuild_tree_paths` | Cascade ABO label rename to descendants |
-| `approve_member_verification(p_request_id, p_admin_note?)` | Approve ABO verification request |
+| `upsert_tree_node(p_profile_id, p_abo_number, p_sponsor_abo_number?)` | Insert/update tree node; walks `los_members` sponsor chain (max 20 hops) if direct sponsor has no portal profile |
+| `approve_member_verification(p_request_id, p_admin_note?)` | Approve ABO verification — LOS guard (existence + sponsor match + duplicate check), writes `abo_number` + `upline_abo_number`, places in tree |
 | `patch_member_role(p_profile_id, p_new_role, p_changed_by, p_note?)` | Role update with audit trail — returns updated profile |
 | `get_trip_team_attendees(p_trip_id, p_viewer_profile)` | Returns Core/admin attendees for a trip |
 | `import_los_members(p_rows, p_imported_by?, p_expected_row_count?)` | Transactional LOS import: concurrency check → snapshot → upsert → server-side delete → rebuild_tree_paths → insert los_imports record. Returns `{ inserted, removed, import_id, errors }`. |
