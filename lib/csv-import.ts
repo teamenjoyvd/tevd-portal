@@ -110,6 +110,10 @@ export const MONTH_MAP: Record<string, string> = {
 // ── Parsing functions ─────────────────────────────────────────────────────────
 
 export function sanitizeNumeric(val: string, isBG: boolean): string {
+  // Strip Excel text-prefix apostrophe(s) — exported CSVs may leak the leading
+  // single-quote Excel uses to force a cell to be stored as text (e.g. '850.18).
+  // Must run first, before any locale-specific transforms.
+  val = val.replace(/^'+/, '')
   if (isBG) {
     return val.replace(/[\u00A0\s]/g, '').replace(/,/g, '.')
   }
@@ -169,7 +173,10 @@ export function parseCSV(text: string): Record<string, string>[] {
       const row: Record<string, string> = {}
       headers.forEach((h, i) => {
         const dbKey = activeMap[h] ?? h.toLowerCase().replace(/\s+/g, '_')
-        let val = values[i] ?? ''
+        // Strip Excel text-prefix apostrophe from every field before any other
+        // transform — prevents corrupted abo_number lookups, date parse failures,
+        // and numeric cast errors when Excel leaks its internal text-prefix char.
+        let val = (values[i] ?? '').replace(/^'+/, '')
         if (dbKey === 'bonus_percent') val = val.replace('%', '').trim()
         if (dbKey === 'entry_date' || dbKey === 'renewal_date') val = parseDate(val)
         if (dbKey === 'phone') val = val.replace(/^Primary:\s*/i, '').trim()
