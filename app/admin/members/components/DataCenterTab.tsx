@@ -106,7 +106,10 @@ function ScanPurgeButton({
 
   const keepAbos = assembly.rows.map(r => r.abo_number).filter(Boolean)
   const currentCount = losStatus?.row_count ?? 0
-  const atRisk = Math.max(0, currentCount - keepAbos.length)
+  // Estimate only: the client does not have the DB ABO set, so we cannot compute
+  // the exact intersection. The true removed count comes back from the server.
+  // We show this as an upper bound to set expectations before the purge runs.
+  const atRiskEstimate = currentCount > 0 ? currentCount : null
 
   async function handlePurge() {
     setPurging(true)
@@ -130,8 +133,8 @@ function ScanPurgeButton({
       <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>
         Permanently deletes all LOS members not present in the currently loaded files.
         Import your files first, then purge. Rollback is available immediately after.
-        {atRisk > 0 && (
-          <span style={{ color: '#bc4749' }}> {atRisk} member{atRisk !== 1 ? 's' : ''} at risk.</span>
+        {atRiskEstimate !== null && (
+          <span style={{ color: '#bc4749' }}> Up to {atRiskEstimate} member{atRiskEstimate !== 1 ? 's' : ''} may be removed (exact count determined server-side).</span>
         )}
       </p>
       {purgeError && (
@@ -144,15 +147,15 @@ function ScanPurgeButton({
             className="border px-4 py-1.5 rounded-lg text-sm font-medium disabled:opacity-50"
             style={{ borderColor: '#bc4749', color: '#bc4749' }}
           >
-            {purging ? 'Purging...' : `Purge absent members${atRisk > 0 ? ` (${atRisk} at risk)` : ''}`}
+            {purging ? 'Purging...' : 'Purge absent members'}
           </button>
         </AlertDialogTrigger>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Purge absent members?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete all LOS members not present in the currently loaded
-              files{atRisk > 0 ? ` — up to ${atRisk} member${atRisk !== 1 ? 's' : ''}` : ''}.
+              This will permanently delete all LOS members not present in the currently loaded files.
+              The exact number removed will be determined by the server.
               Make sure you have imported all files before purging.
               Rollback is available immediately after.
             </AlertDialogDescription>
