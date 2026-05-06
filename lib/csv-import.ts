@@ -173,7 +173,10 @@ export function parseCSV(text: string): Record<string, string>[] {
       const row: Record<string, string> = {}
       headers.forEach((h, i) => {
         const dbKey = activeMap[h] ?? h.toLowerCase().replace(/\s+/g, '_')
-        let val = values[i] ?? ''
+        // Strip Excel text-prefix apostrophe from every field before any other
+        // transform — prevents corrupted abo_number lookups, date parse failures,
+        // and numeric cast errors when Excel leaks its internal text-prefix char.
+        let val = (values[i] ?? '').replace(/^'+/, '')
         if (dbKey === 'bonus_percent') val = val.replace('%', '').trim()
         if (dbKey === 'entry_date' || dbKey === 'renewal_date') val = parseDate(val)
         if (dbKey === 'phone') val = val.replace(/^Primary:\s*/i, '').trim()
