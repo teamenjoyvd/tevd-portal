@@ -42,7 +42,7 @@ export async function GET() {
   })
 }
 
-// ── POST — run import ─────────────────────────────────────────────────────────
+// ── POST — run import (upsert-only, no deletion) ──────────────────────────────
 
 export async function POST(req: NextRequest) {
   const { userId } = await auth()
@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
   const guard = await requireAdmin(userId, supabase)
   if (guard) return guard
 
-  const { rows, expected_row_count } = await req.json()
+  const { rows } = await req.json()
 
   if (!Array.isArray(rows) || rows.length === 0) {
     return Response.json({ error: 'No rows provided' }, { status: 400 })
@@ -72,25 +72,20 @@ export async function POST(req: NextRequest) {
     ])
   )
 
-  const prevAbos = new Set((snapshot ?? []).map(m => m.abo_number as string))
-  const incomingAbos = new Set((rows as Record<string, string>[]).map(r => r.abo_number))
-
-  // ── Call transactional RPC ────────────────────────────────────────────────
+  // ── Call transactional RPC (upsert-only) ──────────────────────────────────
   const { data, error } = await supabase.rpc('import_los_members', {
     p_rows: rows,
     p_imported_by: undefined,
-    p_expected_row_count: expected_row_count ?? null,
   })
 
   if (error) {
     return Response.json({ error: error.message }, { status: 500 })
   }
 
-  // ── Compute diff ──────────────────────────────────────────────────────────
-  const new_members:     NewMember[]     = []
-  const level_changes:   LevelChange[]   = []
-  const bonus_changes:   BonusChange[]   = []
-  const removed_members: RemovedMember[] = []
+  // ── Compute diff (new + changed only — no removals from upsert) ───────────
+  const new_members:   NewMember[]   = []
+  const level_changes: LevelChange[] = []
+  const bonus_changes: BonusChange[] = []
 
   for (const row of rows as Record<string, string>[]) {
     const aboNum   = row.abo_number ?? ''
@@ -109,14 +104,6 @@ export async function POST(req: NextRequest) {
       if (Math.abs(newBonus - prevBonus) >= 3) {
         bonus_changes.push({ abo_number: aboNum, name, prev_bonus: prevBonus, new_bonus: newBonus })
       }
-    }
-  }
-
-  // Removed: was in DB before, not in incoming set
-  for (const abo of prevAbos) {
-    if (!incomingAbos.has(abo)) {
-      const prev = prevMap.get(abo)
-      removed_members.push({ abo_number: abo, name: prev?.name ?? '' })
     }
   }
 
@@ -146,10 +133,9 @@ export async function POST(req: NextRequest) {
 
   return Response.json({
     inserted: rpcResult.inserted,
-    removed: rpcResult.removed,
     import_id: rpcResult.import_id,
     errors: rpcResult.errors,
-    diff: { new_members, level_changes, bonus_changes, removed_members },
+    diff: { new_members, level_changes, bonus_changes },
     unrecognized,
     manual_members_no_abo: manualMembersNoAbo ?? [],
   })
