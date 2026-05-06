@@ -30,7 +30,7 @@ import { CalendarSection, CALENDAR_MIN_HEIGHT } from './CalendarSection'
 import { StatsSection, STATS_MIN_HEIGHT } from './StatsSection'
 import { AdminSection } from './AdminSection'
 import { EmailPrefsSection, EMAIL_PREFS_MIN_HEIGHT } from './EmailPrefsSection'
-import { InvitesSection, INVITES_MIN_HEIGHT } from './InvitesSection'
+import { InvitesBento } from './InvitesBento'
 import { type Profile } from '../types'
 import { apiClient } from '@/lib/apiClient'
 
@@ -225,8 +225,8 @@ export function ProfileClient({ profileId, role, aboNumber, hasInvites }: Props)
       node: <StatsSection role={role} aboNumber={aboNumber} />,
     } : null,
     [BENTO_IDS.INVITES]: hasInvites ? {
-      colSpan: 12, minHeight: INVITES_MIN_HEIGHT,
-      node: <InvitesSection />,
+      colSpan: 6, minHeight: BENTO_HEIGHT.M,
+      node: <InvitesBento />,
     } : null,
     [BENTO_IDS.ADMIN]: isAdmin ? {
       colSpan: 6, minHeight: BENTO_HEIGHT.S,
