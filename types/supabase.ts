@@ -1340,16 +1340,10 @@ export type Database = {
           role: string
         }[]
       }
-      import_los_members:
-        | {
-            Args: {
-              p_expected_row_count?: number
-              p_imported_by?: string
-              p_rows: Json
-            }
-            Returns: Json
-          }
-        | { Args: { rows: Json }; Returns: Json }
+      import_los_members: {
+        Args: { p_imported_by?: string; p_rows: Json }
+        Returns: Json
+      }
       increment_share_link_click: {
         Args: { link_id: string }
         Returns: undefined
@@ -1390,6 +1384,10 @@ export type Database = {
         }
       }
       pin_social_post: { Args: { p_id: string }; Returns: undefined }
+      purge_absent_los_members: {
+        Args: { p_imported_by?: string; p_keep_abos: string[] }
+        Returns: Json
+      }
       rebuild_tree_paths: { Args: never; Returns: undefined }
       rollback_los_import: { Args: { p_import_id: string }; Returns: Json }
       run_los_digest: { Args: never; Returns: undefined }

@@ -39,14 +39,12 @@ export type AssemblyResult = {
 
 export type ImportResult = {
   inserted: number
-  removed: number
   import_id: string
   errors: { abo_number: string; error: string }[]
   diff: {
     new_members:    NewMember[]
     level_changes:  LevelChange[]
     bonus_changes:  BonusChange[]
-    removed_members: RemovedMember[]
   }
   unrecognized: UnrecognizedRow[]
   manual_members_no_abo: ManualMemberNoAbo[]
@@ -190,26 +188,24 @@ export function parseCSV(text: string): Record<string, string>[] {
 // ── Multi-file assembly ───────────────────────────────────────────────────────
 
 // String fields that count as a conflict when they differ between files
-const CONFLICT_FIELDS = ['name', 'sponsor_abo_number', 'abo_level', 'country']
+const CONFLICT_FIELDS = ['name', 'sponsor_abo_number']
 
 /**
  * Assembles multiple parsed CSV file results into a single deduplicated row set.
  * Detects junction nodes, field conflicts, and disconnected subtrees.
  *
  * - Dedup by abo_number (first-seen wins)
- * - Junction: same ABO appears in >1 file
- * - Conflict: same ABO, differing non-numeric fields between files
- * - Disconnected file: the root ABO of a file (its sponsor_abo_number) does not
- *   appear as an abo_number in any other file → subtree may be orphaned
+ * - Junction: same ABO appears in >1 file (expected for multi-file imports)
+ * - Conflict: same ABO with differing name or sponsor_abo_number — warning only,
+ *   never blocks import. First-seen file wins.
+ * - Disconnected file: a file that shares zero abo_number values with all other
+ *   files — it is a genuinely isolated subtree with no join point.
  */
 export function assembleFiles(
   fileResults: { filename: string; rows: Record<string, string>[] }[]
 ): AssemblyResult {
-  // Map abo_number → { row, filename }
   const seen = new Map<string, { row: Record<string, string>; filename: string }>()
-  // Track which filenames a given abo_number appeared in
   const filesByAbo = new Map<string, string[]>()
-  // Track first-seen row per abo_number for conflict detection
   const firstRowByAbo = new Map<string, Record<string, string>>()
 
   for (const { filename, rows } of fileResults) {
@@ -217,21 +213,17 @@ export function assembleFiles(
       const abo = row.abo_number
       if (!abo) continue
 
-      // Track all filenames this ABO appeared in
       const existing = filesByAbo.get(abo) ?? []
       if (!existing.includes(filename)) existing.push(filename)
       filesByAbo.set(abo, existing)
 
       if (!seen.has(abo)) {
-        // First-seen: record row and filename
         seen.set(abo, { row, filename })
         firstRowByAbo.set(abo, row)
       }
-      // Subsequent occurrences: already deduplicated (first-seen wins)
     }
   }
 
-  const allAbos = new Set(seen.keys())
   const rows = Array.from(seen.values()).map(v => v.row)
 
   // ── Junctions and conflicts ───────────────────────────────────────────────
@@ -241,14 +233,12 @@ export function assembleFiles(
   for (const [abo, files] of filesByAbo.entries()) {
     if (files.length <= 1) continue
 
-    // Find all rows for this ABO across files
     const allRowsForAbo: Record<string, string>[] = []
     for (const { filename, rows: fileRows } of fileResults) {
       const match = fileRows.find(r => r.abo_number === abo)
       if (match) allRowsForAbo.push({ ...match, _filename: filename })
     }
 
-    // Detect conflicting fields
     const conflictFields: string[] = []
     const referenceRow = allRowsForAbo[0]
     for (const field of CONFLICT_FIELDS) {
@@ -270,24 +260,26 @@ export function assembleFiles(
   }
 
   // ── Disconnected file detection ───────────────────────────────────────────
-  // A file is disconnected if its root node (the ABO with no sponsor in the
-  // assembled set) has a sponsor_abo_number that doesn't appear in any other file.
+  // A file is disconnected only if it shares zero abo_number values with ALL
+  // other files combined. Having even one shared ABO means it connects.
   const disconnected_files: string[] = []
 
-  for (const { filename, rows: fileRows } of fileResults) {
-    if (fileResults.length <= 1) break // single file: no connection to check
+  if (fileResults.length > 1) {
+    for (const { filename, rows: fileRows } of fileResults) {
+      const fileAbos = new Set(fileRows.map(r => r.abo_number).filter(Boolean))
 
-    // Find ABOs in this file whose sponsor is NOT in the assembled set
-    const orphanedRoots = fileRows.filter(r => {
-      const sponsor = r.sponsor_abo_number
-      if (!sponsor) return false // true root, acceptable
-      return !allAbos.has(sponsor)
-    })
+      // Collect all ABOs from every OTHER file
+      const otherAbos = new Set<string>()
+      for (const other of fileResults) {
+        if (other.filename === filename) continue
+        for (const r of other.rows) {
+          if (r.abo_number) otherAbos.add(r.abo_number)
+        }
+      }
 
-    // If all rows in the file have an orphaned root chain, flag as disconnected
-    // Heuristic: if >50% of rows have an unresolved sponsor, it's disconnected
-    if (orphanedRoots.length > 0 && orphanedRoots.length / fileRows.length > 0.5) {
-      disconnected_files.push(filename)
+      // Disconnected = zero overlap
+      const hasOverlap = [...fileAbos].some(abo => otherAbos.has(abo))
+      if (!hasOverlap) disconnected_files.push(filename)
     }
   }
 

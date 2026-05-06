@@ -28,6 +28,8 @@ type LOSStatus = {
   last_import: { id: string; imported_at: string; row_count: number; removed_count: number; status: string } | null
 }
 
+type PurgeResult = { removed: number; import_id: string }
+
 type Phase = 'assembly' | 'diff' | 'result'
 
 // ── DiffSection ───────────────────────────────────────────────────────────────
@@ -57,7 +59,7 @@ function DiffSection({
 
 // ── JunctionPanel ─────────────────────────────────────────────────────────────
 
-function JunctionPanel({ junctions, conflicts }: { junctions: JunctionNode[]; conflicts: JunctionNode[] }) {
+function JunctionPanel({ junctions }: { junctions: JunctionNode[] }) {
   if (junctions.length === 0) return null
   return (
     <div className="p-4 rounded-xl border mt-4" style={{ borderColor: 'var(--border-default)', backgroundColor: 'var(--bg-card)' }}>
@@ -76,7 +78,7 @@ function JunctionPanel({ junctions, conflicts }: { junctions: JunctionNode[]; co
                 backgroundColor: j.has_conflict ? 'rgba(224,122,95,0.2)' : 'rgba(129,178,154,0.2)',
                 color: j.has_conflict ? '#e07a5f' : '#2d6a4f',
               }}>
-              {j.has_conflict ? `conflict: ${j.conflict_fields.join(', ')}` : 'clean'}
+              {j.has_conflict ? `data discrepancy: ${j.conflict_fields.join(', ')} · first-seen wins` : 'clean'}
             </span>
             <span className="w-full text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
               in: {j.files.join(', ')}
@@ -84,12 +86,85 @@ function JunctionPanel({ junctions, conflicts }: { junctions: JunctionNode[]; co
           </div>
         ))}
       </div>
-      {conflicts.length > 0 && (
-        <p className="mt-3 text-xs" style={{ color: '#e07a5f' }}>
-          {conflicts.length} conflict{conflicts.length !== 1 ? 's' : ''} must be resolved before importing.
-          First-seen file wins — remove conflicting file and re-add to override.
-        </p>
+    </div>
+  )
+}
+
+// ── ScanPurgeButton ───────────────────────────────────────────────────────────
+
+function ScanPurgeButton({
+  assembly,
+  losStatus,
+  onPurgeComplete,
+}: {
+  assembly: AssemblyResult
+  losStatus: LOSStatus | null
+  onPurgeComplete: (result: PurgeResult) => void
+}) {
+  const [purging, setPurging] = useState(false)
+  const [purgeError, setPurgeError] = useState<string | null>(null)
+
+  const keepAbos = assembly.rows.map(r => r.abo_number).filter(Boolean)
+  const currentCount = losStatus?.row_count ?? 0
+  const atRisk = Math.max(0, currentCount - keepAbos.length)
+
+  async function handlePurge() {
+    setPurging(true)
+    setPurgeError(null)
+    try {
+      const data = await apiClient<PurgeResult>('/api/admin/los-scan', {
+        method: 'POST',
+        body: JSON.stringify({ keep_abos: keepAbos }),
+      })
+      onPurgeComplete(data)
+    } catch (err: unknown) {
+      setPurgeError(err instanceof Error ? err.message : 'Purge failed')
+    } finally {
+      setPurging(false)
+    }
+  }
+
+  return (
+    <div className="p-4 rounded-xl border" style={{ borderColor: 'rgba(188,71,73,0.3)', backgroundColor: 'rgba(188,71,73,0.04)' }}>
+      <p className="text-sm font-semibold mb-1" style={{ color: '#bc4749' }}>Scan &amp; purge absent members</p>
+      <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>
+        Permanently deletes all LOS members not present in the currently loaded files.
+        Import your files first, then purge. Rollback is available immediately after.
+        {atRisk > 0 && (
+          <span style={{ color: '#bc4749' }}> {atRisk} member{atRisk !== 1 ? 's' : ''} at risk.</span>
+        )}
+      </p>
+      {purgeError && (
+        <p className="text-xs mb-2" style={{ color: '#bc4749' }}>{purgeError}</p>
       )}
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <button
+            disabled={purging}
+            className="border px-4 py-1.5 rounded-lg text-sm font-medium disabled:opacity-50"
+            style={{ borderColor: '#bc4749', color: '#bc4749' }}
+          >
+            {purging ? 'Purging...' : `Purge absent members${atRisk > 0 ? ` (${atRisk} at risk)` : ''}`}
+          </button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Purge absent members?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete all LOS members not present in the currently loaded
+              files{atRisk > 0 ? ` — up to ${atRisk} member${atRisk !== 1 ? 's' : ''}` : ''}.
+              Make sure you have imported all files before purging.
+              Rollback is available immediately after.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handlePurge} style={{ backgroundColor: '#bc4749' }}>
+              Yes, purge
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
@@ -100,43 +175,37 @@ export function DataCenterTab() {
   const { t } = useLanguage()
   const fileRef = useRef<HTMLInputElement>(null)
 
-  // Phase
   const [phase, setPhase] = useState<Phase>('assembly')
 
-  // Assembly state
   const [files, setFiles] = useState<FileEntry[]>([])
   const [assembly, setAssembly] = useState<AssemblyResult | null>(null)
 
-  // LOS status (fetched on mount + after import)
   const [losStatus, setLosStatus] = useState<LOSStatus | null>(null)
 
-  // Import state
   const [importing, setImporting] = useState(false)
   const [result, setResult] = useState<ImportResult | null>(null)
   const [importError, setImportError] = useState<string | null>(null)
 
-  // Rollback state
+  const [purgeResult, setPurgeResult] = useState<PurgeResult | null>(null)
+
   const [rollingBack, setRollingBack] = useState(false)
   const [rollbackError, setRollbackError] = useState<string | null>(null)
 
-  // Fetch LOS status on mount
+  const [purgingBack, setPurgingBack] = useState(false)
+  const [purgeRollbackError, setPurgeRollbackError] = useState<string | null>(null)
+
   useEffect(() => {
     apiClient<LOSStatus>('/api/admin/los-import').then(setLosStatus).catch(() => null)
   }, [])
 
-  // Recompute assembly whenever files change
   useEffect(() => {
-    if (files.length === 0) {
-      setAssembly(null)
-      return
-    }
+    if (files.length === 0) { setAssembly(null); return }
     setAssembly(assembleFiles(files))
   }, [files])
 
   function handleFileAdd(e: React.ChangeEvent<HTMLInputElement>) {
     const added = Array.from(e.target.files ?? [])
     if (added.length === 0) return
-    // Reset input so same file can be re-added after removal
     if (fileRef.current) fileRef.current.value = ''
 
     const readers = added.map(file => new Promise<FileEntry>((resolve, reject) => {
@@ -152,7 +221,6 @@ export function DataCenterTab() {
 
     Promise.all(readers).then(newEntries => {
       setFiles(prev => {
-        // Avoid duplicates by filename
         const existing = new Set(prev.map(f => f.filename))
         const unique = newEntries.filter(e => !existing.has(e.filename))
         return [...prev, ...unique]
@@ -165,21 +233,17 @@ export function DataCenterTab() {
   }
 
   async function handleImport() {
-    if (!assembly || assembly.conflicts.length > 0) return
+    if (!assembly) return
     setImporting(true)
     setImportError(null)
     setResult(null)
     try {
       const data = await apiClient<ImportResult>('/api/admin/los-import', {
         method: 'POST',
-        body: JSON.stringify({
-          rows: assembly.rows,
-          expected_row_count: losStatus?.row_count ?? null,
-        }),
+        body: JSON.stringify({ rows: assembly.rows }),
       })
       setResult(data)
       setPhase('result')
-      // Refresh LOS status
       apiClient<LOSStatus>('/api/admin/los-import').then(setLosStatus).catch(() => null)
     } catch (err: unknown) {
       setImportError(err instanceof Error ? err.message : 'Unknown error')
@@ -197,7 +261,6 @@ export function DataCenterTab() {
         method: 'POST',
         body: JSON.stringify({ import_id: result.import_id }),
       })
-      // Reset to assembly phase
       setResult(null)
       setFiles([])
       setAssembly(null)
@@ -210,8 +273,26 @@ export function DataCenterTab() {
     }
   }
 
-  const hasUnresolvedConflicts = (assembly?.conflicts.length ?? 0) > 0
-  const canReview = (assembly?.total_row_count ?? 0) > 0 && !hasUnresolvedConflicts
+  async function handlePurgeRollback() {
+    if (!purgeResult?.import_id) return
+    setPurgingBack(true)
+    setPurgeRollbackError(null)
+    try {
+      await apiClient('/api/admin/los-import/rollback', {
+        method: 'POST',
+        body: JSON.stringify({ import_id: purgeResult.import_id }),
+      })
+      setPurgeResult(null)
+      apiClient<LOSStatus>('/api/admin/los-import').then(setLosStatus).catch(() => null)
+    } catch (err: unknown) {
+      setPurgeRollbackError(err instanceof Error ? err.message : 'Rollback failed')
+    } finally {
+      setPurgingBack(false)
+    }
+  }
+
+  // Import can proceed as long as there are rows — conflicts are warnings only
+  const canReview = (assembly?.total_row_count ?? 0) > 0
 
   // ── Phase: Assembly ───────────────────────────────────────────────────────
   if (phase === 'assembly') {
@@ -219,7 +300,6 @@ export function DataCenterTab() {
       <div className="space-y-6">
         <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t('admin.data.title')}</p>
 
-        {/* LOS status */}
         {losStatus && (
           <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>
             Current LOS: <strong style={{ color: 'var(--text-primary)' }}>{losStatus.row_count} members</strong>
@@ -308,30 +388,77 @@ export function DataCenterTab() {
                     ⚠ Potentially disconnected file{assembly.disconnected_files.length !== 1 ? 's' : ''}: {assembly.disconnected_files.join(', ')}
                   </p>
                   <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
-                    These files may represent orphaned subtrees. Verify they share junction nodes with other files.
+                    These files share no ABO numbers with any other loaded file. Verify they are part of the same tree.
                   </p>
                 </div>
               )}
             </div>
-            <JunctionPanel junctions={assembly.junctions} conflicts={assembly.conflicts} />
+            <JunctionPanel junctions={assembly.junctions} />
           </>
         )}
 
-        {hasUnresolvedConflicts && (
-          <div className="p-4 rounded-lg border" style={{ backgroundColor: 'rgba(188,71,73,0.06)', borderColor: 'rgba(188,71,73,0.3)' }}>
-            <p className="text-sm" style={{ color: 'var(--brand-crimson)' }}>
-              Resolve all junction conflicts before proceeding.
-            </p>
+        {canReview && (
+          <div className="flex flex-wrap gap-3 items-start">
+            <button
+              onClick={() => setPhase('diff')}
+              className="bg-[#bc4749] text-white px-6 py-2 rounded-lg text-sm font-medium"
+            >
+              Review import ({assembly!.total_row_count} rows)
+            </button>
           </div>
         )}
 
-        {canReview && (
-          <button
-            onClick={() => setPhase('diff')}
-            className="bg-[#bc4749] text-white px-6 py-2 rounded-lg text-sm font-medium"
-          >
-            Review import ({assembly!.total_row_count} rows)
-          </button>
+        {/* Scan & purge — shown when files are loaded, after the import CTA */}
+        {assembly && assembly.total_row_count > 0 && (
+          <ScanPurgeButton
+            assembly={assembly}
+            losStatus={losStatus}
+            onPurgeComplete={result => {
+              setPurgeResult(result)
+              apiClient<LOSStatus>('/api/admin/los-import').then(setLosStatus).catch(() => null)
+            }}
+          />
+        )}
+
+        {/* Purge result */}
+        {purgeResult && (
+          <div className="p-4 rounded-xl border" style={{ borderColor: 'var(--border-default)', backgroundColor: 'var(--bg-card)' }}>
+            <p className="text-sm font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
+              Purge complete — {purgeResult.removed} member{purgeResult.removed !== 1 ? 's' : ''} removed
+            </p>
+            <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>
+              Import ID: <span className="font-mono">{purgeResult.import_id}</span>
+            </p>
+            {purgeRollbackError && (
+              <p className="text-xs mb-2" style={{ color: '#bc4749' }}>{purgeRollbackError}</p>
+            )}
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <button
+                  disabled={purgingBack}
+                  className="border px-4 py-1.5 rounded-lg text-sm font-medium disabled:opacity-50"
+                  style={{ borderColor: '#bc4749', color: '#bc4749' }}
+                >
+                  {purgingBack ? 'Rolling back...' : 'Rollback purge'}
+                </button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Rollback purge?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will restore all {purgeResult.removed} removed members to their state before the purge.
+                    This cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handlePurgeRollback} style={{ backgroundColor: '#bc4749' }}>
+                    Yes, rollback
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         )}
       </div>
     )
@@ -339,9 +466,6 @@ export function DataCenterTab() {
 
   // ── Phase: Diff ───────────────────────────────────────────────────────────
   if (phase === 'diff') {
-    const incoming = new Set(assembly!.rows.map(r => r.abo_number))
-    // We need the pre-import snapshot from losStatus to compute removals client-side for display
-    // The server computes the actual removal — this is preview only
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-3 flex-wrap">
@@ -369,31 +493,20 @@ export function DataCenterTab() {
               This import: <strong style={{ color: 'var(--text-primary)' }}>{assembly!.total_row_count} rows</strong>
               {' '}from <strong style={{ color: 'var(--text-primary)' }}>{files.length} file{files.length !== 1 ? 's' : ''}</strong>
             </p>
+            <p className="text-xs mt-2" style={{ color: 'var(--text-secondary)' }}>
+              Upsert only — existing members are updated, new members are added. No members are deleted.
+              Use Scan &amp; purge after import to remove absent members.
+            </p>
           </div>
         )}
 
-        <div className="p-5 rounded-2xl border" style={{ borderColor: 'var(--border-default)', backgroundColor: 'var(--bg-card)' }}>
-          <p className="text-xs text-semibold mb-3" style={{ color: 'var(--text-secondary)' }}>
-            Full diff will be available after import. Removed members are shown below if detectable from current LOS count.
-          </p>
-
-          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-            <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{assembly!.total_row_count}</span> rows incoming
-            {losStatus && losStatus.row_count > 0 && incoming.size < losStatus.row_count && (
-              <span style={{ color: '#bc4749' }}>
-                {' '}· <strong>{losStatus.row_count - incoming.size} members will be removed</strong> (not in incoming set)
-              </span>
-            )}
-          </p>
-
-          {losStatus && losStatus.row_count > 0 && incoming.size < losStatus.row_count && (
-            <div className="mt-3 p-3 rounded-lg" style={{ backgroundColor: 'rgba(188,71,73,0.06)', borderLeft: '3px solid #bc4749' }}>
-              <p className="text-xs font-semibold" style={{ color: '#bc4749' }}>
-                ⚠ Removals are permanent unless rolled back via the rollback button after import.
-              </p>
-            </div>
-          )}
-        </div>
+        {assembly!.conflicts.length > 0 && (
+          <div className="p-3 rounded-lg" style={{ backgroundColor: 'rgba(224,122,95,0.08)', borderLeft: '3px solid #e07a5f' }}>
+            <p className="text-xs font-semibold" style={{ color: '#e07a5f' }}>
+              {assembly!.conflicts.length} data discrepanc{assembly!.conflicts.length !== 1 ? 'ies' : 'y'} detected — first-seen file wins for each.
+            </p>
+          </div>
+        )}
 
         {importError && (
           <div className="p-4 rounded-lg border" style={{ backgroundColor: 'rgba(188,71,73,0.06)', borderColor: 'rgba(188,71,73,0.3)' }}>
@@ -417,7 +530,7 @@ export function DataCenterTab() {
     <div className="space-y-6">
       <div className="flex items-center gap-3 flex-wrap">
         <button
-          onClick={() => { setPhase('assembly'); setFiles([]); setAssembly(null); setResult(null) }}
+          onClick={() => { setPhase('assembly'); setFiles([]); setAssembly(null); setResult(null); setPurgeResult(null) }}
           className="text-xs px-3 py-1.5 rounded-lg border"
           style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
         >
@@ -438,11 +551,6 @@ export function DataCenterTab() {
             <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: '#e07a5f20', color: '#e07a5f' }}>
               {result.diff.bonus_changes.length} bonus changes
             </span>
-            {result.removed > 0 && (
-              <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(188,71,73,0.12)', color: '#bc4749' }}>
-                {result.removed} removed
-              </span>
-            )}
             {result.errors.length > 0 && (
               <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(188,71,73,0.12)', color: '#bc4749' }}>
                 {result.errors.length} errors
@@ -501,10 +609,10 @@ export function DataCenterTab() {
         </div>
       )}
 
-      {/* Rollback */}
+      {/* Import rollback */}
       {result?.import_id && (
         <div className="p-4 rounded-xl border" style={{ borderColor: 'var(--border-default)', backgroundColor: 'var(--bg-card)' }}>
-          <p className="text-sm font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Rollback</p>
+          <p className="text-sm font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Rollback import</p>
           <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>
             Restores LOS to the state before this import and re-anchors all affected portal members.
           </p>
@@ -525,8 +633,8 @@ export function DataCenterTab() {
               <AlertDialogHeader>
                 <AlertDialogTitle>Rollback import?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This will restore all {result.removed} removed members and revert all changes
-                  from this import. Portal members will be re-anchored in the LOS tree.
+                  This will revert all changes from this import.
+                  Portal members will be re-anchored in the LOS tree.
                   This cannot be undone.
                 </AlertDialogDescription>
               </AlertDialogHeader>
@@ -542,6 +650,18 @@ export function DataCenterTab() {
             </AlertDialogContent>
           </AlertDialog>
         </div>
+      )}
+
+      {/* Scan & purge available after import */}
+      {assembly && assembly.total_row_count > 0 && (
+        <ScanPurgeButton
+          assembly={assembly}
+          losStatus={losStatus}
+          onPurgeComplete={result => {
+            setPurgeResult(result)
+            apiClient<LOSStatus>('/api/admin/los-import').then(setLosStatus).catch(() => null)
+          }}
+        />
       )}
 
       {/* Reconciliation */}
