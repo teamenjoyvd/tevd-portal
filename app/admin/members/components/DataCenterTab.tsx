@@ -175,7 +175,6 @@ export function DataCenterTab() {
         body: JSON.stringify({
           rows: assembly.rows,
           expected_row_count: losStatus?.row_count ?? null,
-          imported_by_profile_id: null, // service role — profile lookup handled server-side if needed
         }),
       })
       setResult(data)

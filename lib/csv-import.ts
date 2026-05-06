@@ -6,6 +6,7 @@
 export type NewMember   = { abo_number: string; name: string; abo_level: string }
 export type LevelChange = { abo_number: string; name: string; prev_level: string; new_level: string }
 export type BonusChange = { abo_number: string; name: string; prev_bonus: number; new_bonus: number }
+export type RemovedMember = { abo_number: string; name: string }
 
 export type UnrecognizedRow = {
   abo_number: string
@@ -42,9 +43,10 @@ export type ImportResult = {
   import_id: string
   errors: { abo_number: string; error: string }[]
   diff: {
-    new_members:   NewMember[]
-    level_changes: LevelChange[]
-    bonus_changes: BonusChange[]
+    new_members:    NewMember[]
+    level_changes:  LevelChange[]
+    bonus_changes:  BonusChange[]
+    removed_members: RemovedMember[]
   }
   unrecognized: UnrecognizedRow[]
   manual_members_no_abo: ManualMemberNoAbo[]

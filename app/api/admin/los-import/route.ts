@@ -2,6 +2,7 @@ import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { NextRequest } from 'next/server'
 import { requireAdmin } from '@/lib/supabase/guards'
+import { type NewMember, type LevelChange, type BonusChange, type RemovedMember } from '@/lib/csv-import'
 
 // ── GET — current LOS state ───────────────────────────────────────────────────
 
@@ -53,7 +54,7 @@ export async function POST(req: NextRequest) {
   const guard = await requireAdmin(userId, supabase)
   if (guard) return guard
 
-  const { rows, expected_row_count, imported_by_profile_id } = await req.json()
+  const { rows, expected_row_count } = await req.json()
 
   if (!Array.isArray(rows) || rows.length === 0) {
     return Response.json({ error: 'No rows provided' }, { status: 400 })
@@ -62,12 +63,12 @@ export async function POST(req: NextRequest) {
   // ── Snapshot current state for diff (before RPC runs) ────────────────────
   const { data: snapshot } = await supabase
     .from('los_members')
-    .select('abo_number, abo_level, bonus_percent')
+    .select('abo_number, abo_level, bonus_percent, name')
 
-  const prevMap = new Map<string, { abo_level: string | null; bonus_percent: number | null }>(
+  const prevMap = new Map<string, { abo_level: string | null; bonus_percent: number | null; name: string | null }>(
     (snapshot ?? []).map(m => [
       m.abo_number,
-      { abo_level: m.abo_level ?? null, bonus_percent: m.bonus_percent ?? null },
+      { abo_level: m.abo_level ?? null, bonus_percent: m.bonus_percent ?? null, name: m.name ?? null },
     ])
   )
 
@@ -77,7 +78,7 @@ export async function POST(req: NextRequest) {
   // ── Call transactional RPC ────────────────────────────────────────────────
   const { data, error } = await supabase.rpc('import_los_members', {
     p_rows: rows,
-    p_imported_by: imported_by_profile_id ?? null,
+    p_imported_by: null,
     p_expected_row_count: expected_row_count ?? null,
   })
 
@@ -86,14 +87,9 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Compute diff ──────────────────────────────────────────────────────────
-  type NewMember   = { abo_number: string; name: string; abo_level: string }
-  type LevelChange = { abo_number: string; name: string; prev_level: string; new_level: string }
-  type BonusChange = { abo_number: string; name: string; prev_bonus: number; new_bonus: number }
-  type RemovedMember = { abo_number: string; name: string }
-
-  const new_members:    NewMember[]    = []
-  const level_changes:  LevelChange[]  = []
-  const bonus_changes:  BonusChange[]  = []
+  const new_members:     NewMember[]     = []
+  const level_changes:   LevelChange[]   = []
+  const bonus_changes:   BonusChange[]   = []
   const removed_members: RemovedMember[] = []
 
   for (const row of rows as Record<string, string>[]) {
@@ -120,8 +116,7 @@ export async function POST(req: NextRequest) {
   for (const abo of prevAbos) {
     if (!incomingAbos.has(abo)) {
       const prev = prevMap.get(abo)
-      removed_members.push({ abo_number: abo, name: '' }) // name not in snapshot, acceptable
-      void prev // suppress unused warning
+      removed_members.push({ abo_number: abo, name: prev?.name ?? '' })
     }
   }
 
