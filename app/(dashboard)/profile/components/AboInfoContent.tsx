@@ -50,6 +50,8 @@ export const AboInfoContent = memo(function AboInfoContent() {
 
   const submitVerification = useMutation({
     mutationFn: async (params: { claimed_abo?: string; claimed_upline_abo: string; request_type: 'standard' | 'manual' }) => {
+      // Intentionally using raw fetch instead of apiClient because apiClient 
+      // discards the custom 'error_code' needed for i18n translation mapping.
       const res = await fetch('/api/profile/verify-abo', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

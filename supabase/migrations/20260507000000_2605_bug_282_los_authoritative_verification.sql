@@ -113,7 +113,7 @@ DECLARE
   v_path            ltree;
   v_depth           integer;
   v_label           text;
-  v_had_placeholder boolean;
+  v_old_path        ltree;
   -- LOS chain walk
   v_walk_abo        text;
   v_next_abo        text;
@@ -134,8 +134,8 @@ BEGIN
     RETURN;
   END IF;
 
-  SELECT (path::text LIKE 'p_%')
-  INTO   v_had_placeholder
+  SELECT path
+  INTO   v_old_path
   FROM   public.tree_nodes
   WHERE  profile_id = p_profile_id
   LIMIT  1;
@@ -203,7 +203,7 @@ BEGIN
     path      = excluded.path,
     depth     = excluded.depth;
 
-  IF v_had_placeholder IS TRUE THEN
+  IF v_old_path IS DISTINCT FROM v_path THEN
     PERFORM public.rebuild_tree_paths();
   END IF;
 END;
@@ -212,7 +212,7 @@ $$;
 -- ── 3. import_los_members — sponsor reconciliation ───────────────────────────
 
 CREATE OR REPLACE FUNCTION public.import_los_members(rows jsonb)
-RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER AS $$
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE
   r                 jsonb;
   v_inserted        integer := 0;

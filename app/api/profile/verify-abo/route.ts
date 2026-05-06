@@ -32,6 +32,7 @@ export async function POST(req: Request) {
       const { data: anyLos } = await supabase
         .from('los_members')
         .select('last_synced_at')
+        .order('last_synced_at', { ascending: false })
         .limit(1)
         .maybeSingle()
       const losAge = anyLos?.last_synced_at
