@@ -47,7 +47,7 @@ export function CalendarSection({ profileId }: { profileId: string }) {
           style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)', backgroundColor: 'var(--bg-global)' }} />
         <button
           onClick={handleCopy}
-          disabled={!calData?.url}
+          disabled={!calData?.url || regenerateCal.isPending}
           aria-label={calCopied ? t('profile.calSubCopied') : t('profile.calSubCopy')}
           className="p-2 rounded-xl transition-all disabled:opacity-40 hover:opacity-80 flex-shrink-0"
           style={{ backgroundColor: 'var(--brand-forest)', color: 'var(--brand-parchment)' }}
@@ -58,10 +58,11 @@ export function CalendarSection({ profileId }: { profileId: string }) {
           onClick={handleRegenerate}
           disabled={regenerateCal.isPending}
           aria-label={t('profile.calSubRegenerate')}
+          aria-busy={regenerateCal.isPending}
           className="p-2 rounded-xl border transition-colors hover:bg-black/5 disabled:opacity-40 flex-shrink-0"
           style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
         >
-          <RefreshCw size={14} className={regenerateCal.isPending ? 'animate-spin' : ''} />
+          <RefreshCw size={14} className={regenerateCal.isPending ? 'motion-safe:animate-spin' : ''} />
         </button>
       </div>
     </div>
