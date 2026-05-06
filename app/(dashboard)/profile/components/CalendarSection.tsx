@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
+import { Copy, Check, RefreshCw } from 'lucide-react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { apiClient } from '@/lib/apiClient'
 
@@ -44,15 +45,24 @@ export function CalendarSection({ profileId }: { profileId: string }) {
         <input readOnly value={calData?.url ?? ''} placeholder="Generating…"
           className="flex-1 border rounded-xl px-3 py-2 text-xs font-mono truncate"
           style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)', backgroundColor: 'var(--bg-global)' }} />
-        <button onClick={handleCopy} disabled={!calData?.url}
-          className="px-3 py-2 rounded-xl text-xs font-semibold transition-all disabled:opacity-40 hover:opacity-80 flex-shrink-0"
-          style={{ backgroundColor: 'var(--brand-forest)', color: 'var(--brand-parchment)' }}>
-          {calCopied ? t('profile.calSubCopied') : t('profile.calSubCopy')}
+        <button
+          onClick={handleCopy}
+          disabled={!calData?.url || regenerateCal.isPending}
+          aria-label={calCopied ? t('profile.calSubCopied') : t('profile.calSubCopy')}
+          className="p-2 rounded-xl transition-all disabled:opacity-40 hover:opacity-80 flex-shrink-0"
+          style={{ backgroundColor: 'var(--brand-forest)', color: 'var(--brand-parchment)' }}
+        >
+          {calCopied ? <Check size={14} /> : <Copy size={14} />}
         </button>
-        <button onClick={handleRegenerate} disabled={regenerateCal.isPending}
-          className="px-3 py-2 rounded-xl text-xs font-semibold border transition-colors hover:bg-black/5 disabled:opacity-40 flex-shrink-0"
-          style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
-          {t('profile.calSubRegenerate')}
+        <button
+          onClick={handleRegenerate}
+          disabled={regenerateCal.isPending}
+          aria-label={t('profile.calSubRegenerate')}
+          aria-busy={regenerateCal.isPending}
+          className="p-2 rounded-xl border transition-colors hover:bg-black/5 disabled:opacity-40 flex-shrink-0"
+          style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+        >
+          <RefreshCw size={14} className={regenerateCal.isPending ? 'motion-safe:animate-spin' : ''} />
         </button>
       </div>
     </div>
