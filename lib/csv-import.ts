@@ -110,6 +110,10 @@ export const MONTH_MAP: Record<string, string> = {
 // ── Parsing functions ─────────────────────────────────────────────────────────
 
 export function sanitizeNumeric(val: string, isBG: boolean): string {
+  // Strip Excel text-prefix apostrophe(s) — exported CSVs may leak the leading
+  // single-quote Excel uses to force a cell to be stored as text (e.g. '850.18).
+  // Must run first, before any locale-specific transforms.
+  val = val.replace(/^'+/, '')
   if (isBG) {
     return val.replace(/[\u00A0\s]/g, '').replace(/,/g, '.')
   }
