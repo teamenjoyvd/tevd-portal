@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
   // ── Call transactional RPC ────────────────────────────────────────────────
   const { data, error } = await supabase.rpc('import_los_members', {
     p_rows: rows,
-    p_imported_by: null,
+    p_imported_by: undefined,
     p_expected_row_count: expected_row_count ?? null,
   })
 
