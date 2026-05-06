@@ -6,6 +6,7 @@
 export type NewMember   = { abo_number: string; name: string; abo_level: string }
 export type LevelChange = { abo_number: string; name: string; prev_level: string; new_level: string }
 export type BonusChange = { abo_number: string; name: string; prev_bonus: number; new_bonus: number }
+export type RemovedMember = { abo_number: string; name: string }
 
 export type UnrecognizedRow = {
   abo_number: string
@@ -20,13 +21,30 @@ export type ManualMemberNoAbo = {
   upline_abo_number: string | null
 }
 
+export type JunctionNode = {
+  abo_number: string
+  name: string
+  files: string[]
+  has_conflict: boolean
+  conflict_fields: string[]
+}
+
+export type AssemblyResult = {
+  rows: Record<string, string>[]
+  junctions: JunctionNode[]
+  conflicts: JunctionNode[]
+  disconnected_files: string[]
+  total_row_count: number
+}
+
 export type ImportResult = {
   inserted: number
+  import_id: string
   errors: { abo_number: string; error: string }[]
   diff: {
-    new_members:   NewMember[]
-    level_changes: LevelChange[]
-    bonus_changes: BonusChange[]
+    new_members:    NewMember[]
+    level_changes:  LevelChange[]
+    bonus_changes:  BonusChange[]
   }
   unrecognized: UnrecognizedRow[]
   manual_members_no_abo: ManualMemberNoAbo[]
@@ -48,31 +66,31 @@ export const HEADER_MAP: Record<string, string> = {
 }
 
 export const HEADER_MAP_BG: Record<string, string> = {
-  'Ниво на СБА': 'abo_level',
-  'Номер на Спонсориращия СБА': 'sponsor_abo_number',
-  'Номер на СБА': 'abo_number',
-  'Държава': 'country',
-  'Име': 'name',
-  'Дата на въвеждане': 'entry_date',
-  'Телефон': 'phone',
-  'Електронна поща': 'email',
-  'Адрес': 'address',
-  'Дата на подновяване': 'renewal_date',
-  'ГТС': 'gpv',
-  'ЛТС': 'ppv',
-  'Процент на възнаграждение': 'bonus_percent',
-  'ГБО': 'gbv',
-  'Клиентска ТС': 'customer_pv',
-  'ТС за Рубин': 'ruby_pv',
-  'Клиенти': 'customers',
-  'Точки до следващото ниво': 'points_to_next_level',
-  'Квалифицирани звена': 'qualified_legs',
-  'Размер на група': 'group_size',
-  'Брой лични поръчки': 'personal_order_count',
-  'Брой групови поръчки': 'group_orders_count',
-  'Спонсориране': 'sponsoring',
-  'Годишна ЛТС:': 'annual_ppv',
-  'ТС общо за организацията': 'org_total_pv',
+  '\u041d\u0438\u0432\u043e \u043d\u0430 \u0421\u0411\u0410': 'abo_level',
+  '\u041d\u043e\u043c\u0435\u0440 \u043d\u0430 \u0421\u043f\u043e\u043d\u0441\u043e\u0440\u0438\u0440\u0430\u0449\u0438\u044f \u0421\u0411\u0410': 'sponsor_abo_number',
+  '\u041d\u043e\u043c\u0435\u0440 \u043d\u0430 \u0421\u0411\u0410': 'abo_number',
+  '\u0414\u044a\u0440\u0436\u0430\u0432\u0430': 'country',
+  '\u0418\u043c\u0435': 'name',
+  '\u0414\u0430\u0442\u0430 \u043d\u0430 \u0432\u044a\u0432\u0435\u0436\u0434\u0430\u043d\u0435': 'entry_date',
+  '\u0422\u0435\u043b\u0435\u0444\u043e\u043d': 'phone',
+  '\u0415\u043b\u0435\u043a\u0442\u0440\u043e\u043d\u043d\u0430 \u043f\u043e\u0449\u0430': 'email',
+  '\u0410\u0434\u0440\u0435\u0441': 'address',
+  '\u0414\u0430\u0442\u0430 \u043d\u0430 \u043f\u043e\u0434\u043d\u043e\u0432\u044f\u0432\u0430\u043d\u0435': 'renewal_date',
+  '\u0413\u0422\u0421': 'gpv',
+  '\u041b\u0422\u0421': 'ppv',
+  '\u041f\u0440\u043e\u0446\u0435\u043d\u0442 \u043d\u0430 \u0432\u044a\u0437\u043d\u0430\u0433\u0440\u0430\u0436\u0434\u0435\u043d\u0438\u0435': 'bonus_percent',
+  '\u0413\u0411\u041e': 'gbv',
+  '\u041a\u043b\u0438\u0435\u043d\u0442\u0441\u043a\u0430 \u0422\u0421': 'customer_pv',
+  '\u0422\u0421 \u0437\u0430 \u0420\u0443\u0431\u0438\u043d': 'ruby_pv',
+  '\u041a\u043b\u0438\u0435\u043d\u0442\u0438': 'customers',
+  '\u0422\u043e\u0447\u043a\u0438 \u0434\u043e \u0441\u043b\u0435\u0434\u0432\u0430\u0449\u043e\u0442\u043e \u043d\u0438\u0432\u043e': 'points_to_next_level',
+  '\u041a\u0432\u0430\u043b\u0438\u0444\u0438\u0446\u0438\u0440\u0430\u043d\u0438 \u0437\u0432\u0435\u043d\u0430': 'qualified_legs',
+  '\u0420\u0430\u0437\u043c\u0435\u0440 \u043d\u0430 \u0433\u0440\u0443\u043f\u0430': 'group_size',
+  '\u0411\u0440\u043e\u0439 \u043b\u0438\u0447\u043d\u0438 \u043f\u043e\u0440\u044a\u0447\u043a\u0438': 'personal_order_count',
+  '\u0411\u0440\u043e\u0439 \u0433\u0440\u0443\u043f\u043e\u0432\u0438 \u043f\u043e\u0440\u044a\u0447\u043a\u0438': 'group_orders_count',
+  '\u0421\u043f\u043e\u043d\u0441\u043e\u0440\u0438\u0440\u0430\u043d\u0435': 'sponsoring',
+  '\u0413\u043e\u0434\u0438\u0448\u043d\u0430 \u041b\u0422\u0421:': 'annual_ppv',
+  '\u0422\u0421 \u043e\u0431\u0449\u043e \u0437\u0430 \u043e\u0440\u0433\u0430\u043d\u0438\u0437\u0430\u0446\u0438\u044f\u0442\u0430': 'org_total_pv',
 }
 
 export const NUMERIC_KEYS = new Set([
@@ -90,6 +108,10 @@ export const MONTH_MAP: Record<string, string> = {
 // ── Parsing functions ─────────────────────────────────────────────────────────
 
 export function sanitizeNumeric(val: string, isBG: boolean): string {
+  // Strip Excel text-prefix apostrophe(s) — exported CSVs may leak the leading
+  // single-quote Excel uses to force a cell to be stored as text (e.g. '850.18).
+  // Must run first, before any locale-specific transforms.
+  val = val.replace(/^'+/, '')
   if (isBG) {
     return val.replace(/[\u00A0\s]/g, '').replace(/,/g, '.')
   }
@@ -132,11 +154,11 @@ export function parseCSV(text: string): Record<string, string>[] {
   const allLines = cleaned.trim().split(/\r?\n/)
 
   const headerIdx = allLines.findIndex(
-    l => l.includes('ABO Number') || l.includes('Номер на СБА')
+    l => l.includes('ABO Number') || l.includes('\u041d\u043e\u043c\u0435\u0440 \u043d\u0430 \u0421\u0411\u0410')
   )
   if (headerIdx === -1) return []
 
-  const isBG = allLines[headerIdx].includes('Номер на СБА')
+  const isBG = allLines[headerIdx].includes('\u041d\u043e\u043c\u0435\u0440 \u043d\u0430 \u0421\u0411\u0410')
   const activeMap = isBG ? HEADER_MAP_BG : HEADER_MAP
 
   const dataLines = allLines.slice(headerIdx)
@@ -149,7 +171,10 @@ export function parseCSV(text: string): Record<string, string>[] {
       const row: Record<string, string> = {}
       headers.forEach((h, i) => {
         const dbKey = activeMap[h] ?? h.toLowerCase().replace(/\s+/g, '_')
-        let val = values[i] ?? ''
+        // Strip Excel text-prefix apostrophe from every field before any other
+        // transform — prevents corrupted abo_number lookups, date parse failures,
+        // and numeric cast errors when Excel leaks its internal text-prefix char.
+        let val = (values[i] ?? '').replace(/^'+/, '')
         if (dbKey === 'bonus_percent') val = val.replace('%', '').trim()
         if (dbKey === 'entry_date' || dbKey === 'renewal_date') val = parseDate(val)
         if (dbKey === 'phone') val = val.replace(/^Primary:\s*/i, '').trim()
@@ -158,4 +183,111 @@ export function parseCSV(text: string): Record<string, string>[] {
       })
       return row
     })
+}
+
+// ── Multi-file assembly ───────────────────────────────────────────────────────
+
+// String fields that count as a conflict when they differ between files
+const CONFLICT_FIELDS = ['name', 'sponsor_abo_number']
+
+/**
+ * Assembles multiple parsed CSV file results into a single deduplicated row set.
+ * Detects junction nodes, field conflicts, and disconnected subtrees.
+ *
+ * - Dedup by abo_number (first-seen wins)
+ * - Junction: same ABO appears in >1 file (expected for multi-file imports)
+ * - Conflict: same ABO with differing name or sponsor_abo_number — warning only,
+ *   never blocks import. First-seen file wins.
+ * - Disconnected file: a file that shares zero abo_number values with all other
+ *   files — it is a genuinely isolated subtree with no join point.
+ */
+export function assembleFiles(
+  fileResults: { filename: string; rows: Record<string, string>[] }[]
+): AssemblyResult {
+  const seen = new Map<string, { row: Record<string, string>; filename: string }>()
+  const filesByAbo = new Map<string, string[]>()
+  const firstRowByAbo = new Map<string, Record<string, string>>()
+
+  for (const { filename, rows } of fileResults) {
+    for (const row of rows) {
+      const abo = row.abo_number
+      if (!abo) continue
+
+      const existing = filesByAbo.get(abo) ?? []
+      if (!existing.includes(filename)) existing.push(filename)
+      filesByAbo.set(abo, existing)
+
+      if (!seen.has(abo)) {
+        seen.set(abo, { row, filename })
+        firstRowByAbo.set(abo, row)
+      }
+    }
+  }
+
+  const rows = Array.from(seen.values()).map(v => v.row)
+
+  // ── Junctions and conflicts ───────────────────────────────────────────────
+  const junctions: JunctionNode[] = []
+  const conflicts: JunctionNode[] = []
+
+  for (const [abo, files] of filesByAbo.entries()) {
+    if (files.length <= 1) continue
+
+    const allRowsForAbo: Record<string, string>[] = []
+    for (const { filename, rows: fileRows } of fileResults) {
+      const match = fileRows.find(r => r.abo_number === abo)
+      if (match) allRowsForAbo.push({ ...match, _filename: filename })
+    }
+
+    const conflictFields: string[] = []
+    const referenceRow = allRowsForAbo[0]
+    for (const field of CONFLICT_FIELDS) {
+      const refVal = referenceRow[field] ?? ''
+      const hasConflict = allRowsForAbo.slice(1).some(r => (r[field] ?? '') !== refVal)
+      if (hasConflict) conflictFields.push(field)
+    }
+
+    const node: JunctionNode = {
+      abo_number: abo,
+      name: firstRowByAbo.get(abo)?.name ?? '',
+      files,
+      has_conflict: conflictFields.length > 0,
+      conflict_fields: conflictFields,
+    }
+
+    junctions.push(node)
+    if (node.has_conflict) conflicts.push(node)
+  }
+
+  // ── Disconnected file detection ───────────────────────────────────────────
+  // A file is disconnected only if it shares zero abo_number values with ALL
+  // other files combined. Having even one shared ABO means it connects.
+  const disconnected_files: string[] = []
+
+  if (fileResults.length > 1) {
+    for (const { filename, rows: fileRows } of fileResults) {
+      const fileAbos = new Set(fileRows.map(r => r.abo_number).filter(Boolean))
+
+      // Collect all ABOs from every OTHER file
+      const otherAbos = new Set<string>()
+      for (const other of fileResults) {
+        if (other.filename === filename) continue
+        for (const r of other.rows) {
+          if (r.abo_number) otherAbos.add(r.abo_number)
+        }
+      }
+
+      // Disconnected = zero overlap
+      const hasOverlap = [...fileAbos].some(abo => otherAbos.has(abo))
+      if (!hasOverlap) disconnected_files.push(filename)
+    }
+  }
+
+  return {
+    rows,
+    junctions,
+    conflicts,
+    disconnected_files,
+    total_row_count: rows.length,
+  }
 }

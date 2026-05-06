@@ -1,5 +1,5 @@
 # LOOKUP.md — teamenjoyVD Portal Reference Tables
-> Last updated: 2026-05-07
+> Last updated: 2026-05-06
 > **Read on demand in GATHER only. Never read at SSU or at GATHER start.**
 > Pull only the sections the ticket needs. See section map in REF.md header.
 
