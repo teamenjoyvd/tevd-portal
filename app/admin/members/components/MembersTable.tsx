@@ -35,14 +35,14 @@ function formatNum(n: number) {
 
 /**
  * Resolves the display name for a LOS member.
- * Priority: profile name (if non-empty) → los_members.name → abo_number
+ * Priority: profile name (if non-empty) → los_members.name → —
  * LOS is the single source of truth when the user has not filled in their profile.
  */
 function resolveDisplayName(m: LOSMember): string {
   const profileName = m.profile
     ? `${m.profile.first_name} ${m.profile.last_name}`.trim()
     : ''
-  return profileName || m.name || m.abo_number
+  return profileName || m.name || '—'
 }
 
 const LEVEL_BG: Record<string, { bg: string; color: string }> = {
@@ -88,7 +88,7 @@ export function MembersTable({
       id: 'name',
       header: t('admin.members.table.name'),
       enableSorting: true,
-      cell: ({ row }) => {
+      cell: ({ row, getValue }) => {
         const m = row.original
         const lvl = m.abo_level ?? '?'
         const lc = LEVEL_BG[lvl] ?? LEVEL_BG['3']
@@ -99,7 +99,7 @@ export function MembersTable({
               style={{ backgroundColor: lc.bg, color: lc.color }}>{lvl}</span>
             <div className="min-w-0">
               <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
-                {resolveDisplayName(m)}
+                {getValue()}
               </p>
             </div>
             {m.profile && profileRc && (
