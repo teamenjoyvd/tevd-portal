@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
   )
 
   // ── Run import RPC ───────────────────────────────────────────────────
-  const { data, error } = await supabase.rpc('import_los_members', { rows })
+  const { data, error } = await supabase.rpc('import_los_members', { p_rows: rows })
 
   if (error) {
     return Response.json({ error: error.message }, { status: 500 })
