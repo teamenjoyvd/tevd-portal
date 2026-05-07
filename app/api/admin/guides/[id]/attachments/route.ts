@@ -47,12 +47,8 @@ export async function POST(
     return NextResponse.json({ error: 'File exceeds 20 MB limit' }, { status: 413 })
   }
 
+  // Anything not in ALLOWED_MIME passes through as 'other' (e.g. .docx, .zip)
   const fileType = ALLOWED_MIME[file.type] ?? 'other'
-  if (!ALLOWED_MIME[file.type] && file.type !== '') {
-    // allow through as 'other' only for known binary-safe types; reject otherwise
-    // keep simple: anything not in ALLOWED_MIME is rejected
-    return NextResponse.json({ error: 'Unsupported file type' }, { status: 415 })
-  }
 
   const ext = file.name.split('.').pop() ?? 'bin'
   const storagePath = `${guideId}/${crypto.randomUUID()}.${ext}`
@@ -138,15 +134,16 @@ export async function PATCH(
     return NextResponse.json({ error: 'items array required' }, { status: 400 })
   }
 
-  const errors: string[] = []
-  for (const item of body.items) {
-    const { error } = await supabase
-      .from('guide_attachments')
-      .update({ sort_order: item.sort_order })
-      .eq('id', item.id)
-      .eq('guide_id', guideId)
-    if (error) errors.push(error.message)
-  }
+  const results = await Promise.all(
+    body.items.map(item =>
+      supabase
+        .from('guide_attachments')
+        .update({ sort_order: item.sort_order })
+        .eq('id', item.id)
+        .eq('guide_id', guideId)
+    )
+  )
+  const errors = results.map(r => r.error?.message).filter((m): m is string => !!m)
 
   if (errors.length > 0) {
     return NextResponse.json({ errors }, { status: 500 })

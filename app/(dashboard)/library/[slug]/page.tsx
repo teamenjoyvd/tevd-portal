@@ -46,31 +46,18 @@ export default async function LibraryDetailPage({
 
   const supabase = createServiceClient()
 
-  const [{ data: guide }, { data: attachmentsRaw }] = await Promise.all([
-    supabase
-      .from('guides')
-      .select('*')
-      .eq('slug', slug)
-      .eq('is_published', true)
-      .single(),
-    supabase
-      .from('guide_attachments')
-      .select('id, file_url, file_name, label, file_type, sort_order')
-      .eq('guide_id',
-        // We need guide.id — but we can't know it before the query resolves.
-        // Use a subquery workaround: fetch guide_id via slug join.
-        // Actually: run this after guide resolves. Use sequential for attachments.
-        // NOTE: replaced with sequential fetch below — see comment.
-        'placeholder'
-      ),
-  ])
+  const { data: guide } = await supabase
+    .from('guides')
+    .select('*')
+    .eq('slug', slug)
+    .eq('is_published', true)
+    .single()
 
   if (!guide) redirect('/library')
 
   const accessRoles = guide.access_roles as string[]
   if (!accessRoles.includes(role)) redirect('/library')
 
-  // Fetch attachments sequentially (requires guide.id)
   const { data: attachmentsData } = await supabase
     .from('guide_attachments')
     .select('id, file_url, file_name, label, file_type, sort_order')

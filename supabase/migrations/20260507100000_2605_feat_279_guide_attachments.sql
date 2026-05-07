@@ -17,7 +17,12 @@ ALTER TABLE public.guide_attachments ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "guide_attachments_select_authenticated"
   ON public.guide_attachments FOR SELECT
   TO authenticated
-  USING (true);
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.guides g
+      WHERE g.id = guide_id
+    )
+  );
 
 -- Only admins can insert
 CREATE POLICY "guide_attachments_insert_admin"
