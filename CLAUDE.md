@@ -257,7 +257,7 @@ BUILD verifies both at startup. If either section is absent or any checklist ite
 | Role promotion | Every `profiles.role` update MUST also call `clerk.users.updateUserMetadata`. Routes: `/api/admin/verify`, `/api/admin/members/[id]` PATCH, `/api/admin/members/verify/[id]`. |
 | `payments` FK | Two FKs to `profiles`. PostgREST MUST use `profiles!profile_id(...)` — without it, 500. |
 | `types/supabase.ts` | Regenerate via `Supabase:generate_typescript_types` MCP only — CLI not installed. Regeneration is mandatory after any migration that touches an enum; `lib/roles.ts` derives `MemberRole` and `ALL_ROLES` from this file and will emit a compile error on missing/extra keys. |
-| Supabase DDL | `apply_migration` only. Never raw `execute_sql` for DDL. Always save to `supabase/migrations/YYYYMMDDNNNNNN_name.sql`. |
+| Supabase DDL | `apply_migration` only. Never raw `execute_sql` for DDL. Migration filename: `YYYYMMDD_NNN_description.sql` where `NNN` is a zero-padded 3-digit counter. Before writing a filename, list `supabase/migrations/` and find the highest `NNN` for today's date — increment by 1, reset to `001` on a new day. Never use `HHMMSS` — wall-clock seconds collide within a session. |
 | Large GitHub files | `create_or_update_file` times out above ~10KB. Use `push_files`. |
 | Mapbox | CDN only — never npm. Dupe guard on load. |
 | Mapbox theme swap | `map.setStyle()` + `styledata` event. MutationObserver on `data-theme`. |
@@ -275,3 +275,4 @@ BUILD verifies both at startup. If either section is absent or any checklist ite
 | `BottomNav.tsx` | Dead stub. Do not import. |
 | Profile prerender | Guard ALL `validProfile!` accesses with `if (isLoading \|\| !validProfile) return <ProfileSkeleton />`. |
 | `TeamAttendee` type | Exported from `app/(dashboard)/trips/[id]/page.tsx`. Do not redeclare. |
+| Trusted RPC + service role | Any RPC that performs cross-user writes MUST be `SECURITY DEFINER SET search_path = public`. Because SECURITY DEFINER bypasses RLS, the function body MUST include an internal authorization check: `IF auth.role() <> 'service_role' AND NOT is_admin() THEN RAISE EXCEPTION 'Unauthorized'; END IF;`. Pattern A helpers return false/null under service-role with no JWT. `SECURITY INVOKER` is only safe for read-only helpers or trigger functions. |
