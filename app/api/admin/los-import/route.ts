@@ -2,7 +2,7 @@ import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { NextRequest } from 'next/server'
 import { requireAdmin } from '@/lib/supabase/guards'
-import { type NewMember, type LevelChange, type BonusChange } from '@/lib/csv-import'
+import { type NewMember, type LevelChange, type BonusChange, type RemovedMember } from '@/lib/csv-import'
 
 // ── GET — current LOS state ───────────────────────────────────────────────────
 
@@ -83,9 +83,10 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Compute diff (new + changed only — no removals from upsert) ───────────
-  const new_members:   NewMember[]   = []
-  const level_changes: LevelChange[] = []
-  const bonus_changes: BonusChange[] = []
+  const new_members:   NewMember[]     = []
+  const level_changes: LevelChange[]   = []
+  const bonus_changes: BonusChange[]   = []
+  const removed:       RemovedMember[] = []
 
   for (const row of rows as Record<string, string>[]) {
     const aboNum   = row.abo_number ?? ''
@@ -104,6 +105,14 @@ export async function POST(req: NextRequest) {
       if (Math.abs(newBonus - prevBonus) >= 3) {
         bonus_changes.push({ abo_number: aboNum, name, prev_bonus: prevBonus, new_bonus: newBonus })
       }
+    }
+  }
+
+  // Members in prev snapshot not present in incoming rows
+  const incomingAbos = new Set((rows as Record<string, string>[]).map(r => r.abo_number))
+  for (const [abo, prev] of prevMap.entries()) {
+    if (!incomingAbos.has(abo)) {
+      removed.push({ abo_number: abo, name: prev.name ?? '' })
     }
   }
 
@@ -135,7 +144,7 @@ export async function POST(req: NextRequest) {
     inserted: rpcResult.inserted,
     import_id: rpcResult.import_id,
     errors: rpcResult.errors,
-    diff: { new_members, level_changes, bonus_changes },
+    diff: { new_members, level_changes, bonus_changes, removed },
     unrecognized,
     manual_members_no_abo: manualMembersNoAbo ?? [],
   })
