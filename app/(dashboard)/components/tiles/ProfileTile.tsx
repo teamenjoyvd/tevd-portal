@@ -12,7 +12,7 @@ type VerifRequest = { status: 'pending' | 'approved' | 'denied' } | null
 type Upline = { upline_name: string | null; upline_abo_number: string | null } | null
 type Profile = {
   role: string
-  first_name: string
+  first_name: string | null
   last_name: string | null
   display_names: Record<string, string> | null
   abo_number: string | null
@@ -66,8 +66,8 @@ export default function ProfileTile({
   // Guard empty strings from DB with || null (not ??) — DB defaults to '' not null.
   const enFirst = user?.firstName || profile?.first_name || null
   const enLast  = user?.lastName  || profile?.last_name  || null
-  const bgFirst = (profile?.display_names?.['bg_first'] || null) as string | null
-  const bgLast  = (profile?.display_names?.['bg_last']  || null) as string | null
+  const bgFirst = profile?.display_names?.['bg_first'] || null
+  const bgLast  = profile?.display_names?.['bg_last']  || null
 
   const displayName: string | null = lang === 'bg'
     ? (bgFirst ?? bgLast ?? enFirst ?? enLast)
