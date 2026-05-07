@@ -1,5 +1,5 @@
 # LOOKUP.md — teamenjoyVD Portal Reference Tables
-> Last updated: 2026-05-03
+> Last updated: 2026-05-07
 > **Read on demand in GATHER only. Never read at SSU or at GATHER start.**
 > Pull only the sections the ticket needs. See section map in REF.md header.
 
@@ -45,7 +45,8 @@
     /admin/home-settings/route.ts
     /admin/links/route.ts
     /admin/links/[id]/route.ts
-    /admin/los-import/route.ts
+    /admin/los-import/route.ts           # GET (LOS status) + POST (transactional import)
+    /admin/los-import/rollback/route.ts  # POST — rollback by import_id
     /admin/los-tree/route.ts
     /admin/members/route.ts
     /admin/members/[id]/route.ts
@@ -153,6 +154,7 @@
 `id, clerk_id, first_name, last_name, display_names, role, abo_number, upline_abo_number, document_active_type, id_number, passport_number, valid_through, ical_token, phone, contact_email, created_at, ui_prefs`
 - `role` default: `'guest'`
 - `ui_prefs` JSONB NOT NULL default `{}` — shape: `{ bento_order: string[], bento_collapsed: Record<string, boolean> }`
+- `upline_abo_number`: written by `approve_member_verification` (both paths) and by `import_los_members` on sponsor change.
 
 **`guides`**
 `id, slug, title (jsonb {en,bg}), emoji, cover_image_url, body (jsonb Block[]), access_roles, is_published, sort_order, created_at, updated_at`
@@ -250,6 +252,11 @@
 **`los_members`**
 `abo_number (PK), sponsor_abo_number, name, abo_level, bonus_percent, gpv, ppv, annual_ppv, gbv, ruby_pv, customer_pv, customers, group_size, group_orders_count, personal_order_count, qualified_legs, sponsoring, points_to_next_level, phone, email, address, country, entry_date, renewal_date, last_synced_at`
 
+**`los_imports`**
+`id (uuid PK), imported_by (uuid → profiles.id), status (text: 'complete'|'partial'|'rolled_back'), file_count (int DEFAULT 1), row_count (int), removed_count (int DEFAULT 0), snapshot (jsonb — full pre-import los_members rows), imported_at (timestamptz DEFAULT now())`
+- RLS: admin-only via `is_admin()`.
+- Snapshot acceptable at current LOS scale (~69 rows); revisit if LOS exceeds ~5K rows.
+
 ---
 
 ## 3. API / RPC Map
@@ -258,7 +265,7 @@
 | Route | Method | Purpose |
 |---|---|---|
 | `/api/profile` | GET, PATCH | Read/update own profile |
-| `/api/profile/verify-abo` | POST | Submit ABO verification request |
+| `/api/profile/verify-abo` | POST | Submit ABO verification — LOS-validated at submit (existence + sponsor match + duplicate check); structured `error_code` in response |
 | `/api/profile/vitals` | GET | Read own vital signs |
 | `/api/profile/event-roles` | GET | Read own event participation |
 | `/api/profile/los-summary` | GET | Read own LOS downline |
@@ -295,9 +302,11 @@
 | `/api/admin/home-settings` | GET, PATCH | home_settings table |
 | `/api/admin/links` | GET, POST | List + create links |
 | `/api/admin/links/[id]` | PATCH, DELETE | Update/delete link |
-| `/api/admin/los-import` | POST | Imports LOS CSV via `import_los_members` RPC |
+| `/api/admin/los-import` | GET | Returns `{ row_count, last_synced_at, last_import_id, last_import }` |
+| `/api/admin/los-import` | POST | Transactional LOS import; body: `{ rows, expected_row_count?, imported_by_profile_id? }` |
+| `/api/admin/los-import/rollback` | POST | Rollback by `import_id`; body: `{ import_id }` |
 | `/api/admin/los-tree` | GET | Tree nodes for admin LOS view |
-| `/api/admin/members` | GET | LOS members + profiles + pending verifications + guests |
+| `/api/admin/members` | GET | LOS members + profiles + pending verifications + guests + `los_last_synced_at` |
 | `/api/admin/members/[id]` | GET, PATCH | Member profile + unified data |
 | `/api/admin/members/[id]/vital-signs` | GET, POST | Read/record vital signs for member |
 | `/api/admin/members/[id]/vital-signs/[definitionId]` | PATCH, DELETE | Update/remove vital sign record |
@@ -331,10 +340,12 @@
 | `pin_social_post(p_id uuid)` | Atomic pin swap — unpins current, pins new |
 | `get_core_ancestors(uuid)` | Returns Core-role profile UUIDs above a given node |
 | `rebuild_tree_paths` | Cascades ABO label rename down all descendants |
-| `approve_member_verification(p_request_id, p_admin_note?)` | Approve ABO verification request |
+| `upsert_tree_node(p_profile_id, p_abo_number, p_sponsor_abo_number?)` | Insert/update tree node; walks `los_members` sponsor chain (max 20 hops, cycle guard) if direct sponsor has no portal profile |
+| `approve_member_verification(p_request_id, p_admin_note?)` | Approve ABO verification — LOS guard (existence + sponsor match + duplicate), writes `abo_number` + `upline_abo_number`, places in tree |
 | `patch_member_role(p_profile_id, p_new_role, p_changed_by, p_note?)` | Role update with audit trail — returns updated profile |
 | `get_trip_team_attendees(p_trip_id, p_viewer_profile)` | Returns Core/admin attendees for a trip |
-| `import_los_members(rows jsonb)` | Bulk upsert LOS data |
+| `import_los_members(p_rows, p_imported_by?, p_expected_row_count?)` | Transactional LOS import: concurrency check → snapshot → upsert → server-side delete → rebuild_tree_paths → insert los_imports. Returns `{ inserted, removed, import_id, errors }`. |
+| `rollback_los_import(p_import_id uuid)` | Restores pre-import snapshot, re-runs `rebuild_tree_paths`, marks import `rolled_back`. Returns `{ restored, import_id }`. |
 | `get_los_members_with_profiles` | Joined LOS + profile data for admin view |
 | `notify_role_request` | Fan-out: admins + Core ancestors of requester |
 | `notify_trip_created` | Fan-out: all member/core/admin |

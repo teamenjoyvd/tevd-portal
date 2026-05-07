@@ -33,6 +33,18 @@ function formatNum(n: number) {
   return numberFormatter.format(n)
 }
 
+/**
+ * Resolves the display name for a LOS member.
+ * Priority: profile name (if non-empty) → los_members.name → —
+ * LOS is the single source of truth when the user has not filled in their profile.
+ */
+function resolveDisplayName(m: LOSMember): string {
+  const profileName = m.profile
+    ? `${m.profile.first_name} ${m.profile.last_name}`.trim()
+    : ''
+  return profileName || m.name || '—'
+}
+
 const LEVEL_BG: Record<string, { bg: string; color: string }> = {
   '1': { bg: 'var(--brand-forest)', color: 'white' },
   '2': { bg: 'var(--brand-crimson)', color: 'white' },
@@ -72,13 +84,11 @@ export function MembersTable({
   }, [])
 
   const columns = useMemo(() => [
-    colHelper.accessor(row => row.profile
-      ? `${row.profile.first_name} ${row.profile.last_name}`
-      : (row.name ?? row.abo_number), {
+    colHelper.accessor(row => resolveDisplayName(row), {
       id: 'name',
       header: t('admin.members.table.name'),
       enableSorting: true,
-      cell: ({ row }) => {
+      cell: ({ row, getValue }) => {
         const m = row.original
         const lvl = m.abo_level ?? '?'
         const lc = LEVEL_BG[lvl] ?? LEVEL_BG['3']
@@ -89,7 +99,7 @@ export function MembersTable({
               style={{ backgroundColor: lc.bg, color: lc.color }}>{lvl}</span>
             <div className="min-w-0">
               <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
-                {m.profile ? `${m.profile.first_name} ${m.profile.last_name}` : (m.name ?? '—')}
+                {getValue()}
               </p>
             </div>
             {m.profile && profileRc && (
@@ -205,9 +215,7 @@ export function MembersTable({
     globalFilterFn: (row, _colId, filterValue: unknown) => {
       const q = typeof filterValue === 'string' ? filterValue.toLowerCase() : ''
       const m = row.original
-      const name = m.profile
-        ? `${m.profile.first_name} ${m.profile.last_name}`.toLowerCase()
-        : (m.name ?? '').toLowerCase()
+      const name = resolveDisplayName(m).toLowerCase()
       return name.includes(q) || m.abo_number.toLowerCase().includes(q)
     },
     initialState: { pagination: { pageSize: 25 } },

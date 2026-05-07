@@ -23,6 +23,14 @@ export async function GET() {
 
   if (losErr) return Response.json({ error: losErr.message }, { status: 500 })
 
+  // LOS freshness: MAX(last_synced_at) across all rows
+  const { data: syncRow } = await supabase
+    .from('los_members')
+    .select('last_synced_at')
+    .order('last_synced_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
   // Profiles linked by abo_number
   const { data: profiles } = await supabase
     .from('profiles')
@@ -61,5 +69,6 @@ export async function GET() {
     pending_verifications: verifications ?? [],
     unverified_guests: guests ?? [],
     manual_members_no_abo: manualMembersNoAbo ?? [],
+    los_last_synced_at: syncRow?.last_synced_at ?? null,
   })
 }

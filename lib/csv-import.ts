@@ -66,31 +66,31 @@ export const HEADER_MAP: Record<string, string> = {
 }
 
 export const HEADER_MAP_BG: Record<string, string> = {
-  'Ниво на СБА': 'abo_level',
-  'Номер на Спонсориращия СБА': 'sponsor_abo_number',
-  'Номер на СБА': 'abo_number',
-  'Държава': 'country',
-  'Име': 'name',
-  'Дата на въвеждане': 'entry_date',
-  'Телефон': 'phone',
-  'Електронна поща': 'email',
-  'Адрес': 'address',
-  'Дата на подновяване': 'renewal_date',
-  'ГТС': 'gpv',
-  'ЛТС': 'ppv',
-  'Процент на възнаграждение': 'bonus_percent',
-  'ГБО': 'gbv',
-  'Клиентска ТС': 'customer_pv',
-  'ТС за Рубин': 'ruby_pv',
-  'Клиенти': 'customers',
-  'Точки до следващото ниво': 'points_to_next_level',
-  'Квалифицирани звена': 'qualified_legs',
-  'Размер на група': 'group_size',
-  'Брой лични поръчки': 'personal_order_count',
-  'Брой групови поръчки': 'group_orders_count',
-  'Спонсориране': 'sponsoring',
-  'Годишна ЛТС:': 'annual_ppv',
-  'ТС общо за организацията': 'org_total_pv',
+  '\u041d\u0438\u0432\u043e \u043d\u0430 \u0421\u0411\u0410': 'abo_level',
+  '\u041d\u043e\u043c\u0435\u0440 \u043d\u0430 \u0421\u043f\u043e\u043d\u0441\u043e\u0440\u0438\u0440\u0430\u0449\u0438\u044f \u0421\u0411\u0410': 'sponsor_abo_number',
+  '\u041d\u043e\u043c\u0435\u0440 \u043d\u0430 \u0421\u0411\u0410': 'abo_number',
+  '\u0414\u044a\u0440\u0436\u0430\u0432\u0430': 'country',
+  '\u0418\u043c\u0435': 'name',
+  '\u0414\u0430\u0442\u0430 \u043d\u0430 \u0432\u044a\u0432\u0435\u0436\u0434\u0430\u043d\u0435': 'entry_date',
+  '\u0422\u0435\u043b\u0435\u0444\u043e\u043d': 'phone',
+  '\u0415\u043b\u0435\u043a\u0442\u0440\u043e\u043d\u043d\u0430 \u043f\u043e\u0449\u0430': 'email',
+  '\u0410\u0434\u0440\u0435\u0441': 'address',
+  '\u0414\u0430\u0442\u0430 \u043d\u0430 \u043f\u043e\u0434\u043d\u043e\u0432\u044f\u0432\u0430\u043d\u0435': 'renewal_date',
+  '\u0413\u0422\u0421': 'gpv',
+  '\u041b\u0422\u0421': 'ppv',
+  '\u041f\u0440\u043e\u0446\u0435\u043d\u0442 \u043d\u0430 \u0432\u044a\u0437\u043d\u0430\u0433\u0440\u0430\u0436\u0434\u0435\u043d\u0438\u0435': 'bonus_percent',
+  '\u0413\u0411\u041e': 'gbv',
+  '\u041a\u043b\u0438\u0435\u043d\u0442\u0441\u043a\u0430 \u0422\u0421': 'customer_pv',
+  '\u0422\u0421 \u0437\u0430 \u0420\u0443\u0431\u0438\u043d': 'ruby_pv',
+  '\u041a\u043b\u0438\u0435\u043d\u0442\u0438': 'customers',
+  '\u0422\u043e\u0447\u043a\u0438 \u0434\u043e \u0441\u043b\u0435\u0434\u0432\u0430\u0449\u043e\u0442\u043e \u043d\u0438\u0432\u043e': 'points_to_next_level',
+  '\u041a\u0432\u0430\u043b\u0438\u0444\u0438\u0446\u0438\u0440\u0430\u043d\u0438 \u0437\u0432\u0435\u043d\u0430': 'qualified_legs',
+  '\u0420\u0430\u0437\u043c\u0435\u0440 \u043d\u0430 \u0433\u0440\u0443\u043f\u0430': 'group_size',
+  '\u0411\u0440\u043e\u0439 \u043b\u0438\u0447\u043d\u0438 \u043f\u043e\u0440\u044a\u0447\u043a\u0438': 'personal_order_count',
+  '\u0411\u0440\u043e\u0439 \u0433\u0440\u0443\u043f\u043e\u0432\u0438 \u043f\u043e\u0440\u044a\u0447\u043a\u0438': 'group_orders_count',
+  '\u0421\u043f\u043e\u043d\u0441\u043e\u0440\u0438\u0440\u0430\u043d\u0435': 'sponsoring',
+  '\u0413\u043e\u0434\u0438\u0448\u043d\u0430 \u041b\u0422\u0421:': 'annual_ppv',
+  '\u0422\u0421 \u043e\u0431\u0449\u043e \u0437\u0430 \u043e\u0440\u0433\u0430\u043d\u0438\u0437\u0430\u0446\u0438\u044f\u0442\u0430': 'org_total_pv',
 }
 
 export const NUMERIC_KEYS = new Set([
@@ -154,11 +154,11 @@ export function parseCSV(text: string): Record<string, string>[] {
   const allLines = cleaned.trim().split(/\r?\n/)
 
   const headerIdx = allLines.findIndex(
-    l => l.includes('ABO Number') || l.includes('Номер на СБА')
+    l => l.includes('ABO Number') || l.includes('\u041d\u043e\u043c\u0435\u0440 \u043d\u0430 \u0421\u0411\u0410')
   )
   if (headerIdx === -1) return []
 
-  const isBG = allLines[headerIdx].includes('Номер на СБА')
+  const isBG = allLines[headerIdx].includes('\u041d\u043e\u043c\u0435\u0440 \u043d\u0430 \u0421\u0411\u0410')
   const activeMap = isBG ? HEADER_MAP_BG : HEADER_MAP
 
   const dataLines = allLines.slice(headerIdx)

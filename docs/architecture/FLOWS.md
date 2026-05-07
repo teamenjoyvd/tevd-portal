@@ -1,5 +1,5 @@
 # FLOWS.md — Component Flows (C4 L3)
-> tevd-portal · Last updated: 2026-04-14
+> tevd-portal · Last updated: 2026-05-07
 > Scope: Ambiguous zones only. Simple CRUD with no branching logic is not documented here.
 > Tooling: Mermaid state and sequence diagrams.
 
@@ -211,22 +211,91 @@ The organisation hierarchy is stored as a materialized path tree in `tree_nodes`
 - **No-ABO node:** `path` label is `p_<uuid_no_hyphens>` (e.g., `p_abc123def456`)
 - On ABO assignment, the no-ABO label is renamed to the real ABO number and `rebuild_tree_paths` is called to cascade the rename down all descendants.
 
+### LOS Freshness Invariant
+
+The LOS (`los_members` table) is the authoritative source for ABO existence and sponsor relationships. Two invariants hold at all times:
+
+1. **Verification gate:** A standard ABO verification request cannot be submitted (route) or approved (RPC) if `claimed_abo` is not present in `los_members`, or if the LOS `sponsor_abo_number` does not match `claimed_upline_abo`. The admin UI shows a staleness banner when `MAX(last_synced_at)` from `los_members` is older than 7 days.
+2. **Import reconciliation:** Every call to `import_los_members` detects sponsor changes by comparing the old `sponsor_abo_number` before the upsert. For each changed row, `profiles.upline_abo_number` is updated and `upsert_tree_node` is called to re-anchor the portal member's tree position.
+
 ### Member Verification → Tree Placement
+
+```mermaid
+sequenceDiagram
+    participant M as Member (Browser)
+    participant R as /api/profile/verify-abo (POST)
+    participant S as Supabase
+
+    M->>R: POST { claimed_abo, claimed_upline_abo, request_type }
+    R->>S: Query los_members WHERE abo_number = claimed_abo
+    alt ABO not in LOS
+        R-->>M: 422 { error_code: 'abo_not_in_los' }
+    else Sponsor mismatch
+        R-->>M: 422 { error_code: 'upline_mismatch' }
+    else ABO already claimed
+        R-->>M: 409 { error_code: 'abo_already_claimed' }
+    else Valid
+        R->>S: UPSERT abo_verification_requests (status='pending')
+        R-->>M: 201
+    end
+```
 
 ```mermaid
 sequenceDiagram
     participant A as Admin
     participant R as /api/admin/verify (or /members/verify/[id])
+    participant RPC as approve_member_verification (RPC)
     participant S as Supabase
 
-    A->>R: Approve verification (claimed_abo, upline_abo)
-    R->>S: UPDATE profiles SET role='member', abo_number=claimed_abo
-    R->>S: Find tree_nodes row for upline_abo
-    R->>S: INSERT tree_nodes\n(profile_id, parent_id=upline_node.id,\npath=upline_node.path.claimed_abo,\ndepth=upline_node.depth+1)
-    R->>Clerk: updateUserMetadata → role='member'
-    R-->>A: 200
+    A->>R: Approve verification
+    R->>RPC: approve_member_verification(request_id)
+    RPC->>S: SELECT los_members WHERE abo_number = claimed_abo
+    alt ABO not in LOS
+        RPC-->>R: EXCEPTION 'not found in los_members'
+        R-->>A: 500 (surfaces error message)
+    else Sponsor mismatch
+        RPC-->>R: EXCEPTION 'sponsor mismatch'
+        R-->>A: 500
+    else ABO already claimed by another profile
+        RPC-->>R: EXCEPTION 'already claimed'
+        R-->>A: 500
+    else Guards pass
+        RPC->>S: UPDATE profiles SET role='member', abo_number=claimed_abo, upline_abo_number=claimed_upline_abo
+        RPC->>S: UPDATE abo_verification_requests SET status='approved'
+        RPC->>S: upsert_tree_node(profile_id, claimed_abo, claimed_upline_abo)
+        RPC-->>R: void
+        R->>Clerk: updateUserMetadata → role='member'
+        R-->>A: 200
+    end
+```
 
-    Note over S: Path is computed as upline path + '.' + new label.<br/>No recursive rebuild needed for a leaf insert.
+### upsert_tree_node — Sponsor Resolution with LOS Chain Walk
+
+When a sponsor ABO has no portal profile yet (i.e. no `tree_nodes` row exists for a profile with `abo_number = sponsor_abo`), `upsert_tree_node` walks up the `los_members.sponsor_abo_number` chain to find the nearest ancestor that does have a portal profile + tree node. Max 20 hops, cycle guard via visited-set.
+
+```mermaid
+sequenceDiagram
+    participant F as upsert_tree_node(profile_id, abo, sponsor_abo)
+    participant S as Supabase
+
+    F->>S: Find tree_nodes for profile with abo_number = sponsor_abo
+    alt Found
+        F->>S: INSERT/UPDATE tree_nodes (parent = found node)
+    else Not found — walk LOS chain
+        loop up to 20 hops (cycle guard)
+            F->>S: SELECT sponsor_abo_number FROM los_members WHERE abo_number = current_walk_abo
+            F->>S: Find tree_nodes for profile with abo_number = next_abo
+            alt Found
+                F->>S: INSERT/UPDATE tree_nodes (parent = found node)
+                note over F: Break loop
+            else Not found
+                note over F: Continue walk
+            end
+        end
+        alt Chain exhausted
+            F->>S: INSERT/UPDATE tree_nodes (root placement, parent=NULL)
+        end
+    end
 ```
 
 ### No-ABO Placement (Manual Verification)
@@ -238,13 +307,34 @@ sequenceDiagram
     participant S as Supabase
 
     A->>R: Approve manual verification (upline_abo only, no claimed_abo)
-    R->>S: UPDATE profiles SET role='member'\n(abo_number stays NULL)
-    R->>S: Find tree_nodes row for upline_abo
-    R->>S: INSERT tree_nodes\n(profile_id, parent_id=upline_node.id,\npath=upline_node.path.p_<uuid>,\ndepth=upline_node.depth+1)
+    R->>S: UPDATE profiles SET role='member', upline_abo_number=claimed_upline_abo\n(abo_number stays NULL)
+    R->>S: upsert_tree_node(profile_id, NULL, claimed_upline_abo)
+    Note over S: p_<uuid> label. LOS chain walk applies for sponsor resolution.
     R->>Clerk: updateUserMetadata → role='member'
     R-->>A: 200
+```
 
-    Note over S: Label is p_<uuid_no_hyphens>.<br/>If ABO is later assigned, rebuild_tree_paths<br/>renames the label and cascades to all descendants.
+### Import Reconciliation (Sponsor Change)
+
+```mermaid
+sequenceDiagram
+    participant A as Admin
+    participant R as /api/admin/los-import
+    participant RPC as import_los_members (RPC)
+    participant S as Supabase
+
+    A->>R: POST CSV rows
+    R->>RPC: import_los_members(rows)
+    loop For each row
+        RPC->>S: Snapshot old sponsor_abo_number
+        RPC->>S: UPSERT los_members
+        alt sponsor_abo_number changed
+            RPC->>S: UPDATE profiles SET upline_abo_number = new_sponsor WHERE abo_number = row.abo_number
+            RPC->>S: upsert_tree_node(profile_id, row.abo_number, new_sponsor)
+        end
+    end
+    RPC-->>R: { inserted, errors }
+    R-->>A: 200
 ```
 
 ### Subtree Query Pattern
@@ -277,8 +367,10 @@ Tree structure drives targeted notification delivery:
 ### Invariants
 - Every `tree_nodes` row has a `path` that is a valid ltree label chain matching the ancestor chain up to root.
 - `rebuild_tree_paths` must be called after any ABO number assignment that renames a node label.
-- LOS import always wins for tree positioning — manual placement is overridden on next import reconciliation.
+- LOS import always wins for tree positioning — `import_los_members` reconciles `upline_abo_number` and re-anchors `tree_nodes` for any member whose sponsor changed.
 - No-ABO labels (`p_<uuid>`) are internal identifiers. They are never displayed to users.
+- Standard verification: `claimed_abo` must exist in `los_members` and `sponsor_abo_number` must match `claimed_upline_abo`, enforced at both submit (route) and approve (RPC).
+- `profiles.upline_abo_number` is always written by `approve_member_verification` (both paths) and by `import_los_members` on sponsor change.
 
 ---
 
