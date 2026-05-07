@@ -1381,9 +1381,10 @@ export type Database = {
           role: string
         }[]
       }
-      import_los_members:
-        | { Args: { p_imported_by?: string; p_rows: Json }; Returns: Json }
-        | { Args: { rows: Json }; Returns: Json }
+      import_los_members: {
+        Args: { p_imported_by?: string; p_rows: Json }
+        Returns: Json
+      }
       increment_share_link_click: {
         Args: { link_id: string }
         Returns: undefined
