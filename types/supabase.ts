@@ -357,6 +357,47 @@ export type Database = {
           },
         ]
       }
+      guide_attachments: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_type: string
+          file_url: string
+          guide_id: string
+          id: string
+          label: string | null
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_type: string
+          file_url: string
+          guide_id: string
+          id?: string
+          label?: string | null
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_type?: string
+          file_url?: string
+          guide_id?: string
+          id?: string
+          label?: string | null
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guide_attachments_guide_id_fkey"
+            columns: ["guide_id"]
+            isOneToOne: false
+            referencedRelation: "guides"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guides: {
         Row: {
           access_roles: string[]

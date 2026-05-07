@@ -3,12 +3,14 @@
 import { useState } from 'react'
 import { marked } from 'marked'
 import sanitizeHtml from 'sanitize-html'
+import { FileText, Image, File, Download } from 'lucide-react'
 import BentoCard from '@/components/bento/BentoCard'
 import {
   Dialog,
   DialogContent,
   DialogOverlay,
 } from '@/components/ui/dialog'
+import { useLanguage } from '@/lib/hooks/useLanguage'
 
 type TextBlock = {
   type: 'heading' | 'paragraph' | 'callout'
@@ -23,6 +25,15 @@ type ImageBlock = {
 }
 
 type Block = TextBlock | ImageBlock
+
+type Attachment = {
+  id: string
+  file_url: string
+  file_name: string
+  label: string | null
+  file_type: 'pdf' | 'image' | 'other'
+  sort_order: number
+}
 
 const SANITIZE_OPTS: sanitizeHtml.IOptions = {
   allowedTags: ['strong', 'em', 'code', 'del', 'u', 'br', 'p', 'ul', 'ol', 'li', 'a'],
@@ -46,13 +57,22 @@ function getCaption(block: ImageBlock, lang: string): string {
   return (block.caption as Record<string, string>)[lang] ?? block.caption.en ?? ''
 }
 
+function AttachmentIcon({ type }: { type: Attachment['file_type'] }) {
+  if (type === 'pdf')   return <FileText size={16} style={{ color: 'var(--brand-crimson)', flexShrink: 0 }} />
+  if (type === 'image') return <Image    size={16} style={{ color: 'var(--brand-teal)',    flexShrink: 0 }} />
+  return                       <File     size={16} style={{ color: 'var(--text-secondary)', flexShrink: 0 }} />
+}
+
 export default function GuideBody({
   blocks,
   lang,
+  attachments = [],
 }: {
   blocks: unknown[] | null
   lang: string
+  attachments?: Attachment[]
 }) {
+  const { t } = useLanguage()
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
   const [lightboxCaption, setLightboxCaption] = useState<string>('')
 
@@ -66,11 +86,8 @@ export default function GuideBody({
     setLightboxCaption('')
   }
 
-  if (!blocks || blocks.length === 0) return null
+  const typedBlocks = (blocks ?? []) as Block[]
 
-  const typedBlocks = blocks as Block[]
-
-  // Collect runs of consecutive image blocks to render as thumbnail strips
   const rendered: React.ReactNode[] = []
   let i = 0
 
@@ -78,7 +95,6 @@ export default function GuideBody({
     const block = typedBlocks[i]
 
     if (block.type === 'image') {
-      // Collect the full run of consecutive image blocks
       const run: ImageBlock[] = []
       while (i < typedBlocks.length && typedBlocks[i].type === 'image') {
         run.push(typedBlocks[i] as ImageBlock)
@@ -160,7 +176,6 @@ export default function GuideBody({
         </BentoCard>
       )
     } else {
-      // paragraph
       rendered.push(
         <div
           key={i}
@@ -178,6 +193,34 @@ export default function GuideBody({
     <>
       <div className="guide-body max-w-2xl space-y-6">
         {rendered}
+
+        {/* Downloads section */}
+        {attachments.length > 0 && (
+          <div className="pt-4 space-y-3">
+            <h2 className="font-display text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>
+              {t('guides.downloads')}
+            </h2>
+            <div className="space-y-2">
+              {attachments.map(att => (
+                <a
+                  key={att.id}
+                  href={att.file_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  download
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl border transition-all hover:bg-black/5"
+                  style={{ borderColor: 'var(--border-default)', textDecoration: 'none' }}
+                >
+                  <AttachmentIcon type={att.file_type} />
+                  <span className="flex-1 text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
+                    {att.label ?? att.file_name}
+                  </span>
+                  <Download size={14} style={{ color: 'var(--text-secondary)', flexShrink: 0 }} />
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Lightbox */}
