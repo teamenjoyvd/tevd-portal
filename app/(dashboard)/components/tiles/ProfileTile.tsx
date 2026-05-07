@@ -13,6 +13,8 @@ type Upline = { upline_name: string | null; upline_abo_number: string | null } |
 type Profile = {
   role: string
   first_name: string
+  last_name: string | null
+  display_names: Record<string, string> | null
   abo_number: string | null
   upline: Upline
   verRequest: VerifRequest
@@ -45,7 +47,7 @@ export default function ProfileTile({
     staleTime: 5 * 60 * 1000,
   })
 
-  const { t } = useLanguage()
+  const { lang, t } = useLanguage()
 
   const verRequest = profile?.verRequest ?? null
   const uplineData = profile?.upline ?? null
@@ -58,9 +60,18 @@ export default function ProfileTile({
   const roleStyle = ROLE_STYLES[role] ?? ROLE_STYLES.guest
   const isAdmin = role === 'admin'
 
-  const firstName = user?.firstName
-    ?? profile?.first_name
-    ?? null
+  // Localised display name derivation.
+  // EN path: Clerk firstName preferred (freshest), then DB last name fallbacks.
+  // BG path: display_names.bg_first / bg_last preferred, then EN fallbacks.
+  // Guard empty strings from DB with || null (not ??) — DB defaults to '' not null.
+  const enFirst = user?.firstName || profile?.first_name || null
+  const enLast  = user?.lastName  || profile?.last_name  || null
+  const bgFirst = (profile?.display_names?.['bg_first'] || null) as string | null
+  const bgLast  = (profile?.display_names?.['bg_last']  || null) as string | null
+
+  const displayName: string | null = lang === 'bg'
+    ? (bgFirst ?? bgLast ?? enFirst ?? enLast)
+    : (enFirst ?? enLast ?? bgFirst ?? bgLast)
 
   // Loading state
   if (!isLoaded) {
@@ -106,7 +117,7 @@ export default function ProfileTile({
         </div>
         <div>
           <h2 className="font-display text-2xl font-semibold mt-3" style={{ color: 'var(--brand-parchment)' }}>
-            Hey, {firstName ?? t('home.profile.there')}.
+            Hey, {displayName ?? t('home.profile.there')}.
           </h2>
           <span className="inline-block mt-2 text-xs font-semibold px-2.5 py-1 rounded-full"
             style={{ backgroundColor: 'rgba(250,248,243,0.15)', color: 'var(--brand-parchment)' }}>
@@ -137,7 +148,7 @@ export default function ProfileTile({
       </div>
       <div>
         <h2 className="font-display text-2xl font-semibold mt-3" style={{ color: 'var(--brand-parchment)' }}>
-          Hey, {firstName ?? t('home.profile.there')}.
+          Hey, {displayName ?? t('home.profile.there')}.
         </h2>
         <div className="flex items-center gap-2 mt-2 flex-wrap">
           <span className="text-xs font-semibold px-2.5 py-1 rounded-full"
