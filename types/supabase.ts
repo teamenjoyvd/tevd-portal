@@ -357,6 +357,47 @@ export type Database = {
           },
         ]
       }
+      guide_attachments: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_type: string
+          file_url: string
+          guide_id: string
+          id: string
+          label: string | null
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_type: string
+          file_url: string
+          guide_id: string
+          id?: string
+          label?: string | null
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_type?: string
+          file_url?: string
+          guide_id?: string
+          id?: string
+          label?: string | null
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guide_attachments_guide_id_fkey"
+            columns: ["guide_id"]
+            isOneToOne: false
+            referencedRelation: "guides"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guides: {
         Row: {
           access_roles: string[]
@@ -472,6 +513,47 @@ export type Database = {
           url?: string
         }
         Relationships: []
+      }
+      los_imports: {
+        Row: {
+          file_count: number
+          id: string
+          imported_at: string
+          imported_by: string | null
+          removed_count: number
+          row_count: number
+          snapshot: Json
+          status: string
+        }
+        Insert: {
+          file_count?: number
+          id?: string
+          imported_at?: string
+          imported_by?: string | null
+          removed_count?: number
+          row_count?: number
+          snapshot: Json
+          status: string
+        }
+        Update: {
+          file_count?: number
+          id?: string
+          imported_at?: string
+          imported_by?: string | null
+          removed_count?: number
+          row_count?: number
+          snapshot?: Json
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "los_imports_imported_by_fkey"
+            columns: ["imported_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       los_members: {
         Row: {
@@ -1231,6 +1313,24 @@ export type Database = {
         }
         Relationships: []
       }
+      waiting_list: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -1281,7 +1381,9 @@ export type Database = {
           role: string
         }[]
       }
-      import_los_members: { Args: { rows: Json }; Returns: Json }
+      import_los_members:
+        | { Args: { p_imported_by?: string; p_rows: Json }; Returns: Json }
+        | { Args: { rows: Json }; Returns: Json }
       increment_share_link_click: {
         Args: { link_id: string }
         Returns: undefined
@@ -1322,7 +1424,12 @@ export type Database = {
         }
       }
       pin_social_post: { Args: { p_id: string }; Returns: undefined }
+      purge_absent_los_members: {
+        Args: { p_imported_by?: string; p_keep_abos: string[] }
+        Returns: Json
+      }
       rebuild_tree_paths: { Args: never; Returns: undefined }
+      rollback_los_import: { Args: { p_import_id: string }; Returns: Json }
       run_los_digest: { Args: never; Returns: undefined }
       text2ltree: { Args: { "": string }; Returns: unknown }
       upsert_tree_node: {
