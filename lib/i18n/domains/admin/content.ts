@@ -101,6 +101,17 @@ export const adminContent = {
   'admin.content.guides.placeholder.pasteUrl': { en: 'or paste URL…', bg: 'или постави URL…' },
   'admin.content.guides.markdownHint': { en: '**bold**, _italic_ supported', bg: '**удебелен**, _курсив_ поддържани' },
 
+  // -- Content: Guides — Attachments --
+  'admin.content.guides.attachments.title':             { en: 'Attachments',          bg: 'Прикачени файлове'       },
+  'admin.content.guides.attachments.upload':            { en: '+ Upload file',        bg: '+ Качи файл'             },
+  'admin.content.guides.attachments.uploading':         { en: 'Uploading…',           bg: 'Качване…'               },
+  'admin.content.guides.attachments.empty':             { en: 'No attachments yet.',  bg: 'Все още няма файлове.'  },
+  'admin.content.guides.attachments.labelPlaceholder':  { en: 'Label…',              bg: 'Етикет…'                },
+  'admin.content.guides.attachments.deleteConfirmTitle':{ en: 'Delete attachment',    bg: 'Изтриване на файл'      },
+  'admin.content.guides.attachments.deleteConfirmBody': { en: 'Delete this file? This cannot be undone.', bg: 'Изтриване на файла? Действието е необратимо.' },
+  'admin.content.guides.attachments.deleteCancel':      { en: 'Cancel',              bg: 'Откажи'                 },
+  'admin.content.guides.attachments.deleteConfirm':     { en: 'Delete',              bg: 'Изтрий'                 },
+
   // -- Content: Links --
   'admin.content.links.lbl.labelEn': { en: 'Label (EN)', bg: 'Етикет (EN)' },
   'admin.content.links.lbl.labelBg': { en: 'Label (BG)', bg: 'Етикет (BG)' },

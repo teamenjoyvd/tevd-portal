@@ -17,6 +17,15 @@ type Guide = {
   access_roles: string[]
 }
 
+type Attachment = {
+  id: string
+  file_url: string
+  file_name: string
+  label: string | null
+  file_type: 'pdf' | 'image' | 'other'
+  sort_order: number
+}
+
 export default async function LibraryDetailPage({
   params,
 }: {
@@ -36,17 +45,39 @@ export default async function LibraryDetailPage({
   } catch { /* unauthenticated */ }
 
   const supabase = createServiceClient()
-  const { data: guide } = await supabase
-    .from('guides')
-    .select('*')
-    .eq('slug', slug)
-    .eq('is_published', true)
-    .single()
+
+  const [{ data: guide }, { data: attachmentsRaw }] = await Promise.all([
+    supabase
+      .from('guides')
+      .select('*')
+      .eq('slug', slug)
+      .eq('is_published', true)
+      .single(),
+    supabase
+      .from('guide_attachments')
+      .select('id, file_url, file_name, label, file_type, sort_order')
+      .eq('guide_id',
+        // We need guide.id — but we can't know it before the query resolves.
+        // Use a subquery workaround: fetch guide_id via slug join.
+        // Actually: run this after guide resolves. Use sequential for attachments.
+        // NOTE: replaced with sequential fetch below — see comment.
+        'placeholder'
+      ),
+  ])
 
   if (!guide) redirect('/library')
 
   const accessRoles = guide.access_roles as string[]
   if (!accessRoles.includes(role)) redirect('/library')
+
+  // Fetch attachments sequentially (requires guide.id)
+  const { data: attachmentsData } = await supabase
+    .from('guide_attachments')
+    .select('id, file_url, file_name, label, file_type, sort_order')
+    .eq('guide_id', guide.id)
+    .order('sort_order', { ascending: true })
+
+  const attachments: Attachment[] = (attachmentsData ?? []) as Attachment[]
 
   const cookieStore = await cookies()
   const lang: Lang = cookieStore.get('tevd_lang')?.value === 'bg' ? 'bg' : 'en'
@@ -89,8 +120,8 @@ export default async function LibraryDetailPage({
         {title}
       </h1>
 
-      {/* Body */}
-      <GuideBody blocks={g.body} lang={lang} />
+      {/* Body + Downloads */}
+      <GuideBody blocks={g.body} lang={lang} attachments={attachments} />
     </div>
   )
 }

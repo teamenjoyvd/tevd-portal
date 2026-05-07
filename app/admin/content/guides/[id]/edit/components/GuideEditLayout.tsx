@@ -7,12 +7,14 @@ import { AdminStatusBadge } from '@/app/admin/components/AdminStatusBadge'
 import { RoleSelector } from '@/app/admin/components/RoleSelector'
 import { CoverImageUploader } from '@/app/admin/content/components/CoverImageUploader'
 import { BlockEditor } from '@/app/admin/content/components/BlockEditor'
+import { GuideAttachmentsPanel } from './GuideAttachmentsPanel'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { ALL_ROLES, slugify, type Guide } from '@/app/admin/content/components/guide-types'
 
 type FormState = Omit<Guide, 'id' | 'created_at' | 'updated_at'>
 
 function LeftPanel({
+  guide,
   form,
   setForm,
   isPending,
@@ -22,6 +24,7 @@ function LeftPanel({
   onSave,
   onCancel,
 }: {
+  guide: Guide
   form: FormState
   setForm: React.Dispatch<React.SetStateAction<FormState>>
   isPending: boolean
@@ -149,6 +152,12 @@ function LeftPanel({
       {/* Divider */}
       <div className="border-t" style={{ borderColor: 'var(--border-default)' }} />
 
+      {/* Attachments */}
+      <GuideAttachmentsPanel guideId={guide.id} />
+
+      {/* Divider */}
+      <div className="border-t" style={{ borderColor: 'var(--border-default)' }} />
+
       {/* Publish toggle */}
       <div className="flex items-center gap-3">
         <AdminStatusBadge
@@ -229,6 +238,7 @@ export function GuideEditLayout({ guide }: { guide: Guide }) {
   }
 
   const sharedPanelProps = {
+    guide,
     form,
     setForm,
     isPending: updateGuide.isPending,

@@ -9,4 +9,5 @@ export const guides = {
   'guides.filter.news':  { en: 'News',  bg: 'Новини'       },
   'guides.filter.guides':{ en: 'Guides',bg: 'Ръководства'  },
   'guides.filter.links': { en: 'Links', bg: 'Връзки'       },
+  'guides.downloads':    { en: 'Downloads', bg: 'Изтегляния' },
 } as const
