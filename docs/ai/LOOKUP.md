@@ -1,5 +1,5 @@
 # LOOKUP.md — teamenjoyVD Portal Reference Tables
-> Last updated: 2026-05-07
+> Last updated: 2026-05-08
 > **Read on demand in GATHER only. Never read at SSU or at GATHER start.**
 > Pull only the sections the ticket needs. See section map in REF.md header.
 
@@ -41,6 +41,8 @@
     /admin/event-role-requests/[id]/route.ts
     /admin/guides/route.ts
     /admin/guides/[id]/route.ts
+    /admin/guides/[id]/attachments/route.ts              # GET, POST (upload), PATCH (bulk sort)
+    /admin/guides/[id]/attachments/[attachmentId]/route.ts  # PATCH (label), DELETE
     /admin/guides/upload/route.ts
     /admin/home-settings/route.ts
     /admin/links/route.ts
@@ -160,6 +162,13 @@
 `id, slug, title (jsonb {en,bg}), emoji, cover_image_url, body (jsonb Block[]), access_roles, is_published, sort_order, created_at, updated_at`
 - Block shape: `{ type: 'heading'|'paragraph'|'callout', content: {en,bg}, emoji? }`
 - Cover images: Supabase Storage bucket `guide-covers` (public).
+
+**`guide_attachments`**
+`id, guide_id, file_url, file_name, label, file_type, sort_order, created_at`
+- `file_type`: `'pdf' | 'image' | 'other'` (CHECK constraint).
+- Storage bucket: `guide-attachments` (public). Path: `{guide_id}/{uuid}.{ext}`.
+- RLS: SELECT authenticated (EXISTS guide check); INSERT/UPDATE/DELETE admin-only via `is_admin()`.
+- Index on `(guide_id, sort_order)`.
 
 **`payable_items`**
 `id, title, description, amount, currency, item_type, linked_trip_id, is_active, created_by, created_at, properties`
@@ -298,6 +307,8 @@
 | `/api/admin/event-role-requests/[id]` | PATCH | Update role request status |
 | `/api/admin/guides` | GET, POST | List + create guides |
 | `/api/admin/guides/[id]` | GET, PATCH, DELETE | Guide CRUD |
+| `/api/admin/guides/[id]/attachments` | GET, POST, PATCH | GET: ordered list; POST: upload (max 20MB, multipart); PATCH: bulk sort_order update |
+| `/api/admin/guides/[id]/attachments/[attachmentId]` | PATCH, DELETE | PATCH: label update; DELETE: DB row + storage best-effort |
 | `/api/admin/guides/upload` | POST | Upload cover image to `guide-covers` bucket |
 | `/api/admin/home-settings` | GET, PATCH | home_settings table |
 | `/api/admin/links` | GET, POST | List + create links |

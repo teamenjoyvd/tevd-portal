@@ -125,6 +125,8 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
     /admin/event-role-requests/[id]/route.ts
     /admin/guides/route.ts
     /admin/guides/[id]/route.ts
+    /admin/guides/[id]/attachments/route.ts              # GET, POST (upload), PATCH (bulk sort)
+    /admin/guides/[id]/attachments/[attachmentId]/route.ts  # PATCH (label), DELETE
     /admin/guides/upload/route.ts
     /admin/home-settings/route.ts  # GET, PATCH — home_settings table
     /admin/links/route.ts
@@ -275,6 +277,12 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
 - Block: `{ type: 'heading'|'paragraph'|'callout', content: {en,bg}, emoji? }`
 - Cover images: bucket `guide-covers` (public).
 
+**`guide_attachments`** — `id, guide_id, file_url, file_name, label, file_type, sort_order, created_at`
+- `file_type`: `'pdf' | 'image' | 'other'` (CHECK constraint).
+- Storage bucket: `guide-attachments` (public). Path: `{guide_id}/{uuid}.{ext}`.
+- RLS: SELECT authenticated (EXISTS guide check); INSERT/UPDATE/DELETE admin-only via `is_admin()`.
+- Index on `(guide_id, sort_order)`.
+
 **`payable_items`** — `id, title, description, amount, currency, item_type, linked_trip_id, is_active, created_by, created_at, properties`
 - `item_type`: `'merchandise' | 'ticket' | 'food' | 'book' | 'other'`
 
@@ -350,6 +358,8 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
 | `/api/admin/event-role-requests/[id]` | PATCH | |
 | `/api/admin/guides` | GET, POST | |
 | `/api/admin/guides/[id]` | GET, PATCH, DELETE | |
+| `/api/admin/guides/[id]/attachments` | GET, POST, PATCH | GET: ordered list; POST: upload (max 20MB, multipart); PATCH: bulk sort_order update |
+| `/api/admin/guides/[id]/attachments/[attachmentId]` | PATCH, DELETE | PATCH: label update; DELETE: DB row + storage best-effort |
 | `/api/admin/guides/upload` | POST | Uploads to `guide-covers` bucket |
 | `/api/admin/home-settings` | GET, PATCH | home_settings table |
 | `/api/admin/links` | GET, POST | |
