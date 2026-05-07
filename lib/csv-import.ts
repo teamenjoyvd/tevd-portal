@@ -6,6 +6,7 @@
 export type NewMember   = { abo_number: string; name: string; abo_level: string }
 export type LevelChange = { abo_number: string; name: string; prev_level: string; new_level: string }
 export type BonusChange = { abo_number: string; name: string; prev_bonus: number; new_bonus: number }
+export type RemovedMember = { abo_number: string; name: string }
 
 export type UnrecognizedRow = {
   abo_number: string
@@ -20,13 +21,30 @@ export type ManualMemberNoAbo = {
   upline_abo_number: string | null
 }
 
+export type JunctionNode = {
+  abo_number: string
+  name: string
+  files: string[]
+  has_conflict: boolean
+  conflict_fields: string[]
+}
+
+export type AssemblyResult = {
+  rows: Record<string, string>[]
+  junctions: JunctionNode[]
+  conflicts: JunctionNode[]
+  disconnected_files: string[]
+  total_row_count: number
+}
+
 export type ImportResult = {
   inserted: number
+  import_id: string
   errors: { abo_number: string; error: string }[]
   diff: {
-    new_members:   NewMember[]
-    level_changes: LevelChange[]
-    bonus_changes: BonusChange[]
+    new_members:    NewMember[]
+    level_changes:  LevelChange[]
+    bonus_changes:  BonusChange[]
   }
   unrecognized: UnrecognizedRow[]
   manual_members_no_abo: ManualMemberNoAbo[]
@@ -90,6 +108,10 @@ export const MONTH_MAP: Record<string, string> = {
 // ── Parsing functions ─────────────────────────────────────────────────────────
 
 export function sanitizeNumeric(val: string, isBG: boolean): string {
+  // Strip Excel text-prefix apostrophe(s) — exported CSVs may leak the leading
+  // single-quote Excel uses to force a cell to be stored as text (e.g. '850.18).
+  // Must run first, before any locale-specific transforms.
+  val = val.replace(/^'+/, '')
   if (isBG) {
     return val.replace(/[\u00A0\s]/g, '').replace(/,/g, '.')
   }
@@ -149,7 +171,10 @@ export function parseCSV(text: string): Record<string, string>[] {
       const row: Record<string, string> = {}
       headers.forEach((h, i) => {
         const dbKey = activeMap[h] ?? h.toLowerCase().replace(/\s+/g, '_')
-        let val = values[i] ?? ''
+        // Strip Excel text-prefix apostrophe from every field before any other
+        // transform — prevents corrupted abo_number lookups, date parse failures,
+        // and numeric cast errors when Excel leaks its internal text-prefix char.
+        let val = (values[i] ?? '').replace(/^'+/, '')
         if (dbKey === 'bonus_percent') val = val.replace('%', '').trim()
         if (dbKey === 'entry_date' || dbKey === 'renewal_date') val = parseDate(val)
         if (dbKey === 'phone') val = val.replace(/^Primary:\s*/i, '').trim()
@@ -158,4 +183,111 @@ export function parseCSV(text: string): Record<string, string>[] {
       })
       return row
     })
+}
+
+// ── Multi-file assembly ───────────────────────────────────────────────────────
+
+// String fields that count as a conflict when they differ between files
+const CONFLICT_FIELDS = ['name', 'sponsor_abo_number']
+
+/**
+ * Assembles multiple parsed CSV file results into a single deduplicated row set.
+ * Detects junction nodes, field conflicts, and disconnected subtrees.
+ *
+ * - Dedup by abo_number (first-seen wins)
+ * - Junction: same ABO appears in >1 file (expected for multi-file imports)
+ * - Conflict: same ABO with differing name or sponsor_abo_number — warning only,
+ *   never blocks import. First-seen file wins.
+ * - Disconnected file: a file that shares zero abo_number values with all other
+ *   files — it is a genuinely isolated subtree with no join point.
+ */
+export function assembleFiles(
+  fileResults: { filename: string; rows: Record<string, string>[] }[]
+): AssemblyResult {
+  const seen = new Map<string, { row: Record<string, string>; filename: string }>()
+  const filesByAbo = new Map<string, string[]>()
+  const firstRowByAbo = new Map<string, Record<string, string>>()
+
+  for (const { filename, rows } of fileResults) {
+    for (const row of rows) {
+      const abo = row.abo_number
+      if (!abo) continue
+
+      const existing = filesByAbo.get(abo) ?? []
+      if (!existing.includes(filename)) existing.push(filename)
+      filesByAbo.set(abo, existing)
+
+      if (!seen.has(abo)) {
+        seen.set(abo, { row, filename })
+        firstRowByAbo.set(abo, row)
+      }
+    }
+  }
+
+  const rows = Array.from(seen.values()).map(v => v.row)
+
+  // ── Junctions and conflicts ───────────────────────────────────────────────
+  const junctions: JunctionNode[] = []
+  const conflicts: JunctionNode[] = []
+
+  for (const [abo, files] of filesByAbo.entries()) {
+    if (files.length <= 1) continue
+
+    const allRowsForAbo: Record<string, string>[] = []
+    for (const { filename, rows: fileRows } of fileResults) {
+      const match = fileRows.find(r => r.abo_number === abo)
+      if (match) allRowsForAbo.push({ ...match, _filename: filename })
+    }
+
+    const conflictFields: string[] = []
+    const referenceRow = allRowsForAbo[0]
+    for (const field of CONFLICT_FIELDS) {
+      const refVal = referenceRow[field] ?? ''
+      const hasConflict = allRowsForAbo.slice(1).some(r => (r[field] ?? '') !== refVal)
+      if (hasConflict) conflictFields.push(field)
+    }
+
+    const node: JunctionNode = {
+      abo_number: abo,
+      name: firstRowByAbo.get(abo)?.name ?? '',
+      files,
+      has_conflict: conflictFields.length > 0,
+      conflict_fields: conflictFields,
+    }
+
+    junctions.push(node)
+    if (node.has_conflict) conflicts.push(node)
+  }
+
+  // ── Disconnected file detection ───────────────────────────────────────────
+  // A file is disconnected only if it shares zero abo_number values with ALL
+  // other files combined. Having even one shared ABO means it connects.
+  const disconnected_files: string[] = []
+
+  if (fileResults.length > 1) {
+    for (const { filename, rows: fileRows } of fileResults) {
+      const fileAbos = new Set(fileRows.map(r => r.abo_number).filter(Boolean))
+
+      // Collect all ABOs from every OTHER file
+      const otherAbos = new Set<string>()
+      for (const other of fileResults) {
+        if (other.filename === filename) continue
+        for (const r of other.rows) {
+          if (r.abo_number) otherAbos.add(r.abo_number)
+        }
+      }
+
+      // Disconnected = zero overlap
+      const hasOverlap = [...fileAbos].some(abo => otherAbos.has(abo))
+      if (!hasOverlap) disconnected_files.push(filename)
+    }
+  }
+
+  return {
+    rows,
+    junctions,
+    conflicts,
+    disconnected_files,
+    total_row_count: rows.length,
+  }
 }
