@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { FileText, Image, File, GripVertical, Trash2 } from 'lucide-react'
 import {
@@ -50,8 +50,11 @@ export function GuideAttachmentsPanel({ guideId }: { guideId: string }) {
     queryKey,
     queryFn: () =>
       fetch(`/api/admin/guides/${guideId}/attachments`).then(r => r.json()),
-    onSuccess: (data: Attachment[]) => setLocal(data),
   })
+
+  useEffect(() => {
+    if (attachments.length > 0) setLocal(attachments)
+  }, [attachments])
 
   const reorderMut = useMutation({
     mutationFn: (items: { id: string; sort_order: number }[]) =>
