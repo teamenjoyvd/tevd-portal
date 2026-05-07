@@ -10,6 +10,10 @@
 -- Fix: SECURITY DEFINER runs as function owner (postgres),
 -- bypassing RLS for the trusted admin-only call path.
 -- SET search_path = public prevents search path injection.
+--
+-- Because SECURITY DEFINER bypasses RLS, the function body
+-- implements its own authorization check: callers must be
+-- either service_role (Path C) or an admin user (Path B).
 -- ============================================================
 
 CREATE OR REPLACE FUNCTION public.approve_member_verification(
@@ -25,6 +29,13 @@ DECLARE
   v_req         public.abo_verification_requests%ROWTYPE;
   v_los_sponsor text;
 BEGIN
+  -- Authorization: allow service_role (Path C) or admin users (Path B).
+  -- auth.role() returns the caller's role even inside SECURITY DEFINER;
+  -- only RLS is bypassed, not the JWT context.
+  IF auth.role() <> 'service_role' AND NOT public.is_admin() THEN
+    RAISE EXCEPTION 'Unauthorized';
+  END IF;
+
   -- Lock the request row for the duration of the transaction
   SELECT * INTO v_req
   FROM public.abo_verification_requests
@@ -88,7 +99,9 @@ BEGIN
       admin_note  = p_admin_note
   WHERE id = p_request_id;
 
-  -- Place in tree
+  -- Place in tree.
+  -- Manual path: p_abo_number = NULL → placeholder label (p_<uuid>).
+  -- Standard path: claimed_abo used as the ltree label.
   PERFORM public.upsert_tree_node(
     p_profile_id         => v_req.profile_id,
     p_abo_number         => v_req.claimed_abo,
