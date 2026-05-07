@@ -275,3 +275,4 @@ BUILD verifies both at startup. If either section is absent or any checklist ite
 | `BottomNav.tsx` | Dead stub. Do not import. |
 | Profile prerender | Guard ALL `validProfile!` accesses with `if (isLoading \|\| !validProfile) return <ProfileSkeleton />`. |
 | `TeamAttendee` type | Exported from `app/(dashboard)/trips/[id]/page.tsx`. Do not redeclare. |
+| Trusted RPC + service role | Any RPC that performs cross-user writes (UPDATE/INSERT on rows owned by another user) MUST be `SECURITY DEFINER SET search_path = public`. Pattern A helpers (`is_admin()`, `get_my_role()`, `get_my_clerk_id()`, `get_my_profile_id()`) return false/null under service-role with no JWT — RLS policies that depend on them will silently pass 0 rows. `SECURITY INVOKER` is only safe for read-only helpers or trigger functions. |
