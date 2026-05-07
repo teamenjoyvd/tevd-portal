@@ -2,7 +2,7 @@ import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { NextRequest } from 'next/server'
 import { requireAdmin } from '@/lib/supabase/guards'
-import { type NewMember, type LevelChange, type BonusChange, type RemovedMember } from '@/lib/csv-import'
+import { type NewMember, type LevelChange, type BonusChange } from '@/lib/csv-import'
 
 // ── GET — current LOS state ───────────────────────────────────────────────────
 
