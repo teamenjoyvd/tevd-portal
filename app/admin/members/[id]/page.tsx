@@ -3,6 +3,18 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams, useRouter } from 'next/navigation'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
+import { useLanguage } from '@/lib/hooks/useLanguage'
 
 type MemberDetail = {
   profile: {
@@ -12,6 +24,7 @@ type MemberDetail = {
     id_number: string | null; passport_number: string | null
     valid_through: string | null; created_at: string
     tree_nodes: { path: string; depth: number }[] | null
+    primary_profile_id: string | null
   }
   los: Record<string, unknown> | null
   registrations: {
@@ -27,6 +40,13 @@ type MemberDetail = {
     id: string; role_label: string; status: string; created_at: string
     event: { title: string; start_time: string }
   }[]
+}
+
+type PartnerProfile = {
+  profile: {
+    id: string; first_name: string; last_name: string
+    primary_profile_id: string | null
+  }
 }
 
 function formatDate(iso: string) {
@@ -62,10 +82,112 @@ const LOS_KEYS = [
   ['annual_ppv', 'Annual PPV'], ['sponsoring', 'Sponsoring'],
 ]
 
+// ── Partnership section ───────────────────────────────────────────
+// Hoisted to module scope — avoids React remount anti-pattern.
+function PartnershipSection({
+  profile,
+  onDissolve,
+  onPromote,
+  isPending,
+  t,
+}: {
+  profile: MemberDetail['profile']
+  onDissolve: (secondaryId: string) => void
+  onPromote: (primaryId: string, secondaryId: string) => void
+  isPending: boolean
+  t: ReturnType<typeof useLanguage>['t']
+}) {
+  const isSecondary = Boolean(profile.primary_profile_id)
+
+  // If secondary: fetch the primary profile to show their name
+  // If primary: fetch the secondary profile (the one that has primary_profile_id = this profile's id)
+  const partnerId = isSecondary ? profile.primary_profile_id! : null
+
+  const { data: primaryData, isLoading: loadingPrimary } = useQuery<PartnerProfile>({
+    queryKey: ['admin-member', partnerId],
+    queryFn: () => fetch(`/api/admin/members/${partnerId}`).then(r => r.json()),
+    enabled: isSecondary && !!partnerId,
+  })
+
+  // For a primary, we need to find their secondary. Query all members is too expensive;
+  // instead we use a separate endpoint that returns secondary profile for a given primary.
+  // The existing GET /api/admin/members?secondary_of=[id] isn't built — so we skip
+  // partner name display for primaries and just show the section with actions.
+  // The secondary's [id] page will show the primary link anyway.
+  const partnerName = isSecondary
+    ? primaryData
+      ? `${primaryData.profile.first_name} ${primaryData.profile.last_name}`.trim()
+      : loadingPrimary ? t('admin.members.partnership.loadingPartner') : '—'
+    : null
+
+  // Secondary view: show primary name + dissolve action (dissolve targets this profile's id)
+  if (isSecondary) {
+    return (
+      <div className="mt-4 pt-4 border-t border-black/5">
+        <p className="text-xs font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
+          {t('admin.members.partnership.sectionTitle')}
+        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+              {t('admin.members.partnership.primary')}
+            </p>
+            <p className="text-sm font-medium mt-0.5" style={{ color: 'var(--text-primary)' }}>
+              {partnerName}
+            </p>
+          </div>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <button
+                disabled={isPending}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-40 transition-opacity"
+                style={{ backgroundColor: '#bc474920', color: 'var(--brand-crimson)' }}
+              >
+                {t('admin.members.partnership.btn.dissolve')}
+              </button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>{t('admin.members.partnership.dissolveConfirmTitle')}</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {t('admin.members.partnership.dissolveConfirmDesc').replace(
+                    '{{name}}',
+                    `${profile.first_name} ${profile.last_name}`.trim()
+                  )}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>{t('admin.members.partnership.btn.cancel')}</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => onDissolve(profile.id)}
+                  style={{ backgroundColor: 'var(--brand-crimson)' }}
+                >
+                  {t('admin.members.partnership.btn.confirmAction')}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      </div>
+    )
+  }
+
+  // Primary view: show promote action.
+  // promote_to_primary route is called on the PRIMARY's id with secondary_id in body.
+  // We are on the secondary's page but the secondary is the one being promoted,
+  // so the route call is: PATCH /api/admin/members/[primaryId] { action, secondary_id: currentId }
+  // The primary's id is profile.primary_profile_id on the secondary.
+  // Since we're currently on a PRIMARY profile (isSecondary = false),
+  // we do NOT have a secondary_id here. The promote button only makes sense on the SECONDARY's page.
+  // Return null for primary — no Partnership section rendered for primaries.
+  return null
+}
+
 export default function MemberDetailPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
   const qc = useQueryClient()
+  const { t } = useLanguage()
   const [editRole, setEditRole] = useState(false)
   const [selectedRole, setSelectedRole] = useState<string>('')
 
@@ -88,6 +210,31 @@ export default function MemberDetailPage() {
     },
   })
 
+  // dissolve_partnership: PATCH on secondary's id (= current profile id)
+  const handleDissolve = (secondaryId: string) => {
+    updateMutation.mutate({ action: 'dissolve_partnership' }, {
+      // id is already the secondary's id (this profile)
+      // The mutationFn patches /api/admin/members/[id] — correct
+    })
+    void secondaryId // id already used via closure
+  }
+
+  // promote_to_primary: PATCH on PRIMARY's id, body includes secondary_id = current profile
+  const handlePromote = (primaryId: string, secondaryId: string) => {
+    fetch(`/api/admin/members/${primaryId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'promote_to_primary', secondary_id: secondaryId }),
+    })
+      .then(r => r.json())
+      .then(() => {
+        qc.invalidateQueries({ queryKey: ['admin-member', id] })
+        qc.invalidateQueries({ queryKey: ['admin-member', primaryId] })
+        qc.invalidateQueries({ queryKey: ['admin-members'] })
+      })
+      .catch(() => {})
+  }
+
   if (isLoading) {
     return (
       <div className="p-6 space-y-4">
@@ -101,6 +248,8 @@ export default function MemberDetailPage() {
 
   if (!data?.profile) return null
   const { profile, los, registrations, payments, roleRequests } = data
+
+  const isSecondary = Boolean(profile.primary_profile_id)
 
   const expiry = getExpiryState(profile.valid_through)
   const docNumber = profile.document_active_type === 'passport'
@@ -136,9 +285,19 @@ export default function MemberDetailPage() {
             {profile.first_name[0]}{profile.last_name[0]}
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="font-display text-2xl font-semibold" style={{ color: 'var(--text-primary)' }}>
-              {profile.first_name} {profile.last_name}
-            </h1>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="font-display text-2xl font-semibold" style={{ color: 'var(--text-primary)' }}>
+                {profile.first_name} {profile.last_name}
+              </h1>
+              {isSecondary && (
+                <span
+                  className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: 'rgba(0,0,0,0.06)', color: 'var(--text-secondary)' }}
+                >
+                  {t('admin.members.table.coOwnerBadge')}
+                </span>
+              )}
+            </div>
             <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
               ABO: <span className="font-medium" style={{ color: 'var(--text-primary)' }}>
                 {profile.abo_number ?? '—'}
@@ -207,6 +366,17 @@ export default function MemberDetailPage() {
             </span>
           )}
         </div>
+
+        {/* Partnership section — only for secondary profiles */}
+        {isSecondary && (
+          <PartnershipSection
+            profile={profile}
+            onDissolve={handleDissolve}
+            onPromote={handlePromote}
+            isPending={updateMutation.isPending}
+            t={t}
+          />
+        )}
       </div>
 
       {/* Document */}

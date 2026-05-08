@@ -93,6 +93,7 @@ export function MembersTable({
         const lvl = m.abo_level ?? '?'
         const lc = LEVEL_BG[lvl] ?? LEVEL_BG['3']
         const profileRc = m.profile ? getRoleColors(m.profile.role) : null
+        const isSecondary = Boolean(m.profile?.primary_profile_id)
         return (
           <div className="flex items-center gap-2 min-w-0">
             <span className="w-6 h-6 flex items-center justify-center rounded-full text-[10px] font-bold flex-shrink-0"
@@ -105,6 +106,14 @@ export function MembersTable({
             {m.profile && profileRc && (
               <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0"
                 style={{ backgroundColor: profileRc.bg, color: profileRc.font }}>{m.profile.role}</span>
+            )}
+            {isSecondary && (
+              <span
+                className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0"
+                style={{ backgroundColor: 'rgba(0,0,0,0.06)', color: 'var(--text-secondary)' }}
+              >
+                {t('admin.members.table.coOwnerBadge')}
+              </span>
             )}
           </div>
         )
