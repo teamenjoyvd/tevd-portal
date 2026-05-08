@@ -29,16 +29,36 @@ export async function PATCH(
   if (!verReq) return Response.json({ error: 'Request not found' }, { status: 404 })
 
   if (action === 'approve') {
-    // Single atomic RPC: UPDATE profiles + UPDATE abo_verification_requests
-    // + upsert_tree_node all in one transaction.
-    // If this fails, no partial state is written.
-    const { error: rpcErr } = await supabase
+    const { data: rpcResult, error: rpcErr } = await supabase
       .rpc('approve_member_verification', {
         p_request_id: id,
         p_admin_note: admin_note ?? null,
       })
 
-    if (rpcErr) return Response.json({ error: rpcErr.message }, { status: 500 })
+    // Idempotency: RPC raises SQLSTATE 23505 when already approved
+    if (rpcErr?.code === '23505') {
+      return Response.json({ error: 'Already approved' }, { status: 409 })
+    }
+
+    if (rpcErr) {
+      console.error('[verify] approve_member_verification RPC error', {
+        request_id: id,
+        code: rpcErr.code,
+        message: rpcErr.message,
+      })
+      return Response.json({ error: rpcErr.message }, { status: 500 })
+    }
+
+    // Assert the write persisted — RPC now returns the promoted profile row.
+    // If abo_number is null on a standard request, the UPDATE missed silently.
+    const result = rpcResult?.[0]
+    if (!result?.abo_number && verReq.request_type !== 'manual') {
+      console.error('[verify] approve_member_verification returned null abo_number despite success', {
+        request_id: id,
+        result,
+      })
+      return Response.json({ error: 'Approval write did not persist' }, { status: 500 })
+    }
 
     // Audit log: guest → member via verification approval
     await supabase.from('role_change_audit').insert({
