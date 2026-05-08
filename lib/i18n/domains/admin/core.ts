@@ -97,4 +97,34 @@ export const adminCore = {
   'admin.notifications.pagination.info': { en: 'Page {{page}} of {{total}} — {{count}} total', bg: 'Страница {{page}} от {{total}} — {{count}} общо' },
   'admin.notifications.pagination.prev': { en: '← Prev', bg: '← Предишна' },
   'admin.notifications.pagination.next': { en: 'Next →', bg: 'Следваща →' },
+
+  // -- Spouse link requests (approval hub) --
+  'admin.approval.spouse.tabLabel': { en: 'Co-ownership Requests', bg: 'Заявки за съвместно членство' },
+  'admin.approval.spouse.pendingTitle': { en: 'Pending — {{count}}', bg: 'Чакащи — {{count}}' },
+  'admin.approval.spouse.noPending': { en: 'No pending co-ownership requests.', bg: 'Няма чакащи заявки за съвместно членство.' },
+  'admin.approval.spouse.requester': { en: 'Requester', bg: 'Заявител' },
+  'admin.approval.spouse.claimedPrimary': { en: 'Claimed primary', bg: 'Заявен основен акаунт' },
+  'admin.approval.spouse.submitted': { en: 'Submitted', bg: 'Подадено' },
+  'admin.approval.spouse.btn.approve': { en: 'Approve', bg: 'Одобри' },
+  'admin.approval.spouse.btn.deny': { en: 'Deny', bg: 'Откажи' },
+  'admin.approval.spouse.btn.confirmDeny': { en: 'Confirm deny', bg: 'Потвърди отказ' },
+  'admin.approval.spouse.btn.cancel': { en: 'Cancel', bg: 'Отмени' },
+  'admin.approval.spouse.denyNotePlaceholder': { en: 'Reason for denial (required)', bg: 'Причина за отказ (задължително)' },
+
+  // -- Partnership section (member detail panel) --
+  'admin.members.partnership.sectionTitle': { en: 'Partnership', bg: 'Партньорство' },
+  'admin.members.partnership.primary': { en: 'Primary account', bg: 'Основен акаунт' },
+  'admin.members.partnership.secondary': { en: 'Co-owner account', bg: 'Съвместен акаунт' },
+  'admin.members.partnership.btn.dissolve': { en: 'Dissolve partnership', bg: 'Прекрати партньорство' },
+  'admin.members.partnership.btn.promote': { en: 'Promote to primary', bg: 'Повиши до основен' },
+  'admin.members.partnership.dissolveConfirmTitle': { en: 'Dissolve partnership?', bg: 'Прекратяване на партньорство?' },
+  'admin.members.partnership.dissolveConfirmDesc': { en: 'This will demote {{name}} to Guest and remove their ABO number.', bg: 'Това ще понижи {{name}} до Гост и ще премахне техния СБА номер.' },
+  'admin.members.partnership.promoteConfirmTitle': { en: 'Promote to primary?', bg: 'Повишаване до основен акаунт?' },
+  'admin.members.partnership.promoteConfirmDesc': { en: 'This will restructure the LOS tree. Do not perform during active sessions.', bg: 'Това ще преструктурира дървото на LOS. Не изпълнявайте по време на активни сесии.' },
+  'admin.members.partnership.btn.confirmAction': { en: 'Confirm', bg: 'Потвърди' },
+  'admin.members.partnership.btn.cancel': { en: 'Cancel', bg: 'Отмени' },
+  'admin.members.partnership.loadingPartner': { en: 'Loading partner…', bg: 'Зареждане на партньор…' },
+
+  // -- Co-owner badge (members table) --
+  'admin.members.table.coOwnerBadge': { en: 'Co-owner', bg: 'Съвм.' },
 } as const

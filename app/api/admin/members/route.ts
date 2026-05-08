@@ -34,7 +34,7 @@ export async function GET() {
   // Profiles linked by abo_number
   const { data: profiles } = await supabase
     .from('profiles')
-    .select('id, abo_number, first_name, last_name, role, created_at')
+    .select('id, abo_number, first_name, last_name, role, primary_profile_id, created_at')
     .not('abo_number', 'is', null)
 
   // Pending verification requests with profile info and request_type

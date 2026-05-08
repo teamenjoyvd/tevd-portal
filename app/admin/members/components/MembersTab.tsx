@@ -25,6 +25,7 @@ export type LOSMember = {
     first_name: string
     last_name: string
     role: string
+    primary_profile_id: string | null
   } | null
 }
 

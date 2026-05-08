@@ -3,6 +3,18 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams, useRouter } from 'next/navigation'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
+import { useLanguage } from '@/lib/hooks/useLanguage'
 
 type MemberDetail = {
   profile: {
@@ -12,6 +24,7 @@ type MemberDetail = {
     id_number: string | null; passport_number: string | null
     valid_through: string | null; created_at: string
     tree_nodes: { path: string; depth: number }[] | null
+    primary_profile_id: string | null
   }
   los: Record<string, unknown> | null
   registrations: {
@@ -27,6 +40,13 @@ type MemberDetail = {
     id: string; role_label: string; status: string; created_at: string
     event: { title: string; start_time: string }
   }[]
+}
+
+type PartnerProfile = {
+  profile: {
+    id: string; first_name: string; last_name: string
+    primary_profile_id: string | null
+  }
 }
 
 function formatDate(iso: string) {
@@ -62,16 +82,138 @@ const LOS_KEYS = [
   ['annual_ppv', 'Annual PPV'], ['sponsoring', 'Sponsoring'],
 ]
 
+// ── Partnership section ───────────────────────────────────────────────────
+// Hoisted to module scope — avoids React remount anti-pattern.
+function PartnershipSection({
+  profile,
+  onDissolve,
+  onPromote,
+  isPending,
+  t,
+}: {
+  profile: MemberDetail['profile']
+  onDissolve: () => void
+  onPromote: (primaryId: string, secondaryId: string) => void
+  isPending: boolean
+  t: ReturnType<typeof useLanguage>['t']
+}) {
+  const isSecondary = Boolean(profile.primary_profile_id)
+  const partnerId = isSecondary ? profile.primary_profile_id! : null
+
+  const { data: primaryData, isLoading: loadingPrimary } = useQuery<PartnerProfile>({
+    queryKey: ['admin-member', partnerId],
+    queryFn: () => fetch(`/api/admin/members/${partnerId}`).then(async r => {
+      if (!r.ok) throw new Error(`HTTP ${r.status}`)
+      return r.json()
+    }),
+    enabled: isSecondary && !!partnerId,
+  })
+
+  const partnerName = isSecondary
+    ? primaryData
+      ? `${primaryData.profile.first_name} ${primaryData.profile.last_name}`.trim()
+      : loadingPrimary ? t('admin.members.partnership.loadingPartner') : '—'
+    : null
+
+  if (isSecondary) {
+    return (
+      <div className="mt-4 pt-4 border-t border-black/5">
+        <p className="text-xs font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
+          {t('admin.members.partnership.sectionTitle')}
+        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+              {t('admin.members.partnership.primary')}
+            </p>
+            <p className="text-sm font-medium mt-0.5" style={{ color: 'var(--text-primary)' }}>
+              {partnerName}
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <button
+                  disabled={isPending}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-40 transition-opacity"
+                  style={{ backgroundColor: 'rgba(0,0,0,0.06)', color: 'var(--text-primary)' }}
+                >
+                  {t('admin.members.partnership.btn.promote')}
+                </button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>{t('admin.members.partnership.promoteConfirmTitle')}</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {t('admin.members.partnership.promoteConfirmDesc')}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>{t('admin.members.partnership.btn.cancel')}</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => onPromote(partnerId!, profile.id)}
+                    style={{ backgroundColor: 'var(--brand-crimson)' }}
+                  >
+                    {t('admin.members.partnership.btn.confirmAction')}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <button
+                  disabled={isPending}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-40 transition-opacity"
+                  style={{ backgroundColor: '#bc474920', color: 'var(--brand-crimson)' }}
+                >
+                  {t('admin.members.partnership.btn.dissolve')}
+                </button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>{t('admin.members.partnership.dissolveConfirmTitle')}</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {t('admin.members.partnership.dissolveConfirmDesc').replace(
+                      '{{name}}',
+                      `${profile.first_name} ${profile.last_name}`.trim()
+                    )}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>{t('admin.members.partnership.btn.cancel')}</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => onDissolve()}
+                    style={{ backgroundColor: 'var(--brand-crimson)' }}
+                  >
+                    {t('admin.members.partnership.btn.confirmAction')}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return null
+}
+
 export default function MemberDetailPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
   const qc = useQueryClient()
+  const { t } = useLanguage()
   const [editRole, setEditRole] = useState(false)
   const [selectedRole, setSelectedRole] = useState<string>('')
 
   const { data, isLoading } = useQuery<MemberDetail>({
     queryKey: ['admin-member', id],
-    queryFn: () => fetch(`/api/admin/members/${id}`).then(r => r.json()),
+    queryFn: () => fetch(`/api/admin/members/${id}`).then(async r => {
+      if (!r.ok) throw new Error(`HTTP ${r.status}`)
+      return r.json()
+    }),
   })
 
   const updateMutation = useMutation({
@@ -80,13 +222,41 @@ export default function MemberDetailPage() {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(patch),
-      }).then(r => r.json()),
+      }).then(async r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`)
+        return r.json()
+      }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-member', id] })
       qc.invalidateQueries({ queryKey: ['admin-members'] })
       setEditRole(false)
     },
   })
+
+  const promoteMutation = useMutation({
+    mutationFn: ({ primaryId, secondaryId }: { primaryId: string; secondaryId: string }) =>
+      fetch(`/api/admin/members/${primaryId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'promote_to_primary', secondary_id: secondaryId }),
+      }).then(async r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`)
+        return r.json()
+      }),
+    onSuccess: (_data, { primaryId }) => {
+      qc.invalidateQueries({ queryKey: ['admin-member', id] })
+      qc.invalidateQueries({ queryKey: ['admin-member', primaryId] })
+      qc.invalidateQueries({ queryKey: ['admin-members'] })
+    },
+  })
+
+  const handleDissolve = () => {
+    updateMutation.mutate({ action: 'dissolve_partnership' })
+  }
+
+  const handlePromote = (primaryId: string, secondaryId: string) => {
+    promoteMutation.mutate({ primaryId, secondaryId })
+  }
 
   if (isLoading) {
     return (
@@ -102,6 +272,8 @@ export default function MemberDetailPage() {
   if (!data?.profile) return null
   const { profile, los, registrations, payments, roleRequests } = data
 
+  const isSecondary = Boolean(profile.primary_profile_id)
+
   const expiry = getExpiryState(profile.valid_through)
   const docNumber = profile.document_active_type === 'passport'
     ? profile.passport_number
@@ -110,6 +282,8 @@ export default function MemberDetailPage() {
   const totalPaid = payments
     .filter(p => p.status === 'completed')
     .reduce((sum, p) => sum + p.amount, 0)
+
+  const isPending = updateMutation.isPending || promoteMutation.isPending
 
   return (
     <div className="p-6">
@@ -136,9 +310,19 @@ export default function MemberDetailPage() {
             {profile.first_name[0]}{profile.last_name[0]}
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="font-display text-2xl font-semibold" style={{ color: 'var(--text-primary)' }}>
-              {profile.first_name} {profile.last_name}
-            </h1>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="font-display text-2xl font-semibold" style={{ color: 'var(--text-primary)' }}>
+                {profile.first_name} {profile.last_name}
+              </h1>
+              {isSecondary && (
+                <span
+                  className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: 'rgba(0,0,0,0.06)', color: 'var(--text-secondary)' }}
+                >
+                  {t('admin.members.table.coOwnerBadge')}
+                </span>
+              )}
+            </div>
             <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
               ABO: <span className="font-medium" style={{ color: 'var(--text-primary)' }}>
                 {profile.abo_number ?? '—'}
@@ -207,6 +391,17 @@ export default function MemberDetailPage() {
             </span>
           )}
         </div>
+
+        {/* Partnership section — only for secondary profiles */}
+        {isSecondary && (
+          <PartnershipSection
+            profile={profile}
+            onDissolve={handleDissolve}
+            onPromote={handlePromote}
+            isPending={isPending}
+            t={t}
+          />
+        )}
       </div>
 
       {/* Document */}

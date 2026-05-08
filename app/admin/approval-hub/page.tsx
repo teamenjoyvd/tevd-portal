@@ -7,8 +7,10 @@ import AdminTabs, { TabsContent } from '@/app/admin/components/AdminTabs'
 import { TripRegistrationsTab } from './components/TripRegistrationsTab'
 import { AboVerificationTab } from './components/VerificationsTab'
 import { EventRolesTab } from './components/EventRolesTab'
+import { SpouseLinkRequestsTab } from './components/SpouseLinkRequestsTab'
 import type { TripRegistration } from './components/TripRegistrationsTab'
 import type { AdminMembersResponse } from './components/VerificationsTab'
+import type { SpouseLinkRequest } from './components/SpouseLinkRequestsTab'
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -25,7 +27,7 @@ type RoleRequest = {
 function ApprovalHubInner() {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const tab = (searchParams.get('tab') ?? 'trips') as 'trips' | 'roles' | 'abo'
+  const tab = (searchParams.get('tab') ?? 'trips') as 'trips' | 'roles' | 'abo' | 'spouse'
 
   // Same queryKey + queryFn as TripRegistrationsTab — single cache entry, no conflict.
   const { data: registrations = [] } = useQuery<TripRegistration[]>({
@@ -54,14 +56,21 @@ function ApprovalHubInner() {
     queryFn: () => fetch('/api/admin/members').then(r => r.json()),
   })
 
-  const pendingTrips = registrations.filter(r => r.status === 'pending').length
-  const pendingRoles = roleRequests.filter(r => r.status === 'pending').length
-  const pendingAbo   = (membersData?.pending_verifications ?? []).length
+  const { data: spouseRequests = [] } = useQuery<SpouseLinkRequest[]>({
+    queryKey: ['spouse-link-requests'],
+    queryFn: () => fetch('/api/admin/spouse-link-requests').then(r => r.json()),
+  })
+
+  const pendingTrips  = registrations.filter(r => r.status === 'pending').length
+  const pendingRoles  = roleRequests.filter(r => r.status === 'pending').length
+  const pendingAbo    = (membersData?.pending_verifications ?? []).length
+  const pendingSpouse = spouseRequests.filter(r => r.status === 'pending').length
 
   const tabsWithBadges = [
-    { key: 'trips', label: 'Trip Registrations', badge: pendingTrips },
-    { key: 'roles', label: 'Event Roles',         badge: pendingRoles },
-    { key: 'abo',   label: 'ABO Verification',    badge: pendingAbo   },
+    { key: 'trips',  label: 'Trip Registrations',   badge: pendingTrips  },
+    { key: 'roles',  label: 'Event Roles',           badge: pendingRoles  },
+    { key: 'abo',    label: 'ABO Verification',      badge: pendingAbo    },
+    { key: 'spouse', label: 'Co-ownership Requests', badge: pendingSpouse },
   ]
 
   return (
@@ -81,6 +90,7 @@ function ApprovalHubInner() {
         <TabsContent value="trips"><TripRegistrationsTab /></TabsContent>
         <TabsContent value="roles"><EventRolesTab /></TabsContent>
         <TabsContent value="abo"><AboVerificationTab /></TabsContent>
+        <TabsContent value="spouse"><SpouseLinkRequestsTab /></TabsContent>
       </AdminTabs>
     </div>
   )
