@@ -9,7 +9,7 @@ export async function GET() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, abo_number')
+    .select('id, abo_number, primary_profile_id')
     .eq('clerk_id', userId)
     .single()
 
@@ -17,14 +17,16 @@ export async function GET() {
     return Response.json({ depth: null, direct_downline_count: 0 })
   }
 
-  // Get own tree node for depth
+  // ADR-016: secondary profiles borrow tree position from the primary.
+  // Resolve the tree owner: use primary_profile_id if this is a secondary account.
+  const treeProfileId = profile.primary_profile_id ?? profile.id
+
   const { data: ownNode } = await supabase
     .from('tree_nodes')
     .select('id, depth')
-    .eq('profile_id', profile.id)
+    .eq('profile_id', treeProfileId)
     .single()
 
-  // Count direct downlines (children whose parent_id = ownNode.id)
   let directDownlineCount = 0
   if (ownNode?.id) {
     const { count } = await supabase

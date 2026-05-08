@@ -51,7 +51,7 @@
     /admin/los-import/rollback/route.ts  # POST — rollback by import_id
     /admin/los-tree/route.ts
     /admin/members/route.ts
-    /admin/members/[id]/route.ts
+    /admin/members/[id]/route.ts         # ADR-016: promote_to_primary, dissolve_partnership, has_secondary guard
     /admin/members/[id]/vital-signs/route.ts
     /admin/members/[id]/vital-signs/[definitionId]/route.ts
     /admin/payable-items/route.ts
@@ -66,6 +66,8 @@
     /admin/social-posts/route.ts
     /admin/social-posts/[id]/route.ts
     /admin/social-posts/preview/route.ts
+    /admin/spouse-link-requests/route.ts        # ADR-016: GET all pending requests
+    /admin/spouse-link-requests/[id]/route.ts  # ADR-016: PATCH approve/deny
     /admin/trips/route.ts
     /admin/trips/[id]/route.ts
     /admin/trips/registrations/[id]/cancel/route.ts
@@ -85,10 +87,11 @@
     /payments/route.ts
     /profile/payments/route.ts
     /profile/route.ts
-    /profile/verify-abo/route.ts
+    /profile/spouse-link/route.ts  # ADR-016: GET own request, POST submit, DELETE cancel
+    /profile/verify-abo/route.ts   # ADR-016: abo_has_primary error_code when ABO holder is primary
     /profile/vitals/route.ts
     /profile/event-roles/route.ts
-    /profile/los-summary/route.ts
+    /profile/los-summary/route.ts  # ADR-016: resolves treeProfileId = primary_profile_id ?? id
     /profile/upline/route.ts
     /profile/trips/[id]/cancel/route.ts
     /trips/[id]/payments/route.ts
@@ -153,10 +156,16 @@
 > Live schema is always the source of truth. Use `Supabase:list_tables verbose` before touching any table.
 
 **`profiles`**
-`id, clerk_id, first_name, last_name, display_names, role, abo_number, upline_abo_number, document_active_type, id_number, passport_number, valid_through, ical_token, phone, contact_email, created_at, ui_prefs`
+`id, clerk_id, first_name, last_name, display_names, role, abo_number, upline_abo_number, primary_profile_id, document_active_type, id_number, passport_number, valid_through, ical_token, phone, contact_email, created_at, ui_prefs, notification_prefs`
 - `role` default: `'guest'`
 - `ui_prefs` JSONB NOT NULL default `{}` — shape: `{ bento_order: string[], bento_collapsed: Record<string, boolean> }`
 - `upline_abo_number`: written by `approve_member_verification` (both paths) and by `import_los_members` on sponsor change.
+- `primary_profile_id`: ADR-016. NULL = primary or standalone. NOT NULL = secondary/spouse. Self-referential FK ON DELETE SET NULL.
+
+**`spouse_link_requests`** — ADR-016
+`id, requester_id → profiles, claimed_primary_id → profiles, status (pending|approved|denied), admin_note, created_at, resolved_at`
+- UNIQUE on `requester_id` (one active request per profile at a time).
+- RLS: requester reads/inserts/deletes own pending; admin full access.
 
 **`guides`**
 `id, slug, title (jsonb {en,bg}), emoji, cover_image_url, body (jsonb Block[]), access_roles, is_published, sort_order, created_at, updated_at`
@@ -257,6 +266,7 @@
 **`tree_nodes`**
 `id, profile_id, parent_id, path (ltree), depth, created_at`
 - No-ABO label: `p_<uuid_no_hyphens>`. Renamed on ABO assignment → `rebuild_tree_paths` called.
+- ADR-016: secondary profiles never have a `tree_nodes` row. LOS read-path resolves via `primary_profile_id`.
 
 **`los_members`**
 `abo_number (PK), sponsor_abo_number, name, abo_level, bonus_percent, gpv, ppv, annual_ppv, gbv, ruby_pv, customer_pv, customers, group_size, group_orders_count, personal_order_count, qualified_legs, sponsoring, points_to_next_level, phone, email, address, country, entry_date, renewal_date, last_synced_at`
@@ -274,11 +284,12 @@
 | Route | Method | Purpose |
 |---|---|---|
 | `/api/profile` | GET, PATCH | Read/update own profile |
-| `/api/profile/verify-abo` | POST | Submit ABO verification — LOS-validated at submit (existence + sponsor match + duplicate check); structured `error_code` in response |
+| `/api/profile/verify-abo` | POST | Submit ABO verification — LOS-validated at submit; `abo_has_primary` error_code when ABO holder is primary (ADR-016) |
+| `/api/profile/spouse-link` | GET, POST, DELETE | ADR-016: GET own request; POST submit (guest with no primary_profile_id, claiming a primary member with abo_number and no existing secondary); DELETE cancel own pending |
 | `/api/profile/vitals` | GET | Read own vital signs |
 | `/api/profile/event-roles` | GET | Read own event participation |
-| `/api/profile/los-summary` | GET | Read own LOS downline |
-| `/api/profile/upline` | GET | Read own upline |
+| `/api/profile/los-summary` | GET | ADR-016: resolves `treeProfileId = primary_profile_id ?? id` for secondary profiles |
+| `/api/profile/upline` | GET | Read own upline — secondary profiles share abo_number, lookup works without proxy |
 | `/api/profile/payments` | GET, POST | Read/submit own payments — POST triggers admin alert via `sendNotificationEmail` |
 | `/api/profile/trips/[id]/cancel` | POST | Cancel own trip registration |
 | `/api/payable-items` | GET | List active payable items |
@@ -318,7 +329,7 @@
 | `/api/admin/los-import/rollback` | POST | Rollback by `import_id`; body: `{ import_id }` |
 | `/api/admin/los-tree` | GET | Tree nodes for admin LOS view |
 | `/api/admin/members` | GET | LOS members + profiles + pending verifications + guests + `los_last_synced_at` |
-| `/api/admin/members/[id]` | GET, PATCH | Member profile + unified data |
+| `/api/admin/members/[id]` | GET, PATCH | Member profile + unified data. PATCH actions: standard field update; `action: 'promote_to_primary'` (calls RPC, warns of tree rebuild); `action: 'dissolve_partnership'` (secondary only). Deletion block returns 409 `has_secondary` if primary has a linked spouse. |
 | `/api/admin/members/[id]/vital-signs` | GET, POST | Read/record vital signs for member |
 | `/api/admin/members/[id]/vital-signs/[definitionId]` | PATCH, DELETE | Update/remove vital sign record |
 | `/api/admin/payable-items` | GET, POST | List + create payable items |
@@ -333,6 +344,8 @@
 | `/api/admin/social-posts` | GET, POST | Social posts CRUD |
 | `/api/admin/social-posts/[id]` | PATCH, DELETE | Update/delete post |
 | `/api/admin/social-posts/preview` | GET | OG scrape (`?url=...`) |
+| `/api/admin/spouse-link-requests` | GET | ADR-016: returns all pending requests joined with requester + claimed_primary profile |
+| `/api/admin/spouse-link-requests/[id]` | PATCH | ADR-016: `{ status: 'approved'|'denied', admin_note? }`. Approve re-verifies all 3 guards. On approve: writes profile + request + audit + Clerk sync + welcome email |
 | `/api/admin/trips` | GET, POST | List + create trips |
 | `/api/admin/trips/[id]` | GET, PATCH, DELETE | Trip CRUD |
 | `/api/admin/trips/registrations/[id]/cancel` | POST | Admin cancel registration — triggers `sendNotificationEmail` |
@@ -357,6 +370,7 @@
 | `get_trip_team_attendees(p_trip_id, p_viewer_profile)` | Returns Core/admin attendees for a trip |
 | `import_los_members(p_rows, p_imported_by?, p_expected_row_count?)` | Transactional LOS import: concurrency check → snapshot → upsert → server-side delete → rebuild_tree_paths → insert los_imports. Returns `{ inserted, removed, import_id, errors }`. |
 | `rollback_los_import(p_import_id uuid)` | Restores pre-import snapshot, re-runs `rebuild_tree_paths`, marks import `rolled_back`. Returns `{ restored, import_id }`. |
+| `promote_to_primary(p_current_primary_id, p_current_secondary_id)` | ADR-016: atomic swap — transfers tree_nodes row, calls rebuild_tree_paths, swaps primary_profile_id values. SECURITY DEFINER. ⚠️ High-risk: restructures the LOS tree. |
 | `get_los_members_with_profiles` | Joined LOS + profile data for admin view |
 | `notify_role_request` | Fan-out: admins + Core ancestors of requester |
 | `notify_trip_created` | Fan-out: all member/core/admin |

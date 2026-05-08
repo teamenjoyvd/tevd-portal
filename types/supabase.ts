@@ -903,6 +903,7 @@ export type Database = {
           notification_prefs: Json
           passport_number: string | null
           phone: string | null
+          primary_profile_id: string | null
           role: Database["public"]["Enums"]["user_role"]
           ui_prefs: Json
           upline_abo_number: string | null
@@ -923,6 +924,7 @@ export type Database = {
           notification_prefs?: Json
           passport_number?: string | null
           phone?: string | null
+          primary_profile_id?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           ui_prefs?: Json
           upline_abo_number?: string | null
@@ -943,12 +945,21 @@ export type Database = {
           notification_prefs?: Json
           passport_number?: string | null
           phone?: string | null
+          primary_profile_id?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           ui_prefs?: Json
           upline_abo_number?: string | null
           valid_through?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_primary_profile_id_fkey"
+            columns: ["primary_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       role_change_audit: {
         Row: {
@@ -1041,6 +1052,51 @@ export type Database = {
           thumbnail_url?: string | null
         }
         Relationships: []
+      }
+      spouse_link_requests: {
+        Row: {
+          admin_note: string | null
+          claimed_primary_id: string
+          created_at: string
+          id: string
+          requester_id: string
+          resolved_at: string | null
+          status: string
+        }
+        Insert: {
+          admin_note?: string | null
+          claimed_primary_id: string
+          created_at?: string
+          id?: string
+          requester_id: string
+          resolved_at?: string | null
+          status?: string
+        }
+        Update: {
+          admin_note?: string | null
+          claimed_primary_id?: string
+          created_at?: string
+          id?: string
+          requester_id?: string
+          resolved_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spouse_link_requests_claimed_primary_id_fkey"
+            columns: ["claimed_primary_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "spouse_link_requests_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tree_nodes: {
         Row: {
@@ -1381,10 +1437,9 @@ export type Database = {
           role: string
         }[]
       }
-      import_los_members: {
-        Args: { p_imported_by?: string; p_rows: Json }
-        Returns: Json
-      }
+      import_los_members:
+        | { Args: { p_imported_by?: string; p_rows: Json }; Returns: Json }
+        | { Args: { rows: Json }; Returns: Json }
       increment_share_link_click: {
         Args: { link_id: string }
         Returns: undefined
@@ -1412,6 +1467,7 @@ export type Database = {
           notification_prefs: Json
           passport_number: string | null
           phone: string | null
+          primary_profile_id: string | null
           role: Database["public"]["Enums"]["user_role"]
           ui_prefs: Json
           upline_abo_number: string | null
@@ -1425,6 +1481,10 @@ export type Database = {
         }
       }
       pin_social_post: { Args: { p_id: string }; Returns: undefined }
+      promote_to_primary: {
+        Args: { p_current_primary_id: string; p_current_secondary_id: string }
+        Returns: undefined
+      }
       purge_absent_los_members: {
         Args: { p_imported_by?: string; p_keep_abos: string[] }
         Returns: Json

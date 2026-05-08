@@ -9,19 +9,19 @@ export async function GET() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('abo_number, upline_abo_number')
+    .select('abo_number, upline_abo_number, primary_profile_id')
     .eq('clerk_id', userId)
     .single()
 
-  // Determine which ABO to use for the los_members lookup.
-  // Standard path: profile.abo_number exists → look up sponsor via los_members.
-  // Manual path: abo_number is null but upline_abo_number was set at approval time
-  //              → use it directly as the upline ABO, then resolve the name.
+  // ADR-016: secondary profiles share ABO with their primary.
+  // abo_number is written to both at approval time, so the standard
+  // los_members lookup path works for secondaries without modification.
+  // primary_profile_id is read here only for documentation clarity.
+
   const memberAbo = profile?.abo_number ?? null
   const directUplineAbo = profile?.upline_abo_number ?? null
 
   if (memberAbo) {
-    // Standard path: resolve sponsor via los_members tree
     const { data: losMember } = await supabase
       .from('los_members')
       .select('sponsor_abo_number')
@@ -45,7 +45,6 @@ export async function GET() {
   }
 
   if (directUplineAbo) {
-    // Manual path: upline ABO is already known, just resolve the name
     const { data: upline } = await supabase
       .from('los_members')
       .select('abo_number, name')

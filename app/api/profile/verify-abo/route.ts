@@ -58,14 +58,28 @@ export async function POST(req: Request) {
     }
 
     // Duplicate ABO check
+    // ADR-016: if the existing holder is a primary (primary_profile_id IS NULL),
+    // surface a specific error_code so the UI can offer the spouse link flow.
     const { data: existingHolder } = await supabase
       .from('profiles')
-      .select('id')
+      .select('id, primary_profile_id')
       .eq('abo_number', claimed_abo)
       .neq('id', profile.id)
       .maybeSingle()
 
     if (existingHolder) {
+      if (existingHolder.primary_profile_id === null) {
+        // The holder is a primary — this guest may be their spouse
+        return Response.json(
+          {
+            error: `This ABO is already registered. If you are the co-owner, use the Spouse Link option on your profile.`,
+            error_code: 'abo_has_primary',
+            primary_profile_id: existingHolder.id,
+          },
+          { status: 409 }
+        )
+      }
+      // The holder is a secondary — generic already-claimed error
       return Response.json(
         { error: `ABO ${claimed_abo} is already registered to another account.`, error_code: 'abo_already_claimed' },
         { status: 409 }
@@ -77,7 +91,6 @@ export async function POST(req: Request) {
       return Response.json({ error: 'claimed_upline_abo is required' }, { status: 400 })
     }
 
-    // Validate upline exists in LOS
     const { data: uplineLos } = await supabase
       .from('los_members')
       .select('abo_number')
@@ -92,7 +105,6 @@ export async function POST(req: Request) {
     }
   }
 
-  // Upsert — replace any existing pending request
   const { data, error } = await supabase
     .from('abo_verification_requests')
     .upsert(
