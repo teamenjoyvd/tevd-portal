@@ -1,5 +1,5 @@
 # DECISIONS.md — Architecture Decision Records
-> tevd-portal · Last updated: 2026-04-06
+> tevd-portal · Last updated: 2026-05-08
 > Format: Context | Decision | Consequences (Benefits / Risks / Mitigations)
 > Records are never deleted. Superseded records are marked and linked to their replacement.
 
@@ -24,6 +24,7 @@
 | ADR-013 | shadcn/ui as the mandatory primitive library for interactive components | 2026-03 | Active |
 | ADR-014 | Cookie-based transport for UI preference synchronisation | 2026-03-28 | Active |
 | ADR-015 | Autonomous Tile Pattern for profile section components | 2026-04-06 | Active |
+| ADR-016 | ABO co-ownership: primary/secondary profile model over abo_partnerships table | 2026-05-08 | Active |
 
 ---
 
@@ -694,3 +695,91 @@ A `ProfileContext` could make all fetched data available to any section without 
 **Mitigations:**
 - All query keys are defined as string constants or documented explicitly. Any section that duplicates a query uses the identical key.
 - `page.tsx` retains `useQuery(['profile'])` as the single auth/identity gate — sections receive `profileId` and `role` as props to set their `enabled` flags. They do not re-fetch the profile themselves.
+
+---
+
+## ADR-016 — ABO Co-ownership: Primary/Secondary Profile Model over `abo_partnerships` Table
+
+**Date:** 2026-05-08
+**Status:** Active
+
+### Context
+Amway allows two spouses to share a single ABO (distributor) number. Both are legally equal co-owners of the business. The portal previously assumed a strict 1:1 mapping between a profile and an ABO number. This broke the following user journeys when a spouse pair tried to register: the second spouse would be rejected by the `abo_already_claimed` guard in `verify-abo/route.ts`.
+
+Both spouses need to independently:
+- Register for trips and events
+- Have their own vital signs
+- Have their own travel documents and calendar feed
+- Request event roles
+
+Both spouses need to share:
+- LOS tree position (one ABO = one node in `tree_nodes`)
+- LOS summary stats and upline display on `/profile`
+
+Two design options were evaluated:
+
+**Option A — `primary_profile_id` column on `profiles` (chosen)**
+One profile is the primary: owns the `tree_nodes` row, goes through normal ABO verification. The second is a secondary: linked via `primary_profile_id` FK on `profiles`, borrows tree position at read time via a two-line proxy in affected routes.
+
+**Option B — `abo_partnerships` junction table**
+Both profiles are equal. Partnership is a separate entity: `abo_partnerships(id, profile_a, profile_b, abo_number)`. Tree position resolved by joining through the partnership table for both members.
+
+### Decision
+Option A (`primary_profile_id` on `profiles`) is implemented as the current solution. Option B (`abo_partnerships`) is the acknowledged long-term target state.
+
+### Why Option A over Option B now
+`tree_nodes`, `upsert_tree_node`, `get_core_ancestors`, `rebuild_tree_paths`, and the LOS import pipeline (`import_los_members` RPC) were all built assuming one profile = one tree node. Making them partnership-aware requires modifying Postgres RPCs that run against production data during LOS import — the highest-risk operation in the portal. Option A defers that risk: only read-path routes need a proxy (`primary_profile_id ?? profile.id`), not the write path or RPCs.
+
+At zero spouse pairs in production today, paying the full `abo_partnerships` cost upfront is unjustified.
+
+### `primary_profile_id` semantics
+
+| Value | Meaning |
+|---|---|
+| `NULL` | Primary or standalone account. Normal behaviour. 99%+ of all profiles. |
+| `NOT NULL` | Secondary/spouse account. Borrows LOS tree position from primary. |
+
+The secondary profile:
+- Has its own `profiles` row, Clerk account, email
+- Has the same `abo_number` written at approval time (correct — they share the ABO contract)
+- Has NO `tree_nodes` row — never created, never passed to `upsert_tree_node`
+- Resolves LOS position at read time via `primary_profile_id` in affected routes
+
+### Routes with proxy fix required
+- `app/api/profile/los-summary/route.ts` — `treeProfileId = profile.primary_profile_id ?? profile.id`
+- `app/api/profile/upline/route.ts` — same pattern
+- `notify_*` RPCs that call `get_core_ancestors` — only relevant if secondary reaches `core` role (future concern)
+
+### Invariants enforced in application code
+- A secondary (`primary_profile_id IS NOT NULL`) cannot be someone else's primary — enforced in the spouse link approval route
+- Maximum one secondary per primary — enforced at approval time
+- Deletion of a primary is blocked if a secondary exists — enforced in the admin members route
+- `promote_to_primary` is an atomic RPC: transfers `tree_nodes` row + `rebuild_tree_paths` + swaps `primary_profile_id` values
+- Partnership dissolution: secondary → `primary_profile_id = NULL`, `abo_number = NULL`, `role = 'guest'`
+
+### Migration path to `abo_partnerships` (future)
+When the LOS layer is next touched for a substantial reason, migrate as follows:
+1. Create `abo_partnerships(id, profile_a, profile_b, abo_number, created_at)` with `UNIQUE(profile_a)` and `UNIQUE(profile_b)`
+2. Data migration: for each profile where `primary_profile_id IS NOT NULL`, insert a partnership row (`profile_a = primary_profile_id`, `profile_b = profile.id`)
+3. Make `upsert_tree_node`, `get_core_ancestors`, and the import pipeline partnership-aware
+4. Drop `primary_profile_id` column
+
+The data migration is trivial — one INSERT per partnership row. The RPC refactor is the real cost and should be scoped as a dedicated ticket.
+
+### Consequences
+
+**Benefits:**
+- Zero blast radius on existing LOS infrastructure (RPCs, import pipeline, tree operations)
+- Read-path proxy is two lines per affected route — contained, mechanical, low-risk
+- All independent-participation domains (trips, vitals, events, payments, documents, calendar) work without any changes
+- Reversible: migration to `abo_partnerships` requires only a data migration + RPC refactor, no structural change to existing features
+
+**Risks:**
+- `primary_profile_id IS NOT NULL` checks must be added to every new route that walks `tree_nodes` — this is a convention, not enforced by the type system
+- The hierarchy encoded in `primary_profile_id` (primary vs. secondary) does not exist in the Amway domain — both spouses are equal co-owners
+- If `primary_profile_id` is treated as a permanent first-class concept by future engineers, the proxy pattern will calcify and the `abo_partnerships` migration will become harder
+
+**Mitigations:**
+- This ADR explicitly names `primary_profile_id` as a stepping stone, not a permanent design
+- `abo_partnerships` is named as the target state with a concrete migration path above
+- The `promote_to_primary` RPC makes the hierarchy fluid — it can be reversed by admin at any time
