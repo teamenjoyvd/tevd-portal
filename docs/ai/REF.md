@@ -148,6 +148,8 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
     /admin/social-posts/route.ts
     /admin/social-posts/[id]/route.ts
     /admin/social-posts/preview/route.ts
+    /admin/spouse-link-requests/route.ts        # ADR-016: GET all pending requests
+    /admin/spouse-link-requests/[id]/route.ts  # ADR-016: PATCH approve/deny
     /admin/trips/route.ts
     /admin/trips/[id]/route.ts
     /admin/trips/registrations/[id]/cancel/route.ts
@@ -167,6 +169,7 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
     /payments/route.ts
     /profile/payments/route.ts
     /profile/route.ts
+    /profile/spouse-link/route.ts  # ADR-016: GET own request, POST submit, DELETE cancel
     /profile/verify-abo/route.ts
     /profile/vitals/route.ts
     /profile/event-roles/route.ts
@@ -234,10 +237,14 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
 
 > Live schema is always the source of truth. Run `Supabase:list_tables` before touching any table.
 
-**`profiles`** — `id, clerk_id, first_name, last_name, display_names, role, abo_number, upline_abo_number, document_active_type, id_number, passport_number, valid_through, ical_token, phone, contact_email, created_at, ui_prefs`
+**`profiles`** — `id, clerk_id, first_name, last_name, display_names, role, abo_number, upline_abo_number, primary_profile_id, document_active_type, id_number, passport_number, valid_through, ical_token, phone, contact_email, created_at, ui_prefs`
 - `role` default: `'guest'`
 - `ui_prefs` JSONB NOT NULL default `{}` — shape: `{ bento_order: string[], bento_collapsed: Record<string, boolean> }`
 - `upline_abo_number`: written by `approve_member_verification` (both paths) and by `import_los_members` on sponsor change.
+- `primary_profile_id`: ADR-016. NULL = primary or standalone. NOT NULL = secondary/spouse profile pointing to its primary. Self-referential FK with ON DELETE SET NULL.
+
+**`spouse_link_requests`** — `id, requester_id → profiles, claimed_primary_id → profiles, status (pending|approved|denied), admin_note, created_at, resolved_at`
+- ADR-016. UNIQUE on `requester_id` (one active request per guest at a time). RLS: requester reads/inserts/deletes own pending; admin full access.
 
 **`payments`** — `id, profile_id, trip_id, payable_item_id, amount, currency, transaction_date, admin_status, member_status, admin_reject_reason, member_reject_reason, payment_method, proof_url, note, admin_note, logged_by_admin, properties, created_at`
 - Exactly one of `trip_id` / `payable_item_id` non-null.
@@ -302,6 +309,7 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
 
 **`tree_nodes`** — `id, profile_id, parent_id, path (ltree), depth, created_at`
 - No-ABO label: `p_<uuid_no_hyphens>`. ABO assignment renames node → calls `rebuild_tree_paths`.
+- ADR-016: secondary profiles never have a `tree_nodes` row. LOS read-path resolves via `primary_profile_id`.
 
 **`los_members`** — `abo_number (PK), sponsor_abo_number, name, abo_level, bonus_percent, gpv, ppv, annual_ppv, gbv, ruby_pv, customer_pv, customers, group_size, group_orders_count, personal_order_count, qualified_legs, sponsoring, points_to_next_level, phone, email, address, country, entry_date, renewal_date, last_synced_at`
 
@@ -317,11 +325,12 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
 | Route | Method | Notes |
 |---|---|
 | `/api/profile` | GET, PATCH | |
-| `/api/profile/verify-abo` | POST | LOS-validated at submit: existence check + sponsor match + duplicate ABO check |
+| `/api/profile/verify-abo` | POST | LOS-validated at submit: existence check + sponsor match + duplicate ABO check. Returns `abo_has_primary` error_code if the existing holder is a primary (ADR-016). |
+| `/api/profile/spouse-link` | GET, POST, DELETE | ADR-016: GET own request; POST submit (guest only, guards: requester is guest with no primary_profile_id, claimed_primary is member with abo_number and no existing secondary); DELETE cancel own pending |
 | `/api/profile/vitals` | GET | |
 | `/api/profile/event-roles` | GET | |
-| `/api/profile/los-summary` | GET | |
-| `/api/profile/upline` | GET | |
+| `/api/profile/los-summary` | GET | ADR-016: resolves `treeProfileId = primary_profile_id ?? id` for secondary profiles |
+| `/api/profile/upline` | GET | ADR-016: secondary profiles share abo_number with primary — los_members lookup works without proxy |
 | `/api/profile/payments` | GET, POST | POST triggers `sendNotificationEmail` to admin |
 | `/api/profile/trips/[id]/cancel` | POST | |
 | `/api/payable-items` | GET | Active items only |
@@ -359,7 +368,7 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
 | `/api/admin/los-import/rollback` | POST | Rolls back import by `import_id` via `rollback_los_import` RPC |
 | `/api/admin/los-tree` | GET | Tree nodes for admin LOS view |
 | `/api/admin/members` | GET | LOS + profiles + pending verifications + guests + `los_last_synced_at` |
-| `/api/admin/members/[id]` | GET, PATCH | PATCH: role update MUST sync Clerk metadata |
+| `/api/admin/members/[id]` | GET, PATCH | PATCH actions: standard field update; `action: 'promote_to_primary'` (calls RPC, warns of tree rebuild); `action: 'dissolve_partnership'` (secondary only); deletion block on role=guest if secondary exists (409 `has_secondary`) |
 | `/api/admin/members/[id]/vital-signs` | GET, POST | |
 | `/api/admin/members/[id]/vital-signs/[definitionId]` | PATCH, DELETE | |
 | `/api/admin/payable-items` | GET, POST | |
@@ -374,6 +383,8 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
 | `/api/admin/social-posts` | GET, POST | |
 | `/api/admin/social-posts/[id]` | PATCH, DELETE | |
 | `/api/admin/social-posts/preview` | GET | OG scrape `?url=` |
+| `/api/admin/spouse-link-requests` | GET | ADR-016: returns all pending requests joined with requester + claimed_primary profile |
+| `/api/admin/spouse-link-requests/[id]` | PATCH | ADR-016: `{ status: 'approved'\|'denied', admin_note? }`. Approve re-verifies all 3 guards. On approve: writes profile + request + audit + Clerk sync + welcome email |
 | `/api/admin/trips` | GET, POST | |
 | `/api/admin/trips/[id]` | GET, PATCH, DELETE | |
 | `/api/admin/trips/registrations/[id]/cancel` | POST | Triggers `sendNotificationEmail` |
@@ -393,6 +404,7 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
 | `get_trip_team_attendees(p_trip_id, p_viewer_profile)` | Returns Core/admin attendees for a trip |
 | `import_los_members(p_rows, p_imported_by?, p_expected_row_count?)` | Transactional LOS import: concurrency check → snapshot → upsert → server-side delete → rebuild_tree_paths → insert los_imports record. Returns `{ inserted, removed, import_id, errors }`. |
 | `rollback_los_import(p_import_id uuid)` | Restores pre-import snapshot, re-runs `rebuild_tree_paths`, marks import `rolled_back`. Returns `{ restored, import_id }`. |
+| `promote_to_primary(p_current_primary_id, p_current_secondary_id)` | ADR-016: atomic swap — transfers tree_nodes row, calls rebuild_tree_paths, swaps primary_profile_id values. SECURITY DEFINER. ⚠️ High-risk: restructures the LOS tree. |
 | `get_los_members_with_profiles` | Joined LOS + profile data for admin view |
 | `notify_role_request` | Fan-out to admins + Core ancestors |
 | `notify_trip_created` | Fan-out to all member/core/admin |
