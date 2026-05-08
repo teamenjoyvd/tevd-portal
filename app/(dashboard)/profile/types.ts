@@ -32,6 +32,19 @@ export type VerificationRequest = {
   request_type: string
 }
 
+export type SpouseLinkRequest = {
+  id: string
+  status: 'pending' | 'approved' | 'denied'
+  admin_note: string | null
+  created_at: string
+}
+
+export type SpouseData = {
+  id: string
+  first_name: string
+  last_name: string
+}
+
 export type UplineData = {
   upline_name: string | null
   upline_abo_number: string | null
@@ -44,6 +57,7 @@ export type Profile = {
   last_name: string
   abo_number: string | null
   upline_abo_number: string | null
+  primary_profile_id: string | null
   role: 'admin' | 'core' | 'member' | 'guest'
   document_active_type: 'id' | 'passport'
   id_number: string | null
@@ -58,6 +72,7 @@ export type Profile = {
   // Eagerly joined by GET /api/profile — null when not applicable
   upline: UplineData | null
   verRequest: VerificationRequest | null
+  spouse: SpouseData | null
 }
 
 export type TripPayment = {

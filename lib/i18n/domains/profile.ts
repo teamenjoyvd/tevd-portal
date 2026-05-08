@@ -91,6 +91,7 @@ export const profile = {
   'profile.error.aboAlreadyClaimed':  { en: 'This ABO number is already registered to another account. Contact support if you believe this is an error.', bg: 'Този ABO номер вече е регистриран към друг акаунт. Свържете се с поддръжката, ако смятате, че е грешка.' },
   'profile.error.uplineNotInLos':     { en: 'The upline ABO number was not found in the LOS. Check the number or ask your admin to re-import the LOS.', bg: 'ABO номерът на ъплайна не е намерен в LOS. Проверете номера или помолете администратора да импортира отново LOS.' },
   'profile.error.losStaleNote':       { en: 'Your numbers may be correct — the admin\'s LOS data may be outdated.', bg: 'Вашите номера може да са верни — LOS данните на администратора може да са остарели.' },
+  'profile.error.aboHasPrimary':      { en: 'This ABO is already registered by a co-owner. If you are their spouse, request a spouse link below.', bg: 'Този ABO вече е регистриран от съсобственик. Ако сте съпруг/а, заявете свързване по-долу.' },
   'profile.emailOnlyNote':            { en: 'Emails are sent only to your contact email address.', bg: 'Имейлите се изпращат само на вашия контактен адрес.' },
   'profile.pref.tripReg':             { en: 'Trip registration updates',                        bg: 'Промени по регистрация за пътуване'              },
   'profile.pref.paymentStatus':       { en: 'Payment status updates',                           bg: 'Промени по статус на плащане'                    },
@@ -158,4 +159,13 @@ export const profile = {
   // InvitesBento
   'profile.invites.statLinks':            { en: 'invite links',               bg: 'покани'                               },
   'profile.invites.viewAll':              { en: 'View all invites',           bg: 'Виж всички покани'                    },
+  // ABO co-ownership / spouse link
+  'profile.coOwner':                      { en: 'Co-owner',                   bg: 'Съсобственик'                         },
+  'profile.spouseLinkDesc':               { en: 'Are you a co-owner on a shared ABO? Enter the primary account holder\'s ABO number to request a spouse link.', bg: 'Съсобственик ли сте на споделен ABO? Въведете ABO номера на основния титуляр, за да заявите свързване.' },
+  'profile.spouseLinkAboLabel':           { en: 'Primary account holder\'s ABO number', bg: 'ABO номер на основния титуляр'  },
+  'profile.spouseLinkSubmit':             { en: 'Request spouse link',        bg: 'Заяви свързване на съпруг/а'          },
+  'profile.spouseLinkPending':            { en: 'Spouse link request pending admin approval.', bg: 'Заявката за свързване на съпруг/а очаква одобрение от администратор.' },
+  'profile.spouseLinkCancelRequest':      { en: 'Cancel spouse link request', bg: 'Отмени заявката за свързване'         },
+  'profile.spouseLinkDenied':             { en: 'Spouse link request was not approved.', bg: 'Заявката за свързване на съпруг/а не беше одобрена.' },
+  'profile.spouseLinkResubmit':           { en: 'Submit again',               bg: 'Изпрати отново'                       },
 } as const

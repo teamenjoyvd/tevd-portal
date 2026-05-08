@@ -26,8 +26,9 @@ export async function GET() {
   const uplineAboNumber: string | null = data.upline_abo_number ?? null
   const profileId: string = data.id
   const role: string = data.role
+  const primaryProfileId: string | null = data.primary_profile_id ?? null
 
-  const [upline, verRequest] = await Promise.all([
+  const [upline, verRequest, spouse] = await Promise.all([
     // Resolve upline for any verified member.
     // Standard path: abo_number set — look up sponsor via los_members tree.
     // Manual path: abo_number null but upline_abo_number set — resolve name directly.
@@ -79,9 +80,30 @@ export async function GET() {
           return req ?? null
         })()
       : Promise.resolve(null),
+    // Spouse: primary fetches their secondary; secondary fetches their primary.
+    // Returns null for unlinked profiles.
+    (async () => {
+      if (primaryProfileId) {
+        // This profile is a secondary — fetch the primary
+        const { data: primary } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name')
+          .eq('id', primaryProfileId)
+          .maybeSingle()
+        return primary ?? null
+      } else {
+        // This profile may be a primary — fetch any secondary linked to it
+        const { data: secondary } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name')
+          .eq('primary_profile_id', profileId)
+          .maybeSingle()
+        return secondary ?? null
+      }
+    })(),
   ])
 
-  return Response.json({ ...data, upline, verRequest })
+  return Response.json({ ...data, upline, verRequest, spouse })
 }
 
 export async function PATCH(req: Request): Promise<Response> {
