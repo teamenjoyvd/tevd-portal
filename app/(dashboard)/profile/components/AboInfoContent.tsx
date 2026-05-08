@@ -57,8 +57,9 @@ export const AboInfoContent = memo(function AboInfoContent() {
   const { data: spouseLinkRequest } = useQuery<SpouseLinkRequest | null>({
     queryKey: ['spouseLinkRequest'],
     queryFn: () => apiClient('/api/profile/spouse-link'),
-    // Only fetch for guests with no existing primary link
-    enabled: role === 'guest' && !profile?.primary_profile_id,
+    // Guard on !!profile to avoid firing before profile loads — role defaults to
+    // 'guest' so without this the query would execute for every user on mount.
+    enabled: !!profile && role === 'guest' && !profile.primary_profile_id,
   })
 
   const submitVerification = useMutation({
@@ -339,7 +340,7 @@ export const AboInfoContent = memo(function AboInfoContent() {
               className="mt-4 text-xs font-medium hover:underline"
               style={{ color: 'var(--text-secondary)' }}
             >
-              {t('profile.spouseLinkDesc').split('.')[0] + '?'}
+              {t('profile.spouseLinkEntryPoint')}
             </button>
           )}
         </>

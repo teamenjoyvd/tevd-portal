@@ -162,6 +162,7 @@ export const profile = {
   // ABO co-ownership / spouse link
   'profile.coOwner':                      { en: 'Co-owner',                   bg: 'Съсобственик'                         },
   'profile.spouseLinkDesc':               { en: 'Are you a co-owner on a shared ABO? Enter the primary account holder\'s ABO number to request a spouse link.', bg: 'Съсобственик ли сте на споделен ABO? Въведете ABO номера на основния титуляр, за да заявите свързване.' },
+  'profile.spouseLinkEntryPoint':         { en: 'Are you a co-owner on a shared ABO?', bg: 'Съсобственик ли сте на споделен ABO?'  },
   'profile.spouseLinkAboLabel':           { en: 'Primary account holder\'s ABO number', bg: 'ABO номер на основния титуляр'  },
   'profile.spouseLinkSubmit':             { en: 'Request spouse link',        bg: 'Заяви свързване на съпруг/а'          },
   'profile.spouseLinkPending':            { en: 'Spouse link request pending admin approval.', bg: 'Заявката за свързване на съпруг/а очаква одобрение от администратор.' },
