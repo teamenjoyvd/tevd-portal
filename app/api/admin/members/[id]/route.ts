@@ -41,11 +41,11 @@ export async function GET(
   ])
 
   return Response.json({
-    profile:      profileRes.data,
-    los:          losRes.data?.[0] ?? null,
+    profile:       profileRes.data,
+    los:           losRes.data?.[0] ?? null,
     registrations: registrationsRes.data ?? [],
-    payments:     paymentsRes.data ?? [],
-    roleRequests: roleRequestsRes.data ?? [],
+    payments:      paymentsRes.data ?? [],
+    roleRequests:  roleRequestsRes.data ?? [],
   })
 }
 
@@ -62,14 +62,113 @@ export async function PATCH(
   if (ctx.guard) return ctx.guard
 
   const body = await req.json()
+
+  // --- Action: promote_to_primary ---
+  // Swaps primary/secondary roles between two linked profiles.
+  // WARNING: calls rebuild_tree_paths — high-risk. Admin UI must surface a warning dialog.
+  if (body.action === 'promote_to_primary') {
+    const { secondary_id } = body
+    if (!secondary_id) {
+      return Response.json({ error: 'secondary_id is required' }, { status: 400 })
+    }
+
+    // Verify the relationship is valid before calling the RPC
+    const { data: secondary } = await supabase
+      .from('profiles')
+      .select('id, primary_profile_id')
+      .eq('id', secondary_id)
+      .single()
+    if (!secondary) return Response.json({ error: 'Secondary profile not found' }, { status: 404 })
+    if (secondary.primary_profile_id !== id) {
+      return Response.json(
+        { error: 'Profile is not a secondary of the specified primary.', error_code: 'not_linked' },
+        { status: 409 }
+      )
+    }
+
+    const { error: rpcErr } = await supabase
+      .rpc('promote_to_primary', {
+        p_current_primary_id:   id,
+        p_current_secondary_id: secondary_id,
+      })
+    if (rpcErr) return Response.json({ error: rpcErr.message }, { status: 500 })
+
+    return Response.json(
+      {
+        promoted: true,
+        warning: 'LOS tree paths have been rebuilt. Verify tree structure before next LOS import.',
+      },
+      { status: 200 }
+    )
+  }
+
+  // --- Action: dissolve_partnership ---
+  // Demotes a secondary profile back to guest, clears abo_number and primary_profile_id.
+  if (body.action === 'dissolve_partnership') {
+    // Only valid on a secondary profile (id = the secondary)
+    const { data: target } = await supabase
+      .from('profiles')
+      .select('id, primary_profile_id, role, clerk_id')
+      .eq('id', id)
+      .single()
+    if (!target) return Response.json({ error: 'Profile not found' }, { status: 404 })
+    if (!target.primary_profile_id) {
+      return Response.json(
+        { error: 'Profile is not a secondary account. Cannot dissolve.', error_code: 'not_secondary' },
+        { status: 400 }
+      )
+    }
+
+    const { error: updateErr } = await supabase
+      .from('profiles')
+      .update({ primary_profile_id: null, abo_number: null, role: 'guest' })
+      .eq('id', id)
+    if (updateErr) return Response.json({ error: updateErr.message }, { status: 500 })
+
+    await supabase.from('role_change_audit').insert({
+      profile_id: id,
+      changed_by: userId,
+      old_role: target.role,
+      new_role: 'guest',
+      note: 'Partnership dissolved by admin',
+    })
+
+    if (target.clerk_id) {
+      const clerk = await clerkClient()
+      await clerk.users.updateUserMetadata(target.clerk_id, {
+        publicMetadata: { role: 'guest' },
+      })
+    }
+
+    return Response.json({ dissolved: true }, { status: 200 })
+  }
+
+  // --- Deletion block guard ---
+  // Check before any demotion-to-guest whether a secondary exists.
+  // (Full DELETE handler not present; guard applies to any role downgrade.)
+  if (body.role === 'guest') {
+    const { data: secondary } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('primary_profile_id', id)
+      .maybeSingle()
+    if (secondary) {
+      return Response.json(
+        {
+          error: 'Cannot demote — a linked spouse account exists. Promote them to primary or dissolve the partnership first.',
+          error_code: 'has_secondary',
+        },
+        { status: 409 }
+      )
+    }
+  }
+
+  // --- Standard field patch ---
   const allowed = ['role', 'abo_number', 'first_name', 'last_name']
   const patch = Object.fromEntries(
     Object.entries(body).filter(([k]) => allowed.includes(k))
   )
 
-  // Role change: use atomic RPC so the profile update and audit row
-  // are committed in a single transaction. A failed audit insert rolls
-  // back the role change — no silent audit gaps.
   if (patch.role) {
     const { data: rows, error: rpcError } = await supabase
       .rpc('patch_member_role', {
@@ -81,7 +180,6 @@ export async function PATCH(
 
     const data = rows?.[0] ?? null
 
-    // Sync to Clerk publicMetadata so UserDropdown reflects immediately
     if (data?.clerk_id) {
       const clerk = await clerkClient()
       await clerk.users.updateUserMetadata(data.clerk_id, {
@@ -89,7 +187,6 @@ export async function PATCH(
       })
     }
 
-    // Apply any remaining non-role fields from the patch, if present
     const nonRolePatch = Object.fromEntries(
       Object.entries(patch).filter(([k]) => k !== 'role')
     )
@@ -103,7 +200,6 @@ export async function PATCH(
     return Response.json(data)
   }
 
-  // Non-role fields only
   const { data, error } = await supabase
     .from('profiles').update(patch).eq('id', id).select().single()
   if (error) return Response.json({ error: error.message }, { status: 500 })
