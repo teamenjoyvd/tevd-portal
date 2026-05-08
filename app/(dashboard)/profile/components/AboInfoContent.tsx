@@ -4,7 +4,7 @@ import { memo, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { getRoleColors } from '@/lib/role-colors'
-import { type Profile } from '../types'
+import { type Profile, type SpouseLinkRequest } from '../types'
 import { apiClient } from '@/lib/apiClient'
 
 type AboInfoMode = 'form' | 'pending' | 'confirmed' | 'member_manual'
@@ -25,6 +25,7 @@ function resolveErrorMessage(
     case 'upline_mismatch':    return t('profile.error.uplineMismatch')
     case 'abo_already_claimed': return t('profile.error.aboAlreadyClaimed')
     case 'upline_not_in_los':  return t('profile.error.uplineNotInLos')
+    case 'abo_has_primary':    return t('profile.error.aboHasPrimary')
     default:                   return error
   }
 }
@@ -42,15 +43,28 @@ export const AboInfoContent = memo(function AboInfoContent() {
   const aboNumber = profile?.abo_number ?? null
   const uplineData = profile?.upline ?? null
   const verRequest = profile?.verRequest ?? null
+  const spouse = profile?.spouse ?? null
 
   const rc = getRoleColors(role)
   const [verificationMode, setVerificationMode] = useState<'standard' | 'manual'>('standard')
   const [aboInput, setAboInput] = useState('')
   const [uplineInput, setUplineInput] = useState('')
 
+  // Spouse link flow state
+  const [showSpouseLink, setShowSpouseLink] = useState(false)
+  const [spouseAboInput, setSpouseAboInput] = useState('')
+
+  const { data: spouseLinkRequest } = useQuery<SpouseLinkRequest | null>({
+    queryKey: ['spouseLinkRequest'],
+    queryFn: () => apiClient('/api/profile/spouse-link'),
+    // Guard on !!profile to avoid firing before profile loads — role defaults to
+    // 'guest' so without this the query would execute for every user on mount.
+    enabled: !!profile && role === 'guest' && !profile.primary_profile_id,
+  })
+
   const submitVerification = useMutation({
     mutationFn: async (params: { claimed_abo?: string; claimed_upline_abo: string; request_type: 'standard' | 'manual' }) => {
-      // Intentionally using raw fetch instead of apiClient because apiClient 
+      // Intentionally using raw fetch instead of apiClient because apiClient
       // discards the custom 'error_code' needed for i18n translation mapping.
       const res = await fetch('/api/profile/verify-abo', {
         method: 'POST',
@@ -75,6 +89,29 @@ export const AboInfoContent = memo(function AboInfoContent() {
   const cancelVerification = useMutation({
     mutationFn: () => apiClient('/api/profile/verify-abo', { method: 'DELETE' }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['profile'] }),
+  })
+
+  const submitSpouseLink = useMutation({
+    mutationFn: async (claimed_primary_abo: string) => {
+      const res = await fetch('/api/profile/spouse-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ claimed_primary_abo }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Request failed')
+      return data
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['spouseLinkRequest'] })
+      setShowSpouseLink(false)
+      setSpouseAboInput('')
+    },
+  })
+
+  const cancelSpouseLink = useMutation({
+    mutationFn: () => apiClient('/api/profile/spouse-link', { method: 'DELETE' }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['spouseLinkRequest'] }),
   })
 
   if (role === 'guest' && profileIsPending) {
@@ -107,6 +144,9 @@ export const AboInfoContent = memo(function AboInfoContent() {
     mutationError?.error_code,
     t
   )
+
+  // When verify-abo returns abo_has_primary, surface the spouse link flow inline
+  const showSpouseLinkCta = mutationError?.error_code === 'abo_has_primary'
 
   // Stale-LOS hint for denied requests (admin_note signals stale LOS)
   const showStaleHint =
@@ -150,6 +190,14 @@ export const AboInfoContent = memo(function AboInfoContent() {
                 {uplineData?.upline_abo_number ?? '—'}
               </p>
             </div>
+            {spouse && (
+              <div className="grid grid-cols-2 gap-3 mt-2">
+                <p className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>{t('profile.coOwner')}</p>
+                <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                  {spouse.first_name} {spouse.last_name}
+                </p>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -243,6 +291,8 @@ export const AboInfoContent = memo(function AboInfoContent() {
               )}
               submitPending={submitVerification.isPending}
               submitError={submitErrorMessage}
+              showSpouseLinkCta={showSpouseLinkCta}
+              onSpouseLinkCtaClick={() => setShowSpouseLink(true)}
               t={t}
             />
           )}
@@ -250,22 +300,50 @@ export const AboInfoContent = memo(function AboInfoContent() {
       )}
 
       {aboMode === 'form' && (
-        <VerificationForm
-          verificationMode={verificationMode}
-          aboInput={aboInput}
-          uplineInput={uplineInput}
-          onModeChange={setVerificationMode}
-          onAboChange={setAboInput}
-          onUplineChange={setUplineInput}
-          onSubmit={() => submitVerification.mutate(
-            verificationMode === 'manual'
-              ? { request_type: 'manual', claimed_upline_abo: uplineInput.trim() }
-              : { request_type: 'standard', claimed_abo: aboInput.trim(), claimed_upline_abo: uplineInput.trim() }
+        <>
+          <VerificationForm
+            verificationMode={verificationMode}
+            aboInput={aboInput}
+            uplineInput={uplineInput}
+            onModeChange={setVerificationMode}
+            onAboChange={setAboInput}
+            onUplineChange={setUplineInput}
+            onSubmit={() => submitVerification.mutate(
+              verificationMode === 'manual'
+                ? { request_type: 'manual', claimed_upline_abo: uplineInput.trim() }
+                : { request_type: 'standard', claimed_abo: aboInput.trim(), claimed_upline_abo: uplineInput.trim() }
+            )}
+            submitPending={submitVerification.isPending}
+            submitError={submitErrorMessage}
+            showSpouseLinkCta={showSpouseLinkCta}
+            onSpouseLinkCtaClick={() => setShowSpouseLink(true)}
+            t={t}
+          />
+          {/* Spouse link flow — shown when abo_has_primary error or user taps the entry point */}
+          {(showSpouseLink || spouseLinkRequest) && (
+            <SpouseLinkSection
+              spouseLinkRequest={spouseLinkRequest ?? null}
+              spouseAboInput={spouseAboInput}
+              onAboChange={setSpouseAboInput}
+              onSubmit={() => submitSpouseLink.mutate(spouseAboInput.trim())}
+              onCancel={() => cancelSpouseLink.mutate()}
+              submitPending={submitSpouseLink.isPending}
+              submitError={submitSpouseLink.isError ? (submitSpouseLink.error as Error).message : null}
+              cancelPending={cancelSpouseLink.isPending}
+              t={t}
+            />
           )}
-          submitPending={submitVerification.isPending}
-          submitError={submitErrorMessage}
-          t={t}
-        />
+          {/* Entry point for guests with no active flow and no abo_has_primary error */}
+          {!showSpouseLink && !spouseLinkRequest && !showSpouseLinkCta && (
+            <button
+              onClick={() => setShowSpouseLink(true)}
+              className="mt-4 text-xs font-medium hover:underline"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              {t('profile.spouseLinkEntryPoint')}
+            </button>
+          )}
+        </>
       )}
     </div>
   )
@@ -281,6 +359,8 @@ function VerificationForm({
   onSubmit,
   submitPending,
   submitError,
+  showSpouseLinkCta,
+  onSpouseLinkCtaClick,
   t,
 }: {
   verificationMode: 'standard' | 'manual'
@@ -292,6 +372,8 @@ function VerificationForm({
   onSubmit: () => void
   submitPending: boolean
   submitError: string | null
+  showSpouseLinkCta: boolean
+  onSpouseLinkCtaClick: () => void
   t: (key: import('@/lib/i18n/translations').TranslationKey) => string
 }) {
   return (
@@ -352,6 +434,15 @@ function VerificationForm({
       {submitError && (
         <p className="text-xs" style={{ color: 'var(--brand-crimson)' }}>{submitError}</p>
       )}
+      {showSpouseLinkCta && (
+        <button
+          onClick={onSpouseLinkCtaClick}
+          className="w-full py-2 rounded-xl text-xs font-semibold border transition-colors hover:opacity-80"
+          style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+        >
+          {t('profile.spouseLinkSubmit')}
+        </button>
+      )}
       <button
         onClick={onSubmit}
         disabled={submitPending || (verificationMode === 'standard' ? (!aboInput || !uplineInput) : !uplineInput)}
@@ -359,6 +450,89 @@ function VerificationForm({
         style={{ backgroundColor: 'var(--text-primary)' }}
       >
         {submitPending ? t('profile.submitting') : t('profile.submitVerif')}
+      </button>
+    </div>
+  )
+}
+
+function SpouseLinkSection({
+  spouseLinkRequest,
+  spouseAboInput,
+  onAboChange,
+  onSubmit,
+  onCancel,
+  submitPending,
+  submitError,
+  cancelPending,
+  t,
+}: {
+  spouseLinkRequest: SpouseLinkRequest | null
+  spouseAboInput: string
+  onAboChange: (v: string) => void
+  onSubmit: () => void
+  onCancel: () => void
+  submitPending: boolean
+  submitError: string | null
+  cancelPending: boolean
+  t: (key: import('@/lib/i18n/translations').TranslationKey) => string
+}) {
+  if (spouseLinkRequest?.status === 'pending') {
+    return (
+      <div className="mt-4 rounded-xl px-4 py-3" style={{ backgroundColor: '#f2cc8f33' }}>
+        <p className="text-sm font-medium" style={{ color: '#7a5c00' }}>
+          {t('profile.spouseLinkPending')}
+        </p>
+        <button
+          onClick={onCancel}
+          disabled={cancelPending}
+          className="text-xs mt-2 font-medium hover:underline disabled:opacity-50"
+          style={{ color: 'var(--brand-crimson)' }}
+        >
+          {t('profile.spouseLinkCancelRequest')}
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mt-4 space-y-3" style={{ borderTop: '1px solid var(--border-default)', paddingTop: 16 }}>
+      {spouseLinkRequest?.status === 'denied' && (
+        <div className="rounded-xl px-4 py-3" style={{ backgroundColor: '#bc474915' }}>
+          <p className="text-sm font-medium" style={{ color: 'var(--brand-crimson)' }}>
+            {t('profile.spouseLinkDenied')}
+          </p>
+          {spouseLinkRequest.admin_note && (
+            <p className="text-xs mt-0.5" style={{ color: 'var(--brand-crimson)' }}>
+              {spouseLinkRequest.admin_note}
+            </p>
+          )}
+        </div>
+      )}
+      <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+        {t('profile.spouseLinkDesc')}
+      </p>
+      <div>
+        <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
+          {t('profile.spouseLinkAboLabel')}
+        </label>
+        <input
+          value={spouseAboInput}
+          onChange={e => onAboChange(e.target.value)}
+          placeholder="e.g. 7023040472"
+          className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm font-mono"
+          style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
+        />
+      </div>
+      {submitError && (
+        <p className="text-xs" style={{ color: 'var(--brand-crimson)' }}>{submitError}</p>
+      )}
+      <button
+        onClick={onSubmit}
+        disabled={submitPending || !spouseAboInput}
+        className="w-full py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity"
+        style={{ backgroundColor: 'var(--text-primary)' }}
+      >
+        {submitPending ? t('profile.submitting') : (spouseLinkRequest?.status === 'denied' ? t('profile.spouseLinkResubmit') : t('profile.spouseLinkSubmit'))}
       </button>
     </div>
   )
