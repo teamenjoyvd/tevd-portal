@@ -82,7 +82,7 @@ const LOS_KEYS = [
   ['annual_ppv', 'Annual PPV'], ['sponsoring', 'Sponsoring'],
 ]
 
-// ── Partnership section ───────────────────────────────────────────
+// ── Partnership section ───────────────────────────────────────────────────
 // Hoisted to module scope — avoids React remount anti-pattern.
 function PartnershipSection({
   profile,
@@ -92,35 +92,29 @@ function PartnershipSection({
   t,
 }: {
   profile: MemberDetail['profile']
-  onDissolve: (secondaryId: string) => void
+  onDissolve: () => void
   onPromote: (primaryId: string, secondaryId: string) => void
   isPending: boolean
   t: ReturnType<typeof useLanguage>['t']
 }) {
   const isSecondary = Boolean(profile.primary_profile_id)
-
-  // If secondary: fetch the primary profile to show their name
-  // If primary: fetch the secondary profile (the one that has primary_profile_id = this profile's id)
   const partnerId = isSecondary ? profile.primary_profile_id! : null
 
   const { data: primaryData, isLoading: loadingPrimary } = useQuery<PartnerProfile>({
     queryKey: ['admin-member', partnerId],
-    queryFn: () => fetch(`/api/admin/members/${partnerId}`).then(r => r.json()),
+    queryFn: () => fetch(`/api/admin/members/${partnerId}`).then(async r => {
+      if (!r.ok) throw new Error(`HTTP ${r.status}`)
+      return r.json()
+    }),
     enabled: isSecondary && !!partnerId,
   })
 
-  // For a primary, we need to find their secondary. Query all members is too expensive;
-  // instead we use a separate endpoint that returns secondary profile for a given primary.
-  // The existing GET /api/admin/members?secondary_of=[id] isn't built — so we skip
-  // partner name display for primaries and just show the section with actions.
-  // The secondary's [id] page will show the primary link anyway.
   const partnerName = isSecondary
     ? primaryData
       ? `${primaryData.profile.first_name} ${primaryData.profile.last_name}`.trim()
       : loadingPrimary ? t('admin.members.partnership.loadingPartner') : '—'
     : null
 
-  // Secondary view: show primary name + dissolve action (dissolve targets this profile's id)
   if (isSecondary) {
     return (
       <div className="mt-4 pt-4 border-t border-black/5">
@@ -136,50 +130,73 @@ function PartnershipSection({
               {partnerName}
             </p>
           </div>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <button
-                disabled={isPending}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-40 transition-opacity"
-                style={{ backgroundColor: '#bc474920', color: 'var(--brand-crimson)' }}
-              >
-                {t('admin.members.partnership.btn.dissolve')}
-              </button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>{t('admin.members.partnership.dissolveConfirmTitle')}</AlertDialogTitle>
-                <AlertDialogDescription>
-                  {t('admin.members.partnership.dissolveConfirmDesc').replace(
-                    '{{name}}',
-                    `${profile.first_name} ${profile.last_name}`.trim()
-                  )}
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>{t('admin.members.partnership.btn.cancel')}</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={() => onDissolve(profile.id)}
-                  style={{ backgroundColor: 'var(--brand-crimson)' }}
+          <div className="flex gap-2">
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <button
+                  disabled={isPending}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-40 transition-opacity"
+                  style={{ backgroundColor: 'rgba(0,0,0,0.06)', color: 'var(--text-primary)' }}
                 >
-                  {t('admin.members.partnership.btn.confirmAction')}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+                  {t('admin.members.partnership.btn.promote')}
+                </button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>{t('admin.members.partnership.promoteConfirmTitle')}</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {t('admin.members.partnership.promoteConfirmDesc')}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>{t('admin.members.partnership.btn.cancel')}</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => onPromote(partnerId!, profile.id)}
+                    style={{ backgroundColor: 'var(--brand-crimson)' }}
+                  >
+                    {t('admin.members.partnership.btn.confirmAction')}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <button
+                  disabled={isPending}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-40 transition-opacity"
+                  style={{ backgroundColor: '#bc474920', color: 'var(--brand-crimson)' }}
+                >
+                  {t('admin.members.partnership.btn.dissolve')}
+                </button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>{t('admin.members.partnership.dissolveConfirmTitle')}</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {t('admin.members.partnership.dissolveConfirmDesc').replace(
+                      '{{name}}',
+                      `${profile.first_name} ${profile.last_name}`.trim()
+                    )}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>{t('admin.members.partnership.btn.cancel')}</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => onDissolve()}
+                    style={{ backgroundColor: 'var(--brand-crimson)' }}
+                  >
+                    {t('admin.members.partnership.btn.confirmAction')}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         </div>
       </div>
     )
   }
 
-  // Primary view: show promote action.
-  // promote_to_primary route is called on the PRIMARY's id with secondary_id in body.
-  // We are on the secondary's page but the secondary is the one being promoted,
-  // so the route call is: PATCH /api/admin/members/[primaryId] { action, secondary_id: currentId }
-  // The primary's id is profile.primary_profile_id on the secondary.
-  // Since we're currently on a PRIMARY profile (isSecondary = false),
-  // we do NOT have a secondary_id here. The promote button only makes sense on the SECONDARY's page.
-  // Return null for primary — no Partnership section rendered for primaries.
   return null
 }
 
@@ -193,7 +210,10 @@ export default function MemberDetailPage() {
 
   const { data, isLoading } = useQuery<MemberDetail>({
     queryKey: ['admin-member', id],
-    queryFn: () => fetch(`/api/admin/members/${id}`).then(r => r.json()),
+    queryFn: () => fetch(`/api/admin/members/${id}`).then(async r => {
+      if (!r.ok) throw new Error(`HTTP ${r.status}`)
+      return r.json()
+    }),
   })
 
   const updateMutation = useMutation({
@@ -202,7 +222,10 @@ export default function MemberDetailPage() {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(patch),
-      }).then(r => r.json()),
+      }).then(async r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`)
+        return r.json()
+      }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-member', id] })
       qc.invalidateQueries({ queryKey: ['admin-members'] })
@@ -210,29 +233,29 @@ export default function MemberDetailPage() {
     },
   })
 
-  // dissolve_partnership: PATCH on secondary's id (= current profile id)
-  const handleDissolve = (secondaryId: string) => {
-    updateMutation.mutate({ action: 'dissolve_partnership' }, {
-      // id is already the secondary's id (this profile)
-      // The mutationFn patches /api/admin/members/[id] — correct
-    })
-    void secondaryId // id already used via closure
+  const promoteMutation = useMutation({
+    mutationFn: ({ primaryId, secondaryId }: { primaryId: string; secondaryId: string }) =>
+      fetch(`/api/admin/members/${primaryId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'promote_to_primary', secondary_id: secondaryId }),
+      }).then(async r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`)
+        return r.json()
+      }),
+    onSuccess: (_data, { primaryId }) => {
+      qc.invalidateQueries({ queryKey: ['admin-member', id] })
+      qc.invalidateQueries({ queryKey: ['admin-member', primaryId] })
+      qc.invalidateQueries({ queryKey: ['admin-members'] })
+    },
+  })
+
+  const handleDissolve = () => {
+    updateMutation.mutate({ action: 'dissolve_partnership' })
   }
 
-  // promote_to_primary: PATCH on PRIMARY's id, body includes secondary_id = current profile
   const handlePromote = (primaryId: string, secondaryId: string) => {
-    fetch(`/api/admin/members/${primaryId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'promote_to_primary', secondary_id: secondaryId }),
-    })
-      .then(r => r.json())
-      .then(() => {
-        qc.invalidateQueries({ queryKey: ['admin-member', id] })
-        qc.invalidateQueries({ queryKey: ['admin-member', primaryId] })
-        qc.invalidateQueries({ queryKey: ['admin-members'] })
-      })
-      .catch(() => {})
+    promoteMutation.mutate({ primaryId, secondaryId })
   }
 
   if (isLoading) {
@@ -259,6 +282,8 @@ export default function MemberDetailPage() {
   const totalPaid = payments
     .filter(p => p.status === 'completed')
     .reduce((sum, p) => sum + p.amount, 0)
+
+  const isPending = updateMutation.isPending || promoteMutation.isPending
 
   return (
     <div className="p-6">
@@ -373,7 +398,7 @@ export default function MemberDetailPage() {
             profile={profile}
             onDissolve={handleDissolve}
             onPromote={handlePromote}
-            isPending={updateMutation.isPending}
+            isPending={isPending}
             t={t}
           />
         )}

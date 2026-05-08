@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from '@/lib/toast'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 
-// ── Types ────────────────────────────────────────────────────────
+// ── Types ────────────────────────────────────────────────
 
 type Profile = { id: string; first_name: string; last_name: string; contact_email?: string; role?: string }
 type ClaimedPrimary = { id: string; first_name: string; last_name: string; abo_number: string | null; role?: string }
@@ -20,7 +20,7 @@ export type SpouseLinkRequest = {
   claimed_primary: ClaimedPrimary | null
 }
 
-// ── Helpers ──────────────────────────────────────────────────────
+// ── Helpers ──────────────────────────────────────────────
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -31,7 +31,7 @@ function fullName(p: { first_name: string; last_name: string } | null) {
   return `${p.first_name} ${p.last_name}`.trim()
 }
 
-// ── Row: deny input state ────────────────────────────────────────
+// ── Row: deny input state ──────────────────────────────────
 // Hoisted to module scope — avoids React remount anti-pattern.
 function DenyForm({
   onCancel,
@@ -81,7 +81,7 @@ function DenyForm({
   )
 }
 
-// ── Component ────────────────────────────────────────────────────
+// ── Component ────────────────────────────────────────────
 
 export function SpouseLinkRequestsTab() {
   const { t } = useLanguage()
@@ -90,7 +90,10 @@ export function SpouseLinkRequestsTab() {
 
   const { data: requests = [], isLoading } = useQuery<SpouseLinkRequest[]>({
     queryKey: ['spouse-link-requests'],
-    queryFn: () => fetch('/api/admin/spouse-link-requests').then(r => r.json()),
+    queryFn: () => fetch('/api/admin/spouse-link-requests').then(async r => {
+      if (!r.ok) throw new Error(`HTTP ${r.status}`)
+      return r.json()
+    }),
   })
 
   const actionMutation = useMutation({
@@ -107,7 +110,6 @@ export function SpouseLinkRequestsTab() {
     onMutate: async ({ id }) => {
       await qc.cancelQueries({ queryKey: ['spouse-link-requests'] })
       const prev = qc.getQueryData<SpouseLinkRequest[]>(['spouse-link-requests'])
-      // Optimistic: remove the row from pending view immediately
       qc.setQueryData<SpouseLinkRequest[]>(['spouse-link-requests'],
         old => old?.filter(r => r.id !== id)
       )
