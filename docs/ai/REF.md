@@ -46,7 +46,7 @@ calMonth(iso)        // MAR
 
 **`lib/role-colors.ts`** — always `getRoleColors(role)`, never hardcode role bg/font inline.
 
-**`lib/supabase/service.ts`** — singleton service role client. Do not instantiate per request.
+**`lib/supabase/service.ts`** — returns a fresh `createClient` on every call. No module-level singleton (removed in #307 — singleton risked auth-header contamination across warm lambda requests).
 
 **`lib/email/send.ts`** — two public dispatchers:
 - `sendNotificationEmail(payload)` — `Promise<void>`, fire-and-forget, respects `email_config` gates, errors swallowed to `email_log`.
@@ -315,6 +315,10 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
 
 **`role_change_audit`** — `id, profile_id, old_role, new_role, changed_by, note, changed_at`
 
+**`verification_log`** — `id, request_id → abo_verification_requests (nullable), error_code, error_message, error_context (jsonb), created_at`
+- Written by `approve_member_verification` EXCEPTION block. Service-role only (RLS enabled, no authenticated/anon policies).
+- Added in #307 (migration `20260509_001`).
+
 **`tree_nodes`** — `id, profile_id, parent_id, path (ltree), depth, created_at`
 - No-ABO label: `p_<uuid_no_hyphens>`. ABO assignment renames node → calls `rebuild_tree_paths`.
 - ADR-016: secondary profiles never have a `tree_nodes` row. LOS read-path resolves via `primary_profile_id`.
@@ -408,8 +412,8 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
 | `pin_social_post(p_id uuid)` | Atomic pin swap |
 | `get_core_ancestors(uuid)` | Core-role UUIDs above a node |
 | `rebuild_tree_paths` | Cascade ABO label rename to descendants |
-| `upsert_tree_node(p_profile_id, p_abo_number, p_sponsor_abo_number?)` | Insert/update tree node; walks `los_members` sponsor chain (max 20 hops) if direct sponsor has no portal profile |
-| `approve_member_verification(p_request_id, p_admin_note?)` | Approve ABO verification — LOS guard (existence + sponsor match + duplicate check), writes `abo_number` + `upline_abo_number`, places in tree |
+| `upsert_tree_node(p_profile_id, p_abo_number, p_sponsor_abo_number?)` | Insert/update tree node. ⚠️ No longer calls `rebuild_tree_paths` (#307) — mutual recursion removed. Path computed inline. |
+| `approve_member_verification(p_request_id, p_admin_note?)` | Approve ABO verification — LOS guard (existence + sponsor match + duplicate check), writes `abo_number` + `upline_abo_number`, places in tree. **v2 (#307):** returns `TABLE(profile_id, abo_number, upline_abo_number, role, tree_path)`; idempotency guard raises SQLSTATE 23505 on already-approved; EXCEPTION block logs to `verification_log`. |
 | `patch_member_role(p_profile_id, p_new_role, p_changed_by, p_note?)` | Role update with audit trail — returns updated profile |
 | `get_trip_team_attendees(p_trip_id, p_viewer_profile)` | Returns Core/admin attendees for a trip |
 | `import_los_members(p_rows, p_imported_by?, p_expected_row_count?)` | Transactional LOS import: concurrency check → snapshot → upsert → server-side delete → rebuild_tree_paths → insert los_imports record. Returns `{ inserted, removed, import_id, errors }`. |
