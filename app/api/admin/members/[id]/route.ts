@@ -183,6 +183,27 @@ export async function PATCH(
   )
 
   if (patch.role) {
+    // ADR-016 GCR C3: secondary profiles have no tree_nodes row and must not hold
+    // tree-bearing roles (core, admin). member is the ceiling until the partnership
+    // is dissolved and they become a standalone primary.
+    const TREE_ROLES = ['core', 'admin'] as const
+    if (TREE_ROLES.includes(patch.role as typeof TREE_ROLES[number])) {
+      const { data: target } = await supabase
+        .from('profiles')
+        .select('primary_profile_id')
+        .eq('id', id)
+        .single()
+      if (target?.primary_profile_id) {
+        return Response.json(
+          {
+            error: 'Cannot promote a secondary profile to core or admin. Dissolve the partnership first.',
+            error_code: 'secondary_role_ceiling',
+          },
+          { status: 409 }
+        )
+      }
+    }
+
     const { data: rows, error: rpcError } = await supabase
       .rpc('patch_member_role', {
         p_profile_id: id,
