@@ -730,6 +730,8 @@ Option A (`primary_profile_id` on `profiles`) is implemented as the current solu
 ### Why Option A over Option B now
 `tree_nodes`, `upsert_tree_node`, `get_core_ancestors`, `rebuild_tree_paths`, and the LOS import pipeline (`import_los_members` RPC) were all built assuming one profile = one tree node. Making them partnership-aware requires modifying Postgres RPCs that run against production data during LOS import — the highest-risk operation in the portal. Option A defers that risk: only read-path routes need a proxy (`primary_profile_id ?? profile.id`), not the write path or RPCs.
 
+`import_los_members` writes to `los_members` (the external Amway data table) and has no join to `profiles` — it is unaffected by the non-uniqueness of `abo_number` in `profiles`.
+
 At zero spouse pairs in production today, paying the full `abo_partnerships` cost upfront is unjustified.
 
 ### `primary_profile_id` semantics
@@ -748,12 +750,16 @@ The secondary profile:
 ### Routes with proxy fix required
 - `app/api/profile/los-summary/route.ts` — `treeProfileId = profile.primary_profile_id ?? profile.id`
 - `app/api/profile/upline/route.ts` — same pattern
-- `notify_*` RPCs that call `get_core_ancestors` — only relevant if secondary reaches `core` role (future concern)
+- `app/api/admin/members/[id]/route.ts` — GET resolves `tree_nodes` via primary when profile is secondary
+- `notify_*` RPCs that call `get_core_ancestors` — only relevant if secondary reaches `core` role (Ticket 2 role guard prevents this for now)
+
+### Invariants enforced at the database level
+- FK `primary_profile_id → profiles(id) ON DELETE SET NULL` — if primary is deleted, secondary link is cleared (not hard-blocked; app-layer prevents deletion when secondary exists)
+- `UNIQUE INDEX profiles_primary_profile_id_key WHERE primary_profile_id IS NOT NULL` — enforces max one secondary per primary; NULLs excluded so standalone profiles are unaffected
 
 ### Invariants enforced in application code
 - A secondary (`primary_profile_id IS NOT NULL`) cannot be someone else's primary — enforced in the spouse link approval route
-- Maximum one secondary per primary — enforced at approval time
-- Deletion of a primary is blocked if a secondary exists — enforced in the admin members route
+- Deletion/demotion of a primary is blocked when a secondary exists — enforced in `app/api/admin/members/[id]` PATCH
 - `promote_to_primary` is an atomic RPC: transfers `tree_nodes` row + `rebuild_tree_paths` + swaps `primary_profile_id` values
 - Partnership dissolution: secondary → `primary_profile_id = NULL`, `abo_number = NULL`, `role = 'guest'`
 

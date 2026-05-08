@@ -20,6 +20,19 @@ export async function GET(
     .eq('id', id)
     .single()
 
+  // ADR-016: secondary profiles have no tree_nodes row. Resolve tree position
+  // via primary_profile_id, mirroring the pattern in los-summary and upline routes.
+  const treeProfileId = profileRes.data?.primary_profile_id ?? id
+  let treeNodes = profileRes.data?.tree_nodes ?? null
+  if (profileRes.data?.primary_profile_id && !treeNodes) {
+    const { data: primaryTreeData } = await supabase
+      .from('profiles')
+      .select('tree_nodes(path, depth)')
+      .eq('id', treeProfileId)
+      .single()
+    treeNodes = primaryTreeData?.tree_nodes ?? null
+  }
+
   const aboNumber = profileRes.data?.abo_number ?? ''
 
   const [losRes, registrationsRes, paymentsRes, roleRequestsRes] = await Promise.all([
@@ -41,7 +54,7 @@ export async function GET(
   ])
 
   return Response.json({
-    profile:       profileRes.data,
+    profile:       { ...profileRes.data, tree_nodes: treeNodes },
     los:           losRes.data?.[0] ?? null,
     registrations: registrationsRes.data ?? [],
     payments:      paymentsRes.data ?? [],
