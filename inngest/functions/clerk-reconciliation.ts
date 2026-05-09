@@ -38,7 +38,7 @@ export const clerkReconciliation = inngest.createFunction(
             AND r.status = 'approved'
             AND r.resolved_at > NOW() - INTERVAL '1 hour'
         `
-        return rows as Array<{
+        return rows as unknown as Array<{
           profile_id: string
           clerk_id: string
           request_id: string
