@@ -15,10 +15,12 @@ import { type NextRequest } from 'next/server'
  * Security is enforced by Inngest signing key verification in the SDK.
  * Public route — listed in lib/public-routes.ts.
  *
- * Note: inngest@3 serve() handlers accept only (req: NextRequest).
- * The ctx/params second arg is not part of the v3 signature.
+ * inngest@3 serve() types .GET/.POST/.PUT as (req, ctx) where ctx carries
+ * route params. This route has no dynamic segments so params is always {}.
  */
 export const dynamic = 'force-dynamic'
+
+type InngestCtx = { params: Record<string, string> }
 
 function getHandler() {
   return serve({
@@ -27,14 +29,14 @@ function getHandler() {
   })
 }
 
-export async function GET(req: NextRequest) {
-  return getHandler().GET(req)
+export async function GET(req: NextRequest, ctx: InngestCtx) {
+  return getHandler().GET(req, ctx)
 }
 
-export async function POST(req: NextRequest) {
-  return getHandler().POST(req)
+export async function POST(req: NextRequest, ctx: InngestCtx) {
+  return getHandler().POST(req, ctx)
 }
 
-export async function PUT(req: NextRequest) {
-  return getHandler().PUT(req)
+export async function PUT(req: NextRequest, ctx: InngestCtx) {
+  return getHandler().PUT(req, ctx)
 }
