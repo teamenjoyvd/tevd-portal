@@ -24,14 +24,14 @@ function getHandler() {
   })
 }
 
-export async function GET(req: NextRequest) {
-  return getHandler().GET(req)
+export async function GET(req: NextRequest, ctx: { params: Promise<Record<string, string>> }) {
+  return getHandler().GET(req, ctx)
 }
 
-export async function POST(req: NextRequest) {
-  return getHandler().POST(req)
+export async function POST(req: NextRequest, ctx: { params: Promise<Record<string, string>> }) {
+  return getHandler().POST(req, ctx)
 }
 
-export async function PUT(req: NextRequest) {
-  return getHandler().PUT(req)
+export async function PUT(req: NextRequest, ctx: { params: Promise<Record<string, string>> }) {
+  return getHandler().PUT(req, ctx)
 }
