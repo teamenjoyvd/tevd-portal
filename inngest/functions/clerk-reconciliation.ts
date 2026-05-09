@@ -5,16 +5,16 @@ import { clerkClient } from '@clerk/nextjs/server'
 /**
  * Scheduled Inngest function — runs every 15 minutes.
  *
- * Detects profiles where Supabase has role = 'member' but the Clerk
- * publicMetadata.role does not match. This indicates a split-state caused
- * by a Clerk sync failure in the approval flow.
+ * Detects profiles where Supabase has role = 'member' but Clerk
+ * publicMetadata.role does not match. This is a split-state caused by a
+ * Clerk sync failure in the approval flow.
  *
  * Scope: only profiles whose verification request was resolved within the
  * last 1 hour to avoid scanning the full table on every run.
  *
  * On each drift detected:
  *   1. Patches Clerk publicMetadata.role to 'member'.
- *   2. Logs the correction to verification_log.
+ *   2. Logs the correction to verification_log (error_message column).
  */
 export const clerkReconciliation = inngest.createFunction(
   {
@@ -30,7 +30,7 @@ export const clerkReconciliation = inngest.createFunction(
           SELECT
             p.id AS profile_id,
             p.clerk_id,
-            p.first_name
+            r.id AS request_id
           FROM profiles p
           JOIN abo_verification_requests r ON r.profile_id = p.id
           WHERE
@@ -41,7 +41,7 @@ export const clerkReconciliation = inngest.createFunction(
         return rows as Array<{
           profile_id: string
           clerk_id: string
-          first_name: string | null
+          request_id: string
         }>
       }
     )
@@ -55,7 +55,7 @@ export const clerkReconciliation = inngest.createFunction(
       await step.run(
         `reconcile-${profile.profile_id}`,
         async () => {
-          // Fetch current Clerk metadata to check for actual drift
+          // Check actual Clerk metadata to detect real drift
           const clerkUser = await clerk.users.getUser(profile.clerk_id)
           const clerkRole = (clerkUser.publicMetadata as { role?: string })?.role
 
@@ -66,16 +66,15 @@ export const clerkReconciliation = inngest.createFunction(
             publicMetadata: { role: 'member' },
           })
 
-          // Log correction to verification_log
+          // Log correction — verification_log uses error_message as the message column
           await sql`
             INSERT INTO verification_log
-              (profile_id, event, note, created_at)
+              (request_id, error_message, error_code)
             VALUES
               (
-                ${profile.profile_id},
-                'clerk_reconciliation',
-                ${'Clerk role patched from ' + (clerkRole ?? 'unknown') + ' to member by scheduled reconciliation'},
-                NOW()
+                ${profile.request_id},
+                ${'clerk_reconciliation: patched role from ' + (clerkRole ?? 'unknown') + ' to member'},
+                'clerk_drift_corrected'
               )
           `
 

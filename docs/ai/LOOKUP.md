@@ -1,5 +1,5 @@
 # LOOKUP.md — teamenjoyVD Portal Reference Tables
-> Last updated: 2026-05-08
+> Last updated: 2026-05-09
 > **Read on demand in GATHER only. Never read at SSU or at GATHER start.**
 > Pull only the sections the ticket needs. See section map in REF.md header.
 
@@ -54,6 +54,7 @@
     /admin/members/[id]/route.ts         # ADR-016: promote_to_primary, dissolve_partnership, has_secondary guard
     /admin/members/[id]/vital-signs/route.ts
     /admin/members/[id]/vital-signs/[definitionId]/route.ts
+    /admin/members/verify/[id]/route.ts  # PATCH approve→202+enqueue / deny→sync
     /admin/payable-items/route.ts
     /admin/payable-items/[id]/route.ts
     /admin/payments/route.ts
@@ -80,6 +81,7 @@
     /events/[id]/register/route.ts
     /guides/route.ts
     /home/route.ts
+    /inngest/route.ts            # Inngest serve handler — public, signing key auth
     /links/route.ts
     /los/tree/route.ts
     /notifications/route.ts
@@ -110,7 +112,13 @@
   /layout/UserPopup.tsx
   /layout/BottomNav.tsx          # DEAD STUB — do not import
   /ui/Drawer.tsx
+/inngest
+  /client.ts                    # Inngest client (id: 'tevd-portal')
+  /functions/
+    /approve-verification.ts    # 3-step durable approval function
+    /clerk-reconciliation.ts    # Scheduled Clerk drift patch (every 15 min)
 /lib
+  /db/client.ts                 # postgres.js direct connection — Inngest steps only
   /format.ts
   /hooks/useTheme.ts
   /hooks/useLanguage.ts
@@ -276,6 +284,16 @@
 - RLS: admin-only via `is_admin()`.
 - Snapshot acceptable at current LOS scale (~69 rows); revisit if LOS exceeds ~5K rows.
 
+**`approval_jobs`**
+`id, request_id → abo_verification_requests (UNIQUE), inngest_event_id, status (processing|clerk_synced|done|failed), error, created_at, updated_at, settled_at`
+- RLS: service role only — no authenticated or anon policies.
+- One row per verification request (UNIQUE on `request_id`).
+
+**`verification_log`**
+`id, request_id → abo_verification_requests, error_message (NOT NULL), error_code, error_context (jsonb), created_at`
+- Used by #307 idempotency guards and Clerk reconciliation job.
+- `error_message` is the primary log message. `error_code` is a machine-readable tag.
+
 ---
 
 ## 3. API / RPC Map
@@ -332,6 +350,7 @@
 | `/api/admin/members/[id]` | GET, PATCH | Member profile + unified data. PATCH actions: standard field update; `action: 'promote_to_primary'` (calls RPC, warns of tree rebuild); `action: 'dissolve_partnership'` (secondary only). Deletion block returns 409 `has_secondary` if primary has a linked spouse. |
 | `/api/admin/members/[id]/vital-signs` | GET, POST | Read/record vital signs for member |
 | `/api/admin/members/[id]/vital-signs/[definitionId]` | PATCH, DELETE | Update/remove vital sign record |
+| `/api/admin/members/verify/[id]` | PATCH | approve → 202 + enqueue Inngest event; deny → synchronous in-route |
 | `/api/admin/payable-items` | GET, POST | List + create payable items |
 | `/api/admin/payable-items/[id]` | PATCH, DELETE | Update/deactivate item |
 | `/api/admin/payments` | GET, POST | All payments + log payment |
@@ -352,6 +371,7 @@
 | `/api/admin/verify` | POST | Approve/deny ABO verification — MUST sync Clerk metadata |
 | `/api/admin/vital-sign-definitions` | GET, POST | List + create definitions |
 | `/api/admin/vital-sign-definitions/[id]` | PATCH, DELETE | Update/deactivate definition |
+| `/api/inngest` | GET, POST, PUT | Inngest serve handler — public route; Inngest signing key auth only |
 
 ### Guest registration
 | File | Purpose |
@@ -365,7 +385,7 @@
 | `get_core_ancestors(uuid)` | Returns Core-role profile UUIDs above a given node |
 | `rebuild_tree_paths` | Cascades ABO label rename down all descendants |
 | `upsert_tree_node(p_profile_id, p_abo_number, p_sponsor_abo_number?)` | Insert/update tree node; walks `los_members` sponsor chain (max 20 hops, cycle guard) if direct sponsor has no portal profile |
-| `approve_member_verification(p_request_id, p_admin_note?)` | Approve ABO verification — LOS guard (existence + sponsor match + duplicate), writes `abo_number` + `upline_abo_number`, places in tree |
+| `approve_member_verification(p_request_id, p_admin_note?)` | **DEPRECATED** — retained for rollback only. Logic now in Inngest approve-verification Step 1. |
 | `patch_member_role(p_profile_id, p_new_role, p_changed_by, p_note?)` | Role update with audit trail — returns updated profile |
 | `get_trip_team_attendees(p_trip_id, p_viewer_profile)` | Returns Core/admin attendees for a trip |
 | `import_los_members(p_rows, p_imported_by?, p_expected_row_count?)` | Transactional LOS import: concurrency check → snapshot → upsert → server-side delete → rebuild_tree_paths → insert los_imports. Returns `{ inserted, removed, import_id, errors }`. |
@@ -451,7 +471,7 @@ Period selector order: AGENDA → DAY → WEEK → MONTH
 ### Access Control
 Role hierarchy: `admin > core > member > guest`
 
-Public (no auth): `/`, `/about`, `/calendar`, `/trips`. Auth-required: all other routes.
+Public (no auth): `/`, `/about`, `/calendar`, `/trips`. Auth-required: all other routes. Exception: `/api/inngest` is public by design — Inngest signing key is the auth gate.
 
 Every `profiles.role` update MUST also call `clerk.users.updateUserMetadata`. See FLOWS.md §1.
 
@@ -474,6 +494,9 @@ Every `profiles.role` update MUST also call `clerk.users.updateUserMetadata`. Se
 | `FB_PAGE_ACCESS_TOKEN` | Meta Graph API | ⏳ Pending |
 | `FB_PAGE_ID` | Meta Graph API | ⏳ Pending |
 | `RESEND_API_KEY` | Resend email delivery | ✅ |
+| `DATABASE_URL` | Direct Postgres connection (port 5432, NOT pooler 6543). Used by `lib/db/client.ts` inside Inngest job steps. | ⚠️ **Must be set** |
+| `INNGEST_SIGNING_KEY` | Authenticates Inngest callbacks to `/api/inngest`. Endpoint is public; signing key is the only security gate. | ⚠️ **Must be set** |
+| `INNGEST_EVENT_KEY` | Authenticates event ingestion from `inngest.send()`. | ⚠️ **Must be set** |
 
 ---
 

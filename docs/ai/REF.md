@@ -48,9 +48,17 @@ calMonth(iso)        // MAR
 
 **`lib/supabase/service.ts`** — singleton service role client. Do not instantiate per request.
 
+**`lib/db/client.ts`** — postgres.js direct connection client (port 5432). Use ONLY inside Inngest job steps where explicit transactions are required. Never use in Next.js route handlers or RSC — use `createServiceClient()` there.
+
 **`lib/email/send.ts`** — two public dispatchers:
 - `sendNotificationEmail(payload)` — `Promise<void>`, fire-and-forget, respects `email_config` gates, errors swallowed to `email_log`.
 - `sendTransactionalEmail(payload)` — `Promise<TransactionalEmailResult>`, bypasses gates, caller checks `result.sent`. Use when the email IS the feature (magic links, access links).
+
+**`inngest/client.ts`** — shared Inngest client (`id: 'tevd-portal'`). Import `inngest` from here to send events or create functions.
+
+**`inngest/functions/approve-verification.ts`** — 3-step durable function for member approval: Step 1 DB transaction, Step 2 Clerk sync, Step 3 notifications+email.
+
+**`inngest/functions/clerk-reconciliation.ts`** — scheduled function (every 15 min): detects and patches any split-state profiles where Supabase role=member but Clerk metadata stale.
 
 **`components/ui/Drawer.tsx`** — right slide-over. Props: `open`, `onClose`, `title`, `children`. Use for ALL admin create/edit forms. Exceptions: Announcements + Quick Links create = inline cards. All deletes use `AlertDialog`.
 
@@ -164,6 +172,7 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
     /events/[id]/register/route.ts # POST — guest registration (public)
     /guides/route.ts
     /home/route.ts                 # GET — home_settings for homepage RSC
+    /inngest/route.ts              # Inngest serve handler — public route, signing key auth only
     /links/route.ts                # GET — active links for member view
     /los/tree/route.ts             # GET — member LOS tree
     /notifications/route.ts        # GET, PATCH — own notifications
@@ -194,7 +203,13 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
   /layout/UserPopup.tsx
   /layout/BottomNav.tsx            # DEAD STUB — do not import
   /ui/Drawer.tsx
+/inngest
+  /client.ts                      # Inngest client (id: 'tevd-portal')
+  /functions/
+    /approve-verification.ts      # 3-step durable approval function
+    /clerk-reconciliation.ts      # Scheduled Clerk drift patch (every 15 min)
 /lib
+  /db/client.ts                   # postgres.js direct connection — Inngest steps only
   /format.ts
   /hooks/useTheme.ts
   /hooks/useLanguage.ts
@@ -325,6 +340,14 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
 - RLS: admin-only read/write via `is_admin()`.
 - Snapshot size acceptable at current LOS scale (~69 rows). Revisit if LOS exceeds ~5K rows.
 
+**`approval_jobs`** — `id, request_id → abo_verification_requests, inngest_event_id, status (processing|clerk_synced|done|failed), error, created_at, updated_at, settled_at`
+- RLS: service role only — no authenticated or anon policies.
+- One row per verification request (UNIQUE on `request_id`).
+
+**`verification_log`** — `id, request_id → abo_verification_requests, error_message, error_code, error_context, created_at`
+- Used by #307 idempotency guards and by the Clerk reconciliation job to log drift corrections.
+- `error_message` is the primary log message (NOT NULL). `error_code` is a machine-readable tag.
+
 ---
 
 ## §6 API & RPC Map
@@ -401,6 +424,8 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
 | `/api/admin/verify` | POST | ABO approve/deny — MUST sync Clerk metadata |
 | `/api/admin/vital-sign-definitions` | GET, POST | |
 | `/api/admin/vital-sign-definitions/[id]` | PATCH, DELETE | |
+| `/api/inngest` | GET, POST, PUT | Inngest serve handler — **public route**; Inngest signing key auth only. Must be in proxy.ts public list. |
+| `/api/admin/members/verify/[id]` | PATCH | approve → 202+enqueue Inngest job; deny → synchronous in-route |
 
 ### Supabase RPCs
 | RPC | Purpose |
@@ -409,7 +434,7 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
 | `get_core_ancestors(uuid)` | Core-role UUIDs above a node |
 | `rebuild_tree_paths` | Cascade ABO label rename to descendants |
 | `upsert_tree_node(p_profile_id, p_abo_number, p_sponsor_abo_number?)` | Insert/update tree node; walks `los_members` sponsor chain (max 20 hops) if direct sponsor has no portal profile |
-| `approve_member_verification(p_request_id, p_admin_note?)` | Approve ABO verification — LOS guard (existence + sponsor match + duplicate check), writes `abo_number` + `upline_abo_number`, places in tree |
+| `approve_member_verification(p_request_id, p_admin_note?)` | **DEPRECATED** — retained as fallback only. Logic now lives in Inngest approve-verification Step 1. |
 | `patch_member_role(p_profile_id, p_new_role, p_changed_by, p_note?)` | Role update with audit trail — returns updated profile |
 | `get_trip_team_attendees(p_trip_id, p_viewer_profile)` | Returns Core/admin attendees for a trip |
 | `import_los_members(p_rows, p_imported_by?, p_expected_row_count?)` | Transactional LOS import: concurrency check → snapshot → upsert → server-side delete → rebuild_tree_paths → insert los_imports record. Returns `{ inserted, removed, import_id, errors }`. |
@@ -510,6 +535,9 @@ Period selector order: AGENDA → DAY → WEEK → MONTH
 | `ICAL_TOKEN_SECRET` | ✅ |
 | `NEXT_PUBLIC_APP_URL` | `https://tevd-portal.vercel.app` |
 | `RESEND_API_KEY` | ✅ |
+| `DATABASE_URL` | ⚠️ **Must be set** — direct Postgres connection (port 5432, NOT pooler 6543). Used by `lib/db/client.ts` inside Inngest jobs. |
+| `INNGEST_SIGNING_KEY` | ⚠️ **Must be set** — authenticates Inngest callbacks to `/api/inngest`. Endpoint is unauthenticated by Clerk; signing key is the only security gate. |
+| `INNGEST_EVENT_KEY` | ⚠️ **Must be set** — authenticates event ingestion from `inngest.send()`. |
 | `INSTAGRAM_ACCESS_TOKEN` | ⏳ pending |
 | `FB_PAGE_ACCESS_TOKEN` | ⏳ pending |
 | `FB_PAGE_ID` | ⏳ pending |
