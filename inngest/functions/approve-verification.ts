@@ -36,6 +36,7 @@ export const approveVerification = inngest.createFunction(
   { event: 'verification/approve' },
   async ({ event, step }) => {
     const { requestId, adminClerkId, adminNote } = event.data
+    const inngestEventId: string | null = event.id ?? null
 
     // -----------------------------------------------------------------------
     // Step 1: DB transaction
@@ -126,7 +127,7 @@ export const approveVerification = inngest.createFunction(
           INSERT INTO approval_jobs
             (request_id, inngest_event_id, status)
           VALUES
-            (${requestId}, ${event.id}, 'processing')
+            (${requestId}, ${inngestEventId}, 'processing')
           ON CONFLICT (request_id) DO UPDATE
             SET status = 'processing', updated_at = NOW()
         `
