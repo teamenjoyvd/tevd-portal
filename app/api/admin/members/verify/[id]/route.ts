@@ -1,6 +1,5 @@
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { inngest } from '@/inngest/client'
 
 /**
  * PATCH /api/admin/members/verify/[id]
@@ -12,6 +11,10 @@ import { inngest } from '@/inngest/client'
  *
  * deny path:
  *   Synchronous — no external API calls, no atomicity risk. Handled in-route.
+ *
+ * inngest is imported dynamically inside the approve branch to prevent
+ * decodeURIComponent crash during Next.js build-time page data collection
+ * (INNGEST_EVENT_KEY is absent at build time).
  */
 export async function PATCH(
   req: Request,
@@ -42,7 +45,6 @@ export async function PATCH(
   // Approve — enqueue Inngest job, return 202
   // -----------------------------------------------------------------------
   if (action === 'approve') {
-    // Verify the request exists before enqueuing
     const { data: verReq } = await supabase
       .from('abo_verification_requests')
       .select('id, status')
@@ -59,6 +61,7 @@ export async function PATCH(
       )
     }
 
+    const { inngest } = await import('@/inngest/client')
     await inngest.send({
       name: 'verification/approve',
       data: {
