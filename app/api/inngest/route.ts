@@ -7,28 +7,29 @@ import { type NextRequest } from 'next/server'
 /**
  * Inngest serve handler.
  *
- * Lazy-initialized inside each HTTP method to avoid Inngest SDK executing
- * decodeURIComponent on INNGEST_SIGNING_KEY at module evaluation time,
- * which crashes Next.js build during static page data collection.
- *
  * This route is intentionally NOT guarded by Clerk auth.
  * Security is enforced by Inngest signing key verification in the SDK.
  * Public route — listed in lib/public-routes.ts.
  *
- * Type note: Next.js 16 requires ctx.params to be Promise<{}> (async params).
- * inngest@3 serve() expects ctx.params to be Record<string, string> (sync).
- * Since this route has no dynamic segments, params is always empty.
- * We await params and cast to satisfy both type systems at the call boundary.
+ * serve() is called lazily (inside each HTTP method) so that the SDK does not
+ * execute decodeURIComponent on INNGEST_SIGNING_KEY at module evaluation time,
+ * which would throw a URIError during Next.js build-time page data collection
+ * when the env var is absent.
+ *
+ * Next.js 16 passes ctx.params as Promise<Record<string,string>>.
+ * inngest@3 expects ctx.params as Record<string,string> (sync).
+ * We await before forwarding — this route has no dynamic segments so params
+ * is always an empty object.
  */
 export const dynamic = 'force-dynamic'
 
-// Next.js 16 App Router context shape (params is a Promise)
 type NextCtx = { params: Promise<Record<string, string>> }
 
 function getHandler() {
   return serve({
     client: inngest,
     functions: [approveVerification, clerkReconciliation],
+    signingKey: process.env.INNGEST_SIGNING_KEY ?? '',
   })
 }
 
