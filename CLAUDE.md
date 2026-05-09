@@ -200,7 +200,7 @@ Default mode. Executes against a CLAIM-complete issue.
 **EXECUTE** → Change only lines required by DoD. All writes target the feature branch only. Push to trigger Vercel Preview.
 - Before any large task (>100 lines): write `IN PROGRESS` to PR `## Session State` first, then commit a skeleton with `// TODO:` items before implementing.
 
-**VERIFY** → DoD point-by-point. Vercel Preview READY. CI green (`check-types` GitHub Actions run on the feature branch shows `success` — check via `GET /repos/teamenjoyvd/tevd-portal/actions/runs?branch=<feature-branch>`). 390px check. No production side-effects. If ticket touched auth or routing: confirm `middleware.ts` does not exist (`ls middleware.ts` returns an error).
+**VERIFY** → DoD point-by-point. Vercel Preview READY. CI green (`check-types` is the only required workflow — it runs `tsc --noEmit` on PRs targeting `main`). 390px check. No production side-effects. If ticket touched auth or routing: confirm `middleware.ts` does not exist (`ls middleware.ts` returns an error).
 
 **FINALIZE** → Verify PR body contains `Closes #<issue_number>` — if missing, update the PR body to add it now. Mark PR ready for review. If this ticket ran a migration or changed a column/table/route/env var: update **both** `docs/ai/REF.md` and `docs/ai/LOOKUP.md` in a single `push_files` call before marking DONE — never update one without the other. User merges manually via GitHub UI. After merge: confirm production Vercel deployment READY.
 
@@ -258,6 +258,7 @@ BUILD verifies both at startup. If either section is absent or any checklist ite
 | `payments` FK | Two FKs to `profiles`. PostgREST MUST use `profiles!profile_id(...)` — without it, 500. |
 | `types/supabase.ts` | Regenerate via `Supabase:generate_typescript_types` MCP only — CLI not installed. Regeneration is mandatory after any migration that touches an enum; `lib/roles.ts` derives `MemberRole` and `ALL_ROLES` from this file and will emit a compile error on missing/extra keys. |
 | Supabase DDL | `apply_migration` only. Never raw `execute_sql` for DDL. Migration filename: `YYYYMMDD_NNN_description.sql` where `NNN` is a zero-padded 3-digit counter. Before writing a filename, list `supabase/migrations/` and find the highest `NNN` for today's date — increment by 1, reset to `001` on a new day. Never use `HHMMSS` — wall-clock seconds collide within a session. |
+| Migration CI | `migrate-dev.yml` and `migrate-prod.yml` have been removed (PR #309). There is no CLI-based migration workflow. Migrations are applied exclusively via `Supabase:apply_migration` MCP during BUILD sessions. Never attempt to restore these workflows — the MCP-applied `schema_migrations` timestamps are incompatible with CLI filename-based reconciliation. |
 | Large GitHub files | `create_or_update_file` times out above ~10KB. Use `push_files`. |
 | Mapbox | CDN only — never npm. Dupe guard on load. |
 | Mapbox theme swap | `map.setStyle()` + `styledata` event. MutationObserver on `data-theme`. |

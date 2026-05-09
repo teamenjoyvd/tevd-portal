@@ -271,6 +271,11 @@
 **`role_change_audit`**
 `id, profile_id, old_role, new_role, changed_by, note, changed_at`
 
+**`verification_log`** — added #307 (migration `20260509_001`)
+`id, request_id → abo_verification_requests (nullable, ON DELETE SET NULL), error_code, error_message, error_context (jsonb), created_at`
+- Written exclusively by `approve_member_verification` EXCEPTION block.
+- Service-role only: RLS enabled, no authenticated/anon policies.
+
 **`tree_nodes`**
 `id, profile_id, parent_id, path (ltree), depth, created_at`
 - No-ABO label: `p_<uuid_no_hyphens>`. Renamed on ABO assignment → `rebuild_tree_paths` called.

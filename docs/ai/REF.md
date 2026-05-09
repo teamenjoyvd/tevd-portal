@@ -46,7 +46,7 @@ calMonth(iso)        // MAR
 
 **`lib/role-colors.ts`** — always `getRoleColors(role)`, never hardcode role bg/font inline.
 
-**`lib/supabase/service.ts`** — singleton service role client. Do not instantiate per request.
+**`lib/supabase/service.ts`** — returns a fresh `createClient` on every call. No module-level singleton (removed in #307 — singleton risked auth-header contamination across warm lambda requests).
 
 **`lib/db/client.ts`** — postgres.js direct connection client (port 5432). Use ONLY inside Inngest job steps where explicit transactions are required. Never use in Next.js route handlers or RSC — use `createServiceClient()` there.
 
@@ -329,6 +329,10 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
 **`abo_verification_requests`** — `id, profile_id, claimed_abo, claimed_upline_abo, request_type, status, admin_note, created_at, resolved_at`
 
 **`role_change_audit`** — `id, profile_id, old_role, new_role, changed_by, note, changed_at`
+
+**`verification_log`** — `id, request_id → abo_verification_requests (nullable), error_code, error_message, error_context (jsonb), created_at`
+- Written by `approve_member_verification` EXCEPTION block. Service-role only (RLS enabled, no authenticated/anon policies).
+- Added in #307 (migration `20260509_001`).
 
 **`tree_nodes`** — `id, profile_id, parent_id, path (ltree), depth, created_at`
 - No-ABO label: `p_<uuid_no_hyphens>`. ABO assignment renames node → calls `rebuild_tree_paths`.
