@@ -1,4 +1,4 @@
-import { serve } from '@inngest/next'
+import { serve } from 'inngest/next'
 import { inngest } from '@/inngest/client'
 import { approveVerification } from '@/inngest/functions/approve-verification'
 import { clerkReconciliation } from '@/inngest/functions/clerk-reconciliation'
@@ -10,7 +10,7 @@ import { clerkReconciliation } from '@/inngest/functions/clerk-reconciliation'
  * Security is enforced by Inngest's signing key verification inside the SDK.
  * INNGEST_SIGNING_KEY must be set in Vercel environment.
  *
- * Public route — must be added to the public route list in proxy.ts.
+ * Public route — listed in lib/public-routes.ts.
  */
 export const { GET, POST, PUT } = serve({
   client: inngest,
