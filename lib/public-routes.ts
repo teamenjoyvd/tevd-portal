@@ -17,6 +17,7 @@ import { createRouteMatcher } from '@clerk/nextjs/server'
  *   /api/events/:id    public event detail API
  *   /api/socials       public socials API
  *   /api/socials/(.*) public socials API
+ *   /api/inngest       Inngest serve handler — public by necessity, signing key auth only
  */
 export const PUBLIC_ROUTE_PATTERNS = [
   '/',
@@ -34,6 +35,7 @@ export const PUBLIC_ROUTE_PATTERNS = [
   '/api/events/:id',
   '/api/socials',
   '/api/socials/(.*)',
+  '/api/inngest',
 ] as const
 
 export const isPublicRoute = createRouteMatcher([...PUBLIC_ROUTE_PATTERNS])

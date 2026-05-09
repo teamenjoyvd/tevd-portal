@@ -91,6 +91,47 @@ export type Database = {
         }
         Relationships: []
       }
+      approval_jobs: {
+        Row: {
+          created_at: string
+          error: string | null
+          id: string
+          inngest_event_id: string | null
+          request_id: string
+          settled_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          inngest_event_id?: string | null
+          request_id: string
+          settled_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          inngest_event_id?: string | null
+          request_id?: string
+          settled_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_jobs_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: true
+            referencedRelation: "abo_verification_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bento_config: {
         Row: {
           max_items: number
