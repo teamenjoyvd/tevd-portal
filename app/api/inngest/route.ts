@@ -15,12 +15,15 @@ import { type NextRequest } from 'next/server'
  * Security is enforced by Inngest signing key verification in the SDK.
  * Public route — listed in lib/public-routes.ts.
  *
- * inngest@3 serve() types .GET/.POST/.PUT as (req, ctx) where ctx carries
- * route params. This route has no dynamic segments so params is always {}.
+ * Type note: Next.js 16 requires ctx.params to be Promise<{}> (async params).
+ * inngest@3 serve() expects ctx.params to be Record<string, string> (sync).
+ * Since this route has no dynamic segments, params is always empty.
+ * We await params and cast to satisfy both type systems at the call boundary.
  */
 export const dynamic = 'force-dynamic'
 
-type InngestCtx = { params: Record<string, string> }
+// Next.js 16 App Router context shape (params is a Promise)
+type NextCtx = { params: Promise<Record<string, string>> }
 
 function getHandler() {
   return serve({
@@ -29,14 +32,17 @@ function getHandler() {
   })
 }
 
-export async function GET(req: NextRequest, ctx: InngestCtx) {
-  return getHandler().GET(req, ctx)
+export async function GET(req: NextRequest, ctx: NextCtx) {
+  const params = await ctx.params
+  return getHandler().GET(req, { params })
 }
 
-export async function POST(req: NextRequest, ctx: InngestCtx) {
-  return getHandler().POST(req, ctx)
+export async function POST(req: NextRequest, ctx: NextCtx) {
+  const params = await ctx.params
+  return getHandler().POST(req, { params })
 }
 
-export async function PUT(req: NextRequest, ctx: InngestCtx) {
-  return getHandler().PUT(req, ctx)
+export async function PUT(req: NextRequest, ctx: NextCtx) {
+  const params = await ctx.params
+  return getHandler().PUT(req, { params })
 }
