@@ -91,6 +91,47 @@ export type Database = {
         }
         Relationships: []
       }
+      approval_jobs: {
+        Row: {
+          created_at: string
+          error: string | null
+          id: string
+          inngest_event_id: string | null
+          request_id: string
+          settled_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          inngest_event_id?: string | null
+          request_id: string
+          settled_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          inngest_event_id?: string | null
+          request_id?: string
+          settled_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_jobs_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: true
+            referencedRelation: "abo_verification_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bento_config: {
         Row: {
           max_items: number
@@ -1342,6 +1383,41 @@ export type Database = {
         }
         Relationships: []
       }
+      verification_log: {
+        Row: {
+          created_at: string
+          error_code: string | null
+          error_context: Json | null
+          error_message: string
+          id: string
+          request_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_code?: string | null
+          error_context?: Json | null
+          error_message: string
+          id?: string
+          request_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_code?: string | null
+          error_context?: Json | null
+          error_message?: string
+          id?: string
+          request_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "verification_log_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "abo_verification_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vital_sign_definitions: {
         Row: {
           category: string
@@ -1395,7 +1471,13 @@ export type Database = {
       abo_to_ltree_label: { Args: { abo: string }; Returns: string }
       approve_member_verification: {
         Args: { p_admin_note?: string; p_request_id: string }
-        Returns: undefined
+        Returns: {
+          abo_number: string
+          profile_id: string
+          role: string
+          tree_path: string
+          upline_abo_number: string
+        }[]
       }
       get_core_ancestors: { Args: { p_profile_id: string }; Returns: string[] }
       get_los_members_with_profiles: {
@@ -1495,7 +1577,7 @@ export type Database = {
       text2ltree: { Args: { "": string }; Returns: unknown }
       upsert_tree_node: {
         Args: {
-          p_abo_number: string
+          p_abo_number?: string
           p_profile_id: string
           p_sponsor_abo_number?: string
         }
