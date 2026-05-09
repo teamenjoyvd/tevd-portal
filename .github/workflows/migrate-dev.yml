@@ -1,30 +1,4 @@
-name: Migrate Dev DB
-
-on:
-  push:
-    branches:
-      - 'feature/**'
-    paths:
-      - 'supabase/migrations/**'
-
-jobs:
-  migrate:
-    name: Push migrations to dev
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Supabase CLI
-        uses: supabase/setup-cli@v1
-        with:
-          version: 2.98.1
-
-      - name: Push migrations
-        run: |
-          supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_ID_DEV }}
-          supabase db push
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD_DEV }}
+# Removed — dev Supabase project is not in use.
+# Migrations are applied directly via Supabase MCP in BUILD sessions.
+# CLI-based db push is incompatible with MCP-applied migration history
+# (timestamp mismatch in schema_migrations). See PR #309.
