@@ -9,6 +9,17 @@ import { type NextRequest } from 'next/server'
  * INNGEST_SIGNING_KEY at module evaluation — crashing the build worker when
  * the env var is absent or malformed at build time.
  *
+ * serveHost is set explicitly so the SDK never needs to infer the app URL
+ * from req.url. In Next.js Route Handlers req.url is always absolute, but
+ * the Inngest SDK's internal URL construction can still fail in certain
+ * introspection paths when no host is provided — passing serveHost makes
+ * the handler deterministic regardless of how the SDK resolves the URL.
+ *
+ * NEXT_PUBLIC_APP_URL must be set in Vercel environment variables:
+ *   Production: https://www.teamenjoyvd.com
+ *   Preview:    https://<branch>.teamenjoyvd.com (or left unset to use localhost fallback)
+ * In local dev the fallback 'http://localhost:3000' is used.
+ *
  * This route is intentionally NOT guarded by Clerk auth.
  * Security is enforced by Inngest signing key verification in the SDK.
  * Public route — listed in lib/public-routes.ts.
@@ -31,6 +42,7 @@ async function getHandler() {
     client: inngest,
     functions: [approveVerification, clerkReconciliation],
     signingKey: process.env.INNGEST_SIGNING_KEY ?? '',
+    serveHost: process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000',
   })
 }
 
