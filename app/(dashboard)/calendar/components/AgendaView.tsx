@@ -42,20 +42,29 @@ export function AgendaView({
     return dates.find(d => d >= todaySofia) ?? dates[dates.length - 1]
   }, [grouped, todaySofia])
 
-  // Scroll to highlighted event if present, otherwise scroll to anchor date.
+  // Mount-only: scroll to today once on load.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    if (highlightRef.current) {
-      highlightRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    } else if (anchorRef.current) {
-      anchorRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }
-  }, [grouped, highlightId])
+    const raf = requestAnimationFrame(() => {
+      anchorRef.current?.scrollIntoView({ behavior: 'instant', block: 'start' })
+    })
+    return () => cancelAnimationFrame(raf)
+  }, [])
+
+  // Deep-link scroll: fires only when highlightId changes.
+  useEffect(() => {
+    if (!highlightId) return
+    const raf = requestAnimationFrame(() => {
+      highlightRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    })
+    return () => cancelAnimationFrame(raf)
+  }, [highlightId])
 
   const dates = Object.keys(grouped)
 
   if (isLoading) {
     return (
-      <div className="overflow-y-auto px-4 py-4 space-y-4" style={{ height: 'var(--cal-height)', minHeight: 300 }}>
+      <div className="px-4 py-4 space-y-4">
         {[...Array(4)].map((_, i) => (
           <div key={i} className="space-y-2">
             <div className="h-6 w-32 rounded-full animate-pulse" style={{ backgroundColor: 'rgba(0,0,0,0.06)' }} />
@@ -75,7 +84,7 @@ export function AgendaView({
   }
 
   return (
-    <div className="overflow-y-auto px-4 py-2" style={{ height: 'var(--cal-height)', minHeight: 300 }}>
+    <div className="px-4 py-2">
       {dates.map(dateKey => {
         const date = new Date(`${dateKey}T12:00:00Z`)
         const isToday = dateKey === todaySofia
@@ -87,7 +96,7 @@ export function AgendaView({
             className="mb-6"
             style={{ opacity: isPast ? 0.5 : 1 }}
           >
-            <div className="flex items-center gap-3 mb-2 sticky top-0 py-2" style={{ backgroundColor: 'var(--bg-global)' }}>
+            <div className="flex items-center gap-3 mb-2 py-2">
               <div
                 className="flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold"
                 style={{

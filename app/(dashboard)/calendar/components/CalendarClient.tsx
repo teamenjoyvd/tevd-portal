@@ -11,7 +11,7 @@ import { MonthView } from '@/app/(dashboard)/calendar/components/MonthView'
 import { AgendaView } from '@/app/(dashboard)/calendar/components/AgendaView'
 import { type CalendarEvent, type View } from '@/app/(dashboard)/calendar/types'
 
-// ── Props ─────────────────────────────────────────────────────────────────
+// ── Props ───────────────────────────────────────────────────────────────────────────
 
 type Props = {
   initialEvents: CalendarEvent[]
@@ -22,7 +22,7 @@ type Props = {
   isAuthenticated: boolean
 }
 
-// ── Component ─────────────────────────────────────────────────────────────
+// ── Component ─────────────────────────────────────────────────────────────────────
 
 export default function CalendarClient({
   initialEvents,
@@ -78,7 +78,7 @@ export default function CalendarClient({
   return (
     <div className="w-full" style={{ backgroundColor: 'var(--bg-global)' }}>
 
-      {/* ── MOBILE ────────────────────────────────────────────────────── */}
+      {/* ── MOBILE ──────────────────────────────────────────────────────────────── */}
       <div className="md:hidden">
         <div className="flex-shrink-0 border-b" style={{ backgroundColor: 'var(--bg-global)', borderColor: 'var(--border-default)' }}>
           <div className="max-w-[1024px] mx-auto px-4">
@@ -128,7 +128,11 @@ export default function CalendarClient({
             </div>
 
             {/* Row 2: category + format filter chips */}
-            <div className="flex items-center gap-1.5 pb-2.5 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+            {/* sticky top-[60px]: top-4 + h-14 from Header.tsx */}
+            <div
+              className="flex items-center gap-1.5 pb-2.5 overflow-x-auto sticky top-[60px] z-10"
+              style={{ scrollbarWidth: 'none', backgroundColor: 'var(--bg-global)' }}
+            >
               <button
                 onClick={() => setShowN21(v => !v)}
                 className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 transition-all"
@@ -172,6 +176,8 @@ export default function CalendarClient({
             </div>
           </div>
         </div>
+
+        {/* Mobile: document scrolls — no scroll container */}
         <div className="max-w-[1024px] mx-auto">
           {view === 'month' && (
             <MonthView current={current} events={events} onEventClick={handleEventClick} onDayClick={handleDayClick} />
@@ -194,7 +200,7 @@ export default function CalendarClient({
         )}
       </div>
 
-      {/* ── DESKTOP ──────────────────────────────────────────────────── */}
+      {/* ── DESKTOP ──────────────────────────────────────────────────────────────── */}
       <div className="hidden md:block py-8 pb-16">
         <div className="max-w-[1440px] mx-auto px-4 md:px-8 xl:px-12">
           <div
@@ -315,12 +321,15 @@ export default function CalendarClient({
                 />
               )}
               {view === 'agenda' && (
-                <AgendaView
-                  events={events}
-                  onEventClick={handleEventClick}
-                  isLoading={agendaPending}
-                  highlightId={deepLinkId}
-                />
+                /* Desktop: internal scroll container owns --cal-height */
+                <div className="overflow-y-auto" style={{ height: 'var(--cal-height)' }}>
+                  <AgendaView
+                    events={events}
+                    onEventClick={handleEventClick}
+                    isLoading={agendaPending}
+                    highlightId={deepLinkId}
+                  />
+                </div>
               )}
             </div>
           </div>
