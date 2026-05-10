@@ -3,22 +3,17 @@ import { type NextRequest } from 'next/server'
 /**
  * Inngest serve handler.
  *
- * All inngest imports are dynamic (inside each HTTP method) so the inngest
- * package is never evaluated at module load time during Next.js build-time
- * page data collection. The inngest SDK calls decodeURIComponent on
- * INNGEST_SIGNING_KEY at module evaluation — crashing the build worker when
- * the env var is absent or malformed at build time.
+ * `inngest` is listed in `serverExternalPackages` in next.config.ts so
+ * Turbopack treats it as a Node external and never bundles it into a server
+ * chunk at build time. However, Next.js still evaluates top-level imports
+ * during the "collect page data" build step — so inngest imports must remain
+ * dynamic to prevent `decodeURIComponent` inside the SDK from throwing
+ * `URIError: URI malformed` during build.
  *
- * serveHost is set explicitly so the SDK never needs to infer the app URL
- * from req.url. In Next.js Route Handlers req.url is always absolute, but
- * the Inngest SDK's internal URL construction can still fail in certain
- * introspection paths when no host is provided — passing serveHost makes
- * the handler deterministic regardless of how the SDK resolves the URL.
- *
- * NEXT_PUBLIC_APP_URL must be set in Vercel environment variables:
- *   Production: https://www.teamenjoyvd.com
- *   Preview:    https://<branch>.teamenjoyvd.com (or left unset to use localhost fallback)
- * In local dev the fallback 'http://localhost:3000' is used.
+ * `signingKey` and `serveHost` are intentionally omitted from `serve()`:
+ * - The SDK reads `INNGEST_SIGNING_KEY` from `process.env` by default.
+ * - `serveHost` is not needed in Next.js Route Handlers — `req.url` is
+ *   always an absolute URL.
  *
  * This route is intentionally NOT guarded by Clerk auth.
  * Security is enforced by Inngest signing key verification in the SDK.
@@ -33,17 +28,19 @@ export const dynamic = 'force-dynamic'
 
 type NextCtx = { params: Promise<Record<string, string>> }
 
+let _handler: Awaited<ReturnType<typeof import('inngest/next').serve>> | null = null
+
 async function getHandler() {
+  if (_handler) return _handler
   const { serve } = await import('inngest/next')
   const { inngest } = await import('@/inngest/client')
   const { approveVerification } = await import('@/inngest/functions/approve-verification')
   const { clerkReconciliation } = await import('@/inngest/functions/clerk-reconciliation')
-  return serve({
+  _handler = serve({
     client: inngest,
     functions: [approveVerification, clerkReconciliation],
-    signingKey: process.env.INNGEST_SIGNING_KEY ?? '',
-    serveHost: process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000',
   })
+  return _handler
 }
 
 export async function GET(req: NextRequest, ctx: NextCtx) {
