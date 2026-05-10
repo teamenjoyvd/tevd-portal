@@ -322,7 +322,7 @@ export default function CalendarClient({
               )}
               {view === 'agenda' && (
                 /* Desktop: internal scroll container owns --cal-height */
-                <div className="overflow-y-auto rounded-2xl" style={{ height: 'var(--cal-height)' }}>
+                <div className="overflow-y-auto" style={{ height: 'var(--cal-height)' }}>
                   <AgendaView
                     events={events}
                     onEventClick={handleEventClick}
