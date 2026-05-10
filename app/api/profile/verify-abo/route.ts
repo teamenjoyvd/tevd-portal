@@ -135,6 +135,13 @@ export async function POST(req: Request) {
 
   if (existingHolder) {
     if (existingHolder.primary_profile_id === null) {
+      await logEvent(supabase, {
+        actor_id: userId,
+        subject_id: profile.id,
+        event_type: 'abo_verify_failed',
+        payload: { claimed_abo, claimed_upline_abo, error_code: 'abo_has_primary', existing_profile_id: existingHolder.id },
+        status: 'failed',
+      })
       return Response.json(
         {
           error: 'This ABO is already registered. If you are the co-owner, use the Spouse Link option on your profile.',
@@ -144,6 +151,13 @@ export async function POST(req: Request) {
         { status: 409 }
       )
     }
+    await logEvent(supabase, {
+      actor_id: userId,
+      subject_id: profile.id,
+      event_type: 'abo_verify_failed',
+      payload: { claimed_abo, claimed_upline_abo, error_code: 'abo_already_claimed', existing_profile_id: existingHolder.id },
+      status: 'failed',
+    })
     return Response.json(
       { error: `ABO ${claimed_abo} is already registered to another account.`, error_code: 'abo_already_claimed' },
       { status: 409 }
@@ -244,6 +258,7 @@ export async function POST(req: Request) {
         meta: { request_id: requestRow.id, profile_id: profile.id },
       })
 
+      // Welcome email — always a guest-to-member promotion on this path
       const welcomeHtml = await renderEmailTemplate(
         WelcomeEmail({ firstName: profile.first_name || 'Member' })
       )
@@ -251,7 +266,7 @@ export async function POST(req: Request) {
         to: profile.contact_email,
         subject: 'Welcome to Team Enjoy VD!',
         html: welcomeHtml,
-        template: 'abo_verification_result',
+        template: 'welcome_email',
         meta: { request_id: requestRow.id, profile_id: profile.id },
       })
     } catch (emailErr) {
@@ -260,13 +275,14 @@ export async function POST(req: Request) {
   }
 
   // In-app notification
-  await supabase.from('notifications').insert({
+  const { error: notifyError } = await supabase.from('notifications').insert({
     profile_id: profile.id,
     type: 'role_request',
     title: 'ABO Verification Approved',
     message: `Your ABO number ${claimed_abo} has been verified. You are now a Member.`,
     action_url: '/profile',
   })
+  if (notifyError) console.error('[verify-abo] notification failed:', notifyError)
 
   return Response.json({ status: 'approved', result })
 }
