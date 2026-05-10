@@ -15,6 +15,11 @@ import { type NextRequest } from 'next/server'
  * introspection paths when no host is provided — passing serveHost makes
  * the handler deterministic regardless of how the SDK resolves the URL.
  *
+ * NEXT_PUBLIC_APP_URL must be set in Vercel environment variables:
+ *   Production: https://www.teamenjoyvd.com
+ *   Preview:    https://<branch>.teamenjoyvd.com (or left unset to use localhost fallback)
+ * In local dev the fallback 'http://localhost:3000' is used.
+ *
  * This route is intentionally NOT guarded by Clerk auth.
  * Security is enforced by Inngest signing key verification in the SDK.
  * Public route — listed in lib/public-routes.ts.
@@ -37,7 +42,7 @@ async function getHandler() {
     client: inngest,
     functions: [approveVerification, clerkReconciliation],
     signingKey: process.env.INNGEST_SIGNING_KEY ?? '',
-    serveHost: 'https://www.teamenjoyvd.com',
+    serveHost: process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000',
   })
 }
 
