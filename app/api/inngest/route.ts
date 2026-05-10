@@ -3,22 +3,17 @@ import { type NextRequest } from 'next/server'
 /**
  * Inngest serve handler.
  *
- * All inngest imports are dynamic (inside each HTTP method) so the inngest
- * package is never evaluated at module load time during Next.js build-time
- * page data collection. The inngest SDK calls decodeURIComponent on
- * INNGEST_SIGNING_KEY at module evaluation — crashing the build worker when
- * the env var is absent or malformed at build time.
+ * `inngest` is listed in `serverExternalPackages` in next.config.ts so
+ * Turbopack treats it as a Node external and never bundles it into a server
+ * chunk. Without this, Turbopack evaluates the inngest module graph at build
+ * time, causing `decodeURIComponent` inside the SDK to throw
+ * `URIError: URI malformed` before any request is handled.
  *
- * serveHost is set explicitly so the SDK never needs to infer the app URL
- * from req.url. In Next.js Route Handlers req.url is always absolute, but
- * the Inngest SDK's internal URL construction can still fail in certain
- * introspection paths when no host is provided — passing serveHost makes
- * the handler deterministic regardless of how the SDK resolves the URL.
- *
- * NEXT_PUBLIC_APP_URL must be set in Vercel environment variables:
- *   Production: https://www.teamenjoyvd.com
- *   Preview:    https://<branch>.teamenjoyvd.com (or left unset to use localhost fallback)
- * In local dev the fallback 'http://localhost:3000' is used.
+ * `signingKey` and `serveHost` are intentionally omitted from `serve()`:
+ * - The SDK reads `INNGEST_SIGNING_KEY` from `process.env` by default.
+ *   Passing it explicitly forced eager key processing at module evaluation.
+ * - `serveHost` is not needed in Next.js Route Handlers — `req.url` is
+ *   always an absolute URL. Passing it caused double URL construction.
  *
  * This route is intentionally NOT guarded by Clerk auth.
  * Security is enforced by Inngest signing key verification in the SDK.
@@ -41,8 +36,6 @@ async function getHandler() {
   return serve({
     client: inngest,
     functions: [approveVerification, clerkReconciliation],
-    signingKey: process.env.INNGEST_SIGNING_KEY ?? '',
-    serveHost: process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000',
   })
 }
 
