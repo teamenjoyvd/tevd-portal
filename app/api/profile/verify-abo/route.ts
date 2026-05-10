@@ -5,6 +5,7 @@ import { sendTransactionalEmail } from '@/lib/email/send'
 import { renderEmailTemplate } from '@/lib/email/templates/render'
 import { AboVerificationEmail } from '@/lib/email/templates/AboVerificationEmail'
 import { WelcomeEmail } from '@/lib/email/templates/WelcomeEmail'
+import type { Json } from '@/types/supabase'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -24,7 +25,7 @@ async function logEvent(
     actor_id: opts.actor_id,
     subject_id: opts.subject_id,
     event_type: opts.event_type,
-    payload: opts.payload ?? {},
+    payload: (opts.payload ?? {}) as Json,
     status: opts.status ?? 'ok',
   })
 }
