@@ -127,8 +127,8 @@ export default function CalendarClient({
               </div>
             </div>
 
-            {/* Row 2: category + format filter chips — sticky below header */}
-            {/* top-4 + h-14 from Header.tsx */}
+            {/* Row 2: category + format filter chips */}
+            {/* sticky top-[60px]: top-4 + h-14 from Header.tsx */}
             <div
               className="flex items-center gap-1.5 pb-2.5 overflow-x-auto sticky top-[60px] z-10"
               style={{ scrollbarWidth: 'none', backgroundColor: 'var(--bg-global)' }}
@@ -321,7 +321,7 @@ export default function CalendarClient({
                 />
               )}
               {view === 'agenda' && (
-                {/* Desktop: internal scroll container owns --cal-height */}
+                /* Desktop: internal scroll container owns --cal-height */
                 <div className="overflow-y-auto rounded-2xl" style={{ height: 'var(--cal-height)' }}>
                   <AgendaView
                     events={events}
