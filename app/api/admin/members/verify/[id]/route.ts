@@ -10,7 +10,7 @@ import { WelcomeEmail } from '@/lib/email/templates/WelcomeEmail'
  * PATCH /api/admin/members/verify/[id]
  *
  * approve path:
- *   1. Read pre-promotion profile role (for welcome-email gate).
+ *   1. Read pre-promotion request + profile (for welcome-email gate).
  *   2. Call approve_member_verification RPC (SECURITY DEFINER, service_role).
  *      DB transaction commits here — this is the point of no return.
  *   3. Clerk publicMetadata sync + emails in a try/catch.
@@ -52,31 +52,8 @@ export async function PATCH(
   // Approve — synchronous: pre-read → RPC → Clerk sync → emails → 200
   // -----------------------------------------------------------------------
   if (action === 'approve') {
-    // Read profile + request before the RPC so we have pre-promotion state.
-    // profile.role here is the role BEFORE the RPC promotes it to 'member'.
-    const [{ data: preProfile }, { data: verReq }] = await Promise.all([
-      supabase
-        .from('profiles')
-        .select('clerk_id, first_name, contact_email, role')
-        .eq('id',
-          // profile_id must be resolved via the verification request
-          supabase
-            .from('abo_verification_requests')
-            .select('profile_id')
-            .eq('id', id)
-            .single()
-            .then(({ data }) => data?.profile_id ?? '')
-        )
-        .single(),
-      supabase
-        .from('abo_verification_requests')
-        .select('profile_id, claimed_abo, request_type')
-        .eq('id', id)
-        .single(),
-    ])
-
-    // Simple sequential pre-read (Promise.all above is awkward with a derived FK).
-    // Re-fetch cleanly:
+    // Pre-read: get request + profile BEFORE the RPC promotes the role.
+    // preReq.profile_id resolves the FK; profile.role is the pre-promotion value.
     const { data: preReq } = await supabase
       .from('abo_verification_requests')
       .select('profile_id, claimed_abo, request_type')
@@ -160,7 +137,7 @@ export async function PATCH(
       console.error('[approve] post-commit step failed:', postCommitErr)
     }
 
-    // In-app notification (best-effort, outside the try/catch — non-critical)
+    // In-app notification (outside try/catch — non-critical, supabase client won't throw)
     const notifMessage =
       preReq?.request_type === 'manual'
         ? `Welcome ${profile?.first_name ?? ''}! Your manual verification has been approved. You are now a Member.`
