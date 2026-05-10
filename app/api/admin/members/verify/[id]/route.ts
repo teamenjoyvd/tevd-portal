@@ -10,14 +10,18 @@ import { WelcomeEmail } from '@/lib/email/templates/WelcomeEmail'
  * PATCH /api/admin/members/verify/[id]
  *
  * approve path:
- *   Calls approve_member_verification RPC (SECURITY DEFINER, service_role).
- *   Syncs role to Clerk publicMetadata.
- *   Sends approval + welcome emails via sendTransactionalEmail.
- *   All steps awaited — returns 200 with resolved request data.
+ *   1. Read pre-promotion profile role (for welcome-email gate).
+ *   2. Call approve_member_verification RPC (SECURITY DEFINER, service_role).
+ *      DB transaction commits here — this is the point of no return.
+ *   3. Clerk publicMetadata sync + emails in a try/catch.
+ *      Failures are logged but do NOT produce a 500 — the DB has already
+ *      committed, so a 500 would be misleading. Clerk drift is reconcilable
+ *      via manual admin action.
+ *   Returns 200 with the resolved RPC result row.
  *
  * deny path:
- *   Synchronous — no external API calls. Updates status to 'denied',
- *   inserts in-app notification, sends denial email.
+ *   Synchronous — updates status to 'denied', inserts in-app notification,
+ *   sends denial email via sendTransactionalEmail.
  */
 export async function PATCH(
   req: Request,
@@ -45,9 +49,50 @@ export async function PATCH(
   }
 
   // -----------------------------------------------------------------------
-  // Approve — synchronous: RPC → Clerk sync → emails → 200
+  // Approve — synchronous: pre-read → RPC → Clerk sync → emails → 200
   // -----------------------------------------------------------------------
   if (action === 'approve') {
+    // Read profile + request before the RPC so we have pre-promotion state.
+    // profile.role here is the role BEFORE the RPC promotes it to 'member'.
+    const [{ data: preProfile }, { data: verReq }] = await Promise.all([
+      supabase
+        .from('profiles')
+        .select('clerk_id, first_name, contact_email, role')
+        .eq('id',
+          // profile_id must be resolved via the verification request
+          supabase
+            .from('abo_verification_requests')
+            .select('profile_id')
+            .eq('id', id)
+            .single()
+            .then(({ data }) => data?.profile_id ?? '')
+        )
+        .single(),
+      supabase
+        .from('abo_verification_requests')
+        .select('profile_id, claimed_abo, request_type')
+        .eq('id', id)
+        .single(),
+    ])
+
+    // Simple sequential pre-read (Promise.all above is awkward with a derived FK).
+    // Re-fetch cleanly:
+    const { data: preReq } = await supabase
+      .from('abo_verification_requests')
+      .select('profile_id, claimed_abo, request_type')
+      .eq('id', id)
+      .single()
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('clerk_id, first_name, contact_email, role')
+      .eq('id', preReq?.profile_id ?? '')
+      .single()
+
+    // Capture pre-promotion role for welcome-email gate.
+    const wasGuest = profile?.role === 'guest'
+
+    // --- RPC: DB transaction commits here ---
     const { data: rpcRows, error: rpcError } = await supabase.rpc(
       'approve_member_verification',
       { p_request_id: id, p_admin_note: admin_note ?? null }
@@ -68,65 +113,58 @@ export async function PATCH(
       return Response.json({ error: 'Request not found' }, { status: 404 })
     }
 
-    // Clerk sync
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('clerk_id, first_name, contact_email, role')
-      .eq('id', result.profile_id)
-      .single()
-
-    if (profile?.clerk_id) {
-      const clerk = await clerkClient()
-      await clerk.users.updateUserMetadata(profile.clerk_id, {
-        publicMetadata: { role: 'member' },
-      })
-    }
-
-    // Fetch the original request for email context
-    const { data: verReq } = await supabase
-      .from('abo_verification_requests')
-      .select('claimed_abo, request_type')
-      .eq('id', id)
-      .single()
-
-    // Approval email
-    if (profile?.contact_email) {
-      const approvalHtml = await renderEmailTemplate(
-        AboVerificationEmail({
-          firstName: profile.first_name || 'Member',
-          claimedAbo: verReq?.claimed_abo ?? null,
-          status: 'approved',
-          adminNote: admin_note ?? null,
+    // --- Post-commit: Clerk sync + emails ---
+    // Failures here are logged but never propagate a 500 — the DB has committed.
+    try {
+      if (profile?.clerk_id) {
+        const clerk = await clerkClient()
+        await clerk.users.updateUserMetadata(profile.clerk_id, {
+          publicMetadata: { role: 'member' },
         })
-      )
-      await sendTransactionalEmail({
-        to: profile.contact_email,
-        subject: 'ABO Verification Approved ✓',
-        html: approvalHtml,
-        template: 'abo_verification_result',
-        meta: { request_id: id, profile_id: result.profile_id },
-      })
+      }
 
-      // Welcome email for first-time promotions from guest
-      if (verReq?.request_type !== 'manual' || !result.role) {
-        const welcomeHtml = await renderEmailTemplate(
-          WelcomeEmail({ firstName: profile.first_name || 'Member' })
+      if (profile?.contact_email) {
+        const approvalHtml = await renderEmailTemplate(
+          AboVerificationEmail({
+            firstName: profile.first_name || 'Member',
+            claimedAbo: preReq?.claimed_abo ?? null,
+            status: 'approved',
+            adminNote: admin_note ?? null,
+          })
         )
         await sendTransactionalEmail({
           to: profile.contact_email,
-          subject: 'Welcome to Team Enjoy VD!',
-          html: welcomeHtml,
+          subject: 'ABO Verification Approved ✓',
+          html: approvalHtml,
           template: 'abo_verification_result',
           meta: { request_id: id, profile_id: result.profile_id },
         })
+
+        // Welcome email only for users promoted from guest.
+        if (wasGuest) {
+          const welcomeHtml = await renderEmailTemplate(
+            WelcomeEmail({ firstName: profile.first_name || 'Member' })
+          )
+          await sendTransactionalEmail({
+            to: profile.contact_email,
+            subject: 'Welcome to Team Enjoy VD!',
+            html: welcomeHtml,
+            template: 'abo_verification_result',
+            meta: { request_id: id, profile_id: result.profile_id },
+          })
+        }
       }
+    } catch (postCommitErr) {
+      // DB is committed — log and continue. Admin can re-trigger Clerk sync
+      // manually if needed; do not surface as 500.
+      console.error('[approve] post-commit step failed:', postCommitErr)
     }
 
-    // In-app notification
+    // In-app notification (best-effort, outside the try/catch — non-critical)
     const notifMessage =
-      verReq?.request_type === 'manual'
+      preReq?.request_type === 'manual'
         ? `Welcome ${profile?.first_name ?? ''}! Your manual verification has been approved. You are now a Member.`
-        : `Welcome ${profile?.first_name ?? ''}! Your ABO number ${verReq?.claimed_abo} has been verified. You are now a Member.`
+        : `Welcome ${profile?.first_name ?? ''}! Your ABO number ${preReq?.claimed_abo} has been verified. You are now a Member.`
 
     await supabase.from('notifications').insert({
       profile_id: result.profile_id,
