@@ -1,6 +1,7 @@
 'use client'
 
 import { memo, useState } from 'react'
+import Link from 'next/link'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { getRoleColors } from '@/lib/role-colors'
@@ -44,6 +45,7 @@ export const AboInfoContent = memo(function AboInfoContent() {
   const uplineData = profile?.upline ?? null
   const verRequest = profile?.verRequest ?? null
   const spouse = profile?.spouse ?? null
+  const pendingSpouseLinkCount = profile?.pendingSpouseLinkCount ?? 0
 
   const rc = getRoleColors(role)
   const [verificationMode, setVerificationMode] = useState<'standard' | 'manual'>('standard')
@@ -199,6 +201,21 @@ export const AboInfoContent = memo(function AboInfoContent() {
               </div>
             )}
           </div>
+          {/* Primary member: pending inbound spouse link request notification */}
+          {pendingSpouseLinkCount > 0 && (
+            <Link
+              href="/profile/spouse-link"
+              className="flex items-center gap-2 rounded-xl px-4 py-3 mt-1"
+              style={{ backgroundColor: '#f2cc8f33', textDecoration: 'none' }}
+            >
+              <span className="text-sm font-medium" style={{ color: '#7a5c00' }}>
+                {pendingSpouseLinkCount === 1
+                  ? 'Someone has requested to link as your spouse account'
+                  : `${pendingSpouseLinkCount} spouse link requests pending`}
+              </span>
+              <span className="ml-auto text-xs font-semibold" style={{ color: '#7a5c00' }}>Review →</span>
+            </Link>
+          )}
         </div>
       )}
 
@@ -231,6 +248,21 @@ export const AboInfoContent = memo(function AboInfoContent() {
               </p>
             </div>
           </div>
+          {/* Primary member: pending inbound spouse link request notification */}
+          {pendingSpouseLinkCount > 0 && (
+            <Link
+              href="/profile/spouse-link"
+              className="flex items-center gap-2 rounded-xl px-4 py-3"
+              style={{ backgroundColor: '#f2cc8f33', textDecoration: 'none' }}
+            >
+              <span className="text-sm font-medium" style={{ color: '#7a5c00' }}>
+                {pendingSpouseLinkCount === 1
+                  ? 'Someone has requested to link as your spouse account'
+                  : `${pendingSpouseLinkCount} spouse link requests pending`}
+              </span>
+              <span className="ml-auto text-xs font-semibold" style={{ color: '#7a5c00' }}>Review →</span>
+            </Link>
+          )}
         </div>
       )}
 

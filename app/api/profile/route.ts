@@ -28,7 +28,7 @@ export async function GET() {
   const role: string = data.role
   const primaryProfileId: string | null = data.primary_profile_id ?? null
 
-  const [upline, verRequest, spouse] = await Promise.all([
+  const [upline, verRequest, spouse, pendingSpouseLinkCount] = await Promise.all([
     // Resolve upline for any verified member.
     // Standard path: abo_number set — look up sponsor via los_members tree.
     // Manual path: abo_number null but upline_abo_number set — resolve name directly.
@@ -101,9 +101,21 @@ export async function GET() {
         return secondary ?? null
       }
     })(),
+    // Pending inbound spouse link requests — only relevant for primary members
+    // (non-guest, no primary_profile_id). Guests and secondaries always get 0.
+    role !== 'guest' && !primaryProfileId
+      ? (async () => {
+          const { count } = await supabase
+            .from('spouse_link_requests')
+            .select('id', { count: 'exact', head: true })
+            .eq('claimed_primary_id', profileId)
+            .eq('status', 'pending')
+          return count ?? 0
+        })()
+      : Promise.resolve(0),
   ])
 
-  return Response.json({ ...data, upline, verRequest, spouse })
+  return Response.json({ ...data, upline, verRequest, spouse, pendingSpouseLinkCount })
 }
 
 export async function PATCH(req: Request): Promise<Response> {

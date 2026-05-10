@@ -73,6 +73,8 @@ export type Profile = {
   upline: UplineData | null
   verRequest: VerificationRequest | null
   spouse: SpouseData | null
+  // Number of pending inbound spouse link requests (primary members only, else 0)
+  pendingSpouseLinkCount: number
 }
 
 export type TripPayment = {
