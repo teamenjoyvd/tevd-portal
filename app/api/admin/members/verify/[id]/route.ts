@@ -1,20 +1,23 @@
 import { auth } from '@clerk/nextjs/server'
+import { clerkClient } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { sendTransactionalEmail } from '@/lib/email/send'
+import { renderEmailTemplate } from '@/lib/email/templates/render'
+import { AboVerificationEmail } from '@/lib/email/templates/AboVerificationEmail'
+import { WelcomeEmail } from '@/lib/email/templates/WelcomeEmail'
 
 /**
  * PATCH /api/admin/members/verify/[id]
  *
  * approve path:
- *   Enqueues a 'verification/approve' Inngest event and returns 202.
- *   All DB writes, Clerk sync, and notifications happen inside the Inngest job.
- *   approve_member_verification RPC is DEPRECATED — retained as fallback only.
+ *   Calls approve_member_verification RPC (SECURITY DEFINER, service_role).
+ *   Syncs role to Clerk publicMetadata.
+ *   Sends approval + welcome emails via sendTransactionalEmail.
+ *   All steps awaited — returns 200 with resolved request data.
  *
  * deny path:
- *   Synchronous — no external API calls, no atomicity risk. Handled in-route.
- *
- * inngest is imported dynamically inside the approve branch to prevent
- * decodeURIComponent crash during Next.js build-time page data collection
- * (INNGEST_EVENT_KEY is absent at build time).
+ *   Synchronous — no external API calls. Updates status to 'denied',
+ *   inserts in-app notification, sends denial email.
  */
 export async function PATCH(
   req: Request,
@@ -42,36 +45,98 @@ export async function PATCH(
   }
 
   // -----------------------------------------------------------------------
-  // Approve — enqueue Inngest job, return 202
+  // Approve — synchronous: RPC → Clerk sync → emails → 200
   // -----------------------------------------------------------------------
   if (action === 'approve') {
+    const { data: rpcRows, error: rpcError } = await supabase.rpc(
+      'approve_member_verification',
+      { p_request_id: id, p_admin_note: admin_note ?? null }
+    )
+
+    if (rpcError) {
+      if (rpcError.code === '23505') {
+        return Response.json(
+          { error: 'Request is already approved' },
+          { status: 409 }
+        )
+      }
+      return Response.json({ error: rpcError.message }, { status: 500 })
+    }
+
+    const result = Array.isArray(rpcRows) ? rpcRows[0] : rpcRows
+    if (!result) {
+      return Response.json({ error: 'Request not found' }, { status: 404 })
+    }
+
+    // Clerk sync
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('clerk_id, first_name, contact_email, role')
+      .eq('id', result.profile_id)
+      .single()
+
+    if (profile?.clerk_id) {
+      const clerk = await clerkClient()
+      await clerk.users.updateUserMetadata(profile.clerk_id, {
+        publicMetadata: { role: 'member' },
+      })
+    }
+
+    // Fetch the original request for email context
     const { data: verReq } = await supabase
       .from('abo_verification_requests')
-      .select('id, status')
+      .select('claimed_abo, request_type')
       .eq('id', id)
       .single()
 
-    if (!verReq)
-      return Response.json({ error: 'Request not found' }, { status: 404 })
-
-    if (verReq.status !== 'pending') {
-      return Response.json(
-        { error: `Cannot approve — status is ${verReq.status}` },
-        { status: 409 }
+    // Approval email
+    if (profile?.contact_email) {
+      const approvalHtml = await renderEmailTemplate(
+        AboVerificationEmail({
+          firstName: profile.first_name || 'Member',
+          claimedAbo: verReq?.claimed_abo ?? null,
+          status: 'approved',
+          adminNote: admin_note ?? null,
+        })
       )
+      await sendTransactionalEmail({
+        to: profile.contact_email,
+        subject: 'ABO Verification Approved ✓',
+        html: approvalHtml,
+        template: 'abo_verification_result',
+        meta: { request_id: id, profile_id: result.profile_id },
+      })
+
+      // Welcome email for first-time promotions from guest
+      if (verReq?.request_type !== 'manual' || !result.role) {
+        const welcomeHtml = await renderEmailTemplate(
+          WelcomeEmail({ firstName: profile.first_name || 'Member' })
+        )
+        await sendTransactionalEmail({
+          to: profile.contact_email,
+          subject: 'Welcome to Team Enjoy VD!',
+          html: welcomeHtml,
+          template: 'abo_verification_result',
+          meta: { request_id: id, profile_id: result.profile_id },
+        })
+      }
     }
 
-    const { inngest } = await import('@/inngest/client')
-    await inngest.send({
-      name: 'verification/approve',
-      data: {
-        requestId: id,
-        adminClerkId: userId,
-        adminNote: admin_note ?? null,
-      },
+    // In-app notification
+    const notifMessage =
+      verReq?.request_type === 'manual'
+        ? `Welcome ${profile?.first_name ?? ''}! Your manual verification has been approved. You are now a Member.`
+        : `Welcome ${profile?.first_name ?? ''}! Your ABO number ${verReq?.claimed_abo} has been verified. You are now a Member.`
+
+    await supabase.from('notifications').insert({
+      profile_id: result.profile_id,
+      type: 'role_request',
+      title: 'Verification approved',
+      message: notifMessage,
+      action_url: '/profile',
     })
 
-    return Response.json({ queued: true }, { status: 202 })
+    return Response.json(result)
   }
 
   // -----------------------------------------------------------------------
@@ -113,34 +178,23 @@ export async function PATCH(
     first_name: string | null
     contact_email: string | null
   }
-  const denyContactEmail = profile?.contact_email
-  if (!error && denyContactEmail) {
-    import('@/lib/email/send').then(({ sendNotificationEmail }) => {
-      import('@/lib/email/templates/render').then(({ renderEmailTemplate }) => {
-        import('@/lib/email/templates/AboVerificationEmail').then(
-          ({ AboVerificationEmail }) => {
-            renderEmailTemplate(
-              AboVerificationEmail({
-                firstName: profile.first_name || 'Member',
-                claimedAbo: verReq.claimed_abo,
-                status: 'denied',
-                adminNote: admin_note,
-              })
-            )
-              .then((html) => {
-                sendNotificationEmail({
-                  to: denyContactEmail,
-                  subject: 'ABO Verification Declined',
-                  html,
-                  template: 'abo_verification_result',
-                  meta: { request_id: id, profile_id: verReq.profile_id },
-                }).catch(console.error)
-              })
-              .catch(console.error)
-          }
-        ).catch(console.error)
-      }).catch(console.error)
-    }).catch(console.error)
+
+  if (!error && profile?.contact_email) {
+    const denyHtml = await renderEmailTemplate(
+      AboVerificationEmail({
+        firstName: profile.first_name || 'Member',
+        claimedAbo: verReq.claimed_abo,
+        status: 'denied',
+        adminNote: admin_note ?? null,
+      })
+    )
+    await sendTransactionalEmail({
+      to: profile.contact_email,
+      subject: 'ABO Verification Declined',
+      html: denyHtml,
+      template: 'abo_verification_result',
+      meta: { request_id: id, profile_id: verReq.profile_id },
+    })
   }
 
   if (error) return Response.json({ error: error.message }, { status: 500 })
