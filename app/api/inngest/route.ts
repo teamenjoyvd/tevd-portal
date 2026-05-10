@@ -4,23 +4,19 @@ import { type NextRequest } from 'next/server'
  * Inngest serve handler.
  *
  * `inngest` is listed in `serverExternalPackages` in next.config.ts so
- * Turbopack treats it as a Node external and never bundles it into a server
- * chunk at build time. However, Next.js still evaluates top-level imports
- * during the "collect page data" build step — so inngest imports must remain
- * dynamic to prevent `decodeURIComponent` inside the SDK from throwing
- * `URIError: URI malformed` during build.
+ * Turbopack treats it as a Node external and skips bundling. However,
+ * Turbopack still evaluates top-level imports during the "collect page data"
+ * build step — so inngest imports must remain dynamic to prevent
+ * `decodeURIComponent` inside the SDK from throwing `URIError: URI malformed`.
  *
- * `signingKey` and `serveHost` are intentionally omitted from `serve()`:
- * - The SDK reads `INNGEST_SIGNING_KEY` from `process.env` by default.
- * - `serveHost` is not needed in Next.js Route Handlers — `req.url` is
- *   always an absolute URL.
+ * This applies to both v3 and v4: the crash is a Turbopack bundling artifact,
+ * not a version-specific issue. Dynamic imports are the correct workaround.
  *
  * This route is intentionally NOT guarded by Clerk auth.
  * Security is enforced by Inngest signing key verification in the SDK.
  * Public route — listed in lib/public-routes.ts.
  *
  * Next.js 16 passes ctx.params as Promise<Record<string,string>>.
- * inngest@3 expects ctx.params as Record<string,string> (sync).
  * We await before forwarding — this route has no dynamic segments so params
  * is always an empty object.
  */
