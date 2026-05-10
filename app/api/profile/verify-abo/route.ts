@@ -135,7 +135,6 @@ export async function POST(req: Request) {
 
   if (existingHolder) {
     if (existingHolder.primary_profile_id === null) {
-      // Primary holder — route to spouse link flow
       return Response.json(
         {
           error: 'This ABO is already registered. If you are the co-owner, use the Spouse Link option on your profile.',
@@ -178,7 +177,7 @@ export async function POST(req: Request) {
   // Call RPC — DB transaction commits here
   const { data: rpcRows, error: rpcError } = await supabase.rpc(
     'approve_member_verification',
-    { p_request_id: requestRow.id, p_admin_note: null }
+    { p_request_id: requestRow.id }
   )
 
   if (rpcError) {
@@ -245,7 +244,6 @@ export async function POST(req: Request) {
         meta: { request_id: requestRow.id, profile_id: profile.id },
       })
 
-      // Welcome email — always a guest-to-member promotion on this path
       const welcomeHtml = await renderEmailTemplate(
         WelcomeEmail({ firstName: profile.first_name || 'Member' })
       )
