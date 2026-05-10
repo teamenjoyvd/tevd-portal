@@ -32,8 +32,8 @@ export const approveVerification = inngest.createFunction(
   {
     id: 'approve-verification',
     retries: 3,
+    triggers: [{ event: 'verification/approve' }],
   },
-  { event: 'verification/approve' },
   async ({ event, step }) => {
     const { requestId, adminClerkId, adminNote } = event.data
     const inngestEventId: string | null = event.id ?? null

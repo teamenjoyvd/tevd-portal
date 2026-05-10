@@ -6,12 +6,9 @@ import { Inngest } from 'inngest'
  * INNGEST_SIGNING_KEY is used by the serve handler to verify incoming job callbacks.
  * Both must be set in Vercel environment before deployment.
  *
- * The client is constructed with an explicit empty-string fallback for
- * INNGEST_SIGNING_KEY so that decodeURIComponent does not throw a URIError
- * during Next.js build-time page data collection (the env var is absent at
- * build time and only available at runtime on Vercel).
+ * v4: configuration is resolved lazily at first use — no eager decodeURIComponent
+ * at module construction time. The build-time-placeholder fallback is no longer needed.
  */
 export const inngest = new Inngest({
   id: 'tevd-portal',
-  eventKey: process.env.INNGEST_EVENT_KEY ?? 'build-time-placeholder',
 })

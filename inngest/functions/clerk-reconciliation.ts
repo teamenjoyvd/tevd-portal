@@ -20,8 +20,8 @@ export const clerkReconciliation = inngest.createFunction(
   {
     id: 'clerk-reconciliation',
     retries: 2,
+    triggers: [{ cron: '*/15 * * * *' }],
   },
-  { cron: '*/15 * * * *' },
   async ({ step }) => {
     const driftedProfiles = await step.run(
       'find-drifted-profiles',
