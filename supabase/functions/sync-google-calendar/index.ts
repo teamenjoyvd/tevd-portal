@@ -32,12 +32,27 @@ async function getGoogleAccessToken(sa: Record<string,string>): Promise<string> 
   return d.access_token
 }
 
+/**
+ * Return a Date whose UTC year/month/day matches the Sofia calendar date of `date`.
+ * Used to compute ISO week numbers in Sofia local time rather than UTC.
+ * Intl.DateTimeFormat with numeric parts is specified behaviour — safe in Deno/V8.
+ */
+function sofiaDateFor(date: Date): Date {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Europe/Sofia',
+    year: 'numeric', month: 'numeric', day: 'numeric',
+  }).formatToParts(date)
+  const get = (type: string) => parseInt(parts.find(p => p.type === type)!.value, 10)
+  // Date.UTC month is 0-indexed
+  return new Date(Date.UTC(get('year'), get('month') - 1, get('day')))
+}
+
 function isoWeek(date: Date): number {
   const d = new Date(date)
-  d.setHours(0,0,0,0)
-  d.setDate(d.getDate()+3-((d.getDay()+6)%7))
-  const w1 = new Date(d.getFullYear(),0,4)
-  return 1+Math.round(((d.getTime()-w1.getTime())/86400000-3+((w1.getDay()+6)%7))/7)
+  d.setUTCHours(0,0,0,0)
+  d.setUTCDate(d.getUTCDate()+3-((d.getUTCDay()+6)%7))
+  const w1 = new Date(Date.UTC(d.getUTCFullYear(),0,4))
+  return 1+Math.round(((d.getTime()-w1.getTime())/86400000-3+((w1.getUTCDay()+6)%7))/7)
 }
 
 /**
@@ -137,7 +152,7 @@ function resolveTimes(item: Record<string, unknown>): {
     return { startIso, endIso, isAllDay: true }
   }
 
-  // Malformed item — fall back to current time so the caller can skip it.
+  // Malformed item — fall back to empty strings so the caller can skip it.
   return { startIso: '', endIso: '', isAllDay: false }
 }
 
@@ -199,7 +214,7 @@ Deno.serve(async (req: Request) => {
       location:    location,
       start_time:  startIso,
       end_time:    endIso,
-      week_number: isoWeek(st),
+      week_number: isoWeek(sofiaDateFor(st)),
       is_all_day:  isAllDay,
     }
 
