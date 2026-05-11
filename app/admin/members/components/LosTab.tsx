@@ -19,7 +19,7 @@ function getMatchingAboNumbers(nodes: TreeNode[], term: string): Set<string> {
   const matched = new Set<string>()
   for (const n of nodes) {
     const displayName = n.first_name
-      ? `${n.first_name} ${n.last_name}`.toLowerCase()
+      ? `${n.first_name} ${n.last_name ?? ''}`.toLowerCase()
       : (n.name ?? '').toLowerCase()
     if (displayName.includes(lower) || n.abo_number.toLowerCase().includes(lower)) {
       matched.add(n.abo_number)
@@ -218,24 +218,22 @@ export function LosTab() {
   // ── Search-filtered tree ────────────────────────────────────────────────
   const isSearchActive = searchTerm.trim().length > 0
 
-  const { visibleRoots, matchedAboNumbers } = useMemo(() => {
-    if (!isSearchActive) return { visibleRoots: treeRoots, matchedAboNumbers: new Set<string>() }
+  const { visibleRoots, matchedAboNumbers, visibleAboNumbers } = useMemo(() => {
+    if (!isSearchActive) return { visibleRoots: treeRoots, matchedAboNumbers: new Set<string>(), visibleAboNumbers: new Set<string>() }
     const matched = getMatchingAboNumbers(flatNodes, searchTerm.trim())
     const ancestors = getAncestors(flatNodes, matched)
     const visible = new Set([...matched, ...ancestors])
     return {
       visibleRoots: filterTree(treeRoots, visible),
       matchedAboNumbers: matched,
+      visibleAboNumbers: visible,
     }
   }, [isSearchActive, searchTerm, flatNodes, treeRoots])
 
-  // When search becomes active, expand all visible ancestor nodes.
+  // Expand all visible nodes (matched + ancestors) whenever the search result set changes.
   useEffect(() => {
-    if (!isSearchActive) return
-    const matched = getMatchingAboNumbers(flatNodes, searchTerm.trim())
-    const ancestors = getAncestors(flatNodes, matched)
-    setExpanded(new Set([...matched, ...ancestors]))
-  }, [isSearchActive, searchTerm, flatNodes])
+    if (isSearchActive) setExpanded(visibleAboNumbers)
+  }, [isSearchActive, visibleAboNumbers])
 
   const activateMutation = useMutation({
     mutationFn: ({ profileId, definitionId }: { profileId: string; definitionId: string }) =>

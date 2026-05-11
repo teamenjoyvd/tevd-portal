@@ -44,7 +44,7 @@ export async function GET() {
       .in('id', subjectIds)
 
     for (const p of profiles ?? []) {
-      nameMap.set(p.id, `${p.first_name} ${p.last_name}`.trim())
+      nameMap.set(p.id, `${p.first_name ?? ''} ${p.last_name ?? ''}`.trim())
     }
   }
 
