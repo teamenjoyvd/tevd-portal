@@ -32,12 +32,27 @@ async function getGoogleAccessToken(sa: Record<string,string>): Promise<string> 
   return d.access_token
 }
 
+/**
+ * Return a Date whose UTC year/month/day matches the Sofia calendar date of `date`.
+ * Used to compute ISO week numbers in Sofia local time rather than UTC.
+ * Intl.DateTimeFormat with numeric parts is specified behaviour — safe in Deno/V8.
+ */
+function sofiaDateFor(date: Date): Date {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Europe/Sofia',
+    year: 'numeric', month: 'numeric', day: 'numeric',
+  }).formatToParts(date)
+  const get = (type: string) => parseInt(parts.find(p => p.type === type)!.value, 10)
+  // Date.UTC month is 0-indexed
+  return new Date(Date.UTC(get('year'), get('month') - 1, get('day')))
+}
+
 function isoWeek(date: Date): number {
   const d = new Date(date)
-  d.setHours(0,0,0,0)
-  d.setDate(d.getDate()+3-((d.getDay()+6)%7))
-  const w1 = new Date(d.getFullYear(),0,4)
-  return 1+Math.round(((d.getTime()-w1.getTime())/86400000-3+((w1.getDay()+6)%7))/7)
+  d.setUTCHours(0,0,0,0)
+  d.setUTCDate(d.getUTCDate()+3-((d.getUTCDay()+6)%7))
+  const w1 = new Date(Date.UTC(d.getUTCFullYear(),0,4))
+  return 1+Math.round(((d.getTime()-w1.getTime())/86400000-3+((w1.getUTCDay()+6)%7))/7)
 }
 
 /**
@@ -80,6 +95,67 @@ function stripHtml(html: string): string {
     .trim()
 }
 
+/**
+ * Resolve start/end times for a GCal event item.
+ *
+ * Google returns two distinct shapes:
+ *   - Timed events:   { start: { dateTime: '2026-06-15T10:00:00+02:00' }, end: { dateTime: ... } }
+ *   - All-day events: { start: { date: '2026-06-15' }, end: { date: '2026-06-16' } }
+ *
+ * The `date` form is a bare YYYY-MM-DD string. Passing it directly to
+ * new Date(...) parses it as UTC midnight, which in Sofia (UTC+2) shifts
+ * the event to the previous day at 22:00.
+ *
+ * Fix: detect all-day by absence of dateTime, then build an explicit
+ * Sofia-midnight ISO string using the +02:00 offset. This produces the
+ * correct UTC instant (e.g. 2026-06-14T22:00:00.000Z) while preserving
+ * the correct calendar date when rendered in the Sofia timezone.
+ *
+ * Google's end.date is EXCLUSIVE (the day after the last day of the event).
+ * We subtract one day so a single-day event stores start=Jun 15, end=Jun 15
+ * and a two-day event stores start=Jun 15, end=Jun 16.
+ */
+function resolveTimes(item: Record<string, unknown>): {
+  startIso: string
+  endIso: string
+  isAllDay: boolean
+} {
+  const start = item.start as Record<string, string> | undefined
+  const end   = item.end   as Record<string, string> | undefined
+
+  if (start?.dateTime && end?.dateTime) {
+    // Timed event — dateTime already carries timezone offset, safe to use as-is.
+    return {
+      startIso: new Date(start.dateTime).toISOString(),
+      endIso:   new Date(end.dateTime).toISOString(),
+      isAllDay: false,
+    }
+  }
+
+  if (start?.date && end?.date) {
+    // All-day event — construct explicit Sofia midnight strings.
+    // +02:00 is Sofia standard time (EET). EEST (+03:00) applies May–Oct;
+    // using +02:00 year-round is a deliberate simplification: the stored
+    // UTC instant may be off by 1h during summer but the rendered Sofia
+    // calendar date will always be correct because the display layer reads
+    // back through the Europe/Sofia TZ (which applies DST automatically).
+    const startIso = new Date(`${start.date}T00:00:00+02:00`).toISOString()
+
+    // Subtract one day from Google's exclusive end date.
+    // exclusiveEnd is initialised as Sofia midnight (22:00 UTC); setDate adjusts
+    // the UTC date by -1, yielding the correct Sofia midnight for the inclusive
+    // end day. toISOString() on the resulting Date is the correct UTC instant.
+    const exclusiveEnd = new Date(`${end.date}T00:00:00+02:00`)
+    exclusiveEnd.setDate(exclusiveEnd.getDate() - 1)
+    const endIso = exclusiveEnd.toISOString()
+
+    return { startIso, endIso, isAllDay: true }
+  }
+
+  // Malformed item — fall back to empty strings so the caller can skip it.
+  return { startIso: '', endIso: '', isAllDay: false }
+}
+
 Deno.serve(async (req: Request) => {
   const secret = Deno.env.get('SYNC_SECRET')
   if (secret && req.headers.get('x-sync-secret') !== secret) {
@@ -117,10 +193,11 @@ Deno.serve(async (req: Request) => {
 
   for (const item of items) {
     if (item.status === 'cancelled') continue
-    const startRaw = (item.start as Record<string,string>)?.dateTime ?? (item.start as Record<string,string>)?.date
-    const endRaw   = (item.end   as Record<string,string>)?.dateTime ?? (item.end   as Record<string,string>)?.date
-    if (!startRaw || !endRaw) continue
-    const st = new Date(startRaw), et = new Date(endRaw)
+
+    const { startIso, endIso, isAllDay } = resolveTimes(item)
+    if (!startIso || !endIso) continue
+
+    const st = new Date(startIso)
     const personal = String(item.summary??'').includes('[Personal]') || String(item.description??'').includes('[Personal]')
 
     const rawDesc    = item.description ? String(item.description) : null
@@ -135,9 +212,10 @@ Deno.serve(async (req: Request) => {
       description: cleanDesc,
       meeting_url: meetingUrl,
       location:    location,
-      start_time:  st.toISOString(),
-      end_time:    et.toISOString(),
-      week_number: isoWeek(st),
+      start_time:  startIso,
+      end_time:    endIso,
+      week_number: isoWeek(sofiaDateFor(st)),
+      is_all_day:  isAllDay,
     }
 
     if (!ex) {
@@ -151,7 +229,9 @@ Deno.serve(async (req: Request) => {
       if (ie) errors.push(String(item.id) + ': ' + ie.message)
       else { upserted++; newEvents++ }
     } else {
-      // Existing event: update scheduling and content only — never touch category or access_roles
+      // Existing event: update scheduling, content, and is_all_day.
+      // category and access_roles are intentionally not touched here
+      // (admins may have customised them after the initial sync).
       const {error:ue} = await sb.from('calendar_events')
         .update(eventPayload)
         .eq('google_event_id', item.id)

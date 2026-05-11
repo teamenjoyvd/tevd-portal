@@ -17,4 +17,5 @@ export const calendar = {
   'cal.shareEvent':         { en: 'Share event',              bg: 'Сподели събитие'               },
   'cal.linkCopied':         { en: 'Link copied!',             bg: 'Линкът е копиран!'             },
   'cal.roleRequestsClosed': { en: 'Role requests closed.',    bg: 'Заявките за роли са затворени.' },
+  'cal.allDay':             { en: 'All day',                  bg: 'Целодневно'                    },
 } as const

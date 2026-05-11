@@ -163,6 +163,7 @@ export type Database = {
           event_type: Database["public"]["Enums"]["event_type"] | null
           google_event_id: string | null
           id: string
+          is_all_day: boolean
           location: string | null
           meeting_url: string | null
           start_time: string
@@ -181,6 +182,7 @@ export type Database = {
           event_type?: Database["public"]["Enums"]["event_type"] | null
           google_event_id?: string | null
           id?: string
+          is_all_day?: boolean
           location?: string | null
           meeting_url?: string | null
           start_time: string
@@ -199,6 +201,7 @@ export type Database = {
           event_type?: Database["public"]["Enums"]["event_type"] | null
           google_event_id?: string | null
           id?: string
+          is_all_day?: boolean
           location?: string | null
           meeting_url?: string | null
           start_time?: string
@@ -674,7 +677,7 @@ export type Database = {
           ppv?: number | null
           qualified_legs?: number | null
           renewal_date?: string | null
-          ruby_pv?: number | null
+          ruby_pv?: string | null
           sponsor_abo_number?: string | null
           sponsoring?: number | null
         }
