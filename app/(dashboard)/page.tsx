@@ -37,6 +37,11 @@ export default async function HomePage() {
     if (profile?.role) role = profile.role
   }
 
+  // All-day events are stored as Sofia midnight in UTC (22:00 UTC the prior day for EET,
+  // 21:00 UTC for EEST). To avoid filtering them out the moment Sofia midnight passes,
+  // subtract 3h from UTC midnight — covers both EET (+02:00) and EEST (+03:00) offsets.
+  const calendarFrom = new Date(new Date().setUTCHours(0, 0, 0, 0) - 3 * 3600 * 1000).toISOString()
+
   const [announcementsRes, linksRes, tripsRes, guidesRes, eventsRes] = await Promise.all([
     supabase.from('announcements').select('id, titles, contents, is_active, slug').eq('is_active', true)
       .contains('access_roles', [role]).order('created_at', { ascending: false }).limit(5),
@@ -49,7 +54,7 @@ export default async function HomePage() {
     supabase.from('calendar_events')
       .select('id, title, start_time, end_time, event_type, is_all_day')
       .contains('access_roles', [role])
-      .gte('start_time', new Date().toISOString())
+      .gte('start_time', calendarFrom)
       .order('start_time')
       .limit(5),
   ])
