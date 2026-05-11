@@ -61,7 +61,7 @@ function filterTree(roots: TreeNode[], visible: Set<string>): TreeNode[] {
 // Recursive — stays at module scope in LosTab.tsx (self-referential, single consumer).
 
 function NodeCard({
-  node, definitions, onToggle, isPending, expanded, onToggleExpand, isSearchActive, isMatch,
+  node, definitions, onToggle, isPending, expanded, onToggleExpand, isSearchActive, matchedAboNumbers,
 }: {
   node: TreeNode
   definitions: VitalSignDefinition[]
@@ -70,7 +70,7 @@ function NodeCard({
   expanded: Set<string>
   onToggleExpand: (key: string) => void
   isSearchActive: boolean
-  isMatch: boolean
+  matchedAboNumbers: Set<string>
 }) {
   const key = node.abo_number
   const isExpanded = expanded.has(key)
@@ -80,6 +80,7 @@ function NodeCard({
     ? `${node.first_name} ${node.last_name}`
     : node.name ?? node.abo_number
   const vitalSigns = Array.isArray(node.vital_signs) ? node.vital_signs : []
+  const isMatch = isSearchActive && matchedAboNumbers.has(node.abo_number)
 
   return (
     <div className="relative">
@@ -87,7 +88,7 @@ function NodeCard({
         className="rounded-xl p-4 mb-1"
         style={{
           backgroundColor: 'var(--bg-card)',
-          border: isSearchActive && isMatch
+          border: isMatch
             ? '1px solid var(--brand-teal)'
             : '1px solid var(--border-default)',
         }}
@@ -167,7 +168,7 @@ function NodeCard({
             <NodeCard key={child.abo_number} node={child} definitions={definitions}
               onToggle={onToggle} isPending={isPending}
               expanded={expanded} onToggleExpand={onToggleExpand}
-              isSearchActive={isSearchActive} isMatch={isSearchActive} />
+              isSearchActive={isSearchActive} matchedAboNumbers={matchedAboNumbers} />
           ))}
         </div>
       )}
@@ -374,7 +375,7 @@ export function LosTab() {
               onToggle={handleToggle} isPending={isPending}
               expanded={expanded} onToggleExpand={handleToggleExpand}
               isSearchActive={isSearchActive}
-              isMatch={matchedAboNumbers.has(node.abo_number)} />
+              matchedAboNumbers={matchedAboNumbers} />
           ))}
         </div>
       )}
