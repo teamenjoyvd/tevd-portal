@@ -680,6 +680,44 @@ export type Database = {
         }
         Relationships: []
       }
+      member_event_log: {
+        Row: {
+          actor_id: string
+          created_at: string
+          event_type: string
+          id: string
+          payload: Json
+          status: string
+          subject_id: string | null
+        }
+        Insert: {
+          actor_id: string
+          created_at?: string
+          event_type: string
+          id?: string
+          payload?: Json
+          status?: string
+          subject_id?: string | null
+        }
+        Update: {
+          actor_id?: string
+          created_at?: string
+          event_type?: string
+          id?: string
+          payload?: Json
+          status?: string
+          subject_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_event_log_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       member_vital_signs: {
         Row: {
           created_at: string
@@ -1605,6 +1643,7 @@ export type Database = {
         | "los_digest"
         | "trip_message"
         | "trip_attachment"
+        | "spouse_link_request"
       registration_status: "pending" | "approved" | "denied"
       user_role: "admin" | "core" | "member" | "guest"
     }
@@ -1747,6 +1786,7 @@ export const Constants = {
         "los_digest",
         "trip_message",
         "trip_attachment",
+        "spouse_link_request",
       ],
       registration_status: ["pending", "approved", "denied"],
       user_role: ["admin", "core", "member", "guest"],
