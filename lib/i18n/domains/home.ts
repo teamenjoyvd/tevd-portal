@@ -7,6 +7,7 @@ export const home = {
   'home.cal.typeHybrid':     { en: 'Hybrid',               bg: 'Хибридно'                },
   'home.cal.today':          { en: 'TODAY',                bg: 'ДНЕС'                    },
   'home.cal.tomorrow':       { en: 'TOMORROW',             bg: 'УТРЕ'                    },
+  'home.cal.allDay':         { en: 'All day',              bg: 'Целодневно'              },
   // AnnouncementTile
   'home.ann.moreLink':       { en: 'More →',               bg: 'Още →'                   },
   // GuidesTile / LinksGuidesTile
