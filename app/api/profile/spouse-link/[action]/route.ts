@@ -21,6 +21,9 @@ export async function POST(
   if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
   const supabase = createServiceClient()
+  // member_event_log and role_change_audit are not yet in generated Supabase types
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = supabase as any
 
   // Resolve caller profile
   const { data: caller } = await supabase
@@ -67,7 +70,7 @@ export async function POST(
       .eq('id', request_id)
     if (error) return Response.json({ error: error.message }, { status: 500 })
 
-    supabase.from('member_event_log').insert({
+    db.from('member_event_log').insert({
       actor_id: userId,
       subject_id: request.requester_id,
       event_type: 'spouse_link_denied',
@@ -157,7 +160,7 @@ export async function POST(
   if (requestErr) return Response.json({ error: requestErr.message }, { status: 500 })
 
   // Audit log
-  await supabase.from('role_change_audit').insert({
+  await db.from('role_change_audit').insert({
     profile_id: requester.id,
     changed_by: userId,
     old_role: 'guest',
@@ -166,7 +169,7 @@ export async function POST(
   })
 
   // Event log
-  supabase.from('member_event_log').insert([
+  db.from('member_event_log').insert([
     {
       actor_id: userId,
       subject_id: requester.id,
@@ -181,14 +184,14 @@ export async function POST(
     clerk.users.updateUserMetadata(requester.clerk_id, {
       publicMetadata: { role: 'member' },
     }).then(() => {
-      supabase.from('member_event_log').insert({
+      db.from('member_event_log').insert({
         actor_id: userId,
         subject_id: requester.id,
         event_type: 'clerk_sync_ok',
         payload: { context: 'spouse_link_approve' },
       }).then().catch(console.error)
     }).catch((err: unknown) => {
-      supabase.from('member_event_log').insert({
+      db.from('member_event_log').insert({
         actor_id: userId,
         subject_id: requester.id,
         event_type: 'clerk_sync_failed',

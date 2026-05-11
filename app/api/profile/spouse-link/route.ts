@@ -31,6 +31,9 @@ export async function POST(req: Request) {
   if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
   const supabase = createServiceClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = supabase as any
+
   const { data: profile } = await supabase
     .from('profiles')
     .select('id, role, primary_profile_id, first_name, last_name')
@@ -151,8 +154,8 @@ export async function POST(req: Request) {
     ).catch(console.error)
   }
 
-  // Event log
-  supabase.from('member_event_log').insert({
+  // Event log — member_event_log not yet in generated types; cast to any
+  db.from('member_event_log').insert({
     actor_id: userId,
     subject_id: primary.id,
     event_type: 'spouse_link_requested',
