@@ -143,11 +143,13 @@ export async function POST(
   }
 
   // Atomic writes
+  // Note: abo_number is intentionally NOT copied to the secondary profile row.
+  // The UNIQUE constraint on profiles.abo_number means only one row can hold a given
+  // value. The secondary's ABO number is derivable by joining through primary_profile_id.
   const { error: profileErr } = await supabase
     .from('profiles')
     .update({
       primary_profile_id: primary.id,
-      abo_number: primary.abo_number,
       role: 'member',
     })
     .eq('id', requester.id)
