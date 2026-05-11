@@ -70,12 +70,12 @@ export async function POST(
       .eq('id', request_id)
     if (error) return Response.json({ error: error.message }, { status: 500 })
 
-    db.from('member_event_log').insert({
+    await db.from('member_event_log').insert({
       actor_id: userId,
       subject_id: request.requester_id,
       event_type: 'spouse_link_denied',
       payload: { request_id, denied_by: caller.id },
-    }).then().catch(console.error)
+    })
 
     return Response.json({ status: 'denied' })
   }
@@ -169,38 +169,40 @@ export async function POST(
   })
 
   // Event log
-  db.from('member_event_log').insert([
+  await db.from('member_event_log').insert([
     {
       actor_id: userId,
       subject_id: requester.id,
       event_type: 'spouse_link_approved',
       payload: { request_id, approved_by: caller.id },
     },
-  ]).then().catch(console.error)
+  ])
 
-  // Sync Clerk metadata
+  // Sync Clerk metadata — awaited so the serverless function does not exit
+  // before the role is visible to the user's next session.
   if (requester.clerk_id) {
     const clerk = await clerkClient()
-    clerk.users.updateUserMetadata(requester.clerk_id, {
-      publicMetadata: { role: 'member' },
-    }).then(() => {
-      db.from('member_event_log').insert({
+    try {
+      await clerk.users.updateUserMetadata(requester.clerk_id, {
+        publicMetadata: { role: 'member' },
+      })
+      await db.from('member_event_log').insert({
         actor_id: userId,
         subject_id: requester.id,
         event_type: 'clerk_sync_ok',
         payload: { context: 'spouse_link_approve' },
-      }).then().catch(console.error)
-    }).catch((err: unknown) => {
-      db.from('member_event_log').insert({
+      })
+    } catch (err: unknown) {
+      await db.from('member_event_log').insert({
         actor_id: userId,
         subject_id: requester.id,
         event_type: 'clerk_sync_failed',
         payload: { context: 'spouse_link_approve', error: String(err) },
-      }).then().catch(console.error)
-    })
+      })
+    }
   }
 
-  // Welcome email — best-effort
+  // Welcome email — best-effort, non-blocking
   if (requester.contact_email) {
     renderEmailTemplate(
       WelcomeEmail({ firstName: requester.first_name || 'Member' })

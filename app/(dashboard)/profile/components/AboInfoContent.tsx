@@ -31,6 +31,28 @@ function resolveErrorMessage(
   }
 }
 
+// ── SpouseLinkBanner ──────────────────────────────────────────────────────────
+// Shown to primary members (confirmed or member_manual) when inbound requests
+// are pending. Extracted to avoid duplication across aboMode branches.
+
+function SpouseLinkBanner({ count, mt = 1 }: { count: number; mt?: number }) {
+  if (count === 0) return null
+  return (
+    <Link
+      href="/profile/spouse-link"
+      className="flex items-center gap-2 rounded-xl px-4 py-3"
+      style={{ backgroundColor: '#f2cc8f33', textDecoration: 'none', marginTop: mt * 4 }}
+    >
+      <span className="text-sm font-medium" style={{ color: '#7a5c00' }}>
+        {count === 1
+          ? 'Someone has requested to link as your spouse account'
+          : `${count} spouse link requests pending`}
+      </span>
+      <span className="ml-auto text-xs font-semibold" style={{ color: '#7a5c00' }}>Review →</span>
+    </Link>
+  )
+}
+
 export const AboInfoContent = memo(function AboInfoContent() {
   const qc = useQueryClient()
   const { t } = useLanguage()
@@ -201,21 +223,7 @@ export const AboInfoContent = memo(function AboInfoContent() {
               </div>
             )}
           </div>
-          {/* Primary member: pending inbound spouse link request notification */}
-          {pendingSpouseLinkCount > 0 && (
-            <Link
-              href="/profile/spouse-link"
-              className="flex items-center gap-2 rounded-xl px-4 py-3 mt-1"
-              style={{ backgroundColor: '#f2cc8f33', textDecoration: 'none' }}
-            >
-              <span className="text-sm font-medium" style={{ color: '#7a5c00' }}>
-                {pendingSpouseLinkCount === 1
-                  ? 'Someone has requested to link as your spouse account'
-                  : `${pendingSpouseLinkCount} spouse link requests pending`}
-              </span>
-              <span className="ml-auto text-xs font-semibold" style={{ color: '#7a5c00' }}>Review →</span>
-            </Link>
-          )}
+          <SpouseLinkBanner count={pendingSpouseLinkCount} mt={1} />
         </div>
       )}
 
@@ -248,21 +256,7 @@ export const AboInfoContent = memo(function AboInfoContent() {
               </p>
             </div>
           </div>
-          {/* Primary member: pending inbound spouse link request notification */}
-          {pendingSpouseLinkCount > 0 && (
-            <Link
-              href="/profile/spouse-link"
-              className="flex items-center gap-2 rounded-xl px-4 py-3"
-              style={{ backgroundColor: '#f2cc8f33', textDecoration: 'none' }}
-            >
-              <span className="text-sm font-medium" style={{ color: '#7a5c00' }}>
-                {pendingSpouseLinkCount === 1
-                  ? 'Someone has requested to link as your spouse account'
-                  : `${pendingSpouseLinkCount} spouse link requests pending`}
-              </span>
-              <span className="ml-auto text-xs font-semibold" style={{ color: '#7a5c00' }}>Review →</span>
-            </Link>
-          )}
+          <SpouseLinkBanner count={pendingSpouseLinkCount} mt={0} />
         </div>
       )}
 

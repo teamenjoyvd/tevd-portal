@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { toast } from '@/lib/toast'
@@ -91,6 +92,7 @@ function DenyForm({
 // ── PrimaryView ────────────────────────────────────────────────────────────────
 
 function PrimaryView({ inboundRequests }: { inboundRequests: InboundRequest[] }) {
+  const router = useRouter()
   const qc = useQueryClient()
   const [denyingId, setDenyingId] = useState<string | null>(null)
 
@@ -109,8 +111,8 @@ function PrimaryView({ inboundRequests }: { inboundRequests: InboundRequest[] })
       setDenyingId(null)
       toast.success(vars.action === 'approve' ? 'Spouse link approved.' : 'Request denied.')
       qc.invalidateQueries({ queryKey: ['profile'] })
-      // Refresh page data via router
-      window.location.reload()
+      // Refresh RSC page data without resetting client state
+      router.refresh()
     },
     onError: (err: Error) => {
       toast.error(err.message || 'Action failed. Please try again.')
