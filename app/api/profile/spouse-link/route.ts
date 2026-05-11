@@ -31,6 +31,7 @@ export async function POST(req: Request) {
   if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
   const supabase = createServiceClient()
+  // member_event_log is not in generated types; notifications uses PromiseLike (no .catch)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = supabase as any
 
@@ -126,7 +127,8 @@ export async function POST(req: Request) {
   const requesterName = `${profile.first_name ?? ''} ${profile.last_name ?? ''}`.trim() || 'Someone'
 
   // In-app notification for primary — best-effort
-  supabase.from('notifications').insert({
+  // Use db (any) to avoid PromiseLike.catch TS error on the typed supabase client
+  db.from('notifications').insert({
     profile_id: primary.id,
     type: 'spouse_link_request',
     title: 'Spouse link request',
@@ -154,7 +156,7 @@ export async function POST(req: Request) {
     ).catch(console.error)
   }
 
-  // Event log — member_event_log not yet in generated types; cast to any
+  // Event log — member_event_log not in generated types
   db.from('member_event_log').insert({
     actor_id: userId,
     subject_id: primary.id,
