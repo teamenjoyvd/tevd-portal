@@ -24,7 +24,7 @@ type Announcement = {
 type SiteLink = { id: string; label: { en: string; bg: string }; url: string }
 type Guide = { id: string; slug: string; title: { en: string; bg: string }; emoji: string | null }
 type Trip = { id: string; title: string; destination: string; start_date: string; image_url: string | null }
-type CalendarEvent = { id: string; title: string; start_time: string; end_time: string | null; event_type: string | null }
+type CalendarEvent = { id: string; title: string; start_time: string; end_time: string | null; event_type: string | null; is_all_day: boolean }
 
 export default async function HomePage() {
   let userId: string | null = null
@@ -47,7 +47,7 @@ export default async function HomePage() {
       .eq('is_published', true).contains('access_roles', [role])
       .order('created_at', { ascending: false }).limit(6),
     supabase.from('calendar_events')
-      .select('id, title, start_time, end_time, event_type')
+      .select('id, title, start_time, end_time, event_type, is_all_day')
       .contains('access_roles', [role])
       .gte('start_time', new Date().toISOString())
       .order('start_time')

@@ -13,6 +13,7 @@ export type CalendarEvent = {
   event_type: 'in-person' | 'online' | 'hybrid' | null
   week_number: number
   access_roles: string[]
+  is_all_day: boolean
 }
 
 export type View = 'month' | 'agenda'

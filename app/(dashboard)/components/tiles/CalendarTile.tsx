@@ -11,6 +11,7 @@ export type CalendarEvent = {
   start_time: string
   end_time: string | null
   event_type: string | null
+  is_all_day: boolean
 }
 
 // Module-level formatters — Intl construction is expensive; hoist out of render loop.
@@ -100,12 +101,16 @@ export default function CalendarTile({ events = [], colSpan, mobileColSpan, rowS
       ) : (
         <div className="flex flex-col gap-1.5 flex-1">
           {events.map(event => {
-            const duration = eventDuration(event.start_time, event.end_time)
-            const typeParts = [
-              event.event_type ? (EVENT_TYPE_LABELS[event.event_type] ?? event.event_type) : null,
-              formatTime(event.start_time),
-              duration || null,
-            ].filter(Boolean).join(' · ')
+            const typeParts = event.is_all_day
+              ? [
+                  event.event_type ? (EVENT_TYPE_LABELS[event.event_type] ?? event.event_type) : null,
+                  t('home.cal.allDay'),
+                ].filter(Boolean).join(' · ')
+              : [
+                  event.event_type ? (EVENT_TYPE_LABELS[event.event_type] ?? event.event_type) : null,
+                  formatTime(event.start_time),
+                  eventDuration(event.start_time, event.end_time) || null,
+                ].filter(Boolean).join(' · ')
 
             const days = daysUntil(event.start_time)
             const pipLabel = days === 0
