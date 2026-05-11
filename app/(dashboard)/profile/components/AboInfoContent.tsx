@@ -1,6 +1,7 @@
 'use client'
 
 import { memo, useState } from 'react'
+import Link from 'next/link'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { getRoleColors } from '@/lib/role-colors'
@@ -30,6 +31,28 @@ function resolveErrorMessage(
   }
 }
 
+// ── SpouseLinkBanner ──────────────────────────────────────────────────────────
+// Shown to primary members (confirmed or member_manual) when inbound requests
+// are pending. Extracted to avoid duplication across aboMode branches.
+
+function SpouseLinkBanner({ count, mt = 1 }: { count: number; mt?: number }) {
+  if (count === 0) return null
+  return (
+    <Link
+      href="/profile/spouse-link"
+      className="flex items-center gap-2 rounded-xl px-4 py-3"
+      style={{ backgroundColor: '#f2cc8f33', textDecoration: 'none', marginTop: mt * 4 }}
+    >
+      <span className="text-sm font-medium" style={{ color: '#7a5c00' }}>
+        {count === 1
+          ? 'Someone has requested to link as your spouse account'
+          : `${count} spouse link requests pending`}
+      </span>
+      <span className="ml-auto text-xs font-semibold" style={{ color: '#7a5c00' }}>Review →</span>
+    </Link>
+  )
+}
+
 export const AboInfoContent = memo(function AboInfoContent() {
   const qc = useQueryClient()
   const { t } = useLanguage()
@@ -44,6 +67,7 @@ export const AboInfoContent = memo(function AboInfoContent() {
   const uplineData = profile?.upline ?? null
   const verRequest = profile?.verRequest ?? null
   const spouse = profile?.spouse ?? null
+  const pendingSpouseLinkCount = profile?.pendingSpouseLinkCount ?? 0
 
   const rc = getRoleColors(role)
   const [verificationMode, setVerificationMode] = useState<'standard' | 'manual'>('standard')
@@ -199,6 +223,7 @@ export const AboInfoContent = memo(function AboInfoContent() {
               </div>
             )}
           </div>
+          <SpouseLinkBanner count={pendingSpouseLinkCount} mt={1} />
         </div>
       )}
 
@@ -231,6 +256,7 @@ export const AboInfoContent = memo(function AboInfoContent() {
               </p>
             </div>
           </div>
+          <SpouseLinkBanner count={pendingSpouseLinkCount} mt={0} />
         </div>
       )}
 

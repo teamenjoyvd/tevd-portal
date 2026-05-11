@@ -1643,6 +1643,7 @@ export type Database = {
         | "los_digest"
         | "trip_message"
         | "trip_attachment"
+        | "spouse_link_request"
       registration_status: "pending" | "approved" | "denied"
       user_role: "admin" | "core" | "member" | "guest"
     }
@@ -1785,6 +1786,7 @@ export const Constants = {
         "los_digest",
         "trip_message",
         "trip_attachment",
+        "spouse_link_request",
       ],
       registration_status: ["pending", "approved", "denied"],
       user_role: ["admin", "core", "member", "guest"],

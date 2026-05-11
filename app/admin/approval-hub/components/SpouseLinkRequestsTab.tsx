@@ -1,8 +1,6 @@
 'use client'
 
-import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { toast } from '@/lib/toast'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 
 // ── Types ────────────────────────────────────────────────
@@ -31,54 +29,10 @@ function fullName(p: { first_name: string; last_name: string } | null) {
   return `${p.first_name} ${p.last_name}`.trim()
 }
 
-// ── Row: deny input state ──────────────────────────────────
-// Hoisted to module scope — avoids React remount anti-pattern.
-function DenyForm({
-  onCancel,
-  onConfirm,
-  isPending,
-  t,
-}: {
-  onCancel: () => void
-  onConfirm: (note: string) => void
-  isPending: boolean
-  t: (key: Parameters<ReturnType<typeof useLanguage>['t']>[0]) => string
-}) {
-  const [note, setNote] = useState('')
-  return (
-    <div className="mt-2 space-y-2">
-      <textarea
-        value={note}
-        onChange={e => setNote(e.target.value)}
-        placeholder={t('admin.approval.spouse.denyNotePlaceholder')}
-        rows={2}
-        className="w-full text-xs rounded-lg border px-3 py-2 resize-none focus:outline-none"
-        style={{
-          backgroundColor: 'var(--bg-global)',
-          borderColor: 'var(--border-default)',
-          color: 'var(--text-primary)',
-        }}
-      />
-      <div className="flex gap-2">
-        <button
-          onClick={() => { if (note.trim()) onConfirm(note.trim()) }}
-          disabled={!note.trim() || isPending}
-          className="px-3 py-1.5 rounded-lg text-xs font-medium text-white disabled:opacity-40 transition-opacity"
-          style={{ backgroundColor: 'var(--brand-crimson)' }}
-        >
-          {t('admin.approval.spouse.btn.confirmDeny')}
-        </button>
-        <button
-          onClick={onCancel}
-          disabled={isPending}
-          className="px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-40 transition-opacity"
-          style={{ backgroundColor: 'rgba(0,0,0,0.06)', color: 'var(--text-secondary)' }}
-        >
-          {t('admin.approval.spouse.btn.cancel')}
-        </button>
-      </div>
-    </div>
-  )
+const STATUS_STYLE: Record<SpouseLinkRequest['status'], { bg: string; color: string; label: string }> = {
+  pending:  { bg: '#f2cc8f33', color: '#7a5c00', label: 'Pending primary review' },
+  approved: { bg: '#1a3c2e18', color: '#1a3c2e', label: 'Approved' },
+  denied:   { bg: '#bc474915', color: '#bc4749', label: 'Denied' },
 }
 
 // ── Component ────────────────────────────────────────────
@@ -86,7 +40,6 @@ function DenyForm({
 export function SpouseLinkRequestsTab() {
   const { t } = useLanguage()
   const qc = useQueryClient()
-  const [denyingId, setDenyingId] = useState<string | null>(null)
 
   const { data: requests = [], isLoading } = useQuery<SpouseLinkRequest[]>({
     queryKey: ['spouse-link-requests'],
@@ -96,38 +49,7 @@ export function SpouseLinkRequestsTab() {
     }),
   })
 
-  const actionMutation = useMutation({
-    mutationFn: ({ id, status, admin_note }: { id: string; status: 'approved' | 'denied'; admin_note?: string }) =>
-      fetch(`/api/admin/spouse-link-requests/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status, admin_note }),
-      }).then(async r => {
-        const body = await r.json().catch(() => ({}))
-        if (!r.ok) throw new Error(body.error ?? `HTTP ${r.status}`)
-        return body
-      }),
-    onMutate: async ({ id }) => {
-      await qc.cancelQueries({ queryKey: ['spouse-link-requests'] })
-      const prev = qc.getQueryData<SpouseLinkRequest[]>(['spouse-link-requests'])
-      qc.setQueryData<SpouseLinkRequest[]>(['spouse-link-requests'],
-        old => old?.filter(r => r.id !== id)
-      )
-      return { prev }
-    },
-    onError: (_e, _v, ctx) => {
-      if (ctx?.prev) qc.setQueryData(['spouse-link-requests'], ctx.prev)
-      toast.error('Action failed. Please try again.')
-    },
-    onSuccess: (_data, vars) => {
-      setDenyingId(null)
-      const msg = vars.status === 'approved' ? 'Request approved.' : 'Request denied.'
-      toast.success(msg)
-    },
-    onSettled: () => {
-      qc.invalidateQueries({ queryKey: ['spouse-link-requests'] })
-    },
-  })
+  void qc // retained to avoid unused import warning; may be used for future refresh triggers
 
   const pending = requests.filter(r => r.status === 'pending')
 
@@ -137,13 +59,17 @@ export function SpouseLinkRequestsTab() {
         {t('admin.approval.spouse.pendingTitle').replace('{{count}}', String(pending.length))}
       </p>
 
+      <p className="text-xs mb-4" style={{ color: 'var(--text-secondary)' }}>
+        Spouse link requests are now reviewed by the primary member, not admin. This view is read-only.
+      </p>
+
       {isLoading ? (
         <div className="space-y-2">
           {[...Array(3)].map((_, i) => (
             <div key={i} className="h-16 bg-black/5 rounded-xl animate-pulse" />
           ))}
         </div>
-      ) : pending.length === 0 ? (
+      ) : requests.length === 0 ? (
         <div
           className="rounded-xl border px-5 py-8 text-center"
           style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}
@@ -154,66 +80,57 @@ export function SpouseLinkRequestsTab() {
         </div>
       ) : (
         <div className="space-y-2">
-          {pending.map(req => (
-            <div
-              key={req.id}
-              className="rounded-xl border px-4 py-3.5"
-              style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}
-            >
-              <div className="flex items-start gap-3">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                    {fullName(req.requester)}
-                    {req.requester?.contact_email && (
-                      <span className="font-normal text-xs ml-1.5" style={{ color: 'var(--text-secondary)' }}>
-                        {req.requester.contact_email}
+          {requests.map(req => {
+            const s = STATUS_STYLE[req.status]
+            return (
+              <div
+                key={req.id}
+                className="rounded-xl border px-4 py-3.5"
+                style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}
+              >
+                <div className="flex items-start gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                        {fullName(req.requester)}
+                      </p>
+                      <span
+                        className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                        style={{ backgroundColor: s.bg, color: s.color }}
+                      >
+                        {s.label}
                       </span>
+                    </div>
+                    {req.requester?.contact_email && (
+                      <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                        {req.requester.contact_email}
+                      </p>
                     )}
-                  </p>
-                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                    {t('admin.approval.spouse.claimedPrimary')}:{' '}
-                    <span style={{ color: 'var(--text-primary)' }}>
-                      {fullName(req.claimed_primary)}
-                      {req.claimed_primary?.abo_number && ` · ABO ${req.claimed_primary.abo_number}`}
-                    </span>
-                  </p>
-                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                    {t('admin.approval.spouse.submitted')}: {formatDate(req.created_at)}
-                  </p>
-                </div>
-
-                {denyingId !== req.id && (
-                  <div className="flex gap-2 flex-shrink-0">
-                    <button
-                      onClick={() => actionMutation.mutate({ id: req.id, status: 'approved' })}
-                      disabled={actionMutation.isPending}
-                      className="px-4 py-1.5 rounded-lg text-sm font-medium text-white disabled:opacity-50 transition-opacity"
-                      style={{ backgroundColor: 'var(--brand-teal)' }}
-                    >
-                      {t('admin.approval.spouse.btn.approve')}
-                    </button>
-                    <button
-                      onClick={() => setDenyingId(req.id)}
-                      disabled={actionMutation.isPending}
-                      className="px-4 py-1.5 rounded-lg text-sm font-medium disabled:opacity-50 transition-opacity"
-                      style={{ backgroundColor: 'rgba(0,0,0,0.06)', color: 'var(--text-primary)' }}
-                    >
-                      {t('admin.approval.spouse.btn.deny')}
-                    </button>
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                      {t('admin.approval.spouse.claimedPrimary')}:{' '}
+                      <span style={{ color: 'var(--text-primary)' }}>
+                        {fullName(req.claimed_primary)}
+                        {req.claimed_primary?.abo_number && ` · ABO ${req.claimed_primary.abo_number}`}
+                      </span>
+                    </p>
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                      {t('admin.approval.spouse.submitted')}: {formatDate(req.created_at)}
+                    </p>
+                    {req.admin_note && (
+                      <p className="text-xs mt-1 italic" style={{ color: 'var(--text-secondary)' }}>
+                        Note: {req.admin_note}
+                      </p>
+                    )}
+                    {req.resolved_at && (
+                      <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                        Resolved: {formatDate(req.resolved_at)}
+                      </p>
+                    )}
                   </div>
-                )}
+                </div>
               </div>
-
-              {denyingId === req.id && (
-                <DenyForm
-                  onCancel={() => setDenyingId(null)}
-                  onConfirm={note => actionMutation.mutate({ id: req.id, status: 'denied', admin_note: note })}
-                  isPending={actionMutation.isPending}
-                  t={t}
-                />
-              )}
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>

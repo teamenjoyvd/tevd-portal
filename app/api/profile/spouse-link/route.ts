@@ -1,5 +1,8 @@
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { sendNotificationEmail } from '@/lib/email/send'
+import { renderEmailTemplate } from '@/lib/email/templates/render'
+import { SpouseLinkRequestEmail } from '@/lib/email/templates/SpouseLinkRequestEmail'
 
 // GET — return own pending/denied spouse_link_requests row, or null
 export async function GET() {
@@ -28,9 +31,13 @@ export async function POST(req: Request) {
   if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
   const supabase = createServiceClient()
+  // member_event_log is not in generated types; notifications uses PromiseLike (no .catch)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = supabase as any
+
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, role, primary_profile_id')
+    .select('id, role, primary_profile_id, first_name, last_name')
     .eq('clerk_id', userId)
     .single()
   if (!profile) return Response.json({ error: 'Profile not found' }, { status: 404 })
@@ -62,7 +69,7 @@ export async function POST(req: Request) {
   // Resolve the claimed primary by ABO number
   const { data: primary } = await supabase
     .from('profiles')
-    .select('id, role, abo_number, primary_profile_id')
+    .select('id, role, abo_number, primary_profile_id, first_name, contact_email')
     .eq('abo_number', claimed_primary_abo)
     .neq('id', profile.id)
     .maybeSingle()
@@ -116,6 +123,47 @@ export async function POST(req: Request) {
     .single()
 
   if (error) return Response.json({ error: error.message }, { status: 500 })
+
+  const requesterName = `${profile.first_name ?? ''} ${profile.last_name ?? ''}`.trim() || 'Someone'
+
+  // In-app notification for primary — best-effort
+  // Use db (any) to avoid PromiseLike.catch TS error on the typed supabase client
+  db.from('notifications').insert({
+    profile_id: primary.id,
+    type: 'spouse_link_request',
+    title: 'Spouse link request',
+    message: `${requesterName} has requested to link as your spouse account.`,
+    action_url: '/profile/spouse-link',
+  }).then().catch(console.error)
+
+  // Email notification for primary — best-effort
+  if (primary.contact_email) {
+    renderEmailTemplate(
+      SpouseLinkRequestEmail({
+        primaryFirstName: primary.first_name ?? 'Member',
+        requesterFirstName: profile.first_name ?? '',
+        requesterLastName: profile.last_name ?? '',
+        actionUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://portal.teamenjoyvd.com'}/profile/spouse-link`,
+      })
+    ).then(html =>
+      sendNotificationEmail({
+        to: primary.contact_email!,
+        subject: `${requesterName} has requested to link as your spouse account`,
+        html,
+        template: 'spouse_link_request',
+        meta: { requester_id: profile.id, primary_id: primary.id },
+      })
+    ).catch(console.error)
+  }
+
+  // Event log — member_event_log not in generated types
+  db.from('member_event_log').insert({
+    actor_id: userId,
+    subject_id: primary.id,
+    event_type: 'spouse_link_requested',
+    payload: { requester_id: profile.id, request_id: data.id },
+  }).then().catch(console.error)
+
   return Response.json(data, { status: 201 })
 }
 
