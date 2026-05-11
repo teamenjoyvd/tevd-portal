@@ -10,7 +10,7 @@ export async function GET() {
   const guard = await requireAdmin(userId, supabase)
   if (guard) return guard
 
-  // LOS map as base, left-join profiles + tree depth
+  // LOS map as base, left-join profiles
   const { data: losMembers, error: losErr } = await supabase
     .from('los_members')
     .select(`
@@ -23,39 +23,11 @@ export async function GET() {
 
   if (losErr) return Response.json({ error: losErr.message }, { status: 500 })
 
-  // LOS freshness: MAX(last_synced_at) across all rows
-  const { data: syncRow } = await supabase
-    .from('los_members')
-    .select('last_synced_at')
-    .order('last_synced_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
   // Profiles linked by abo_number
   const { data: profiles } = await supabase
     .from('profiles')
     .select('id, abo_number, first_name, last_name, role, primary_profile_id, created_at')
     .not('abo_number', 'is', null)
-
-  // Pending verification requests with profile info and request_type
-  const { data: verifications } = await supabase
-    .from('abo_verification_requests')
-    .select('id, profile_id, claimed_abo, claimed_upline_abo, status, request_type, created_at, profiles(first_name, last_name)')
-    .eq('status', 'pending')
-
-  // Guests with no abo_number and no pending request (unverified, haven't submitted yet)
-  const { data: guests } = await supabase
-    .from('profiles')
-    .select('id, first_name, last_name, role, created_at')
-    .eq('role', 'guest')
-    .is('abo_number', null)
-
-  // Manually verified members awaiting LOS positioning (role=member, no ABO yet)
-  const { data: manualMembersNoAbo } = await supabase
-    .from('profiles')
-    .select('id, first_name, last_name, upline_abo_number, created_at')
-    .eq('role', 'member')
-    .is('abo_number', null)
 
   const profilesByAbo = Object.fromEntries((profiles ?? []).map(p => [p.abo_number, p]))
 
@@ -64,11 +36,5 @@ export async function GET() {
     profile: profilesByAbo[m.abo_number] ?? null,
   }))
 
-  return Response.json({
-    los_members: enrichedLOS,
-    pending_verifications: verifications ?? [],
-    unverified_guests: guests ?? [],
-    manual_members_no_abo: manualMembersNoAbo ?? [],
-    los_last_synced_at: syncRow?.last_synced_at ?? null,
-  })
+  return Response.json({ los_members: enrichedLOS })
 }
