@@ -9,10 +9,9 @@ import { AboVerificationTab } from './components/VerificationsTab'
 import { EventRolesTab } from './components/EventRolesTab'
 import { SpouseLinkRequestsTab } from './components/SpouseLinkRequestsTab'
 import type { TripRegistration } from './components/TripRegistrationsTab'
-import type { AdminMembersResponse } from './components/VerificationsTab'
 import type { SpouseLinkRequest } from './components/SpouseLinkRequestsTab'
 
-// ── Types ─────────────────────────────────────────────────────
+// ── Types ───────────────────────────────────────────────────────
 
 type CalendarEvent = { id: string; title: string; start_time: string }
 type RoleRequest = {
@@ -22,14 +21,13 @@ type RoleRequest = {
   profile: { id: string; first_name: string; last_name: string; abo_number: string | null }
 }
 
-// ── Inner page (needs useSearchParams) ────────────────────────────
+// ── Inner page (needs useSearchParams) ────────────────────────────────────
 
 function ApprovalHubInner() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const tab = (searchParams.get('tab') ?? 'trips') as 'trips' | 'roles' | 'abo' | 'spouse'
 
-  // Same queryKey + queryFn as TripRegistrationsTab — single cache entry, no conflict.
   const { data: registrations = [] } = useQuery<TripRegistration[]>({
     queryKey: ['registrations', 'all'],
     queryFn: () => fetch('/api/admin/registrations').then(r => r.json()),
@@ -51,11 +49,6 @@ function ApprovalHubInner() {
     enabled: events.length > 0,
   })
 
-  const { data: membersData } = useQuery<AdminMembersResponse>({
-    queryKey: ['admin-members'],
-    queryFn: () => fetch('/api/admin/members').then(r => r.json()),
-  })
-
   const { data: spouseRequests = [] } = useQuery<SpouseLinkRequest[]>({
     queryKey: ['spouse-link-requests'],
     queryFn: () => fetch('/api/admin/spouse-link-requests').then(r => r.json()),
@@ -63,13 +56,12 @@ function ApprovalHubInner() {
 
   const pendingTrips  = registrations.filter(r => r.status === 'pending').length
   const pendingRoles  = roleRequests.filter(r => r.status === 'pending').length
-  const pendingAbo    = (membersData?.pending_verifications ?? []).length
   const pendingSpouse = spouseRequests.filter(r => r.status === 'pending').length
 
   const tabsWithBadges = [
     { key: 'trips',  label: 'Trip Registrations',   badge: pendingTrips  },
     { key: 'roles',  label: 'Event Roles',           badge: pendingRoles  },
-    { key: 'abo',    label: 'ABO Verification',      badge: pendingAbo    },
+    { key: 'abo',    label: 'ABO Verification',      badge: 0             },
     { key: 'spouse', label: 'Co-ownership Requests', badge: pendingSpouse },
   ]
 

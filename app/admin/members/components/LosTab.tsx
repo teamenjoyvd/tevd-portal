@@ -10,11 +10,58 @@ import { VitalSignsConfig } from './VitalSignsConfig'
 import { buildTree } from './los-admin-types'
 import type { TreeNode, LosTreeResponse, VitalSignDefinition } from './los-admin-types'
 
-// ── NodeCard ──────────────────────────────────────────────────────────────────
+// ── Search helpers ───────────────────────────────────────────────────────────
+
+// Returns the set of abo_numbers that match the query (case-insensitive).
+// A node matches if its display name or abo_number contains the term.
+function getMatchingAboNumbers(nodes: TreeNode[], term: string): Set<string> {
+  const lower = term.toLowerCase()
+  const matched = new Set<string>()
+  for (const n of nodes) {
+    const displayName = n.first_name
+      ? `${n.first_name} ${n.last_name ?? ''}`.toLowerCase()
+      : (n.name ?? '').toLowerCase()
+    if (displayName.includes(lower) || n.abo_number.toLowerCase().includes(lower)) {
+      matched.add(n.abo_number)
+    }
+  }
+  return matched
+}
+
+// Walk flat nodes to collect ancestor abo_numbers for all matched nodes.
+// Preserves tree context so the tree remains navigable during search.
+function getAncestors(nodes: TreeNode[], matchedAboNumbers: Set<string>): Set<string> {
+  const parentMap = new Map<string, string | null>()
+  for (const n of nodes) parentMap.set(n.abo_number, n.sponsor_abo_number ?? null)
+
+  const ancestors = new Set<string>()
+  for (const abo of matchedAboNumbers) {
+    let current = parentMap.get(abo) ?? null
+    while (current) {
+      if (ancestors.has(current)) break // already traced this chain
+      ancestors.add(current)
+      current = parentMap.get(current) ?? null
+    }
+  }
+  return ancestors
+}
+
+// Filter a tree so only matched nodes and their ancestors survive.
+// Children of ancestor-only nodes are pruned unless they are also matched/ancestors.
+function filterTree(roots: TreeNode[], visible: Set<string>): TreeNode[] {
+  function filterNode(node: TreeNode): TreeNode | null {
+    if (!visible.has(node.abo_number)) return null
+    const filteredChildren = (node.children ?? []).map(filterNode).filter((c): c is TreeNode => c !== null)
+    return { ...node, children: filteredChildren }
+  }
+  return roots.map(filterNode).filter((n): n is TreeNode => n !== null)
+}
+
+// ── NodeCard ──────────────────────────────────────────────────────────────────────────────
 // Recursive — stays at module scope in LosTab.tsx (self-referential, single consumer).
 
 function NodeCard({
-  node, definitions, onToggle, isPending, expanded, onToggleExpand,
+  node, definitions, onToggle, isPending, expanded, onToggleExpand, isSearchActive, matchedAboNumbers,
 }: {
   node: TreeNode
   definitions: VitalSignDefinition[]
@@ -22,6 +69,8 @@ function NodeCard({
   isPending: boolean
   expanded: Set<string>
   onToggleExpand: (key: string) => void
+  isSearchActive: boolean
+  matchedAboNumbers: Set<string>
 }) {
   const key = node.abo_number
   const isExpanded = expanded.has(key)
@@ -31,11 +80,19 @@ function NodeCard({
     ? `${node.first_name} ${node.last_name}`
     : node.name ?? node.abo_number
   const vitalSigns = Array.isArray(node.vital_signs) ? node.vital_signs : []
+  const isMatch = isSearchActive && matchedAboNumbers.has(node.abo_number)
 
   return (
     <div className="relative">
-      <div className="rounded-xl p-4 mb-1"
-        style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+      <div
+        className="rounded-xl p-4 mb-1"
+        style={{
+          backgroundColor: 'var(--bg-card)',
+          border: isMatch
+            ? '1px solid var(--brand-teal)'
+            : '1px solid var(--border-default)',
+        }}
+      >
         <div className="flex items-start gap-3">
           {hasChildren ? (
             <button onClick={() => onToggleExpand(key)}
@@ -110,7 +167,8 @@ function NodeCard({
           {node.children!.map(child => (
             <NodeCard key={child.abo_number} node={child} definitions={definitions}
               onToggle={onToggle} isPending={isPending}
-              expanded={expanded} onToggleExpand={onToggleExpand} />
+              expanded={expanded} onToggleExpand={onToggleExpand}
+              isSearchActive={isSearchActive} matchedAboNumbers={matchedAboNumbers} />
           ))}
         </div>
       )}
@@ -118,13 +176,14 @@ function NodeCard({
   )
 }
 
-// ── LosTab ────────────────────────────────────────────────────────────────────
+// ── LosTab ────────────────────────────────────────────────────────────────────────────
 
 export function LosTab() {
   const { t } = useLanguage()
   const qc = useQueryClient()
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const expandedInitialised = useRef(false)
+  const [searchTerm, setSearchTerm] = useState('')
 
   const { data: treeResponse, isLoading: treeLoading, refetch: refetchTree } = useQuery<LosTreeResponse>({
     queryKey: ['los-tree'],
@@ -138,8 +197,7 @@ export function LosTab() {
   })
 
   // Initialise expand state: all nodes at depth < 2 pre-expanded.
-  // Runs exactly once on first data arrival — ref flag prevents re-init on refetch
-  // and correctly handles the case where the user collapses all nodes.
+  // Runs exactly once on first data arrival.
   useEffect(() => {
     if (!treeResponse?.nodes) return
     if (expandedInitialised.current) return
@@ -156,6 +214,26 @@ export function LosTab() {
   const definitions = allDefinitions.filter(d => d.is_active)
 
   const treeRoots = useMemo(() => buildTree(flatNodes), [flatNodes])
+
+  // ── Search-filtered tree ────────────────────────────────────────────────
+  const isSearchActive = searchTerm.trim().length > 0
+
+  const { visibleRoots, matchedAboNumbers, visibleAboNumbers } = useMemo(() => {
+    if (!isSearchActive) return { visibleRoots: treeRoots, matchedAboNumbers: new Set<string>(), visibleAboNumbers: new Set<string>() }
+    const matched = getMatchingAboNumbers(flatNodes, searchTerm.trim())
+    const ancestors = getAncestors(flatNodes, matched)
+    const visible = new Set([...matched, ...ancestors])
+    return {
+      visibleRoots: filterTree(treeRoots, visible),
+      matchedAboNumbers: matched,
+      visibleAboNumbers: visible,
+    }
+  }, [isSearchActive, searchTerm, flatNodes, treeRoots])
+
+  // Expand all visible nodes (matched + ancestors) whenever the search result set changes.
+  useEffect(() => {
+    if (isSearchActive) setExpanded(visibleAboNumbers)
+  }, [isSearchActive, visibleAboNumbers])
 
   const activateMutation = useMutation({
     mutationFn: ({ profileId, definitionId }: { profileId: string; definitionId: string }) =>
@@ -230,27 +308,72 @@ export function LosTab() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4 flex-wrap">
         <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t('admin.los.treeDesc')}</p>
-        <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{flatNodes.length} members</span>
+        <span className="text-xs flex-shrink-0" style={{ color: 'var(--text-secondary)' }}>{flatNodes.length} members</span>
       </div>
+
+      {/* Search input */}
+      <div className="relative">
+        <svg
+          className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+          width="14" height="14" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+          style={{ color: 'var(--text-secondary)' }}
+        >
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input
+          type="text"
+          value={searchTerm}
+          onChange={e => setSearchTerm(e.target.value)}
+          placeholder="Search by name or ABO#…"
+          className="w-full pl-9 pr-4 py-2 rounded-xl text-sm border"
+          style={{
+            backgroundColor: 'var(--bg-card)',
+            borderColor: 'var(--border-default)',
+            color: 'var(--text-primary)',
+          }}
+        />
+        {isSearchActive && (
+          <button
+            onClick={() => setSearchTerm('')}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-xs"
+            style={{ color: 'var(--text-secondary)' }}
+          >
+            Clear
+          </button>
+        )}
+      </div>
+
+      {isSearchActive && (
+        <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+          {matchedAboNumbers.size} result{matchedAboNumbers.size !== 1 ? 's' : ''}
+        </p>
+      )}
+
       {allDefinitions.length > 0 && (
         <VitalSignsConfig definitions={allDefinitions} onRefetch={handleConfigRefetch} />
       )}
+
       {treeLoading ? (
         <div className="space-y-2">
           {[...Array(5)].map((_, i) => (
             <div key={i} className="h-16 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--border-default)' }} />
           ))}
         </div>
-      ) : treeRoots.length === 0 ? (
-        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t('admin.los.noData')}</p>
+      ) : visibleRoots.length === 0 ? (
+        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+          {isSearchActive ? 'No members match your search.' : t('admin.los.noData')}
+        </p>
       ) : (
         <div className="space-y-1">
-          {treeRoots.map(node => (
+          {visibleRoots.map(node => (
             <NodeCard key={node.abo_number} node={node} definitions={definitions}
               onToggle={handleToggle} isPending={isPending}
-              expanded={expanded} onToggleExpand={handleToggleExpand} />
+              expanded={expanded} onToggleExpand={handleToggleExpand}
+              isSearchActive={isSearchActive}
+              matchedAboNumbers={matchedAboNumbers} />
           ))}
         </div>
       )}

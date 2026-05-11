@@ -1,206 +1,123 @@
 'use client'
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { toast } from '@/lib/toast'
-import { useLanguage } from '@/lib/hooks/useLanguage'
-import { VerificationList } from './VerificationList'
-import { DirectVerifyForm } from './DirectVerifyForm'
+import { useQuery } from '@tanstack/react-query'
+import type { EventLogEntry } from '@/app/api/admin/event-log/route'
 
-// ── Types ────────────────────────────────────────────────────────
+// ── Helpers ────────────────────────────────────────────────────────────────
 
-export type VerificationRequest = {
-  id: string
-  profile_id: string
-  claimed_abo: string | null
-  claimed_upline_abo: string
-  status: 'pending' | 'approved' | 'denied'
-  request_type: string
-  created_at: string
-  profiles: { first_name: string; last_name: string } | null
+const EVENT_LABEL: Record<string, string> = {
+  abo_verified:       'ABO Verified',
+  abo_verify_failed:  'Verification Failed',
+  clerk_sync_failed:  'Clerk Sync Failed',
 }
 
-export type GuestProfile = {
-  id: string
-  first_name: string
-  last_name: string
-  role: string
-  created_at: string
+const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
+  ok:      { bg: 'rgba(129,178,154,0.2)', color: '#2d6a4f' },
+  failed:  { bg: 'rgba(188,71,73,0.1)',   color: '#bc4749' },
+  error:   { bg: 'rgba(188,71,73,0.1)',   color: '#bc4749' },
 }
 
-export type ManualMemberNoAbo = {
-  id: string
-  first_name: string
-  last_name: string
-  upline_abo_number: string | null
-  created_at: string
+function formatTs(iso: string) {
+  return new Date(iso).toLocaleString('en-GB', {
+    day: '2-digit', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  })
 }
 
-export type AdminMembersResponse = {
-  pending_verifications: VerificationRequest[]
-  unverified_guests: GuestProfile[]
-  manual_members_no_abo: ManualMemberNoAbo[]
-  los_last_synced_at: string | null
-}
-
-// ── Helpers ──────────────────────────────────────────────────────
-
-const STATUS_BADGE: Record<string, string> = {
-  pending:  'bg-[#f2cc8f]/30 text-[#7a5c00] border border-[#f2cc8f]',
-  approved: 'bg-[#81b29a]/20 text-[#2d6a4f] border border-[#81b29a]/50',
-  denied:   'bg-[#bc4749]/10 text-[#bc4749] border border-[#bc4749]/30',
-}
-
-const LOS_STALE_DAYS = 7
-
-// ── Component ────────────────────────────────────────────────────
+// ── Component ────────────────────────────────────────────────────────────────
 
 export function AboVerificationTab() {
-  const { t, lang } = useLanguage()
-  const qc = useQueryClient()
-
-  const { data, isLoading } = useQuery<AdminMembersResponse>({
-    queryKey: ['admin-members'],
-    queryFn: () => fetch('/api/admin/members').then(r => r.json()),
-  })
-
-  const pendingVerifications = data?.pending_verifications ?? []
-  const standardPending = pendingVerifications.filter(v => v.request_type !== 'manual')
-  const manualPending   = pendingVerifications.filter(v => v.request_type === 'manual')
-  const pendingProfileIds = new Set(pendingVerifications.map(v => v.profile_id))
-  const directCandidates = (data?.unverified_guests ?? []).filter(g => !pendingProfileIds.has(g.id))
-  const manualNoAbo = data?.manual_members_no_abo ?? []
-
-  // LOS staleness
-  const losStaleDays = data?.los_last_synced_at
-    ? Math.floor((Date.now() - new Date(data.los_last_synced_at).getTime()) / 86_400_000)
-    : null
-  const losIsStale = losStaleDays !== null && losStaleDays >= LOS_STALE_DAYS
-
-  const approveOrDeny = useMutation({
-    mutationFn: ({ id, action }: { id: string; action: 'approve' | 'deny' }) =>
-      fetch(`/api/admin/members/verify/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action }),
-      }).then(async r => {
-        if (!r.ok) throw new Error((await r.json()).error)
-        return r.json()
-      }),
-    onError: (e: Error) => { toast.error(e.message ?? 'Verification action failed.') },
-    onSettled: () => { qc.invalidateQueries({ queryKey: ['admin-members'] }) },
-  })
-
-  const directVerify = useMutation({
-    mutationFn: ({ profile_id, upline_abo_number }: { profile_id: string; upline_abo_number: string }) =>
-      fetch('/api/admin/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ profile_id, upline_abo_number }),
-      }).then(async r => {
-        if (!r.ok) throw new Error((await r.json()).error)
-        return r.json()
-      }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-members'] }) },
-    onError: (e: Error) => { toast.error(e.message ?? 'Verification action failed.') },
+  const { data: entries = [], isLoading } = useQuery<EventLogEntry[]>({
+    queryKey: ['admin-event-log'],
+    queryFn: () => fetch('/api/admin/event-log').then(r => {
+      if (!r.ok) throw new Error(r.statusText)
+      return r.json()
+    }),
+    staleTime: 60_000,
   })
 
   if (isLoading) {
     return (
       <div className="space-y-2">
-        {[...Array(3)].map((_, i) => <div key={i} className="h-16 bg-black/5 rounded-xl animate-pulse" />)}
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="h-16 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--border-default)' }} />
+        ))}
       </div>
     )
   }
 
+  if (entries.length === 0) {
+    return (
+      <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+        No verification events recorded yet.
+      </p>
+    )
+  }
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-2">
+      <p className="text-xs font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
+        Verification Event Log
+      </p>
+      {entries.map(entry => {
+        const statusStyle = STATUS_STYLE[entry.status] ?? STATUS_STYLE.failed
+        const label = EVENT_LABEL[entry.event_type] ?? entry.event_type
+        const claimedAbo = typeof entry.payload.claimed_abo === 'string' ? entry.payload.claimed_abo : null
+        const claimedUpline = typeof entry.payload.claimed_upline_abo === 'string' ? entry.payload.claimed_upline_abo : null
 
-      {/* ── LOS staleness banner ── */}
-      {losIsStale && (
-        <div className="rounded-xl px-4 py-3 flex items-start gap-3" style={{ backgroundColor: '#f2cc8f33', border: '1px solid #f2cc8f' }}>
-          <span className="text-lg leading-none mt-0.5">⚠️</span>
-          <p className="text-sm" style={{ color: '#7a5c00' }}>
-            LOS data is <strong>{losStaleDays} days old</strong>. Re-import before approving.{' '}
-            <a href="/admin/members?tab=data" className="underline font-medium" style={{ color: '#7a5c00' }}>
-              Go to Data tab →
-            </a>
-          </p>
-        </div>
-      )}
-
-      {/* ── Standard ABO requests ── */}
-      <div>
-        <p className="text-xs font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
-          {t('admin.approval.verify.standardTitle').replace('{{count}}', String(standardPending.length))}
-        </p>
-        <VerificationList
-          items={standardPending}
-          onApprove={id => approveOrDeny.mutate({ id, action: 'approve' })}
-          onDeny={id => approveOrDeny.mutate({ id, action: 'deny' })}
-          isPending={approveOrDeny.isPending}
-          showNoAboBadge={false}
-          emptyMessage={t('admin.approval.verify.noStandard')}
-        />
-      </div>
-
-      {/* ── Manual requests ── */}
-      <div>
-        <p className="text-xs font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
-          {t('admin.approval.verify.manualTitle').replace('{{count}}', String(manualPending.length))}
-        </p>
-        <VerificationList
-          items={manualPending}
-          onApprove={id => approveOrDeny.mutate({ id, action: 'approve' })}
-          onDeny={id => approveOrDeny.mutate({ id, action: 'deny' })}
-          isPending={approveOrDeny.isPending}
-          showNoAboBadge={true}
-          emptyMessage={t('admin.approval.verify.noManual')}
-        />
-      </div>
-
-      {/* ── Members awaiting LOS positioning ── */}
-      {manualNoAbo.length > 0 && (
-        <div>
-          <p className="text-xs font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
-            {t('admin.approval.verify.awaitingPosTitle').replace('{{count}}', String(manualNoAbo.length))}
-          </p>
-          <div className="space-y-2">
-            {manualNoAbo.map(m => (
-              <div key={m.id} className="rounded-xl border px-4 py-3 flex items-center justify-between gap-3" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
-                      {m.first_name} {m.last_name}
-                    </p>
-                    <span
-                      className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: 'rgba(62,119,133,0.15)', color: '#3E7785' }}
-                    >
-                      {t('admin.approval.verify.noAboBadge')}
-                    </span>
-                  </div>
-                  {m.upline_abo_number && (
-                    <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                      Upline {m.upline_abo_number}
+        return (
+          <div
+            key={entry.id}
+            className="rounded-xl border px-4 py-3"
+            style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {entry.subject_name && (
+                    <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                      {entry.subject_name}
                     </p>
                   )}
+                  <span
+                    className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                    style={statusStyle}
+                  >
+                    {label}
+                  </span>
                 </div>
-                <span className={`text-xs px-2.5 py-1 rounded-full font-medium flex-shrink-0 ${STATUS_BADGE.approved}`}>
-                  {t('admin.approval.verify.approvedBadge')}
-                </span>
+                {(claimedAbo || claimedUpline) && (
+                  <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
+                    {claimedAbo && (
+                      <>ABO <span className="font-mono font-medium" style={{ color: 'var(--text-primary)' }}>{claimedAbo}</span>{claimedUpline ? ' · ' : ''}</>
+                    )}
+                    {claimedUpline && (
+                      <>Upline <span className="font-mono font-medium" style={{ color: 'var(--text-primary)' }}>{claimedUpline}</span></>
+                    )}
+                  </p>
+                )}
+                <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                  {formatTs(entry.created_at)}
+                </p>
               </div>
-            ))}
+              <span
+                className="text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0"
+                style={statusStyle}
+              >
+                {entry.status}
+              </span>
+            </div>
           </div>
-        </div>
-      )}
-
-      {/* ── Direct verify (Path C) ── */}
-      <DirectVerifyForm
-        candidates={directCandidates}
-        onSubmit={directVerify.mutateAsync}
-        isPending={directVerify.isPending}
-      />
-
+        )
+      })}
     </div>
   )
+}
+
+// ── Tombstone exports ────────────────────────────────────────────────────────────
+// page.tsx imports AdminMembersResponse from this file. Export a minimal
+// shape compatible with the badge calculation (pending_verifications array).
+// Badge is now always 0 since pending_verifications is not fetched.
+export type AdminMembersResponse = {
+  pending_verifications: never[]
 }
