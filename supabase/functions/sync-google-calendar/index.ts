@@ -127,18 +127,12 @@ function resolveTimes(item: Record<string, unknown>): {
     const startIso = new Date(`${start.date}T00:00:00+02:00`).toISOString()
 
     // Subtract one day from Google's exclusive end date.
+    // exclusiveEnd is initialised as Sofia midnight (22:00 UTC); setDate adjusts
+    // the UTC date by -1, yielding the correct Sofia midnight for the inclusive
+    // end day. toISOString() on the resulting Date is the correct UTC instant.
     const exclusiveEnd = new Date(`${end.date}T00:00:00+02:00`)
     exclusiveEnd.setDate(exclusiveEnd.getDate() - 1)
-    // Re-build as midnight Sofia on the corrected date.
-    const [endDateStr] = exclusiveEnd.toISOString().split('T') // YYYY-MM-DD in UTC
-    // The UTC date may differ from Sofia date for the last ~2h of the day;
-    // use Sofia date formatter to be safe.
-    const sofiaDate = new Intl.DateTimeFormat('sv-SE', {
-      timeZone: 'Europe/Sofia',
-      year: 'numeric', month: '2-digit', day: '2-digit',
-    }).format(exclusiveEnd)
-    const endIso = new Date(`${sofiaDate}T00:00:00+02:00`).toISOString()
-    void endDateStr // suppress unused-var lint (kept for documentation)
+    const endIso = exclusiveEnd.toISOString()
 
     return { startIso, endIso, isAllDay: true }
   }
