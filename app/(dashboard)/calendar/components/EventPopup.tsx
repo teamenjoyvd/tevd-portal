@@ -272,7 +272,7 @@ export default function EventPopup({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
               <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                style={{ backgroundColor: event?.category === 'N21' ? 'var(--brand-forest)' : 'var(--brand-crimson)', color: 'rgba(255,255,255,0.9)' }}>
+                style={{ backgroundColor: event?.category === 'N21' ? 'var(--brand-forest)' : 'var(--sienna)', color: 'rgba(255,255,255,0.9)' }}>
                 {event?.category ?? '…'}
               </span>
               {eventTypeStyle && (
