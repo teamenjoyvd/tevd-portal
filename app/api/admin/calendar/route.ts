@@ -39,10 +39,11 @@ export async function POST(req: Request): Promise<Response> {
   // Seed role slots for the new event
   const roles: string[] = data.available_roles ?? []
   if (roles.length > 0) {
-    await supabase.from('event_role_slots').upsert(
+    const { error: upsertError } = await supabase.from('event_role_slots').upsert(
       roles.map(role_label => ({ event_id: data.id, role_label })),
       { onConflict: 'event_id,role_label', ignoreDuplicates: true }
     )
+    if (upsertError) return Response.json({ error: upsertError.message }, { status: 500 })
   }
 
   return Response.json(data, { status: 201 })

@@ -35,10 +35,12 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const newRoles = (update.available_roles as string[]) ?? []
 
     // Fetch current slots for this event
-    const { data: currentSlots } = await supabase
+    const { data: currentSlots, error: fetchSlotsError } = await supabase
       .from('event_role_slots')
       .select('role_label')
       .eq('event_id', id)
+
+    if (fetchSlotsError) return Response.json({ error: fetchSlotsError.message }, { status: 500 })
 
     const existingLabels = new Set((currentSlots ?? []).map(s => s.role_label))
     const newLabels = new Set(newRoles)
@@ -48,12 +50,14 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
     if (removedLabels.length > 0) {
       // Check for active (pending or approved) requests on removed labels
-      const { data: activeRequests } = await supabase
+      const { data: activeRequests, error: fetchRequestsError } = await supabase
         .from('event_role_requests')
         .select('role_label')
         .eq('event_id', id)
         .in('role_label', removedLabels)
         .in('status', ['pending', 'approved'])
+
+      if (fetchRequestsError) return Response.json({ error: fetchRequestsError.message }, { status: 500 })
 
       if (activeRequests && activeRequests.length > 0) {
         const blocked = [...new Set(activeRequests.map(r => r.role_label))]
@@ -64,20 +68,23 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       }
 
       // Safe to delete open slots for removed labels
-      await supabase
+      const { error: deleteError } = await supabase
         .from('event_role_slots')
         .delete()
         .eq('event_id', id)
         .in('role_label', removedLabels)
+
+      if (deleteError) return Response.json({ error: deleteError.message }, { status: 500 })
     }
 
     // Upsert slots for new labels
     const addedLabels = newRoles.filter(l => !existingLabels.has(l))
     if (addedLabels.length > 0) {
-      await supabase.from('event_role_slots').upsert(
+      const { error: upsertError } = await supabase.from('event_role_slots').upsert(
         addedLabels.map(role_label => ({ event_id: id, role_label })),
         { onConflict: 'event_id,role_label', ignoreDuplicates: true }
       )
+      if (upsertError) return Response.json({ error: upsertError.message }, { status: 500 })
     }
   }
 
