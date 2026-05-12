@@ -44,14 +44,14 @@ export async function GET(
     .select('role_label')
     .eq('event_id', id)
 
-  // Fetch all requests for this event
+  // Fetch all requests for this event — chronological order required for pending_profiles
   const { data: allRequests } = await supabase
     .from('event_role_requests')
     .select('id, role_label, status, profile_id, profile:profiles!profile_id(first_name, last_name)')
     .eq('event_id', id)
+    .order('created_at', { ascending: true })
 
   const requests = allRequests ?? []
-  const isAdminOrCore = callerProfile.role === 'admin' || callerProfile.role === 'core'
 
   // Group requests by role_label once — O(R) — to avoid O(S×R) filter-inside-map
   const requestsByRole = requests.reduce((acc, r) => {
@@ -75,17 +75,22 @@ export async function GET(
       status = 'open'
     }
 
-    // Non-admin/core: omit other profiles' identity
+    // All authenticated non-guest callers see the approved occupant name
     const assigned_profile = approvedReq
-      ? isAdminOrCore
-        ? (approvedReq.profile as { first_name: string | null; last_name: string | null } | null)
-        : { first_name: null, last_name: null }
+      ? (approvedReq.profile as { first_name: string | null; last_name: string | null } | null)
       : null
+
+    // Pending requesters in chronological order — profile_id included for stable React key
+    const pending_profiles = pendingReqs.map(r => {
+      const profile = r.profile as { first_name: string | null; last_name: string | null } | null
+      return profile ? { profile_id: r.profile_id, ...profile } : null
+    }).filter((p): p is { profile_id: string; first_name: string | null; last_name: string | null } => p !== null)
 
     return {
       role_label: slot.role_label,
       status,
       assigned_profile,
+      pending_profiles,
       caller_request: callerReq
         ? { id: callerReq.id, status: callerReq.status, role_label: callerReq.role_label }
         : null,
