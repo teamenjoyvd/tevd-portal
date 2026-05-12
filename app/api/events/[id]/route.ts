@@ -80,10 +80,11 @@ export async function GET(
       ? (approvedReq.profile as { first_name: string | null; last_name: string | null } | null)
       : null
 
-    // Pending requesters in chronological order — visible to all authenticated non-guest callers
-    const pending_profiles = pendingReqs.map(
-      r => r.profile as { first_name: string | null; last_name: string | null } | null
-    ).filter((p): p is { first_name: string | null; last_name: string | null } => p !== null)
+    // Pending requesters in chronological order — profile_id included for stable React key
+    const pending_profiles = pendingReqs.map(r => {
+      const profile = r.profile as { first_name: string | null; last_name: string | null } | null
+      return profile ? { profile_id: r.profile_id, ...profile } : null
+    }).filter((p): p is { profile_id: string; first_name: string | null; last_name: string | null } => p !== null)
 
     return {
       role_label: slot.role_label,
