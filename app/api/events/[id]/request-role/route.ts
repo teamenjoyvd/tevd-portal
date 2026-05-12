@@ -36,6 +36,18 @@ export async function POST(
   const { role_label, note } = await req.json()
   if (!role_label) return Response.json({ error: 'role_label required' }, { status: 400 })
 
+  // Guard: reject if slot is already filled
+  const { data: slotRequests, error: slotError } = await supabase
+    .from('event_role_requests')
+    .select('status')
+    .eq('event_id', event_id)
+    .eq('role_label', role_label)
+    .eq('status', 'approved')
+    .maybeSingle()
+
+  if (slotError) return Response.json({ error: slotError.message }, { status: 500 })
+  if (slotRequests) return Response.json({ error: 'This role is already filled' }, { status: 409 })
+
   const { data, error } = await supabase
     .from('event_role_requests')
     .insert({ event_id, profile_id: profile.id, role_label, note: note ?? null })

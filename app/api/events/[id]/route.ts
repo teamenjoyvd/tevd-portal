@@ -6,20 +6,19 @@ export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> }
 ): Promise<Response> {
+  const { id } = await params
   const { userId } = await auth()
 
+  // Unauthenticated — guest view, no slot data, no meeting_url
   if (!userId) {
-    const { id } = await params
     const supabase = await createClient()
     const { data: event, error } = await supabase
       .from('calendar_events').select('*').eq('id', id).single()
     if (error?.code === 'PGRST116') return Response.json({ error: 'Not found' }, { status: 404 })
     if (error) return Response.json({ error: error.message }, { status: 500 })
-    // Unauthenticated callers are guests — redact meeting_url server-side.
-    return Response.json({ ...event, meeting_url: null, role_requests: [], caller_request: null })
+    return Response.json({ ...event, meeting_url: null, role_slots: [] })
   }
 
-  const { id } = await params
   const supabase = createServiceClient()
 
   const { data: callerProfile } = await supabase
@@ -31,29 +30,69 @@ export async function GET(
     .select('*')
     .eq('id', id)
     .single()
-
+  if (error?.code === 'PGRST116') return Response.json({ error: 'Not found' }, { status: 404 })
   if (error) return Response.json({ error: error.message }, { status: 500 })
 
-  // Always fetch the caller's own request — no PII leak, it's their own data.
-  const { data: callerRequest } = await supabase
-    .from('event_role_requests')
-    .select('id, role_label, status, note')
-    .eq('event_id', id)
-    .eq('profile_id', callerProfile.id)
-    .maybeSingle()
-
-  // Role requests for other people (PII: first_name, last_name, abo_number) — only admins and core see all.
-  if (callerProfile.role !== 'admin' && callerProfile.role !== 'core') {
-    // Guests must not receive meeting_url even in the API response.
-    const meeting_url = callerProfile.role === 'guest' ? null : event.meeting_url
-    return Response.json({ ...event, meeting_url, role_requests: [], caller_request: callerRequest ?? null })
+  // Guests never see role section
+  if (callerProfile.role === 'guest') {
+    return Response.json({ ...event, meeting_url: null, role_slots: [] })
   }
 
-  const { data: roleRequests } = await supabase
-    .from('event_role_requests')
-    .select('*, profile:profiles(id, first_name, last_name, abo_number)')
+  // Fetch all slots for this event
+  const { data: slots } = await supabase
+    .from('event_role_slots')
+    .select('role_label')
     .eq('event_id', id)
-    .order('created_at')
 
-  return Response.json({ ...event, role_requests: roleRequests ?? [], caller_request: callerRequest ?? null })
+  // Fetch all requests for this event
+  const { data: allRequests } = await supabase
+    .from('event_role_requests')
+    .select('id, role_label, status, profile_id, profile:profiles!profile_id(first_name, last_name)')
+    .eq('event_id', id)
+
+  const requests = allRequests ?? []
+  const isAdminOrCore = callerProfile.role === 'admin' || callerProfile.role === 'core'
+
+  // Group requests by role_label once — O(R) — to avoid O(S×R) filter-inside-map
+  const requestsByRole = requests.reduce((acc, r) => {
+    if (!acc[r.role_label]) acc[r.role_label] = []
+    acc[r.role_label].push(r)
+    return acc
+  }, {} as Record<string, typeof requests>)
+
+  const role_slots = (slots ?? []).map(slot => {
+    const slotRequests = requestsByRole[slot.role_label] ?? []
+    const approvedReq = slotRequests.find(r => r.status === 'approved')
+    const pendingReqs = slotRequests.filter(r => r.status === 'pending')
+    const callerReq = slotRequests.find(r => r.profile_id === callerProfile.id) ?? null
+
+    let status: 'open' | 'contested' | 'filled'
+    if (approvedReq) {
+      status = 'filled'
+    } else if (pendingReqs.length > 0) {
+      status = 'contested'
+    } else {
+      status = 'open'
+    }
+
+    // Non-admin/core: omit other profiles' identity
+    const assigned_profile = approvedReq
+      ? isAdminOrCore
+        ? (approvedReq.profile as { first_name: string | null; last_name: string | null } | null)
+        : { first_name: null, last_name: null }
+      : null
+
+    return {
+      role_label: slot.role_label,
+      status,
+      assigned_profile,
+      caller_request: callerReq
+        ? { id: callerReq.id, status: callerReq.status, role_label: callerReq.role_label }
+        : null,
+    }
+  })
+
+  const meeting_url = event.meeting_url
+
+  return Response.json({ ...event, meeting_url, role_slots })
 }
