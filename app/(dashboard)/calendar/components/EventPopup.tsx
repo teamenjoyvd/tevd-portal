@@ -21,6 +21,7 @@ type CallerRequest = {
 }
 
 type PendingProfile = {
+  profile_id: string
   first_name: string | null
   last_name: string | null
 }
@@ -110,10 +111,10 @@ function PendingPopover({ profiles, color }: { profiles: PendingProfile[]; color
           Requested by
         </p>
         <div className="space-y-0.5">
-          {profiles.map((p, i) => {
+          {profiles.map((p) => {
             const name = [p.first_name, p.last_name].filter(Boolean).join(' ') || '—'
             return (
-              <p key={i} className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>
+              <p key={p.profile_id} className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>
                 {name}
               </p>
             )
