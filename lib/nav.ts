@@ -2,8 +2,8 @@
 // Adding, removing, or renaming a route = one edit here, propagates everywhere.
 //
 // Consumer guide:
-//   Header    — PUBLIC_NAV + FOOTER_MEMBER_NAV (library + profile, no /los)
-//   Footer    — PUBLIC_NAV + FOOTER_MEMBER_NAV (library + profile, no /los)
+//   Header    — PUBLIC_NAV + FOOTER_MEMBER_NAV (library + profile, no /los, no /roles)
+//   Footer    — PUBLIC_NAV + FOOTER_MEMBER_NAV (library + profile + roles, no /los)
 //   AdminNav  — ADMIN_NAV
 
 export type NavItem = {
@@ -41,10 +41,11 @@ export const PUBLIC_NAV: NavItem[] = [
 export const MEMBER_NAV: NavItem[] = [
   { href: '/library', labels: { en: 'Library',    bg: 'Библиотека'  }, minRole: 'member' },
   { href: '/los',     labels: { en: 'My Network', bg: 'Моята мрежа' }, minRole: 'member' },
+  { href: '/roles',   labels: { en: 'Roles',      bg: 'Роли'        }, minRole: 'core'   },
   { href: '/profile', labels: { en: 'Profile',    bg: 'Профил'      }, minRole: 'guest'  },
 ]
 
-// Footer and Header both show library + profile but not /los
+// Footer and Header both show library + profile + roles but not /los
 export const FOOTER_MEMBER_NAV: NavItem[] = MEMBER_NAV.filter(
   item => item.href !== '/los'
 )
