@@ -302,6 +302,35 @@ export type Database = {
           },
         ]
       }
+      event_role_slots: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          role_label: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: string
+          role_label: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          role_label?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_role_slots_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_share_links: {
         Row: {
           click_count: number
@@ -677,7 +706,7 @@ export type Database = {
           ppv?: number | null
           qualified_legs?: number | null
           renewal_date?: string | null
-          ruby_pv?: string | null
+          ruby_pv?: number | null
           sponsor_abo_number?: string | null
           sponsoring?: number | null
         }
@@ -1510,6 +1539,10 @@ export type Database = {
     }
     Functions: {
       abo_to_ltree_label: { Args: { abo: string }; Returns: string }
+      approve_event_role_request: {
+        Args: { p_request_id: string }
+        Returns: Json
+      }
       approve_member_verification: {
         Args: { p_admin_note?: string; p_request_id: string }
         Returns: {
