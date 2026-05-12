@@ -29,6 +29,65 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     return Response.json({ error: 'No valid fields provided for update' }, { status: 400 })
   }
 
+  // If available_roles is changing, guard against removing labels that have
+  // filled or contested slots, then sync the slot registry.
+  if ('available_roles' in update) {
+    const newRoles = (update.available_roles as string[]) ?? []
+
+    // Fetch current slots for this event
+    const { data: currentSlots, error: fetchSlotsError } = await supabase
+      .from('event_role_slots')
+      .select('role_label')
+      .eq('event_id', id)
+
+    if (fetchSlotsError) return Response.json({ error: fetchSlotsError.message }, { status: 500 })
+
+    const existingLabels = new Set((currentSlots ?? []).map(s => s.role_label))
+    const newLabels = new Set(newRoles)
+
+    // Identify labels being removed
+    const removedLabels = [...existingLabels].filter(l => !newLabels.has(l))
+
+    if (removedLabels.length > 0) {
+      // Check for active (pending or approved) requests on removed labels
+      const { data: activeRequests, error: fetchRequestsError } = await supabase
+        .from('event_role_requests')
+        .select('role_label')
+        .eq('event_id', id)
+        .in('role_label', removedLabels)
+        .in('status', ['pending', 'approved'])
+
+      if (fetchRequestsError) return Response.json({ error: fetchRequestsError.message }, { status: 500 })
+
+      if (activeRequests && activeRequests.length > 0) {
+        const blocked = [...new Set(activeRequests.map(r => r.role_label))]
+        return Response.json(
+          { error: `Cannot remove role(s) with active requests: ${blocked.join(', ')}` },
+          { status: 409 }
+        )
+      }
+
+      // Safe to delete open slots for removed labels
+      const { error: deleteError } = await supabase
+        .from('event_role_slots')
+        .delete()
+        .eq('event_id', id)
+        .in('role_label', removedLabels)
+
+      if (deleteError) return Response.json({ error: deleteError.message }, { status: 500 })
+    }
+
+    // Upsert slots for new labels
+    const addedLabels = newRoles.filter(l => !existingLabels.has(l))
+    if (addedLabels.length > 0) {
+      const { error: upsertError } = await supabase.from('event_role_slots').upsert(
+        addedLabels.map(role_label => ({ event_id: id, role_label })),
+        { onConflict: 'event_id,role_label', ignoreDuplicates: true }
+      )
+      if (upsertError) return Response.json({ error: upsertError.message }, { status: 500 })
+    }
+  }
+
   const { data, error } = await supabase.from('calendar_events').update(update).eq('id', id).select().single()
   if (error) return Response.json({ error: error.message }, { status: 500 })
   return Response.json(data)
