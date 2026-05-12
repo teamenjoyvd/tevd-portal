@@ -20,22 +20,20 @@ export async function GET(): Promise<Response> {
       created_at,
       event_id,
       profile:profiles!profile_id(id, first_name, last_name, abo_number, contact_email),
-      event:calendar_events!event_id(id, title, start_time),
-      slot:event_role_slots!inner(role_label)
+      event:calendar_events!event_id(id, title, start_time)
     `)
     .order('created_at', { ascending: false })
 
   if (error) return Response.json({ error: error.message }, { status: 500 })
 
-  // Compute slot status per request — filled = approved exists for that (event_id, role_label)
-  // We need all approved requests to compute status; derive from the same result set
-  const approvedSet = new Set(
-    (data ?? []).filter(r => r.status === 'approved').map(r => `${r.event_id}:${r.role_label}`)
-  )
+  // Single-pass: build approvedSet and pendingCountMap together
+  const approvedSet = new Set<string>()
   const pendingCountMap = new Map<string, number>()
   for (const r of data ?? []) {
-    if (r.status === 'pending') {
-      const key = `${r.event_id}:${r.role_label}`
+    const key = `${r.event_id}:${r.role_label}`
+    if (r.status === 'approved') {
+      approvedSet.add(key)
+    } else if (r.status === 'pending') {
       pendingCountMap.set(key, (pendingCountMap.get(key) ?? 0) + 1)
     }
   }

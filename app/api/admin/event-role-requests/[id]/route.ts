@@ -1,6 +1,41 @@
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
 
+type RoleEmailPayload = {
+  contactEmail: string
+  firstName: string | null
+  eventTitle: string
+  eventDate: string
+  roleLabel: string
+  status: 'approved' | 'denied'
+  requestId: string
+  profileId: string
+}
+
+async function sendRoleEmail(payload: RoleEmailPayload): Promise<void> {
+  const { sendNotificationEmail } = await import('@/lib/email/send')
+  const { renderEmailTemplate } = await import('@/lib/email/templates/render')
+  const { EventRoleRequestEmail } = await import('@/lib/email/templates/EventRoleRequestEmail')
+
+  const html = await renderEmailTemplate(
+    EventRoleRequestEmail({
+      firstName: payload.firstName || 'Member',
+      eventTitle: payload.eventTitle,
+      eventDate: payload.eventDate,
+      roleLabel: payload.roleLabel,
+      status: payload.status,
+    })
+  )
+
+  await sendNotificationEmail({
+    to: payload.contactEmail,
+    subject: payload.status === 'approved' ? 'Event Role Request Approved ✓' : 'Event Role Request Declined',
+    html,
+    template: 'event_role_request_result',
+    meta: { request_id: payload.requestId, profile_id: payload.profileId },
+  })
+}
+
 export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -36,30 +71,17 @@ export async function PATCH(
 
     const contactEmail = result?.profile?.contact_email
     if (contactEmail) {
-      import('@/lib/email/send').then(({ sendNotificationEmail }) => {
-        import('@/lib/email/templates/render').then(({ renderEmailTemplate }) => {
-          import('@/lib/email/templates/EventRoleRequestEmail').then(({ EventRoleRequestEmail }) => {
-            renderEmailTemplate(
-              EventRoleRequestEmail({
-                firstName: result.profile.first_name || 'Member',
-                eventTitle: result.event?.title || 'Event',
-                eventDate: result.event?.start_time
-                  ? new Date(result.event.start_time).toLocaleDateString()
-                  : 'TBD',
-                roleLabel: result.role_label,
-                status: 'approved',
-              })
-            ).then(html => {
-              sendNotificationEmail({
-                to: contactEmail,
-                subject: 'Event Role Request Approved ✓',
-                html,
-                template: 'event_role_request_result',
-                meta: { request_id: result.id, profile_id: result.profile_id },
-              }).catch(console.error)
-            }).catch(console.error)
-          }).catch(console.error)
-        }).catch(console.error)
+      sendRoleEmail({
+        contactEmail,
+        firstName: result.profile.first_name,
+        eventTitle: result.event?.title || 'Event',
+        eventDate: result.event?.start_time
+          ? new Date(result.event.start_time).toLocaleDateString()
+          : 'TBD',
+        roleLabel: result.role_label,
+        status: 'approved',
+        requestId: result.id,
+        profileId: result.profile_id,
       }).catch(console.error)
     }
 
@@ -81,30 +103,17 @@ export async function PATCH(
   const contactEmail = profileData?.contact_email
 
   if (contactEmail) {
-    import('@/lib/email/send').then(({ sendNotificationEmail }) => {
-      import('@/lib/email/templates/render').then(({ renderEmailTemplate }) => {
-        import('@/lib/email/templates/EventRoleRequestEmail').then(({ EventRoleRequestEmail }) => {
-          renderEmailTemplate(
-            EventRoleRequestEmail({
-              firstName: profileData.first_name || 'Member',
-              eventTitle: eventData?.title || 'Event',
-              eventDate: eventData?.start_time
-                ? new Date(eventData.start_time).toLocaleDateString()
-                : 'TBD',
-              roleLabel: data.role_label,
-              status: 'denied',
-            })
-          ).then(html => {
-            sendNotificationEmail({
-              to: contactEmail,
-              subject: 'Event Role Request Declined',
-              html,
-              template: 'event_role_request_result',
-              meta: { request_id: data.id, profile_id: data.profile_id },
-            }).catch(console.error)
-          }).catch(console.error)
-        }).catch(console.error)
-      }).catch(console.error)
+    sendRoleEmail({
+      contactEmail,
+      firstName: profileData.first_name,
+      eventTitle: eventData?.title || 'Event',
+      eventDate: eventData?.start_time
+        ? new Date(eventData.start_time).toLocaleDateString()
+        : 'TBD',
+      roleLabel: data.role_label,
+      status: 'denied',
+      requestId: data.id,
+      profileId: data.profile_id,
     }).catch(console.error)
   }
 

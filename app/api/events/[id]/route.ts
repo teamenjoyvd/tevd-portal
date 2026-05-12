@@ -53,8 +53,15 @@ export async function GET(
   const requests = allRequests ?? []
   const isAdminOrCore = callerProfile.role === 'admin' || callerProfile.role === 'core'
 
+  // Group requests by role_label once — O(R) — to avoid O(S×R) filter-inside-map
+  const requestsByRole = requests.reduce((acc, r) => {
+    if (!acc[r.role_label]) acc[r.role_label] = []
+    acc[r.role_label].push(r)
+    return acc
+  }, {} as Record<string, typeof requests>)
+
   const role_slots = (slots ?? []).map(slot => {
-    const slotRequests = requests.filter(r => r.role_label === slot.role_label)
+    const slotRequests = requestsByRole[slot.role_label] ?? []
     const approvedReq = slotRequests.find(r => r.status === 'approved')
     const pendingReqs = slotRequests.filter(r => r.status === 'pending')
     const callerReq = slotRequests.find(r => r.profile_id === callerProfile.id) ?? null
