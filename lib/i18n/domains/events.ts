@@ -17,6 +17,16 @@ export const events = {
   'event.rolesPageTitle':   { en: 'Roles',             bg: 'Роли'                            },
   'event.rolesEmpty':       { en: 'No upcoming events with roles configured.', bg: 'Няма предстоящи събития с конфигурирани роли.' },
 
+  // roles page — table headers
+  'event.roles.col.event':    { en: 'Event',    bg: 'Събитие'  },
+  'event.roles.col.date':     { en: 'Date',     bg: 'Дата'     },
+  'event.roles.col.time':     { en: 'Time',     bg: 'Час'      },
+
+  // roles page — slot role labels
+  'event.roles.label.host':     { en: 'Host',     bg: 'Домакин'   },
+  'event.roles.label.speaker':  { en: 'Speaker',  bg: 'Говорител' },
+  'event.roles.label.products': { en: 'Products', bg: 'Продукти'  },
+
   // join page
   'event.join.brandName':          { en: 'TeamEnjoyVD',                                              bg: 'TeamEnjoyVD'                                                    },
   'event.join.linkExpired':        { en: 'This link has expired.',                                   bg: 'Тази връзка е изтекла.'                                         },
@@ -42,8 +52,8 @@ export const events = {
   // register/components/RegisterForm
   'event.register.checkInbox':     { en: 'Check your inbox',                                         bg: 'Проверете пощата си'                                            },
   'event.register.sentLink':       { en: "We've sent your access link. The link expires in 72 hours.", bg: 'Изпратихме ви връзка за достъп. Тя е валидна 72 часа.'          },
-  'event.register.fullName':       { en: 'Full Name',                                                bg: 'Пълно ime'                                                      },
-  'event.register.yourName':       { en: 'Your name',                                                bg: 'Вашето ime'                                                     },
+  'event.register.fullName':       { en: 'Full Name',                                                bg: 'Пълно име'                                                      },
+  'event.register.yourName':       { en: 'Your name',                                                bg: 'Вашето име'                                                     },
   'event.register.emailAddress':   { en: 'Email Address',                                            bg: 'Имейл адрес'                                                    },
   'event.register.emailPlaceholder': { en: 'you@example.com',                                        bg: 'you@example.com'                                                },
   'event.register.sendingLink':    { en: 'Sending link…',                                            bg: 'Изпращане…'                                                     },

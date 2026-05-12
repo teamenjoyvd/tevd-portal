@@ -8,7 +8,16 @@ type Props = {
   events: RoleEvent[]
 }
 
-const SLOT_LABELS = ['HOST', 'SPEAKER', 'PRODUCTS'] as const
+type SlotLabel = 'HOST' | 'SPEAKER' | 'PRODUCTS'
+
+const SLOT_LABELS: SlotLabel[] = ['HOST', 'SPEAKER', 'PRODUCTS']
+
+// Maps the DB constant to its i18n key
+const SLOT_LABEL_KEY: Record<SlotLabel, 'event.roles.label.host' | 'event.roles.label.speaker' | 'event.roles.label.products'> = {
+  HOST:     'event.roles.label.host',
+  SPEAKER:  'event.roles.label.speaker',
+  PRODUCTS: 'event.roles.label.products',
+}
 
 // ── Shared helpers ───────────────────────────────────────────────────────────
 
@@ -25,7 +34,7 @@ function OccupantCell({ name }: { name: string | null }) {
 
 // ── Desktop table ────────────────────────────────────────────────────────────
 
-function RolesTable({ events }: { events: RoleEvent[] }) {
+function RolesTable({ events, headers }: { events: RoleEvent[]; headers: string[] }) {
   return (
     <div
       className="rounded-2xl overflow-hidden"
@@ -41,12 +50,7 @@ function RolesTable({ events }: { events: RoleEvent[] }) {
           backgroundColor: 'rgba(0,0,0,0.02)',
         }}
       >
-        <span>Event</span>
-        <span>Date</span>
-        <span>Time</span>
-        <span>Host</span>
-        <span>Speaker</span>
-        <span>Products</span>
+        {headers.map(h => <span key={h}>{h}</span>)}
       </div>
 
       {/* Data rows */}
@@ -82,7 +86,7 @@ function RolesTable({ events }: { events: RoleEvent[] }) {
 
 // ── Mobile cards ─────────────────────────────────────────────────────────────
 
-function RolesCards({ events }: { events: RoleEvent[] }) {
+function RolesCards({ events, slotLabels }: { events: RoleEvent[]; slotLabels: Record<SlotLabel, string> }) {
   return (
     <div className="flex flex-col gap-3">
       {events.map(event => (
@@ -113,7 +117,7 @@ function RolesCards({ events }: { events: RoleEvent[] }) {
                   className="text-[10px] font-semibold tracking-widest uppercase"
                   style={{ color: 'var(--text-secondary)', minWidth: 72 }}
                 >
-                  {label}
+                  {slotLabels[label]}
                 </span>
                 <span className="text-xs text-right">
                   <OccupantCell name={event.slots[label]} />
@@ -131,6 +135,21 @@ function RolesCards({ events }: { events: RoleEvent[] }) {
 
 export default function RolesClient({ events }: Props) {
   const { t } = useLanguage()
+
+  const headers = [
+    t('event.roles.col.event'),
+    t('event.roles.col.date'),
+    t('event.roles.col.time'),
+    t('event.roles.label.host'),
+    t('event.roles.label.speaker'),
+    t('event.roles.label.products'),
+  ]
+
+  const slotLabels: Record<SlotLabel, string> = {
+    HOST:     t(SLOT_LABEL_KEY.HOST),
+    SPEAKER:  t(SLOT_LABEL_KEY.SPEAKER),
+    PRODUCTS: t(SLOT_LABEL_KEY.PRODUCTS),
+  }
 
   return (
     <div className="py-8 pb-16">
@@ -152,7 +171,7 @@ export default function RolesClient({ events }: Props) {
             {t('event.rolesEmpty')}
           </p>
         ) : (
-          <RolesTable events={events} />
+          <RolesTable events={events} headers={headers} />
         )}
       </div>
 
@@ -173,7 +192,7 @@ export default function RolesClient({ events }: Props) {
             {t('event.rolesEmpty')}
           </p>
         ) : (
-          <RolesCards events={events} />
+          <RolesCards events={events} slotLabels={slotLabels} />
         )}
       </div>
 
