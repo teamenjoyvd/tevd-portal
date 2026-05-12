@@ -12,6 +12,10 @@
   --brand-moss:      #252B23;
   --brand-stone:     #8A8577;
 
+  /* ── Primitive aliases — legacy callers use bare token names ── */
+  --sienna: var(--brand-sienna);
+  --forest: var(--brand-forest);
+
   /* ── Semantic ── */
   --bg-global-rgb:     250, 248, 243;
   --bg-global:         var(--brand-parchment);
