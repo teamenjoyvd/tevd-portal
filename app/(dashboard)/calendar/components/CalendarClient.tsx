@@ -29,7 +29,7 @@ export default function CalendarClient({
   initialMonth,
   initialEventId,
   userRole,
-  userProfileId,
+  userProfileId: _userProfileId,
   isAuthenticated,
 }: Props) {
   const { lang, t } = useLanguage()
@@ -194,7 +194,6 @@ export default function CalendarClient({
               eventId={selectedEventId}
               onClose={handleClose}
               userRole={userRole}
-              userProfileId={userProfileId}
             />
           </VaulDrawer>
         )}
@@ -363,7 +362,6 @@ export default function CalendarClient({
                   eventId={selectedEventId}
                   onClose={handleClose}
                   userRole={userRole}
-                  userProfileId={userProfileId}
                 />
               )}
             </DialogContent>
