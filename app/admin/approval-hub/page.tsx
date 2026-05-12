@@ -11,16 +11,6 @@ import { SpouseLinkRequestsTab } from './components/SpouseLinkRequestsTab'
 import type { TripRegistration } from './components/TripRegistrationsTab'
 import type { SpouseLinkRequest } from './components/SpouseLinkRequestsTab'
 
-// ── Types ───────────────────────────────────────────────────────
-
-type CalendarEvent = { id: string; title: string; start_time: string }
-type RoleRequest = {
-  id: string; role_label: string
-  status: 'pending' | 'approved' | 'denied'
-  note: string | null; created_at: string; event_id: string
-  profile: { id: string; first_name: string; last_name: string; abo_number: string | null }
-}
-
 // ── Inner page (needs useSearchParams) ────────────────────────────────────
 
 function ApprovalHubInner() {
@@ -33,20 +23,11 @@ function ApprovalHubInner() {
     queryFn: () => fetch('/api/admin/registrations').then(r => r.json()),
   })
 
-  const { data: events = [] } = useQuery<CalendarEvent[]>({
-    queryKey: ['calendar-events-list'],
-    queryFn: () => fetch('/api/calendar').then(r => r.json()),
-  })
-
-  const { data: roleRequests = [] } = useQuery<RoleRequest[]>({
+  // Fetch role requests from the dedicated admin endpoint — same query key used by EventRolesTab
+  // so this is a cache hit when the tab renders, not a second network request.
+  const { data: roleRequests = [] } = useQuery<{ id: string; status: string }[]>({
     queryKey: ['role-requests', 'all'],
-    queryFn: async () => {
-      const results = await Promise.all(
-        events.map(e => fetch(`/api/events/${e.id}`).then(r => r.json()))
-      )
-      return results.flatMap(e => e.role_requests ?? [])
-    },
-    enabled: events.length > 0,
+    queryFn: () => fetch('/api/admin/event-role-requests').then(r => r.json()),
   })
 
   const { data: spouseRequests = [] } = useQuery<SpouseLinkRequest[]>({
