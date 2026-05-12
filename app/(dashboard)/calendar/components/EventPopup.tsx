@@ -51,7 +51,6 @@ type Props = {
   eventId: string
   onClose: () => void
   userRole: 'admin' | 'core' | 'member' | 'guest' | null
-  userProfileId: string | null
 }
 
 // ── Constants ───────────────────────────────────────────────────────────────
@@ -145,7 +144,7 @@ function AdminRegistrationsTab({ eventId }: { eventId: string }) {
 // ── Main component ───────────────────────────────────────────────────────────
 
 export default function EventPopup({
-  eventId, onClose, userRole, userProfileId: _userProfileId,
+  eventId, onClose, userRole,
 }: Props) {
   const qc = useQueryClient()
   const { t } = useLanguage()
@@ -177,10 +176,7 @@ export default function EventPopup({
 
   const cancelMutation = useMutation({
     mutationFn: (request_id: string) =>
-      apiClient(`/api/events/${eventId}/request-role`, {
-        method: 'DELETE',
-        body: JSON.stringify({ request_id }),
-      }),
+      apiClient(`/api/events/${eventId}/request-role`, { method: 'DELETE' }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['event', eventId] }),
   })
 
@@ -345,22 +341,28 @@ export default function EventPopup({
               ) : (
                 <div className="flex gap-2 flex-wrap">
                   {roleSlots.map(slot => {
-                    const myReq        = slot.caller_request
-                    const hasAnyReq    = roleSlots.some(s => s.caller_request !== null)
-                    const isActive     = myReq !== null
-                    const isFilled     = slot.status === 'filled'
-                    const isDisabled   = isMutating || isFilled || (!isActive && hasAnyReq)
-                    const activeStyle  = isActive ? REQUEST_STATUS_STYLES[myReq!.status] : null
-                    const slotStyle    = isFilled ? SLOT_STATUS_STYLES.filled : SLOT_STATUS_STYLES[slot.status]
+                    const myReq     = slot.caller_request
+                    const hasAnyReq = roleSlots.some(s => s.caller_request !== null)
+                    const isActive  = myReq !== null
+                    const isFilled  = slot.status === 'filled'
+                    const activeStyle = isActive ? REQUEST_STATUS_STYLES[myReq!.status] : null
+                    const slotStyle   = isFilled ? SLOT_STATUS_STYLES.filled : SLOT_STATUS_STYLES[slot.status]
+
+                    // Explicit per-intent disabled logic:
+                    // cancel: only block while mutating
+                    // request: block while mutating, if filled, or if user already has a request elsewhere
+                    const isCancel         = isActive && myReq!.status === 'pending'
+                    const disabledCancel   = isMutating
+                    const disabledRequest  = isMutating || isFilled || hasAnyReq
 
                     return (
                       <button
                         key={slot.role_label}
                         onClick={() => {
-                          if (isActive && myReq!.status === 'pending') cancelMutation.mutate(myReq!.id)
+                          if (isCancel) cancelMutation.mutate(myReq!.id)
                           else if (!hasAnyReq && !isFilled) requestMutation.mutate(slot.role_label)
                         }}
-                        disabled={isDisabled && !(isActive && myReq!.status === 'pending')}
+                        disabled={isCancel ? disabledCancel : disabledRequest}
                         className="flex-1 flex items-center justify-center gap-1 py-2 rounded-xl text-[11px] font-bold tracking-wider uppercase transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-95 active:scale-[0.97]"
                         style={{
                           backgroundColor: activeStyle ? activeStyle.bg : slotStyle.bg,

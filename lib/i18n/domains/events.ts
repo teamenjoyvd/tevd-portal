@@ -38,8 +38,8 @@ export const events = {
   // register/components/RegisterForm
   'event.register.checkInbox':     { en: 'Check your inbox',                                         bg: 'Проверете пощата си'                                            },
   'event.register.sentLink':       { en: "We've sent your access link. The link expires in 72 hours.", bg: 'Изпратихме ви връзка за достъп. Тя е валидна 72 часа.'          },
-  'event.register.fullName':       { en: 'Full Name',                                                bg: 'Пълно ime'                                                      },
-  'event.register.yourName':       { en: 'Your name',                                                bg: 'Вашето ime'                                                     },
+  'event.register.fullName':       { en: 'Full Name',                                                bg: 'Пълно име'                                                      },
+  'event.register.yourName':       { en: 'Your name',                                                bg: 'Вашето име'                                                     },
   'event.register.emailAddress':   { en: 'Email Address',                                            bg: 'Имейл адрес'                                                    },
   'event.register.emailPlaceholder': { en: 'you@example.com',                                        bg: 'you@example.com'                                                },
   'event.register.sendingLink':    { en: 'Sending link…',                                            bg: 'Изпращане…'                                                     },
