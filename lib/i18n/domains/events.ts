@@ -7,6 +7,12 @@ export const events = {
   'event.signInForRole':   { en: 'Sign in to request a role.', bg: 'Влезте, за да заявите роля.' },
   'event.notePlaceholder': { en: 'Note (optional)…',   bg: 'Бележка (по желание)…'          },
 
+  // slot status labels
+  'event.slot.open':        { en: 'Open',              bg: 'Свободна'                        },
+  'event.slot.contested':   { en: 'Pending approval',  bg: 'Очаква одобрение'                },
+  'event.slot.filled':      { en: 'Filled',            bg: 'Заета'                           },
+  'event.slot.yourRequest': { en: 'Your request',      bg: 'Вашата заявка'                   },
+
   // join page
   'event.join.brandName':          { en: 'TeamEnjoyVD',                                              bg: 'TeamEnjoyVD'                                                    },
   'event.join.linkExpired':        { en: 'This link has expired.',                                   bg: 'Тази връзка е изтекла.'                                         },

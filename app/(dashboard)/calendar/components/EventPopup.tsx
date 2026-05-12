@@ -1,25 +1,25 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { formatTime, formatLongDate } from '@/lib/format'
 import { X, Check, Users } from 'lucide-react'
 import { apiClient } from '@/lib/apiClient'
 
-type RoleRequest = {
-  id: string
-  role_label: string
-  status: 'pending' | 'approved' | 'denied'
-  note: string | null
-  profile: { id: string; first_name: string; last_name: string; abo_number: string | null }
-}
+// ── Types ───────────────────────────────────────────────────────────────────
 
 type CallerRequest = {
   id: string
   role_label: string
   status: 'pending' | 'approved' | 'denied'
-  note: string | null
+}
+
+type RoleSlot = {
+  role_label: string
+  status: 'open' | 'contested' | 'filled'
+  assigned_profile: { first_name: string | null; last_name: string | null } | null
+  caller_request: CallerRequest | null
 }
 
 type GuestRegistration = {
@@ -44,21 +44,27 @@ type EventDetail = {
   category: 'N21' | 'Personal'
   event_type: 'in-person' | 'online' | 'hybrid' | null
   week_number: number
-  role_requests: RoleRequest[]
-  caller_request: CallerRequest | null
+  role_slots: RoleSlot[]
 }
 
 type Props = {
   eventId: string
   onClose: () => void
   userRole: 'admin' | 'core' | 'member' | 'guest' | null
-  userProfileId: string | null
 }
 
-const STATUS_STYLES = {
+// ── Constants ───────────────────────────────────────────────────────────────
+
+const REQUEST_STATUS_STYLES = {
   pending:  { bg: '#f2cc8f33', color: '#7a5c00'  },
   approved: { bg: '#81b29a33', color: '#2d6a4f'  },
   denied:   { bg: '#bc474920', color: '#bc4749'  },
+}
+
+const SLOT_STATUS_STYLES = {
+  open:      { bg: 'rgba(0,0,0,0.05)',          color: 'var(--text-primary)'   },
+  contested: { bg: 'rgba(242,204,143,0.22)',    color: '#7a5c00'               },
+  filled:    { bg: 'rgba(129,178,154,0.22)',    color: '#2d6a4f'               },
 }
 
 const EVENT_TYPE_STYLES: Record<string, { bg: string; color: string; label: string }> = {
@@ -67,7 +73,7 @@ const EVENT_TYPE_STYLES: Record<string, { bg: string; color: string; label: stri
   'hybrid':    { bg: 'rgba(242,204,143,0.35)', color: '#7a5c00',  label: 'Hybrid'    },
 }
 
-// ── Admin: guest registration list ────────────────────────────────────────────
+// ── Admin: guest registration list ──────────────────────────────────────────
 
 function AdminRegistrationsTab({ eventId }: { eventId: string }) {
   const { data, isLoading } = useQuery<{ registrations: GuestRegistration[] }>({
@@ -113,12 +119,11 @@ function AdminRegistrationsTab({ eventId }: { eventId: string }) {
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{g.name}</p>
                 <p className="text-[10px] truncate" style={{ color: 'var(--text-secondary)' }}>{g.email}</p>
-                {g.sharer_name && (
+                {g.sharer_name ? (
                   <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
                     via <span style={{ color: 'var(--brand-teal)' }}>{g.sharer_name}</span>
                   </p>
-                )}
-                {!g.sharer_name && (
+                ) : (
                   <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>Direct</p>
                 )}
               </div>
@@ -136,33 +141,29 @@ function AdminRegistrationsTab({ eventId }: { eventId: string }) {
   )
 }
 
-// ── Main component ──────────────────────────────────────────────────────────
+// ── Main component ───────────────────────────────────────────────────────────
 
 export default function EventPopup({
-  eventId, onClose, userRole, userProfileId,
+  eventId, onClose, userRole,
 }: Props) {
   const qc = useQueryClient()
   const { t } = useLanguage()
-  const [shareCopied, setShareCopied]     = useState(false)
-  const [shareLoading, setShareLoading]   = useState(false)
-  const [adminTab, setAdminTab]           = useState<'roles' | 'registrations'>('roles')
+  const [shareCopied, setShareCopied]   = useState(false)
+  const [shareLoading, setShareLoading] = useState(false)
+  const [adminTab, setAdminTab]         = useState<'roles' | 'registrations'>('roles')
 
   const { data: event, isLoading } = useQuery<EventDetail>({
     queryKey: ['event', eventId],
     queryFn: () => apiClient(`/api/events/${eventId}`),
   })
 
-  const isAdmin = userRole === 'admin'
+  const isAdmin        = userRole === 'admin'
   const canRequestRole = userRole && userRole !== 'guest'
-  const isGuest = userRole === 'guest' || userRole === null
+  const isGuest        = userRole === 'guest' || userRole === null
 
-  // Role requests are closed 15 minutes before start. Admins always see the full UI.
+  // Role requests close 15 minutes before start. Admins always see full UI.
   const isClosed = !isAdmin && !!event &&
     Date.now() >= new Date(event.start_time).getTime() - 15 * 60 * 1000
-
-  const myRequest: CallerRequest | undefined = isAdmin
-    ? event?.role_requests.find(r => r.profile?.id === userProfileId)
-    : (event?.caller_request ?? undefined)
 
   const requestMutation = useMutation({
     mutationFn: (role_label: string) =>
@@ -174,16 +175,8 @@ export default function EventPopup({
   })
 
   const cancelMutation = useMutation({
-    mutationFn: () => apiClient(`/api/events/${eventId}/request-role`, { method: 'DELETE' }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['event', eventId] }),
-  })
-
-  const adminApproveMutation = useMutation({
-    mutationFn: ({ requestId, status }: { requestId: string; status: 'approved' | 'denied' }) =>
-      apiClient(`/api/admin/event-role-requests/${requestId}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ status }),
-      }),
+    mutationFn: (request_id: string) =>
+      apiClient(`/api/events/${eventId}/request-role`, { method: 'DELETE' }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['event', eventId] }),
   })
 
@@ -191,27 +184,21 @@ export default function EventPopup({
     if (!event?.allow_guest_registration || shareLoading) return
     setShareLoading(true)
     try {
-      // Determine share method optimistically before the sheet opens
       const canNative = typeof navigator.share === 'function'
       const method: 'native' | 'clipboard' = canNative ? 'native' : 'clipboard'
-
       const { token } = await apiClient<{ token: string }>('/api/profile/event-shares', {
         method: 'POST',
         body: JSON.stringify({ event_id: eventId, share_method: method }),
       })
-
       const shareUrl  = `${window.location.origin}/events/${eventId}/register?share=${token}`
       const shareData = { title: event.title, text: `Register for ${event.title}`, url: shareUrl }
-
       if (canNative && navigator.canShare?.(shareData)) {
         try { await navigator.share(shareData); return } catch { /* cancelled */ }
       }
-      // Clipboard fallback
       await navigator.clipboard.writeText(shareUrl)
       setShareCopied(true)
       setTimeout(() => setShareCopied(false), 2000)
     } catch {
-      // If the API call fails, fall back to plain URL share without attribution
       const fallbackUrl = `${window.location.origin}/events/${eventId}/register`
       await navigator.clipboard.writeText(fallbackUrl).catch(() => {})
       setShareCopied(true)
@@ -222,11 +209,8 @@ export default function EventPopup({
   }
 
   const eventTypeStyle = event?.event_type ? EVENT_TYPE_STYLES[event.event_type] : null
-  const availableRoles = event?.available_roles ?? ['HOST', 'SPEAKER', 'PRODUCTS']
-  const visibleRoleRequests = isAdmin
-    ? (event?.role_requests ?? [])
-    : (event?.role_requests ?? []).filter(r => r.profile?.id === userProfileId)
-  const isMutating = requestMutation.isPending || cancelMutation.isPending
+  const roleSlots      = event?.role_slots ?? []
+  const isMutating     = requestMutation.isPending || cancelMutation.isPending
 
   return (
     <>
@@ -264,7 +248,7 @@ export default function EventPopup({
       {/* Scrollable body */}
       <div className="flex-1 overflow-y-auto">
 
-        {/* Admin tab bar — only rendered for admins */}
+        {/* Admin tab bar */}
         {isAdmin && !isLoading && event && (
           <div className="px-4 pt-3 pb-0 flex gap-1 border-b border-black/5">
             {(['roles', 'registrations'] as const).map(tab => (
@@ -285,96 +269,113 @@ export default function EventPopup({
           </div>
         )}
 
-        {/* Roles */}
+        {/* Roles section */}
         {!isGuest && !isLoading && event && (adminTab === 'roles' || !isAdmin) && (
           <div className="px-4 py-3 border-b border-black/5">
             <p className="text-[10px] font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
               {t('event.roles')}
             </p>
 
-            {/* Admin: full request list with approve/deny */}
+            {/* Admin: slot overview — status + assigned occupant if filled */}
             {isAdmin && (
-              visibleRoleRequests.length > 0 ? (
+              roleSlots.length > 0 ? (
                 <div className="space-y-2">
-                  {visibleRoleRequests.map(r => (
-                    <div key={r.id} className="rounded-lg p-2.5" style={{ backgroundColor: STATUS_STYLES[r.status].bg }}>
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[10px] font-medium mb-0.5" style={{ color: 'var(--text-primary)' }}>
-                            {r.profile?.first_name} {r.profile?.last_name}
-                            {r.profile?.abo_number && <span style={{ color: 'var(--text-secondary)' }}> · {r.profile.abo_number}</span>}
-                          </p>
-                          <p className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>{r.role_label}</p>
-                        </div>
-                        <div className="flex items-center gap-1.5 flex-shrink-0">
-                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                            style={{ backgroundColor: 'rgba(255,255,255,0.6)', color: STATUS_STYLES[r.status].color }}>
-                            {r.status}
+                  {roleSlots.map(slot => {
+                    const slotStyle = SLOT_STATUS_STYLES[slot.status]
+                    const occupantName = slot.assigned_profile
+                      ? [slot.assigned_profile.first_name, slot.assigned_profile.last_name].filter(Boolean).join(' ') || '—'
+                      : null
+                    return (
+                      <div key={slot.role_label} className="rounded-lg p-2.5" style={{ backgroundColor: slotStyle.bg }}>
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>{slot.role_label}</p>
+                            {slot.status === 'filled' && occupantName && (
+                              <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>{occupantName}</p>
+                            )}
+                          </div>
+                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
+                            style={{ backgroundColor: 'rgba(255,255,255,0.55)', color: slotStyle.color }}>
+                            {t(`event.slot.${slot.status}` as `event.slot.${'open'|'contested'|'filled'}`)}
                           </span>
-                          {r.status === 'pending' && (
-                            <>
-                              <button onClick={() => adminApproveMutation.mutate({ requestId: r.id, status: 'approved' })}
-                                className="text-[10px] px-2 py-0.5 rounded-full font-semibold text-white"
-                                style={{ backgroundColor: 'var(--brand-teal)' }}><Check size={10} /></button>
-                              <button onClick={() => adminApproveMutation.mutate({ requestId: r.id, status: 'denied' })}
-                                className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-black/10"
-                                style={{ color: 'var(--text-secondary)' }}><X size={10} /></button>
-                            </>
-                          )}
                         </div>
                       </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('cal.noRequests')}</p>
+              )
+            )}
+
+            {/* Non-admin: existing request read-only badge (shown above buttons) */}
+            {!isAdmin && canRequestRole && (() => {
+              const mySlot = roleSlots.find(s => s.caller_request !== null)
+              const myReq  = mySlot?.caller_request ?? null
+              return myReq ? (
+                <div className="rounded-lg p-2.5 mb-3" style={{ backgroundColor: REQUEST_STATUS_STYLES[myReq.status].bg }}>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] font-medium mb-0.5" style={{ color: 'var(--text-secondary)' }}>
+                        {t('event.slot.yourRequest')}
+                      </p>
+                      <p className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>{myReq.role_label}</p>
                     </div>
-                  ))}
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                      style={{ backgroundColor: 'rgba(255,255,255,0.6)', color: REQUEST_STATUS_STYLES[myReq.status].color }}>
+                      {myReq.status}
+                    </span>
+                  </div>
                 </div>
-              ) : <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('cal.noRequests')}</p>
-            )}
+              ) : null
+            })()}
 
-            {/* Non-admin: existing request always shown read-only */}
-            {!isAdmin && canRequestRole && myRequest && (
-              <div className="rounded-lg p-2.5 mb-3" style={{ backgroundColor: STATUS_STYLES[myRequest.status].bg }}>
-                <p className="text-[10px] font-medium mb-0.5" style={{ color: 'var(--text-secondary)' }}>
-                  {t('event.roles')}
-                </p>
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>{myRequest.role_label}</p>
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                    style={{ backgroundColor: 'rgba(255,255,255,0.6)', color: STATUS_STYLES[myRequest.status].color }}>
-                    {myRequest.status}
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {/* Non-admin: role request buttons — hidden when closed */}
+            {/* Non-admin: slot buttons — hidden when closed */}
             {!isAdmin && canRequestRole && (
               isClosed ? (
-                !myRequest && (
+                !roleSlots.some(s => s.caller_request) && (
                   <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
                     {t('cal.roleRequestsClosed')}
                   </p>
                 )
               ) : (
-                <div className="flex gap-2">
-                  {availableRoles.map(role => {
-                    const isActive = myRequest?.role_label === role
-                    const isDisabled = (!isActive && !!myRequest) || isMutating
-                    const activeStyle = isActive ? STATUS_STYLES[myRequest!.status] : null
+                <div className="flex gap-2 flex-wrap">
+                  {roleSlots.map(slot => {
+                    const myReq     = slot.caller_request
+                    const hasAnyReq = roleSlots.some(s => s.caller_request !== null)
+                    const isActive  = myReq !== null
+                    const isFilled  = slot.status === 'filled'
+                    const activeStyle = isActive ? REQUEST_STATUS_STYLES[myReq!.status] : null
+                    const slotStyle   = isFilled ? SLOT_STATUS_STYLES.filled : SLOT_STATUS_STYLES[slot.status]
+
+                    // Explicit per-intent disabled logic:
+                    // cancel: only block while mutating
+                    // request: block while mutating, if filled, or if user already has a request elsewhere
+                    const isCancel         = isActive && myReq!.status === 'pending'
+                    const disabledCancel   = isMutating
+                    const disabledRequest  = isMutating || isFilled || hasAnyReq
+
                     return (
-                      <button key={role}
+                      <button
+                        key={slot.role_label}
                         onClick={() => {
-                          if (isActive && myRequest!.status === 'pending') cancelMutation.mutate()
-                          else if (!myRequest) requestMutation.mutate(role)
+                          if (isCancel) cancelMutation.mutate(myReq!.id)
+                          else if (!hasAnyReq && !isFilled) requestMutation.mutate(slot.role_label)
                         }}
-                        disabled={isDisabled || (isActive && myRequest!.status !== 'pending')}
+                        disabled={isCancel ? disabledCancel : disabledRequest}
                         className="flex-1 flex items-center justify-center gap-1 py-2 rounded-xl text-[11px] font-bold tracking-wider uppercase transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-95 active:scale-[0.97]"
                         style={{
-                          backgroundColor: activeStyle ? activeStyle.bg : 'rgba(0,0,0,0.05)',
-                          color: activeStyle ? activeStyle.color : 'var(--text-primary)',
+                          backgroundColor: activeStyle ? activeStyle.bg : slotStyle.bg,
+                          color: activeStyle ? activeStyle.color : slotStyle.color,
                           border: activeStyle ? `1px solid ${activeStyle.color}33` : '1px solid transparent',
-                        }}>
-                        {role}
-                        {isActive && myRequest!.status === 'pending' && <X size={10} className="opacity-60" />}
-                        {isActive && myRequest!.status === 'approved' && <Check size={10} />}
+                        }}
+                      >
+                        {slot.role_label}
+                        {isActive && myReq!.status === 'pending' && <X size={10} className="opacity-60" />}
+                        {isActive && myReq!.status === 'approved' && <Check size={10} />}
+                        {isFilled && !isActive && (
+                          <Check size={10} className="opacity-40" />
+                        )}
                       </button>
                     )
                   })}
@@ -384,7 +385,7 @@ export default function EventPopup({
           </div>
         )}
 
-        {/* Admin: registrations tab content */}
+        {/* Admin: registrations tab */}
         {isAdmin && adminTab === 'registrations' && event && (
           <AdminRegistrationsTab eventId={eventId} />
         )}

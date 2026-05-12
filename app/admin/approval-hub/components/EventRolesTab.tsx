@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from '@/lib/toast'
 import { useLanguage } from '@/lib/hooks/useLanguage'
+import { formatDate, formatTime } from '@/lib/format'
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -16,7 +17,14 @@ type RoleRequest = {
   note: string | null
   created_at: string
   event_id: string
-  profile: { id: string; first_name: string; last_name: string; abo_number: string | null }
+  slot_status: 'open' | 'contested' | 'filled'
+  profile: {
+    id: string
+    first_name: string | null
+    last_name: string | null
+    abo_number: string | null
+    contact_email: string | null
+  }
   event: CalendarEvent | null
 }
 
@@ -26,6 +34,20 @@ const STATUS_BADGE: Record<string, string> = {
   pending:  'bg-[#f2cc8f]/30 text-[#7a5c00] border border-[#f2cc8f]',
   approved: 'bg-[#81b29a]/20 text-[#2d6a4f] border border-[#81b29a]/50',
   denied:   'bg-[#bc4749]/10 text-[#bc4749] border border-[#bc4749]/30',
+}
+
+const SLOT_BADGE: Record<string, string> = {
+  open:      'bg-black/5 text-[var(--text-secondary)]',
+  contested: 'bg-[#f2cc8f]/30 text-[#7a5c00] border border-[#f2cc8f]',
+  filled:    'bg-[#81b29a]/20 text-[#2d6a4f] border border-[#81b29a]/50',
+}
+
+function requesterName(r: RoleRequest): { primary: string; secondary: string | null } {
+  const first = r.profile.first_name?.trim() ?? ''
+  const last  = r.profile.last_name?.trim() ?? ''
+  const name  = [first, last].filter(Boolean).join(' ')
+  if (name) return { primary: name, secondary: r.profile.contact_email }
+  return { primary: r.profile.contact_email ?? r.profile.abo_number ?? '—', secondary: null }
 }
 
 function CollapsibleResolved({ children, count }: { children: React.ReactNode; count: number }) {
@@ -66,7 +88,11 @@ export function EventRolesTab() {
   })
 
   const eventsWithRequests = Array.from(
-    new Map(roleRequests.map(r => [r.event_id, r.event]).filter((entry): entry is [string, CalendarEvent] => entry[1] !== null)).values()
+    new Map(
+      roleRequests
+        .map(r => [r.event_id, r.event] as [string, CalendarEvent | null])
+        .filter((entry): entry is [string, CalendarEvent] => entry[1] !== null)
+    ).values()
   )
 
   const updateMutation = useMutation({
@@ -100,7 +126,12 @@ export function EventRolesTab() {
 
   const pending  = filtered.filter(r => r.status === 'pending')
   const resolved = filtered.filter(r => r.status !== 'pending')
-  const eventTitle = (r: RoleRequest) => r.event?.title ?? r.event_id
+
+  function eventMeta(r: RoleRequest): string {
+    const title = r.event?.title ?? r.event_id
+    const date  = r.event?.start_time ? ` · ${formatDate(r.event.start_time)}` : ''
+    return `${title}${date}`
+  }
 
   return (
     <div>
@@ -146,70 +177,90 @@ export function EventRolesTab() {
         </div>
       ) : (
         <div className="space-y-2">
-          {pending.map(r => (
-            <div key={r.id} className="rounded-xl border px-4 py-3.5" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
-              <div className="flex items-start gap-3">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                    {r.profile.first_name} {r.profile.last_name}
-                    {r.profile.abo_number && (
-                      <span className="font-normal text-xs ml-1.5" style={{ color: 'var(--text-secondary)' }}>
-                        {r.profile.abo_number}
+          {pending.map(r => {
+            const { primary, secondary } = requesterName(r)
+            return (
+              <div key={r.id} className="rounded-xl border px-4 py-3.5" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
+                <div className="flex items-start gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                        {primary}
+                        {r.profile.abo_number && (
+                          <span className="font-normal text-xs ml-1.5" style={{ color: 'var(--text-secondary)' }}>
+                            {r.profile.abo_number}
+                          </span>
+                        )}
+                      </p>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${SLOT_BADGE[r.slot_status]}`}>
+                        {r.slot_status}
                       </span>
+                    </div>
+                    {secondary && (
+                      <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>{secondary}</p>
                     )}
-                  </p>
-                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                    <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{r.role_label}</span>
-                    {' · '}{eventTitle(r)}
-                  </p>
-                  {r.note && (
-                    <p className="text-xs mt-1 italic" style={{ color: 'var(--text-secondary)' }}>
-                      &quot;{r.note}&quot;
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                      <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{r.role_label}</span>
+                      {' · '}{eventMeta(r)}
                     </p>
-                  )}
-                </div>
-                <div className="flex gap-2 flex-shrink-0">
-                  <button
-                    onClick={() => updateMutation.mutate({ id: r.id, status: 'approved' })}
-                    disabled={updateMutation.isPending}
-                    className="px-4 py-1.5 rounded-lg text-sm font-medium text-white disabled:opacity-50"
-                    style={{ backgroundColor: 'var(--brand-teal)' }}
-                  >
-                    {t('admin.approval.verify.btn.approve')}
-                  </button>
-                  <button
-                    onClick={() => updateMutation.mutate({ id: r.id, status: 'denied' })}
-                    disabled={updateMutation.isPending}
-                    className="px-4 py-1.5 rounded-lg text-sm font-medium disabled:opacity-50"
-                    style={{ backgroundColor: 'rgba(0,0,0,0.06)', color: 'var(--text-primary)' }}
-                  >
-                    {t('admin.approval.verify.btn.deny')}
-                  </button>
+                    <p className="text-[10px] mt-1" style={{ color: 'var(--text-secondary)' }}>
+                      {formatDate(r.created_at)}{r.event?.start_time ? ` · ${formatTime(r.event.start_time)}` : ''}
+                    </p>
+                    {r.note && (
+                      <p className="text-xs mt-1 italic" style={{ color: 'var(--text-secondary)' }}>
+                        &quot;{r.note}&quot;
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex gap-2 flex-shrink-0">
+                    <button
+                      onClick={() => updateMutation.mutate({ id: r.id, status: 'approved' })}
+                      disabled={updateMutation.isPending}
+                      className="px-4 py-1.5 rounded-lg text-sm font-medium text-white disabled:opacity-50"
+                      style={{ backgroundColor: 'var(--brand-teal)' }}
+                    >
+                      {t('admin.approval.verify.btn.approve')}
+                    </button>
+                    <button
+                      onClick={() => updateMutation.mutate({ id: r.id, status: 'denied' })}
+                      disabled={updateMutation.isPending}
+                      className="px-4 py-1.5 rounded-lg text-sm font-medium disabled:opacity-50"
+                      style={{ backgroundColor: 'rgba(0,0,0,0.06)', color: 'var(--text-primary)' }}
+                    >
+                      {t('admin.approval.verify.btn.deny')}
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
 
       <CollapsibleResolved count={resolved.length}>
-        {resolved.map(r => (
-          <div key={r.id} className="rounded-xl border px-4 py-3 flex items-center justify-between gap-3" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
-            <div className="min-w-0">
-              <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
-                {r.profile.first_name} {r.profile.last_name}
-                {' · '}
-                <span className="font-medium">{r.role_label}</span>
-              </p>
-              <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--text-secondary)' }}>
-                {eventTitle(r)}
-              </p>
+        {resolved.map(r => {
+          const { primary, secondary } = requesterName(r)
+          return (
+            <div key={r.id} className="rounded-xl border px-4 py-3 flex items-center justify-between gap-3" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
+              <div className="min-w-0">
+                <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
+                  {primary}
+                  {' · '}
+                  <span className="font-medium">{r.role_label}</span>
+                </p>
+                {secondary && (
+                  <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{secondary}</p>
+                )}
+                <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--text-secondary)' }}>
+                  {eventMeta(r)}
+                </p>
+              </div>
+              <span className={`text-xs px-2.5 py-1 rounded-full font-medium flex-shrink-0 ${STATUS_BADGE[r.status]}`}>
+                {r.status}
+              </span>
             </div>
-            <span className={`text-xs px-2.5 py-1 rounded-full font-medium flex-shrink-0 ${STATUS_BADGE[r.status]}`}>
-              {r.status}
-            </span>
-          </div>
-        ))}
+          )
+        })}
       </CollapsibleResolved>
     </div>
   )
