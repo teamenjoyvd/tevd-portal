@@ -1,16 +1,6 @@
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
 
-type RoleSlotRow = {
-  role_label: string
-  event_role_requests: {
-    profile: {
-      first_name: string | null
-      last_name: string | null
-    } | null
-  }[] | null
-}
-
 export type RoleEvent = {
   id: string
   title: string
@@ -42,7 +32,9 @@ export async function GET(): Promise<Response> {
     return Response.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  // Fetch events that have at least one slot, upcoming only
+  // Fetch upcoming events with their slot labels only.
+  // Approved occupants are fetched in a second query — PostgREST cannot filter
+  // nested rows by status without an RPC, so we never attempt the nested join.
   const { data: events, error } = await supabase
     .from('calendar_events')
     .select(`
@@ -50,63 +42,32 @@ export async function GET(): Promise<Response> {
       title,
       start_time,
       end_time,
-      event_role_slots (
-        role_label,
-        event_role_requests (
-          profile:profiles!profile_id ( first_name, last_name )
-        )
-      )
+      event_role_slots ( role_label )
     `)
     .gte('start_time', new Date().toISOString())
     .order('start_time', { ascending: true })
 
   if (error) return Response.json({ error: error.message }, { status: 500 })
 
-  // Filter to only events that actually have slots configured
+  const SLOT_LABELS = ['HOST', 'SPEAKER', 'PRODUCTS'] as const
+
+  // Filter to events that have at least one configured slot
   const eventsWithSlots = (events ?? []).filter(
     e => e.event_role_slots && e.event_role_slots.length > 0
   )
 
-  const SLOT_LABELS = ['HOST', 'SPEAKER', 'PRODUCTS'] as const
+  if (eventsWithSlots.length === 0) return Response.json([])
 
-  const result: RoleEvent[] = eventsWithSlots.map(event => {
-    const slotMap: Record<string, string | null> = { HOST: null, SPEAKER: null, PRODUCTS: null }
+  const eventIds = eventsWithSlots.map(e => e.id)
 
-    for (const slot of (event.event_role_slots as RoleSlotRow[])) {
-      const label = slot.role_label as typeof SLOT_LABELS[number]
-      if (!SLOT_LABELS.includes(label)) continue
-
-      // event_role_slots -> event_role_requests is a nested array filtered to approved only
-      // by the join — but PostgREST returns all requests; we filter status client-side
-      // Note: the join here doesn't filter by status — we need to handle that.
-      // Since we only want approved, we take the first request in the array
-      // (the RPC/trigger enforces one approved per slot, so at most one exists).
-      // However PostgREST nested select returns ALL requests — we cannot filter
-      // nested rows in PostgREST without an RPC. Safe approach: fetch separately below.
-      slotMap[label] = null
-    }
-
-    return {
-      id: event.id,
-      title: event.title,
-      start_time: event.start_time,
-      end_time: event.end_time,
-      slots: slotMap as RoleEvent['slots'],
-    }
-  })
-
-  // PostgREST cannot filter nested rows — fetch approved requests separately
-  if (result.length === 0) return Response.json(result)
-
-  const eventIds = result.map(e => e.id)
-
+  // Fetch approved requests separately (correct approach — no nested filter needed)
   const { data: approvedRequests } = await supabase
     .from('event_role_requests')
     .select('event_id, role_label, profile:profiles!profile_id ( first_name, last_name )')
     .in('event_id', eventIds)
     .eq('status', 'approved')
 
-  // Build a lookup: eventId -> roleLabel -> occupant name
+  // Build lookup: eventId -> roleLabel -> occupant name
   const occupantMap: Record<string, Record<string, string>> = {}
   for (const req of approvedRequests ?? []) {
     if (!occupantMap[req.event_id]) occupantMap[req.event_id] = {}
@@ -115,13 +76,26 @@ export async function GET(): Promise<Response> {
     if (name) occupantMap[req.event_id][req.role_label] = name
   }
 
-  // Merge occupant data into result
-  for (const event of result) {
+  const result: RoleEvent[] = eventsWithSlots.map(event => {
     const eventOccupants = occupantMap[event.id] ?? {}
-    event.slots.HOST     = eventOccupants['HOST']     ?? null
-    event.slots.SPEAKER  = eventOccupants['SPEAKER']  ?? null
-    event.slots.PRODUCTS = eventOccupants['PRODUCTS'] ?? null
-  }
+
+    // Only expose slots that are configured on this event
+    const configuredLabels = new Set(
+      (event.event_role_slots ?? []).map(s => s.role_label)
+    )
+
+    return {
+      id: event.id,
+      title: event.title,
+      start_time: event.start_time,
+      end_time: event.end_time,
+      slots: {
+        HOST:     configuredLabels.has('HOST')     ? (eventOccupants['HOST']     ?? null) : null,
+        SPEAKER:  configuredLabels.has('SPEAKER')  ? (eventOccupants['SPEAKER']  ?? null) : null,
+        PRODUCTS: configuredLabels.has('PRODUCTS') ? (eventOccupants['PRODUCTS'] ?? null) : null,
+      },
+    }
+  })
 
   return Response.json(result)
 }
