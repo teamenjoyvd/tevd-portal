@@ -292,9 +292,10 @@ function ReminderRowActions({ reminder }: { reminder: ReminderRow }) {
 export interface RemindersTabProps {
   globalToggles: { reminders_1hr_enabled: boolean; reminders_15min_enabled: boolean }
   reminders: ReminderRow[]
+  truncated?: boolean
 }
 
-export function RemindersTab({ globalToggles, reminders }: RemindersTabProps) {
+export function RemindersTab({ globalToggles, reminders, truncated }: RemindersTabProps) {
   // Group reminders by event
   const eventMap = new Map<string, EventGroup>()
   for (const r of reminders) {
@@ -309,6 +310,15 @@ export function RemindersTab({ globalToggles, reminders }: RemindersTabProps) {
 
   return (
     <div className="space-y-6">
+      {truncated && (
+        <div
+          className="rounded-lg border px-4 py-3 text-sm"
+          style={{ borderColor: '#b45309', backgroundColor: '#fef3c7', color: '#92400e' }}
+        >
+          ⚠️ Showing the first 500 reminders. Some reminders are not visible — consider cancelling sent reminders to reduce volume.
+        </div>
+      )}
+
       {/* Global toggle strip */}
       <div className="rounded-xl border p-4" style={{ borderColor: 'var(--border-default)', backgroundColor: 'var(--bg-card)' }}>
         <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--text-secondary)' }}>GLOBAL TOGGLES</h2>

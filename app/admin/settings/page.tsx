@@ -10,6 +10,7 @@ import { SystemTab } from './components/SystemTab'
 import { SettingsTabs } from './components/SettingsTabs'
 
 const PAGE_SIZE = 50
+const REMINDERS_LIMIT = 500
 const VALID_TABS = ['email', 'notifications', 'reminders', 'system'] as const
 type TabValue = typeof VALID_TABS[number]
 
@@ -39,6 +40,7 @@ export default async function AdminSettingsPage({
   let remindersData: RemindersTabProps = {
     globalToggles: { reminders_1hr_enabled: true, reminders_15min_enabled: true },
     reminders: [],
+    truncated: false,
   }
 
   if (tab === 'email') {
@@ -73,19 +75,20 @@ export default async function AdminSettingsPage({
       reminders_15min_enabled: settingsMap['reminders_15min_enabled'] !== 'false',
     }
 
-    const { data: reminders } = await sb
+    const { data: reminders, count: remindersCount } = await sb
       .from('scheduled_reminders')
       .select(`
         id, reminder_type, send_at, sent_at, event_id,
         calendar_events!event_id ( id, title, start_time, reminders_enabled ),
         guest_registrations!registration_id ( name, email )
-      `)
+      `, { count: 'exact' })
       .order('send_at', { ascending: false })
-      .limit(500)
+      .limit(REMINDERS_LIMIT)
 
     remindersData = {
       globalToggles,
       reminders: (reminders ?? []) as RemindersTabProps['reminders'],
+      truncated: (remindersCount ?? 0) > REMINDERS_LIMIT,
     }
   }
 
