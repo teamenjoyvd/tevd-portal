@@ -34,7 +34,7 @@ export const events = {
   // join page
   'event.join.brandName':          { en: 'TeamEnjoyVD',                                              bg: 'TeamEnjoyVD'                                                    },
   'event.join.linkExpired':        { en: 'This link has expired.',                                   bg: 'Тази връзка е изтекла.'                                         },
-  'event.join.linkInvalid':        { en: 'This link is invalid.',                                    bg: 'Тази връзка е невамлидна.'                                       },
+  'event.join.linkInvalid':        { en: 'This link is invalid.',                                    bg: 'Тази връзка е невалидна.'                                       },
   'event.join.registerAgainDesc':  { en: 'Please register again to receive a fresh access link.',    bg: 'Моля, регистрирайте се отново, за да получите нова връзка.'      },
   'event.join.registerAgain':      { en: 'Register again',                                           bg: 'Регистрирайте се отново'                                        },
   'event.join.youreJoining':       { en: "You're joining",                                          bg: 'Присъединявате се към'                                          },
