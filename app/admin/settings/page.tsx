@@ -31,7 +31,7 @@ export default async function AdminSettingsPage({
 
   const { tab: rawTab, page: pageParam } = await searchParams
   const tab: TabValue = VALID_TABS.includes(rawTab as TabValue) ? (rawTab as TabValue) : 'email'
-  const page = Math.max(1, parseInt(pageParam ?? '1', 10))
+  const page = Math.max(1, parseInt(pageParam || '1', 10) || 1)
 
   // Fetch data only for the active tab
   let emailConfig: EmailConfig = { enabled: false, alert_recipient: '', notification_types: {} }

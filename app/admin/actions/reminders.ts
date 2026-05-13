@@ -77,9 +77,12 @@ export async function resendReminder(reminderId: string) {
 
 // ---------------------------------------------------------------------------
 // rescheduleReminder
-// Updates send_at to the provided ISO string. Must be a future time.
+// Updates send_at to the provided ISO string. Rejects past times.
 // ---------------------------------------------------------------------------
 export async function rescheduleReminder(reminderId: string, newSendAt: string) {
+  if (new Date(newSendAt) <= new Date()) {
+    throw new Error('Rescheduled time must be in the future')
+  }
   const sb = await requireAdminAuth()
   await sb
     .from('scheduled_reminders')
