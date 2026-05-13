@@ -1,5 +1,5 @@
 # LOOKUP.md — teamenjoyVD Portal Reference Tables
-> Last updated: 2026-05-09
+> Last updated: 2026-05-13
 > **Read on demand in GATHER only. Never read at SSU or at GATHER start.**
 > Pull only the sections the ticket needs. See section map in REF.md header.
 
@@ -90,7 +90,7 @@
     /profile/payments/route.ts
     /profile/route.ts
     /profile/spouse-link/route.ts  # ADR-016: GET own request, POST submit, DELETE cancel
-    /profile/verify-abo/route.ts   # ADR-016: abo_has_primary error_code when ABO holder is primary
+    /profile/verify-abo/route.ts   # ADR-016: abo_has_primary error_code; #350: secondary_cannot_verify guard
     /profile/vitals/route.ts
     /profile/event-roles/route.ts
     /profile/los-summary/route.ts  # ADR-016: resolves treeProfileId = primary_profile_id ?? id
@@ -169,6 +169,19 @@
 - `ui_prefs` JSONB NOT NULL default `{}` — shape: `{ bento_order: string[], bento_collapsed: Record<string, boolean> }`
 - `upline_abo_number`: written by `approve_member_verification` (both paths) and by `import_los_members` on sponsor change.
 - `primary_profile_id`: ADR-016. NULL = primary or standalone. NOT NULL = secondary/spouse. Self-referential FK ON DELETE SET NULL.
+
+**`profiles_audit`** — added #350 (migration `20260513_003`)
+`id, profile_id → profiles (ON DELETE CASCADE), changed_at, changed_by, old_abo_number, new_abo_number, old_upline_abo_number, new_upline_abo_number, old_primary_profile_id, new_primary_profile_id, old_role, new_role`
+- Written exclusively by `trg_profiles_field_audit` AFTER UPDATE trigger on `profiles`.
+- Only fires when at least one of the 4 tracked fields (`abo_number`, `upline_abo_number`, `primary_profile_id`, `role`) changes.
+- RLS: SELECT admin-only via `is_admin()`. No INSERT policy for authenticated users — trigger runs SECURITY DEFINER.
+- `changed_by`: `current_setting('app.current_user_id', true)` or `'service_role'` fallback.
+- Indexes: `(profile_id)`, `(changed_at DESC)`.
+
+**`v_member_history`** — view added #350 (migration `20260513_003`)
+Normalised UNION ALL over `profiles_audit` + `role_change_audit`. Columns: `profile_id, changed_at, changed_by, event_type, field, old_value, new_value`.
+- `event_type` values: `abo_number_change`, `upline_abo_number_change`, `primary_profile_id_change`, `role_change`.
+- Admin-only access via underlying table RLS.
 
 **`spouse_link_requests`** — ADR-016
 `id, requester_id → profiles, claimed_primary_id → profiles, status (pending|approved|denied), admin_note, created_at, resolved_at`
@@ -307,7 +320,7 @@
 | Route | Method | Purpose |
 |---|---|---|
 | `/api/profile` | GET, PATCH | Read/update own profile |
-| `/api/profile/verify-abo` | POST | Submit ABO verification — LOS-validated at submit; `abo_has_primary` error_code when ABO holder is primary (ADR-016) |
+| `/api/profile/verify-abo` | POST | Submit ABO verification — LOS-validated at submit; `abo_has_primary` error_code when ABO holder is primary (ADR-016). Guard added #350: secondary accounts (`primary_profile_id IS NOT NULL`) receive 400 `secondary_cannot_verify`. |
 | `/api/profile/spouse-link` | GET, POST, DELETE | ADR-016: GET own request; POST submit (guest with no primary_profile_id, claiming a primary member with abo_number and no existing secondary); DELETE cancel own pending |
 | `/api/profile/vitals` | GET | Read own vital signs |
 | `/api/profile/event-roles` | GET | Read own event participation |
@@ -390,7 +403,7 @@
 | `get_core_ancestors(uuid)` | Returns Core-role profile UUIDs above a given node |
 | `rebuild_tree_paths` | Cascades ABO label rename down all descendants |
 | `upsert_tree_node(p_profile_id, p_abo_number, p_sponsor_abo_number?)` | Insert/update tree node; walks `los_members` sponsor chain (max 20 hops, cycle guard) if direct sponsor has no portal profile |
-| `approve_member_verification(p_request_id, p_admin_note?)` | **DEPRECATED** — retained for rollback only. Logic now in Inngest approve-verification Step 1. |
+| `approve_member_verification(p_request_id, p_admin_note?)` | **DEPRECATED** — retained for rollback only. Logic now in Inngest approve-verification Step 1. Guard added #350: raises `P0002` if `profile.primary_profile_id IS NOT NULL`. |
 | `patch_member_role(p_profile_id, p_new_role, p_changed_by, p_note?)` | Role update with audit trail — returns updated profile |
 | `get_trip_team_attendees(p_trip_id, p_viewer_profile)` | Returns Core/admin attendees for a trip |
 | `import_los_members(p_rows, p_imported_by?, p_expected_row_count?)` | Transactional LOS import: concurrency check → snapshot → upsert → server-side delete → rebuild_tree_paths → insert los_imports. Returns `{ inserted, removed, import_id, errors }`. |

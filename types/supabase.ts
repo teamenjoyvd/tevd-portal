@@ -1072,6 +1072,59 @@ export type Database = {
           },
         ]
       }
+      profiles_audit: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          id: string
+          new_abo_number: string | null
+          new_primary_profile_id: string | null
+          new_role: string | null
+          new_upline_abo_number: string | null
+          old_abo_number: string | null
+          old_primary_profile_id: string | null
+          old_role: string | null
+          old_upline_abo_number: string | null
+          profile_id: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          new_abo_number?: string | null
+          new_primary_profile_id?: string | null
+          new_role?: string | null
+          new_upline_abo_number?: string | null
+          old_abo_number?: string | null
+          old_primary_profile_id?: string | null
+          old_role?: string | null
+          old_upline_abo_number?: string | null
+          profile_id: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          new_abo_number?: string | null
+          new_primary_profile_id?: string | null
+          new_role?: string | null
+          new_upline_abo_number?: string | null
+          old_abo_number?: string | null
+          old_primary_profile_id?: string | null
+          old_role?: string | null
+          old_upline_abo_number?: string | null
+          profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_audit_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       role_change_audit: {
         Row: {
           changed_at: string
@@ -1106,6 +1159,48 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scheduled_reminders: {
+        Row: {
+          event_id: string
+          id: string
+          registration_id: string
+          reminder_type: Database["public"]["Enums"]["reminder_type"]
+          send_at: string
+          sent_at: string | null
+        }
+        Insert: {
+          event_id: string
+          id?: string
+          registration_id: string
+          reminder_type: Database["public"]["Enums"]["reminder_type"]
+          send_at: string
+          sent_at?: string | null
+        }
+        Update: {
+          event_id?: string
+          id?: string
+          registration_id?: string
+          reminder_type?: Database["public"]["Enums"]["reminder_type"]
+          send_at?: string
+          sent_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_reminders_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheduled_reminders_registration_id_fkey"
+            columns: ["registration_id"]
+            isOneToOne: false
+            referencedRelation: "guest_registrations"
             referencedColumns: ["id"]
           },
         ]
@@ -1535,7 +1630,18 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      v_member_history: {
+        Row: {
+          changed_at: string | null
+          changed_by: string | null
+          event_type: string | null
+          field: string | null
+          new_value: string | null
+          old_value: string | null
+          profile_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       abo_to_ltree_label: { Args: { abo: string }; Returns: string }
@@ -1681,6 +1787,7 @@ export type Database = {
         | "trip_attachment"
         | "spouse_link_request"
       registration_status: "pending" | "approved" | "denied"
+      reminder_type: "1_hour" | "15_min"
       user_role: "admin" | "core" | "member" | "guest"
     }
     CompositeTypes: {
@@ -1825,6 +1932,7 @@ export const Constants = {
         "spouse_link_request",
       ],
       registration_status: ["pending", "approved", "denied"],
+      reminder_type: ["1_hour", "15_min"],
       user_role: ["admin", "core", "member", "guest"],
     },
   },
