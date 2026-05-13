@@ -7,7 +7,7 @@ import { useRole } from '@/lib/hooks/useRole'
 import { PUBLIC_NAV, FOOTER_MEMBER_NAV, filterNav } from '@/lib/nav'
 
 export default function Footer() {
-  const { lang } = useLanguage()
+  const { lang, t } = useLanguage()
   const role = useRole()
 
   const FOOTER_NAV = filterNav([...PUBLIC_NAV, ...FOOTER_MEMBER_NAV], role)
@@ -111,10 +111,18 @@ export default function Footer() {
       <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
         <div className="max-w-[1440px] mx-auto px-8 xl:px-12 2xl:px-16 py-3 flex items-center justify-between gap-4">
           <p className="text-[11px]" style={{ color: 'rgba(242,239,232,0.3)' }}>
-            © 2026 teamenjoyvd.com · All rights reserved
+            © {new Date().getFullYear()} teamenjoyvd.com · {t('footer.allRightsReserved')} ·{' '}
+            <a
+              href="https://tally.so/r/BzAl5Q"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: 'inherit' }}
+            >
+              {t('footer.feedback')}
+            </a>
           </p>
           <p className="text-[11px]" style={{ color: 'rgba(242,239,232,0.3)' }}>
-            Built with ♥ by Vera &amp; Deniz in Sofia.
+            {t('footer.builtBy')}
           </p>
         </div>
       </div>
