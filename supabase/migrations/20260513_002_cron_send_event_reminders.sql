@@ -1,8 +1,14 @@
 -- Migration: pg_cron job for send-event-reminders edge function
 -- Ticket: 2505-FEAT-346
 
--- Unschedule existing job (idempotent)
-SELECT cron.unschedule('send-event-reminders');
+-- Unschedule existing job if it exists (idempotent)
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'send-event-reminders') THEN
+    PERFORM cron.unschedule('send-event-reminders');
+  END IF;
+END;
+$$;
 
 -- Schedule every 5 minutes
 SELECT cron.schedule(
