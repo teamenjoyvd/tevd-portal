@@ -20,6 +20,7 @@ type Props = {
   userRole: 'admin' | 'core' | 'member' | 'guest' | null
   userProfileId: string | null
   isAuthenticated: boolean
+  profileNameMissing: boolean
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────────
@@ -31,6 +32,7 @@ export default function CalendarClient({
   userRole,
   userProfileId: _userProfileId,
   isAuthenticated,
+  profileNameMissing,
 }: Props) {
   const { lang, t } = useLanguage()
   const MONTHS = MONTHS_I18N[lang]
@@ -194,6 +196,7 @@ export default function CalendarClient({
               eventId={selectedEventId}
               onClose={handleClose}
               userRole={userRole}
+              profileNameMissing={profileNameMissing}
             />
           </VaulDrawer>
         )}
@@ -362,6 +365,7 @@ export default function CalendarClient({
                   eventId={selectedEventId}
                   onClose={handleClose}
                   userRole={userRole}
+                  profileNameMissing={profileNameMissing}
                 />
               )}
             </DialogContent>

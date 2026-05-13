@@ -13,10 +13,28 @@ export const events = {
   'event.slot.filled':      { en: 'Filled',            bg: 'Заета'                           },
   'event.slot.yourRequest': { en: 'Your request',      bg: 'Вашата заявка'                   },
 
+  // profile name gate
+  'event.nameRequiredToRequest': { en: 'To request a role, please complete your name in your profile.', bg: 'За да заявите роля, моля попълнете името си в профила.' },
+  'event.goToProfile':           { en: 'Go to profile',                                                  bg: 'Към профила'                                                                  },
+
+  // roles page
+  'event.rolesPageTitle':   { en: 'Roles',             bg: 'Роли'                            },
+  'event.rolesEmpty':       { en: 'No upcoming events with roles configured.', bg: 'Няма предстоящи събития с конфигурирани роли.' },
+
+  // roles page — table headers
+  'event.roles.col.event':    { en: 'Event',    bg: 'Събитие'  },
+  'event.roles.col.date':     { en: 'Date',     bg: 'Дата'     },
+  'event.roles.col.time':     { en: 'Time',     bg: 'Час'      },
+
+  // roles page — slot role labels
+  'event.roles.label.host':     { en: 'Host',     bg: 'Домакин'   },
+  'event.roles.label.speaker':  { en: 'Speaker',  bg: 'Говорител' },
+  'event.roles.label.products': { en: 'Products', bg: 'Продукти'  },
+
   // join page
   'event.join.brandName':          { en: 'TeamEnjoyVD',                                              bg: 'TeamEnjoyVD'                                                    },
   'event.join.linkExpired':        { en: 'This link has expired.',                                   bg: 'Тази връзка е изтекла.'                                         },
-  'event.join.linkInvalid':        { en: 'This link is invalid.',                                    bg: 'Тази връзка е невалидна.'                                       },
+  'event.join.linkInvalid':        { en: 'This link is invalid.',                                    bg: 'Тази връзка е невамлидна.'                                       },
   'event.join.registerAgainDesc':  { en: 'Please register again to receive a fresh access link.',    bg: 'Моля, регистрирайте се отново, за да получите нова връзка.'      },
   'event.join.registerAgain':      { en: 'Register again',                                           bg: 'Регистрирайте се отново'                                        },
   'event.join.youreJoining':       { en: "You're joining",                                          bg: 'Присъединявате се към'                                          },
