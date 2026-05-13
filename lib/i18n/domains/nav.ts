@@ -8,5 +8,6 @@ export const nav = {
   'nav.admin':         { en: 'Admin',         bg: 'Админ'        },
   'nav.network':       { en: 'My Network',    bg: 'Моята мрежа'  },
   'nav.howtos':        { en: 'Guides',        bg: 'Ръководства'  },
+  'nav.roles':         { en: 'Roles',         bg: 'Роли'         },
   'nav.signIn':        { en: 'Sign in',       bg: 'Вход'         },
 } as const
