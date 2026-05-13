@@ -269,6 +269,19 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
 - `upline_abo_number`: written by `approve_member_verification` (both paths) and by `import_los_members` on sponsor change.
 - `primary_profile_id`: ADR-016. NULL = primary or standalone. NOT NULL = secondary/spouse profile pointing to its primary. Self-referential FK with ON DELETE SET NULL.
 
+**`profiles_audit`** — added #350 (migration `20260513_003`)
+`id, profile_id → profiles (ON DELETE CASCADE), changed_at, changed_by, old_abo_number, new_abo_number, old_upline_abo_number, new_upline_abo_number, old_primary_profile_id, new_primary_profile_id, old_role, new_role`
+- Written exclusively by `trg_profiles_field_audit` AFTER UPDATE trigger on `profiles`.
+- Only fires when at least one of the 4 tracked fields changes.
+- RLS: SELECT admin-only via `is_admin()`. No INSERT policy for authenticated users — trigger runs SECURITY DEFINER.
+- `changed_by`: `current_setting('app.current_user_id', true)` or `'service_role'` fallback.
+- Indexes: `(profile_id)`, `(changed_at DESC)`.
+
+**`v_member_history`** — view added #350 (migration `20260513_003`)
+Normalised UNION ALL over `profiles_audit` + `role_change_audit`. Columns: `profile_id, changed_at, changed_by, event_type, field, old_value, new_value`.
+- `event_type` values: `abo_number_change`, `upline_abo_number_change`, `primary_profile_id_change`, `role_change`.
+- Admin-only access via underlying table RLS.
+
 **`spouse_link_requests`** — `id, requester_id → profiles, claimed_primary_id → profiles, status (pending|approved|denied), admin_note, created_at, resolved_at`
 - ADR-016. UNIQUE on `requester_id` (one active request per guest at a time). RLS: requester reads/inserts/deletes own pending; admin full access.
 
@@ -376,7 +389,7 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
 | Route | Method | Notes |
 |---|---|
 | `/api/profile` | GET, PATCH | |
-| `/api/profile/verify-abo` | POST | LOS-validated at submit: existence check + sponsor match + duplicate ABO check. Returns `abo_has_primary` error_code if the existing holder is a primary (ADR-016). |
+| `/api/profile/verify-abo` | POST | LOS-validated at submit: existence check + sponsor match + duplicate ABO check. Returns `abo_has_primary` error_code if the existing holder is a primary (ADR-016). Guard added #350: secondary accounts (`primary_profile_id IS NOT NULL`) receive 400 `secondary_cannot_verify`. |
 | `/api/profile/spouse-link` | GET, POST, DELETE | ADR-016: GET own request; POST submit (guest only, guards: requester is guest with no primary_profile_id, claimed_primary is member with abo_number and no existing secondary); DELETE cancel own pending |
 | `/api/profile/vitals` | GET | |
 | `/api/profile/event-roles` | GET | |
@@ -454,7 +467,7 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
 | `get_core_ancestors(uuid)` | Core-role UUIDs above a node |
 | `rebuild_tree_paths` | Cascade ABO label rename to descendants |
 | `upsert_tree_node(p_profile_id, p_abo_number, p_sponsor_abo_number?)` | Insert/update tree node; walks `los_members` sponsor chain (max 20 hops) if direct sponsor has no portal profile |
-| `approve_member_verification(p_request_id, p_admin_note?)` | **DEPRECATED** — retained as fallback only. Logic now lives in Inngest approve-verification Step 1. |
+| `approve_member_verification(p_request_id, p_admin_note?)` | **DEPRECATED** — retained as fallback only. Logic now lives in Inngest approve-verification Step 1. Guard added #350: raises `P0002` if `profile.primary_profile_id IS NOT NULL`. |
 | `patch_member_role(p_profile_id, p_new_role, p_changed_by, p_note?)` | Role update with audit trail — returns updated profile |
 | `get_trip_team_attendees(p_trip_id, p_viewer_profile)` | Returns Core/admin attendees for a trip |
 | `import_los_members(p_rows, p_imported_by?, p_expected_row_count?)` | Transactional LOS import: concurrency check → snapshot → upsert → server-side delete → rebuild_tree_paths → insert los_imports record. Returns `{ inserted, removed, import_id, errors }`. |

@@ -157,6 +157,14 @@ export async function POST(
     .eq('id', requester.id)
   if (profileErr) return Response.json({ error: profileErr.message }, { status: 500 })
 
+  // Defensive cleanup: remove any orphaned tree_nodes row for the secondary.
+  // A secondary must never have a standalone tree position (ADR-016 invariant).
+  // This is idempotent — safe to call even if no row exists.
+  await supabase
+    .from('tree_nodes')
+    .delete()
+    .eq('profile_id', requester.id)
+
   const { error: requestErr } = await supabase
     .from('spouse_link_requests')
     .update({ status: 'approved', admin_note: null, resolved_at: new Date().toISOString() })

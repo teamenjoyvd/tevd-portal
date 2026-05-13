@@ -41,11 +41,23 @@ export async function POST(req: Request) {
   const supabase = createServiceClient()
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, role, abo_number, first_name, contact_email')
+    .select('id, role, abo_number, primary_profile_id, first_name, contact_email')
     .eq('clerk_id', userId)
     .single()
 
   if (!profile) return Response.json({ error: 'Profile not found' }, { status: 404 })
+
+  // Guard: secondary accounts cannot submit ABO verification
+  if (profile.primary_profile_id) {
+    return Response.json(
+      {
+        error: 'Secondary accounts cannot submit ABO verification',
+        error_code: 'secondary_cannot_verify',
+      },
+      { status: 400 }
+    )
+  }
+
   if (profile.abo_number) return Response.json({ error: 'ABO already verified' }, { status: 409 })
   if (profile.role !== 'guest') return Response.json({ error: 'Already verified' }, { status: 409 })
 
