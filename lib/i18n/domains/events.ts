@@ -13,6 +13,10 @@ export const events = {
   'event.slot.filled':      { en: 'Filled',            bg: 'Заета'                           },
   'event.slot.yourRequest': { en: 'Your request',      bg: 'Вашата заявка'                   },
 
+  // profile name gate
+  'event.nameRequiredToRequest': { en: 'To request a role, please complete your name in your profile.', bg: 'За да заявите роля, моля попълнете името си в профила.' },
+  'event.goToProfile':           { en: 'Go to profile',                                                  bg: 'Към профила'                                                                  },
+
   // roles page
   'event.rolesPageTitle':   { en: 'Roles',             bg: 'Роли'                            },
   'event.rolesEmpty':       { en: 'No upcoming events with roles configured.', bg: 'Няма предстоящи събития с конфигурирани роли.' },

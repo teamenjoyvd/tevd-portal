@@ -31,11 +31,12 @@ export default async function CalendarPage({
   let resolvedRole: 'admin' | 'core' | 'member' | 'guest' = 'guest'
   let userRole: 'admin' | 'core' | 'member' | 'guest' | null = null
   let userProfileId: string | null = null
+  let profileNameMissing = false
 
   if (userId) {
     const { data: profile } = await supabase
       .from('profiles')
-      .select('id, role')
+      .select('id, role, first_name, last_name, display_names')
       .eq('clerk_id', userId)
       .single()
 
@@ -43,6 +44,16 @@ export default async function CalendarPage({
       resolvedRole  = profile.role
       userRole      = profile.role
       userProfileId = profile.id
+
+      // display_names is JSONB — cast to known shape.
+      // BG name fields are stored as bg_first / bg_last (see PersonalDetailsContent).
+      const dn = profile.display_names as Record<string, string> | null
+      const hasName =
+        !!profile.first_name ||
+        !!profile.last_name ||
+        !!(dn?.bg_first) ||
+        !!(dn?.bg_last)
+      profileNameMissing = !hasName
     }
     // no profile found: resolvedRole stays 'guest', userRole stays null
   }
@@ -63,6 +74,7 @@ export default async function CalendarPage({
       userRole={userRole}
       userProfileId={userProfileId}
       isAuthenticated={!!userId}
+      profileNameMissing={profileNameMissing}
     />
   )
 }

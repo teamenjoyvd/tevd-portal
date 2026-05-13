@@ -4,8 +4,9 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { formatTime, formatLongDate } from '@/lib/format'
-import { X, Check, Users, Info } from 'lucide-react'
+import { X, Check, Users, Info, Lock } from 'lucide-react'
 import { apiClient } from '@/lib/apiClient'
+import Link from 'next/link'
 import {
   Popover,
   PopoverContent,
@@ -63,6 +64,7 @@ type Props = {
   eventId: string
   onClose: () => void
   userRole: 'admin' | 'core' | 'member' | 'guest' | null
+  profileNameMissing?: boolean
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────────
@@ -196,7 +198,7 @@ function AdminRegistrationsTab({ eventId }: { eventId: string }) {
 // ── Main component ───────────────────────────────────────────────────────────────────────
 
 export default function EventPopup({
-  eventId, onClose, userRole,
+  eventId, onClose, userRole, profileNameMissing = false,
 }: Props) {
   const qc = useQueryClient()
   const { t } = useLanguage()
@@ -264,6 +266,10 @@ export default function EventPopup({
   const roleSlots      = event?.role_slots ?? []
   const isMutating     = requestMutation.isPending || cancelMutation.isPending
 
+  // T1: show name gate callout when name is missing AND caller has no existing request
+  const hasAnyRequest     = roleSlots.some(s => s.caller_request !== null)
+  const showNameGate      = !isAdmin && canRequestRole && profileNameMissing && !hasAnyRequest
+
   return (
     <>
       {/* Header */}
@@ -324,8 +330,10 @@ export default function EventPopup({
         {/* Roles section */}
         {!isGuest && !isLoading && event && (adminTab === 'roles' || !isAdmin) && (
           <div className="px-4 py-3 border-b border-black/5">
-            <p className="text-[10px] font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
+            {/* ROLES eyebrow — lock icon injected when closed */}
+            <p className="text-[10px] font-semibold tracking-widest uppercase mb-3 flex items-center gap-1" style={{ color: 'var(--text-secondary)' }}>
               {t('event.roles')}
+              {isClosed && <Lock size={10} />}
             </p>
 
             {/* Admin: slot overview — status + assigned occupant if filled + (i) if contested */}
@@ -387,71 +395,72 @@ export default function EventPopup({
               ) : null
             })()}
 
-            {/* Non-admin: slot buttons — hidden when closed */}
-            {!isAdmin && canRequestRole && (
-              isClosed ? (
-                !roleSlots.some(s => s.caller_request) && (
-                  <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                    {t('cal.roleRequestsClosed')}
-                  </p>
-                )
-              ) : (
-                <div className="flex gap-2 flex-wrap">
-                  {roleSlots.map(slot => {
-                    const myReq     = slot.caller_request
-                    const hasAnyReq = roleSlots.some(s => s.caller_request !== null)
-                    const isActive  = myReq !== null
-                    const isFilled  = slot.status === 'filled'
-                    const activeStyle = isActive ? REQUEST_STATUS_STYLES[myReq!.status] : null
-                    const slotStyle   = isFilled ? SLOT_STATUS_STYLES.filled : SLOT_STATUS_STYLES[slot.status]
+            {/* T1: profile name gate callout */}
+            {showNameGate && (
+              <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                {t('event.nameRequiredToRequest')}{' '}
+                <Link href="/profile" style={{ color: 'var(--brand-teal)' }}>
+                  {t('event.goToProfile')}
+                </Link>
+              </p>
+            )}
 
-                    const isCancel        = isActive && myReq!.status === 'pending'
-                    const disabledCancel  = isMutating
-                    const disabledRequest = isMutating || isFilled || hasAnyReq
+            {/* T5: slot buttons — always rendered for non-admin members, disabled when closed.
+                T1: hidden when name gate is active (no existing request) */}
+            {!isAdmin && canRequestRole && !showNameGate && (
+              <div className="flex gap-2 flex-wrap">
+                {roleSlots.map(slot => {
+                  const myReq     = slot.caller_request
+                  const isActive  = myReq !== null
+                  const isFilled  = slot.status === 'filled'
+                  const activeStyle = isActive ? REQUEST_STATUS_STYLES[myReq!.status] : null
+                  const slotStyle   = isFilled ? SLOT_STATUS_STYLES.filled : SLOT_STATUS_STYLES[slot.status]
 
-                    const occupantName = isFilled && slot.assigned_profile
-                      ? [slot.assigned_profile.first_name, slot.assigned_profile.last_name].filter(Boolean).join(' ') || null
-                      : null
+                  const isCancel        = isActive && myReq!.status === 'pending'
+                  const disabledCancel  = isMutating || isClosed
+                  const disabledRequest = isMutating || isFilled || hasAnyRequest || isClosed
 
-                    return (
-                      // Wrapper div — button + (i) are siblings, never nested
-                      <div key={slot.role_label} className="flex-1 flex flex-col gap-0.5 min-w-0">
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => {
-                              if (isCancel) cancelMutation.mutate(myReq!.id)
-                              else if (!hasAnyReq && !isFilled) requestMutation.mutate(slot.role_label)
-                            }}
-                            disabled={isCancel ? disabledCancel : disabledRequest}
-                            className="flex-1 flex items-center justify-center gap-1 py-2 rounded-xl text-[11px] font-bold tracking-wider uppercase transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-95 active:scale-[0.97]"
-                            style={{
-                              backgroundColor: activeStyle ? activeStyle.bg : slotStyle.bg,
-                              color: activeStyle ? activeStyle.color : slotStyle.color,
-                              border: activeStyle ? `1px solid ${activeStyle.color}33` : '1px solid transparent',
-                            }}
-                          >
-                            {slot.role_label}
-                            {isActive && myReq!.status === 'pending' && <X size={10} className="opacity-60" />}
-                            {isActive && myReq!.status === 'approved' && <Check size={10} />}
-                            {isFilled && !isActive && (
-                              <Check size={10} className="opacity-40" />
-                            )}
-                          </button>
-                          {slot.status === 'contested' && slot.pending_profiles.length > 0 && (
-                            <PendingPopover profiles={slot.pending_profiles} color={slotStyle.color} />
-                          )}
-                        </div>
-                        {/* Approved occupant name — shown below filled slot */}
-                        {occupantName && (
-                          <p className="text-[10px] text-center" style={{ color: 'var(--text-secondary)' }}>
-                            {occupantName}
-                          </p>
+                  const occupantName = isFilled && slot.assigned_profile
+                    ? [slot.assigned_profile.first_name, slot.assigned_profile.last_name].filter(Boolean).join(' ') || null
+                    : null
+
+                  return (
+                    <div key={slot.role_label} className="flex-1 flex flex-col gap-0.5 min-w-0">
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => {
+                            if (isClosed) return
+                            if (isCancel) cancelMutation.mutate(myReq!.id)
+                            else if (!hasAnyRequest && !isFilled) requestMutation.mutate(slot.role_label)
+                          }}
+                          disabled={isCancel ? disabledCancel : disabledRequest}
+                          className="flex-1 flex items-center justify-center gap-1 py-2 rounded-xl text-[11px] font-bold tracking-wider uppercase transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-95 active:scale-[0.97]"
+                          style={{
+                            backgroundColor: activeStyle ? activeStyle.bg : slotStyle.bg,
+                            color: activeStyle ? activeStyle.color : slotStyle.color,
+                            border: activeStyle ? `1px solid ${activeStyle.color}33` : '1px solid transparent',
+                          }}
+                        >
+                          {slot.role_label}
+                          {isActive && myReq!.status === 'pending' && <X size={10} className="opacity-60" />}
+                          {isActive && myReq!.status === 'approved' && <Check size={10} />}
+                          {isFilled && !isActive && <Check size={10} className="opacity-40" />}
+                          {isClosed && !isActive && <Lock size={10} className="opacity-40" />}
+                        </button>
+                        {slot.status === 'contested' && slot.pending_profiles.length > 0 && (
+                          <PendingPopover profiles={slot.pending_profiles} color={slotStyle.color} />
                         )}
                       </div>
-                    )
-                  })}
-                </div>
-              )
+                      {/* Approved occupant name — shown below filled slot */}
+                      {occupantName && (
+                        <p className="text-[10px] text-center" style={{ color: 'var(--text-secondary)' }}>
+                          {occupantName}
+                        </p>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
             )}
           </div>
         )}
