@@ -166,6 +166,7 @@ export type Database = {
           is_all_day: boolean
           location: string | null
           meeting_url: string | null
+          reminders_enabled: boolean
           start_time: string
           title: string
           week_number: number
@@ -185,6 +186,7 @@ export type Database = {
           is_all_day?: boolean
           location?: string | null
           meeting_url?: string | null
+          reminders_enabled?: boolean
           start_time: string
           title: string
           week_number: number
@@ -204,6 +206,7 @@ export type Database = {
           is_all_day?: boolean
           location?: string | null
           meeting_url?: string | null
+          reminders_enabled?: boolean
           start_time?: string
           title?: string
           week_number?: number
@@ -1072,6 +1075,59 @@ export type Database = {
           },
         ]
       }
+      profiles_audit: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          id: string
+          new_abo_number: string | null
+          new_primary_profile_id: string | null
+          new_role: string | null
+          new_upline_abo_number: string | null
+          old_abo_number: string | null
+          old_primary_profile_id: string | null
+          old_role: string | null
+          old_upline_abo_number: string | null
+          profile_id: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          new_abo_number?: string | null
+          new_primary_profile_id?: string | null
+          new_role?: string | null
+          new_upline_abo_number?: string | null
+          old_abo_number?: string | null
+          old_primary_profile_id?: string | null
+          old_role?: string | null
+          old_upline_abo_number?: string | null
+          profile_id: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          new_abo_number?: string | null
+          new_primary_profile_id?: string | null
+          new_role?: string | null
+          new_upline_abo_number?: string | null
+          old_abo_number?: string | null
+          old_primary_profile_id?: string | null
+          old_role?: string | null
+          old_upline_abo_number?: string | null
+          profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_audit_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       role_change_audit: {
         Row: {
           changed_at: string
@@ -1577,7 +1633,18 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      v_member_history: {
+        Row: {
+          changed_at: string | null
+          changed_by: string | null
+          event_type: string | null
+          field: string | null
+          new_value: string | null
+          old_value: string | null
+          profile_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       abo_to_ltree_label: { Args: { abo: string }; Returns: string }

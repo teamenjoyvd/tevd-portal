@@ -71,6 +71,18 @@ Deno.serve(async (req: Request) => {
   const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
   const now = new Date()
 
+  // Read global reminder toggles — one query before the main fetch
+  const { data: settingsRows } = await sb
+    .from('settings')
+    .select('key, value')
+    .in('key', ['reminders_1hr_enabled', 'reminders_15min_enabled'])
+
+  const settingsMap = Object.fromEntries((settingsRows ?? []).map((r: { key: string; value: unknown }) => [r.key, r.value]))
+  const globalToggles = {
+    '1_hour': settingsMap['reminders_1hr_enabled'] !== 'false',
+    '15_min': settingsMap['reminders_15min_enabled'] !== 'false',
+  }
+
   // Fetch unsent reminders due now (send_at <= now)
   const { data: reminders, error: fetchErr } = await sb
     .from('scheduled_reminders')
@@ -80,7 +92,7 @@ Deno.serve(async (req: Request) => {
       send_at,
       event_id,
       registration_id,
-      calendar_events!event_id ( title, start_time, meeting_url ),
+      calendar_events!event_id ( title, start_time, meeting_url, reminders_enabled ),
       guest_registrations!registration_id ( first_name, email )
     `)
     .is('sent_at', null)
@@ -98,11 +110,21 @@ Deno.serve(async (req: Request) => {
   const errors: string[] = []
 
   for (const reminder of reminders) {
-    const event = reminder.calendar_events as { title: string; start_time: string; meeting_url: string | null } | null
+    const event = reminder.calendar_events as { title: string; start_time: string; meeting_url: string | null; reminders_enabled: boolean } | null
     const reg = reminder.guest_registrations as { first_name: string; email: string } | null
 
     if (!event || !reg?.email) {
       errors.push(`Missing event/registration data for reminder ${reminder.id}`)
+      continue
+    }
+
+    // Global type toggle — skip silently, do not delete the row
+    if (!globalToggles[reminder.reminder_type as '1_hour' | '15_min']) {
+      continue
+    }
+
+    // Per-event toggle — skip silently, do not delete the row
+    if (event.reminders_enabled === false) {
       continue
     }
 
