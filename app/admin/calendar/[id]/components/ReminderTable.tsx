@@ -1,8 +1,13 @@
 'use client'
 
-import { Tables } from '@/types/supabase'
+import { Database } from '@/types/supabase'
 
-type Reminder = Tables<'scheduled_reminders'> & {
+type Reminder = {
+  id: string
+  reminder_type: Database['public']['Enums']['reminder_type']
+  send_at: string
+  sent_at: string | null
+  registration_id: string
   guest_registrations: { name: string; email: string } | null
 }
 
