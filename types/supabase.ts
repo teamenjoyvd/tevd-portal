@@ -166,6 +166,7 @@ export type Database = {
           is_all_day: boolean
           location: string | null
           meeting_url: string | null
+          reminders_enabled: boolean
           start_time: string
           title: string
           week_number: number
@@ -185,6 +186,7 @@ export type Database = {
           is_all_day?: boolean
           location?: string | null
           meeting_url?: string | null
+          reminders_enabled?: boolean
           start_time: string
           title: string
           week_number: number
@@ -204,6 +206,7 @@ export type Database = {
           is_all_day?: boolean
           location?: string | null
           meeting_url?: string | null
+          reminders_enabled?: boolean
           start_time?: string
           title?: string
           week_number?: number
