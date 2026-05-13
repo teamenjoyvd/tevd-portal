@@ -45,14 +45,14 @@ export default async function CalendarPage({
       userRole      = profile.role
       userProfileId = profile.id
 
-      // A name is considered missing when none of the four name fields yield a
-      // non-empty string. display_names is JSONB so we cast through unknown.
+      // display_names is JSONB — cast to known shape.
+      // BG name fields are stored as bg_first / bg_last (see PersonalDetailsContent).
       const dn = profile.display_names as Record<string, string> | null
       const hasName =
         !!profile.first_name ||
         !!profile.last_name ||
-        !!(dn?.en) ||
-        !!(dn?.bg)
+        !!(dn?.bg_first) ||
+        !!(dn?.bg_last)
       profileNameMissing = !hasName
     }
     // no profile found: resolvedRole stays 'guest', userRole stays null
