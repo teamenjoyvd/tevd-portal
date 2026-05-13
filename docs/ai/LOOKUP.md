@@ -1,5 +1,5 @@
 # LOOKUP.md — teamenjoyVD Portal Reference Tables
-> Last updated: 2026-05-09
+> Last updated: 2026-05-13
 > **Read on demand in GATHER only. Never read at SSU or at GATHER start.**
 > Pull only the sections the ticket needs. See section map in REF.md header.
 
@@ -27,6 +27,12 @@
   /admin
     /approval-hub/page.tsx
     /calendar/page.tsx
+    /calendar/[id]/page.tsx      # Per-event scheduled reminders — RSC
+    /calendar/[id]/components/
+      ReminderTable.tsx          # 'use client' — reminder rows, dual layout
+    /event-reminders/page.tsx    # Cross-event reminder audit — RSC, limit 200, desc send_at
+    /event-reminders/components/
+      RemindersTable.tsx         # 'use client' — cross-event rows with event links, dual layout
     /content/page.tsx
     /data-center/page.tsx
     /notifications/page.tsx
@@ -141,6 +147,7 @@
 /docs/architecture/DECISIONS.md
 /supabase/migrations/
 /supabase/functions/sync-google-calendar/index.ts
+/supabase/functions/send-event-reminders/index.ts  # Edge function — pg_cron every 5min, Resend 1hr+15min guest reminders
 /types/supabase.ts
 ```
 
@@ -221,6 +228,15 @@
 **`guest_registrations`**
 `id, event_id, name, email, token, status, expires_at, created_at`
 - `status`: `pending | confirmed`.
+
+**`scheduled_reminders`**
+`id, registration_id → guest_registrations, event_id → calendar_events, reminder_type (enum: '1_hour'|'15_min'), send_at, sent_at`
+- UNIQUE on `(registration_id, reminder_type)` — one row per guest per reminder type.
+- Populated automatically by trigger `trg_schedule_guest_reminders` on `guest_registrations` INSERT/UPDATE OF status when `status = 'confirmed'`.
+- RLS: service role only. No authenticated/anon policies.
+- Partial index on `send_at WHERE sent_at IS NULL` for cron query performance.
+- Processed every 5 min by pg_cron → `send-event-reminders` edge function.
+- Added in #346 (migrations `20260513_001`, `20260513_002`).
 
 **`notifications`**
 `id, profile_id, is_read, type (enum), title, message, action_url, created_at, deleted_at`
@@ -383,10 +399,16 @@
 |---|---|
 | `lib/actions/guest-registration.ts` | Server action — inserts guest token, sends magic link via `sendTransactionalEmail`. Returns `{ success: false, error }` if email fails. |
 
+### Edge Functions
+| Function | Trigger | Purpose |
+|---|---|---|
+| `sync-google-calendar` | Manual via `/api/admin/calendar-sync` | Syncs GCal events to `calendar_events` |
+| `send-event-reminders` | pg_cron every 5 min | Fetches unsent `scheduled_reminders` with `send_at <= now`, sends via Resend, marks `sent_at`, logs to `email_log` |
+
 ### Supabase RPCs
 | RPC | Purpose |
 |---|---|
-| `pin_social_post(p_id uuid)` | Atomic pin swap — unpins current, pins new |
+| `pin_social_post(p_id uuid)` | Atomic pin swap |
 | `get_core_ancestors(uuid)` | Returns Core-role profile UUIDs above a given node |
 | `rebuild_tree_paths` | Cascades ABO label rename down all descendants |
 | `upsert_tree_node(p_profile_id, p_abo_number, p_sponsor_abo_number?)` | Insert/update tree node; walks `los_members` sponsor chain (max 20 hops, cycle guard) if direct sponsor has no portal profile |
@@ -470,15 +492,13 @@ Period selector order: AGENDA → DAY → WEEK → MONTH
 
 - Dates: `DD.MM.YYYY`. Time: 24h. Currency: `1.234,56 €`. Week starts Monday.
 - Always `lib/format.ts` — never inline `toLocaleDateString` or Intl.
-- `TranslationKey` is strict union. Add to `translations.ts` before using `t()` or build fails.
+- `TranslationKey` is strict union. Add to `translations.ts` before using `t()` or build breaks.
 - Supported locales: `en`, `bg`. Nav labels use `labels: { en, bg }` in `lib/nav.ts` — NOT `t()`.
 
 ### Access Control
 Role hierarchy: `admin > core > member > guest`
 
 Public (no auth): `/`, `/about`, `/calendar`, `/trips`. Auth-required: all other routes. Exception: `/api/inngest` is public by design — Inngest signing key is the auth gate.
-
-Every `profiles.role` update MUST also call `clerk.users.updateUserMetadata`. See FLOWS.md §1.
 
 ---
 
