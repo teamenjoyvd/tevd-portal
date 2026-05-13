@@ -52,23 +52,52 @@ BEGIN
     RETURN NEW;
   END IF;
 
-  -- Insert 1-hour reminder
+  -- Insert both reminders in a single statement
   INSERT INTO scheduled_reminders (registration_id, event_id, reminder_type, send_at)
-  VALUES (NEW.id, NEW.event_id, '1_hour', v_start_time - INTERVAL '1 hour')
-  ON CONFLICT (registration_id, reminder_type) DO NOTHING;
-
-  -- Insert 15-minute reminder
-  INSERT INTO scheduled_reminders (registration_id, event_id, reminder_type, send_at)
-  VALUES (NEW.id, NEW.event_id, '15_min', v_start_time - INTERVAL '15 minutes')
+  VALUES
+    (NEW.id, NEW.event_id, '1_hour', v_start_time - INTERVAL '1 hour'),
+    (NEW.id, NEW.event_id, '15_min', v_start_time - INTERVAL '15 minutes')
   ON CONFLICT (registration_id, reminder_type) DO NOTHING;
 
   RETURN NEW;
 END;
 $$;
 
--- 5. Attach trigger
+-- 5. Attach trigger for new/updated registrations
 CREATE TRIGGER trg_schedule_guest_reminders
   AFTER INSERT OR UPDATE OF status
   ON guest_registrations
   FOR EACH ROW
   EXECUTE FUNCTION fn_schedule_guest_reminders();
+
+-- 6. Trigger function — reschedules pending reminders when event start_time changes
+CREATE OR REPLACE FUNCTION fn_reschedule_guest_reminders()
+  RETURNS TRIGGER
+  LANGUAGE plpgsql
+  SECURITY DEFINER SET search_path = public
+AS $$
+BEGIN
+  -- Only act on start_time changes
+  IF NEW.start_time = OLD.start_time THEN
+    RETURN NEW;
+  END IF;
+
+  -- Update pending reminders for the event
+  UPDATE scheduled_reminders
+  SET send_at =
+    CASE
+      WHEN reminder_type = '1_hour' THEN NEW.start_time - INTERVAL '1 hour'
+      WHEN reminder_type = '15_min' THEN NEW.start_time - INTERVAL '15 minutes'
+    END
+  WHERE event_id = NEW.id AND sent_at IS NULL;
+
+  RETURN NEW;
+END;
+$$;
+
+-- 7. Attach trigger to calendar_events for rescheduling
+CREATE TRIGGER trg_reschedule_guest_reminders
+  AFTER UPDATE OF start_time
+  ON calendar_events
+  FOR EACH ROW
+  EXECUTE FUNCTION fn_reschedule_guest_reminders();
