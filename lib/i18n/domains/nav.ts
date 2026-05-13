@@ -8,6 +8,7 @@ export const nav = {
   'nav.admin':               { en: 'Admin',                           bg: 'Админ'              },
   'nav.network':             { en: 'My Network',                      bg: 'Моята мрежа'        },
   'nav.howtos':              { en: 'Guides',                          bg: 'Ръководства'        },
+  'nav.roles':               { en: 'Roles',                           bg: 'Роли'               },
   'nav.signIn':              { en: 'Sign in',                         bg: 'Вход'               },
   'footer.allRightsReserved':{ en: 'All rights reserved',             bg: 'Всички права запазени' },
   'footer.builtBy':          { en: 'Built with ♥ by Vera & Deniz in Sofia.', bg: 'Създадено с ♥ от Вера & Дениз в София.' },
