@@ -1,9 +1,14 @@
 'use client'
 
 import Link from 'next/link'
-import { Tables } from '@/types/supabase'
+import { Database } from '@/types/supabase'
 
-type ReminderRow = Tables<'scheduled_reminders'> & {
+type ReminderRow = {
+  id: string
+  event_id: string
+  reminder_type: Database['public']['Enums']['reminder_type']
+  send_at: string
+  sent_at: string | null
   calendar_events: { title: string; start_time: string } | null
   guest_registrations: { name: string; email: string } | null
 }
