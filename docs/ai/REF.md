@@ -26,7 +26,7 @@
 PUBLIC_NAV        // Home, About, Calendar, Trips
 MEMBER_NAV        // Guides, My Network (/los), Profile (/profile)
 FOOTER_MEMBER_NAV // MEMBER_NAV minus /los
-ADMIN_NAV         // Approval Hub, Operations, Calendar, Content, Notifications, Members
+ADMIN_NAV         // Approval Hub, Operations, Calendar, Event Reminders, Content, Notifications, Members
 ```
 Nav labels use `labels: { en, bg }` inline — NOT `t()`.
 
@@ -87,6 +87,8 @@ calMonth(iso)        // MAR
 |---|---|
 | `/admin/approval-hub` | ABO + manual verification + Path C direct-verify. Staleness banner when LOS > 7 days old. |
 | `/admin/calendar` | Events ascending by `start_time`. Create/edit via Drawer. |
+| `/admin/calendar/[id]` | Per-event scheduled reminders view — RSC, `ReminderTable` component. |
+| `/admin/event-reminders` | Cross-event reminder audit — RSC, `RemindersTable` component. Limit 200 rows, descending `send_at`. |
 | `/admin/content` | Tabs: Announcements \| Quick Links \| Guides \| Social Posts \| Bento. Edit via Drawer. |
 | `/admin/data-center` | LOS import (multi-file, 3-phase) + reconciliation panel |
 | `/admin/notifications` | All-time audit log incl. soft-deleted, paginated 50/page |
@@ -119,6 +121,12 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
   /admin
     /approval-hub/page.tsx
     /calendar/page.tsx
+    /calendar/[id]/page.tsx        # Per-event reminders — RSC
+    /calendar/[id]/components/
+      ReminderTable.tsx            # 'use client' — reminder rows, dual layout
+    /event-reminders/page.tsx      # Cross-event reminder audit — RSC
+    /event-reminders/components/
+      RemindersTable.tsx           # 'use client' — cross-event rows, dual layout
     /content/page.tsx
     /data-center/page.tsx
     /notifications/page.tsx
@@ -232,6 +240,7 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
 /docs/architecture/DECISIONS.md
 /supabase/migrations/
 /supabase/functions/sync-google-calendar/index.ts  # Edge function — GCal sync
+/supabase/functions/send-event-reminders/index.ts  # Edge function — pg_cron every 5min, sends 1hr+15min guest reminder emails via Resend
 /types/supabase.ts
 ```
 
@@ -283,6 +292,13 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
 
 **`guest_registrations`** — `id, event_id, name, email, token, status, expires_at, created_at`
 - `status`: `pending | confirmed`.
+
+**`scheduled_reminders`** — `id, registration_id → guest_registrations, event_id → calendar_events, reminder_type (enum: '1_hour'|'15_min'), send_at, sent_at`
+- UNIQUE on `(registration_id, reminder_type)` — one row per guest per type.
+- Populated by trigger `trg_schedule_guest_reminders` on `guest_registrations` INSERT/UPDATE OF status when `status = 'confirmed'`.
+- RLS: service role only. No authenticated/anon policies.
+- Partial index on `send_at WHERE sent_at IS NULL` for cron query performance.
+- Processed every 5 min by pg_cron job → `send-event-reminders` edge function.
 
 **`notifications`** — `id, profile_id, is_read, type, title, message, action_url, created_at, deleted_at`
 - Soft-delete: filter `deleted_at IS NULL`.
@@ -449,6 +465,12 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
 | `notify_trip_created` | Fan-out to all member/core/admin |
 | `notify_calendar_event_created` | Fan-out to descendants + Core ancestors (Core-created only) |
 | `run_los_digest` | pg_cron daily 06:00 UTC |
+
+### Edge Functions
+| Function | Trigger | Purpose |
+|---|---|---|
+| `sync-google-calendar` | Manual via `/api/admin/calendar-sync` | Syncs GCal events to `calendar_events` |
+| `send-event-reminders` | pg_cron every 5 min | Fetches unsent `scheduled_reminders` with `send_at <= now`, sends via Resend, marks `sent_at`, logs to `email_log` |
 
 ---
 

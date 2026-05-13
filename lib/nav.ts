@@ -51,11 +51,12 @@ export const FOOTER_MEMBER_NAV: NavItem[] = MEMBER_NAV.filter(
 )
 
 export const ADMIN_NAV: NavItem[] = [
-  { href: '/admin/approval-hub',  labels: { en: 'Approval Hub',  bg: 'Approval Hub'  } },
-  { href: '/admin/operations',    labels: { en: 'Operations',    bg: 'Operations'    } },
-  { href: '/admin/calendar',      labels: { en: 'Calendar',      bg: 'Calendar'      } },
-  { href: '/admin/content',       labels: { en: 'Content',       bg: 'Content'       } },
-  { href: '/admin/notifications', labels: { en: 'Notifications', bg: 'Notifications' } },
-  { href: '/admin/members',       labels: { en: 'Members',       bg: 'Members'       } },
-  { href: '/admin/settings',      labels: { en: 'Settings',      bg: 'Settings'      } },
+  { href: '/admin/approval-hub',    labels: { en: 'Approval Hub',    bg: 'Approval Hub'    } },
+  { href: '/admin/operations',      labels: { en: 'Operations',      bg: 'Operations'      } },
+  { href: '/admin/calendar',        labels: { en: 'Calendar',        bg: 'Calendar'        } },
+  { href: '/admin/event-reminders', labels: { en: 'Event Reminders', bg: 'Event Reminders' } },
+  { href: '/admin/content',         labels: { en: 'Content',         bg: 'Content'         } },
+  { href: '/admin/notifications',   labels: { en: 'Notifications',   bg: 'Notifications'   } },
+  { href: '/admin/members',         labels: { en: 'Members',         bg: 'Members'         } },
+  { href: '/admin/settings',        labels: { en: 'Settings',        bg: 'Settings'        } },
 ]

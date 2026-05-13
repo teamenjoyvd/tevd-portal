@@ -192,4 +192,19 @@ export const adminContent = {
   'admin.calendar.placeholder.description': { en: 'Description (optional)', bg: 'Описание (незадължително)' },
   'admin.calendar.placeholder.meetingUrl': { en: 'https://zoom.us/j/…', bg: 'https://zoom.us/j/…' },
   'admin.calendar.placeholder.roleTag': { en: 'Add role…', bg: 'Добави роля…' },
+
+  // -- Event Reminders page --
+  'admin.eventReminders.pageTitle': { en: 'Event Reminders', bg: 'Напомняния за събития' },
+  'admin.eventReminders.pageDesc': { en: 'All scheduled guest reminder emails across every event.', bg: 'Всички планирани напомнящи имейли за гости за всички събития.' },
+  'admin.eventReminders.col.event': { en: 'Event', bg: 'Събитие' },
+  'admin.eventReminders.col.guest': { en: 'Guest', bg: 'Гост' },
+  'admin.eventReminders.col.email': { en: 'Email', bg: 'Имейл' },
+  'admin.eventReminders.col.type': { en: 'Type', bg: 'Тип' },
+  'admin.eventReminders.col.sendAt': { en: 'Send at', bg: 'Изпращане в' },
+  'admin.eventReminders.col.status': { en: 'Status', bg: 'Статус' },
+  'admin.eventReminders.status.sent': { en: 'Sent', bg: 'Изпратено' },
+  'admin.eventReminders.status.pending': { en: 'Pending', bg: 'Чакащо' },
+  'admin.eventReminders.type.1_hour': { en: '1 hr', bg: '1 час' },
+  'admin.eventReminders.type.15_min': { en: '15 min', bg: '15 мин' },
+  'admin.eventReminders.empty': { en: 'No reminders found.', bg: 'Няма намерени напомняния.' },
 } as const
