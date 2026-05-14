@@ -185,6 +185,10 @@ export async function PATCH(
     Object.entries(body).filter(([k]) => allowed.includes(k))
   )
 
+  if (Object.keys(patch).length === 0) {
+    return Response.json({ error: 'No patchable fields provided' }, { status: 400 })
+  }
+
   if (patch.role) {
     // ADR-016 GCR C3: secondary profiles have no tree_nodes row and must not hold
     // tree-bearing roles (core, admin). member is the ceiling until the partnership
