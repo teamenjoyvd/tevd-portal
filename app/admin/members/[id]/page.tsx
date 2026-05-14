@@ -217,20 +217,23 @@ export default function MemberDetailPage() {
   })
 
   const updateMutation = useMutation({
-    mutationFn: (patch: Record<string, unknown>) =>
-      fetch(`/api/admin/members/${id}`, {
+    mutationFn: async (patch: Record<string, unknown>) => {
+      const r = await fetch(`/api/admin/members/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(patch),
-      }).then(async r => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`)
-        return r.json()
-      }),
-    onSuccess: async () => {
+      })
+      if (!r.ok) throw new Error(`HTTP ${r.status}`)
+      const data = await r.json()
+      // Await invalidations inside mutationFn so isPending remains true
+      // until the cache is fresh — prevents Save button re-enabling prematurely.
       await Promise.all([
         qc.invalidateQueries({ queryKey: ['admin-member', id] }),
         qc.invalidateQueries({ queryKey: ['admin-members'] }),
       ])
+      return data
+    },
+    onSuccess: () => {
       setEditRole(false)
     },
   })
