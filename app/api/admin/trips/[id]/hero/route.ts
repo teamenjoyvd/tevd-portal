@@ -1,6 +1,17 @@
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
 
+// Helper: remove all objects under trips/{id}/ folder in storage
+async function purgeStorageFolder(supabase: ReturnType<typeof createServiceClient>, folder: string) {
+  const { data: objects } = await supabase.storage
+    .from('trip-hero-images')
+    .list(folder)
+  if (objects && objects.length > 0) {
+    const paths = objects.map(o => `${folder}/${o.name}`)
+    await supabase.storage.from('trip-hero-images').remove(paths)
+  }
+}
+
 export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -23,6 +34,9 @@ export async function POST(
   const formData = await req.formData()
   const file = formData.get('file') as File | null
   if (!file) return Response.json({ error: 'No file provided' }, { status: 400 })
+
+  // Remove any existing hero images for this trip before uploading the new one
+  await purgeStorageFolder(supabase, id)
 
   const ext = file.name.split('.').pop() ?? 'jpg'
   const filename = `${id}/${Date.now()}.${ext}`
@@ -72,22 +86,8 @@ export async function DELETE(
     return Response.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  // Fetch current image_url to derive storage path
-  const { data: trip } = await supabase
-    .from('trips')
-    .select('image_url')
-    .eq('id', id)
-    .single()
-
-  if (trip?.image_url) {
-    // Extract path after bucket name in the public URL
-    const url = new URL(trip.image_url)
-    const pathParts = url.pathname.split('/trip-hero-images/')
-    const storagePath = pathParts[1]
-    if (storagePath) {
-      await supabase.storage.from('trip-hero-images').remove([storagePath])
-    }
-  }
+  // Remove all storage objects under this trip's folder — deterministic, no URL parsing
+  await purgeStorageFolder(supabase, id)
 
   const { data: updated, error } = await supabase
     .from('trips')

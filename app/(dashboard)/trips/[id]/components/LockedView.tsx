@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { formatDate } from '@/lib/format'
-import { BackButton, TripHero } from './shared'
+import { BackButton } from './shared'
 import type { Tables } from '@/types/supabase'
 import type { TripProfile } from '../page'
 
