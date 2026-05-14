@@ -8,12 +8,14 @@ import { Drawer } from '@/components/ui/drawer'
 import { PaymentForm } from '@/components/payment/PaymentForm'
 import { TripDocumentsTile } from './TripDocumentsTile'
 import { TripMessagesTile } from './TripMessagesTile'
-import { BackButton, TripHero } from './shared'
+import { BackButton, TripHeroImage, TripDetail } from './shared'
 import type { Tables } from '@/types/supabase'
 import type { TripProfile, TripPayment, TeamAttendee } from '../page'
 
 type Trip = Tables<'trips'>
 type Milestone = { label: string; amount: number; due_date: string }
+
+const FALLBACK_ACCENT = '#2d6a4f'
 
 function SubmitPaymentDrawer({
   tripId,
@@ -103,6 +105,7 @@ export function AttendeeView({
 }) {
   const { t } = useLanguage()
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [accentColor, setAccentColor] = useState(FALLBACK_ACCENT)
 
   const milestones: Milestone[] = Array.isArray(trip.milestones)
     ? (trip.milestones as Milestone[])
@@ -127,46 +130,16 @@ export function AttendeeView({
     return acc
   }, [])
 
-  const countdownBg = trip.image_url
-    ? {
-        backgroundImage: `linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.55)), url(${JSON.stringify(trip.image_url)})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-      }
-    : { backgroundColor: 'var(--brand-forest)' }
-
   return (
     <div className="py-8 pb-16">
       <div className="max-w-4xl mx-auto px-4 space-y-4">
         <BackButton />
 
-        {/* Countdown header */}
-        <div
-          className="rounded-2xl px-6 py-5 flex items-center justify-between gap-4"
-          style={{ ...countdownBg, color: 'rgba(255,255,255,0.92)' }}
-        >
-          <div>
-            <p className="text-xs font-semibold tracking-widest uppercase opacity-70 mb-1">
-              {trip.destination} · {trip.title}
-            </p>
-            <div className="flex items-baseline gap-2">
-              <span className="font-display text-5xl font-bold leading-none">{daysToGo}</span>
-              <span className="text-lg font-medium opacity-80">{t('trips.daysToGo')}</span>
-            </div>
-            <p className="text-sm opacity-60 mt-1">
-              {formatDate(trip.start_date)} – {formatDate(trip.end_date)}
-            </p>
-          </div>
-          {daysToGo === 0 && (
-            <span className="text-xs font-semibold px-3 py-1 rounded-full"
-              style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}>
-              {t('trips.todayBadge')}
-            </span>
-          )}
+        {/* Trip hero — image pane + detail pane as a unified card */}
+        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--border-default)' }}>
+          <TripHeroImage trip={trip} onAccentColor={setAccentColor} />
+          <TripDetail trip={trip} profile={profile} accentColor={accentColor} countdown={daysToGo} />
         </div>
-
-        {/* Trip identity card */}
-        <TripHero trip={trip} profile={profile} />
 
         {/* Payment ledger */}
         <div className="rounded-2xl overflow-hidden"
