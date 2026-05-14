@@ -27,6 +27,7 @@ const emptyTrip = (): TripFormState => ({
   location: null, accommodation_type: null,
   inclusions: [], trip_type: null,
   access_roles: [...ALL_ROLES],
+  image_url: null,
 })
 
 // ── Component ────────────────────────────────────────────
@@ -63,6 +64,7 @@ export function TripsTab({ trips, isLoading }: { trips: Trip[]; isLoading: boole
       inclusions: Array.isArray(trip.inclusions) ? trip.inclusions : [],
       trip_type: trip.trip_type,
       access_roles: Array.isArray(trip.access_roles) ? trip.access_roles : [...ALL_ROLES],
+      image_url: trip.image_url,
     })
     setMilestoneInput({ label: '', amount: '', due_date: '' })
     setError(null)
@@ -76,7 +78,11 @@ export function TripsTab({ trips, isLoading }: { trips: Trip[]; isLoading: boole
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       }).then(async r => { if (!r.ok) throw new Error((await r.json()).error); return r.json() }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['trips'] }); setDrawerOpen(false); setError(null) },
+    onSuccess: (newTrip: Trip) => {
+      qc.invalidateQueries({ queryKey: ['trips'] })
+      setError(null)
+      openEdit(newTrip)
+    },
     onError: (e: Error) => setError(e.message),
   })
 

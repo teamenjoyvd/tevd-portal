@@ -9,15 +9,17 @@ export default function TripCardDesktop(props: CardProps) {
       className="rounded-2xl overflow-hidden flex flex-col h-full"
       style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)', minHeight: 300 }}
     >
-      <TripImage src={trip.image_url} height={180} />
+      <TripImage src={trip.image_url} height={220} overlay>
+        <div className="px-5 pb-4">
+          <TripBadges destination={trip.destination} tripType={trip.trip_type} />
+          <h3 className="font-display text-2xl font-semibold leading-snug text-white">
+            {trip.title}
+          </h3>
+        </div>
+      </TripImage>
       <div className="px-6 pt-5 pb-6 flex flex-col gap-3 flex-1">
         <div className="flex items-start justify-between gap-4">
-          <div className="flex-1 min-w-0">
-            <TripBadges destination={trip.destination} tripType={trip.trip_type} />
-            <h3 className="font-display text-2xl font-semibold leading-snug" style={{ color: 'var(--text-primary)' }}>
-              {trip.title}
-            </h3>
-          </div>
+          <DateBadge trip={trip} iconSize={14} textClassName="text-sm" />
           <PriceDisplay
             totalCost={trip.total_cost}
             label={props.t('trips.total')}
@@ -25,7 +27,6 @@ export default function TripCardDesktop(props: CardProps) {
             priceClassName="text-xl"
           />
         </div>
-        <DateBadge trip={trip} iconSize={14} textClassName="text-sm" />
         {trip.description && (
           <p className="text-sm leading-relaxed" style={{
             color: 'var(--text-secondary)',
