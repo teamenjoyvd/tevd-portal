@@ -149,13 +149,19 @@ export function TripHero({
         )}
 
         {trip.inclusions.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            {trip.inclusions.map((inc, i) => (
-              <span key={i} className="text-xs px-2 py-0.5 rounded-full"
-                style={{ backgroundColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
-                {inc}
-              </span>
-            ))}
+          <div>
+            <p className="text-xs font-semibold tracking-widest uppercase mb-2"
+              style={{ color: 'var(--text-secondary)' }}>
+              {t('trips.inclusions')}
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {trip.inclusions.map((inc, i) => (
+                <span key={i} className="text-xs px-2 py-0.5 rounded-full"
+                  style={{ backgroundColor: 'rgba(129,178,154,0.15)', color: 'var(--text-primary)' }}>
+                  {inc}
+                </span>
+              ))}
+            </div>
           </div>
         )}
       </div>
