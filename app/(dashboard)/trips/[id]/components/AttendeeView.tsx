@@ -302,9 +302,9 @@ export function AttendeeView({
         <TripDocumentsTile tripId={trip.id} />
       </div>
 
-      {/* Sticky footer CTA — slimmed */}
+      {/* Sticky footer CTA — slimmed, mobile only */}
       <div
-        className="fixed bottom-0 left-0 right-0 px-4 pb-4 pt-2"
+        className="fixed bottom-0 left-0 right-0 px-4 pb-4 pt-2 md:hidden"
         style={{ backgroundColor: 'var(--bg-base)', borderTop: '1px solid var(--border-default)' }}
       >
         <SubmitPaymentCTA onOpen={() => setDrawerOpen(true)} />
