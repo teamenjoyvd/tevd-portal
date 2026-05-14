@@ -44,6 +44,7 @@ export function TripHeroImage({
   muted?: boolean
   onAccentColor: (hex: string) => void
 }) {
+  const { t } = useLanguage()
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   // Fallback when no image — must be in useEffect to avoid render-phase state update
@@ -151,7 +152,7 @@ export function TripHeroImage({
               </span>
             )}
             <span className="text-xs" style={{ color: 'rgba(255,255,255,0.65)' }}>
-              {days} day{days !== 1 ? 's' : ''}
+              {days} {t(days !== 1 ? 'trips.dayPlural' : 'trips.daySingular')}
             </span>
           </div>
           <h1
