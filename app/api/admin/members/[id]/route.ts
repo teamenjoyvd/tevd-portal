@@ -117,38 +117,22 @@ export async function PATCH(
 
   // --- Action: dissolve_partnership ---
   // Demotes a secondary profile back to guest, clears abo_number and primary_profile_id.
+  // Atomic via RPC — update + audit insert cannot be split by a mid-flight error.
   if (body.action === 'dissolve_partnership') {
-    // Only valid on a secondary profile (id = the secondary)
-    const { data: target } = await supabase
-      .from('profiles')
-      .select('id, primary_profile_id, role, clerk_id')
-      .eq('id', id)
-      .single()
-    if (!target) return Response.json({ error: 'Profile not found' }, { status: 404 })
-    if (!target.primary_profile_id) {
-      return Response.json(
-        { error: 'Profile is not a secondary account. Cannot dissolve.', error_code: 'not_secondary' },
-        { status: 400 }
-      )
+    const { data: rows, error: rpcErr } = await supabase
+      .rpc('dissolve_partnership', { p_profile_id: id })
+    if (rpcErr) {
+      // Surface not-found / not-secondary errors as 400; everything else as 500.
+      if (rpcErr.message.includes('not found or is not a secondary')) {
+        return Response.json({ error: rpcErr.message, error_code: 'not_secondary' }, { status: 400 })
+      }
+      return Response.json({ error: rpcErr.message }, { status: 500 })
     }
 
-    const { error: updateErr } = await supabase
-      .from('profiles')
-      .update({ primary_profile_id: null, abo_number: null, role: 'guest' })
-      .eq('id', id)
-    if (updateErr) return Response.json({ error: updateErr.message }, { status: 500 })
-
-    await supabase.from('role_change_audit').insert({
-      profile_id: id,
-      changed_by: userId,
-      old_role: target.role,
-      new_role: 'guest',
-      note: 'Partnership dissolved by admin',
-    })
-
-    if (target.clerk_id) {
+    const row = rows?.[0] ?? null
+    if (row?.clerk_id) {
       const clerk = await clerkClient()
-      await clerk.users.updateUserMetadata(target.clerk_id, {
+      await clerk.users.updateUserMetadata(row.clerk_id, {
         publicMetadata: { role: 'guest' },
       })
     }
@@ -238,7 +222,8 @@ export async function PATCH(
       return Response.json(updated)
     }
 
-    return Response.json(data)
+    // Return only the fields the client needs — not the full profiles row.
+    return Response.json({ id: data?.id, role: data?.role, clerk_id: data?.clerk_id })
   }
 
   const { data, error } = await supabase

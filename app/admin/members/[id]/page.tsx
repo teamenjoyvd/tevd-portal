@@ -229,6 +229,9 @@ export default function MemberDetailPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-member', id] })
       qc.invalidateQueries({ queryKey: ['admin-members'] })
+      // Reset mutation state before closing the editor so the Save button
+      // cannot re-enable on stale isPending=false before the cache refetch completes.
+      updateMutation.reset()
       setEditRole(false)
     },
   })
