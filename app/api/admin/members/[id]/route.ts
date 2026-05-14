@@ -120,7 +120,7 @@ export async function PATCH(
   // Atomic via RPC — update + audit insert cannot be split by a mid-flight error.
   if (body.action === 'dissolve_partnership') {
     const { data: rows, error: rpcErr } = await supabase
-      .rpc('dissolve_partnership', { p_profile_id: id })
+      .rpc('dissolve_partnership', { p_profile_id: id, p_changed_by: userId })
     if (rpcErr) {
       // Surface not-found / not-secondary errors as 400; everything else as 500.
       if (rpcErr.message.includes('not found or is not a secondary')) {
