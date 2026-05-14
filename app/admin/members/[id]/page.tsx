@@ -226,12 +226,11 @@ export default function MemberDetailPage() {
         if (!r.ok) throw new Error(`HTTP ${r.status}`)
         return r.json()
       }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['admin-member', id] })
-      qc.invalidateQueries({ queryKey: ['admin-members'] })
-      // Reset mutation state before closing the editor so the Save button
-      // cannot re-enable on stale isPending=false before the cache refetch completes.
-      updateMutation.reset()
+    onSuccess: async () => {
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ['admin-member', id] }),
+        qc.invalidateQueries({ queryKey: ['admin-members'] }),
+      ])
       setEditRole(false)
     },
   })
