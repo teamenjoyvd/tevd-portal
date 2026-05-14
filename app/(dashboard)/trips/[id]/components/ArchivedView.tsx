@@ -1,7 +1,7 @@
 'use client'
 
 import { formatDate, formatCurrency } from '@/lib/format'
-import { BackButton } from './shared'
+import { BackButton, TripHero } from './shared'
 import { TripMessagesTile } from './TripMessagesTile'
 import type { Tables } from '@/types/supabase'
 import type { TripProfile, TripPayment } from '../page'
@@ -20,36 +20,7 @@ export function ArchivedView({
       <div className="max-w-[720px] mx-auto px-4 space-y-4">
         <BackButton />
 
-        <div className="rounded-2xl overflow-hidden"
-          style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-          {trip.image_url && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={trip.image_url} alt="" aria-hidden="true"
-              className="w-full object-cover" style={{ height: 200, opacity: 0.55 }} />
-          )}
-          <div className="px-6 pt-5 pb-6">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex-1 min-w-0">
-                <div className="flex flex-wrap items-center gap-2 mb-2">
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                    style={{ backgroundColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
-                    {trip.destination}
-                  </span>
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                    style={{ backgroundColor: 'rgba(129,178,154,0.15)', color: '#2d6a4f' }}>
-                    Completed
-                  </span>
-                </div>
-                <h1 className="font-display text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>
-                  {trip.title}
-                </h1>
-                <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
-                  {formatDate(trip.start_date)} – {formatDate(trip.end_date)}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+        <TripHero trip={trip} profile={profile} muted />
 
         {/* Trip Messages — between hero card and Final Ledger */}
         <TripMessagesTile tripId={trip.id} />

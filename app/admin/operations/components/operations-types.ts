@@ -11,6 +11,7 @@ export type Trip = {
   start_date: string; end_date: string
   total_cost: number; milestones: Milestone[]
   currency: string; description: string
+  image_url: string | null
   location: string | null; accommodation_type: string | null
   inclusions: string[]; trip_type: string | null
   access_roles: Role[]

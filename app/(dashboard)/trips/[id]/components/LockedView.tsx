@@ -3,9 +3,12 @@
 import { useRouter } from 'next/navigation'
 import { formatDate } from '@/lib/format'
 import { BackButton } from './shared'
+import type { Tables } from '@/types/supabase'
 import type { TripProfile } from '../page'
 
-export function LockedView({ profile }: { profile: TripProfile }) {
+type Trip = Tables<'trips'>
+
+export function LockedView({ trip, profile }: { trip: Trip; profile: TripProfile }) {
   const router = useRouter()
   const docLabel = profile.document_active_type === 'passport' ? 'Passport' : 'ID Card'
   const expiryText = profile.valid_through
@@ -14,8 +17,23 @@ export function LockedView({ profile }: { profile: TripProfile }) {
 
   return (
     <div className="py-8 pb-16">
-      <div className="max-w-[720px] mx-auto px-4">
+      <div className="max-w-[720px] mx-auto px-4 space-y-4">
         <BackButton />
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
+            style={{ backgroundColor: 'var(--brand-forest)', color: 'rgba(255,255,255,0.85)' }}>
+            {trip.destination}
+          </span>
+          {trip.trip_type && (
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
+              style={{ backgroundColor: 'var(--brand-teal)', color: 'rgba(255,255,255,0.85)' }}>
+              {trip.trip_type}
+            </span>
+          )}
+          <h1 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
+            {trip.title}
+          </h1>
+        </div>
         <div className="rounded-2xl px-6 py-8"
           style={{ backgroundColor: 'rgba(188,71,73,0.08)', border: '1px solid rgba(188,71,73,0.25)' }}>
           <div className="flex items-start gap-4">

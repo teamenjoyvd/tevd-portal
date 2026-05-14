@@ -17,10 +17,26 @@ export function PinIcon({ size }: { size: number }) {
   )
 }
 
-export function TripImage({ src, height }: { src: string | null | undefined; height: number }) {
+/**
+ * TripImage — image area with optional overlay and child slot.
+ *
+ * When overlay=true, renders a dark gradient over the image and accepts
+ * children positioned absolutely at the bottom of the container.
+ */
+export function TripImage({
+  src,
+  height,
+  overlay = false,
+  children,
+}: {
+  src: string | null | undefined
+  height: number
+  overlay?: boolean
+  children?: React.ReactNode
+}) {
   return (
     <div
-      className="w-full flex-shrink-0"
+      className="w-full flex-shrink-0 relative"
       style={{ height, backgroundColor: 'var(--brand-forest)' }}
     >
       {src && (
@@ -30,7 +46,22 @@ export function TripImage({ src, height }: { src: string | null | undefined; hei
           alt=""
           aria-hidden="true"
           className="w-full h-full object-cover"
+          onError={e => {
+            const el = e.currentTarget
+            el.style.display = 'none'
+          }}
         />
+      )}
+      {overlay && (
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 60%)' }}
+        />
+      )}
+      {children && (
+        <div className="absolute bottom-0 left-0 right-0">
+          {children}
+        </div>
       )}
     </div>
   )
