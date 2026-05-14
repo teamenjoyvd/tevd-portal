@@ -177,10 +177,17 @@ export async function PATCH(
   }
 
   // --- Standard field patch ---
-  const allowed = ['role', 'abo_number', 'first_name', 'last_name']
+  // NOTE: abo_number is intentionally excluded. It is a verified field and must only
+  // be written by the approve_member_verification RPC or the dissolve_partnership action.
+  // Free-form patch was silently clobbering verified values when other fields were edited.
+  const allowed = ['role', 'first_name', 'last_name']
   const patch = Object.fromEntries(
     Object.entries(body).filter(([k]) => allowed.includes(k))
   )
+
+  if (Object.keys(patch).length === 0) {
+    return Response.json({ error: 'No patchable fields provided' }, { status: 400 })
+  }
 
   if (patch.role) {
     // ADR-016 GCR C3: secondary profiles have no tree_nodes row and must not hold
