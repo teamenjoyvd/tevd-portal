@@ -2,11 +2,22 @@
 
 import { useRouter } from 'next/navigation'
 import { useMutation } from '@tanstack/react-query'
+import { useState } from 'react'
 import { formatDate } from '@/lib/format'
 import { BackButton, TripHero } from './shared'
 import type { Tables } from '@/types/supabase'
 import type { TripProfile } from '../page'
 import { apiClient } from '@/lib/apiClient'
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from '@/components/ui/alert-dialog'
 
 type Trip = Tables<'trips'>
 type Registration = Tables<'trip_registrations'>
@@ -15,6 +26,7 @@ export function PendingView({
   trip, profile, registration,
 }: { trip: Trip; profile: TripProfile; registration: Registration }) {
   const router = useRouter()
+  const [alertOpen, setAlertOpen] = useState(false)
 
   const cancelMutation = useMutation({
     mutationFn: () =>
@@ -62,12 +74,12 @@ export function PendingView({
                 Your registration request is awaiting admin approval.
               </p>
               <button
-                onClick={() => cancelMutation.mutate()}
+                onClick={() => setAlertOpen(true)}
                 disabled={cancelMutation.isPending}
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium disabled:opacity-50 transition-opacity hover:opacity-80"
                 style={{ backgroundColor: 'var(--border-default)', color: 'var(--text-primary)' }}
               >
-                {cancelMutation.isPending ? 'Cancelling…' : 'Cancel Registration'}
+                Cancel Registration
               </button>
               {cancelMutation.isError && (
                 <p className="text-xs mt-2" style={{ color: '#bc4749' }}>
@@ -78,6 +90,26 @@ export function PendingView({
           </div>
         </div>
       </div>
+
+      <AlertDialog open={alertOpen} onOpenChange={open => { if (!open) setAlertOpen(false) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel registration?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will withdraw your registration for &ldquo;{trip.title}&rdquo;. You can re-register later if the trip is still open.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep registration</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => cancelMutation.mutate()}
+              disabled={cancelMutation.isPending}
+            >
+              {cancelMutation.isPending ? 'Cancelling…' : 'Yes, cancel'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
