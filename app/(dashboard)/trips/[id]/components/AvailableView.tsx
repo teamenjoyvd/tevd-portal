@@ -2,13 +2,11 @@
 
 import { useState } from 'react'
 import RegisterButton from '@/components/trips/RegisterButton'
-import { BackButton, TripHeroImage, TripDetail } from './shared'
+import { BackButton, TripHeroImage, TripDetail, FALLBACK_ACCENT } from './shared'
 import type { Tables } from '@/types/supabase'
 import type { TripProfile } from '../page'
 
 type Trip = Tables<'trips'>
-
-const FALLBACK_ACCENT = '#2d6a4f'
 
 export function AvailableView({
   trip,

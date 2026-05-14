@@ -8,14 +8,12 @@ import { Drawer } from '@/components/ui/drawer'
 import { PaymentForm } from '@/components/payment/PaymentForm'
 import { TripDocumentsTile } from './TripDocumentsTile'
 import { TripMessagesTile } from './TripMessagesTile'
-import { BackButton, TripHeroImage, TripDetail } from './shared'
+import { BackButton, TripHeroImage, TripDetail, FALLBACK_ACCENT } from './shared'
 import type { Tables } from '@/types/supabase'
 import type { TripProfile, TripPayment, TeamAttendee } from '../page'
 
 type Trip = Tables<'trips'>
 type Milestone = { label: string; amount: number; due_date: string }
-
-const FALLBACK_ACCENT = '#2d6a4f'
 
 function SubmitPaymentDrawer({
   tripId,

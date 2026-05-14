@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef } from 'react'
+import { useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { formatDate, formatCurrency } from '@/lib/format'
 import type { Tables } from '@/types/supabase'
@@ -9,7 +9,7 @@ import { useLanguage } from '@/lib/hooks/useLanguage'
 
 type Trip = Tables<'trips'>
 
-const FALLBACK_ACCENT = '#2d6a4f'
+export const FALLBACK_ACCENT = '#2d6a4f'
 
 // ---------------------------------------------------------------------------
 // BackButton
@@ -46,6 +46,13 @@ export function TripHeroImage({
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
+  // Fallback when no image — must be in useEffect to avoid render-phase state update
+  useEffect(() => {
+    if (!trip.image_url) {
+      onAccentColor(FALLBACK_ACCENT)
+    }
+  }, [trip.image_url, onAccentColor])
+
   const imageFilter = muted ? 'opacity(0.5) grayscale(1)' : undefined
   const badgeBg = muted ? 'rgba(0,0,0,0.15)' : 'var(--brand-forest)'
   const badgeColor = muted ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.85)'
@@ -60,17 +67,20 @@ export function TripHeroImage({
       const img = e.currentTarget
       const canvas = canvasRef.current
       if (!canvas) { onAccentColor(FALLBACK_ACCENT); return }
-      canvas.width = img.naturalWidth
-      canvas.height = img.naturalHeight
-      const ctx = canvas.getContext('2d')
-      if (!ctx) { onAccentColor(FALLBACK_ACCENT); return }
-      ctx.drawImage(img, 0, 0)
-      // Sample a 50x50 block from the bottom-left (where gradient overlay is darkest)
+
       const sampleX = 0
       const sampleY = Math.max(0, img.naturalHeight - 60)
       const sampleW = Math.min(50, img.naturalWidth)
-      const sampleH = Math.min(50, 60)
-      const data = ctx.getImageData(sampleX, sampleY, sampleW, sampleH).data
+      const sampleH = Math.min(50, img.naturalHeight - sampleY)
+
+      canvas.width = sampleW
+      canvas.height = sampleH
+      const ctx = canvas.getContext('2d')
+      if (!ctx) { onAccentColor(FALLBACK_ACCENT); return }
+
+      ctx.drawImage(img, sampleX, sampleY, sampleW, sampleH, 0, 0, sampleW, sampleH)
+      const data = ctx.getImageData(0, 0, sampleW, sampleH).data
+
       let r = 0, g = 0, b = 0, count = 0
       for (let i = 0; i < data.length; i += 4) {
         r += data[i]; g += data[i + 1]; b += data[i + 2]; count++
@@ -97,9 +107,7 @@ export function TripHeroImage({
   }
 
   return (
-    <div
-      style={{ backgroundColor: 'var(--brand-forest)', borderRadius: '16px 16px 0 0', overflow: 'hidden' }}
-    >
+    <div style={{ backgroundColor: 'var(--brand-forest)' }}>
       {/* Hidden canvas for pixel sampling — never rendered visually */}
       <canvas ref={canvasRef} style={{ display: 'none' }} aria-hidden="true" />
 
@@ -114,10 +122,12 @@ export function TripHeroImage({
             className="w-full h-full object-cover"
             style={imageFilter ? { filter: imageFilter } : undefined}
             onLoad={handleImageLoad}
-            onError={() => onAccentColor(FALLBACK_ACCENT)}
+            onError={e => {
+              onAccentColor(FALLBACK_ACCENT)
+              e.currentTarget.style.display = 'none'
+            }}
           />
         ) : null}
-        {!trip.image_url && (() => { onAccentColor(FALLBACK_ACCENT); return null })()}
         {/* Gradient overlay */}
         <div
           className="absolute inset-0 pointer-events-none"
@@ -175,13 +185,7 @@ export function TripDetail({
   const { t } = useLanguage()
 
   return (
-    <div
-      style={{
-        backgroundColor: 'var(--bg-card)',
-        border: '1px solid var(--border-default)',
-        borderRadius: '0 0 16px 16px',
-      }}
-    >
+    <div style={{ backgroundColor: 'var(--bg-card)' }}>
       {/* Countdown strip — only when countdown prop is provided */}
       {countdown !== undefined && (
         <div

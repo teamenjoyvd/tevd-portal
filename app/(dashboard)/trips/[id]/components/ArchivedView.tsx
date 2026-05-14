@@ -2,14 +2,12 @@
 
 import { useState } from 'react'
 import { formatDate, formatCurrency } from '@/lib/format'
-import { BackButton, TripHeroImage, TripDetail } from './shared'
+import { BackButton, TripHeroImage, TripDetail, FALLBACK_ACCENT } from './shared'
 import { TripMessagesTile } from './TripMessagesTile'
 import type { Tables } from '@/types/supabase'
 import type { TripProfile, TripPayment } from '../page'
 
 type Trip = Tables<'trips'>
-
-const FALLBACK_ACCENT = '#2d6a4f'
 
 export function ArchivedView({
   trip, profile, payments,

@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useMutation } from '@tanstack/react-query'
 import { useState } from 'react'
 import { formatDate } from '@/lib/format'
-import { BackButton, TripHeroImage, TripDetail } from './shared'
+import { BackButton, TripHeroImage, TripDetail, FALLBACK_ACCENT } from './shared'
 import type { Tables } from '@/types/supabase'
 import type { TripProfile } from '../page'
 import { apiClient } from '@/lib/apiClient'
@@ -21,8 +21,6 @@ import {
 
 type Trip = Tables<'trips'>
 type Registration = Tables<'trip_registrations'>
-
-const FALLBACK_ACCENT = '#2d6a4f'
 
 export function PendingView({
   trip, profile, registration,
