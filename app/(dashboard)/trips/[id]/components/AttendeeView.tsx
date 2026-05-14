@@ -42,7 +42,7 @@ function WhosGoingTile({ attendees }: { attendees: TeamAttendee[] }) {
       <div className="px-6 pt-5 pb-2">
         <p className="text-xs font-semibold tracking-widest uppercase"
           style={{ color: 'var(--text-secondary)' }}>
-          {t('trips.whosGoing')}
+          {t('trips.whosGoing')} · {attendees.length}
         </p>
       </div>
       <div className="px-6 pb-5">
@@ -76,13 +76,9 @@ function WhosGoingTile({ attendees }: { attendees: TeamAttendee[] }) {
   )
 }
 
-// ── SubmitPaymentCTA (shared between mobile sticky and desktop panel) ───
-
 function SubmitPaymentCTA({
-  remaining,
   onOpen,
 }: {
-  remaining: number
   onOpen: () => void
 }) {
   const { t } = useLanguage()
@@ -98,14 +94,12 @@ function SubmitPaymentCTA({
 }
 
 export function AttendeeView({
-  trip, profile, payments, teamAttendees, desktopActionSlot,
+  trip, profile, payments, teamAttendees,
 }: {
   trip: Trip
   profile: TripProfile
   payments: TripPayment[]
   teamAttendees: TeamAttendee[]
-  /** When true the Submit Payment CTA is rendered as a sticky footer (mobile). Desktop panel injects via this prop. */
-  desktopActionSlot?: boolean
 }) {
   const { t } = useLanguage()
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -133,7 +127,6 @@ export function AttendeeView({
     return acc
   }, [])
 
-  // CSS background-image countdown — degrades silently on load failure
   const countdownBg = trip.image_url
     ? {
         backgroundImage: `linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.55)), url(${JSON.stringify(trip.image_url)})`,
@@ -143,13 +136,13 @@ export function AttendeeView({
     : { backgroundColor: 'var(--brand-forest)' }
 
   return (
-    <div className="py-8 pb-20 md:pb-16">
-      <div className="max-w-[720px] mx-auto px-4 space-y-4">
+    <div className="py-8 pb-16">
+      <div className="max-w-4xl mx-auto px-4 space-y-4">
         <BackButton />
 
         {/* Countdown header */}
         <div
-          className="rounded-2xl px-6 py-7 flex items-center justify-between gap-4"
+          className="rounded-2xl px-6 py-5 flex items-center justify-between gap-4"
           style={{ ...countdownBg, color: 'rgba(255,255,255,0.92)' }}
         >
           <div>
@@ -172,8 +165,8 @@ export function AttendeeView({
           )}
         </div>
 
-        {/* Trip Messages — immediately below countdown */}
-        <TripMessagesTile tripId={trip.id} />
+        {/* Trip identity card */}
+        <TripHero trip={trip} profile={profile} />
 
         {/* Payment ledger */}
         <div className="rounded-2xl overflow-hidden"
@@ -295,32 +288,27 @@ export function AttendeeView({
                 {remaining === 0 ? t('payment.paidInFull') : formatCurrency(remaining)}
               </p>
             </div>
-            {/* Desktop: CTA inline in ledger tile */}
-            {desktopActionSlot && (
-              <SubmitPaymentCTA remaining={remaining} onOpen={() => setDrawerOpen(true)} />
-            )}
+            <SubmitPaymentCTA onOpen={() => setDrawerOpen(true)} />
           </div>
         </div>
 
         {/* Who's Going */}
         <WhosGoingTile attendees={teamAttendees} />
 
-        {/* Trip Documents */}
-        <TripDocumentsTile tripId={trip.id} />
+        {/* Trip Messages — secondary content */}
+        <TripMessagesTile tripId={trip.id} />
 
-        {/* Trip info (read-only) */}
-        <TripHero trip={trip} profile={profile} />
+        {/* Trip Documents — secondary content */}
+        <TripDocumentsTile tripId={trip.id} />
       </div>
 
-      {/* Mobile: sticky CTA */}
-      {!desktopActionSlot && (
-        <div
-          className="fixed bottom-0 left-0 right-0 px-4 pb-6 pt-3 md:hidden"
-          style={{ backgroundColor: 'var(--bg-base)', borderTop: '1px solid var(--border-default)' }}
-        >
-          <SubmitPaymentCTA remaining={remaining} onOpen={() => setDrawerOpen(true)} />
-        </div>
-      )}
+      {/* Sticky footer CTA — slimmed, mobile only */}
+      <div
+        className="fixed bottom-0 left-0 right-0 px-4 pb-4 pt-2 md:hidden"
+        style={{ backgroundColor: 'var(--bg-base)', borderTop: '1px solid var(--border-default)' }}
+      >
+        <SubmitPaymentCTA onOpen={() => setDrawerOpen(true)} />
+      </div>
 
       <SubmitPaymentDrawer
         tripId={trip.id}
