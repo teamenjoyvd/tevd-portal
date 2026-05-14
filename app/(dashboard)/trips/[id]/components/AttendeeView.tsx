@@ -46,45 +46,67 @@ function WhosGoingTile({ attendees }: { attendees: TeamAttendee[] }) {
         </p>
       </div>
       <div className="px-6 pb-5">
-        {attendees.length === 0 ? (
-          <p className="text-sm pt-2" style={{ color: 'var(--text-secondary)' }}>
-            {t('trips.noTeamRegistered')}
-          </p>
-        ) : (
-          <div className="space-y-2 mt-1">
-            {attendees.map(a => {
-              const colors = getRoleColors(a.role)
-              return (
-                <div key={a.profile_id}
-                  className="flex items-center justify-between gap-3 py-2 border-b last:border-0"
-                  style={{ borderColor: 'var(--border-default)' }}>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                      {a.first_name} {a.last_name}
+        <div className="space-y-2 mt-1">
+          {attendees.map(a => {
+            const colors = getRoleColors(a.role)
+            return (
+              <div key={a.profile_id}
+                className="flex items-center justify-between gap-3 py-2 border-b last:border-0"
+                style={{ borderColor: 'var(--border-default)' }}>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                    {a.first_name} {a.last_name}
+                  </p>
+                  {a.abo_number && (
+                    <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                      {a.abo_number}
                     </p>
-                    {a.abo_number && (
-                      <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                        {a.abo_number}
-                      </p>
-                    )}
-                  </div>
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: colors.bg, color: colors.font }}>
-                    {a.role}
-                  </span>
+                  )}
                 </div>
-              )
-            })}
-          </div>
-        )}
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: colors.bg, color: colors.font }}>
+                  {a.role}
+                </span>
+              </div>
+            )
+          })}
+        </div>
       </div>
     </div>
   )
 }
 
+// ── SubmitPaymentCTA (shared between mobile sticky and desktop panel) ───
+
+function SubmitPaymentCTA({
+  remaining,
+  onOpen,
+}: {
+  remaining: number
+  onOpen: () => void
+}) {
+  const { t } = useLanguage()
+  return (
+    <button
+      onClick={onOpen}
+      className="w-full py-3 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90"
+      style={{ backgroundColor: 'var(--brand-forest)' }}
+    >
+      {t('payment.submit')}
+    </button>
+  )
+}
+
 export function AttendeeView({
-  trip, profile, payments, teamAttendees,
-}: { trip: Trip; profile: TripProfile; payments: TripPayment[]; teamAttendees: TeamAttendee[] }) {
+  trip, profile, payments, teamAttendees, desktopActionSlot,
+}: {
+  trip: Trip
+  profile: TripProfile
+  payments: TripPayment[]
+  teamAttendees: TeamAttendee[]
+  /** When true the Submit Payment CTA is rendered as a sticky footer (mobile). Desktop panel injects via this prop. */
+  desktopActionSlot?: boolean
+}) {
   const { t } = useLanguage()
   const [drawerOpen, setDrawerOpen] = useState(false)
 
@@ -102,20 +124,34 @@ export function AttendeeView({
     .filter(p => p.admin_status === 'approved')
     .reduce((sum, p) => sum + p.amount, 0)
   const remaining = Math.max(0, trip.total_cost - approvedTotal)
+  const progressPct = trip.total_cost > 0
+    ? Math.min(100, Math.round((approvedTotal / trip.total_cost) * 100))
+    : 0
 
   const cumulativeMilestones = milestones.reduce<number[]>((acc, m) => {
     acc.push((acc[acc.length - 1] ?? 0) + m.amount)
     return acc
   }, [])
 
+  // CSS background-image countdown — degrades silently on load failure
+  const countdownBg = trip.image_url
+    ? {
+        backgroundImage: `linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.55)), url(${JSON.stringify(trip.image_url)})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }
+    : { backgroundColor: 'var(--brand-forest)' }
+
   return (
-    <div className="py-8 pb-16">
+    <div className="py-8 pb-20 md:pb-16">
       <div className="max-w-[720px] mx-auto px-4 space-y-4">
         <BackButton />
 
         {/* Countdown header */}
-        <div className="rounded-2xl px-6 py-7 flex items-center justify-between gap-4"
-          style={{ backgroundColor: 'var(--brand-forest)', color: 'rgba(255,255,255,0.92)' }}>
+        <div
+          className="rounded-2xl px-6 py-7 flex items-center justify-between gap-4"
+          style={{ ...countdownBg, color: 'rgba(255,255,255,0.92)' }}
+        >
           <div>
             <p className="text-xs font-semibold tracking-widest uppercase opacity-70 mb-1">
               {trip.destination} · {trip.title}
@@ -150,6 +186,19 @@ export function AttendeeView({
             <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
               {formatCurrency(approvedTotal)} / {formatCurrency(trip.total_cost)}
             </p>
+          </div>
+
+          {/* Progress bar */}
+          <div className="px-6 pb-3">
+            <div
+              className="w-full rounded-full overflow-hidden"
+              style={{ height: 4, backgroundColor: 'var(--border-default)' }}
+            >
+              <div
+                className="h-full rounded-full transition-all"
+                style={{ width: `${progressPct}%`, backgroundColor: '#2d6a4f' }}
+              />
+            </div>
           </div>
 
           {milestones.length > 0 && (
@@ -246,13 +295,10 @@ export function AttendeeView({
                 {remaining === 0 ? t('payment.paidInFull') : formatCurrency(remaining)}
               </p>
             </div>
-            <button
-              onClick={() => setDrawerOpen(true)}
-              className="w-full py-3 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90"
-              style={{ backgroundColor: 'var(--brand-forest)' }}
-            >
-              {t('payment.submit')}
-            </button>
+            {/* Desktop: CTA inline in ledger tile */}
+            {desktopActionSlot && (
+              <SubmitPaymentCTA remaining={remaining} onOpen={() => setDrawerOpen(true)} />
+            )}
           </div>
         </div>
 
@@ -265,6 +311,16 @@ export function AttendeeView({
         {/* Trip info (read-only) */}
         <TripHero trip={trip} profile={profile} />
       </div>
+
+      {/* Mobile: sticky CTA */}
+      {!desktopActionSlot && (
+        <div
+          className="fixed bottom-0 left-0 right-0 px-4 pb-6 pt-3 md:hidden"
+          style={{ backgroundColor: 'var(--bg-base)', borderTop: '1px solid var(--border-default)' }}
+        >
+          <SubmitPaymentCTA remaining={remaining} onOpen={() => setDrawerOpen(true)} />
+        </div>
+      )}
 
       <SubmitPaymentDrawer
         tripId={trip.id}
