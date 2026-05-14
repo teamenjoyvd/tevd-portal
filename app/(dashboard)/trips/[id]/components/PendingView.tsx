@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useMutation } from '@tanstack/react-query'
 import { useState } from 'react'
 import { formatDate } from '@/lib/format'
-import { BackButton, TripHero } from './shared'
+import { BackButton, TripHeroImage, TripDetail, FALLBACK_ACCENT } from './shared'
 import type { Tables } from '@/types/supabase'
 import type { TripProfile } from '../page'
 import { apiClient } from '@/lib/apiClient'
@@ -27,6 +27,7 @@ export function PendingView({
 }: { trip: Trip; profile: TripProfile; registration: Registration }) {
   const router = useRouter()
   const [alertOpen, setAlertOpen] = useState(false)
+  const [accentColor, setAccentColor] = useState(FALLBACK_ACCENT)
 
   const cancelMutation = useMutation({
     mutationFn: () =>
@@ -39,7 +40,10 @@ export function PendingView({
       <div className="py-8 pb-16">
         <div className="max-w-[720px] mx-auto px-4">
           <BackButton />
-          <TripHero trip={trip} profile={profile} />
+          <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--border-default)' }}>
+            <TripHeroImage trip={trip} onAccentColor={setAccentColor} />
+            <TripDetail trip={trip} profile={profile} accentColor={accentColor} />
+          </div>
           <div className="mt-4 rounded-2xl px-6 py-5"
             style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
             <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
@@ -55,7 +59,10 @@ export function PendingView({
     <div className="py-8 pb-16">
       <div className="max-w-[720px] mx-auto px-4">
         <BackButton />
-        <TripHero trip={trip} profile={profile} />
+        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--border-default)' }}>
+          <TripHeroImage trip={trip} onAccentColor={setAccentColor} />
+          <TripDetail trip={trip} profile={profile} accentColor={accentColor} />
+        </div>
         <div className="mt-4 rounded-2xl px-6 py-6"
           style={{ backgroundColor: 'rgba(180,138,60,0.08)', border: '1px solid rgba(180,138,60,0.25)' }}>
           <div className="flex items-start gap-4">

@@ -1,5 +1,6 @@
 'use client'
 
+import { useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { formatDate, formatCurrency } from '@/lib/format'
 import type { Tables } from '@/types/supabase'
@@ -8,6 +9,11 @@ import { useLanguage } from '@/lib/hooks/useLanguage'
 
 type Trip = Tables<'trips'>
 
+export const FALLBACK_ACCENT = '#2d6a4f'
+
+// ---------------------------------------------------------------------------
+// BackButton
+// ---------------------------------------------------------------------------
 export function BackButton() {
   return (
     <Link
@@ -23,49 +29,106 @@ export function BackButton() {
   )
 }
 
-export function TripHero({
+// ---------------------------------------------------------------------------
+// TripHeroImage
+// Renders the 280px image pane. Samples canvas to derive accent colour,
+// calls onAccentColor with blended hex. Falls back to FALLBACK_ACCENT on
+// cross-origin SecurityError or missing image.
+// ---------------------------------------------------------------------------
+export function TripHeroImage({
   trip,
-  profile,
   muted = false,
+  onAccentColor,
 }: {
   trip: Trip
-  profile: TripProfile
   muted?: boolean
+  onAccentColor: (hex: string) => void
 }) {
   const { t } = useLanguage()
-  const days = Math.round(
-    (new Date(trip.end_date).getTime() - new Date(trip.start_date).getTime()) / 86400000
-  )
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+
+  // Fallback when no image — must be in useEffect to avoid render-phase state update
+  useEffect(() => {
+    if (!trip.image_url) {
+      onAccentColor(FALLBACK_ACCENT)
+    }
+  }, [trip.image_url, onAccentColor])
 
   const imageFilter = muted ? 'opacity(0.5) grayscale(1)' : undefined
   const badgeBg = muted ? 'rgba(0,0,0,0.15)' : 'var(--brand-forest)'
   const badgeColor = muted ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.85)'
   const tealBadgeBg = muted ? 'rgba(0,0,0,0.12)' : 'var(--brand-teal)'
 
+  const days = Math.round(
+    (new Date(trip.end_date).getTime() - new Date(trip.start_date).getTime()) / 86400000
+  )
+
+  function handleImageLoad(e: React.SyntheticEvent<HTMLImageElement>) {
+    try {
+      const img = e.currentTarget
+      const canvas = canvasRef.current
+      if (!canvas) { onAccentColor(FALLBACK_ACCENT); return }
+
+      const sampleX = 0
+      const sampleY = Math.max(0, img.naturalHeight - 60)
+      const sampleW = Math.min(50, img.naturalWidth)
+      const sampleH = Math.min(50, img.naturalHeight - sampleY)
+
+      canvas.width = sampleW
+      canvas.height = sampleH
+      const ctx = canvas.getContext('2d')
+      if (!ctx) { onAccentColor(FALLBACK_ACCENT); return }
+
+      ctx.drawImage(img, sampleX, sampleY, sampleW, sampleH, 0, 0, sampleW, sampleH)
+      const data = ctx.getImageData(0, 0, sampleW, sampleH).data
+
+      let r = 0, g = 0, b = 0, count = 0
+      for (let i = 0; i < data.length; i += 4) {
+        r += data[i]; g += data[i + 1]; b += data[i + 2]; count++
+      }
+      if (count === 0) { onAccentColor(FALLBACK_ACCENT); return }
+      r = Math.round(r / count)
+      g = Math.round(g / count)
+      b = Math.round(b / count)
+      // Blend toward forest to keep it on-brand
+      const blendR = Math.round(r * 0.6 + 0x2d * 0.4)
+      const blendG = Math.round(g * 0.6 + 0x6a * 0.4)
+      const blendB = Math.round(b * 0.6 + 0x4f * 0.4)
+      // Clamp HSL luminance to [30, 55] range
+      const hex = clampLuminance(blendR, blendG, blendB, 30, 55)
+      onAccentColor(hex)
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'SecurityError') {
+        // cross-origin canvas taint — silent fallback
+        onAccentColor(FALLBACK_ACCENT)
+      } else {
+        onAccentColor(FALLBACK_ACCENT)
+      }
+    }
+  }
+
   return (
-    <div
-      className="rounded-2xl overflow-hidden"
-      style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}
-    >
-      {/* Hero image area — 280px with gradient overlay */}
-      <div
-        className="relative w-full"
-        style={{ height: 280, backgroundColor: 'var(--brand-forest)' }}
-      >
-        {trip.image_url && (
+    <div style={{ backgroundColor: 'var(--brand-forest)' }}>
+      {/* Hidden canvas for pixel sampling — never rendered visually */}
+      <canvas ref={canvasRef} style={{ display: 'none' }} aria-hidden="true" />
+
+      <div className="relative w-full" style={{ height: 280 }}>
+        {trip.image_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={trip.image_url}
             alt=""
             aria-hidden="true"
+            crossOrigin="anonymous"
             className="w-full h-full object-cover"
             style={imageFilter ? { filter: imageFilter } : undefined}
+            onLoad={handleImageLoad}
             onError={e => {
-              const el = e.currentTarget
-              el.style.display = 'none'
+              onAccentColor(FALLBACK_ACCENT)
+              e.currentTarget.style.display = 'none'
             }}
           />
-        )}
+        ) : null}
         {/* Gradient overlay */}
         <div
           className="absolute inset-0 pointer-events-none"
@@ -89,7 +152,7 @@ export function TripHero({
               </span>
             )}
             <span className="text-xs" style={{ color: 'rgba(255,255,255,0.65)' }}>
-              {days} day{days !== 1 ? 's' : ''}
+              {days} {t(days !== 1 ? 'trips.dayPlural' : 'trips.daySingular')}
             </span>
           </div>
           <h1
@@ -100,8 +163,62 @@ export function TripHero({
           </h1>
         </div>
       </div>
+    </div>
+  )
+}
 
-      {/* Content below image */}
+// ---------------------------------------------------------------------------
+// TripDetail
+// Renders optional countdown strip + body content (dates, cost, description,
+// location, inclusions). accentColor drives the strip bg.
+// ---------------------------------------------------------------------------
+export function TripDetail({
+  trip,
+  profile,
+  accentColor,
+  countdown,
+}: {
+  trip: Trip
+  profile: TripProfile
+  accentColor: string
+  countdown?: number
+}) {
+  const { t } = useLanguage()
+
+  return (
+    <div style={{ backgroundColor: 'var(--bg-card)' }}>
+      {/* Countdown strip — only when countdown prop is provided */}
+      {countdown !== undefined && (
+        <div
+          className="w-full px-6 py-3 flex items-center justify-between gap-3"
+          style={{ backgroundColor: accentColor }}
+        >
+          <div className="flex items-baseline gap-2 min-w-0">
+            <span
+              className="font-display font-bold leading-none flex-shrink-0"
+              style={{ fontSize: 'clamp(2rem, 8vw, 3rem)', color: '#fff' }}
+            >
+              {countdown}
+            </span>
+            <span
+              className="text-sm font-medium"
+              style={{ color: 'rgba(255,255,255,0.85)', whiteSpace: 'nowrap' }}
+            >
+              {t('trips.daysToGo')}
+            </span>
+          </div>
+          {countdown === 0 && (
+            <span
+              className="text-xs font-semibold px-3 py-1 rounded-full flex-shrink-0"
+              style={{ backgroundColor: 'rgba(255,255,255,0.2)', color: '#fff' }}
+            >
+              {t('trips.todayBadge')}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Body content */}
       <div className="px-6 pt-5 pb-8">
         {profile.role !== 'guest' && (
           <div className="flex items-center justify-between mb-4">
@@ -167,4 +284,38 @@ export function TripHero({
       </div>
     </div>
   )
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/** Convert RGB to HSL, clamp L to [lMin, lMax], return hex. */
+function clampLuminance(r: number, g: number, b: number, lMin: number, lMax: number): string {
+  const rn = r / 255, gn = g / 255, bn = b / 255
+  const max = Math.max(rn, gn, bn), min = Math.min(rn, gn, bn)
+  const l = (max + min) / 2
+  const d = max - min
+  let h = 0, s = 0
+  if (d !== 0) {
+    s = d / (1 - Math.abs(2 * l - 1))
+    switch (max) {
+      case rn: h = ((gn - bn) / d + 6) % 6; break
+      case gn: h = (bn - rn) / d + 2; break
+      default: h = (rn - gn) / d + 4
+    }
+    h /= 6
+  }
+  const clampedL = Math.min(lMax, Math.max(lMin, Math.round(l * 100))) / 100
+  return hslToHex(h, s, clampedL)
+}
+
+function hslToHex(h: number, s: number, l: number): string {
+  const a = s * Math.min(l, 1 - l)
+  const f = (n: number) => {
+    const k = (n + h * 12) % 12
+    const color = l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1))
+    return Math.round(255 * color).toString(16).padStart(2, '0')
+  }
+  return `#${f(0)}${f(8)}${f(4)}`
 }

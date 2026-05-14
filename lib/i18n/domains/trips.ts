@@ -42,4 +42,6 @@ export const trips = {
   'trips.uploading':          { en: 'Uploading…',              bg: 'Качва се…'                          },
   'trips.delete':             { en: 'Delete',                  bg: 'Изтрий'                             },
   'trips.inclusions':         { en: "What's Included",         bg: 'Включено в цената'                  },
+  'trips.daySingular':        { en: 'day',                     bg: 'ден'                                },
+  'trips.dayPlural':          { en: 'days',                    bg: 'дни'                                },
 } as const

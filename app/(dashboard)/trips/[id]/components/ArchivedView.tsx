@@ -1,7 +1,8 @@
 'use client'
 
+import { useState } from 'react'
 import { formatDate, formatCurrency } from '@/lib/format'
-import { BackButton, TripHero } from './shared'
+import { BackButton, TripHeroImage, TripDetail, FALLBACK_ACCENT } from './shared'
 import { TripMessagesTile } from './TripMessagesTile'
 import type { Tables } from '@/types/supabase'
 import type { TripProfile, TripPayment } from '../page'
@@ -11,6 +12,8 @@ type Trip = Tables<'trips'>
 export function ArchivedView({
   trip, profile, payments,
 }: { trip: Trip; profile: TripProfile; payments: TripPayment[] }) {
+  const [accentColor, setAccentColor] = useState(FALLBACK_ACCENT)
+
   const approvedTotal = payments
     .filter(p => p.admin_status === 'approved')
     .reduce((sum, p) => sum + p.amount, 0)
@@ -20,7 +23,10 @@ export function ArchivedView({
       <div className="max-w-[720px] mx-auto px-4 space-y-4">
         <BackButton />
 
-        <TripHero trip={trip} profile={profile} muted />
+        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--border-default)' }}>
+          <TripHeroImage trip={trip} muted onAccentColor={setAccentColor} />
+          <TripDetail trip={trip} profile={profile} accentColor={accentColor} />
+        </div>
 
         {/* Trip Messages — between hero card and Final Ledger */}
         <TripMessagesTile tripId={trip.id} />
