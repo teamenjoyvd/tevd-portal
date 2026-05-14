@@ -177,7 +177,10 @@ export async function PATCH(
   }
 
   // --- Standard field patch ---
-  const allowed = ['role', 'abo_number', 'first_name', 'last_name']
+  // NOTE: abo_number is intentionally excluded. It is a verified field and must only
+  // be written by the approve_member_verification RPC or the dissolve_partnership action.
+  // Free-form patch was silently clobbering verified values when other fields were edited.
+  const allowed = ['role', 'first_name', 'last_name']
   const patch = Object.fromEntries(
     Object.entries(body).filter(([k]) => allowed.includes(k))
   )
