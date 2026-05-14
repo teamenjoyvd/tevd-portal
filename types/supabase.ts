@@ -1662,6 +1662,13 @@ export type Database = {
           upline_abo_number: string
         }[]
       }
+      dissolve_partnership: {
+        Args: { p_profile_id: string }
+        Returns: {
+          clerk_id: string
+          old_role: Database["public"]["Enums"]["user_role"]
+        }[]
+      }
       get_core_ancestors: { Args: { p_profile_id: string }; Returns: string[] }
       get_los_members_with_profiles: {
         Args: never
