@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Trash2, Upload } from 'lucide-react'
 import {
@@ -48,9 +48,13 @@ export function TripFilesSection({ tripId }: { tripId: string }) {
         if (!r.ok) throw new Error((await r.json()).error)
         return r.json()
       }),
-    // Clear optimistic list when server data arrives
-    select: data => { setOptimistic([]); return data },
   })
+
+  // Clear optimistic list after server data arrives — must be post-render (useEffect),
+  // not inside select/queryFn which fire during render and cause React #301.
+  useEffect(() => {
+    setOptimistic([])
+  }, [serverAttachments])
 
   // Merge: show server list + any optimistic entries not yet in server list
   const attachments = [
