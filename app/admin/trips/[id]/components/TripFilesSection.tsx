@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Trash2, Upload } from 'lucide-react'
 import {
   AlertDialog,
@@ -14,6 +14,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { useLanguage } from '@/lib/hooks/useLanguage'
+import { useSignedUpload } from '@/lib/hooks/useSignedUpload'
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -32,35 +33,52 @@ export function TripFilesSection({ tripId }: { tripId: string }) {
   const qc = useQueryClient()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null)
-  const [uploadError, setUploadError] = useState<string | null>(null)
+  // Optimistic entries appended on upload; cleared when server query resolves with real ids
+  const [optimistic, setOptimistic] = useState<Attachment[]>([])
   const { t } = useLanguage()
 
-  const { data: attachments = [], isLoading } = useQuery<Attachment[]>({
+  const { upload, uploading, error: uploadError } = useSignedUpload(
+    `/api/admin/trips/${tripId}/upload-url`
+  )
+
+  const { data: serverAttachments = [], isLoading } = useQuery<Attachment[]>({
     queryKey: ['trip-attachments-admin', tripId],
     queryFn: () =>
       fetch(`/api/admin/trips/${tripId}/attachments`).then(async r => {
         if (!r.ok) throw new Error((await r.json()).error)
         return r.json()
       }),
+    // Clear optimistic list when server data arrives
+    select: data => { setOptimistic([]); return data },
   })
 
-  const uploadMutation = useMutation({
-    mutationFn: async (file: File) => {
-      const fd = new FormData()
-      fd.append('file', file)
-      const r = await fetch(`/api/admin/trips/${tripId}/attachments`, {
-        method: 'POST',
-        body: fd,
-      })
-      if (!r.ok) throw new Error((await r.json()).error)
-      return r.json()
-    },
-    onSuccess: () => {
+  // Merge: show server list + any optimistic entries not yet in server list
+  const attachments = [
+    ...serverAttachments,
+    ...optimistic.filter(o => !serverAttachments.find(s => s.file_url === o.file_url)),
+  ]
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+    if (file.size > 10 * 1024 * 1024) return
+    try {
+      const { url } = await upload(file)
+      setOptimistic(prev => [
+        ...prev,
+        {
+          id: `optimistic-${crypto.randomUUID()}`,
+          file_name: file.name,
+          file_url: url,
+          file_type: file.type === 'application/pdf' ? 'pdf' : 'image',
+          sort_order: attachments.length,
+          created_at: new Date().toISOString(),
+        },
+      ])
       qc.invalidateQueries({ queryKey: ['trip-attachments-admin', tripId] })
-      setUploadError(null)
-    },
-    onError: (e: Error) => setUploadError(e.message),
-  })
+    } catch { /* uploadError state handles render */ }
+  }
 
   const deleteMutation = useMutation({
     mutationFn: async (attachmentId: string) => {
@@ -71,18 +89,6 @@ export function TripFilesSection({ tripId }: { tripId: string }) {
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['trip-attachments-admin', tripId] }),
   })
-
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    e.target.value = ''
-    if (file.size > 10 * 1024 * 1024) {
-      setUploadError('File exceeds 10 MB limit')
-      return
-    }
-    setUploadError(null)
-    uploadMutation.mutate(file)
-  }
 
   return (
     <section
@@ -95,12 +101,12 @@ export function TripFilesSection({ tripId }: { tripId: string }) {
         </h2>
         <button
           onClick={() => fileInputRef.current?.click()}
-          disabled={uploadMutation.isPending}
+          disabled={uploading}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white hover:opacity-90 transition-opacity disabled:opacity-50"
           style={{ backgroundColor: 'var(--brand-crimson)' }}
         >
           <Upload size={13} />
-          {uploadMutation.isPending ? t('trips.uploading') : t('trips.upload')}
+          {uploading ? t('trips.uploading') : t('trips.upload')}
         </button>
         <input
           ref={fileInputRef}

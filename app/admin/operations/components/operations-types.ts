@@ -1,21 +1,11 @@
 // Shared domain types and constants for the operations area.
 // Plain TypeScript — no 'use client' directive.
+//
+// Trip and Milestone have moved to lib/types/trips.ts
+// ALL_ROLES and MemberRole live in lib/roles.ts — import from there
 
-export const ALL_ROLES = ['guest', 'member', 'core', 'admin'] as const
-export type Role = (typeof ALL_ROLES)[number]
-
-export type Milestone = { label: string; amount: number; due_date: string }
-
-export type Trip = {
-  id: string; title: string; destination: string
-  start_date: string; end_date: string
-  total_cost: number; milestones: Milestone[]
-  currency: string; description: string
-  image_url: string | null
-  location: string | null; accommodation_type: string | null
-  inclusions: string[]; trip_type: string | null
-  access_roles: Role[]
-}
+export type { Trip, Milestone } from '@/lib/types/trips'
+export type { MemberRole as Role } from '@/lib/roles'
 
 export type PayableItem = {
   id: string
