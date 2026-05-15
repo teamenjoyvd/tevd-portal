@@ -137,7 +137,7 @@ export function TiptapEditor({
   onChange: (v: JSONContent) => void
   placeholder?: string
   label?: string
-}) {
+}): React.JSX.Element {
   const editor = useEditor({
     extensions: [
       StarterKit,
