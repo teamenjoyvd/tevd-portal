@@ -26,7 +26,7 @@ export function CoverImageUploader({
       const url = await uploadToSignedUrl(
         file,
         '/api/admin/guides/upload-url/cover',
-        '/api/admin/guides/upload-url/cover-confirm',
+        '/api/admin/guides/upload-url/cover/confirm',
       )
       onChange(url)
     } catch (e) {
