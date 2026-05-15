@@ -36,11 +36,16 @@ export function ItemMetaForm({ item }: { item: PayableItem }) {
 
   const { data: trips = [] } = useQuery<TripOption[]>({
     queryKey: ['trips'],
-    queryFn: () => fetch('/api/trips').then(r => r.json()),
+    queryFn: async () => {
+      const res = await fetch('/api/trips')
+      if (!res.ok) throw new Error('Failed to fetch trips')
+      return res.json()
+    },
   })
 
   async function handleSave() {
-    if (isPending) return
+    const isValid = !!form.title.trim() && !!form.amount
+    if (isPending || !isValid) return
     setIsPending(true)
     setError(null)
     setSaved(false)
@@ -156,7 +161,7 @@ export function ItemMetaForm({ item }: { item: PayableItem }) {
 
       <button
         onClick={handleSave}
-        disabled={isPending}
+        disabled={isPending || !form.title.trim() || !form.amount}
         className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity"
         style={{ backgroundColor: 'var(--brand-crimson)' }}
       >

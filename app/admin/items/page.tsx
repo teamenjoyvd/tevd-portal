@@ -6,6 +6,12 @@ import { formatCurrency } from '@/lib/format'
 
 export const dynamic = 'force-dynamic'
 
+function resolveTrip(trips: unknown): { title: string } | null {
+  if (!trips) return null
+  if (Array.isArray(trips)) return trips[0] ?? null
+  return trips as { title: string }
+}
+
 export default async function ItemsListPage() {
   const { userId } = await auth()
   if (!userId) redirect('/sign-in')
@@ -62,7 +68,7 @@ export default async function ItemsListPage() {
               </thead>
               <tbody>
                 {items.map((item, i) => {
-                  const trip = Array.isArray(item.trips) ? item.trips[0] : item.trips
+                  const trip = resolveTrip(item.trips)
                   return (
                     <tr
                       key={item.id}
@@ -106,7 +112,7 @@ export default async function ItemsListPage() {
           <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No items yet.</p>
         ) : (
           items.map(item => {
-            const trip = Array.isArray(item.trips) ? item.trips[0] : item.trips
+            const trip = resolveTrip(item.trips)
             return (
               <Link
                 key={item.id}

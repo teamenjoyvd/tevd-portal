@@ -37,7 +37,11 @@ export function ItemCreateForm() {
 
   const { data: trips = [] } = useQuery<TripOption[]>({
     queryKey: ['trips'],
-    queryFn: () => fetch('/api/trips').then(r => r.json()),
+    queryFn: async () => {
+      const res = await fetch('/api/trips')
+      if (!res.ok) throw new Error('Failed to fetch trips')
+      return res.json()
+    },
   })
 
   const isValid = !!form.title.trim() && !!form.amount
