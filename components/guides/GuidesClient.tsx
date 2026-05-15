@@ -7,6 +7,7 @@ import { useLanguage } from '@/lib/hooks/useLanguage'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { formatDate } from '@/lib/format'
 import type { Guide, SiteLink, NewsItem } from '@/lib/server/guides'
+import type { JSONContent } from '@tiptap/core'
 
 export type Props = {
   initialGuides: Guide[]
@@ -21,20 +22,26 @@ function normaliseUrl(raw: string): string {
   return `https://${raw}`
 }
 
-/** Extract up to `maxChars` of plain text from a block-editor body array. */
-type Block = { type: string; content?: unknown }
-function excerptFromBody(body: unknown[] | null, maxChars = 140): string {
-  if (!body || body.length === 0) return ''
-  const chunks: string[] = []
-  let total = 0
-  for (const block of body as Block[]) {
-    if (total >= maxChars) break
-    const raw = JSON.stringify(block.content ?? '')
-    const text = raw.replace(/["{}[\]]/g, ' ').replace(/\\n/g, ' ').replace(/\s+/g, ' ').trim()
-    if (text) { chunks.push(text); total += text.length }
+/** Recursively collect plain text from a Tiptap JSONContent node tree. */
+function collectText(node: JSONContent, chunks: string[]): void {
+  if (node.type === 'text' && typeof node.text === 'string') {
+    chunks.push(node.text)
   }
-  const joined = chunks.join(' ').slice(0, maxChars)
-  return joined.length < chunks.join(' ').length ? joined + '\u2026' : joined
+  if (Array.isArray(node.content)) {
+    for (const child of node.content) {
+      collectText(child, chunks)
+    }
+  }
+}
+
+/** Extract up to `maxChars` of plain text from a Tiptap JSONContent body. */
+function excerptFromJSONContent(body: JSONContent | null, maxChars = 140): string {
+  if (!body) return ''
+  const chunks: string[] = []
+  collectText(body, chunks)
+  const joined = chunks.join(' ').replace(/\s+/g, ' ').trim()
+  if (joined.length <= maxChars) return joined
+  return joined.slice(0, maxChars) + '\u2026'
 }
 
 // ── SVG icons ──────────────────────────────────────────────────────────────────────────────────
@@ -126,7 +133,11 @@ function GuidesInner({ initialGuides: guides, initialLinks: links, initialNews: 
   }
 
   function GuideCard({ g }: { g: Guide }) {
-    const excerpt = excerptFromBody(g.body)
+    // Pick the body for the current UI language, fall back to the other language.
+    const body = lang === 'bg'
+      ? (g.body_bg ?? g.body_en)
+      : (g.body_en ?? g.body_bg)
+    const excerpt = excerptFromJSONContent(body)
     return (
       <Link
         href={`${guideHrefPrefix}/${g.slug}`}

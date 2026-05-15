@@ -4,6 +4,7 @@
 // Server-only — never import from client components.
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import type { JSONContent } from '@tiptap/core'
 
 /**
  * Resolves the access role for the current request.
@@ -31,7 +32,8 @@ export type Guide = {
   title: { en: string; bg: string }
   emoji: string | null
   cover_image_url: string | null
-  body: unknown[] | null
+  body_en: JSONContent | null
+  body_bg: JSONContent | null
   access_roles: string[]
   created_at: string
 }
@@ -64,7 +66,7 @@ export async function listGuidesForRole({
   const supabase = createServiceClient()
   const { data, error } = await supabase
     .from('guides')
-    .select('id, slug, title, emoji, cover_image_url, body, access_roles, created_at')
+    .select('id, slug, title, emoji, cover_image_url, body_en, body_bg, access_roles, created_at')
     .eq('is_published', true)
     .contains('access_roles', [role])
     .order('created_at', { ascending: false })

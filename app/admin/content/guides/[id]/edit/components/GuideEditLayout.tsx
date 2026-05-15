@@ -6,7 +6,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { AdminStatusBadge } from '@/app/admin/components/AdminStatusBadge'
 import { RoleSelector } from '@/app/admin/components/RoleSelector'
 import { CoverImageUploader } from '@/app/admin/content/components/CoverImageUploader'
-import { BlockEditor } from '@/app/admin/content/components/BlockEditor'
+import { TiptapEditor } from '@/app/admin/content/components/TiptapEditor'
 import { GuideAttachmentsPanel } from './GuideAttachmentsPanel'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { ALL_ROLES, slugify, type Guide } from '@/app/admin/content/components/guide-types'
@@ -40,7 +40,7 @@ function LeftPanel({
 
   function copySlugUrl() {
     const base = process.env.NEXT_PUBLIC_APP_URL ?? window.location.origin
-    navigator.clipboard.writeText(`${base}/guides/${form.slug}`)
+    navigator.clipboard.writeText(`${base}/library/${form.slug}`)
     setCopied(true)
     setTimeout(() => setCopied(false), 1500)
   }
@@ -207,7 +207,8 @@ export function GuideEditLayout({ guide }: { guide: Guide }) {
     title: guide.title,
     cover_image_url: guide.cover_image_url,
     emoji: guide.emoji,
-    body: Array.isArray(guide.body) ? guide.body : [],
+    body_en: guide.body_en,
+    body_bg: guide.body_bg,
     access_roles: Array.isArray(guide.access_roles) ? guide.access_roles : [...ALL_ROLES],
     is_published: guide.is_published,
     sort_order: guide.sort_order,
@@ -254,7 +255,7 @@ export function GuideEditLayout({ guide }: { guide: Guide }) {
       {/* ═══════════════════════════════════════════════════════════════
           DESKTOP layout (lg+)
           Left panel: fixed 320px metadata + always-visible save
-          Right panel: flex-1, block editor, independent scroll
+          Right panel: flex-1, dual Tiptap editors (EN / BG), independent scroll
           ═══════════════════════════════════════════════════════════════ */}
       <div className="hidden lg:flex h-screen overflow-hidden">
         {/* Left panel */}
@@ -262,7 +263,6 @@ export function GuideEditLayout({ guide }: { guide: Guide }) {
           className="w-80 flex-shrink-0 overflow-y-auto border-r p-6"
           style={{ borderColor: 'var(--border-default)', backgroundColor: 'var(--bg-card)' }}
         >
-          {/* Back nav */}
           <button
             onClick={handleCancel}
             className="flex items-center gap-1.5 text-xs font-semibold mb-6 hover:opacity-70 transition-opacity"
@@ -279,18 +279,26 @@ export function GuideEditLayout({ guide }: { guide: Guide }) {
           <LeftPanel {...sharedPanelProps} />
         </div>
 
-        {/* Right panel — block editor */}
-        <div className="flex-1 overflow-y-auto p-8">
-          <BlockEditor
-            blocks={form.body}
-            onChange={body => setForm(f => ({ ...f, body }))}
+        {/* Right panel — dual Tiptap editors */}
+        <div className="flex-1 overflow-y-auto p-8 space-y-6">
+          <TiptapEditor
+            label="EN"
+            value={form.body_en}
+            onChange={body_en => setForm(f => ({ ...f, body_en }))}
+            placeholder="English body…"
+          />
+          <TiptapEditor
+            label="BG"
+            value={form.body_bg}
+            onChange={body_bg => setForm(f => ({ ...f, body_bg }))}
+            placeholder="Bulgarian body…"
           />
         </div>
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════
           MOBILE layout (< lg)
-          Single column: back nav → title → metadata → block editor → save
+          Single column: back nav → title → metadata → editors → save
           ═══════════════════════════════════════════════════════════════ */}
       <div className="lg:hidden px-4 py-6 space-y-6">
         <button
@@ -307,12 +315,18 @@ export function GuideEditLayout({ guide }: { guide: Guide }) {
           {form.title.en || form.slug}
         </h1>
         <LeftPanel {...sharedPanelProps} />
-        <div>
-          <label className="text-xs font-semibold uppercase tracking-widest mb-2 block"
-            style={{ color: 'var(--text-secondary)' }}>Body Blocks</label>
-          <BlockEditor
-            blocks={form.body}
-            onChange={body => setForm(f => ({ ...f, body }))}
+        <div className="space-y-3">
+          <TiptapEditor
+            label="EN"
+            value={form.body_en}
+            onChange={body_en => setForm(f => ({ ...f, body_en }))}
+            placeholder="English body…"
+          />
+          <TiptapEditor
+            label="BG"
+            value={form.body_bg}
+            onChange={body_bg => setForm(f => ({ ...f, body_bg }))}
+            placeholder="Bulgarian body…"
           />
         </div>
       </div>

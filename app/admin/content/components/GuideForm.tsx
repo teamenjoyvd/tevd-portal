@@ -5,7 +5,7 @@ import { AdminStatusBadge } from '@/app/admin/components/AdminStatusBadge'
 import { RoleSelector } from '@/app/admin/components/RoleSelector'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { ALL_ROLES, slugify, type Guide } from './guide-types'
-import { BlockEditor } from './BlockEditor'
+import { TiptapEditor } from './TiptapEditor'
 import { CoverImageUploader } from './CoverImageUploader'
 
 export function GuideForm({
@@ -24,7 +24,6 @@ export function GuideForm({
   const { t } = useLanguage()
   const [form, setForm] = useState({
     ...initial,
-    body: Array.isArray(initial.body) ? initial.body : [],
     access_roles: Array.isArray(initial.access_roles) ? initial.access_roles : [...ALL_ROLES],
   })
   const [slugManual, setSlugManual] = useState(!!initial.slug)
@@ -33,7 +32,7 @@ export function GuideForm({
 
   function copySlugUrl() {
     const base = process.env.NEXT_PUBLIC_APP_URL ?? window.location.origin
-    navigator.clipboard.writeText(`${base}/guides/${form.slug}`)
+    navigator.clipboard.writeText(`${base}/library/${form.slug}`)
     setCopied(true)
     setTimeout(() => setCopied(false), 1500)
   }
@@ -139,10 +138,21 @@ export function GuideForm({
         />
       </div>
 
-      <div>
-        <label className="text-xs font-semibold uppercase tracking-widest mb-2 block"
-          style={{ color: 'var(--text-secondary)' }}>{t('admin.content.guides.lbl.bodyBlocks')}</label>
-        <BlockEditor blocks={form.body} onChange={body => setForm(f => ({ ...f, body }))} />
+      <div className="space-y-3">
+        <label className="text-xs font-semibold uppercase tracking-widest block"
+          style={{ color: 'var(--text-secondary)' }}>Body</label>
+        <TiptapEditor
+          label="EN"
+          value={form.body_en}
+          onChange={body_en => setForm(f => ({ ...f, body_en }))}
+          placeholder="English body…"
+        />
+        <TiptapEditor
+          label="BG"
+          value={form.body_bg}
+          onChange={body_bg => setForm(f => ({ ...f, body_bg }))}
+          placeholder="Bulgarian body…"
+        />
       </div>
 
       <div className="flex items-center gap-3">

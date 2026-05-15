@@ -324,8 +324,7 @@ Normalised UNION ALL over `profiles_audit` + `role_change_audit`. Columns: `prof
 **`social_posts`** — `id, platform, post_url, caption, thumbnail_url, is_visible, is_pinned, sort_order, posted_at, created_at`
 - Single pinned: partial unique index `(WHERE is_pinned=true)`. Pin swap via `pin_social_post(p_id uuid)` RPC.
 
-**`guides`** — `id, slug, title (jsonb {en,bg}), emoji, cover_image_url, body (jsonb Block[]), access_roles, is_published, sort_order, created_at, updated_at`
-- Block: `{ type: 'heading'|'paragraph'|'callout', content: {en,bg}, emoji? }`
+**`guides`** — `id, slug, title (jsonb {en,bg}), emoji, cover_image_url, body_en (jsonb Tiptap JSONContent), body_bg (jsonb Tiptap JSONContent), access_roles, is_published, sort_order, created_at, updated_at`
 - Cover images: bucket `guide-covers` (public).
 
 **`guide_attachments`** — `id, guide_id, file_url, file_name, label, file_type, sort_order, created_at`

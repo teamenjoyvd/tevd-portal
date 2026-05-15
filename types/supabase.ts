@@ -477,7 +477,8 @@ export type Database = {
       guides: {
         Row: {
           access_roles: string[]
-          body: Json
+          body_bg: Json | null
+          body_en: Json | null
           cover_image_url: string | null
           created_at: string
           emoji: string | null
@@ -490,7 +491,8 @@ export type Database = {
         }
         Insert: {
           access_roles?: string[]
-          body?: Json
+          body_bg?: Json | null
+          body_en?: Json | null
           cover_image_url?: string | null
           created_at?: string
           emoji?: string | null
@@ -503,7 +505,8 @@ export type Database = {
         }
         Update: {
           access_roles?: string[]
-          body?: Json
+          body_bg?: Json | null
+          body_en?: Json | null
           cover_image_url?: string | null
           created_at?: string
           emoji?: string | null
@@ -1663,7 +1666,7 @@ export type Database = {
         }[]
       }
       dissolve_partnership: {
-        Args: { p_profile_id: string }
+        Args: { p_changed_by: string; p_profile_id: string }
         Returns: {
           clerk_id: string
           old_role: Database["public"]["Enums"]["user_role"]

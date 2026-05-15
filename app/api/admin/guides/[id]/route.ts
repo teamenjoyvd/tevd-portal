@@ -31,7 +31,7 @@ export async function PATCH(
   if (ctx.guard) return ctx.guard
 
   const body = await req.json()
-  const allowed = ['slug', 'title', 'cover_image_url', 'emoji', 'body', 'access_roles', 'is_published']
+  const allowed = ['slug', 'title', 'cover_image_url', 'emoji', 'body_en', 'body_bg', 'access_roles', 'is_published']
   const update: Record<string, unknown> = {}
   for (const key of allowed) {
     if (key in body) update[key] = body[key]
