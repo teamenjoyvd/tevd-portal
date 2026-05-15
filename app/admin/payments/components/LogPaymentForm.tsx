@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import {
   Select,
   SelectTrigger,
@@ -42,7 +42,7 @@ export function LogPaymentForm({
   const [payStatus, setPayStatus] = useState<'approved' | 'pending'>('approved')
   const [note, setNote] = useState('')
 
-  const activeItems = items.filter(i => i.is_active)
+  const activeItems = useMemo(() => items.filter(i => i.is_active), [items])
 
   function handleLog() {
     if (!entity || !profileId || !amount) return

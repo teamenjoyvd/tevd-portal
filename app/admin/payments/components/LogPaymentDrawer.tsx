@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Drawer } from '@/components/ui/drawer'
 import { t } from '@/lib/i18n'
@@ -44,7 +44,7 @@ export function LogPaymentDrawer({
     staleTime: 60_000,
   })
 
-  const allMembers: MemberProfile[] = (() => {
+  const allMembers: MemberProfile[] = useMemo(() => {
     if (!membersData) return []
     const seen = new Set<string>()
     const out: MemberProfile[] = []
@@ -61,7 +61,7 @@ export function LogPaymentDrawer({
       }
     }
     return out.sort((a, b) => a.last_name.localeCompare(b.last_name))
-  })()
+  }, [membersData])
 
   return (
     <Drawer

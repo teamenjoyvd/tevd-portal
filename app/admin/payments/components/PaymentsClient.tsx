@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useMutation } from '@tanstack/react-query'
 import { formatDate, formatCurrency } from '@/lib/format'
@@ -36,9 +36,12 @@ export function PaymentsClient({
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({})
   const [payError, setPayError] = useState<string | null>(null)
 
-  const payments = statusFilter === 'all'
-    ? initialPayments
-    : initialPayments.filter(p => p.admin_status === statusFilter)
+  const payments = useMemo(
+    () => statusFilter === 'all'
+      ? initialPayments
+      : initialPayments.filter(p => p.admin_status === statusFilter),
+    [initialPayments, statusFilter]
+  )
 
   const logMutation = useMutation({
     mutationFn: (body: Record<string, unknown>) =>

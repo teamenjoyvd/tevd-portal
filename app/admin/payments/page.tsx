@@ -20,12 +20,14 @@ export default async function PaymentsPage() {
 
   if (!profile || profile.role !== 'admin') redirect('/')
 
-  const { data: allPaymentsRaw } = await supabase
+  const { data: allPaymentsRaw, error } = await supabase
     .from('payments')
     .select(
       'id, amount, currency, transaction_date, admin_status, member_status, payment_method, proof_url, note, admin_note, logged_by_admin, created_at, profiles!profile_id(first_name,last_name,abo_number), trips(title,destination), payable_items(title,item_type,currency)'
     )
     .order('created_at', { ascending: false })
+
+  if (error) console.error('[PaymentsPage] payments query error:', error)
 
   const allPayments = (allPaymentsRaw ?? []) as unknown as Payment[]
 
