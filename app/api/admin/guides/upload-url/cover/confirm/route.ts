@@ -16,7 +16,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     .single()
   if (caller?.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const body = await req.json() as { path?: string }
+  const body = await req.json().catch(() => ({})) as { path?: string }
   const { path } = body
 
   if (!path || typeof path !== 'string') {
