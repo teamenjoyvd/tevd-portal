@@ -6,12 +6,22 @@ import Link from '@tiptap/extension-link'
 import Image from '@tiptap/extension-image'
 import Placeholder from '@tiptap/extension-placeholder'
 import type { JSONContent } from '@tiptap/core'
-import { useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner'
+import { ImageUploadExtension, uploadAndInsert } from './ImageUploadExtension'
 
 const TOOLBAR_BTN =
   'px-2 py-1 rounded text-xs font-semibold border transition-colors hover:bg-black/5 disabled:opacity-30'
 
-function Toolbar({ editor }: { editor: ReturnType<typeof useEditor> }) {
+function Toolbar({
+  editor,
+  onImageClick,
+  imageUploading,
+}: {
+  editor: ReturnType<typeof useEditor>
+  onImageClick: () => void
+  imageUploading: boolean
+}) {
   if (!editor) return null
   return (
     <div
@@ -51,7 +61,7 @@ function Toolbar({ editor }: { editor: ReturnType<typeof useEditor> }) {
           borderColor: 'var(--border-default)',
           color: editor.isActive('heading', { level: 2 }) ? 'var(--brand-crimson)' : 'var(--text-secondary)',
         }}
-        aria-label="Heading"
+        aria-label="Heading 2"
       >
         H2
       </button>
@@ -109,19 +119,16 @@ function Toolbar({ editor }: { editor: ReturnType<typeof useEditor> }) {
       </button>
       <button
         type="button"
-        onClick={() => {
-          const url = window.prompt('Image URL')
-          if (!url) return
-          editor.chain().focus().setImage({ src: url }).run()
-        }}
+        onClick={onImageClick}
+        disabled={imageUploading}
         className={TOOLBAR_BTN}
         style={{
           borderColor: 'var(--border-default)',
           color: 'var(--text-secondary)',
         }}
-        aria-label="Image"
+        aria-label="Upload image"
       >
-        Image
+        {imageUploading ? '↑' : 'Image'}
       </button>
     </div>
   )
@@ -138,12 +145,16 @@ export function TiptapEditor({
   placeholder?: string
   label?: string
 }): React.JSX.Element {
+  const [imageUploading, setImageUploading] = useState(false)
+  const imageInputRef = useRef<HTMLInputElement>(null)
+
   const editor = useEditor({
     extensions: [
       StarterKit,
       Link.configure({ openOnClick: false }),
-      Image,
+      Image.configure({ inline: false, allowBase64: false }),
       Placeholder.configure({ placeholder: placeholder ?? 'Write here…' }),
+      ImageUploadExtension,
     ],
     content: value ?? undefined,
     onUpdate: ({ editor: ed }) => {
@@ -161,6 +172,21 @@ export function TiptapEditor({
     }
   }, [editor, value])
 
+  async function handleImageFileSelected(file: File) {
+    if (!editor) return
+    setImageUploading(true)
+    try {
+      // Reuse uploadAndInsert from the extension — same upload endpoints,
+      // same insertion logic, no duplication.
+      await uploadAndInsert(file, editor.view)
+    } catch {
+      // uploadAndInsert handles its own toast.error; catch here only to
+      // ensure setImageUploading(false) runs in the finally block.
+    } finally {
+      setImageUploading(false)
+    }
+  }
+
   return (
     <div
       className="rounded-xl overflow-hidden border"
@@ -174,11 +200,27 @@ export function TiptapEditor({
           {label}
         </div>
       )}
-      <Toolbar editor={editor} />
+      <Toolbar
+        editor={editor}
+        onImageClick={() => imageInputRef.current?.click()}
+        imageUploading={imageUploading}
+      />
       <EditorContent
         editor={editor}
         className="tiptap-editor min-h-[200px] px-4 py-3 text-sm"
         style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
+      />
+      <input
+        ref={imageInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={e => {
+          const file = e.target.files?.[0]
+          if (file) void handleImageFileSelected(file)
+          // reset so same file can be re-selected
+          e.target.value = ''
+        }}
       />
     </div>
   )
