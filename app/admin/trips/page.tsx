@@ -20,10 +20,12 @@ export default async function TripsListPage() {
 
   if (!profile || profile.role !== 'admin') redirect('/')
 
-  const { data: trips = [] } = await supabase
+  const { data } = await supabase
     .from('trips')
     .select('id, title, destination, start_date, end_date, total_cost')
     .order('start_date', { ascending: true })
+
+  const trips = data ?? []
 
   return (
     <div className="space-y-6 pb-16">
