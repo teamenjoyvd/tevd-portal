@@ -52,9 +52,9 @@ export const FOOTER_MEMBER_NAV: NavItem[] = MEMBER_NAV.filter(
 
 export const ADMIN_NAV: NavItem[] = [
   { href: '/admin/approval-hub', labels: { en: 'Approval Hub', bg: 'Approval Hub' } },
-  { href: '/admin/operations',   labels: { en: 'Operations',   bg: 'Operations'   } },
   { href: '/admin/trips',        labels: { en: 'Trips',        bg: 'Пътувания'   } },
   { href: '/admin/items',        labels: { en: 'Items',        bg: 'Артикули'     } },
+  { href: '/admin/payments',     labels: { en: 'Payments',     bg: 'Плащания'     } },
   { href: '/admin/calendar',     labels: { en: 'Calendar',     bg: 'Calendar'     } },
   { href: '/admin/content',      labels: { en: 'Content',      bg: 'Content'      } },
   { href: '/admin/members',      labels: { en: 'Members',      bg: 'Members'      } },
