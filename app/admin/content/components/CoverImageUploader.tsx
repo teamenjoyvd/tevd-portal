@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
+import { uploadToSignedUrl } from '@/lib/utils/uploadToSignedUrl'
+import { toast } from 'sonner'
 
 export function CoverImageUploader({
   value,
@@ -21,14 +23,14 @@ export function CoverImageUploader({
     setUploading(true)
     onUploading?.(true)
     try {
-      const fd = new FormData()
-      fd.append('file', file)
-      const res = await fetch('/api/admin/guides/upload', { method: 'POST', body: fd })
-      if (!res.ok) throw new Error((await res.json()).error ?? 'Upload failed')
-      const { url } = await res.json() as { url: string }
+      const url = await uploadToSignedUrl(
+        file,
+        '/api/admin/guides/upload-url/cover',
+        '/api/admin/guides/upload-url/cover-confirm',
+      )
       onChange(url)
     } catch (e) {
-      alert((e as Error).message)
+      toast.error((e as Error).message ?? 'Cover upload failed')
     } finally {
       setUploading(false)
       onUploading?.(false)
@@ -52,7 +54,7 @@ export function CoverImageUploader({
             type="file"
             accept="image/*"
             className="hidden"
-            onChange={e => { const f = e.target.files?.[0]; if (f) handleFileUpload(f) }}
+            onChange={e => { const f = e.target.files?.[0]; if (f) void handleFileUpload(f) }}
           />
         </label>
         {coverFile && !uploading && (
