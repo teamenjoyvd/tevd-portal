@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Trash2, Upload } from 'lucide-react'
 import {
@@ -48,9 +48,17 @@ export function TripFilesSection({ tripId }: { tripId: string }) {
         if (!r.ok) throw new Error((await r.json()).error)
         return r.json()
       }),
-    // Clear optimistic list when server data arrives
-    select: data => { setOptimistic([]); return data },
   })
+
+  // Remove confirmed optimistic entries post-render. Guard on length > 0 so this
+  // is a no-op while loading (default [] reference is stable but length check is
+  // explicit insurance). Filter-based removal preserves in-flight entries that
+  // haven't landed in the server list yet.
+  useEffect(() => {
+    if (serverAttachments.length > 0) {
+      setOptimistic(prev => prev.filter(o => !serverAttachments.some(s => s.file_url === o.file_url)))
+    }
+  }, [serverAttachments])
 
   // Merge: show server list + any optimistic entries not yet in server list
   const attachments = [
