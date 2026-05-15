@@ -6,7 +6,7 @@ export async function GET() {
   const supabase = createServiceClient()
   const { data, error } = await supabase
     .from('guides')
-    .select('id, slug, title, emoji, cover_image_url, body, access_roles, is_published, created_at, updated_at, sort_order')
+    .select('id, slug, title, emoji, cover_image_url, body_en, body_bg, access_roles, is_published, created_at, updated_at, sort_order')
     .order('sort_order')
     .order('created_at', { ascending: false })
   if (error) return Response.json({ error: error.message }, { status: 500 })
@@ -41,7 +41,8 @@ export async function POST(req: Request) {
       title:           body.title,
       cover_image_url: body.cover_image_url ?? null,
       emoji:           body.emoji ?? null,
-      body:            body.body ?? [],
+      body_en:         body.body_en ?? null,
+      body_bg:         body.body_bg ?? null,
       access_roles:    body.access_roles ?? ['guest', 'member', 'core', 'admin'],
       is_published:    body.is_published ?? false,
     })
