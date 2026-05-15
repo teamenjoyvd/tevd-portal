@@ -196,8 +196,7 @@ Normalised UNION ALL over `profiles_audit` + `role_change_audit`. Columns: `prof
 - RLS: requester reads/inserts/deletes own pending; admin full access.
 
 **`guides`**
-`id, slug, title (jsonb {en,bg}), emoji, cover_image_url, body (jsonb Block[]), access_roles, is_published, sort_order, created_at, updated_at`
-- Block shape: `{ type: 'heading'|'paragraph'|'callout', content: {en,bg}, emoji? }`
+`id, slug, title (jsonb {en,bg}), emoji, cover_image_url, body_en (jsonb Tiptap JSONContent), body_bg (jsonb Tiptap JSONContent), access_roles, is_published, sort_order, created_at, updated_at`
 - Cover images: Supabase Storage bucket `guide-covers` (public).
 
 **`guide_attachments`**
