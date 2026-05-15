@@ -8,8 +8,7 @@ import Placeholder from '@tiptap/extension-placeholder'
 import type { JSONContent } from '@tiptap/core'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
-import { uploadToSignedUrl } from '@/lib/utils/uploadToSignedUrl'
-import { ImageUploadExtension } from './ImageUploadExtension'
+import { ImageUploadExtension, uploadAndInsert } from './ImageUploadExtension'
 
 const TOOLBAR_BTN =
   'px-2 py-1 rounded text-xs font-semibold border transition-colors hover:bg-black/5 disabled:opacity-30'
@@ -177,14 +176,12 @@ export function TiptapEditor({
     if (!editor) return
     setImageUploading(true)
     try {
-      const url = await uploadToSignedUrl(
-        file,
-        '/api/admin/guides/upload-url',
-        '/api/admin/guides/upload-url/confirm',
-      )
-      editor.chain().focus().setImage({ src: url }).run()
-    } catch (e) {
-      toast.error((e as Error).message ?? 'Image upload failed')
+      // Reuse uploadAndInsert from the extension — same upload endpoints,
+      // same insertion logic, no duplication.
+      await uploadAndInsert(file, editor.view)
+    } catch {
+      // uploadAndInsert handles its own toast.error; catch here only to
+      // ensure setImageUploading(false) runs in the finally block.
     } finally {
       setImageUploading(false)
     }

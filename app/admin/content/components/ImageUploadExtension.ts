@@ -4,7 +4,12 @@ import type { EditorView } from '@tiptap/pm/view'
 import { uploadToSignedUrl } from '@/lib/utils/uploadToSignedUrl'
 import { toast } from 'sonner'
 
-async function uploadAndInsert(file: File, view: EditorView, pos?: number): Promise<void> {
+/**
+ * Upload a file and insert an image node at the given position (or current
+ * selection if pos is undefined). Exported so TiptapEditor can reuse it
+ * for the toolbar file-picker path without duplicating the upload call.
+ */
+export async function uploadAndInsert(file: File, view: EditorView, pos?: number): Promise<void> {
   try {
     const url = await uploadToSignedUrl(
       file,

@@ -18,7 +18,8 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   if (caller?.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const filename = req.nextUrl.searchParams.get('filename') ?? 'upload'
-  const ext = filename.split('.').pop() ?? 'bin'
+  const parts = filename.split('.')
+  const ext = parts.length > 1 ? parts.pop()! : 'bin'
   const path = `covers/${randomUUID()}.${ext}`
 
   const { data, error } = await supabase.storage
