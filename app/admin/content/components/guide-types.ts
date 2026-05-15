@@ -1,7 +1,6 @@
 // Shared domain types and utilities for guide/news content.
 // No 'use client' — plain TypeScript module.
-
-import type { JSONContent } from '@tiptap/react'
+import type { JSONContent } from '@tiptap/core'
 
 export type Guide = {
   id: string
@@ -9,7 +8,8 @@ export type Guide = {
   title: { en: string; bg: string }
   cover_image_url: string | null
   emoji: string | null
-  body: { en: JSONContent; bg: JSONContent } | null
+  body_en: JSONContent | null
+  body_bg: JSONContent | null
   access_roles: string[]
   is_published: boolean
   created_at: string
@@ -29,7 +29,8 @@ export function emptyGuide(): Omit<Guide, 'id' | 'created_at' | 'updated_at'> {
     title: { en: '', bg: '' },
     cover_image_url: null,
     emoji: null,
-    body: null,
+    body_en: null,
+    body_bg: null,
     access_roles: [...ALL_ROLES],
     is_published: false,
     sort_order: 0,

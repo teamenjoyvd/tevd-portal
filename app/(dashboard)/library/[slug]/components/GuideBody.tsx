@@ -1,30 +1,18 @@
 'use client'
 
 import { useState } from 'react'
-import { marked } from 'marked'
-import sanitizeHtml from 'sanitize-html'
-import { FileText, Image, File, Download } from 'lucide-react'
-import BentoCard from '@/components/bento/BentoCard'
+import { generateHTML } from '@tiptap/html'
+import StarterKit from '@tiptap/starter-kit'
+import Link from '@tiptap/extension-link'
+import Image from '@tiptap/extension-image'
+import type { JSONContent } from '@tiptap/core'
+import { FileText, Image as ImageIcon, File, Download } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
   DialogOverlay,
 } from '@/components/ui/dialog'
 import { useLanguage } from '@/lib/hooks/useLanguage'
-
-type TextBlock = {
-  type: 'heading' | 'paragraph' | 'callout'
-  content: { en: string; bg: string }
-  emoji?: string
-}
-
-type ImageBlock = {
-  type: 'image'
-  url: string
-  caption?: { en: string; bg: string }
-}
-
-type Block = TextBlock | ImageBlock
 
 type Attachment = {
   id: string
@@ -35,164 +23,37 @@ type Attachment = {
   sort_order: number
 }
 
-const SANITIZE_OPTS: sanitizeHtml.IOptions = {
-  allowedTags: ['strong', 'em', 'code', 'del', 'u', 'br', 'p', 'ul', 'ol', 'li', 'a'],
-  allowedAttributes: {
-    a: ['href', 'target', 'rel'],
-  },
-  allowedSchemes: ['https', 'http'],
-}
-
-function renderMarkdown(text: string): string {
-  const raw = marked.parse(text, { async: false, breaks: true }) as string
-  return sanitizeHtml(raw, SANITIZE_OPTS)
-}
-
-function getContent(block: TextBlock, lang: string): string {
-  return (block.content as Record<string, string>)[lang] ?? block.content.en ?? ''
-}
-
-function getCaption(block: ImageBlock, lang: string): string {
-  if (!block.caption) return ''
-  return (block.caption as Record<string, string>)[lang] ?? block.caption.en ?? ''
-}
+const TIPTAP_EXTENSIONS = [StarterKit, Link, Image]
 
 function AttachmentIcon({ type }: { type: Attachment['file_type'] }) {
   if (type === 'pdf')   return <FileText size={16} style={{ color: 'var(--brand-crimson)', flexShrink: 0 }} />
-  if (type === 'image') return <Image    size={16} style={{ color: 'var(--brand-teal)',    flexShrink: 0 }} />
+  if (type === 'image') return <ImageIcon size={16} style={{ color: 'var(--brand-teal)',    flexShrink: 0 }} />
   return                       <File     size={16} style={{ color: 'var(--text-secondary)', flexShrink: 0 }} />
 }
 
 export default function GuideBody({
-  blocks,
+  body,
   lang,
   attachments = [],
 }: {
-  blocks: unknown[] | null
+  body: JSONContent | null
   lang: string
   attachments?: Attachment[]
 }) {
   const { t } = useLanguage()
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
-  const [lightboxCaption, setLightboxCaption] = useState<string>('')
 
-  function openLightbox(url: string, caption: string) {
-    setLightboxUrl(url)
-    setLightboxCaption(caption)
-  }
-
-  function closeLightbox() {
-    setLightboxUrl(null)
-    setLightboxCaption('')
-  }
-
-  const typedBlocks = (blocks ?? []) as Block[]
-
-  const rendered: React.ReactNode[] = []
-  let i = 0
-
-  while (i < typedBlocks.length) {
-    const block = typedBlocks[i]
-
-    if (block.type === 'image') {
-      const run: ImageBlock[] = []
-      while (i < typedBlocks.length && typedBlocks[i].type === 'image') {
-        run.push(typedBlocks[i] as ImageBlock)
-        i++
-      }
-
-      rendered.push(
-        <div key={`img-run-${i}`} className="flex flex-row flex-wrap gap-2">
-          {run.map((imgBlock, j) => {
-            if (!imgBlock.url) return null
-            const caption = getCaption(imgBlock, lang)
-            return (
-              <div key={j} className="flex flex-col items-center" style={{ width: 88 }}>
-                <button
-                  type="button"
-                  className="cursor-zoom-in rounded-lg overflow-hidden focus:outline-none focus-visible:ring-2"
-                  style={{ width: 88, height: 88, flexShrink: 0 }}
-                  onClick={() => openLightbox(imgBlock.url, caption)}
-                  aria-label={caption || 'View image'}
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={imgBlock.url}
-                    alt={caption || ''}
-                    style={{ width: 88, height: 88, objectFit: 'cover', display: 'block' }}
-                  />
-                </button>
-                {caption && (
-                  <span
-                    className="mt-1 text-center leading-tight"
-                    style={{
-                      fontSize: 10,
-                      width: 88,
-                      color: 'var(--text-secondary)',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      display: 'block',
-                    }}
-                    title={caption}
-                  >
-                    {caption}
-                  </span>
-                )}
-              </div>
-            )
-          })}
-        </div>
-      )
-      continue
-    }
-
-    const content = getContent(block as TextBlock, lang)
-    if (!content) { i++; continue }
-
-    if (block.type === 'heading') {
-      rendered.push(
-        <h2
-          key={i}
-          className="font-display text-xl font-semibold pt-4"
-          style={{ color: 'var(--text-primary)' }}
-        >
-          {content}
-        </h2>
-      )
-    } else if (block.type === 'callout') {
-      rendered.push(
-        <BentoCard key={i} variant="edge-info" colSpan={12}>
-          <div className="flex items-start gap-3">
-            {block.emoji && (
-              <span className="text-xl flex-shrink-0 mt-0.5">{block.emoji}</span>
-            )}
-            <div
-              className="text-sm leading-relaxed font-body prose-sm"
-              style={{ color: 'var(--text-primary)' }}
-              dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }}
-            />
-          </div>
-        </BentoCard>
-      )
-    } else {
-      rendered.push(
-        <div
-          key={i}
-          className="text-base leading-relaxed font-body prose-sm"
-          style={{ color: 'var(--text-secondary)' }}
-          dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }}
-        />
-      )
-    }
-
-    i++
-  }
+  const html = body ? generateHTML(body, TIPTAP_EXTENSIONS) : ''
 
   return (
     <>
-      <div className="guide-body max-w-2xl space-y-6">
-        {rendered}
+      <div className="guide-body max-w-2xl">
+        <div
+          className="tiptap-output"
+          // Content is generated server-side from admin-controlled JSONContent.
+          // No user-submitted HTML reaches this path.
+          dangerouslySetInnerHTML={{ __html: html }}
+        />
 
         {/* Downloads section */}
         {attachments.length > 0 && (
@@ -223,31 +84,21 @@ export default function GuideBody({
         )}
       </div>
 
-      {/* Lightbox */}
-      <Dialog open={!!lightboxUrl} onOpenChange={open => { if (!open) closeLightbox() }}>
+      {/* Lightbox — triggered programmatically if needed in future */}
+      <Dialog open={!!lightboxUrl} onOpenChange={open => { if (!open) setLightboxUrl(null) }}>
         <DialogOverlay style={{ backgroundColor: 'rgba(0,0,0,0.85)' }} />
         <DialogContent
           className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-transparent border-none shadow-none p-0 max-w-[90vw] flex flex-col items-center gap-3 [&>button]:text-white [&>button]:opacity-100 [&>button]:bg-black/40 [&>button]:rounded-full [&>button]:p-1"
           aria-label="Image lightbox"
         >
           {lightboxUrl && (
-            <>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={lightboxUrl}
-                alt={lightboxCaption || ''}
-                className="rounded-xl max-w-full"
-                style={{ maxHeight: '80vh', objectFit: 'contain', width: 'auto' }}
-              />
-              {lightboxCaption && (
-                <p
-                  className="text-sm text-center font-body"
-                  style={{ color: 'rgba(255,255,255,0.8)' }}
-                >
-                  {lightboxCaption}
-                </p>
-              )}
-            </>
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={lightboxUrl}
+              alt=""
+              className="rounded-xl max-w-full"
+              style={{ maxHeight: '80vh', objectFit: 'contain', width: 'auto' }}
+            />
           )}
         </DialogContent>
       </Dialog>
