@@ -50,10 +50,14 @@ export function TripFilesSection({ tripId }: { tripId: string }) {
       }),
   })
 
-  // Clear optimistic list after server data arrives — must be post-render (useEffect),
-  // not inside select/queryFn which fire during render and cause React #301.
+  // Remove confirmed optimistic entries post-render. Guard on length > 0 so this
+  // is a no-op while loading (default [] reference is stable but length check is
+  // explicit insurance). Filter-based removal preserves in-flight entries that
+  // haven't landed in the server list yet.
   useEffect(() => {
-    setOptimistic([])
+    if (serverAttachments.length > 0) {
+      setOptimistic(prev => prev.filter(o => !serverAttachments.some(s => s.file_url === o.file_url)))
+    }
   }, [serverAttachments])
 
   // Merge: show server list + any optimistic entries not yet in server list
