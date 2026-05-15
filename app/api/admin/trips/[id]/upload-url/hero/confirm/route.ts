@@ -1,19 +1,6 @@
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
 
-async function purgeStorageFolder(
-  supabase: ReturnType<typeof createServiceClient>,
-  folder: string
-) {
-  const { data: objects } = await supabase.storage
-    .from('trip-hero-images')
-    .list(folder)
-  if (objects && objects.length > 0) {
-    const paths = objects.map(o => `${folder}/${o.name}`)
-    await supabase.storage.from('trip-hero-images').remove(paths)
-  }
-}
-
 export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -33,7 +20,7 @@ export async function POST(
     return Response.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const body = await req.json() as { path?: string }
+  const body = await req.json().catch(() => ({})) as { path?: string }
   const { path } = body
 
   if (!path) {

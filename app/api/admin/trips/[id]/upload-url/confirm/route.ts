@@ -29,7 +29,7 @@ export async function POST(
     return Response.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const body = await req.json() as { path?: string; filename?: string; fileType?: string }
+  const body = await req.json().catch(() => ({})) as { path?: string; filename?: string; fileType?: string }
   const { path, filename, fileType } = body
 
   if (!path || !filename || !fileType) {
@@ -75,6 +75,8 @@ export async function POST(
     .single()
 
   if (insertError) {
+    // Best-effort cleanup of orphaned storage object
+    await supabase.storage.from('trip-attachments').remove([path])
     return Response.json({ error: insertError.message }, { status: 500 })
   }
 
