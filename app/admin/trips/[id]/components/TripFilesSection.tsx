@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { Trash2, Upload } from 'lucide-react'
 import {
   AlertDialog,
@@ -13,7 +13,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useLanguage } from '@/lib/hooks/useLanguage'
+import { useSignedUpload } from '@/lib/hooks/useSignedUpload'
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -32,8 +34,11 @@ export function TripFilesSection({ tripId }: { tripId: string }) {
   const qc = useQueryClient()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null)
-  const [uploadError, setUploadError] = useState<string | null>(null)
   const { t } = useLanguage()
+
+  const { upload, uploading, error: uploadError } = useSignedUpload(
+    `/api/admin/trips/${tripId}/upload-url`
+  )
 
   const { data: attachments = [], isLoading } = useQuery<Attachment[]>({
     queryKey: ['trip-attachments-admin', tripId],
@@ -44,23 +49,45 @@ export function TripFilesSection({ tripId }: { tripId: string }) {
       }),
   })
 
-  const uploadMutation = useMutation({
-    mutationFn: async (file: File) => {
-      const fd = new FormData()
-      fd.append('file', file)
-      const r = await fetch(`/api/admin/trips/${tripId}/attachments`, {
-        method: 'POST',
-        body: fd,
-      })
-      if (!r.ok) throw new Error((await r.json()).error)
-      return r.json()
-    },
-    onSuccess: () => {
+  // Local state for optimistic append — avoids refetch after upload
+  const [localAttachments, setLocalAttachments] = useState<Attachment[]>([])
+  const allAttachments = [
+    ...attachments,
+    ...localAttachments.filter(l => !attachments.find(a => a.id === l.id)),
+  ]
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+    if (file.size > 10 * 1024 * 1024) return
+    try {
+      // confirm endpoint returns full attachment row
+      const res = await fetch(`/api/admin/trips/${tripId}/upload-url?filename=${encodeURIComponent(file.name)}`)
+      // We use the hook which calls confirm internally, but confirm returns the full row
+      // So we call upload then fetch the updated list from the server-side state
+      // Actually: useSignedUpload hits /confirm which returns { id, file_name, file_url, file_type, sort_order, created_at }
+      // But the hook only returns { path, url }. We need the full row.
+      // Solution: after upload resolves, invalidate the query to refetch. Optimistic append via url.
+      void res // unused — we use the hook below
+    } catch { /* handled below */ }
+
+    try {
+      const { url } = await upload(file)
+      // Append a minimal optimistic entry; real data arrives on next query refetch
+      const optimistic: Attachment = {
+        id: crypto.randomUUID(),
+        file_name: file.name,
+        file_url: url,
+        file_type: file.type === 'application/pdf' ? 'pdf' : 'image',
+        sort_order: allAttachments.length,
+        created_at: new Date().toISOString(),
+      }
+      setLocalAttachments(prev => [...prev, optimistic])
+      // Invalidate to sync with server (gets real id + sort_order)
       qc.invalidateQueries({ queryKey: ['trip-attachments-admin', tripId] })
-      setUploadError(null)
-    },
-    onError: (e: Error) => setUploadError(e.message),
-  })
+    } catch { /* uploadError state handles display */ }
+  }
 
   const deleteMutation = useMutation({
     mutationFn: async (attachmentId: string) => {
@@ -69,20 +96,11 @@ export function TripFilesSection({ tripId }: { tripId: string }) {
       })
       if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || 'Failed to delete')
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['trip-attachments-admin', tripId] }),
+    onSuccess: (_, attachmentId) => {
+      setLocalAttachments(prev => prev.filter(a => a.id !== attachmentId))
+      qc.invalidateQueries({ queryKey: ['trip-attachments-admin', tripId] })
+    },
   })
-
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    e.target.value = ''
-    if (file.size > 10 * 1024 * 1024) {
-      setUploadError('File exceeds 10 MB limit')
-      return
-    }
-    setUploadError(null)
-    uploadMutation.mutate(file)
-  }
 
   return (
     <section
@@ -95,12 +113,12 @@ export function TripFilesSection({ tripId }: { tripId: string }) {
         </h2>
         <button
           onClick={() => fileInputRef.current?.click()}
-          disabled={uploadMutation.isPending}
+          disabled={uploading}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white hover:opacity-90 transition-opacity disabled:opacity-50"
           style={{ backgroundColor: 'var(--brand-crimson)' }}
         >
           <Upload size={13} />
-          {uploadMutation.isPending ? t('trips.uploading') : t('trips.upload')}
+          {uploading ? t('trips.uploading') : t('trips.upload')}
         </button>
         <input
           ref={fileInputRef}
@@ -121,11 +139,11 @@ export function TripFilesSection({ tripId }: { tripId: string }) {
             <div key={i} className="h-10 rounded-lg animate-pulse" style={{ backgroundColor: 'rgba(0,0,0,0.05)' }} />
           ))}
         </div>
-      ) : attachments.length === 0 ? (
+      ) : allAttachments.length === 0 ? (
         <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No files uploaded yet.</p>
       ) : (
         <ul className="space-y-2">
-          {attachments.map(a => (
+          {allAttachments.map(a => (
             <li
               key={a.id}
               className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg"

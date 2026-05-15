@@ -4,16 +4,14 @@ import { Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import AdminTabs, { TabsContent } from '@/app/admin/components/AdminTabs'
-import { TripsTab } from './components/TripsTab'
 import { ItemsTab } from './components/ItemsTab'
 import { PaymentsTab } from './components/PaymentsTab'
-import type { Trip } from './components/operations-types'
+import type { Trip } from '@/lib/types/trips'
 import type { MembersResponse } from './components/operations-types'
 
-// ── Constants ────────────────────────────────────────────────────
+// ── Constants ─────────────────────────────────────────────────────
 
 const TABS = [
-  { key: 'trips',    label: 'Trips'    },
   { key: 'items',    label: 'Items'    },
   { key: 'payments', label: 'Payments' },
 ] as const
@@ -24,9 +22,10 @@ type TabKey = typeof TABS[number]['key']
 function OperationsInner() {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const tab = (searchParams.get('tab') ?? 'trips') as TabKey
+  const tab = (searchParams.get('tab') ?? 'items') as TabKey
 
-  const { data: trips = [], isLoading: tripsLoading } = useQuery<Trip[]>({
+  // trips query retained: ItemsTab + PaymentsTab consumers
+  const { data: trips = [] } = useQuery<Trip[]>({
     queryKey: ['trips'],
     queryFn: () => fetch('/api/trips').then(r => r.json()),
   })
@@ -49,7 +48,6 @@ function OperationsInner() {
         value={tab}
         onValueChange={val => router.replace(`?tab=${val}`, { scroll: false })}
       >
-        <TabsContent value="trips"><TripsTab trips={trips} isLoading={tripsLoading} /></TabsContent>
         <TabsContent value="items"><ItemsTab trips={trips} /></TabsContent>
         <TabsContent value="payments"><PaymentsTab trips={trips} membersData={membersData} /></TabsContent>
       </AdminTabs>
