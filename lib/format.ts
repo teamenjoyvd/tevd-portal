@@ -168,12 +168,17 @@ export function timeAgoMs(
 /**
  * Extracts a plain-text excerpt from a Tiptap JSONContent document.
  *
- * Walks the node tree recursively, collecting text leaf values (nodes with
- * type === 'text' and a string `text` property). Joins them with a single
- * space, then trims to `maxLength` characters with a trailing ellipsis.
+ * Walks the node tree recursively:
+ * - Text leaf nodes contribute their text directly (no space inserted between
+ *   adjacent text nodes sharing a parent — preserves mark-split words like
+ *   <b>He</b>llo which Tiptap represents as two sibling text nodes).
+ * - hardBreak nodes contribute a space.
+ * - Block-level nodes (paragraph, heading, listItem) append a space after
+ *   their children so consecutive blocks are separated in the excerpt.
+ * Final string collapses multiple whitespace runs and trims before truncating.
  *
- * Safe to call in client components — no Tiptap extensions or generateHTML
- * involved. Returns '' for null input (trips created before the jsonb migration).
+ * Safe to call in client components — no Tiptap extensions or generateHTML.
+ * Returns '' for null input (trips created before the jsonb migration).
  */
 export function excerptFromJSONContent(
   doc: JSONContent | null,
@@ -186,18 +191,21 @@ export function excerptFromJSONContent(
   function walk(node: JSONContent): void {
     if (node.type === 'text' && typeof node.text === 'string') {
       parts.push(node.text)
-      return
-    }
-    if (Array.isArray(node.content)) {
-      for (const child of node.content) {
-        walk(child)
+    } else if (node.type === 'hardBreak') {
+      parts.push(' ')
+    } else if (Array.isArray(node.content)) {
+      for (const child of node.content) walk(child)
+      // Separate block-level nodes with a space so consecutive paragraphs,
+      // headings, and list items don't run together in the excerpt string.
+      if (['paragraph', 'heading', 'listItem'].includes(node.type || '')) {
+        parts.push(' ')
       }
     }
   }
 
   walk(doc)
 
-  const full = parts.join(' ').trim()
+  const full = parts.join('').replace(/\s+/g, ' ').trim()
   if (full.length <= maxLength) return full
   return full.slice(0, maxLength).trimEnd() + '…'
 }

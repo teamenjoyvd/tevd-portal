@@ -43,8 +43,9 @@ export async function POST(req: Request) {
       title:              body.title,
       destination:        body.destination,
       // description is jsonb (JSONContent | null) — null is the correct empty default;
-      // empty string '' is incompatible with the jsonb column type.
-      description:        body.description ?? null,
+      // || null coerces both undefined and empty string '' to null, defending
+      // against any client path that sends an empty string instead of null/undefined.
+      description:        body.description || null,
       image_url:          body.image_url ?? null,
       start_date:         body.start_date,
       end_date:           body.end_date,
