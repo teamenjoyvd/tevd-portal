@@ -6,7 +6,6 @@ import type { Trip } from '@/lib/types/trips'
 type MetaFormState = {
   title: string
   destination: string
-  description: string
   start_date: string
   end_date: string
   total_cost: number
@@ -20,7 +19,6 @@ function toFormState(trip: Trip): MetaFormState {
   return {
     title: trip.title,
     destination: trip.destination,
-    description: trip.description,
     start_date: trip.start_date,
     end_date: trip.end_date,
     total_cost: trip.total_cost,
@@ -53,7 +51,6 @@ export function TripMetaForm({ trip }: { trip: Trip }) {
       const payload = {
         title: form.title,
         destination: form.destination,
-        description: form.description,
         start_date: form.start_date,
         end_date: form.end_date,
         total_cost: Number(form.total_cost),
@@ -102,10 +99,6 @@ export function TripMetaForm({ trip }: { trip: Trip }) {
         <div>
           <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Destination</label>
           <input className={inputCls} style={inputStyle} {...field('destination')} />
-        </div>
-        <div>
-          <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Description</label>
-          <textarea className={inputCls} style={inputStyle} rows={4} {...field('description')} />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
