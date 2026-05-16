@@ -2,7 +2,13 @@
 
 import { useRef, useEffect } from 'react'
 import Link from 'next/link'
+import { generateHTML } from '@tiptap/html'
+import StarterKit from '@tiptap/starter-kit'
+import TiptapLink from '@tiptap/extension-link'
+import Image from '@tiptap/extension-image'
+import type { JSONContent } from '@tiptap/core'
 import { formatDate, formatCurrency } from '@/lib/format'
+import { clampLuminance, hslToHex } from '@/lib/color'
 import type { Tables } from '@/types/supabase'
 import type { TripProfile } from '../page'
 import { useLanguage } from '@/lib/hooks/useLanguage'
@@ -10,6 +16,8 @@ import { useLanguage } from '@/lib/hooks/useLanguage'
 type Trip = Tables<'trips'>
 
 export const FALLBACK_ACCENT = '#2d6a4f'
+
+const TIPTAP_EXTENSIONS = [StarterKit, TiptapLink, Image]
 
 // ---------------------------------------------------------------------------
 // BackButton
@@ -99,7 +107,6 @@ export function TripHeroImage({
       onAccentColor(hex)
     } catch (err) {
       if (err instanceof DOMException && err.name === 'SecurityError') {
-        // cross-origin canvas taint — silent fallback
         onAccentColor(FALLBACK_ACCENT)
       } else {
         onAccentColor(FALLBACK_ACCENT)
@@ -168,9 +175,28 @@ export function TripHeroImage({
 }
 
 // ---------------------------------------------------------------------------
+// TripDescription
+// Renders trip.description (JSONContent) as rich HTML via generateHTML.
+// Guards against null (trips created before the jsonb migration).
+// ---------------------------------------------------------------------------
+function TripDescription({ description }: { description: JSONContent | null }) {
+  if (!description) return null
+  const html = generateHTML(description, TIPTAP_EXTENSIONS)
+  return (
+    <div
+      className="tiptap-output mb-5"
+      // Content is generated from admin-controlled JSONContent — no user-submitted HTML.
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  )
+}
+
+// ---------------------------------------------------------------------------
 // TripDetail
 // Renders optional countdown strip + body content (dates, cost, description,
 // location, inclusions). accentColor drives the strip bg.
+// When trip.counter_bg_color is set, it takes precedence over the
+// canvas-derived accentColor passed from the parent view.
 // ---------------------------------------------------------------------------
 export function TripDetail({
   trip,
@@ -185,13 +211,16 @@ export function TripDetail({
 }) {
   const { t } = useLanguage()
 
+  // Stored colour overrides the canvas-derived one
+  const stripColor = trip.counter_bg_color ?? accentColor
+
   return (
     <div style={{ backgroundColor: 'var(--bg-card)' }}>
       {/* Countdown strip — only when countdown prop is provided */}
       {countdown !== undefined && (
         <div
           className="w-full px-6 py-3 flex items-center justify-between gap-3"
-          style={{ backgroundColor: accentColor }}
+          style={{ backgroundColor: stripColor }}
         >
           <div className="flex items-baseline gap-2 min-w-0">
             <span
@@ -241,11 +270,7 @@ export function TripDetail({
           </div>
         )}
 
-        {trip.description && (
-          <p className="text-sm leading-relaxed mb-5" style={{ color: 'var(--text-secondary)' }}>
-            {trip.description}
-          </p>
-        )}
+        <TripDescription description={trip.description as JSONContent | null} />
 
         {(trip.location || trip.accommodation_type) && (
           <div className="flex flex-wrap items-center gap-3 text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
@@ -287,35 +312,9 @@ export function TripDetail({
 }
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Helpers — kept here for the member-side canvas sampling in TripHeroImage.
+// The shared colour utilities (clampLuminance, hslToHex) are in lib/color.ts.
 // ---------------------------------------------------------------------------
 
-/** Convert RGB to HSL, clamp L to [lMin, lMax], return hex. */
-function clampLuminance(r: number, g: number, b: number, lMin: number, lMax: number): string {
-  const rn = r / 255, gn = g / 255, bn = b / 255
-  const max = Math.max(rn, gn, bn), min = Math.min(rn, gn, bn)
-  const l = (max + min) / 2
-  const d = max - min
-  let h = 0, s = 0
-  if (d !== 0) {
-    s = d / (1 - Math.abs(2 * l - 1))
-    switch (max) {
-      case rn: h = ((gn - bn) / d + 6) % 6; break
-      case gn: h = (bn - rn) / d + 2; break
-      default: h = (rn - gn) / d + 4
-    }
-    h /= 6
-  }
-  const clampedL = Math.min(lMax, Math.max(lMin, Math.round(l * 100))) / 100
-  return hslToHex(h, s, clampedL)
-}
-
-function hslToHex(h: number, s: number, l: number): string {
-  const a = s * Math.min(l, 1 - l)
-  const f = (n: number) => {
-    const k = (n + h * 12) % 12
-    const color = l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1))
-    return Math.round(255 * color).toString(16).padStart(2, '0')
-  }
-  return `#${f(0)}${f(8)}${f(4)}`
-}
+// Re-export hslToHex so any existing imports from this file continue to work
+export { hslToHex }
