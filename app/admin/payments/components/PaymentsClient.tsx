@@ -83,10 +83,7 @@ export function PaymentsClient({
     mutationFn: (id: string) =>
       fetch(`/api/admin/payments/${id}`, { method: 'DELETE' })
         .then(async r => { if (!r.ok) throw new Error((await r.json()).error) }),
-    onSuccess: () => {
-      setDeleteTargetId(null)
-      router.refresh()
-    },
+    onSuccess: () => router.refresh(),
     onSettled: () => setDeleteTargetId(null),
   })
 
@@ -177,7 +174,10 @@ export function PaymentsClient({
         </div>
       )}
 
-      <AlertDialog open={deleteTargetId !== null} onOpenChange={open => { if (!open) setDeleteTargetId(null) }}>
+      <AlertDialog
+        open={deleteTargetId !== null}
+        onOpenChange={open => { if (!open && !deleteMutation.isPending) setDeleteTargetId(null) }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete this payment?</AlertDialogTitle>
@@ -186,11 +186,15 @@ export function PaymentsClient({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => { if (deleteTargetId) deleteMutation.mutate(deleteTargetId) }}
+              disabled={deleteMutation.isPending}
+              onClick={e => {
+                e.preventDefault()
+                if (deleteTargetId) deleteMutation.mutate(deleteTargetId)
+              }}
             >
-              Delete
+              {deleteMutation.isPending ? '…' : 'Delete'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
