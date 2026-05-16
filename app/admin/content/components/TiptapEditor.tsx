@@ -139,11 +139,13 @@ export function TiptapEditor({
   onChange,
   placeholder,
   label,
+  imageUploadUrls,
 }: {
   value: JSONContent | null
   onChange: (v: JSONContent) => void
   placeholder?: string
   label?: string
+  imageUploadUrls?: { get: string; confirm: string }
 }): React.JSX.Element {
   const [imageUploading, setImageUploading] = useState(false)
   const imageInputRef = useRef<HTMLInputElement>(null)
@@ -154,7 +156,11 @@ export function TiptapEditor({
       Link.configure({ openOnClick: false }),
       Image.configure({ inline: false, allowBase64: false }),
       Placeholder.configure({ placeholder: placeholder ?? 'Write here…' }),
-      ImageUploadExtension,
+      ImageUploadExtension.configure(
+        imageUploadUrls
+          ? { getUrl: imageUploadUrls.get, confirmUrl: imageUploadUrls.confirm }
+          : {},
+      ),
     ],
     content: value ?? undefined,
     onUpdate: ({ editor: ed }) => {
@@ -176,12 +182,15 @@ export function TiptapEditor({
     if (!editor) return
     setImageUploading(true)
     try {
-      // Reuse uploadAndInsert from the extension — same upload endpoints,
-      // same insertion logic, no duplication.
-      await uploadAndInsert(file, editor.view)
+      await uploadAndInsert(
+        file,
+        editor.view,
+        undefined,
+        imageUploadUrls?.get,
+        imageUploadUrls?.confirm,
+      )
     } catch {
-      // uploadAndInsert handles its own toast.error; catch here only to
-      // ensure setImageUploading(false) runs in the finally block.
+      // uploadAndInsert handles its own toast.error
     } finally {
       setImageUploading(false)
     }
@@ -218,7 +227,6 @@ export function TiptapEditor({
         onChange={e => {
           const file = e.target.files?.[0]
           if (file) void handleImageFileSelected(file)
-          // reset so same file can be re-selected
           e.target.value = ''
         }}
       />
