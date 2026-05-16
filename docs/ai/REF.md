@@ -279,6 +279,11 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
 - `ui_prefs` JSONB NOT NULL default `{}` — shape: `{ bento_order: string[], bento_collapsed: Record<string, boolean> }`
 - `upline_abo_number`: written by `approve_member_verification` (both paths) and by `import_los_members` on sponsor change.
 - `primary_profile_id`: ADR-016. NULL = primary or standalone. NOT NULL = secondary/spouse profile pointing to its primary. Self-referential FK with ON DELETE SET NULL.
+- `abo_number: text | null` invariant:
+  - NULL is **legal** for: `guest`, `admin`, co-owners (`primary_profile_id IS NOT NULL`)
+  - NULL is **illegal** for: `member` or `core` with `primary_profile_id IS NULL`
+  - Enforced by: `trg_guard_abo_number_null`
+  - Never use placeholder values (`0000000`, etc.) — this field is a join key
 
 **`profiles_audit`** — added #350 (migration `20260513_003`)
 `id, profile_id → profiles (ON DELETE CASCADE), changed_at, changed_by, old_abo_number, new_abo_number, old_upline_abo_number, new_upline_abo_number, old_primary_profile_id, new_primary_profile_id, old_role, new_role`
