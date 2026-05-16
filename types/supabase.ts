@@ -1501,9 +1501,10 @@ export type Database = {
         Row: {
           access_roles: string[]
           accommodation_type: string | null
+          counter_bg_color: string | null
           created_at: string
           currency: string
-          description: string
+          description: Json | null
           destination: string
           end_date: string
           id: string
@@ -1519,9 +1520,10 @@ export type Database = {
         Insert: {
           access_roles?: string[]
           accommodation_type?: string | null
+          counter_bg_color?: string | null
           created_at?: string
           currency?: string
-          description?: string
+          description?: Json | null
           destination: string
           end_date: string
           id?: string
@@ -1537,9 +1539,10 @@ export type Database = {
         Update: {
           access_roles?: string[]
           accommodation_type?: string | null
+          counter_bg_color?: string | null
           created_at?: string
           currency?: string
-          description?: string
+          description?: Json | null
           destination?: string
           end_date?: string
           id?: string
