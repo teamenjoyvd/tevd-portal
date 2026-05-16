@@ -63,7 +63,8 @@ export function TripHeroSection({
   }, [])
 
   function handleImageLoad() {
-    if (saved !== null) return
+    // Skip auto-sampling if we already have a saved color that hasn't been changed
+    if (saved !== null && candidate === saved) return
     sampleRegion(REGIONS[regionIndex])
   }
 
