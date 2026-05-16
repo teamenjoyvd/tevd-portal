@@ -8,6 +8,16 @@ import { t } from '@/lib/i18n'
 import type { Payment } from '@/lib/types/payments'
 import { PendingPaymentsSection } from './PendingPaymentsSection'
 import { LogPaymentDrawer } from './LogPaymentDrawer'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 // ── Helpers ──────────────────────────────────────────────
 
@@ -35,6 +45,7 @@ export function PaymentsClient({
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all')
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({})
   const [payError, setPayError] = useState<string | null>(null)
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
 
   const payments = useMemo(
     () => statusFilter === 'all'
@@ -66,6 +77,17 @@ export function PaymentsClient({
         body: JSON.stringify({ admin_status, admin_note }),
       }).then(async r => { if (!r.ok) throw new Error((await r.json()).error); return r.json() }),
     onSuccess: () => router.refresh(),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) =>
+      fetch(`/api/admin/payments/${id}`, { method: 'DELETE' })
+        .then(async r => { if (!r.ok) throw new Error((await r.json()).error) }),
+    onSuccess: () => {
+      setDeleteTargetId(null)
+      router.refresh()
+    },
+    onSettled: () => setDeleteTargetId(null),
   })
 
   const STATUS_FILTERS = [
@@ -120,6 +142,7 @@ export function PaymentsClient({
           {payments.map((p, i) => {
             const pill = statusPill(p.admin_status)
             const entityLabel = p.trips?.title ?? p.payable_items?.title ?? '—'
+            const isDeleting = deleteMutation.isPending && deleteTargetId === p.id
             return (
               <div key={p.id} className="px-5 py-3 flex items-center justify-between gap-4"
                 style={{ borderTop: i > 0 ? '1px solid var(--border-default)' : 'none' }}>
@@ -133,15 +156,45 @@ export function PaymentsClient({
                     {p.payment_method && ` · ${p.payment_method}`}
                   </p>
                 </div>
-                <span className="text-[10px] font-semibold px-2.5 py-1 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: pill.bg, color: pill.color }}>
-                  {p.admin_status}
-                </span>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <span className="text-[10px] font-semibold px-2.5 py-1 rounded-full"
+                    style={{ backgroundColor: pill.bg, color: pill.color }}>
+                    {p.admin_status}
+                  </span>
+                  <button
+                    onClick={() => setDeleteTargetId(p.id)}
+                    disabled={isDeleting}
+                    className="text-xs px-2 py-1 rounded-lg border transition-colors hover:bg-black/5 disabled:opacity-40"
+                    style={{ borderColor: 'var(--border-default)', color: 'var(--brand-crimson)' }}
+                    aria-label="Delete payment"
+                  >
+                    {isDeleting ? '…' : 'Delete'}
+                  </button>
+                </div>
               </div>
             )
           })}
         </div>
       )}
+
+      <AlertDialog open={deleteTargetId !== null} onOpenChange={open => { if (!open) setDeleteTargetId(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this payment?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => { if (deleteTargetId) deleteMutation.mutate(deleteTargetId) }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <LogPaymentDrawer
         open={drawerOpen}

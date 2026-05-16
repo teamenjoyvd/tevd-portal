@@ -81,3 +81,22 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   return Response.json(data)
 }
+
+export async function DELETE(
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> }
+): Promise<Response> {
+  const { userId } = await auth()
+  if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const supabase = createServiceClient()
+  const ctx = await getCallerContext(userId, supabase, 'adminOrCore')
+  if (ctx.guard) return ctx.guard
+
+  const { id } = await params
+
+  const { error } = await supabase.from('payments').delete().eq('id', id)
+  if (error) return Response.json({ error: error.message }, { status: 500 })
+
+  return new Response(null, { status: 204 })
+}
