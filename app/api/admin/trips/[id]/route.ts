@@ -69,6 +69,9 @@ export async function DELETE(
     supabase.from('trip_messages').select('id', { count: 'exact', head: true }).eq('trip_id', id),
   ])
 
+  const dbError = regResult.error || payResult.error || attResult.error || msgResult.error
+  if (dbError) return Response.json({ error: dbError.message }, { status: 500 })
+
   const registrations = regResult.count ?? 0
   const payments = payResult.count ?? 0
   const attachments = attResult.count ?? 0

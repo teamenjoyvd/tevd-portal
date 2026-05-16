@@ -21,6 +21,7 @@ export function DeleteTripButton({ tripId }: { tripId: string }) {
   const [open, setOpen] = useState(false)
 
   async function handleDelete() {
+    if (isPending) return
     setIsPending(true)
     setError(null)
     try {
