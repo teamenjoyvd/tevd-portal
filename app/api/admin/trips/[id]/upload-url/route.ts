@@ -25,6 +25,9 @@ export async function GET(
   const ext = filename.split('.').pop() ?? 'bin'
   const path = `${tripId}/${crypto.randomUUID()}.${ext}`
 
+  // Signed upload URLs have a fixed 2-hour expiry in the Supabase JS SDK —
+  // expiresIn is not a supported option on createSignedUploadUrl ({ upsert } only).
+  // 2 hours is sufficient for any realistic file size under the 50 MB free tier ceiling.
   const { data, error } = await supabase.storage
     .from('trip-attachments')
     .createSignedUploadUrl(path)
