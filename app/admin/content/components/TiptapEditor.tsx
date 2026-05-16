@@ -188,8 +188,7 @@ export function TiptapEditor({
       // Thread resolvedUploadUrls through — covers toolbar path and drop/paste path uniformly.
       await uploadAndInsert(file, editor.view, resolvedUploadUrls)
     } catch {
-      // uploadAndInsert handles its own toast.error; catch here only to
-      // ensure setImageUploading(false) runs in the finally block.
+      // uploadAndInsert handles its own toast.error
     } finally {
       setImageUploading(false)
     }
@@ -226,7 +225,6 @@ export function TiptapEditor({
         onChange={e => {
           const file = e.target.files?.[0]
           if (file) void handleImageFileSelected(file)
-          // reset so same file can be re-selected
           e.target.value = ''
         }}
       />
