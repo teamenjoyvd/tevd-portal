@@ -27,6 +27,9 @@ type Attachment = {
   created_at: string
 }
 
+// Supabase free tier global ceiling — trip-attachments bucket has no per-bucket limit
+const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50 MB
+
 // ── Component ────────────────────────────────────────────────────
 
 export function TripFilesSection({ tripId }: { tripId: string }) {
@@ -35,6 +38,7 @@ export function TripFilesSection({ tripId }: { tripId: string }) {
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null)
   // Optimistic entries appended on upload; cleared when server query resolves with real ids
   const [optimistic, setOptimistic] = useState<Attachment[]>([])
+  const [sizeError, setSizeError] = useState<string | null>(null)
   const { t } = useLanguage()
 
   const { upload, uploading, error: uploadError } = useSignedUpload(
@@ -70,7 +74,13 @@ export function TripFilesSection({ tripId }: { tripId: string }) {
     const file = e.target.files?.[0]
     if (!file) return
     e.target.value = ''
-    if (file.size > 10 * 1024 * 1024) return
+    // Reset both error states on every invocation so a previous message doesn't
+    // linger when the user picks a different file.
+    setSizeError(null)
+    if (file.size > MAX_FILE_SIZE) {
+      setSizeError('File too large. Maximum size is 50 MB.')
+      return
+    }
     try {
       const { url } = await upload(file)
       setOptimistic(prev => [
@@ -125,6 +135,9 @@ export function TripFilesSection({ tripId }: { tripId: string }) {
         />
       </div>
 
+      {sizeError && (
+        <p className="text-xs" style={{ color: 'var(--brand-crimson)' }}>{sizeError}</p>
+      )}
       {uploadError && (
         <p className="text-xs" style={{ color: 'var(--brand-crimson)' }}>{uploadError}</p>
       )}

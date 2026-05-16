@@ -25,9 +25,11 @@ export async function GET(
   const ext = filename.split('.').pop() ?? 'bin'
   const path = `${tripId}/${crypto.randomUUID()}.${ext}`
 
+  // expiresIn: 300s (5 minutes) — default 60s is too short for large files
+  // on slow connections approaching the 50 MB free tier ceiling.
   const { data, error } = await supabase.storage
     .from('trip-attachments')
-    .createSignedUploadUrl(path)
+    .createSignedUploadUrl(path, { expiresIn: 300 })
 
   if (error || !data) {
     return Response.json({ error: error?.message ?? 'Failed to create signed URL' }, { status: 500 })
