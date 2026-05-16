@@ -1,6 +1,7 @@
 // Canonical Trip and Milestone types.
 // ALL_ROLES and MemberRole live in lib/roles.ts — do not re-declare here.
 import type { MemberRole } from '@/lib/roles'
+import type { JSONContent } from '@tiptap/core'
 
 export type Milestone = { label: string; amount: number; due_date: string }
 
@@ -13,11 +14,12 @@ export type Trip = {
   total_cost: number
   milestones: Milestone[]
   currency: string
-  description: string
+  description: JSONContent | null
   image_url: string | null
   location: string | null
   accommodation_type: string | null
   inclusions: string[]
   trip_type: string | null
   access_roles: MemberRole[]
+  counter_bg_color: string | null
 }
