@@ -23,17 +23,23 @@ export async function PATCH(
   }
 
   const body = await req.json().catch(() => ({}))
-  const { counter_bg_color } = body as { counter_bg_color?: string | null }
+  const updateData: { counter_bg_color?: string | null } = {}
 
-  if (counter_bg_color !== null && counter_bg_color !== undefined) {
-    if (!HEX_RE.test(counter_bg_color)) {
+  if ('counter_bg_color' in body) {
+    const { counter_bg_color } = body as { counter_bg_color?: string | null }
+    if (counter_bg_color !== null && !HEX_RE.test(counter_bg_color ?? '')) {
       return Response.json({ error: 'counter_bg_color must be a valid #rrggbb hex string or null' }, { status: 400 })
     }
+    updateData.counter_bg_color = counter_bg_color ?? null
+  }
+
+  if (Object.keys(updateData).length === 0) {
+    return Response.json({ error: 'No valid fields provided' }, { status: 400 })
   }
 
   const { data: trip, error } = await supabase
     .from('trips')
-    .update({ counter_bg_color: counter_bg_color ?? null })
+    .update(updateData)
     .eq('id', id)
     .select()
     .single()

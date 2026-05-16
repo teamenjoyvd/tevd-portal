@@ -102,8 +102,13 @@ export function TripHeroSection({
       })
       if (!r.ok) throw new Error((await r.json()).error)
       setSaved(null)
-      setCandidate(FALLBACK_ACCENT)
       setRegionIndex(0)
+      const img = imgRef.current
+      if (img && img.complete && img.naturalWidth > 0) {
+        sampleRegion(REGIONS[0])
+      } else {
+        setCandidate(FALLBACK_ACCENT)
+      }
     } catch (err) {
       setSaveError((err as Error).message)
     } finally {
