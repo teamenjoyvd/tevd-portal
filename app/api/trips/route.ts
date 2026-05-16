@@ -42,7 +42,10 @@ export async function POST(req: Request) {
     .insert({
       title:              body.title,
       destination:        body.destination,
-      description:        body.description ?? '',
+      // description is jsonb (JSONContent | null) — null is the correct empty default;
+      // || null coerces both undefined and empty string '' to null, defending
+      // against any client path that sends an empty string instead of null/undefined.
+      description:        body.description || null,
       image_url:          body.image_url ?? null,
       start_date:         body.start_date,
       end_date:           body.end_date,

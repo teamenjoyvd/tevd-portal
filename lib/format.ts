@@ -4,6 +4,7 @@
 // timeZone is explicit on every formatter — Vercel server runs UTC; without
 // this, server and client produce different strings → React hydration error #418.
 
+import type { JSONContent } from '@tiptap/core'
 import { TranslationKey } from '@/lib/i18n/translations'
 
 export const TZ = 'Europe/Sofia'
@@ -162,4 +163,49 @@ export function timeAgoMs(
   if (mins < 60)  return `${mins}${t('home.time.minutesAgo')}`
   if (hours < 24) return `${hours}${t('home.time.hoursAgo')}`
   return `${days}${t('home.time.daysAgo')}`
+}
+
+/**
+ * Extracts a plain-text excerpt from a Tiptap JSONContent document.
+ *
+ * Walks the node tree recursively:
+ * - Text leaf nodes contribute their text directly (no space inserted between
+ *   adjacent text nodes sharing a parent — preserves mark-split words like
+ *   <b>He</b>llo which Tiptap represents as two sibling text nodes).
+ * - hardBreak nodes contribute a space.
+ * - Block-level nodes (paragraph, heading, listItem) append a space after
+ *   their children so consecutive blocks are separated in the excerpt.
+ * Final string collapses multiple whitespace runs and trims before truncating.
+ *
+ * Safe to call in client components — no Tiptap extensions or generateHTML.
+ * Returns '' for null input (trips created before the jsonb migration).
+ */
+export function excerptFromJSONContent(
+  doc: JSONContent | null,
+  maxLength = 160,
+): string {
+  if (!doc) return ''
+
+  const parts: string[] = []
+
+  function walk(node: JSONContent): void {
+    if (node.type === 'text' && typeof node.text === 'string') {
+      parts.push(node.text)
+    } else if (node.type === 'hardBreak') {
+      parts.push(' ')
+    } else if (Array.isArray(node.content)) {
+      for (const child of node.content) walk(child)
+      // Separate block-level nodes with a space so consecutive paragraphs,
+      // headings, and list items don't run together in the excerpt string.
+      if (['paragraph', 'heading', 'listItem'].includes(node.type || '')) {
+        parts.push(' ')
+      }
+    }
+  }
+
+  walk(doc)
+
+  const full = parts.join('').replace(/\s+/g, ' ').trim()
+  if (full.length <= maxLength) return full
+  return full.slice(0, maxLength).trimEnd() + '…'
 }
