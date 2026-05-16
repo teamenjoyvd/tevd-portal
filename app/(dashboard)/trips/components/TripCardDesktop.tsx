@@ -1,9 +1,11 @@
 import { TripImage, TripBadges, PriceDisplay, DateBadge, PinIcon } from './TripShared'
+import { excerptFromJSONContent } from '@/lib/format'
 import type { CardProps } from '../TripsClient'
 
 export default function TripCardDesktop(props: CardProps) {
   const { trip, ctaNode } = props
   const isGuest = props.userRole === 'guest'
+  const descriptionText = excerptFromJSONContent(trip.description)
   return (
     <div
       className="rounded-2xl overflow-hidden flex flex-col h-full"
@@ -27,7 +29,7 @@ export default function TripCardDesktop(props: CardProps) {
             priceClassName="text-xl"
           />
         </div>
-        {trip.description && (
+        {descriptionText && (
           <p className="text-sm leading-relaxed" style={{
             color: 'var(--text-secondary)',
             display: '-webkit-box',
@@ -35,7 +37,7 @@ export default function TripCardDesktop(props: CardProps) {
             WebkitBoxOrient: 'vertical',
             overflow: 'hidden',
           }}>
-            {trip.description}
+            {descriptionText}
           </p>
         )}
         {trip.location && (

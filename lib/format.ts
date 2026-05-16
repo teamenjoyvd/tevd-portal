@@ -4,6 +4,7 @@
 // timeZone is explicit on every formatter — Vercel server runs UTC; without
 // this, server and client produce different strings → React hydration error #418.
 
+import type { JSONContent } from '@tiptap/core'
 import { TranslationKey } from '@/lib/i18n/translations'
 
 export const TZ = 'Europe/Sofia'
@@ -162,4 +163,41 @@ export function timeAgoMs(
   if (mins < 60)  return `${mins}${t('home.time.minutesAgo')}`
   if (hours < 24) return `${hours}${t('home.time.hoursAgo')}`
   return `${days}${t('home.time.daysAgo')}`
+}
+
+/**
+ * Extracts a plain-text excerpt from a Tiptap JSONContent document.
+ *
+ * Walks the node tree recursively, collecting text leaf values (nodes with
+ * type === 'text' and a string `text` property). Joins them with a single
+ * space, then trims to `maxLength` characters with a trailing ellipsis.
+ *
+ * Safe to call in client components — no Tiptap extensions or generateHTML
+ * involved. Returns '' for null input (trips created before the jsonb migration).
+ */
+export function excerptFromJSONContent(
+  doc: JSONContent | null,
+  maxLength = 160,
+): string {
+  if (!doc) return ''
+
+  const parts: string[] = []
+
+  function walk(node: JSONContent): void {
+    if (node.type === 'text' && typeof node.text === 'string') {
+      parts.push(node.text)
+      return
+    }
+    if (Array.isArray(node.content)) {
+      for (const child of node.content) {
+        walk(child)
+      }
+    }
+  }
+
+  walk(doc)
+
+  const full = parts.join(' ').trim()
+  if (full.length <= maxLength) return full
+  return full.slice(0, maxLength).trimEnd() + '…'
 }

@@ -1,6 +1,7 @@
 import TripsClient from './TripsClient'
 import { createServiceClient } from '@/lib/supabase/service'
 import { auth } from '@clerk/nextjs/server'
+import type { JSONContent } from '@tiptap/core'
 
 export const dynamic = 'force-dynamic'
 
@@ -8,7 +9,7 @@ type Trip = {
   id: string
   title: string
   destination: string
-  description: string
+  description: JSONContent | null
   image_url: string | null
   start_date: string
   end_date: string
