@@ -20,10 +20,10 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   const filename = req.nextUrl.searchParams.get('filename') ?? 'upload'
   const parts = filename.split('.')
   const ext = parts.length > 1 ? parts.pop()! : 'bin'
-  const path = `images/${randomUUID()}.${ext}`
+  const path = `body/${randomUUID()}.${ext}`
 
   const { data, error } = await supabase.storage
-    .from('guide-covers')
+    .from('guide-images')
     .createSignedUploadUrl(path)
 
   if (error || !data) {

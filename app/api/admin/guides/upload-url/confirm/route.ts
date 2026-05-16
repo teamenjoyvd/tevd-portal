@@ -23,12 +23,17 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'path is required' }, { status: 400 })
   }
 
-  // Path ownership check — only images/ prefix is valid for body images
-  if (!path.startsWith('images/')) {
+  // Traversal guard
+  if (path.includes('..')) {
     return NextResponse.json({ error: 'Invalid path' }, { status: 400 })
   }
 
-  const { data } = supabase.storage.from('guide-covers').getPublicUrl(path)
+  // Only body/ prefix is valid for guide body images
+  if (!path.startsWith('body/')) {
+    return NextResponse.json({ error: 'Invalid path' }, { status: 400 })
+  }
+
+  const { data } = supabase.storage.from('guide-images').getPublicUrl(path)
 
   return NextResponse.json({ url: data.publicUrl })
 }
