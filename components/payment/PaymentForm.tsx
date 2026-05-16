@@ -4,6 +4,7 @@ import { useState, useRef } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { formatCurrency } from '@/lib/format'
+import { uploadToSignedUrl } from '@/lib/utils/uploadToSignedUrl'
 import type { PayableItem } from './types'
 
 type TripContext    = { context?: 'trip';   tripId: string }
@@ -44,12 +45,11 @@ export function PaymentForm(props: PaymentFormProps) {
       let proof_url: string | null = null
 
       if (file) {
-        const fd = new FormData()
-        fd.append('file', file)
-        const uploadRes = await fetch('/api/profile/payments/upload', { method: 'POST', body: fd })
-        const uploadBody = await uploadRes.json().catch(() => ({}))
-        if (!uploadRes.ok) throw new Error(uploadBody.error ?? 'Upload failed')
-        proof_url = uploadBody.url
+        proof_url = await uploadToSignedUrl(
+          file,
+          '/api/profile/payments/upload-url',
+          '/api/profile/payments/upload-url/confirm',
+        )
       }
 
       const entity =
