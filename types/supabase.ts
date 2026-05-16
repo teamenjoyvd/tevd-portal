@@ -1504,7 +1504,7 @@ export type Database = {
           counter_bg_color: string | null
           created_at: string
           currency: string
-          description: string
+          description: Json | null
           destination: string
           end_date: string
           id: string
@@ -1523,7 +1523,7 @@ export type Database = {
           counter_bg_color?: string | null
           created_at?: string
           currency?: string
-          description?: string
+          description?: Json | null
           destination: string
           end_date: string
           id?: string
@@ -1542,7 +1542,7 @@ export type Database = {
           counter_bg_color?: string | null
           created_at?: string
           currency?: string
-          description?: string
+          description?: Json | null
           destination?: string
           end_date?: string
           id?: string

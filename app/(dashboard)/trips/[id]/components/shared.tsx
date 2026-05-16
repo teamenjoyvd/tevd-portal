@@ -1,7 +1,12 @@
 'use client'
 
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useMemo } from 'react'
 import Link from 'next/link'
+import { generateHTML } from '@tiptap/html'
+import StarterKit from '@tiptap/starter-kit'
+import TiptapLink from '@tiptap/extension-link'
+import Image from '@tiptap/extension-image'
+import type { JSONContent } from '@tiptap/core'
 import { formatDate, formatCurrency } from '@/lib/format'
 import { clampLuminance, hslToHex } from '@/lib/color'
 import type { Tables } from '@/types/supabase'
@@ -11,6 +16,8 @@ import { useLanguage } from '@/lib/hooks/useLanguage'
 type Trip = Tables<'trips'>
 
 export const FALLBACK_ACCENT = '#2d6a4f'
+
+const TIPTAP_EXTENSIONS = [StarterKit, TiptapLink, Image]
 
 // ---------------------------------------------------------------------------
 // BackButton
@@ -168,6 +175,28 @@ export function TripHeroImage({
 }
 
 // ---------------------------------------------------------------------------
+// TripDescription
+// Renders trip.description (JSONContent) as rich HTML via generateHTML.
+// Guards against null (trips created before the jsonb migration).
+// generateHTML is memoized to avoid re-running the tree traversal on
+// parent re-renders where description hasn't changed.
+// ---------------------------------------------------------------------------
+function TripDescription({ description }: { description: JSONContent | null }) {
+  const html = useMemo(
+    () => (description ? generateHTML(description, TIPTAP_EXTENSIONS) : null),
+    [description],
+  )
+  if (!html) return null
+  return (
+    <div
+      className="tiptap-output mb-5"
+      // Content is generated from admin-controlled JSONContent — no user-submitted HTML.
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  )
+}
+
+// ---------------------------------------------------------------------------
 // TripDetail
 // Renders optional countdown strip + body content (dates, cost, description,
 // location, inclusions). accentColor drives the strip bg.
@@ -246,11 +275,7 @@ export function TripDetail({
           </div>
         )}
 
-        {trip.description && (
-          <p className="text-sm leading-relaxed mb-5" style={{ color: 'var(--text-secondary)' }}>
-            {trip.description}
-          </p>
-        )}
+        <TripDescription description={trip.description as JSONContent | null} />
 
         {(trip.location || trip.accommodation_type) && (
           <div className="flex flex-wrap items-center gap-3 text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
