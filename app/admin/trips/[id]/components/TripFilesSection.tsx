@@ -74,11 +74,11 @@ export function TripFilesSection({ tripId }: { tripId: string }) {
     const file = e.target.files?.[0]
     if (!file) return
     e.target.value = ''
-    // Reset both error states on every invocation so a previous message doesn't
-    // linger when the user picks a different file.
+    // Reset size error on every invocation. Note: uploadError from
+    // useSignedUpload is managed by the hook and cannot be reset here.
     setSizeError(null)
     if (file.size > MAX_FILE_SIZE) {
-      setSizeError('File too large. Maximum size is 50 MB.')
+      setSizeError(t('trips.error_file_too_large'))
       return
     }
     try {
