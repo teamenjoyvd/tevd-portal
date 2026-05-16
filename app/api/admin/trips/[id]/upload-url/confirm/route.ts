@@ -80,5 +80,7 @@ export async function POST(
     return Response.json({ error: insertError.message }, { status: 500 })
   }
 
-  return Response.json(attachment, { status: 201 })
+  // useSignedUpload expects { url } in the confirm response.
+  // Spread attachment fields alongside so TripFilesSection still gets the full row.
+  return Response.json({ url: publicUrl, ...attachment }, { status: 201 })
 }
