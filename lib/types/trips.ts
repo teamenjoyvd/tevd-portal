@@ -20,4 +20,5 @@ export type Trip = {
   inclusions: string[]
   trip_type: string | null
   access_roles: MemberRole[]
+  counter_bg_color: string | null
 }
