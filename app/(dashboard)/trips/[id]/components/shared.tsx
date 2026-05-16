@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { generateHTML } from '@tiptap/html'
 import StarterKit from '@tiptap/starter-kit'
@@ -178,10 +178,15 @@ export function TripHeroImage({
 // TripDescription
 // Renders trip.description (JSONContent) as rich HTML via generateHTML.
 // Guards against null (trips created before the jsonb migration).
+// generateHTML is memoized to avoid re-running the tree traversal on
+// parent re-renders where description hasn't changed.
 // ---------------------------------------------------------------------------
 function TripDescription({ description }: { description: JSONContent | null }) {
-  if (!description) return null
-  const html = generateHTML(description, TIPTAP_EXTENSIONS)
+  const html = useMemo(
+    () => (description ? generateHTML(description, TIPTAP_EXTENSIONS) : null),
+    [description],
+  )
+  if (!html) return null
   return (
     <div
       className="tiptap-output mb-5"
