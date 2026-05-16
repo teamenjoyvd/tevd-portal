@@ -72,7 +72,11 @@ export default async function TripManagePage({
         </div>
         {/* Right column */}
         <div className="space-y-6">
-          <TripHeroSection tripId={tripId} initialImageUrl={trip.image_url ?? null} />
+          <TripHeroSection
+            tripId={tripId}
+            initialImageUrl={trip.image_url ?? null}
+            initialCounterColor={trip.counter_bg_color ?? null}
+          />
           <TripFilesSection tripId={tripId} />
           <TripMessagesSection tripId={tripId} />
         </div>
@@ -80,7 +84,11 @@ export default async function TripManagePage({
 
       {/* ── Mobile layout ── */}
       <div className="md:hidden flex flex-col gap-6">
-        <TripHeroSection tripId={tripId} initialImageUrl={trip.image_url ?? null} />
+        <TripHeroSection
+          tripId={tripId}
+          initialImageUrl={trip.image_url ?? null}
+          initialCounterColor={trip.counter_bg_color ?? null}
+        />
         <TripMetaForm trip={typedTrip} />
         <MilestonesSection tripId={tripId} initialMilestones={typedTrip.milestones ?? []} />
         <AccessRolesSection tripId={tripId} initialRoles={typedTrip.access_roles ?? []} />

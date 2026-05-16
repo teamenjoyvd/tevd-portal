@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { isCdnUrl, isStorageUrl } from '@/lib/social-thumbnail'
+import { uploadToSignedUrl } from '@/lib/utils/uploadToSignedUrl'
 
 export function InstagramIcon() {
   return (
@@ -79,18 +80,16 @@ export function SocialPostForm({
 
   async function handleFileUpload(file: File) {
     setUploading(true)
+    setPreviewHint(null)
     try {
-      const formData = new FormData()
-      formData.append('file', file)
-      const res = await fetch('/api/admin/social-posts/upload-thumbnail', {
-        method: 'POST',
-        body: formData,
-      })
-      if (!res.ok) throw new Error('Upload failed')
-      const { url } = await res.json() as { url: string }
+      const url = await uploadToSignedUrl(
+        file,
+        '/api/admin/social-posts/upload-url',
+        '/api/admin/social-posts/upload-url/confirm',
+      )
       setForm(f => ({ ...f, thumbnail_url: url }))
-    } catch {
-      setPreviewHint(t('admin.content.social.previewUnavailable'))
+    } catch (err) {
+      setPreviewHint((err as Error).message ?? t('admin.content.social.previewUnavailable'))
     } finally {
       setUploading(false)
     }

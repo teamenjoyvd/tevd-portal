@@ -42,6 +42,14 @@ calDay(iso)          // 18
 calMonth(iso)        // MAR
 ```
 
+**`lib/color.ts`** — shared colour-derivation helpers for the trip counter strip.
+```ts
+clampLuminance(r, g, b, lMin, lMax): string   // RGB → HSL → clamped hex
+hslToHex(h, s, l): string                     // HSL fractions → hex
+sampleImageRegion(img, canvas, region): string | null  // canvas pixel sampling (5 regions)
+```
+Used by `TripHeroSection` (admin canvas sampling) and `shared.tsx` (member countdown strip). Returns `null` on SecurityError.
+
 **`lib/hooks/useTheme.ts`** — returns `{ theme, mounted, toggle }`. Same-tab sync: `tevd-theme-change` CustomEvent. Cross-tab: `StorageEvent`. Key: `tevd-theme`.
 
 **`lib/role-colors.ts`** — always `getRoleColors(role)`, never hardcode role bg/font inline.
@@ -132,6 +140,8 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
     /notifications/page.tsx
     /operations/page.tsx
     /payable-items/page.tsx        # redirect → /admin/operations?tab=items
+    /trips/[id]/components/
+      TripHeroSection.tsx          # 'use client' — hero image upload + counter colour picker
   /api
     /admin/announcements/route.ts
     /admin/calendar/route.ts
@@ -169,7 +179,7 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
     /admin/spouse-link-requests/route.ts        # ADR-016: GET all pending requests
     /admin/spouse-link-requests/[id]/route.ts  # ADR-016: PATCH approve/deny
     /admin/trips/route.ts
-    /admin/trips/[id]/route.ts
+    /admin/trips/[id]/route.ts     # PATCH: counter_bg_color (hex validation), admin-only
     /admin/trips/registrations/[id]/cancel/route.ts
     /admin/verify/route.ts
     /admin/vital-sign-definitions/route.ts
@@ -217,6 +227,7 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
     /approve-verification.ts      # 3-step durable approval function
     /clerk-reconciliation.ts      # Scheduled Clerk drift patch (every 15 min)
 /lib
+  /color.ts                       # clampLuminance, hslToHex, sampleImageRegion — trip counter colour helpers
   /db/client.ts                   # postgres.js direct connection — Inngest steps only
   /format.ts
   /hooks/useTheme.ts
@@ -290,8 +301,9 @@ Normalised UNION ALL over `profiles_audit` + `role_change_audit`. Columns: `prof
 - GREEN = both statuses `'approved'`.
 - ⚠️ Two FKs to `profiles` — PostgREST join MUST use `profiles!profile_id(...)`.
 
-**`trips`** — `id, title, description, destination, start_date, end_date, access_roles, accommodation_type, currency, image_url, inclusions, location, milestones, total_cost, trip_type, created_at`
+**`trips`** — `id, title, description, destination, start_date, end_date, access_roles, accommodation_type, counter_bg_color, currency, image_url, inclusions, location, milestones, total_cost, trip_type, created_at`
 - `access_roles`: array of role strings. PostgREST filter: `.contains('access_roles', [role])`
+- `counter_bg_color`: `text | null`. Hex string (`#rrggbb`). Admin-set via PATCH `/api/admin/trips/[id]`. Overrides canvas-derived accent on the member-facing countdown strip when non-null.
 
 **`trip_registrations`** — `id, trip_id, profile_id, status, created_at, updated_at, cancelled_at, cancelled_by`
 - `status`: `pending | approved | denied`. No `cancelled` value. Cancelled signal: `cancelled_at IS NOT NULL`.
@@ -451,7 +463,7 @@ Normalised UNION ALL over `profiles_audit` + `role_change_audit`. Columns: `prof
 | `/api/admin/spouse-link-requests` | GET | ADR-016: returns all pending requests joined with requester + claimed_primary profile |
 | `/api/admin/spouse-link-requests/[id]` | PATCH | ADR-016: `{ status: 'approved'\|'denied', admin_note? }`. Approve re-verifies all 3 guards. On approve: writes profile + request + audit + Clerk sync + welcome email |
 | `/api/admin/trips` | GET, POST | |
-| `/api/admin/trips/[id]` | GET, PATCH, DELETE | |
+| `/api/admin/trips/[id]` | GET, PATCH, DELETE | PATCH accepts `counter_bg_color: string \| null` — hex validation `/^#[0-9a-fA-F]{6}$/`, admin-only |
 | `/api/admin/trips/registrations/[id]/cancel` | POST | Triggers `sendNotificationEmail` |
 | `/api/admin/verify` | POST | ABO approve/deny — MUST sync Clerk metadata |
 | `/api/admin/vital-sign-definitions` | GET, POST | |

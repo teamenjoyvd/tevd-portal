@@ -4,8 +4,7 @@ import type { EditorView } from '@tiptap/pm/view'
 import { uploadToSignedUrl } from '@/lib/utils/uploadToSignedUrl'
 import { toast } from 'sonner'
 
-const DEFAULT_GET = '/api/admin/guides/upload-url'
-const DEFAULT_CONFIRM = '/api/admin/guides/upload-url/confirm'
+export type UploadUrls = { get: string; confirm: string }
 
 /**
  * Upload a file and insert an image node at the given position (or current
@@ -15,12 +14,11 @@ const DEFAULT_CONFIRM = '/api/admin/guides/upload-url/confirm'
 export async function uploadAndInsert(
   file: File,
   view: EditorView,
+  uploadUrls: UploadUrls,
   pos?: number,
-  getUrl: string = DEFAULT_GET,
-  confirmUrl: string = DEFAULT_CONFIRM,
 ): Promise<void> {
   try {
-    const url = await uploadToSignedUrl(file, getUrl, confirmUrl)
+    const url = await uploadToSignedUrl(file, uploadUrls.get, uploadUrls.confirm)
     const { schema } = view.state
     const node = schema.nodes.image.create({ src: url })
     const tr = view.state.tr
@@ -35,18 +33,20 @@ export async function uploadAndInsert(
   }
 }
 
-export const ImageUploadExtension = Extension.create<{ getUrl: string; confirmUrl: string }>({
+export const ImageUploadExtension = Extension.create<{ uploadUrls: UploadUrls }>({
   name: 'imageUpload',
 
   addOptions() {
     return {
-      getUrl: DEFAULT_GET,
-      confirmUrl: DEFAULT_CONFIRM,
+      uploadUrls: {
+        get: '/api/admin/guides/upload-url',
+        confirm: '/api/admin/guides/upload-url/confirm',
+      },
     }
   },
 
   addProseMirrorPlugins() {
-    const { getUrl, confirmUrl } = this.options
+    const uploadUrls = this.options.uploadUrls
     return [
       new Plugin({
         props: {
@@ -60,7 +60,7 @@ export const ImageUploadExtension = Extension.create<{ getUrl: string; confirmUr
             const pos = coords?.pos
 
             for (const image of images) {
-              void uploadAndInsert(image, view, pos, getUrl, confirmUrl)
+              void uploadAndInsert(image, view, uploadUrls, pos)
             }
             return true
           },
@@ -76,7 +76,7 @@ export const ImageUploadExtension = Extension.create<{ getUrl: string; confirmUr
             for (const item of imageItems) {
               const file = item.getAsFile()
               if (!file) continue
-              void uploadAndInsert(file, view, undefined, getUrl, confirmUrl)
+              void uploadAndInsert(file, view, uploadUrls)
             }
             return true
           },
