@@ -8,6 +8,7 @@ import { TripHeroSection } from './components/TripHeroSection'
 import { TripMetaForm } from './components/TripMetaForm'
 import { MilestonesSection } from './components/MilestonesSection'
 import { AccessRolesSection } from './components/AccessRolesSection'
+import { DeleteTripButton } from './components/DeleteTripButton'
 import type { Trip } from '@/lib/types/trips'
 
 export const dynamic = 'force-dynamic'
@@ -94,6 +95,18 @@ export default async function TripManagePage({
         <AccessRolesSection tripId={tripId} initialRoles={typedTrip.access_roles ?? []} />
         <TripFilesSection tripId={tripId} />
         <TripMessagesSection tripId={tripId} />
+      </div>
+
+      {/* ── Danger zone ── */}
+      <div
+        className="rounded-2xl p-5 space-y-3"
+        style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}
+      >
+        <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Danger zone</h2>
+        <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+          Permanently delete this trip. Only possible when all registrations, payments, attachments, and messages have been removed.
+        </p>
+        <DeleteTripButton tripId={tripId} />
       </div>
     </div>
   )
