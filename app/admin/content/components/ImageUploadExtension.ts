@@ -4,18 +4,21 @@ import type { EditorView } from '@tiptap/pm/view'
 import { uploadToSignedUrl } from '@/lib/utils/uploadToSignedUrl'
 import { toast } from 'sonner'
 
+export type UploadUrls = { get: string; confirm: string }
+
 /**
  * Upload a file and insert an image node at the given position (or current
  * selection if pos is undefined). Exported so TiptapEditor can reuse it
  * for the toolbar file-picker path without duplicating the upload call.
  */
-export async function uploadAndInsert(file: File, view: EditorView, pos?: number): Promise<void> {
+export async function uploadAndInsert(
+  file: File,
+  view: EditorView,
+  uploadUrls: UploadUrls,
+  pos?: number,
+): Promise<void> {
   try {
-    const url = await uploadToSignedUrl(
-      file,
-      '/api/admin/guides/upload-url',
-      '/api/admin/guides/upload-url/confirm',
-    )
+    const url = await uploadToSignedUrl(file, uploadUrls.get, uploadUrls.confirm)
     const { schema } = view.state
     const node = schema.nodes.image.create({ src: url })
     const tr = view.state.tr
@@ -30,10 +33,20 @@ export async function uploadAndInsert(file: File, view: EditorView, pos?: number
   }
 }
 
-export const ImageUploadExtension = Extension.create({
+export const ImageUploadExtension = Extension.create<{ uploadUrls: UploadUrls }>({
   name: 'imageUpload',
 
+  addOptions() {
+    return {
+      uploadUrls: {
+        get: '/api/admin/guides/upload-url',
+        confirm: '/api/admin/guides/upload-url/confirm',
+      },
+    }
+  },
+
   addProseMirrorPlugins() {
+    const uploadUrls = this.options.uploadUrls
     return [
       new Plugin({
         props: {
@@ -47,7 +60,7 @@ export const ImageUploadExtension = Extension.create({
             const pos = coords?.pos
 
             for (const image of images) {
-              void uploadAndInsert(image, view, pos)
+              void uploadAndInsert(image, view, uploadUrls, pos)
             }
             return true
           },
@@ -63,7 +76,7 @@ export const ImageUploadExtension = Extension.create({
             for (const item of imageItems) {
               const file = item.getAsFile()
               if (!file) continue
-              void uploadAndInsert(file, view)
+              void uploadAndInsert(file, view, uploadUrls)
             }
             return true
           },

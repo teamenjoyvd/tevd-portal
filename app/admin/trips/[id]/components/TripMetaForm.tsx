@@ -2,10 +2,13 @@
 
 import { useState } from 'react'
 import type { Trip } from '@/lib/types/trips'
+import type { JSONContent } from '@tiptap/core'
+import { TiptapEditor } from '@/app/admin/content/components/TiptapEditor'
 
 type MetaFormState = {
   title: string
   destination: string
+  descriptionJson: JSONContent | null
   start_date: string
   end_date: string
   total_cost: number
@@ -19,6 +22,7 @@ function toFormState(trip: Trip): MetaFormState {
   return {
     title: trip.title,
     destination: trip.destination,
+    descriptionJson: trip.description,
     start_date: trip.start_date,
     end_date: trip.end_date,
     total_cost: trip.total_cost,
@@ -35,7 +39,7 @@ export function TripMetaForm({ trip }: { trip: Trip }) {
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
 
-  function field(key: keyof MetaFormState) {
+  function field(key: Exclude<keyof MetaFormState, 'descriptionJson'>) {
     return {
       value: String(form[key]),
       onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
@@ -51,6 +55,7 @@ export function TripMetaForm({ trip }: { trip: Trip }) {
       const payload = {
         title: form.title,
         destination: form.destination,
+        description: form.descriptionJson,
         start_date: form.start_date,
         end_date: form.end_date,
         total_cost: Number(form.total_cost),
@@ -99,6 +104,18 @@ export function TripMetaForm({ trip }: { trip: Trip }) {
         <div>
           <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Destination</label>
           <input className={inputCls} style={inputStyle} {...field('destination')} />
+        </div>
+        <div>
+          <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Description</label>
+          <TiptapEditor
+            value={form.descriptionJson}
+            onChange={v => setForm(prev => ({ ...prev, descriptionJson: v }))}
+            placeholder="Write a trip description…"
+            imageUploadUrls={{
+              get: `/api/admin/trips/${trip.id}/upload-url`,
+              confirm: `/api/admin/trips/${trip.id}/upload-url/inline-confirm`,
+            }}
+          />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>

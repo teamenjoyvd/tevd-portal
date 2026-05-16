@@ -7,11 +7,16 @@ import Image from '@tiptap/extension-image'
 import Placeholder from '@tiptap/extension-placeholder'
 import type { JSONContent } from '@tiptap/core'
 import { useEffect, useRef, useState } from 'react'
-import { toast } from 'sonner'
 import { ImageUploadExtension, uploadAndInsert } from './ImageUploadExtension'
+import type { UploadUrls } from './ImageUploadExtension'
 
 const TOOLBAR_BTN =
   'px-2 py-1 rounded text-xs font-semibold border transition-colors hover:bg-black/5 disabled:opacity-30'
+
+const GUIDE_BODY_IMAGE_URLS: UploadUrls = {
+  get: '/api/admin/guides/upload-url',
+  confirm: '/api/admin/guides/upload-url/confirm',
+}
 
 function Toolbar({
   editor,
@@ -139,14 +144,18 @@ export function TiptapEditor({
   onChange,
   placeholder,
   label,
+  imageUploadUrls,
 }: {
   value: JSONContent | null
   onChange: (v: JSONContent) => void
   placeholder?: string
   label?: string
+  imageUploadUrls?: UploadUrls
 }): React.JSX.Element {
   const [imageUploading, setImageUploading] = useState(false)
   const imageInputRef = useRef<HTMLInputElement>(null)
+
+  const resolvedUploadUrls = imageUploadUrls ?? GUIDE_BODY_IMAGE_URLS
 
   const editor = useEditor({
     extensions: [
@@ -154,7 +163,7 @@ export function TiptapEditor({
       Link.configure({ openOnClick: false }),
       Image.configure({ inline: false, allowBase64: false }),
       Placeholder.configure({ placeholder: placeholder ?? 'Write here…' }),
-      ImageUploadExtension,
+      ImageUploadExtension.configure({ uploadUrls: resolvedUploadUrls }),
     ],
     content: value ?? undefined,
     onUpdate: ({ editor: ed }) => {
@@ -176,12 +185,10 @@ export function TiptapEditor({
     if (!editor) return
     setImageUploading(true)
     try {
-      // Reuse uploadAndInsert from the extension — same upload endpoints,
-      // same insertion logic, no duplication.
-      await uploadAndInsert(file, editor.view)
+      // Thread resolvedUploadUrls through — covers toolbar path and drop/paste path uniformly.
+      await uploadAndInsert(file, editor.view, resolvedUploadUrls)
     } catch {
-      // uploadAndInsert handles its own toast.error; catch here only to
-      // ensure setImageUploading(false) runs in the finally block.
+      // uploadAndInsert handles its own toast.error
     } finally {
       setImageUploading(false)
     }
@@ -218,7 +225,6 @@ export function TiptapEditor({
         onChange={e => {
           const file = e.target.files?.[0]
           if (file) void handleImageFileSelected(file)
-          // reset so same file can be re-selected
           e.target.value = ''
         }}
       />

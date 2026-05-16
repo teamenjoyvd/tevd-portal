@@ -1,5 +1,5 @@
 # LOOKUP.md — teamenjoyVD Portal Reference Tables
-> Last updated: 2026-05-13
+> Last updated: 2026-05-16
 > **Read on demand in GATHER only. Never read at SSU or at GATHER start.**
 > Pull only the sections the ticket needs. See section map in REF.md header.
 
@@ -38,6 +38,8 @@
     /notifications/page.tsx
     /operations/page.tsx
     /payable-items/page.tsx      # redirect → /admin/operations?tab=items
+    /trips/[id]/components/
+      TripHeroSection.tsx        # 'use client' — hero upload + counter colour picker
   /api
     /admin/announcements/route.ts
     /admin/calendar/route.ts
@@ -76,7 +78,7 @@
     /admin/spouse-link-requests/route.ts        # ADR-016: GET all pending requests
     /admin/spouse-link-requests/[id]/route.ts  # ADR-016: PATCH approve/deny
     /admin/trips/route.ts
-    /admin/trips/[id]/route.ts
+    /admin/trips/[id]/route.ts           # PATCH counter_bg_color (hex validation, admin-only)
     /admin/trips/registrations/[id]/cancel/route.ts
     /admin/verify/route.ts
     /admin/vital-sign-definitions/route.ts
@@ -124,6 +126,7 @@
     /approve-verification.ts    # 3-step durable approval function
     /clerk-reconciliation.ts    # Scheduled Clerk drift patch (every 15 min)
 /lib
+  /color.ts                     # clampLuminance, hslToHex, sampleImageRegion — trip counter colour helpers
   /db/client.ts                 # postgres.js direct connection — Inngest steps only
   /format.ts
   /hooks/useTheme.ts
@@ -218,9 +221,10 @@ Normalised UNION ALL over `profiles_audit` + `role_change_audit`. Columns: `prof
 - ⚠️ **FK ambiguity:** two FKs to `profiles`. Any PostgREST join MUST use `profiles!profile_id(...)`.
 
 **`trips`**
-`id, title, description, destination, start_date, end_date, access_roles, accommodation_type, currency, image_url, inclusions, location, milestones, total_cost, trip_type, created_at`
+`id, title, description, destination, start_date, end_date, access_roles, accommodation_type, counter_bg_color, currency, image_url, inclusions, location, milestones, total_cost, trip_type, created_at`
 - `access_roles`: array of role strings controlling who can see the trip.
 - PostgREST visibility filter: `.contains('access_roles', [role])`
+- `counter_bg_color`: `text | null`. Hex string (`#rrggbb`). Set by admin via PATCH `/api/admin/trips/[id]`. Overrides canvas-derived accent on the member-facing countdown strip. Colour helpers in `lib/color.ts`.
 
 **`trip_registrations`**
 `id, trip_id, profile_id, status, created_at, updated_at, cancelled_at, cancelled_by`
@@ -399,7 +403,7 @@ Normalised UNION ALL over `profiles_audit` + `role_change_audit`. Columns: `prof
 | `/api/admin/spouse-link-requests` | GET | ADR-016: returns all pending requests joined with requester + claimed_primary profile |
 | `/api/admin/spouse-link-requests/[id]` | PATCH | ADR-016: `{ status: 'approved'|'denied', admin_note? }`. Approve re-verifies all 3 guards. On approve: writes profile + request + audit + Clerk sync + welcome email |
 | `/api/admin/trips` | GET, POST | List + create trips |
-| `/api/admin/trips/[id]` | GET, PATCH, DELETE | Trip CRUD |
+| `/api/admin/trips/[id]` | GET, PATCH, DELETE | Trip CRUD. PATCH accepts `counter_bg_color: string | null` — validates hex `/^#[0-9a-fA-F]{6}$/` or null; admin-only guard |
 | `/api/admin/trips/registrations/[id]/cancel` | POST | Admin cancel registration — triggers `sendNotificationEmail` |
 | `/api/admin/verify` | POST | Approve/deny ABO verification — MUST sync Clerk metadata |
 | `/api/admin/vital-sign-definitions` | GET, POST | List + create definitions |
