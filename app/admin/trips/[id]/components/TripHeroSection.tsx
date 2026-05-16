@@ -63,7 +63,7 @@ export function TripHeroSection({
   }, [])
 
   function handleImageLoad() {
-    // Auto-sample on load using current region
+    if (saved !== null) return
     sampleRegion(REGIONS[regionIndex])
   }
 
