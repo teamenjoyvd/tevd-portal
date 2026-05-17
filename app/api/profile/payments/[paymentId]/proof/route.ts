@@ -14,23 +14,14 @@ export async function GET(
   const { paymentId } = await params
   const supabase = createServiceClient()
 
-  // Resolve caller profile
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('clerk_id', userId)
-    .single()
-
-  if (!profile) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
-
-  // Fetch payment — ownership enforced: profile_id must match caller
+  // Single query: fetch payment and verify ownership via join on profiles.
+  // payments has two FKs to profiles (profile_id, logged_by_admin) —
+  // !profile_id disambiguates to the ownership FK.
   const { data: payment } = await supabase
     .from('payments')
-    .select('id, proof_url, profile_id')
+    .select('id, proof_url, profiles!profile_id(clerk_id)')
     .eq('id', paymentId)
-    .eq('profile_id', profile.id)
+    .eq('profiles.clerk_id', userId)
     .single()
 
   if (!payment || !payment.proof_url) {
