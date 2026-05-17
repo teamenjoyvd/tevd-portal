@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { generateHTML } from '@tiptap/html'
 import StarterKit from '@tiptap/starter-kit'
 import Link from '@tiptap/extension-link'
@@ -13,6 +13,7 @@ import {
   DialogOverlay,
 } from '@/components/ui/dialog'
 import { useLanguage } from '@/lib/hooks/useLanguage'
+import { useTiptapCopyButtons } from '@/lib/hooks/useTiptapCopyButtons'
 
 type Attachment = {
   id: string
@@ -42,13 +43,17 @@ export default function GuideBody({
 }) {
   const { t } = useLanguage()
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
+  const outputRef = useRef<HTMLDivElement>(null)
 
   const html = body ? generateHTML(body, TIPTAP_EXTENSIONS) : ''
+
+  useTiptapCopyButtons(outputRef, [html])
 
   return (
     <>
       <div className="guide-body max-w-2xl">
         <div
+          ref={outputRef}
           className="tiptap-output"
           // Content is generated server-side from admin-controlled JSONContent.
           // No user-submitted HTML reaches this path.

@@ -124,6 +124,19 @@ function Toolbar({
       </button>
       <button
         type="button"
+        onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+        className={TOOLBAR_BTN}
+        style={{
+          borderColor: 'var(--border-default)',
+          color: editor.isActive('codeBlock') ? 'var(--brand-crimson)' : 'var(--text-secondary)',
+          fontFamily: 'monospace',
+        }}
+        aria-label="Code block"
+      >
+        &lt;/&gt;
+      </button>
+      <button
+        type="button"
         onClick={onImageClick}
         disabled={imageUploading}
         className={TOOLBAR_BTN}
