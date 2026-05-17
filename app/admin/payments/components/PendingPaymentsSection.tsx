@@ -44,7 +44,13 @@ export function PendingPaymentsSection({
                 </p>
                 {p.note && <p className="text-xs mt-0.5 italic" style={{ color: 'var(--text-secondary)' }}>{p.note}</p>}
                 {p.proof_url && (
-                  <a href={p.proof_url} target="_blank" rel="noopener noreferrer" className="text-xs hover:underline" style={{ color: 'var(--brand-teal)' }}>
+                  <a
+                    href={`/api/admin/payments/${p.id}/proof`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs hover:underline"
+                    style={{ color: 'var(--brand-teal)' }}
+                  >
                     {t('admin.operations.payments.viewProof', 'en')}
                   </a>
                 )}
