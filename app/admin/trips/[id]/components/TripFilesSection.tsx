@@ -21,6 +21,8 @@ import { useSignedUpload } from '@/lib/hooks/useSignedUpload'
 type Attachment = {
   id: string
   file_name: string
+  // file_url stores the storage path (not a public URL) after the bucket was made private.
+  // Use /api/admin/trips/[tripId]/attachments/[id]/download for reading.
   file_url: string
   file_type: 'pdf' | 'image'
   sort_order: number
@@ -36,7 +38,8 @@ export function TripFilesSection({ tripId }: { tripId: string }) {
   const qc = useQueryClient()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null)
-  // Optimistic entries appended on upload; cleared when server query resolves with real ids
+  // Optimistic entries appended on upload; cleared when server query resolves with real ids.
+  // file_url on optimistic rows is the storage path (returned as `url` from confirm).
   const [optimistic, setOptimistic] = useState<Attachment[]>([])
   const [sizeError, setSizeError] = useState<string | null>(null)
   const { t } = useLanguage()
@@ -54,10 +57,9 @@ export function TripFilesSection({ tripId }: { tripId: string }) {
       }),
   })
 
-  // Remove confirmed optimistic entries post-render. Guard on length > 0 so this
-  // is a no-op while loading (default [] reference is stable but length check is
-  // explicit insurance). Filter-based removal preserves in-flight entries that
-  // haven't landed in the server list yet.
+  // Remove confirmed optimistic entries post-render.
+  // Dedup by file_url (storage path) — works because confirm now returns path as url,
+  // so optimistic file_url === server file_url after the row lands.
   useEffect(() => {
     if (serverAttachments.length > 0) {
       setOptimistic(prev => prev.filter(o => !serverAttachments.some(s => s.file_url === o.file_url)))
@@ -74,8 +76,6 @@ export function TripFilesSection({ tripId }: { tripId: string }) {
     const file = e.target.files?.[0]
     if (!file) return
     e.target.value = ''
-    // Reset size error on every invocation. Note: uploadError from
-    // useSignedUpload is managed by the hook and cannot be reset here.
     setSizeError(null)
     if (file.size > MAX_FILE_SIZE) {
       setSizeError(t('trips.error_file_too_large'))
@@ -83,6 +83,7 @@ export function TripFilesSection({ tripId }: { tripId: string }) {
     }
     try {
       const { url } = await upload(file)
+      // url is now a storage path — used only for optimistic dedup, not as an href
       setOptimistic(prev => [
         ...prev,
         {
@@ -152,31 +153,45 @@ export function TripFilesSection({ tripId }: { tripId: string }) {
         <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No files uploaded yet.</p>
       ) : (
         <ul className="space-y-2">
-          {attachments.map(a => (
-            <li
-              key={a.id}
-              className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg"
-              style={{ backgroundColor: 'var(--bg-global)', border: '1px solid var(--border-default)' }}
-            >
-              <a
-                href={a.file_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm truncate hover:underline"
-                style={{ color: 'var(--text-primary)' }}
+          {attachments.map(a => {
+            const isOptimistic = a.id.startsWith('optimistic-')
+            return (
+              <li
+                key={a.id}
+                className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg"
+                style={{ backgroundColor: 'var(--bg-global)', border: '1px solid var(--border-default)' }}
               >
-                {a.file_name}
-              </a>
-              <button
-                onClick={() => setDeleteTarget({ id: a.id, name: a.file_name })}
-                className="flex-shrink-0 hover:opacity-70 transition-opacity"
-                style={{ color: 'var(--brand-crimson)' }}
-                aria-label={`Delete ${a.file_name}`}
-              >
-                <Trash2 size={14} />
-              </button>
-            </li>
-          ))}
+                {isOptimistic ? (
+                  // Optimistic row: no real id yet, download link unavailable
+                  <span
+                    className="text-sm truncate"
+                    style={{ color: 'var(--text-secondary)' }}
+                  >
+                    {a.file_name}
+                  </span>
+                ) : (
+                  <a
+                    href={`/api/admin/trips/${tripId}/attachments/${a.id}/download`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm truncate hover:underline"
+                    style={{ color: 'var(--text-primary)' }}
+                  >
+                    {a.file_name}
+                  </a>
+                )}
+                <button
+                  onClick={() => !isOptimistic && setDeleteTarget({ id: a.id, name: a.file_name })}
+                  disabled={isOptimistic}
+                  className="flex-shrink-0 hover:opacity-70 transition-opacity disabled:opacity-30"
+                  style={{ color: 'var(--brand-crimson)' }}
+                  aria-label={`Delete ${a.file_name}`}
+                >
+                  <Trash2 size={14} />
+                </button>
+              </li>
+            )
+          })}
         </ul>
       )}
 

@@ -46,10 +46,6 @@ export async function POST(
     return Response.json({ error: 'Unsupported file type' }, { status: 415 })
   }
 
-  const { data: { publicUrl } } = supabase.storage
-    .from('trip-attachments')
-    .getPublicUrl(path)
-
   // Derive sort_order as max existing + 1
   const { data: maxRow } = await supabase
     .from('trip_attachments')
@@ -61,11 +57,15 @@ export async function POST(
 
   const sort_order = (maxRow?.sort_order ?? -1) + 1
 
+  // Store the storage path directly — not a public URL.
+  // The bucket is private; reading is done via /api/admin/trips/[id]/attachments/[attachmentId]/download.
+  // useSignedUpload expects { url } in the confirm response — return path under the `url` key
+  // for backwards compatibility. TripFilesSection receives the full attachment row alongside.
   const { data: attachment, error: insertError } = await supabase
     .from('trip_attachments')
     .insert({
       trip_id: tripId,
-      file_url: publicUrl,
+      file_url: path,
       file_name: filename,
       file_type: fileTypeMapped,
       sort_order,
@@ -80,7 +80,5 @@ export async function POST(
     return Response.json({ error: insertError.message }, { status: 500 })
   }
 
-  // useSignedUpload expects { url } in the confirm response.
-  // Spread attachment fields alongside so TripFilesSection still gets the full row.
-  return Response.json({ url: publicUrl, ...attachment }, { status: 201 })
+  return Response.json({ url: path, ...attachment }, { status: 201 })
 }

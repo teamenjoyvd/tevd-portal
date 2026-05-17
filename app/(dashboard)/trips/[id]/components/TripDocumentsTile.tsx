@@ -123,7 +123,7 @@ export function TripDocumentsTile({ tripId }: { tripId: string }) {
                 </p>
               </div>
               <a
-                href={a.file_url}
+                href={`/api/trips/${tripId}/attachments/${a.id}/download`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-xs flex-shrink-0 hover:opacity-70 transition-opacity"
