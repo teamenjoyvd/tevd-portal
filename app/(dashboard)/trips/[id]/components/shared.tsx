@@ -12,6 +12,7 @@ import { clampLuminance, hslToHex } from '@/lib/color'
 import type { Tables } from '@/types/supabase'
 import type { TripProfile } from '../page'
 import { useLanguage } from '@/lib/hooks/useLanguage'
+import { useTiptapCopyButtons } from '@/lib/hooks/useTiptapCopyButtons'
 
 type Trip = Tables<'trips'>
 
@@ -182,13 +183,18 @@ export function TripHeroImage({
 // parent re-renders where description hasn't changed.
 // ---------------------------------------------------------------------------
 function TripDescription({ description }: { description: JSONContent | null }) {
+  const outputRef = useRef<HTMLDivElement>(null)
   const html = useMemo(
     () => (description ? generateHTML(description, TIPTAP_EXTENSIONS) : null),
     [description],
   )
+
+  useTiptapCopyButtons(outputRef, [html])
+
   if (!html) return null
   return (
     <div
+      ref={outputRef}
       className="tiptap-output mb-5"
       // Content is generated from admin-controlled JSONContent — no user-submitted HTML.
       dangerouslySetInnerHTML={{ __html: html }}
