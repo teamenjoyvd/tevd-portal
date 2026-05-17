@@ -2,7 +2,9 @@ import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { NextRequest, NextResponse } from 'next/server'
 
-export async function DELETE(
+export const dynamic = 'force-dynamic'
+
+export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string; attachmentId: string }> }
 ): Promise<NextResponse> {
@@ -21,30 +23,25 @@ export async function DELETE(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const { id: tripId, attachmentId } = await params
+  const { attachmentId } = await params
 
-  const { data: attachment, error: fetchError } = await supabase
+  const { data: attachment } = await supabase
     .from('trip_attachments')
-    .select('id, file_url, trip_id')
+    .select('id, file_url')
     .eq('id', attachmentId)
-    .eq('trip_id', tripId)
     .single()
 
-  if (fetchError || !attachment) {
+  if (!attachment || !attachment.file_url) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
 
-  // file_url now stores the storage path directly — no URL parsing needed
-  if (attachment.file_url) {
-    await supabase.storage.from('trip-attachments').remove([attachment.file_url])
+  const { data: signed, error } = await supabase.storage
+    .from('trip-attachments')
+    .createSignedUrl(attachment.file_url, 3600)
+
+  if (error || !signed?.signedUrl) {
+    return NextResponse.json({ error: 'Could not generate download URL' }, { status: 500 })
   }
 
-  const { error: deleteError } = await supabase
-    .from('trip_attachments')
-    .delete()
-    .eq('id', attachmentId)
-
-  if (deleteError) return NextResponse.json({ error: deleteError.message }, { status: 500 })
-
-  return new NextResponse(null, { status: 204 })
+  return NextResponse.redirect(signed.signedUrl, 302)
 }
