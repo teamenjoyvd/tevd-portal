@@ -237,9 +237,13 @@ export function AttendeeView({
                       </p>
                     </div>
                     {p.proof_url && (
-                      <a href={p.proof_url} target="_blank" rel="noopener noreferrer"
+                      <a
+                        href={`/api/profile/payments/${p.id}/proof`}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className="text-xs flex-shrink-0 hover:opacity-70 transition-opacity"
-                        style={{ color: 'var(--brand-teal)' }}>
+                        style={{ color: 'var(--brand-teal)' }}
+                      >
                         {t('payment.proofLink')}
                       </a>
                     )}

@@ -36,7 +36,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Invalid path' }, { status: 400 })
   }
 
-  const { data } = supabase.storage.from('trip-proofs').getPublicUrl(path)
-
-  return NextResponse.json({ url: data.publicUrl })
+  // Return the path directly — callers store this as proof_url.
+  // The bucket is private; reading is done via /api/profile/payments/[paymentId]/proof.
+  // Note: the response key remains "url" for backwards compatibility with existing callers.
+  return NextResponse.json({ url: path })
 }
