@@ -56,6 +56,7 @@ export async function GET(
     .createSignedUrl(attachment.file_url, 3600)
 
   if (error || !signed?.signedUrl) {
+    console.error('[MEMBER_DOWNLOAD_ERROR]', error)
     return NextResponse.json({ error: 'Could not generate download URL' }, { status: 500 })
   }
 

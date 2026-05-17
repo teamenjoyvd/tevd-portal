@@ -23,12 +23,13 @@ export async function GET(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const { attachmentId } = await params
+  const { id: tripId, attachmentId } = await params
 
   const { data: attachment } = await supabase
     .from('trip_attachments')
     .select('id, file_url')
     .eq('id', attachmentId)
+    .eq('trip_id', tripId)
     .single()
 
   if (!attachment || !attachment.file_url) {
@@ -40,6 +41,7 @@ export async function GET(
     .createSignedUrl(attachment.file_url, 3600)
 
   if (error || !signed?.signedUrl) {
+    console.error('[ADMIN_DOWNLOAD_ERROR]', error)
     return NextResponse.json({ error: 'Could not generate download URL' }, { status: 500 })
   }
 
