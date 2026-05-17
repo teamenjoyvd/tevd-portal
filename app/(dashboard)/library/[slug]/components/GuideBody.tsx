@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { generateHTML } from '@tiptap/html'
 import StarterKit from '@tiptap/starter-kit'
 import Link from '@tiptap/extension-link'
@@ -45,7 +45,7 @@ export default function GuideBody({
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
   const outputRef = useRef<HTMLDivElement>(null)
 
-  const html = body ? generateHTML(body, TIPTAP_EXTENSIONS) : ''
+  const html = useMemo(() => (body ? generateHTML(body, TIPTAP_EXTENSIONS) : ''), [body])
 
   useTiptapCopyButtons(outputRef, [html])
 

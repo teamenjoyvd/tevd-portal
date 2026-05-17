@@ -14,7 +14,7 @@ export function useTiptapCopyButtons(
 ): void {
   useEffect(() => {
     const container = ref.current
-    if (!container) return
+    if (!container || !navigator.clipboard) return
 
     const blocks = container.querySelectorAll<HTMLElement>('pre code')
     if (!blocks.length) return
@@ -37,12 +37,14 @@ export function useTiptapCopyButtons(
 
       function handleClick() {
         const text = codeEl.textContent ?? ''
-        void navigator.clipboard.writeText(text).then(() => {
+        navigator.clipboard.writeText(text).then(() => {
           btn.textContent = 'Copied!'
           clearTimeout(timeout)
           timeout = setTimeout(() => {
             btn.textContent = 'Copy'
           }, 2000)
+        }).catch(err => {
+          console.error('Failed to copy code:', err)
         })
       }
 
