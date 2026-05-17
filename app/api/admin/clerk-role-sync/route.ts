@@ -29,7 +29,7 @@ export async function POST(): Promise<NextResponse> {
 
   const { data: profiles, error } = await supabase
     .from('profiles')
-    .select('clerk_id, role, first_name, last_name')
+    .select('clerk_id, role')
     .in('role', ['admin', 'core', 'member'])
     .is('primary_profile_id', null)
 
