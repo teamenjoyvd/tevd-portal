@@ -11,7 +11,7 @@
 | Repo | `teamenjoyvd/tevd-portal` |
 | Branch | `main` |
 | Supabase project | `ynykjpnetfwqzdnsgkkg` |
-| Production URL | `https://tevd-portal.vercel.app` |
+| Production URL | `https://www.teamenjoyvd.com` |
 
 Never ask the user to confirm these.
 
@@ -108,7 +108,7 @@ If GitHub ❌ — stop.
 
 Pure thinking mode. **Zero writes of any kind.** No GitHub API calls except reads.
 
-Invoke for a ticket or batch of tickets when the design is not yet settled.
+Invoked explicitly with the `PLAN` prefix. Processes one or more tickets in a single session.
 
 For each ticket:
 1. Read relevant REF.md / FLOWS.md / DECISIONS.md sections freely — no competing write budget.
