@@ -24,10 +24,11 @@ export async function GET(req: Request) {
   }
 
   // Verify token matches stored token (allows revocation via regenerate)
+  // Also fetch role live so promoted users see the correct event set immediately
   const supabase = createServiceClient()
   const { data: profile } = await supabase
     .from('profiles')
-    .select('ical_token')
+    .select('ical_token, role')
     .eq('id', payload.profile_id)
     .single()
 
@@ -35,11 +36,11 @@ export async function GET(req: Request) {
     return new Response('Token revoked', { status: 401 })
   }
 
-  // Fetch events filtered by role
+  // Fetch events filtered by live profile role (not stale JWT role)
   const { data: events } = await supabase
     .from('calendar_events')
     .select('id, title, description, start_time, end_time, category, location, meeting_url')
-    .contains('access_roles', [payload.role])
+    .contains('access_roles', [profile.role])
     .order('start_time')
 
   // Build iCal — no timezone set so dates are emitted as UTC (DTSTART:...Z)
