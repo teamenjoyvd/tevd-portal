@@ -34,6 +34,13 @@ export const profile = {
   'profile.calSubCopy':         { en: 'Copy link',               bg: 'Копирай линк'             },
   'profile.calSubCopied':       { en: 'Copied!',                 bg: 'Копирано!'                },
   'profile.calSubRegenerate':   { en: 'Regenerate',              bg: 'Регенерирай'              },
+  'profile.calDisplayName':     { en: 'Calendar display name',   bg: 'Показвано име на календара' },
+  'profile.calDisplayNameDesc': {
+    en: 'Set a custom name for this calendar. Only applied when first importing — rename from your calendar app to change it afterwards.',
+    bg: 'Задайте персонализирано име на календара. Прилага се само при първоначален импорт — след това преименувайте от приложението за календар.',
+  },
+  'profile.calDisplayNamePlaceholder': { en: 'teamenjoyVD (default)', bg: 'teamenjoyVD (по подразбиране)' },
+  'profile.calDisplayNameSave': { en: 'Save name',               bg: 'Запази името'             },
   'profile.expiry.ok':          { en: 'Valid — Document does not expire within 6 months', bg: 'Валиден: Документът е валиден за следващите 6 месеца' },
   'profile.expiry.warning':     { en: 'Expiring soon — update within 6 months', bg: 'Изтича скоро — обновете в рамките на 6 месеца' },
   'profile.expiry.critical':    { en: 'Expired or expiring very soon — action required', bg: 'Изтекло или изтича много скоро — необходимо е действие' },
