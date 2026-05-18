@@ -20,21 +20,21 @@ Never ask the user to confirm these.
 ## ID Format
 
 ```
-[YYMM]-[TYPE]-[GH#]
+[YYMM]-DEV-[GH#]
 ```
 
-- `YYMM` — year + month of creation (e.g. `2604` for April 2026)
-- `TYPE` — `FEAT`, `BUG`, or `CHORE`
+- `YYMM` — year + month of creation (e.g. `2605` for May 2026)
+- `DEV` — fixed segment, all work types
 - `GH#` — the GitHub issue number assigned when the issue is created (no padding)
 
-Examples: `2604-FEAT-61`, `2604-BUG-54`, `2604-CHORE-66`
+Examples: `2605-DEV-171`, `2605-DEV-182`
 
 | Artifact | Format |
 |---|---|
-| GitHub Issue title | `[2604-FEAT-61] Short description` |
-| Branch | `feature/2604-FEAT-61` |
-| Commit prefix | `[2604-FEAT-61] description` |
-| PR title | `[2604-FEAT-61] description` |
+| GitHub Issue title | `[2605-DEV-171] Short description` |
+| Branch | `dev/2605-DEV-171` |
+| Commit prefix | `[2605-DEV-171] description` |
+| PR title | `[2605-DEV-171] description` |
 
 The GitHub issue number is the canonical unique identifier. It is assigned atomically by GitHub — no counter to maintain, no inference required. Never check existing issue numbers and increment — always create the issue and read the number from the response.
 
@@ -59,7 +59,7 @@ READ order: `priority:high` first, then unlabelled, then `priority:low`. Never p
 
 Violation = immediate stop, no exceptions.
 
-- **NEVER push directly to `main`.** Feature branches only: `feature/[YYMM]-[TYPE]-[GH#]`.
+- **NEVER push directly to `main`.** Use `dev/[YYMM]-DEV-[GH#]` branches only.
 - **NEVER create `middleware.ts`.** Auth lives in `proxy.ts`.
 - **NEVER expose `SUPABASE_SERVICE_ROLE_KEY` to the client.**
 - **NEVER bypass Clerk auth on a protected route.**
@@ -96,133 +96,19 @@ Run at the start of every session. Warms up tools and establishes ground truth b
 Output format:
 ```
 | GitHub    | ✅/❌ |
-| In flight | [YYMM]-[TYPE]-[GH#] <title> / None |
+| In flight | [YYMM]-DEV-[GH#] <title> / None |
 | Handoff   | IN PROGRESS: <next action> / DONE / CLAIM-complete: ready for SHAPE / No active PR |
 | Commands  | SSU · PLAN · CLAIM · BUILD · GCR |
 ```
 If GitHub ❌ — stop.
 
----
+### PLAN — See `docs/ai/PLAN.md`
 
-### PLAN — Read-only design
+### CLAIM — See `docs/ai/CLAIM.md`
 
-Pure thinking mode. **Zero writes of any kind.** No GitHub API calls except reads.
+### BUILD — See `docs/ai/BUILD.md`
 
-Invoked explicitly with the `PLAN` prefix. Processes one or more tickets in a single session.
-
-For each ticket:
-1. Read relevant REF.md / FLOWS.md / DECISIONS.md sections freely — no competing write budget.
-2. Assess feasibility against the current codebase.
-3. Produce a DoD as **specific verifiable checklist items with file paths**, not directional statements:
-   ```
-   ## DoD
-   - [ ] `app/[route]/components/X.tsx` renders without overflow at 390px
-   - [ ] `api/y/route.ts` returns 403 for non-admin Clerk userId
-   ```
-4. List affected files by path.
-5. Flag applicable gotchas from the Gotchas table.
-6. State verdict: **READY** or **BLOCKED: [single specific question]**.
-
-**Output format:**
-```
-## PLAN: [YYMM-TYPE or topic]
-**Verdict:** READY | BLOCKED: <single blocking question>
-
-### DoD
-- [ ] `path/to/file`: what changes and why
-
-### Affected Files
-- `path/to/file`
-
-### Gotchas Flagged
-- [gotcha name]: relevance to this ticket
-
-### Notes
-[design reasoning that shaped the above]
-```
-
-Output lives in the conversation only. Nothing is written anywhere.
-
-Re-entry: after a BLOCKED verdict is resolved, re-run PLAN scoped to that ticket to produce a READY verdict before CLAIM.
-
-**Permitted:** GitHub reads (`get_file_contents`, `get_issue`, etc.)
-**Forbidden:** `create_issue`, `update_issue`, `create_branch`, `create_or_update_file`, `push_files` — any write.
-
----
-
-### CLAIM — Issue + branch scaffolding
-
-Materialises a PLAN READY verdict into GitHub. Requires a READY verdict in the current session context, or a reference to an existing open issue that has a complete DoD but no `## Branch` section.
-
-**If READY:**
-1. `create_issue` — title (no ID yet), body containing DoD + affected files + gotchas + Design Checklist (all four items checked).
-2. Read `GH#` from the response — this is the canonical identifier.
-3. `update_issue` — rename title to `[YYMM-TYPE-GH#] description`.
-4. `create_branch` → `feature/[YYMM]-[TYPE]-[GH#]` from `main`.
-5. Confirm branch exists (check the returned ref).
-6. **HARD GATE: if branch creation fails — comment `BLOCKED: branch creation failed` on the issue, apply `blocked` label, STOP.**
-7. `update_issue` — write `## Branch` followed by `` `feature/[YYMM]-[TYPE]-[GH#]` `` into the issue body.
-
-**If BLOCKED verdict from PLAN:**
-1. `create_issue` with `blocked` label, body with DoD and `## Blocking Unknown` section containing the single question.
-2. Read `GH#`, rename title to `[YYMM-TYPE-GH#] description`.
-3. Stop — no branch creation.
-
-Re-entry (existing issue, no branch): read the issue body, verify DoD is complete, then execute steps 4–7 above.
-
-**Permitted:** `create_issue`, `update_issue`, `create_branch`.
-**Forbidden:** `create_or_update_file`, `push_files`.
-
----
-
-### BUILD — File execution
-
-Default mode. Executes against a CLAIM-complete issue.
-
-**Precondition:** Read the issue body. Verify `## Design Checklist` exists with all four items checked AND `## Branch` exists with the branch name. If either is absent or any item unchecked — stop, state exactly what is missing, do not proceed.
-
-**READ** → Check open GitHub Issues. Resume any in-progress issue (open PR exists). If a CLAIM-complete issue has no open PR, that is the next issue — read `## Branch` from its body and proceed to SHAPE. Otherwise pick the highest `priority:high` open issue without the `blocked` label. If none, pick the next unlabelled issue by creation order.
-
-**SHAPE (read-only)** → Verify the DoD is still coherent against current codebase state. Read relevant architecture docs:
-   - Auth / role / Clerk sync → `FLOWS.md §1`
-   - Registration → `FLOWS.md §2`
-   - Payments → `FLOWS.md §3`
-   - LOS / tree / notifications → `FLOWS.md §4`
-   - Vital signs → `FLOWS.md §5`
-   - New external dependency → update `C4.md` first
-   - New architectural pattern → write ADR in `DECISIONS.md` before executing
-
-   If DoD is stale or wrong: stop and request user to update the issue body before proceeding.
-   **No writes (including issue body) in SHAPE.**
-
-**GATHER** → Read only the REF.md sections the ticket needs (section map at top of REF.md).
-
-**EXECUTE** → Change only lines required by DoD. All writes target the feature branch only. Push to trigger Vercel Preview.
-- Before any large task (>100 lines): write `IN PROGRESS` to PR `## Session State` first, then commit a skeleton with `// TODO:` items before implementing.
-
-**VERIFY** → DoD point-by-point. Vercel Preview READY. CI green (`check-types` is the only required workflow — it runs `tsc --noEmit` on PRs targeting `main`). 390px check. No production side-effects. If ticket touched auth or routing: confirm `middleware.ts` does not exist (`ls middleware.ts` returns an error).
-
-**FINALIZE** → Verify PR body contains `Closes #<issue_number>` — if missing, update the PR body to add it now. Mark PR ready for review. If this ticket ran a migration or changed a column/table/route/env var: update **both** `docs/ai/REF.md` and `docs/ai/LOOKUP.md` in a single `push_files` call before marking DONE — never update one without the other. User merges manually via GitHub UI. After merge: confirm production Vercel deployment READY.
-
-### PR Session State block
-
-The PR description is the sole handoff document.
-
-```markdown
-## Session State
-**Status:** IN PROGRESS | DONE
-**Completed:**
-- [x] done thing
-**Next:** single specific action for incoming instance
-```
-
-Write `IN PROGRESS` before starting a large task. Write `DONE` after verifying. If context runs out mid-task, the skeleton commit is the fallback — it must exist before implementation begins.
-
----
-
-### GCR — Address Gemini Code Review
-
-See `docs/ai/GCR.md`.
+### GCR — See `docs/ai/GCR.md`
 
 ---
 
@@ -236,11 +122,11 @@ An issue is CLAIM-complete (ready for BUILD) when its body contains:
 ## Design Checklist
 - [x] DoD defined (specific, file-path-level)
 - [x] Affected files listed by path
-- [x] Gotchas flagged against Gotchas table
+- [x] Gotchas flagged against docs/ai/GOTCHAS.md
 - [x] Blocking unknowns: none
 
 ## Branch
-`feature/YYMM-TYPE-GH#`
+`dev/YYMM-DEV-GH#`
 ```
 
 BUILD verifies both at startup. If either section is absent or any checklist item is unchecked, BUILD refuses and states exactly what is missing.
@@ -249,31 +135,4 @@ BUILD verifies both at startup. If either section is absent or any checklist ite
 
 ## Gotchas
 
-| Topic | Rule |
-|---|---|
-| `middleware.ts` | NEVER. Use `proxy.ts`. |
-| Clerk auth | `await auth()` → `{ userId }`. No sync auth. No JWT template. |
-| Clerk shadow DOM | CSS vars unavailable in Clerk components. Use hardcoded hex (`#bc4749`). |
-| Role promotion | Every `profiles.role` update MUST also call `clerk.users.updateUserMetadata`. Routes: `/api/admin/verify`, `/api/admin/members/[id]` PATCH, `/api/admin/members/verify/[id]`. |
-| `payments` FK | Two FKs to `profiles`. PostgREST MUST use `profiles!profile_id(...)` — without it, 500. |
-| `types/supabase.ts` | Regenerate via `Supabase:generate_typescript_types` MCP only — CLI not installed. Regeneration is mandatory after any migration that touches an enum; `lib/roles.ts` derives `MemberRole` and `ALL_ROLES` from this file and will emit a compile error on missing/extra keys. |
-| Supabase DDL | `apply_migration` only. Never raw `execute_sql` for DDL. Migration filename: `YYYYMMDD_NNN_description.sql` where `NNN` is a zero-padded 3-digit counter. Before writing a filename, list `supabase/migrations/` and find the highest `NNN` for today's date — increment by 1, reset to `001` on a new day. Never use `HHMMSS` — wall-clock seconds collide within a session. |
-| Migration CI | `migrate-dev.yml` and `migrate-prod.yml` have been removed (PR #309). There is no CLI-based migration workflow. Migrations are applied exclusively via `Supabase:apply_migration` MCP during BUILD sessions. Never attempt to restore these workflows — the MCP-applied `schema_migrations` timestamps are incompatible with CLI filename-based reconciliation. |
-| Large GitHub files | `create_or_update_file` times out above ~10KB. Use `push_files`. |
-| Mapbox | CDN only — never npm. Dupe guard on load. |
-| Mapbox theme swap | `map.setStyle()` + `styledata` event. MutationObserver on `data-theme`. |
-| shadcn install | NEVER `npx shadcn@latest init` — corrupts globals.css. Use `npx shadcn@latest add <n>`. After each add, revert any injected `@layer base` blocks. |
-| shadcn CSS vars | Edit vended source in `components/ui/` to use project tokens (`--bg-card`, `--text-primary`) not shadcn defaults. |
-| shadcn Tabs | NEVER `defaultValue`. Always `value={tab}` + `onValueChange` → `router.replace(?tab=..., { scroll: false })`. Wrap in `<Suspense>`. |
-| `--bg-global-rgb` dark | MUST be `26, 31, 24`. Wrong value = white navbar in dark mode. |
-| Admin forms | NEVER define a form component inside a parent page component — React remounts on every render. Hoist to module scope. |
-| Admin Drawer | Use `components/ui/Drawer.tsx` for all admin create/edit. Exceptions: Announcements + Quick Links create = inline cards. All deletes use `AlertDialog`. |
-| Route handler `params` | `params` is a `Promise` in Next.js 16. Type as `{ params: Promise<{ id: string }> }` and `await params`. |
-| `useParams()` | Takes NO type argument in Next.js 16. `const params = useParams(); const id = params.id as string`. |
-| `sendEmail` | Removed. Use `sendNotificationEmail` (fire-and-forget, respects config gates) or `sendTransactionalEmail` (bypasses gates, returns typed result). **Dynamic imports evade static rename tools and grep** — after any email-related rename, manually read every route using `import('@/lib/email/send')`. Known callers in `sendNotificationEmail` JSDoc. |
-| `pg_net` cron | `net.http_post(...)`. NEVER `extensions.http_post(...)` — silently does nothing. |
-| `TranslationKey` | Strict union. Add to `translations.ts` before using `t()` or build breaks. |
-| `BottomNav.tsx` | Dead stub. Do not import. |
-| Profile prerender | Guard ALL `validProfile!` accesses with `if (isLoading \|\| !validProfile) return <ProfileSkeleton />`. |
-| `TeamAttendee` type | Exported from `app/(dashboard)/trips/[id]/page.tsx`. Do not redeclare. |
-| Trusted RPC + service role | Any RPC that performs cross-user writes MUST be `SECURITY DEFINER SET search_path = public`. Because SECURITY DEFINER bypasses RLS, the function body MUST include an internal authorization check: `IF auth.role() <> 'service_role' AND NOT is_admin() THEN RAISE EXCEPTION 'Unauthorized'; END IF;`. Pattern A helpers return false/null under service-role with no JWT. `SECURITY INVOKER` is only safe for read-only helpers or trigger functions. |
+See `docs/ai/GOTCHAS.md`. Read in full during SHAPE and GATHER.
