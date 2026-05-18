@@ -390,7 +390,9 @@ Normalised UNION ALL over `profiles_audit` + `role_change_audit`. Columns: `prof
 - RLS: service role only.
 - UNIQUE on `request_id`.
 
-**`tree_nodes`** — `id, profile_id, parent_id, path (ltree), depth, created_at`
+**`verification_log`** — `id, request_id → abo_verification_requests, error_message, error_code, error_context, created_at`
+- Used by #307 idempotency guards and by the Clerk reconciliation job to log drift corrections.
+- `error_message` is the primary log message (NOT NULL). `error_code` is a machine-readable tag.
 
 ---
 
