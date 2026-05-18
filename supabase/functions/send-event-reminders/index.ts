@@ -5,7 +5,7 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')!
 
-function buildReminderEmail(firstName: string, eventTitle: string, minutesBefore: number, eventStart: string, meetingUrl: string | null) {
+function buildReminderEmail(name: string, eventTitle: string, minutesBefore: number, eventStart: string, meetingUrl: string | null) {
   const label = minutesBefore >= 60 ? '1 hour' : '15 minutes'
   const formattedTime = new Date(eventStart).toLocaleString('en-GB', {
     weekday: 'long',
@@ -42,7 +42,7 @@ function buildReminderEmail(firstName: string, eventTitle: string, minutesBefore
           <h1>Event Reminder</h1>
         </div>
         <div class="content">
-          <p class="text" style="color: #111827;">Hi ${firstName},</p>
+          <p class="text" style="color: #111827;">Hi ${name},</p>
           <p class="text">This is a reminder that your event is starting in <strong>${label}</strong>.</p>
           <div class="badge">
             <p class="badge-text">${eventTitle}</p>
@@ -83,7 +83,11 @@ Deno.serve(async (req: Request) => {
     '15_min': settingsMap['reminders_15min_enabled'] !== 'false',
   }
 
-  // Fetch unsent reminders due now (send_at <= now)
+  // Fetch unsent reminders due now (send_at <= now).
+  // FK hint must use constraint name, not column name — PostgREST requires this
+  // for joins from the child table side.
+  // Constraints: scheduled_reminders_event_id_fkey, scheduled_reminders_registration_id_fkey
+  // guest_registrations.name is the registrant's name field (not first_name).
   const { data: reminders, error: fetchErr } = await sb
     .from('scheduled_reminders')
     .select(`
@@ -92,8 +96,8 @@ Deno.serve(async (req: Request) => {
       send_at,
       event_id,
       registration_id,
-      calendar_events!event_id ( title, start_time, meeting_url, reminders_enabled ),
-      guest_registrations!registration_id ( first_name, email )
+      calendar_events!scheduled_reminders_event_id_fkey ( title, start_time, meeting_url, reminders_enabled ),
+      guest_registrations!scheduled_reminders_registration_id_fkey ( name, email )
     `)
     .is('sent_at', null)
     .lte('send_at', now.toISOString())
@@ -111,7 +115,7 @@ Deno.serve(async (req: Request) => {
 
   for (const reminder of reminders) {
     const event = reminder.calendar_events as { title: string; start_time: string; meeting_url: string | null; reminders_enabled: boolean } | null
-    const reg = reminder.guest_registrations as { first_name: string; email: string } | null
+    const reg = reminder.guest_registrations as { name: string; email: string } | null
 
     if (!event || !reg?.email) {
       errors.push(`Missing event/registration data for reminder ${reminder.id}`)
@@ -129,7 +133,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const minutesBefore = reminder.reminder_type === '1_hour' ? 60 : 15
-    const html = buildReminderEmail(reg.first_name, event.title, minutesBefore, event.start_time, event.meeting_url)
+    const html = buildReminderEmail(reg.name, event.title, minutesBefore, event.start_time, event.meeting_url)
     const label = minutesBefore >= 60 ? '1 hour' : '15 minutes'
 
     let status = 'pending'
