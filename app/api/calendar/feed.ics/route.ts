@@ -25,11 +25,12 @@ export async function GET(req: Request) {
   }
 
   // Verify token matches stored token (allows revocation via regenerate)
-  // Also fetch role live so promoted users see the correct event set immediately
+  // Fetch role + ui_prefs live — role avoids stale JWT promotion issues,
+  // ui_prefs provides the member's custom calendar display name.
   const supabase = createServiceClient()
   const { data: profile } = await supabase
     .from('profiles')
-    .select('ical_token, role')
+    .select('ical_token, role, ui_prefs')
     .eq('id', payload.profile_id)
     .single()
 
@@ -44,10 +45,17 @@ export async function GET(req: Request) {
     .contains('access_roles', [profile.role])
     .order('start_time')
 
+  // Use member's custom display name if set; fall back to default.
+  // Note: calendar apps only read this name on first import — changing it
+  // after subscription has no effect in Google Calendar et al.
+  const calendarName =
+    (profile.ui_prefs as Record<string, unknown> | null)?.ical_display_name as string | undefined
+    ?? 'teamenjoyVD'
+
   // Build iCal — no timezone set so dates are emitted as UTC (DTSTART:...Z)
   // start_time/end_time from Supabase are +00 UTC strings; new Date() preserves that.
   const calendar = ical({
-    name: 'teamenjoyVD',
+    name: calendarName,
     prodId: { company: 'teamenjoyVD', product: 'tevd-portal' },
   })
 
