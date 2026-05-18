@@ -5,6 +5,15 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')!
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+}
+
 function buildReminderEmail(name: string, eventTitle: string, minutesBefore: number, eventStart: string, meetingUrl: string | null) {
   const label = minutesBefore >= 60 ? '1 hour' : '15 minutes'
   const formattedTime = new Date(eventStart).toLocaleString('en-GB', {
@@ -16,6 +25,11 @@ function buildReminderEmail(name: string, eventTitle: string, minutesBefore: num
     minute: '2-digit',
     timeZone: 'Europe/Sofia',
   })
+
+  const safeName = escapeHtml(name)
+  const safeEventTitle = escapeHtml(eventTitle)
+  const safeFormattedTime = escapeHtml(formattedTime)
+  const safeMeetingUrl = meetingUrl ? escapeHtml(meetingUrl) : null
 
   return `
     <!DOCTYPE html>
@@ -42,13 +56,13 @@ function buildReminderEmail(name: string, eventTitle: string, minutesBefore: num
           <h1>Event Reminder</h1>
         </div>
         <div class="content">
-          <p class="text" style="color: #111827;">Hi ${name},</p>
+          <p class="text" style="color: #111827;">Hi ${safeName},</p>
           <p class="text">This is a reminder that your event is starting in <strong>${label}</strong>.</p>
           <div class="badge">
-            <p class="badge-text">${eventTitle}</p>
-            <p style="margin: 4px 0 0; font-size: 13px; color: #6b7280;">${formattedTime}</p>
+            <p class="badge-text">${safeEventTitle}</p>
+            <p style="margin: 4px 0 0; font-size: 13px; color: #6b7280;">${safeFormattedTime}</p>
           </div>
-          ${meetingUrl ? `<p class="text" style="text-align:center;"><a href="${meetingUrl}" class="btn">Join Event</a></p>` : ''}
+          ${safeMeetingUrl ? `<p class="text" style="text-align:center;"><a href="${safeMeetingUrl}" class="btn">Join Event</a></p>` : ''}
           <p class="text" style="font-size: 14px; color: #6b7280;">See you there!</p>
         </div>
         <div class="footer">&copy; ${new Date().getFullYear()} TeamEnjoyVD</div>
