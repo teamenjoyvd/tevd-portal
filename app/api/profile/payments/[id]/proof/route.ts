@@ -6,30 +6,25 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: Promise<{ paymentId: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { paymentId } = await params
+  const { id } = await params
   const supabase = createServiceClient()
 
-  // Admin check via profile
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('clerk_id', userId)
-    .single()
-
-  if (!profile || profile.role !== 'admin') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
-
-  // Fetch payment — no ownership restriction for admin
+  // Single query: fetch payment and verify ownership via join on profiles.
+  // payments has two FKs to profiles (profile_id, logged_by_admin) —
+  // !profile_id disambiguates to the ownership FK.
+  // !inner ensures the payments row is excluded if the profile join fails —
+  // without it, .eq('profiles.clerk_id') only filters the nested object,
+  // not the top-level row, leaving an IDOR vector.
   const { data: payment } = await supabase
     .from('payments')
-    .select('id, proof_url')
-    .eq('id', paymentId)
+    .select('id, proof_url, profiles!profile_id!inner(clerk_id)')
+    .eq('id', id)
+    .eq('profiles.clerk_id', userId)
     .single()
 
   if (!payment || !payment.proof_url) {

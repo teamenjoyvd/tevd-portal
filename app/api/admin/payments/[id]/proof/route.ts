@@ -6,22 +6,30 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: Promise<{ paymentId: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { paymentId } = await params
+  const { id } = await params
   const supabase = createServiceClient()
 
-  // Single query: fetch payment and verify ownership via join on profiles.
-  // payments has two FKs to profiles (profile_id, logged_by_admin) —
-  // !profile_id disambiguates to the ownership FK.
+  // Admin check via profile
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('clerk_id', userId)
+    .single()
+
+  if (!profile || profile.role !== 'admin') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  // Fetch payment — no ownership restriction for admin
   const { data: payment } = await supabase
     .from('payments')
-    .select('id, proof_url, profiles!profile_id(clerk_id)')
-    .eq('id', paymentId)
-    .eq('profiles.clerk_id', userId)
+    .select('id, proof_url')
+    .eq('id', id)
     .single()
 
   if (!payment || !payment.proof_url) {
