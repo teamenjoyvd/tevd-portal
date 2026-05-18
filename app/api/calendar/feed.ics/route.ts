@@ -14,11 +14,12 @@ export async function GET(req: Request) {
     return new Response('Missing token', { status: 400 })
   }
 
-  // Verify JWT
-  let payload: { profile_id: string; role: string }
+  // Verify JWT — role is intentionally not extracted here; role is always resolved
+  // live from the DB below to avoid stale-token promotion issues
+  let payload: { profile_id: string }
   try {
     const { payload: p } = await jwtVerify(token, secret)
-    payload = p as { profile_id: string; role: string }
+    payload = p as { profile_id: string }
   } catch {
     return new Response('Invalid or expired token', { status: 401 })
   }
