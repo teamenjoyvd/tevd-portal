@@ -14,20 +14,22 @@ export async function GET(req: Request) {
     return new Response('Missing token', { status: 400 })
   }
 
-  // Verify JWT
-  let payload: { profile_id: string; role: string }
+  // Verify JWT — role is intentionally not extracted here; role is always resolved
+  // live from the DB below to avoid stale-token promotion issues
+  let payload: { profile_id: string }
   try {
     const { payload: p } = await jwtVerify(token, secret)
-    payload = p as { profile_id: string; role: string }
+    payload = p as { profile_id: string }
   } catch {
     return new Response('Invalid or expired token', { status: 401 })
   }
 
   // Verify token matches stored token (allows revocation via regenerate)
+  // Also fetch role live so promoted users see the correct event set immediately
   const supabase = createServiceClient()
   const { data: profile } = await supabase
     .from('profiles')
-    .select('ical_token')
+    .select('ical_token, role')
     .eq('id', payload.profile_id)
     .single()
 
@@ -35,11 +37,11 @@ export async function GET(req: Request) {
     return new Response('Token revoked', { status: 401 })
   }
 
-  // Fetch events filtered by role
+  // Fetch events filtered by live profile role (not stale JWT role)
   const { data: events } = await supabase
     .from('calendar_events')
     .select('id, title, description, start_time, end_time, category, location, meeting_url')
-    .contains('access_roles', [payload.role])
+    .contains('access_roles', [profile.role])
     .order('start_time')
 
   // Build iCal — no timezone set so dates are emitted as UTC (DTSTART:...Z)
