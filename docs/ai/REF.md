@@ -15,7 +15,6 @@
 | §7 Design System | Bento, tokens, colors, layout |
 | §8 i18n & Regional | `translations.ts`, `t()`, `lib/format.ts` |
 | §9 Env Vars | New secrets, deployment config |
-| §10 Airtable Field IDs | Airtable writes |
 
 ---
 
@@ -250,8 +249,8 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
 /docs/architecture/FLOWS.md
 /docs/architecture/DECISIONS.md
 /supabase/migrations/
-/supabase/functions/sync-google-calendar/index.ts  # Edge function — GCal sync
-/supabase/functions/send-event-reminders/index.ts  # Edge function — pg_cron every 5min, sends 1hr+15min guest reminder emails via Resend
+/supabase/functions/sync-google-calendar/index.ts
+/supabase/functions/send-event-reminders/index.ts
 /types/supabase.ts
 ```
 
@@ -299,7 +298,7 @@ Normalised UNION ALL over `profiles_audit` + `role_change_audit`. Columns: `prof
 - Admin-only access via underlying table RLS.
 
 **`spouse_link_requests`** — `id, requester_id → profiles, claimed_primary_id → profiles, status (pending|approved|denied), admin_note, created_at, resolved_at`
-- ADR-016. UNIQUE on `requester_id` (one active request per guest at a time). RLS: requester reads/inserts/deletes own pending; admin full access.
+- ADR-016. UNIQUE on `requester_id`. RLS: requester reads/inserts/deletes own pending; admin full access.
 
 **`payments`** — `id, profile_id, trip_id, payable_item_id, amount, currency, transaction_date, admin_status, member_status, admin_reject_reason, member_reject_reason, payment_method, proof_url, note, admin_note, logged_by_admin, properties, created_at`
 - Exactly one of `trip_id` / `payable_item_id` non-null.
@@ -324,11 +323,11 @@ Normalised UNION ALL over `profiles_audit` + `role_change_audit`. Columns: `prof
 - `status`: `pending | confirmed`.
 
 **`scheduled_reminders`** — `id, registration_id → guest_registrations, event_id → calendar_events, reminder_type (enum: '1_hour'|'15_min'), send_at, sent_at`
-- UNIQUE on `(registration_id, reminder_type)` — one row per guest per type.
+- UNIQUE on `(registration_id, reminder_type)`.
 - Populated by trigger `trg_schedule_guest_reminders` on `guest_registrations` INSERT/UPDATE OF status when `status = 'confirmed'`.
-- RLS: service role only. No authenticated/anon policies.
-- Partial index on `send_at WHERE sent_at IS NULL` for cron query performance.
-- Processed every 5 min by pg_cron job → `send-event-reminders` edge function.
+- RLS: service role only.
+- Partial index on `send_at WHERE sent_at IS NULL`.
+- Processed every 5 min by pg_cron → `send-event-reminders` edge function.
 
 **`notifications`** — `id, profile_id, is_read, type, title, message, action_url, created_at, deleted_at`
 - Soft-delete: filter `deleted_at IS NULL`.
@@ -347,8 +346,7 @@ Normalised UNION ALL over `profiles_audit` + `role_change_audit`. Columns: `prof
 **`guide_attachments`** — `id, guide_id, file_url, file_name, label, file_type, sort_order, created_at`
 - `file_type`: `'pdf' | 'image' | 'other'` (CHECK constraint).
 - Storage bucket: `guide-attachments` (public). Path: `{guide_id}/{uuid}.{ext}`.
-- RLS: SELECT authenticated (EXISTS guide check); INSERT/UPDATE/DELETE admin-only via `is_admin()`.
-- Index on `(guide_id, sort_order)`.
+- RLS: SELECT authenticated; INSERT/UPDATE/DELETE admin-only via `is_admin()`.
 
 **`payable_items`** — `id, title, description, amount, currency, item_type, linked_trip_id, is_active, created_by, created_at, properties`
 - `item_type`: `'merchandise' | 'ticket' | 'food' | 'book' | 'other'`
@@ -376,22 +374,21 @@ Normalised UNION ALL over `profiles_audit` + `role_change_audit`. Columns: `prof
 **`role_change_audit`** — `id, profile_id, old_role, new_role, changed_by, note, changed_at`
 
 **`verification_log`** — `id, request_id → abo_verification_requests (nullable), error_code, error_message, error_context (jsonb), created_at`
-- Written by `approve_member_verification` EXCEPTION block. Service-role only (RLS enabled, no authenticated/anon policies).
+- Written by `approve_member_verification` EXCEPTION block. Service-role only.
 - Added in #307 (migration `20260509_001`).
 
 **`tree_nodes`** — `id, profile_id, parent_id, path (ltree), depth, created_at`
 - No-ABO label: `p_<uuid_no_hyphens>`. ABO assignment renames node → calls `rebuild_tree_paths`.
-- ADR-016: secondary profiles never have a `tree_nodes` row. LOS read-path resolves via `primary_profile_id`.
+- ADR-016: secondary profiles never have a `tree_nodes` row.
 
 **`los_members`** — `abo_number (PK), sponsor_abo_number, name, abo_level, bonus_percent, gpv, ppv, annual_ppv, gbv, ruby_pv, customer_pv, customers, group_size, group_orders_count, personal_order_count, qualified_legs, sponsoring, points_to_next_level, phone, email, address, country, entry_date, renewal_date, last_synced_at`
 
-**`los_imports`** — `id (uuid PK), imported_by (uuid → profiles.id), status (text: 'complete'|'partial'|'rolled_back'), file_count (int), row_count (int), removed_count (int), snapshot (jsonb — full pre-import los_members rows), imported_at (timestamptz)`
-- RLS: admin-only read/write via `is_admin()`.
-- Snapshot size acceptable at current LOS scale (~69 rows). Revisit if LOS exceeds ~5K rows.
+**`los_imports`** — `id (uuid PK), imported_by (uuid → profiles.id), status (text: 'complete'|'partial'|'rolled_back'), file_count (int), row_count (int), removed_count (int), snapshot (jsonb), imported_at (timestamptz)`
+- RLS: admin-only via `is_admin()`.
 
 **`approval_jobs`** — `id, request_id → abo_verification_requests, inngest_event_id, status (processing|clerk_synced|done|failed), error, created_at, updated_at, settled_at`
-- RLS: service role only — no authenticated or anon policies.
-- One row per verification request (UNIQUE on `request_id`).
+- RLS: service role only.
+- UNIQUE on `request_id`.
 
 **`verification_log`** — `id, request_id → abo_verification_requests, error_message, error_code, error_context, created_at`
 - Used by #307 idempotency guards and by the Clerk reconciliation job to log drift corrections.
@@ -450,7 +447,7 @@ Normalised UNION ALL over `profiles_audit` + `role_change_audit`. Columns: `prof
 | `/api/admin/los-import/rollback` | POST | Rolls back import by `import_id` via `rollback_los_import` RPC |
 | `/api/admin/los-tree` | GET | Tree nodes for admin LOS view |
 | `/api/admin/members` | GET | LOS + profiles + pending verifications + guests + `los_last_synced_at` |
-| `/api/admin/members/[id]` | GET, PATCH | PATCH actions: standard field update; `action: 'promote_to_primary'` (calls RPC, warns of tree rebuild); `action: 'dissolve_partnership'` (secondary only); deletion block on role=guest if secondary exists (409 `has_secondary`) |
+| `/api/admin/members/[id]` | GET, PATCH | PATCH actions: standard field update; `action: 'promote_to_primary'`; `action: 'dissolve_partnership'`. Deletion block returns 409 `has_secondary`. |
 | `/api/admin/members/[id]/vital-signs` | GET, POST | |
 | `/api/admin/members/[id]/vital-signs/[definitionId]` | PATCH, DELETE | |
 | `/api/admin/payable-items` | GET, POST | |
@@ -466,9 +463,9 @@ Normalised UNION ALL over `profiles_audit` + `role_change_audit`. Columns: `prof
 | `/api/admin/social-posts/[id]` | PATCH, DELETE | |
 | `/api/admin/social-posts/preview` | GET | OG scrape `?url=` |
 | `/api/admin/spouse-link-requests` | GET | ADR-016: returns all pending requests joined with requester + claimed_primary profile |
-| `/api/admin/spouse-link-requests/[id]` | PATCH | ADR-016: `{ status: 'approved'\|'denied', admin_note? }`. Approve re-verifies all 3 guards. On approve: writes profile + request + audit + Clerk sync + welcome email |
+| `/api/admin/spouse-link-requests/[id]` | PATCH | ADR-016: approve/deny. On approve: writes profile + request + audit + Clerk sync + welcome email |
 | `/api/admin/trips` | GET, POST | |
-| `/api/admin/trips/[id]` | GET, PATCH, DELETE | PATCH accepts `counter_bg_color: string \| null` — hex validation `/^#[0-9a-fA-F]{6}$/`, admin-only |
+| `/api/admin/trips/[id]` | GET, PATCH, DELETE | PATCH accepts `counter_bg_color: string \| null` — hex validation `/^#[0-9a-fA-F]{6}$/` |
 | `/api/admin/trips/registrations/[id]/cancel` | POST | Triggers `sendNotificationEmail` |
 | `/api/admin/verify` | POST | ABO approve/deny — MUST sync Clerk metadata |
 | `/api/admin/vital-sign-definitions` | GET, POST | |
@@ -482,13 +479,13 @@ Normalised UNION ALL over `profiles_audit` + `role_change_audit`. Columns: `prof
 | `pin_social_post(p_id uuid)` | Atomic pin swap |
 | `get_core_ancestors(uuid)` | Core-role UUIDs above a node |
 | `rebuild_tree_paths` | Cascade ABO label rename to descendants |
-| `upsert_tree_node(p_profile_id, p_abo_number, p_sponsor_abo_number?)` | Insert/update tree node; walks `los_members` sponsor chain (max 20 hops) if direct sponsor has no portal profile |
-| `approve_member_verification(p_request_id, p_admin_note?)` | **DEPRECATED** — retained as fallback only. Logic now lives in Inngest approve-verification Step 1. Guard added #350: raises `P0002` if `profile.primary_profile_id IS NOT NULL`. |
-| `patch_member_role(p_profile_id, p_new_role, p_changed_by, p_note?)` | Role update with audit trail — returns updated profile |
+| `upsert_tree_node(p_profile_id, p_abo_number, p_sponsor_abo_number?)` | Insert/update tree node; walks `los_members` sponsor chain (max 20 hops) |
+| `approve_member_verification(p_request_id, p_admin_note?)` | **DEPRECATED** — retained as fallback only. Logic now in Inngest Step 1. |
+| `patch_member_role(p_profile_id, p_new_role, p_changed_by, p_note?)` | Role update with audit trail |
 | `get_trip_team_attendees(p_trip_id, p_viewer_profile)` | Returns Core/admin attendees for a trip |
-| `import_los_members(p_rows, p_imported_by?, p_expected_row_count?)` | Transactional LOS import: concurrency check → snapshot → upsert → server-side delete → rebuild_tree_paths → insert los_imports record. Returns `{ inserted, removed, import_id, errors }`. |
-| `rollback_los_import(p_import_id uuid)` | Restores pre-import snapshot, re-runs `rebuild_tree_paths`, marks import `rolled_back`. Returns `{ restored, import_id }`. |
-| `promote_to_primary(p_current_primary_id, p_current_secondary_id)` | ADR-016: atomic swap — transfers tree_nodes row, calls rebuild_tree_paths, swaps primary_profile_id values. SECURITY DEFINER. ⚠️ High-risk: restructures the LOS tree. |
+| `import_los_members(p_rows, p_imported_by?, p_expected_row_count?)` | Transactional LOS import. Returns `{ inserted, removed, import_id, errors }`. |
+| `rollback_los_import(p_import_id uuid)` | Restores pre-import snapshot, re-runs `rebuild_tree_paths`. Returns `{ restored, import_id }`. |
+| `promote_to_primary(p_current_primary_id, p_current_secondary_id)` | ADR-016: atomic swap. SECURITY DEFINER. ⚠️ High-risk: restructures the LOS tree. |
 | `get_los_members_with_profiles` | Joined LOS + profile data for admin view |
 | `notify_role_request` | Fan-out to admins + Core ancestors |
 | `notify_trip_created` | Fan-out to all member/core/admin |
@@ -499,7 +496,7 @@ Normalised UNION ALL over `profiles_audit` + `role_change_audit`. Columns: `prof
 | Function | Trigger | Purpose |
 |---|---|---|
 | `sync-google-calendar` | Manual via `/api/admin/calendar-sync` | Syncs GCal events to `calendar_events` |
-| `send-event-reminders` | pg_cron every 5 min | Fetches unsent `scheduled_reminders` with `send_at <= now`, sends via Resend, marks `sent_at`, logs to `email_log` |
+| `send-event-reminders` | pg_cron every 5 min | Fetches unsent `scheduled_reminders`, sends via Resend, marks `sent_at`, logs to `email_log` |
 
 ---
 
@@ -588,42 +585,11 @@ Period selector order: AGENDA → DAY → WEEK → MONTH
 | `SUPABASE_SERVICE_ROLE_KEY` | ✅ server-only |
 | `NEXT_PUBLIC_MAPBOX_TOKEN` | ✅ `pk.` prefix |
 | `ICAL_TOKEN_SECRET` | ✅ |
-| `NEXT_PUBLIC_APP_URL` | `https://tevd-portal.vercel.app` |
+| `NEXT_PUBLIC_APP_URL` | `https://www.teamenjoyvd.com` |
 | `RESEND_API_KEY` | ✅ |
 | `DATABASE_URL` | ⚠️ **Must be set** — direct Postgres connection (port 5432, NOT pooler 6543). Used by `lib/db/client.ts` inside Inngest jobs. |
-| `INNGEST_SIGNING_KEY` | ⚠️ **Must be set** — authenticates Inngest callbacks to `/api/inngest`. Endpoint is unauthenticated by Clerk; signing key is the only security gate. |
+| `INNGEST_SIGNING_KEY` | ⚠️ **Must be set** — authenticates Inngest callbacks to `/api/inngest`. Signing key is the only security gate. |
 | `INNGEST_EVENT_KEY` | ⚠️ **Must be set** — authenticates event ingestion from `inngest.send()`. |
 | `INSTAGRAM_ACCESS_TOKEN` | ⏳ pending |
 | `FB_PAGE_ACCESS_TOKEN` | ⏳ pending |
 | `FB_PAGE_ID` | ⏳ pending |
-
----
-
-## §10 Airtable Field IDs
-
-**Base:** `app1n7KYX8i8xSiB7` — **Table:** `tblUq45Wo3xngSf3w`
-
-| Field | ID |
-|---|---|
-| Issue ID | `fldE1F4ViLRQml5Hw` |
-| Seq (PK) | `fldnKdNxb4YjdHoIf` |
-| Name | `fldOSw4VEE9mXDpTm` |
-| Type | `fldQN5hAQoMFdXxyl` |
-| Status | `fldsTwNbtnh6SUuF0` |
-| Priority | `flde5GkbsiEi4jtwq` |
-| Blocked By | `fldRq9a57bHubveIx` |
-| Target Files | `fld2hLIPYvrhcyiMA` |
-| Definition of Done | `fld5U92AZuxpLHsuJ` |
-| Claude Notes | `fldYsznuq4tUt79o4` |
-| Commit Link | `fld0VWrOimUTolMIe` |
-| Duplicate | `fld2P6m5fMOsi1q3G` |
-
-| Status | Choice ID |
-|---|---|
-| To Do | `selO8Bg7VWY6E9sxB` |
-| In Progress | `sel4MPU6wsEW7uclv` |
-| Done | `selRTL4WT8qro1TnL` |
-| Not relevant | `sellrX5il5BmfBxm9` |
-| Needs Design | `sel98265UTlgLcw5r` |
-| Blocked | `sellZeVnRByP94606` |
-| Archived | `selfMrAD2qCxrMoXg` |
