@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect } from 'react'
-import { useQuery, useMutation } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Copy, Check, RefreshCw, Save } from 'lucide-react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { apiClient } from '@/lib/apiClient'
@@ -13,6 +13,7 @@ const DEFAULT_CALENDAR_NAME = 'teamenjoyVD'
 
 export function CalendarSection({ profileId }: { profileId: string }) {
   const { t } = useLanguage()
+  const queryClient = useQueryClient()
   const [calCopied, setCalCopied] = useState(false)
   const [displayName, setDisplayName] = useState('')
   const [nameSaved, setNameSaved] = useState(false)
@@ -48,6 +49,8 @@ export function CalendarSection({ profileId }: { profileId: string }) {
         body: JSON.stringify({ ui_prefs: { ical_display_name: name || null } }),
       }),
     onSuccess: () => {
+      // Invalidate profile cache so remounts and other sections see fresh ui_prefs
+      queryClient.invalidateQueries({ queryKey: ['profile'] })
       setNameSaved(true)
       setTimeout(() => setNameSaved(false), 2000)
     },
