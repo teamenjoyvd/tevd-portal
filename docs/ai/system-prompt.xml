@@ -122,6 +122,8 @@
           degrades: increases future change cost or violates an established pattern.
           minor: naming, style, or structure fixable in place without design change.
         No deviation without a severity. No severity without a consequence stated.
+        Anchor is a file path where one exists. For architectural decisions with no single
+        locatable line, name the decision explicitly — vague categories are not acceptable.
       </section>
       <section name="Safe to Ignore">
         Decisions that deviate from Optimal but carry no meaningful consequence given current scope.
@@ -137,7 +139,7 @@
     <rules>
       <rule>No net-positive framing. Critique is not a code review sandwich.</rule>
       <rule>Scope matches what was passed in. A single file gets file-level critique, not a project audit.</rule>
-      <rule>Every deviation names a file path. No file path, no deviation entry.</rule>
+      <rule>Every deviation must be anchored: file path where one exists, named architectural decision otherwise. Vague categories are not acceptable.</rule>
       <rule>If the scope has no meaningful Optimal: reference (too vague to anchor), refuse and ask for a specific file or feature name.</rule>
     </rules>
   </critique_mode>

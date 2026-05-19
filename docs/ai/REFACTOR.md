@@ -1,12 +1,4 @@
-{
-  "branch": "main",
-  "message": "[2605-DEV-427] docs: session 2 — correct T14, expand T12, add T17/T18/T19",
-  "owner": "teamenjoyvd",
-  "repo": "tevd-portal",
-  "files": [
-    {
-      "path": "docs/ai/REFACTOR.md",
-      "content": "# REFACTOR.md — Refactoring Knowledge Base
+# REFACTOR.md — Refactoring Knowledge Base
 
 Living document. Each entry is a refactoring candidate identified through code reading.
 Do not edit findings retroactively — append new sessions at the bottom of each entry.
@@ -82,7 +74,7 @@ idempotency guard with 23505, LOS existence + sponsor mismatch guards, duplicate
 tree node upsert, qualified column references to avoid planner ambiguity. The route in
 `verify/[id]/route.ts` calls it correctly.
 
-**Decision:** Active and correct. The word \"deprecated\" in the issue was a mischaracterisation.
+**Decision:** Active and correct. The word "deprecated" in the issue was a mischaracterisation.
 No action.
 
 ---
@@ -99,7 +91,7 @@ No action.
 // BottomNav was removed in ISS-0137. This file is intentionally empty.
 export {}
 ```
-285 bytes of noise. The comment says \"cannot delete via GitHub API\" — this is incorrect.
+285 bytes of noise. The comment says "cannot delete via GitHub API" — this is incorrect.
 Deletion is possible via the GitHub API using a DELETE request with the blob SHA, or via
 `push_files` with an empty replacement followed by a deletion commit. No imports point at it
 (`export {}` emits nothing importable).
@@ -172,7 +164,7 @@ it to `''` without branching. The `los_members` query should be skipped entirely
 **Files read:** `lib/email/send.ts`
 
 **Finding:** `sendNotificationEmail` returns `Promise<void>` with the result intentionally
-discarded. The JSDoc is explicit: \"fire-and-forget contract.\" The Resend call and audit
+discarded. The JSDoc is explicit: "fire-and-forget contract." The Resend call and audit
 log write happen inside `_dispatch` which catches all errors and writes them to `email_log`.
 Silent failure at the caller is the correct contract for notification emails.
 
@@ -225,7 +217,7 @@ Resend. This requires a migration.
 
 ## Target 10 — `lib/public-routes.ts` — no test coverage
 
-**Status:** 📝 Notes captured
+**Status:** 📝 Blocked on test infrastructure
 
 **Files read:** `lib/public-routes.ts`
 
@@ -282,13 +274,12 @@ once callers are migrated.
 `app/(dashboard)/howtos/page.tsx`
 
 **Finding (updated session 2):** Original finding covered 4 API redirect stubs. Page-level
-stubs also exist and were not in scope:
+stubs also exist:
 - `app/(dashboard)/howtos/page.tsx` — confirmed, redirects to `/guides`
 - `app/(dashboard)/howtos/[slug]/page.tsx` — unread, structurally certain to match
 
 Full deletion scope: 2 API files (`app/api/howtos/`), 2 admin API files
-(`app/api/admin/howtos/`), 2+ page files (`app/(dashboard)/howtos/`) — 6+ files, plus the
-`howtos` directory itself.
+(`app/api/admin/howtos/`), 2+ page files (`app/(dashboard)/howtos/`) — 6+ files.
 
 Page stubs create dead Next.js route segments: analysed at build time, included in the
 bundle, and misleading in the file tree. Page stub deletion carries no external integration
@@ -345,33 +336,28 @@ void sendPaymentAlert(...)
 
 ## Target 14 — `app/(dashboard)/admin/layout.tsx`: admin role gate lacks explicit contract documentation
 
-**Status:** 📝 Notes captured — ⚠️ Original finding corrected in session 2
+**Status:** 📝 Notes captured
 
 **Files read:** `proxy.ts`, `app/(dashboard)/admin/layout.tsx`
 
-**Finding (session 1 — incorrect):** Stated that `proxy.ts` left admin page routes without
-role enforcement. The finding was wrong.
-
-**Correction (session 2):** `app/(dashboard)/admin/layout.tsx` performs the role check:
+**Correction (session 2):** Original session 1 finding was wrong — stated `proxy.ts` left
+admin page routes without role enforcement. `app/(dashboard)/admin/layout.tsx` performs
+the check correctly:
 ```ts
 const { data: profile } = await supabase
   .from('profiles').select('role').eq('clerk_id', userId).single()
 if (profile?.role !== 'admin') redirect('/')
 ```
-This runs on every admin page navigation via the RSC layout, using `createServiceClient()`
-and redirecting non-admins to `/`. Enforcement is correctly placed at the layout layer —
-middleware lacks clean Supabase access and the layout approach avoids adding a DB call to
-every non-admin request.
+This runs on every admin page navigation via the RSC layout. Enforcement is correctly
+placed at the layout layer.
 
 **Residual risk:** Any admin page route segment that bypasses `(dashboard)/admin/layout.tsx`
-via a separate route group would have no role check. No such segments exist in the current
-file tree. The risk is theoretical, but real: nothing in the codebase makes it obvious that
-the protection comes from layout hierarchy. A developer adding a new admin-adjacent route
-group could silently bypass it.
+via a separate route group would have no role check. No such segments exist currently.
+The risk is theoretical but real — nothing in the codebase makes the protection obvious.
+A developer adding a new admin-adjacent route group could silently bypass it.
 
-**Fix:** Add a JSDoc/comment block to `admin/layout.tsx` explicitly documenting that this
-layout is the sole auth+role gate for all `/admin/*` pages — not proxy.ts, not individual
-page components. One-line comment, no logic change.
+**Fix:** Add a comment block to `admin/layout.tsx` explicitly documenting that this layout
+is the sole auth+role gate for all `/admin/*` pages. One-line comment, no logic change.
 
 **Promoted ticket:** _pending_ (trivial — comment only)
 
@@ -395,8 +381,7 @@ shape to the DB at runtime.
 
 **Fix:** Define a local override type that precisely describes the actual RPC args
 (including the nullable `p_abo_number`) and cast only to that — not to `Parameters<...>`.
-Alternatively, regenerate `types/supabase.ts` with the correct nullable signature if
-the Supabase codegen supports it.
+Alternatively, regenerate `types/supabase.ts` with the correct nullable signature.
 
 **Promoted ticket:** _pending_
 
@@ -429,8 +414,7 @@ response limit and a memory ceiling — a large enough LOS will OOM or timeout.
 on large tables). At minimum, scope the snapshot to incoming ABOs only:
 `.in('abo_number', incomingAbos)` where `incomingAbos` is extracted before the query.
 
-This is a standalone BUILD ticket — the unbounded query is the primary concern; the guard
-swap is a free rider.
+Issue A is a free rider on the same ticket.
 
 **Promoted ticket:** _pending_
 
@@ -450,15 +434,13 @@ try {
   if (userId) { /* fetch role */ }
 } catch { /* unauthenticated — treat as guest */ }
 ```
-
-The comment says \"unauthenticated — treat as guest\" but the catch block catches
+The comment says "unauthenticated — treat as guest" but the catch block catches
 *everything* — Clerk SDK failures, DB timeouts, profile-not-found. An authenticated user
 whose Clerk call throws transiently will silently receive guest-filtered trips instead of
-an error, with no visibility in logs.
+an error, with no log visibility.
 
-Additionally, `.select('*')` on `trips` projects all columns into this semi-public response.
-Any column added to `trips` in a future migration is immediately exposed to all authenticated
-users regardless of role, with no stable response contract.
+Additionally, `.select('*')` on `trips` exposes any column added in a future migration
+immediately to all authenticated users, with no stable response contract.
 
 **Fix:** Separate the unauthenticated case (`!userId`, return early with `'guest'`) from
 error cases (return 500). Add an explicit field projection replacing `select('*')`.
@@ -473,7 +455,7 @@ error cases (return 500). Add an explicit field projection replacing `select('*'
 
 **Files read:** `app/api/notifications/[id]/route.ts`, `app/api/notifications/read-all/route.ts`
 
-**Finding:** Two issues across the notifications write surface:
+**Finding:**
 
 **Issue A — untyped update shape:** `PATCH /notifications/[id]` builds its update via:
 ```ts
@@ -481,15 +463,12 @@ const update: Record<string, unknown> = {}
 if ('is_read' in body) update.is_read = body.is_read
 if ('deleted_at' in body) update.deleted_at = body.deleted_at
 ```
-The allowlist check is correct, but the `Record<string, unknown>` intermediate bypasses
-TypeScript entirely. Values are not validated — `{ \"is_read\": \"yes\" }` passes the allowlist
-and gets written to the DB. If a developer adds a field to the allowlist without type
-narrowing, an arbitrary unvalidated value reaches Supabase.
+The allowlist check is correct, but `Record<string, unknown>` bypasses TypeScript entirely.
+Values are not validated — `{ "is_read": "yes" }` passes the allowlist and gets written
+to the DB.
 
 **Issue B — CRLF line endings:** `app/api/notifications/read-all/route.ts` uses Windows
-CRLF (`\\r\
-`) line endings. Every other file in the codebase is LF. Signals the file was
-created outside the normal toolchain. Creates noisy diffs.
+CRLF line endings. Every other file in the codebase is LF. Creates noisy diffs.
 
 **Fix Issue A:** Replace `Record<string, unknown>` with:
 ```ts
@@ -503,14 +482,13 @@ Add runtime type assertions before assignment.
 
 ---
 
-## Target 19 — `app/(dashboard)/howtos/*` page stubs (merged into Target 12)
+## Target 19 — `app/(dashboard)/howtos/*` page stubs
 
-**Status:** Merged into Target 12 — see updated scope there.
+**Status:** Merged into Target 12.
 
-`app/(dashboard)/howtos/page.tsx` confirmed as a redirect stub (→ `/guides`).
+`app/(dashboard)/howtos/page.tsx` confirmed redirect stub (→ `/guides`).
 `app/(dashboard)/howtos/[slug]/page.tsx` unread but structurally certain to match.
-Page stubs carry no external integration risk and can be deleted without the scraper audit
-gate. No standalone ticket — included in Target 12.
+Page stubs carry no external integration risk — no standalone ticket.
 
 ---
 
@@ -539,8 +517,14 @@ gate. No standalone ticket — included in Target 12.
   enforcement point. Fix downgraded to comment-only.
 - Target 12: Scope expanded to include page stubs. Page stubs unblocked from scraper gate.
 - Target 5: CLAIM blocked until client call-site audit completed.
-- Targets 17, 18: 📝 New, notes captured, ready to promote.
+- Targets 17, 18: 📝 New, notes captured.
 - Target 19: Merged into Target 12.
+
+### Session 3 — 2026-05-19
+
+**Mode:** GCR
+**Action:** Fixed REFACTOR.md (was committed as JSON wrapper). Resolved system-prompt
+contradiction in `critique_mode` rules (file path vs. decision anchor).
 
 **Revised priority order (risk-adjusted):**
 1. Target 9 — send-event-reminders idempotency (double-send to real users)
@@ -549,11 +533,7 @@ gate. No standalone ticket — included in Target 12.
 4. Target 13 — payments POST dynamic import chain (trivial, high signal/noise)
 5. Target 17 — trips GET silent swallow + select * (low severity, easy)
 6. Target 4 — BottomNav dead stub (trivial delete)
-7. Target 14 — admin/layout.tsx JSDoc comment (trivial)
+7. Target 14 — admin/layout.tsx comment (trivial)
 8. Target 18 — notifications untyped update + CRLF (low severity)
 9. Targets 2, 6, 12, 15 — remaining
 10. Target 5 — after client call-site audit
-"
-    }
-  ]
-}
