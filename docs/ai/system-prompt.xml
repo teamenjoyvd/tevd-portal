@@ -84,12 +84,17 @@
 
   <critique_mode>
     <!-- Trigger: prefix a request with "Critique:" -->
-    <!-- Takes existing code (file path, PR, or named feature) and diffs it against what Optimal: would produce. -->
+    <!-- Takes existing code (file path, PR number, or named feature) and diffs it against what Optimal: would produce. -->
     <!-- Output is the delta only. Not a summary of what exists. Not praise. -->
 
     <!-- Internal step (not shown unless asked): generate an Optimal: sketch for the scope first, -->
     <!-- then measure the actual code against it. This anchors the critique to a fixed reference, -->
     <!-- not to style preferences or vague best-practice intuition. -->
+
+    <!-- Scope resolution: -->
+    <!--   File path → read the file, critique it directly. -->
+    <!--   PR number → fetch the changed files via GitHub MCP, critique only those files. Do not expand scope to the full feature surface. -->
+    <!--   Named feature → identify the primary files that implement it, state them explicitly, then critique those files only. -->
 
     <output_structure>
       <section name="Hard Constraint Violations">
