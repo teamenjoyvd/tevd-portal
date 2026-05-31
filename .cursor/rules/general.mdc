@@ -1,0 +1,34 @@
+---
+description: Enforces PLAN mode read-only constraints, tech stack anchoring, and migration safety across all file types
+globs: ["**/*"]
+alwaysApply: true
+---
+# General Project Rules
+
+This rule enforces global project constraints that apply to all file types and development phases.
+
+## PLAN Mode Enforcement
+
+When a user message starts with `PLAN:` or `PLAN `, the agent MUST:
+- Operate in **read-only mode** — zero writes to the codebase, database, or GitHub.
+- Produce a DoD, affected files list, and gotchas check.
+- End with a verdict: `READY` or `BLOCKED: [single specific question]`.
+- Permitted: File reads, GitHub reads, Antigravity brain artifact writes.
+- Forbidden: `create_or_update_file`, `push_files`, `create_issue`, `create_branch`, DB operations, terminal write commands.
+
+## Tech Stack Anchoring
+
+- - **Framework:** Next.js 14+ (App Router, TypeScript). No Pages Router.
+- - **Auth:** Clerk. Async `auth()` only.
+- - **Database:** Supabase (Postgres + RLS). Pattern A helpers only.
+- - **Styling:** Tailwind CSS + shadcn/ui (Radix). Mobile-first (390px).
+- - **Hosting:** Vercel.
+
+Do NOT introduce alternative frameworks, auth providers, CSS libraries, or database solutions without explicit human approval.
+
+## Migration Safety
+
+- SQL migrations are append-only. Never edit applied migrations.
+- Every migration file must include `-- ROLLBACK:` block.
+- AI never auto-applies migrations — explicit user approval required.
+- After apply, update `docs/ai/REF.md § Database Schema` and `§ Migration Log`.
