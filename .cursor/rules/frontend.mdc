@@ -1,0 +1,36 @@
+---
+description: Enforces frontend styling, mobile responsiveness, component locations, and layout rules for React components
+globs: ["app/**/*.tsx", "components/**/*.tsx"]
+alwaysApply: false
+---
+# Frontend UI and Styling Rule
+
+This rule enforces constraints on styling, layout strategies, mobile-first design, component co-location, and interactive primitive libraries.
+
+## 390px Mobile-First Responsibility
+
+- All new UI interfaces, pages, or components must be designed and verified to render perfectly without any layout overflow or breaking on a **390px screen width**.
+- Design style declarations should default to mobile styles and use responsive modifiers (e.g. `md:`, `lg:`) to adapt to larger viewports.
+
+## Layout Decision Rules (Quantitative)
+
+**Default: Single layout.** Forms, cards, lists, settings pages — stack vertically on mobile, widen on desktop. Use standard Tailwind responsive modifiers (`md:`, `lg:`). Media queries are fine.
+
+**Dual layout (separate mobile/desktop files) is required ONLY when ANY of these triggers are present:**
+- Data table with **5+ columns** that cannot stack vertically
+- **Drag-and-drop** interactions with fundamentally different touch vs mouse behavior
+- **Persistent sidebar + content pane** layout (not a simple collapsible hamburger menu)
+- **Real-time interactive canvas**, map, or rich-text editor
+
+If none of these triggers apply, use a single responsive layout file.
+
+## Interactive Primitives
+
+- Always use **shadcn/ui** primitives for interactive components:
+  - Dialog, Popover, Dropdown, Sheet, Tooltip, Select, Combobox, Alert Dialog.
+- Do not build custom wrappers around native select, drop-down, or modal elements, or use other external styling libraries for these primitives unless specifically requested.
+
+## Component Co-location Strategy
+
+- **Scoping Rule:** If a component is only used within a single route, place it in `app/[route]/components/`.
+- **Promotion Rule:** Promote a component to the global shared `/components` directory **ONLY** if used by 2 or more entirely unrelated routes.

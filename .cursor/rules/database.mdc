@@ -1,0 +1,47 @@
+---
+description: Enforces RLS policies, Pattern A helpers, and detail-table gating conventions for Supabase
+globs: ["supabase/migrations/*.sql", "types/supabase.ts", "lib/supabase/**/*.ts"]
+alwaysApply: false
+---
+# Supabase RLS and Database Policies Rule
+
+This rule enforces the strict usage of RLS policies, Pattern A helpers, and detail-table gating conventions.
+
+## RLS Gating and Helpers (Pattern A)
+
+- **RLS policies must ONLY reference Pattern A helper functions** which live in `20260520_002_rls.sql`:
+  - `get_my_clerk_id()` - Returns the Clerk user ID from the JWT sub claim.
+  - `get_my_profile_id()` - Returns the profile ID for the current Clerk user.
+- **NEVER** use raw `auth.jwt()` or other inline mechanisms within RLS policies.
+
+### Helper Definitions
+```sql
+CREATE OR REPLACE FUNCTION get_my_clerk_id()
+RETURNS text LANGUAGE sql STABLE
+AS $$ SELECT auth.jwt() ->> 'sub' $$;
+
+CREATE OR REPLACE FUNCTION get_my_profile_id()
+RETURNS uuid LANGUAGE sql STABLE
+AS $$ SELECT id FROM profiles WHERE clerk_id = get_my_clerk_id() $$;
+```
+
+## Detail Table Security
+
+Detail tables (`call_details`, `email_details`, `note_details`) do not have their own direct `profile_id` columns.
+Security gates for these detail tables **MUST** verify access via an `EXISTS` check on their parent `interactions` table:
+```sql
+EXISTS (
+  SELECT 1 FROM interactions
+  WHERE interactions.id = interaction_id
+  AND interactions.profile_id = get_my_profile_id()
+)
+```
+
+## TypeScript Code Constraints
+
+- **setAll Type:** Do NOT derive Supabase types from `CookieMethodsServer['setAll']` (since `setAll` is optional and `Parameters<>` will break).
+- Use this inline type definition instead:
+```typescript
+{ name: string; value: string; options?: Record<string, unknown> }
+```
+- **Service Role Key:** `SUPABASE_SERVICE_ROLE_KEY` is highly sensitive and server-only. NEVER expose or reference this key in any file that could be bundled for or executed by the client.

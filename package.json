@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "agentic:validate": "node scripts/validate-rules.js",
+    "agentic:handoff": "node scripts/handoff.js",
+    "agentic:bootstrap": "node scripts/bootstrap.js",
+    "agentic:smoke": "node scripts/smoke.js"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.0.4",

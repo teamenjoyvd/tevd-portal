@@ -1,0 +1,19 @@
+{
+  "project": {
+    "name": "tevd-portal",
+    "repo": "teamenjoyvd/tevd-portal",
+    "productionUrl": "https://www.teamenjoyvd.com"
+  },
+  "techStack": {
+    "framework": "nextjs-app-router",
+    "auth": "clerk",
+    "database": "supabase",
+    "styling": "tailwind-shadcn",
+    "hosting": "vercel"
+  },
+  "conventions": {
+    "idFormat": "[YYMM]-DEV-[GH#]",
+    "branchPrefix": "dev/",
+    "mobileBreakpoint": 390
+  }
+}
