@@ -21,7 +21,8 @@ function ensureDir(dir) {
 }
 
 function safeCopyFile(src, dest) {
-  if (fs.existsSync(dest)) {
+  const destFull = path.join(ROOT, dest);
+  if (fs.existsSync(destFull)) {
     return "skipped";
   }
   try {
@@ -29,8 +30,8 @@ function safeCopyFile(src, dest) {
     if (!fs.existsSync(srcFull)) {
       return "source-missing";
     }
-    ensureDir(path.dirname(path.join(ROOT, dest)));
-    fs.copyFileSync(srcFull, path.join(ROOT, dest));
+    ensureDir(path.dirname(destFull));
+    fs.copyFileSync(srcFull, destFull);
     return "created";
   } catch (err) {
     return `error: ${err.message}`;
@@ -180,14 +181,27 @@ async function main() {
     const hooksDir = path.join(ROOT, ".git", "hooks");
     if (fs.existsSync(hooksDir)) {
       const hookPath = path.join(hooksDir, "pre-commit");
-      const hookContent = "#!/bin/sh\nnode scripts/validate-rules.js\n";
-      try {
-        fs.writeFileSync(hookPath, hookContent, { encoding: "utf8", mode: 0o755 });
-        console.log("  ✅ Pre-commit hook installed.");
-        summary.created.push(".git/hooks/pre-commit");
-      } catch (err) {
-        console.log(`  ❌ Could not write pre-commit hook: ${err.message}`);
-        summary.errors.push(".git/hooks/pre-commit");
+      let writeHook = true;
+      if (fs.existsSync(hookPath)) {
+        const answer = await ask(
+          rl,
+          "  ⚠️  .git/hooks/pre-commit already exists. Overwrite? (y/n): "
+        );
+        writeHook = answer.toLowerCase() === "y";
+      }
+      if (writeHook) {
+        const hookContent = "#!/bin/sh\nnode scripts/validate-rules.js\n";
+        try {
+          fs.writeFileSync(hookPath, hookContent, { encoding: "utf8", mode: 0o755 });
+          console.log("  ✅ Pre-commit hook installed.");
+          summary.created.push(".git/hooks/pre-commit");
+        } catch (err) {
+          console.log(`  ❌ Could not write pre-commit hook: ${err.message}`);
+          summary.errors.push(".git/hooks/pre-commit");
+        }
+      } else {
+        console.log("  ⏭️  Skipped pre-commit hook.");
+        summary.skipped.push(".git/hooks/pre-commit");
       }
     } else {
       console.log(
