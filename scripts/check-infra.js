@@ -4,7 +4,7 @@
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
-const { execSync, execFileSync } = require("child_process");
+const { execFileSync } = require("child_process");
 
 const ROOT = path.resolve(__dirname, "..");
 

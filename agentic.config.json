@@ -24,7 +24,7 @@
     "hashes": {
       ".cursor/rules/database.mdc": "1edc0a32f06b77bb086f6990349a49ee",
       "scripts/bootstrap.js": "4f57ec181a8c30ca544f61933d836095",
-      "scripts/check-infra.js": "292ab7f81bb33f062b16842d2e8ac03f",
+      "scripts/check-infra.js": "e1134d7a453675c152d7959251f45671",
       "scripts/handoff.js": "058f2881cfbafd5b67ff0e9f04edb418",
       "scripts/smoke.js": "81d12bae3fd51fe8157d7cf6cdc5dbba",
       "scripts/upgrade-infra.js": "8e2e09aa543e9750dcb6b6acd30e7f56",
