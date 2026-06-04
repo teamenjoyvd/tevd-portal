@@ -27,7 +27,7 @@
       "scripts/check-infra.js": "292ab7f81bb33f062b16842d2e8ac03f",
       "scripts/handoff.js": "058f2881cfbafd5b67ff0e9f04edb418",
       "scripts/smoke.js": "81d12bae3fd51fe8157d7cf6cdc5dbba",
-      "scripts/upgrade-infra.js": "3059bdf8dc796a19a1dc104e4efe3180",
+      "scripts/upgrade-infra.js": "b393b7c41a6b0955fcf5f23e20c1c3b1",
       "scripts/validate-rules.js": "1c0150427a50b220d87160335576da96",
       "docs/ai/CLAIM.md": "38d1903f38fa56e6183905502366ef4c",
       "docs/ai/RULES.md": "3bcdfc727d74708bfc26b4da629c6813"

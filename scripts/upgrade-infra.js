@@ -5,7 +5,7 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const readline = require("readline");
-const { execSync, execFileSync } = require("child_process");
+const { execFileSync } = require("child_process");
 
 const ROOT = path.resolve(__dirname, "..");
 const TEMP_CLONE_DIR = path.join(ROOT, ".agentic-temp-clone");
