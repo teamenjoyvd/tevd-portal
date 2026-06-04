@@ -1,0 +1,19 @@
+# Project-customized agentic files — do NOT sync from upstream
+# On each upgrade cycle, manually diff these against upstream and merge relevant changes.
+CLAUDE.md
+scripts/upgrade-infra.js
+docs/ai/GOTCHAS.md
+docs/ai/BUILD.md
+docs/ai/PLAN.md
+docs/ai/GCR.md
+.cursor/rules/auth.mdc
+.cursor/rules/frontend.mdc
+
+# Project-specific files — not in upstream at all
+docs/ai/CONTEXT.md
+docs/ai/GEMINI.md
+docs/ai/LOOKUP.md
+docs/ai/REF.md
+docs/ai/REFACTOR.md
+docs/ai/system-prompt.xml
+docs/ai/archive

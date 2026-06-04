@@ -1,4 +1,5 @@
 {
+  "$schemaVersion": 1,
   "project": {
     "name": "tevd-portal",
     "repo": "teamenjoyvd/tevd-portal",
@@ -15,5 +16,20 @@
     "idFormat": "[YYMM]-DEV-[GH#]",
     "branchPrefix": "dev/",
     "mobileBreakpoint": 390
+  },
+  "agentic": {
+    "version": "2.0.0",
+    "sha": "f3acc1b",
+    "repo": "git@github.com:teamenjoyvd/agentic.git",
+    "hashes": {
+      ".cursor/rules/database.mdc": "1edc0a32f06b77bb086f6990349a49ee",
+      "scripts/bootstrap.js": "02a8948a86bd4f445c9e7ff58a5e03e0",
+      "scripts/check-infra.js": "3ef2fac1bd2f7c86d4714f0d95a1f448",
+      "scripts/handoff.js": "9e230e7a5f8e3d58a01160d117fbd4a1",
+      "scripts/smoke.js": "81d12bae3fd51fe8157d7cf6cdc5dbba",
+      "scripts/validate-rules.js": "db2026f97434452fce9652e091a15899",
+      "docs/ai/CLAIM.md": "38d1903f38fa56e6183905502366ef4c",
+      "docs/ai/RULES.md": "3bcdfc727d74708bfc26b4da629c6813"
+    }
   }
 }

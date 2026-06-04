@@ -45,6 +45,13 @@ function getBaseUrl() {
 
 function httpGet(urlString) {
   return new Promise((resolve) => {
+    let resolved = false;
+    const safeResolve = (val) => {
+      if (resolved) return;
+      resolved = true;
+      resolve(val);
+    };
+
     try {
       const parsed = new URL(urlString);
       const client = parsed.protocol === "https:" ? https : http;
@@ -60,21 +67,21 @@ function httpGet(urlString) {
           // Consume the body to free resources
           res.resume();
           res.on("end", () => {
-            resolve({ status: res.statusCode, error: null });
+            safeResolve({ status: res.statusCode, error: null });
           });
         }
       );
 
       req.on("timeout", () => {
         req.destroy();
-        resolve({ status: null, error: "timeout" });
+        safeResolve({ status: null, error: "timeout" });
       });
 
       req.on("error", (err) => {
-        resolve({ status: null, error: err.message });
+        safeResolve({ status: null, error: err.message });
       });
     } catch (err) {
-      resolve({ status: null, error: err.message });
+      safeResolve({ status: null, error: err.message });
     }
   });
 }

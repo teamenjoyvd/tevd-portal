@@ -27,8 +27,8 @@ function fail(msg) {
 // ── Prerequisite helpers ──────────────────────────────────────────────
 function cmdExists(cmd) {
   try {
-    const command = process.platform === "win32" ? "where" : "which";
-    execSync(`${command} ${cmd}`, { stdio: "ignore", windowsHide: true });
+    const command = process.platform === "win32" ? `where ${cmd}` : `which ${cmd}`;
+    execSync(command, { stdio: "ignore", windowsHide: true });
     return true;
   } catch {
     return false;
@@ -209,6 +209,11 @@ function checkMergedBranch(hasGit) {
 
     // Check if current branch HEAD is an ancestor of main
     try {
+      const branchHead = execSync("git rev-parse HEAD", {
+        cwd: ROOT,
+        encoding: "utf8",
+        windowsHide: true,
+      }).trim();
 
       // Try main first, then master
       let mainBranch = "main";

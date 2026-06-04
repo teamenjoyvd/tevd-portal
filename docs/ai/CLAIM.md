@@ -1,29 +1,21 @@
-# CLAIM — Issue + branch scaffolding
+# CLAIM — Issue & Branch Scaffolding
+Materializes a PLAN verdict into GitHub. Requires a verdict from the current session or a reference to an open issue with a complete DoD but no branch.
 
-Materialises a PLAN READY verdict into GitHub. Requires a READY verdict in the current session context, or a reference to an existing open issue that has a complete DoD but no `## Branch` section.
+## 1. If PLAN Verdict is READY
+1. **Create Issue:** Call `create_issue` with the DoD, affected files, gotchas, and `## Design Checklist` (all checked).
+2. **Assign ID:** Get `GH#` from the response and rename the issue title to `[YYMM-DEV-GH#] description` using `update_issue`.
+3. **Scaffold Branch:** Call `create_branch` to create `dev/[YYMM]-DEV-[GH#]` from `main`.
+   - **Hard Gate:** If branch creation fails, comment `BLOCKED: branch creation failed` on the issue, label it `blocked`, and STOP.
+4. **Link Branch:** Call `update_issue` to append `## Branch` to the issue body.
 
-## If READY
+## 2. If PLAN Verdict is BLOCKED
+1. **Create Issue:** Call `create_issue` with the `blocked` label, the DoD, and a `## Blocking Unknown` section with the unresolved question.
+2. **Assign ID:** Get `GH#` and rename the issue title to `[YYMM-DEV-GH#] description`.
+3. **Stop:** Do not create a branch.
 
-1. `create_issue` — title (no ID yet), body containing DoD + affected files + gotchas + Design Checklist (all four items checked).
-2. Read `GH#` from the response — this is the canonical identifier.
-3. `update_issue` — rename title to `[YYMM-DEV-GH#] description`.
-4. `create_branch` → `dev/[YYMM]-DEV-[GH#]` from `main`.
-5. Confirm branch exists (check the returned ref).
-6. **HARD GATE: if branch creation fails — comment `BLOCKED: branch creation failed` on the issue, apply `blocked` label, STOP.**
-7. `update_issue` — append `## Branch` followed by `` `dev/[YYMM]-DEV-[GH#]` `` to the issue body.
+## 3. Re-entry
+If an issue exists with a completed DoD but no branch, verify the DoD and perform Branch Scaffolding (Steps 3-4 under Section 1).
 
-## If BLOCKED verdict from PLAN
-
-1. `create_issue` with `blocked` label, body with DoD and `## Blocking Unknown` section containing the single question.
-2. Read `GH#`, rename title to `[YYMM-DEV-GH#] description`.
-3. Stop — no branch creation.
-
-## Re-entry
-
-Existing issue with no branch: read the issue body, verify DoD is complete, then execute steps 4–7 above.
-
-## Permitted / Forbidden
-
-**Permitted:** `create_issue`, `update_issue`, `create_branch`.
-
-**Forbidden:** `create_or_update_file`, `push_files`.
+## Rules
+- **Permitted:** `create_issue`, `update_issue`, `create_branch`
+- **Forbidden:** Codebase writes (`create_or_update_file`, `push_files`)
