@@ -5,7 +5,7 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const readline = require("readline");
-const { execSync } = require("child_process");
+const { execSync, execFileSync } = require("child_process");
 
 const ROOT = path.resolve(__dirname, "..");
 const TEMP_CLONE_DIR = path.join(ROOT, ".agentic-temp-clone");
@@ -107,7 +107,10 @@ function loadInfraIgnore() {
 function isIgnored(file, ignoreList) {
   const normalized = file.replace(/\\/g, "/");
   return ignoreList.some(pattern => {
-    const normalizedPattern = pattern.replace(/\\/g, "/");
+    let normalizedPattern = pattern.replace(/\\/g, "/");
+    if (normalizedPattern.endsWith("/") && normalizedPattern.length > 1) {
+      normalizedPattern = normalizedPattern.slice(0, -1);
+    }
     if (normalized === normalizedPattern) return true;
     if (normalized.startsWith(normalizedPattern + "/")) return true;
     return false;
@@ -129,7 +132,7 @@ function askQuestion(query) {
 // Check if local working tree is dirty
 function isGitDirty() {
   try {
-    const status = execSync("git status --porcelain", {
+    const status = execFileSync("git", ["status", "--porcelain"], {
       cwd: ROOT,
       encoding: "utf8",
       stdio: ["ignore", "pipe", "ignore"]
@@ -214,8 +217,12 @@ async function main() {
   console.log(`📦 Cloning upstream repository from ${upstreamRepo}${branchLog}...`);
   try {
     fs.rmSync(TEMP_CLONE_DIR, { recursive: true, force: true });
-    const branchFlag = branch ? `-b "${branch}"` : "";
-    execSync(`git clone ${branchFlag} --depth 1 --quiet "${upstreamRepo}" "${TEMP_CLONE_DIR}"`, {
+    const cloneArgs = ["clone"];
+    if (branch) {
+      cloneArgs.push("-b", branch);
+    }
+    cloneArgs.push("--depth", "1", "--quiet", upstreamRepo, TEMP_CLONE_DIR);
+    execFileSync("git", cloneArgs, {
       cwd: ROOT,
       stdio: ["ignore", "ignore", "pipe"]
     });
@@ -239,7 +246,7 @@ async function main() {
 
     let centralSha = "Unknown";
     try {
-      centralSha = execSync("git rev-parse --short HEAD", {
+      centralSha = execFileSync("git", ["rev-parse", "--short", "HEAD"], {
         cwd: TEMP_CLONE_DIR,
         encoding: "utf8",
         stdio: ["ignore", "pipe", "ignore"]
@@ -421,7 +428,7 @@ async function main() {
       
       let operator = "unknown";
       try {
-        operator = execSync("git config user.name", {
+        operator = execFileSync("git", ["config", "user.name"], {
           cwd: ROOT,
           encoding: "utf8",
           stdio: ["ignore", "pipe", "ignore"]

@@ -4,7 +4,7 @@
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
-const { execSync } = require("child_process");
+const { execSync, execFileSync } = require("child_process");
 
 const ROOT = path.resolve(__dirname, "..");
 
@@ -107,7 +107,10 @@ function loadInfraIgnore() {
 function isIgnored(file, ignoreList) {
   const normalized = file.replace(/\\/g, "/");
   return ignoreList.some(pattern => {
-    const normalizedPattern = pattern.replace(/\\/g, "/");
+    let normalizedPattern = pattern.replace(/\\/g, "/");
+    if (normalizedPattern.endsWith("/") && normalizedPattern.length > 1) {
+      normalizedPattern = normalizedPattern.slice(0, -1);
+    }
     if (normalized === normalizedPattern) return true;
     if (normalized.startsWith(normalizedPattern + "/")) return true;
     return false;
@@ -230,7 +233,7 @@ function main() {
         console.log(`\n--- Diff for ${res.file} ---`);
         try {
           // 1. Try git diff HEAD (uncommitted changes)
-          let diffOutput = execSync(`git diff --color HEAD -- "${res.file}"`, {
+          let diffOutput = execFileSync("git", ["diff", "--color", "HEAD", "--", res.file], {
             cwd: ROOT,
             encoding: "utf8",
             stdio: ["ignore", "pipe", "ignore"]
@@ -239,14 +242,14 @@ function main() {
           // 2. If no uncommitted changes, find the last commit that modified agentic.config.json
           if (!diffOutput) {
             try {
-              const lastConfigCommit = execSync('git log -1 --format="%H" -- agentic.config.json', {
+              const lastConfigCommit = execFileSync("git", ["log", "-1", "--format=%H", "--", "agentic.config.json"], {
                 cwd: ROOT,
                 encoding: "utf8",
                 stdio: ["ignore", "pipe", "ignore"]
               }).trim();
 
               if (lastConfigCommit) {
-                diffOutput = execSync(`git diff --color ${lastConfigCommit} -- "${res.file}"`, {
+                diffOutput = execFileSync("git", ["diff", "--color", lastConfigCommit, "--", res.file], {
                   cwd: ROOT,
                   encoding: "utf8",
                   stdio: ["ignore", "pipe", "ignore"]

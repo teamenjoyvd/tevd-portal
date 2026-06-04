@@ -61,14 +61,18 @@ function getGitSha() {
 function getFilesRecursive(dir) {
   if (!fs.existsSync(dir)) return [];
   const files = [];
-  const entries = fs.readdirSync(dir, { withFileTypes: true });
-  for (const entry of entries) {
-    const fullPath = path.join(dir, entry.name);
-    if (entry.isDirectory()) {
-      files.push(...getFilesRecursive(fullPath));
-    } else {
-      files.push(fullPath);
+  try {
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        files.push(...getFilesRecursive(fullPath));
+      } else {
+        files.push(fullPath);
+      }
     }
+  } catch (err) {
+    // Ignore read errors
   }
   return files;
 }
