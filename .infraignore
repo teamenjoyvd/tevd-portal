@@ -1,7 +1,6 @@
 # Project-customized agentic files — do NOT sync from upstream
 # On each upgrade cycle, manually diff these against upstream and merge relevant changes.
 CLAUDE.md
-scripts/upgrade-infra.js
 docs/ai/GOTCHAS.md
 docs/ai/BUILD.md
 docs/ai/PLAN.md
