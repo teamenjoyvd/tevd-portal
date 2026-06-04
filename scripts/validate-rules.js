@@ -209,11 +209,6 @@ function checkMergedBranch(hasGit) {
 
     // Check if current branch HEAD is an ancestor of main
     try {
-      const branchHead = execSync("git rev-parse HEAD", {
-        cwd: ROOT,
-        encoding: "utf8",
-        windowsHide: true,
-      }).trim();
 
       // Try main first, then master
       let mainBranch = "main";

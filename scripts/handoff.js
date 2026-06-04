@@ -28,15 +28,6 @@ function gitExec(cmd) {
   }
 }
 
-function cmdExists(cmd) {
-  try {
-    const command = process.platform === "win32" ? `where ${cmd}` : `which ${cmd}`;
-    execSync(command, { stdio: "ignore", windowsHide: true });
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 function getCurrentBranch() {
   // Try git command first
