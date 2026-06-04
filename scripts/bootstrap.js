@@ -280,6 +280,11 @@ async function main() {
             summary.skipped.push(".git/hooks/pre-commit");
           } else {
             fs.appendFileSync(hookPath, "\nnode scripts/validate-rules.js\n");
+            try {
+              fs.chmodSync(hookPath, 0o755);
+            } catch (err) {
+              // Ignore chmod error on systems where it is not supported
+            }
             console.log("  ✅ Pre-commit hook updated (appended rule validator).");
             summary.created.push(".git/hooks/pre-commit (updated)");
             shouldWrite = false;

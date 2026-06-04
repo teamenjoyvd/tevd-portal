@@ -5,6 +5,7 @@ docs/ai/GOTCHAS.md
 docs/ai/BUILD.md
 docs/ai/PLAN.md
 docs/ai/GCR.md
+docs/ai/RULES.md
 .cursor/rules/auth.mdc
 .cursor/rules/frontend.mdc
 

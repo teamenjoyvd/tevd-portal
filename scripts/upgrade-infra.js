@@ -283,6 +283,11 @@ async function main() {
         continue;
       }
 
+      if (!existsInCentral && !existsLocally) {
+        upgradeMatrix.push({ file, action: "UNCHANGED", label: "✅ [UNCHANGED]" });
+        continue;
+      }
+
       if (!existsInCentral && existsLocally) {
         // Exists locally but not in central anymore (was deleted upstream)
         // Check if locally modified

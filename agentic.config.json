@@ -23,11 +23,11 @@
     "repo": "git@github.com:teamenjoyvd/agentic.git",
     "hashes": {
       ".cursor/rules/database.mdc": "1edc0a32f06b77bb086f6990349a49ee",
-      "scripts/bootstrap.js": "009bc5ecc5a9f0029c3f42c1af601134",
+      "scripts/bootstrap.js": "4f57ec181a8c30ca544f61933d836095",
       "scripts/check-infra.js": "292ab7f81bb33f062b16842d2e8ac03f",
       "scripts/handoff.js": "058f2881cfbafd5b67ff0e9f04edb418",
       "scripts/smoke.js": "81d12bae3fd51fe8157d7cf6cdc5dbba",
-      "scripts/upgrade-infra.js": "b393b7c41a6b0955fcf5f23e20c1c3b1",
+      "scripts/upgrade-infra.js": "8e2e09aa543e9750dcb6b6acd30e7f56",
       "scripts/validate-rules.js": "1c0150427a50b220d87160335576da96",
       "docs/ai/CLAIM.md": "38d1903f38fa56e6183905502366ef4c",
       "docs/ai/RULES.md": "3bcdfc727d74708bfc26b4da629c6813"

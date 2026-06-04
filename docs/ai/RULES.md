@@ -28,6 +28,8 @@ This unified handbook serves as the master developer instructions for all AI cod
   - Database access policies must ONLY reference Pattern A sql helper functions:
     - `get_my_clerk_id()`
     - `get_my_profile_id()`
+    - `is_admin()`
+    - `get_my_role()`
   - **NEVER** write inline `auth.jwt()` logic inside RLS policies.
 - **Detail Table Access Gating:**
   - Tables that don't possess a `profile_id` (e.g. `call_details`, `email_details`, `note_details`) must gate access using an `EXISTS` check on their parent `interactions` table:
@@ -50,10 +52,9 @@ This unified handbook serves as the master developer instructions for all AI cod
 
 - **390px Mobile-First Constraint:**
   - Every user interface must render correctly without overflow or structural breaks at a **390px width**.
-- **Dual Layout Law:**
-  - **NEVER** construct a single complex layout file attempting to handle both mobile and desktop via media queries.
-  - You must construct **two separate, dedicated layouts** (one mobile, one desktop).
-  - Canonical Reference: `app/(dashboard)/dashboard/page.tsx`.
+- **Layout Decision Rules (Quantitative):**
+  - **Default: Single responsive layout.** Stack vertically on mobile, widen on desktop using standard Tailwind responsive modifiers (`md:`, `lg:`).
+  - Dual layout (separate files) is required **only** when a trigger is present: tables with 5+ columns, complex touch vs mouse drag-and-drop, persistent sidebar layouts, or interactive canvases/maps/rich-text editors. Refer to `.cursor/rules/frontend.mdc` for precise triggers.
 - **Interactive Primitives:**
   - Interactive widgets (popovers, sheets, comboboxes, dialogs, selects, etc.) must utilize **shadcn/ui** primitives exclusively.
 - **Component Co-location:**
