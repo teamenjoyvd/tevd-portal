@@ -8,6 +8,12 @@ const { execFileSync } = require("child_process");
 
 const ROOT = path.resolve(__dirname, "..");
 
+function isPathContained(resolvedPath) {
+  const normalizedPath = path.resolve(ROOT, resolvedPath);
+  return normalizedPath === ROOT || normalizedPath.startsWith(ROOT + path.sep);
+}
+
+
 // Tracked directories and root-level files
 const TRACKED_DIRS = [".cursor/rules", "scripts", "docs/ai"];
 const TRACKED_FILES = ["CLAUDE.md"];
@@ -39,6 +45,7 @@ Exit Codes:
 
 // Helper to compute MD5 hash of a file with normalized line endings
 function computeHash(filePath) {
+  if (!isPathContained(filePath)) return null;
   if (!fs.existsSync(filePath)) return null;
   try {
     const content = fs.readFileSync(filePath);
@@ -52,6 +59,7 @@ function computeHash(filePath) {
 
 // Recursively find all files in a directory
 function getFilesRecursive(dir) {
+  if (!isPathContained(dir)) return [];
   if (!fs.existsSync(dir)) return [];
   let files = [];
   try {
@@ -190,6 +198,10 @@ function main() {
 
   for (const file of sortedFilePaths) {
     const fullPath = path.join(ROOT, file);
+    if (file.includes("..") || !isPathContained(fullPath)) {
+      console.error(`❌ Error: Path traversal attempt detected: ${file}`);
+      process.exit(2);
+    }
     const hasBaseline = baselineHashes.hasOwnProperty(file);
     const existsOnDisk = fs.existsSync(fullPath);
 

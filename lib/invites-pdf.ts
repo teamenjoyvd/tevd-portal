@@ -7,6 +7,10 @@
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 
+interface JsPDFWithAutoTable extends jsPDF {
+  lastAutoTable: { finalY: number }
+}
+
 function fmt(d: string | null): string {
   if (!d) return '—'
   return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -116,7 +120,7 @@ export function generateInvitesPdf(links: ShareLink[], memberName: string): void
           4: { cellWidth: 28 },
         },
       })
-      y = (doc as any).lastAutoTable.finalY + 6
+      y = (doc as JsPDFWithAutoTable).lastAutoTable.finalY + 6
     } else {
       doc.setTextColor(...muted)
       doc.setFontSize(7.5)

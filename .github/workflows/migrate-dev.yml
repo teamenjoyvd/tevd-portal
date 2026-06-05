@@ -1,4 +1,0 @@
-# Removed — dev Supabase project is not in use.
-# Migrations are applied directly via Supabase MCP in BUILD sessions.
-# CLI-based db push is incompatible with MCP-applied migration history
-# (timestamp mismatch in schema_migrations). See PR #309.

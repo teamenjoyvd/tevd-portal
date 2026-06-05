@@ -94,7 +94,7 @@ function scanTrackedFiles() {
       files.push(f);
     }
   }
-  return files;
+  return [...new Set(files)].sort((a, b) => a.localeCompare(b));
 }
 
 // ── Main ─────────────────────────────────────────────────────────────
@@ -269,25 +269,49 @@ async function main() {
     const hooksDir = path.join(ROOT, ".git", "hooks");
     if (fs.existsSync(hooksDir)) {
       const hookPath = path.join(hooksDir, "pre-commit");
-      const hookContent = "#!/bin/sh\nnode scripts/validate-rules.js\n";
+      const validationCommand = "node scripts/validate-rules.js";
+      const hookContent = `#!/bin/sh\n${validationCommand}\n`;
       try {
         let shouldWrite = true;
         if (fs.existsSync(hookPath)) {
           const existingHook = fs.readFileSync(hookPath, "utf8");
-          if (existingHook.includes("node scripts/validate-rules.js")) {
+          if (existingHook.includes(validationCommand)) {
             shouldWrite = false;
             console.log("  ⏱️  Pre-commit hook already installed, skipped.");
             summary.skipped.push(".git/hooks/pre-commit");
           } else {
-            fs.appendFileSync(hookPath, "\nnode scripts/validate-rules.js\n");
+            const lines = existingHook.split(/\r?\n/);
+            const hasLogic = lines.some(line => {
+              const clean = line.trim();
+              return clean && !clean.startsWith("#");
+            });
+
+            let updatedHook;
+            if (hasLogic) {
+              if (lines.length > 0 && lines[0].startsWith("#!")) {
+                // Prepend right after the shebang line
+                lines.splice(1, 0, validationCommand);
+                updatedHook = lines.join("\n");
+              } else {
+                // No shebang, just prepend
+                updatedHook = `${validationCommand}\n${existingHook}`;
+              }
+              fs.writeFileSync(hookPath, updatedHook, { encoding: "utf8", mode: 0o755 });
+              console.log("  ✅ Pre-commit hook updated (prepended rule validator).");
+              summary.created.push(".git/hooks/pre-commit (updated)");
+              shouldWrite = false;
+            } else {
+              // The file has no logic (empty or comments only); safe to append or rewrite
+              fs.appendFileSync(hookPath, `\n${validationCommand}\n`);
+              console.log("  ✅ Pre-commit hook updated (appended rule validator).");
+              summary.created.push(".git/hooks/pre-commit (updated)");
+              shouldWrite = false;
+            }
             try {
               fs.chmodSync(hookPath, 0o755);
             } catch (err) {
               // Ignore chmod error on systems where it is not supported
             }
-            console.log("  ✅ Pre-commit hook updated (appended rule validator).");
-            summary.created.push(".git/hooks/pre-commit (updated)");
-            shouldWrite = false;
           }
         }
         if (shouldWrite) {

@@ -8,6 +8,13 @@ const readline = require("readline");
 const { execFileSync } = require("child_process");
 
 const ROOT = path.resolve(__dirname, "..");
+
+function isPathContained(resolvedPath) {
+  const normalizedPath = path.resolve(ROOT, resolvedPath);
+  return normalizedPath === ROOT || normalizedPath.startsWith(ROOT + path.sep);
+}
+
+
 const TEMP_CLONE_DIR = path.join(ROOT, ".agentic-temp-clone");
 
 // Tracked directories and root-level files
@@ -39,6 +46,7 @@ Exit Codes:
 
 // Helper to compute MD5 hash of a file with normalized line endings
 function computeHash(filePath) {
+  if (!isPathContained(filePath)) return null;
   if (!fs.existsSync(filePath)) return null;
   try {
     const content = fs.readFileSync(filePath);
@@ -52,6 +60,7 @@ function computeHash(filePath) {
 
 // Recursively find all files in a directory
 function getFilesRecursive(dir) {
+  if (!isPathContained(dir)) return [];
   if (!fs.existsSync(dir)) return [];
   let files = [];
   try {
@@ -146,6 +155,9 @@ function isGitDirty() {
 
 // Helper to ensure directory exists
 function ensureDir(dirPath) {
+  if (!isPathContained(dirPath)) {
+    throw new Error(`Path containment violation: Directory target is outside root: ${dirPath}`);
+  }
   if (!fs.existsSync(dirPath)) {
     fs.mkdirSync(dirPath, { recursive: true });
   }
@@ -274,6 +286,12 @@ async function main() {
     for (const file of sortedFiles) {
       const centralFilePath = path.join(TEMP_CLONE_DIR, file);
       const localFilePath = path.join(ROOT, file);
+
+      if (file.includes("..") || !isPathContained(localFilePath) || !isPathContained(centralFilePath)) {
+        console.error(`❌ Error: Path traversal attempt detected: ${file}`);
+        cleanup();
+        process.exit(2);
+      }
 
       const existsInCentral = fs.existsSync(centralFilePath);
       const existsLocally = fs.existsSync(localFilePath);
