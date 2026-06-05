@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "check-types": "tsc --noEmit",
     "agentic:validate": "node scripts/validate-rules.js",
     "agentic:handoff": "node scripts/handoff.js",
     "agentic:bootstrap": "node scripts/bootstrap.js",

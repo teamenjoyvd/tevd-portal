@@ -248,7 +248,7 @@ function ReminderRowActions({ reminder }: { reminder: ReminderRow }) {
             <div className="space-y-4">
               <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                 Set a new send time for{' '}
-                <strong>{reminder.guest_registrations?.name ?? 'this guest'}</strong>'s{' '}
+                <strong>{reminder.guest_registrations?.name ?? 'this guest'}</strong>&apos;s{' '}
                 {REMINDER_LABEL[reminder.reminder_type]} reminder.
               </p>
               <div className="space-y-1">

@@ -17,7 +17,6 @@ function subscribe(callback: () => void) {
 
   const onCustom = () => callback()
   const onStorage = (e: StorageEvent) => {
-    // eslint-disable-next-line i18next/no-literal-string
     if (e.key === STORAGE_KEY && (e.newValue === 'light' || e.newValue === 'dark')) {
       document.documentElement.setAttribute('data-theme', e.newValue)
     }
@@ -52,11 +51,11 @@ export function useTheme() {
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Safe client-side mount state tracking for hydration gating
     setMounted(true)
   }, [])
 
   const toggle = useCallback(() => {
-    // eslint-disable-next-line i18next/no-literal-string
     const next: Theme = theme === 'light' ? 'dark' : 'light'
     applyTheme(next)
     window.dispatchEvent(new CustomEvent('tevd-theme-change', { detail: next }))

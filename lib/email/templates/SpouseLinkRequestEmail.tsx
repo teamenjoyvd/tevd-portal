@@ -52,7 +52,7 @@ export function SpouseLinkRequestEmail({
         </Section>
 
         <Text style={{ margin: 0, fontSize: 14, color: '#6b7280' }}>
-          If you don't recognise this person, you can safely deny the request. No action is required from you if you wish to deny it — but approving it will link their account to yours.
+          If you don&apos;t recognise this person, you can safely deny the request. No action is required from you if you wish to deny it — but approving it will link their account to yours.
         </Text>
       </Section>
     </EmailShell>
