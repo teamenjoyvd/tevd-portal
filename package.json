@@ -10,7 +10,9 @@
     "agentic:validate": "node scripts/validate-rules.js",
     "agentic:handoff": "node scripts/handoff.js",
     "agentic:bootstrap": "node scripts/bootstrap.js",
-    "agentic:smoke": "node scripts/smoke.js"
+    "agentic:smoke": "node scripts/smoke.js",
+    "agentic:check": "node scripts/check-infra.js",
+    "agentic:upgrade": "node scripts/upgrade-infra.js"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.0.4",

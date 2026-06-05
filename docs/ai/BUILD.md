@@ -1,59 +1,57 @@
-# BUILD — File execution
+# BUILD — Execution Mode
 
-Default mode. Executes against a CLAIM-complete issue.
+Default mode. Executes code changes against a CLAIM-completed issue.
 
-## Precondition
+## 1. Precondition
 
 Read the issue body. Verify `## Design Checklist` exists with all four items checked AND `## Branch` exists with the branch name. If either is absent or any item unchecked — stop, state exactly what is missing, do not proceed.
+(Antigravity Check: Also initialize/verify the `task.md` artifact in the brain directory at startup).
 
-## READ
+## 2. Stages
 
-Check open GitHub issues. Resume any in-progress issue (open PR exists). If a CLAIM-complete issue has no open PR, that is the next issue — read `## Branch` from its body and proceed to SHAPE. Otherwise pick the highest `priority:high` open issue without the `blocked` label. If none, pick the next unlabelled issue by creation order.
+### READ & SHAPE (Read-only)
+- Find in-progress issues (open PRs) or CLAIM-completed issues. If none, pick the highest `priority:high` open issue without the `blocked` label.
+- Verify the DoD is coherent with the current codebase. Rely on `.cursor/rules/`, `docs/ai/RULES.md` and project architecture docs:
+  - Auth / role / Clerk sync → `FLOWS.md §1`
+  - Registration → `FLOWS.md §2`
+  - Payments → `FLOWS.md §3`
+  - LOS / tree / notifications → `FLOWS.md §4`
+  - Vital signs → `FLOWS.md §5`
+  - New external dependency → update `C4.md` first
+  - New architectural pattern → write ADR in `DECISIONS.md` before executing
+- No codebase writes allowed during this stage.
 
-## SHAPE (read-only)
+### GATHER
+Read only the specific `docs/ai/REF.md` sections required by the ticket (refer to the Section Map in `REF.md`).
 
-Verify the DoD is still coherent against current codebase state. Read relevant architecture docs:
+### EXECUTE
+- Code only what is required by the DoD. All changes target the feature branch only. Push to trigger Vercel Preview.
+- For large tasks (>100 lines), commit a skeleton with `// TODO:` items before implementing, and update the PR Session State to `IN PROGRESS`.
 
-- Auth / role / Clerk sync → `FLOWS.md §1`
-- Registration → `FLOWS.md §2`
-- Payments → `FLOWS.md §3`
-- LOS / tree / notifications → `FLOWS.md §4`
-- Vital signs → `FLOWS.md §5`
-- New external dependency → update `C4.md` first
-- New architectural pattern → write ADR in `DECISIONS.md` before executing
+### VERIFY
+- Verify DoD point-by-point.
+- Check Vercel Preview is READY and CI is green (`check-types` — runs `tsc --noEmit` on PRs targeting `main`).
+- Ensure 390px mobile responsiveness.
+- Ensure no production side-effects. If ticket touched auth or routing: confirm `middleware.ts` does not exist.
 
-If DoD is stale or wrong: stop and request user to update the issue body before proceeding.
+### FINALIZE
+- Add `Closes #<issue_number>` to the PR body. Mark the PR as ready for review.
+- Update the PR description's `## Session State` block.
+- Update `docs/ai/REF.md` if schema, tables, routes, or env vars changed.
+- Confirm production Vercel deployment is READY after merge.
 
-**No writes (including issue body) in SHAPE.**
+---
 
-## GATHER
-
-Read only the REF.md sections the ticket needs (section map at top of REF.md).
-
-## EXECUTE
-
-Change only lines required by DoD. All writes target the feature branch only. Push to trigger Vercel Preview.
-
-Before any large task (>100 lines): write `IN PROGRESS` to PR `## Session State` first, then commit a skeleton with `// TODO:` items before implementing.
-
-## VERIFY
-
-DoD point-by-point. Vercel Preview READY. CI green (`check-types` — runs `tsc --noEmit` on PRs targeting `main`). 390px check. No production side-effects. If ticket touched auth or routing: confirm `middleware.ts` does not exist.
-
-## FINALIZE
-
-Verify PR body contains `Closes #<issue_number>` — if missing, add it now. Mark PR ready for review. If this ticket ran a migration or changed a column/table/route/env var: update `docs/ai/REF.md` before marking DONE. User merges manually via GitHub UI. After merge: confirm production Vercel deployment READY.
-
-## PR Session State block
-
+## PR Session State Template
 The PR description is the sole handoff document.
 
 ```markdown
 ## Session State
+**Agent Type:** Antigravity | Claude
 **Status:** IN PROGRESS | DONE
 **Completed:**
-- [x] done thing
-**Next:** single specific action for incoming instance
+- [x] done task
+**Next:** single specific action for next instance
 ```
 
 Write `IN PROGRESS` before starting a large task. Write `DONE` after verifying. If context runs out mid-task, the skeleton commit is the fallback — it must exist before implementation begins.

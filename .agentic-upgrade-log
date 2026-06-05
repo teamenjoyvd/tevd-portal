@@ -1,0 +1,16 @@
+[2026-06-04T16:39:00.091Z] operator=teamenjoyvd from=v2.0.0(f3acc1b) to=v2.0.0(f3acc1b)
+  UPDATED  docs/ai/CLAIM.md
+  ADDED    docs/ai/RULES.md
+  UPDATED  scripts/bootstrap.js
+  UPDATED  scripts/handoff.js
+  UPDATED  scripts/smoke.js
+  UPDATED  scripts/validate-rules.js
+  SKIPPED  .cursor/rules/auth.mdc (infraignore)
+  SKIPPED  .cursor/rules/frontend.mdc (infraignore)
+  SKIPPED  CLAUDE.md (infraignore)
+  SKIPPED  docs/ai/BUILD.md (infraignore)
+  SKIPPED  docs/ai/GCR.md (infraignore)
+  SKIPPED  docs/ai/GOTCHAS.md (infraignore)
+  SKIPPED  docs/ai/PLAN.md (infraignore)
+  SKIPPED  scripts/upgrade-infra.js (infraignore)
+  ---

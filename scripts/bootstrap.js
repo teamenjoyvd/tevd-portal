@@ -4,6 +4,8 @@
 const readline = require("readline");
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
+const { execSync } = require("child_process");
 
 const ROOT = path.resolve(__dirname, "..");
 
@@ -36,6 +38,63 @@ function safeCopyFile(src, dest) {
   } catch (err) {
     return `error: ${err.message}`;
   }
+}
+
+function computeHash(filePath) {
+  if (!fs.existsSync(filePath)) return null;
+  const content = fs.readFileSync(filePath);
+  // Normalize line endings to avoid OS-specific differences (Windows \r\n vs Unix \n)
+  const normalized = content.toString("utf8").replace(/\r\n/g, "\n");
+  return crypto.createHash("md5").update(normalized).digest("hex");
+}
+
+function getGitSha() {
+  try {
+    return execSync("git rev-parse --short HEAD", { stdio: ["ignore", "pipe", "ignore"] })
+      .toString()
+      .trim();
+  } catch (err) {
+    return "";
+  }
+}
+
+function getFilesRecursive(dir) {
+  if (!fs.existsSync(dir)) return [];
+  const files = [];
+  try {
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        files.push(...getFilesRecursive(fullPath));
+      } else {
+        files.push(fullPath);
+      }
+    }
+  } catch (err) {
+    // Ignore read errors
+  }
+  return files;
+}
+
+function scanTrackedFiles() {
+  const files = [];
+  const dirs = [".cursor/rules", "scripts", "docs/ai"];
+  for (const dir of dirs) {
+    const dirPath = path.join(ROOT, dir);
+    const dirFiles = getFilesRecursive(dirPath);
+    for (const f of dirFiles) {
+      files.push(path.relative(ROOT, f).replace(/\\/g, "/"));
+    }
+  }
+  const rootFiles = ["CLAUDE.md"];
+  for (const f of rootFiles) {
+    const filePath = path.join(ROOT, f);
+    if (fs.existsSync(filePath)) {
+      files.push(f);
+    }
+  }
+  return files;
 }
 
 // ── Main ─────────────────────────────────────────────────────────────
@@ -84,12 +143,36 @@ async function main() {
     }
 
     if (writeConfig) {
-      const config = {
-        name: projectName,
-        repo: repoCoord,
-        productionUrl: prodUrl || "",
-        version: "2.0.0",
-      };
+      const templatePath = path.join(ROOT, "templates", "agentic.config.json");
+      if (!fs.existsSync(templatePath)) {
+        throw new Error(`agentic.config.json template not found at: ${templatePath}`);
+      }
+
+      let configContent = fs.readFileSync(templatePath, "utf8");
+      configContent = configContent
+        .replace("__PROJECT_NAME__", projectName)
+        .replace("__GITHUB_REPO__", repoCoord)
+        .replace("__PRODUCTION_URL__", prodUrl || "");
+
+      const config = JSON.parse(configContent);
+
+      // Compute hashes of tracked files for the baseline
+      console.log("  🔍 Computing initial tracked file baseline hashes...");
+      const trackedFiles = scanTrackedFiles();
+      config.agentic.hashes = {};
+      for (const file of trackedFiles) {
+        const hash = computeHash(path.join(ROOT, file));
+        if (hash) {
+          config.agentic.hashes[file] = hash;
+        }
+      }
+
+      // Populate current git SHA if available
+      const currentSha = getGitSha();
+      if (currentSha) {
+        config.agentic.sha = currentSha;
+      }
+
       const configJson = JSON.stringify(config, null, 2) + "\n";
 
       // Crash-safe write: temp → rename
@@ -158,14 +241,19 @@ async function main() {
         const existing = fs.existsSync(gitignorePath)
           ? fs.readFileSync(gitignorePath, "utf8")
           : "";
-        const separator = existing.endsWith("\n") || existing === "" ? "" : "\n";
-        fs.writeFileSync(
-          gitignorePath,
-          existing + separator + appendContent,
-          "utf8"
-        );
-        console.log("  ✅ .gitignore — appended template entries");
-        summary.created.push(".gitignore (appended)");
+        if (existing.includes(appendContent.trim())) {
+          console.log("  ⏱️  .gitignore — template entries already exist, skipped");
+          summary.skipped.push(".gitignore (appended)");
+        } else {
+          const separator = existing.endsWith("\n") || existing === "" ? "" : "\n";
+          fs.writeFileSync(
+            gitignorePath,
+            existing + separator + appendContent,
+            "utf8"
+          );
+          console.log("  ✅ .gitignore — appended template entries");
+          summary.created.push(".gitignore (appended)");
+        }
       } else {
         console.log(
           "  ⚠️  templates/.gitignore.append not found — .gitignore unchanged"
@@ -181,27 +269,35 @@ async function main() {
     const hooksDir = path.join(ROOT, ".git", "hooks");
     if (fs.existsSync(hooksDir)) {
       const hookPath = path.join(hooksDir, "pre-commit");
-      let writeHook = true;
-      if (fs.existsSync(hookPath)) {
-        const answer = await ask(
-          rl,
-          "  ⚠️  .git/hooks/pre-commit already exists. Overwrite? (y/n): "
-        );
-        writeHook = answer.toLowerCase() === "y";
-      }
-      if (writeHook) {
-        const hookContent = "#!/bin/sh\nnode scripts/validate-rules.js\n";
-        try {
+      const hookContent = "#!/bin/sh\nnode scripts/validate-rules.js\n";
+      try {
+        let shouldWrite = true;
+        if (fs.existsSync(hookPath)) {
+          const existingHook = fs.readFileSync(hookPath, "utf8");
+          if (existingHook.includes("node scripts/validate-rules.js")) {
+            shouldWrite = false;
+            console.log("  ⏱️  Pre-commit hook already installed, skipped.");
+            summary.skipped.push(".git/hooks/pre-commit");
+          } else {
+            fs.appendFileSync(hookPath, "\nnode scripts/validate-rules.js\n");
+            try {
+              fs.chmodSync(hookPath, 0o755);
+            } catch (err) {
+              // Ignore chmod error on systems where it is not supported
+            }
+            console.log("  ✅ Pre-commit hook updated (appended rule validator).");
+            summary.created.push(".git/hooks/pre-commit (updated)");
+            shouldWrite = false;
+          }
+        }
+        if (shouldWrite) {
           fs.writeFileSync(hookPath, hookContent, { encoding: "utf8", mode: 0o755 });
           console.log("  ✅ Pre-commit hook installed.");
           summary.created.push(".git/hooks/pre-commit");
-        } catch (err) {
-          console.log(`  ❌ Could not write pre-commit hook: ${err.message}`);
-          summary.errors.push(".git/hooks/pre-commit");
         }
-      } else {
-        console.log("  ⏭️  Skipped pre-commit hook.");
-        summary.skipped.push(".git/hooks/pre-commit");
+      } catch (err) {
+        console.log(`  ❌ Could not write pre-commit hook: ${err.message}`);
+        summary.errors.push(".git/hooks/pre-commit");
       }
     } else {
       console.log(
