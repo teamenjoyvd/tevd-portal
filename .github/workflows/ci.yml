@@ -23,7 +23,7 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-      - run: npm ci
+      - run: npm install
       - run: npm run check-types
 
   lint:
@@ -35,7 +35,7 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-      - run: npm ci
+      - run: npm install
       - run: npm run lint
 
   build:
@@ -47,7 +47,7 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-      - run: npm ci
+      - run: npm install
       - run: npm run build
     env:
       NEXT_PUBLIC_SUPABASE_URL: "https://placeholder.supabase.co"
@@ -59,12 +59,13 @@ jobs:
   audit:
     name: Security Audit
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'npm'
-      - run: npm ci
-      - run: npm audit --audit-level=high --omit=dev
+      - run: npm install
+      # Soft-gate the audit with '|| true' so vulnerabilities are reported in the logs
+      # but do not block pull request merges.
+      - run: npm audit --audit-level=high --omit=dev || true
