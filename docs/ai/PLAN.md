@@ -8,7 +8,7 @@ Invoked explicitly with the `PLAN` prefix. Processes one or more tickets in a si
 1. Read relevant `REF.md`, `FLOWS.md`, and `DECISIONS.md` sections (on demand, by section).
 2. Assess feasibility against the current codebase.
 3. Produce a DoD as **specific verifiable checklists with file paths**, not directional statements:
-   ```
+   ```markdown
    ## DoD
    - [ ] `app/[route]/components/X.tsx` renders without overflow at 390px
    - [ ] `api/y/route.ts` returns 403 for non-admin Clerk userId
