@@ -55,6 +55,12 @@ jobs:
       NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: "pk_test_placeholder"
       NEXT_PUBLIC_MAPBOX_TOKEN: "pk.placeholder"
       NEXT_PUBLIC_APP_URL: "https://placeholder.tevd.app"
+      SUPABASE_SERVICE_ROLE_KEY: "placeholder"
+      CLERK_SECRET_KEY: "placeholder"
+      ICAL_TOKEN_SECRET: "placeholder"
+      INSTAGRAM_ACCESS_TOKEN: "placeholder"
+      FB_PAGE_ACCESS_TOKEN: "placeholder"
+      FB_PAGE_ID: "placeholder"
 
   audit:
     name: Security Audit
