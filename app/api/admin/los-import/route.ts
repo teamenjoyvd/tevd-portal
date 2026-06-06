@@ -1,7 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { NextRequest } from 'next/server'
-import { requireAdmin } from '@/lib/supabase/guards'
+import { getCallerContext } from '@/lib/supabase/guards'
 import { type NewMember, type LevelChange, type BonusChange, type RemovedMember } from '@/lib/csv-import'
 
 // ── GET — current LOS state ───────────────────────────────────────────────────
@@ -13,7 +13,7 @@ export async function GET() {
   }
 
   const supabase = createServiceClient()
-  const guard = await requireAdmin(userId, supabase)
+  const { guard } = await getCallerContext(userId, supabase, 'admin')
   if (guard) return guard
 
   const { count } = await supabase
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
   }
 
   const supabase = createServiceClient()
-  const guard = await requireAdmin(userId, supabase)
+  const { guard } = await getCallerContext(userId, supabase, 'admin')
   if (guard) return guard
 
   const { rows } = await req.json()
@@ -61,12 +61,27 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Snapshot current state for diff (before RPC runs) ────────────────────
-  const { data: snapshot } = await supabase
-    .from('los_members')
-    .select('abo_number, abo_level, bonus_percent, name')
+  const incomingAbosSet = new Set((rows as Record<string, string>[]).map(r => r.abo_number).filter(Boolean))
+  const incomingAbos = Array.from(incomingAbosSet)
+
+  const snapshot: { abo_number: string; abo_level: string | null; bonus_percent: number | null; name: string | null }[] = []
+  const batchSize = 500
+  for (let i = 0; i < incomingAbos.length; i += batchSize) {
+    const batch = incomingAbos.slice(i, i + batchSize)
+    const { data: batchData, error: batchError } = await supabase
+      .from('los_members')
+      .select('abo_number, abo_level, bonus_percent, name')
+      .in('abo_number', batch)
+    if (batchError) {
+      return Response.json({ error: batchError.message }, { status: 500 })
+    }
+    if (batchData) {
+      snapshot.push(...batchData)
+    }
+  }
 
   const prevMap = new Map<string, { abo_level: string | null; bonus_percent: number | null; name: string | null }>(
-    (snapshot ?? []).map(m => [
+    snapshot.map(m => [
       m.abo_number,
       { abo_level: m.abo_level ?? null, bonus_percent: m.bonus_percent ?? null, name: m.name ?? null },
     ])
@@ -109,9 +124,8 @@ export async function POST(req: NextRequest) {
   }
 
   // Members in prev snapshot not present in incoming rows
-  const incomingAbos = new Set((rows as Record<string, string>[]).map(r => r.abo_number))
   for (const [abo, prev] of prevMap.entries()) {
-    if (!incomingAbos.has(abo)) {
+    if (!incomingAbosSet.has(abo)) {
       removed.push({ abo_number: abo, name: prev.name ?? '' })
     }
   }
