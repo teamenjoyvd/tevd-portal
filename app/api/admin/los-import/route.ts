@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
   }
 
   const supabase = createServiceClient()
-  const { guard } = await getCallerContext(userId, supabase, 'admin')
+  const { profile, guard } = await getCallerContext(userId, supabase, 'admin')
   if (guard) return guard
 
   const { rows } = await req.json()
@@ -61,17 +61,26 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Snapshot current state for diff (before RPC runs) ────────────────────
-  const incomingAbosSet = new Set((rows as Record<string, string>[]).map(r => r.abo_number).filter(Boolean))
+  const incomingAbosSet = new Set((rows as Record<string, string>[]).map(r => r?.abo_number).filter(Boolean))
   const incomingAbos = Array.from(incomingAbosSet)
 
-  const snapshot: { abo_number: string; abo_level: string | null; bonus_percent: number | null; name: string | null }[] = []
+  const chunks: string[][] = []
   const batchSize = 500
   for (let i = 0; i < incomingAbos.length; i += batchSize) {
-    const batch = incomingAbos.slice(i, i + batchSize)
-    const { data: batchData, error: batchError } = await supabase
-      .from('los_members')
-      .select('abo_number, abo_level, bonus_percent, name')
-      .in('abo_number', batch)
+    chunks.push(incomingAbos.slice(i, i + batchSize))
+  }
+
+  const results = await Promise.all(
+    chunks.map(batch =>
+      supabase
+        .from('los_members')
+        .select('abo_number, abo_level, bonus_percent, name')
+        .in('abo_number', batch)
+    )
+  )
+
+  const snapshot: { abo_number: string; abo_level: string | null; bonus_percent: number | null; name: string | null }[] = []
+  for (const { data: batchData, error: batchError } of results) {
     if (batchError) {
       return Response.json({ error: batchError.message }, { status: 500 })
     }
@@ -90,7 +99,7 @@ export async function POST(req: NextRequest) {
   // ── Call transactional RPC (upsert-only) ──────────────────────────────────
   const { data, error } = await supabase.rpc('import_los_members', {
     p_rows: rows,
-    p_imported_by: undefined,
+    p_imported_by: profile?.id,
   })
 
   if (error) {
@@ -103,11 +112,11 @@ export async function POST(req: NextRequest) {
   const bonus_changes: BonusChange[]   = []
   const removed:       RemovedMember[] = []
 
-  for (const row of rows as Record<string, string>[]) {
-    const aboNum   = row.abo_number ?? ''
-    const name     = row.name ?? ''
-    const newLevel = row.abo_level ?? ''
-    const newBonus = parseFloat(row.bonus_percent ?? '0') || 0
+  for (const row of (rows ?? []) as Record<string, string>[]) {
+    const aboNum   = row?.abo_number ?? ''
+    const name     = row?.name ?? ''
+    const newLevel = row?.abo_level ?? ''
+    const newBonus = parseFloat(row?.bonus_percent ?? '0') || 0
     const prev     = prevMap.get(aboNum)
 
     if (!prev) {
@@ -123,12 +132,9 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Members in prev snapshot not present in incoming rows
-  for (const [abo, prev] of prevMap.entries()) {
-    if (!incomingAbosSet.has(abo)) {
-      removed.push({ abo_number: abo, name: prev.name ?? '' })
-    }
-  }
+  // Members in prev snapshot not present in incoming rows are not detected
+  // here because snapshot is scoped to incomingAbos to prevent OOM crashes.
+  // Absent members are scanned and purged via the /api/admin/los-scan endpoint.
 
   // ── Reconciliation data ───────────────────────────────────────────────────
   const { data: profileAbos } = await supabase
@@ -138,8 +144,8 @@ export async function POST(req: NextRequest) {
 
   const profileAboSet = new Set((profileAbos ?? []).map(p => p.abo_number as string))
 
-  const unrecognized = (rows as Record<string, string>[])
-    .filter(r => r.abo_number && !profileAboSet.has(r.abo_number))
+  const unrecognized = ((rows ?? []) as Record<string, string>[])
+    .filter(r => r?.abo_number && !profileAboSet.has(r.abo_number))
     .map(r => ({
       abo_number: r.abo_number,
       name: r.name ?? '',
