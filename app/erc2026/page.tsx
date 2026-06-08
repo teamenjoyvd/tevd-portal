@@ -2,6 +2,21 @@
 
 import { useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
+import { Sora, DM_Sans } from "next/font/google";
+
+const sora = Sora({
+  subsets: ["latin"],
+  variable: "--font-sora",
+  weight: ["400", "600", "700", "800"],
+  display: "swap",
+});
+
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  variable: "--font-dm-sans",
+  weight: ["400", "500", "600"],
+  display: "swap",
+});
 
 const sections = [
   { id: "departure", icon: "🚌", label: "Тръгване",   time: "Петък, 13.06 — 01:30" },
@@ -42,25 +57,25 @@ const Timeline = () => {
             <span style={{ fontSize: "20px", minWidth: "28px" }}>{s.icon}</span>
             <div style={{ flex: 1 }}>
               <div style={{
-                fontFamily: "'Sora', sans-serif",
+                fontFamily: "var(--font-sora)",
                 fontWeight: 600,
                 fontSize: "15px",
-                color: open === s.id ? "#e65c00" : "#1a1a1a",
+                color: open === s.id ? "#e65c00" : "var(--text-primary)",
                 letterSpacing: "-0.01em",
               }}>
                 {s.label}
               </div>
               <div style={{
-                fontFamily: "'DM Sans', sans-serif",
+                fontFamily: "var(--font-dm-sans)",
                 fontSize: "12px",
-                color: "#888",
+                color: "var(--text-tertiary)",
                 marginTop: "1px",
               }}>
                 {s.time}
               </div>
             </div>
             <span style={{
-              color: "#bbb",
+              color: "var(--text-tertiary)",
               fontSize: "18px",
               transform: open === s.id ? "rotate(180deg)" : "rotate(0deg)",
               transition: "transform 0.18s ease",
@@ -72,7 +87,7 @@ const Timeline = () => {
           {open === s.id && <SectionContent id={s.id} />}
 
           {i < sections.length - 1 && (
-            <div style={{ height: "1px", background: "rgba(0,0,0,0.06)", margin: "0 16px" }} />
+            <div style={{ height: "1px", background: "var(--border-default)", margin: "0 16px" }} />
           )}
         </div>
       ))}
@@ -93,7 +108,7 @@ const MapButton = ({ label, url }: { label: string; url: string }) => (
       background: "#e65c00",
       color: "white",
       borderRadius: "8px",
-      fontFamily: "'DM Sans', sans-serif",
+      fontFamily: "var(--font-dm-sans)",
       fontSize: "13px",
       fontWeight: 600,
       textDecoration: "none",
@@ -110,22 +125,22 @@ const InfoRow = ({ icon, label, value }: { icon: string; label: string; value: s
     alignItems: "flex-start",
     gap: "10px",
     padding: "8px 0",
-    borderBottom: "1px solid rgba(0,0,0,0.05)",
+    borderBottom: "1px solid var(--border-default)",
   }}>
     <span style={{ fontSize: "16px", marginTop: "1px" }}>{icon}</span>
     <div>
       <div style={{
-        fontFamily: "'DM Sans', sans-serif",
+        fontFamily: "var(--font-dm-sans)",
         fontSize: "11px",
-        color: "#999",
+        color: "var(--text-tertiary)",
         textTransform: "uppercase",
         letterSpacing: "0.06em",
         fontWeight: 600,
       }}>{label}</div>
       <div style={{
-        fontFamily: "'DM Sans', sans-serif",
+        fontFamily: "var(--font-dm-sans)",
         fontSize: "14px",
-        color: "#1a1a1a",
+        color: "var(--text-primary)",
         marginTop: "2px",
         lineHeight: "1.4",
       }}>{value}</div>
@@ -145,7 +160,7 @@ const BusBlock = ({ toVenue, fromVenue }: { toVenue: string | null; fromVenue: s
     gap: "8px",
   }}>
     <div style={{
-      fontFamily: "'Sora', sans-serif",
+      fontFamily: "var(--font-sora)",
       fontSize: "11px",
       fontWeight: 700,
       color: "#e65c00",
@@ -157,18 +172,18 @@ const BusBlock = ({ toVenue, fromVenue }: { toVenue: string | null; fromVenue: s
     </div>
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
       <div>
-        <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "11px", color: "#999", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>
+        <div style={{ fontFamily: "var(--font-dm-sans)", fontSize: "11px", color: "var(--text-tertiary)", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>
           Хотел → Oradea Arena
         </div>
-        <div style={{ fontFamily: "'Sora', sans-serif", fontSize: "16px", fontWeight: 700, color: toVenue ? "#1a1a1a" : "#ccc" }}>
+        <div style={{ fontFamily: "var(--font-sora)", fontSize: "16px", fontWeight: 700, color: toVenue ? "var(--text-primary)" : "var(--text-tertiary)" }}>
           {toVenue ?? "TBD"}
         </div>
       </div>
       <div style={{ textAlign: "right" }}>
-        <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "11px", color: "#999", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>
+        <div style={{ fontFamily: "var(--font-dm-sans)", fontSize: "11px", color: "var(--text-tertiary)", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>
           Oradea Arena → Хотел
         </div>
-        <div style={{ fontFamily: "'Sora', sans-serif", fontSize: "16px", fontWeight: 700, color: fromVenue ? "#1a1a1a" : "#ccc" }}>
+        <div style={{ fontFamily: "var(--font-sora)", fontSize: "16px", fontWeight: 700, color: fromVenue ? "var(--text-primary)" : "var(--text-tertiary)" }}>
           {fromVenue ?? "TBD"}
         </div>
       </div>
@@ -182,9 +197,9 @@ const Note = ({ children }: { children: ReactNode }) => (
     borderLeft: "3px solid #e65c00",
     borderRadius: "0 8px 8px 0",
     padding: "10px 12px",
-    fontFamily: "'DM Sans', sans-serif",
+    fontFamily: "var(--font-dm-sans)",
     fontSize: "13px",
-    color: "#555",
+    color: "var(--text-secondary)",
     lineHeight: "1.5",
     marginTop: "12px",
   }}>
@@ -202,7 +217,7 @@ const TBDBlock = () => (
     opacity: 0.5,
   }}>
     <span style={{ fontSize: "28px" }}>🗓️</span>
-    <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "13px", color: "#888", textAlign: "center" }}>
+    <div style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: "var(--text-tertiary)", textAlign: "center" }}>
       Програмата предстои да бъде уточнена.<br />Страницата ще бъде обновена.
     </div>
   </div>
@@ -326,18 +341,18 @@ const QuickFacts = () => (
       }}>
         <div style={{ fontSize: "18px", marginBottom: "4px" }}>{f.icon}</div>
         <div style={{
-          fontFamily: "'DM Sans', sans-serif",
+          fontFamily: "var(--font-dm-sans)",
           fontSize: "11px",
-          color: "#999",
+          color: "var(--text-tertiary)",
           textTransform: "uppercase",
           letterSpacing: "0.05em",
           fontWeight: 600,
         }}>{f.label}</div>
         <div style={{
-          fontFamily: "'Sora', sans-serif",
+          fontFamily: "var(--font-sora)",
           fontSize: "14px",
           fontWeight: 600,
-          color: "#1a1a1a",
+          color: "var(--text-primary)",
           marginTop: "2px",
         }}>{f.value}</div>
       </div>
@@ -347,101 +362,96 @@ const QuickFacts = () => (
 
 export default function ERC2026() {
   return (
-    <>
-      <link rel="preconnect" href="https://fonts.googleapis.com" />
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-      <link
-        href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=DM+Sans:wght@400;500;600&display=swap"
-        rel="stylesheet"
-      />
-      <div style={{
+    <div
+      className={`${sora.variable} ${dmSans.variable}`}
+      style={{
         minHeight: "100vh",
-        background: "#fafaf9",
-        fontFamily: "'DM Sans', sans-serif",
+        background: "var(--bg-global)",
+        fontFamily: "var(--font-dm-sans)",
         maxWidth: "480px",
         margin: "0 auto",
+      }}
+    >
+      <div style={{
+        background: "linear-gradient(135deg, #e65c00 0%, #c94400 40%, #7a1e00 100%)",
+        padding: "40px 20px 32px",
+        position: "relative",
+        overflow: "hidden",
       }}>
         <div style={{
-          background: "linear-gradient(135deg, #e65c00 0%, #c94400 40%, #7a1e00 100%)",
-          padding: "40px 20px 32px",
-          position: "relative",
-          overflow: "hidden",
-        }}>
-          <div style={{
-            position: "absolute", top: "-40px", right: "-40px",
-            width: "160px", height: "160px", borderRadius: "50%",
-            background: "rgba(255,255,255,0.12)",
-          }} />
-          <div style={{
-            position: "absolute", bottom: "-20px", left: "-20px",
-            width: "80px", height: "80px", borderRadius: "50%",
-            background: "rgba(255,255,255,0.07)",
-          }} />
-          <div style={{ position: "relative" }}>
-            <div style={{
-              display: "inline-block",
-              background: "rgba(0,0,0,0.25)",
-              color: "white",
-              fontFamily: "'Sora', sans-serif",
-              fontSize: "11px",
-              fontWeight: 700,
-              letterSpacing: "0.12em",
-              textTransform: "uppercase",
-              padding: "4px 10px",
-              borderRadius: "4px",
-              marginBottom: "12px",
-            }}>
-              Team EnjoyVD
-            </div>
-            <h1 style={{
-              fontFamily: "'Sora', sans-serif",
-              fontSize: "36px",
-              fontWeight: 800,
-              color: "white",
-              margin: "0 0 4px",
-              letterSpacing: "-0.03em",
-              lineHeight: 1,
-            }}>
-              ERC 2026
-            </h1>
-            <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "15px", color: "rgba(255,255,255,0.75)", margin: "0 0 6px" }}>
-              Орадя, Румъния
-            </p>
-            <p style={{ fontFamily: "'Sora', sans-serif", fontSize: "13px", color: "rgba(255,255,255,0.55)", margin: 0, fontWeight: 600, letterSpacing: "0.04em" }}>
-              13 – 15 ЮНИ 2026
-            </p>
-          </div>
-        </div>
-
-        <div style={{ padding: "24px 0 0" }}>
-          <div style={{ padding: "0 16px 12px", fontFamily: "'Sora', sans-serif", fontSize: "11px", fontWeight: 700, color: "#bbb", letterSpacing: "0.1em", textTransform: "uppercase" }}>
-            Накратко
-          </div>
-          <QuickFacts />
-        </div>
-
-        <div style={{ height: "1px", background: "rgba(0,0,0,0.07)", margin: "0 16px 24px" }} />
-
-        <div style={{ padding: "0 16px 12px", fontFamily: "'Sora', sans-serif", fontSize: "11px", fontWeight: 700, color: "#bbb", letterSpacing: "0.1em", textTransform: "uppercase" }}>
-          Програма
-        </div>
-
+          position: "absolute", top: "-40px", right: "-40px",
+          width: "160px", height: "160px", borderRadius: "50%",
+          background: "rgba(255,255,255,0.12)",
+        }} />
         <div style={{
-          background: "white",
-          borderRadius: "16px",
-          margin: "0 12px",
-          overflow: "hidden",
-          boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04)",
-        }}>
-          <Timeline />
-        </div>
-
-        <div style={{ padding: "32px 20px 48px", textAlign: "center" }}>
-          <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "12px", color: "#ccc" }}>
-            Team EnjoyVD · ERC 2026 · Орадя
+          position: "absolute", bottom: "-20px", left: "-20px",
+          width: "80px", height: "80px", borderRadius: "50%",
+          background: "rgba(255,255,255,0.07)",
+        }} />
+        <div style={{ position: "relative" }}>
+          <div style={{
+            display: "inline-block",
+            background: "rgba(0,0,0,0.25)",
+            color: "white",
+            fontFamily: "var(--font-sora)",
+            fontSize: "11px",
+            fontWeight: 700,
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
+            padding: "4px 10px",
+            borderRadius: "4px",
+            marginBottom: "12px",
+          }}>
+            Team EnjoyVD
           </div>
+          <h1 style={{
+            fontFamily: "var(--font-sora)",
+            fontSize: "36px",
+            fontWeight: 800,
+            color: "white",
+            margin: "0 0 4px",
+            letterSpacing: "-0.03em",
+            lineHeight: 1,
+          }}>
+            ERC 2026
+          </h1>
+          <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "15px", color: "rgba(255,255,255,0.75)", margin: "0 0 6px" }}>
+            Орадя, Румъния
+          </p>
+          <p style={{ fontFamily: "var(--font-sora)", fontSize: "13px", color: "rgba(255,255,255,0.55)", margin: 0, fontWeight: 600, letterSpacing: "0.04em" }}>
+            13 – 15 ЮНИ 2026
+          </p>
         </div>
       </div>
-    </>
+
+      <div style={{ padding: "24px 0 0" }}>
+        <div style={{ padding: "0 16px 12px", fontFamily: "var(--font-sora)", fontSize: "11px", fontWeight: 700, color: "var(--text-tertiary)", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+          Накратко
+        </div>
+        <QuickFacts />
+      </div>
+
+      <div style={{ height: "1px", background: "var(--border-default)", margin: "0 16px 24px" }} />
+
+      <div style={{ padding: "0 16px 12px", fontFamily: "var(--font-sora)", fontSize: "11px", fontWeight: 700, color: "var(--text-tertiary)", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+        Програма
+      </div>
+
+      <div style={{
+        background: "var(--bg-card)",
+        borderRadius: "16px",
+        margin: "0 12px",
+        overflow: "hidden",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04)",
+      }}>
+        <Timeline />
+      </div>
+
+      <div style={{ padding: "32px 20px 48px", textAlign: "center" }}>
+        <div style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: "var(--text-tertiary)" }}>
+          Team EnjoyVD · ERC 2026 · Орадя
+        </div>
+      </div>
+    </div>
   );
 }
