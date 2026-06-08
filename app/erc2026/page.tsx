@@ -155,7 +155,7 @@ const BusBlock = ({ toVenue, fromVenue }) => (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
       <div>
         <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "11px", color: "#999", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>
-          Хотел → Зала
+          Хотел → Oradea Arena
         </div>
         <div style={{ fontFamily: "'Sora', sans-serif", fontSize: "16px", fontWeight: 700, color: toVenue ? "#1a1a1a" : "#ccc" }}>
           {toVenue || "TBD"}
@@ -163,7 +163,7 @@ const BusBlock = ({ toVenue, fromVenue }) => (
       </div>
       <div style={{ textAlign: "right" }}>
         <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "11px", color: "#999", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>
-          Зала → Хотел
+          Oradea Arena → Хотел
         </div>
         <div style={{ fontFamily: "'Sora', sans-serif", fontSize: "16px", fontWeight: 700, color: fromVenue ? "#1a1a1a" : "#ccc" }}>
           {fromVenue || "TBD"}
@@ -232,16 +232,17 @@ const SectionContent = ({ id }) => {
       <InfoRow icon="🛣️" label="Маршрут" value="София → Ботевград → Видин → Калафат → Крайова → Орадя" />
       <InfoRow icon="⏱️" label="Прибл. продължителност" value="~12 часа" />
       <InfoRow icon="🌄" label="Прибл. пристигане" value="Петък, 13 юни — около 14:00 ч." />
-      <Note>🇷🇴 Пресичаме границата при Видин–Калафат. Пригответе документите си за граничен контрол.</Note>
+      <Note>🇷🇴 Пресичаме границата при Видин–Калафат. Румъния е в Шенген — няма граничен контрол.</Note>
     </div>
   );
 
   if (id === "arrival") return (
     <div style={inner}>
+      <InfoRow icon="🏙️" label="Зала" value="Oradea Arena" />
       <InfoRow icon="📍" label="Дестинация" value="Орадя, Румъния" />
       <InfoRow icon="🕑" label="Очаквано пристигане" value="~14:00 ч., петък 13 юни" />
       <div style={{ marginTop: "8px" }}>
-        <MapButton label="Орадя в Google Maps" url="https://maps.google.com/?q=Oradea,+Romania" />
+        <MapButton label="Орадя в Google Maps" url="https://maps.google.com/?q=Oradea+Arena,+Oradea,+Romania" />
       </div>
     </div>
   );
@@ -249,7 +250,7 @@ const SectionContent = ({ id }) => {
   if (id === "checkin") return (
     <div style={inner}>
       <InfoRow icon="🏨" label="Хотел" value="Предстои уточнение" />
-      <InfoRow icon="🚶" label="До семинарната зала" value="~30 минути пеша" />
+      <InfoRow icon="🚶" label="До Oradea Arena" value="~30 минути пеша" />
       <InfoRow icon="🛍️" label="До центъра на града" value="~30 минути пеша" />
       <InfoRow icon="🛒" label="Lidl / Kaufland" value="~10–15 минути пеша" />
       <Note>🧳 Оставете багажа, починете малко — вечерта предстои първата сесия.</Note>
@@ -310,7 +311,7 @@ const QuickFacts = () => (
   }}>
     {[
       { icon: "📅", label: "Дати",       value: "13–15 юни 2026" },
-      { icon: "📍", label: "Дестинация", value: "Орадя, 🇷🇴" },
+      { icon: "🏙️", label: "Зала",        value: "Oradea Arena" },
       { icon: "🚌", label: "Тръгване",   value: "13.06 / 01:30" },
       { icon: "🏠", label: "Завръщане",  value: "16.06 / ~04:00" },
     ].map((f) => (
