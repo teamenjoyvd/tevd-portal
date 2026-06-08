@@ -1,4 +1,7 @@
+"use client";
+
 import { useState } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 const sections = [
   { id: "departure", icon: "🚌", label: "Тръгване",   time: "Петък, 13.06 — 01:30" },
@@ -13,8 +16,8 @@ const sections = [
 ];
 
 const Timeline = () => {
-  const [open, setOpen] = useState("departure");
-  const toggle = (id) => setOpen(open === id ? null : id);
+  const [open, setOpen] = useState<string | null>("departure");
+  const toggle = (id: string) => setOpen(open === id ? null : id);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
@@ -77,7 +80,7 @@ const Timeline = () => {
   );
 };
 
-const MapButton = ({ label, url }) => (
+const MapButton = ({ label, url }: { label: string; url: string }) => (
   <a
     href={url}
     target="_blank"
@@ -101,7 +104,7 @@ const MapButton = ({ label, url }) => (
   </a>
 );
 
-const InfoRow = ({ icon, label, value }) => (
+const InfoRow = ({ icon, label, value }: { icon: string; label: string; value: string }) => (
   <div style={{
     display: "flex",
     alignItems: "flex-start",
@@ -130,7 +133,7 @@ const InfoRow = ({ icon, label, value }) => (
   </div>
 );
 
-const BusBlock = ({ toVenue, fromVenue }) => (
+const BusBlock = ({ toVenue, fromVenue }: { toVenue: string | null; fromVenue: string | null }) => (
   <div style={{
     background: "rgba(230,92,0,0.05)",
     border: "1px solid rgba(230,92,0,0.15)",
@@ -158,7 +161,7 @@ const BusBlock = ({ toVenue, fromVenue }) => (
           Хотел → Oradea Arena
         </div>
         <div style={{ fontFamily: "'Sora', sans-serif", fontSize: "16px", fontWeight: 700, color: toVenue ? "#1a1a1a" : "#ccc" }}>
-          {toVenue || "TBD"}
+          {toVenue ?? "TBD"}
         </div>
       </div>
       <div style={{ textAlign: "right" }}>
@@ -166,14 +169,14 @@ const BusBlock = ({ toVenue, fromVenue }) => (
           Oradea Arena → Хотел
         </div>
         <div style={{ fontFamily: "'Sora', sans-serif", fontSize: "16px", fontWeight: 700, color: fromVenue ? "#1a1a1a" : "#ccc" }}>
-          {fromVenue || "TBD"}
+          {fromVenue ?? "TBD"}
         </div>
       </div>
     </div>
   </div>
 );
 
-const Note = ({ children }) => (
+const Note = ({ children }: { children: ReactNode }) => (
   <div style={{
     background: "rgba(230,92,0,0.06)",
     borderLeft: "3px solid #e65c00",
@@ -205,8 +208,8 @@ const TBDBlock = () => (
   </div>
 );
 
-const SectionContent = ({ id }) => {
-  const inner = {
+const SectionContent = ({ id }: { id: string }) => {
+  const inner: CSSProperties = {
     padding: "4px 16px 20px 56px",
     display: "flex",
     flexDirection: "column",
