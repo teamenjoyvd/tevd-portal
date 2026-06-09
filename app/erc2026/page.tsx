@@ -234,7 +234,7 @@ const SectionContent = ({ id }: { id: string }) => {
   if (id === "departure") return (
     <div style={inner}>
       <Note>⏰ Моля, бъдете на място поне 15 минути преди тръгване. Автобусът тръгва точно в 02:00 ч.</Note>
-      <InfoRow icon="📅" label="Дата и час" value="Петък, 13 юни 2026 — 01:30 ч." />
+      <InfoRow icon="📅" label="Дата и час" value="Петък, 12 юни 2026 — 02:00 ч." />
       <InfoRow icon="🚌" label="Място на тръгване" value="бул. Янко Сакъзов 9, София Център, 1527 София" />
       <div style={{ marginTop: "8px" }}>
         <MapButton
@@ -248,7 +248,7 @@ const SectionContent = ({ id }: { id: string }) => {
   if (id === "travel") return (
     <div style={inner}>
       <InfoRow icon="⏱️" label="Прибл. продължителност" value="~12 часа" />
-      <InfoRow icon="🌄" label="Прибл. пристигане" value="Петък, 12 юни — около 14:00 ч." />
+      <InfoRow icon="🌄" label="Прибл. пристигане" value="Петък, 12 юни 2026 — около 14:00 ч." />
     </div>
   );
 
@@ -256,7 +256,7 @@ const SectionContent = ({ id }: { id: string }) => {
     <div style={inner}>
       <InfoRow icon="🏙️" label="Зала" value="Oradea Arena" />
       <InfoRow icon="📍" label="Дестинация" value="Орадя, Румъния" />
-      <InfoRow icon="🕑" label="Очаквано пристигане" value="~14:00 ч., петък 13 юни" />
+      <InfoRow icon="🕑" label="Очаквано пристигане" value="~14:00 ч., петък 12 юни 2026" />
       <div style={{ marginTop: "8px" }}>
         <MapButton label="Орадя в Google Maps" url="https://maps.google.com/?q=Oradea+Arena,+Oradea,+Romania" />
       </div>
@@ -283,7 +283,7 @@ const SectionContent = ({ id }: { id: string }) => {
 
   if (id === "ses2") return (
     <div style={inner}>
-      <InfoRow icon="📅" label="Дата" value="Събота, 14 юни 2026" />
+      <InfoRow icon="📅" label="Дата" value="Събота, 13 юни 2026" />
       <BusBlock toVenue={null} fromVenue={null} />
       <TBDBlock />
     </div>
@@ -291,7 +291,7 @@ const SectionContent = ({ id }: { id: string }) => {
 
   if (id === "ses3") return (
     <div style={inner}>
-      <InfoRow icon="📅" label="Дата" value="Събота, 14 юни 2026" />
+      <InfoRow icon="📅" label="Дата" value="Събота, 13 юни 2026" />
       <BusBlock toVenue={null} fromVenue={null} />
       <TBDBlock />
     </div>
@@ -299,7 +299,7 @@ const SectionContent = ({ id }: { id: string }) => {
 
   if (id === "ses4") return (
     <div style={inner}>
-      <InfoRow icon="📅" label="Дата" value="Неделя, 15 юни 2026" />
+      <InfoRow icon="📅" label="Дата" value="Неделя, 14 юни 2026" />
       <BusBlock toVenue={null} fromVenue={null} />
       <Note>🕓 Имайте предвид, че отпътуваме от Орадя в 16:00 ч.</Note>
     </div>
