@@ -218,7 +218,7 @@ const TBDBlock = () => (
   }}>
     <span style={{ fontSize: "28px" }}>🗓️</span>
     <div style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: "var(--text-tertiary)", textAlign: "center" }}>
-      Програмата предстои да бъде уточнена.<br />Страницата ще бъде обновена.
+      Програмата на сесията предстои уточнение.
     </div>
   </div>
 );
@@ -236,12 +236,6 @@ const SectionContent = ({ id }: { id: string }) => {
       <Note>⏰ Моля, бъдете на място поне 15 минути преди тръгване. Автобусът тръгва точно в 02:00 ч.</Note>
       <InfoRow icon="📅" label="Дата и час" value="Петък, 12 юни 2026 — 02:00 ч." />
       <InfoRow icon="🚌" label="Място на тръгване" value="бул. Янко Сакъзов 9, София Център, 1527 София" />
-      <div style={{ marginTop: "8px" }}>
-        <MapButton
-          label="Отвори в Google Maps"
-          url="https://maps.google.com/?q=бул.+Янко+Сакъзов+9,+1527+София"
-        />
-      </div>
     </div>
   );
 
@@ -257,9 +251,6 @@ const SectionContent = ({ id }: { id: string }) => {
       <InfoRow icon="🏙️" label="Зала" value="Oradea Arena" />
       <InfoRow icon="📍" label="Дестинация" value="Орадя, Румъния" />
       <InfoRow icon="🕑" label="Очаквано пристигане" value="~14:00 ч., петък 12 юни 2026" />
-      <div style={{ marginTop: "8px" }}>
-        <MapButton label="Oradea Arena в Google Maps" url="https://maps.google.com/?q=Oradea+Arena,+Oradea,+Romania" />
-      </div>
     </div>
   );
 
@@ -283,7 +274,7 @@ const SectionContent = ({ id }: { id: string }) => {
 
   if (id === "ses2") return (
     <div style={inner}>
-      <InfoRow icon="📅" label="Дата" value="Събота, 14 юни 2026" />
+      <InfoRow icon="📅" label="Дата" value="Събота, 13 юни 2026" />
       <BusBlock toVenue="09:15 ч." fromVenue="13:50 ч." />
       <TBDBlock />
     </div>
@@ -291,7 +282,7 @@ const SectionContent = ({ id }: { id: string }) => {
 
   if (id === "ses3") return (
     <div style={inner}>
-      <InfoRow icon="📅" label="Дата" value="Събота, 14 юни 2026" />
+      <InfoRow icon="📅" label="Дата" value="Събота, 13 юни 2026" />
       <BusBlock toVenue="16:00 ч." fromVenue="18:30 ч." />
       <TBDBlock />
     </div>
@@ -300,7 +291,7 @@ const SectionContent = ({ id }: { id: string }) => {
   if (id === "ses4") return (
     <div style={inner}>
       <InfoRow icon="📅" label="Дата" value="Неделя, 15 юни 2026" />
-      <BusBlock toVenue="9:15 ч." fromVenue="N/A" />
+      <BusBlock toVenue="09:15 ч." fromVenue={null} />
       <Note>🕓 Имайте предвид, че отпътуваме от Орадя в 16:00 ч.</Note>
     </div>
   );
@@ -316,46 +307,74 @@ const SectionContent = ({ id }: { id: string }) => {
   return null;
 };
 
-const QuickFacts = () => (
-  <div style={{
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: "10px",
-    padding: "0 16px",
-    marginBottom: "24px",
-  }}>
-    {[
-      { icon: "📅", label: "Дати",       value: "12–14 юни 2026" },
-      { icon: "🏙️", label: "Зала",        value: "Oradea Arena" },
-      { icon: "🚌", label: "Тръгване",   value: "12.06 / 02:00" },
-      { icon: "🏠", label: "Връщане",  value: "15.06 / ~04:00" },
-    ].map((f) => (
-      <div key={f.label} style={{
-        background: "rgba(230,92,0,0.05)",
-        border: "1px solid rgba(230,92,0,0.15)",
-        borderRadius: "10px",
-        padding: "12px",
-      }}>
-        <div style={{ fontSize: "18px", marginBottom: "4px" }}>{f.icon}</div>
-        <div style={{
-          fontFamily: "var(--font-dm-sans)",
-          fontSize: "11px",
-          color: "var(--text-tertiary)",
-          textTransform: "uppercase",
-          letterSpacing: "0.05em",
-          fontWeight: 600,
-        }}>{f.label}</div>
-        <div style={{
-          fontFamily: "var(--font-sora)",
-          fontSize: "14px",
-          fontWeight: 600,
-          color: "var(--text-primary)",
-          marginTop: "2px",
-        }}>{f.value}</div>
-      </div>
-    ))}
-  </div>
-);
+type QuickFact = { icon: string; label: string; value: string; url?: string };
+
+const QuickFacts = () => {
+  const facts: QuickFact[] = [
+    { icon: "📅", label: "Дати",     value: "12–14 юни 2026" },
+    { icon: "📍", label: "Зала",      value: "Oradea Arena",        url: "https://maps.google.com/?q=Oradea+Arena,+Oradea,+Romania" },
+    { icon: "📍", label: "Тръгване", value: "бул. Янко Сакъзов 9", url: "https://maps.google.com/?q=бул.+Янко+Сакъзов+9,+1527+София" },
+    { icon: "🏠", label: "Връщане",  value: "15.06 / ~04:00" },
+  ];
+
+  const cardStyle: CSSProperties = {
+    background: "rgba(230,92,0,0.05)",
+    border: "1px solid rgba(230,92,0,0.15)",
+    borderRadius: "10px",
+    padding: "12px",
+    textDecoration: "none",
+    display: "block",
+  };
+
+  return (
+    <div style={{
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: "10px",
+      padding: "0 16px",
+      marginBottom: "24px",
+    }}>
+      {facts.map((f) => {
+        const inner = (
+          <>
+            <div style={{ fontSize: "18px", marginBottom: "4px" }}>{f.icon}</div>
+            <div style={{
+              fontFamily: "var(--font-dm-sans)",
+              fontSize: "11px",
+              color: "var(--text-tertiary)",
+              textTransform: "uppercase",
+              letterSpacing: "0.05em",
+              fontWeight: 600,
+            }}>{f.label}</div>
+            <div style={{
+              fontFamily: "var(--font-sora)",
+              fontSize: "14px",
+              fontWeight: 600,
+              color: f.url ? "#e65c00" : "var(--text-primary)",
+              marginTop: "2px",
+            }}>{f.value}</div>
+          </>
+        );
+
+        return f.url ? (
+          <a
+            key={f.label}
+            href={f.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={cardStyle}
+          >
+            {inner}
+          </a>
+        ) : (
+          <div key={f.label} style={cardStyle}>
+            {inner}
+          </div>
+        );
+      })}
+    </div>
+  );
+};
 
 export default function ERC2026() {
   return (
