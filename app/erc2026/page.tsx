@@ -173,7 +173,7 @@ const BusBlock = ({ toVenue, fromVenue }: { toVenue: string | null; fromVenue: s
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
       <div>
         <div style={{ fontFamily: "var(--font-dm-sans)", fontSize: "11px", color: "var(--text-tertiary)", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>
-          Хотел → Oradea Arena
+          Хотел → Зала
         </div>
         <div style={{ fontFamily: "var(--font-sora)", fontSize: "16px", fontWeight: 700, color: toVenue ? "var(--text-primary)" : "var(--text-tertiary)" }}>
           {toVenue ?? "TBD"}
@@ -181,7 +181,7 @@ const BusBlock = ({ toVenue, fromVenue }: { toVenue: string | null; fromVenue: s
       </div>
       <div style={{ textAlign: "right" }}>
         <div style={{ fontFamily: "var(--font-dm-sans)", fontSize: "11px", color: "var(--text-tertiary)", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>
-          Oradea Arena → Хотел
+          Зала → Хотел
         </div>
         <div style={{ fontFamily: "var(--font-sora)", fontSize: "16px", fontWeight: 700, color: fromVenue ? "var(--text-primary)" : "var(--text-tertiary)" }}>
           {fromVenue ?? "TBD"}
@@ -258,7 +258,7 @@ const SectionContent = ({ id }: { id: string }) => {
       <InfoRow icon="📍" label="Дестинация" value="Орадя, Румъния" />
       <InfoRow icon="🕑" label="Очаквано пристигане" value="~14:00 ч., петък 12 юни 2026" />
       <div style={{ marginTop: "8px" }}>
-        <MapButton label="Орадя в Google Maps" url="https://maps.google.com/?q=Oradea+Arena,+Oradea,+Romania" />
+        <MapButton label="Oradea Arena в Google Maps" url="https://maps.google.com/?q=Oradea+Arena,+Oradea,+Romania" />
       </div>
     </div>
   );
@@ -276,31 +276,31 @@ const SectionContent = ({ id }: { id: string }) => {
   if (id === "ses1") return (
     <div style={inner}>
       <InfoRow icon="📅" label="Дата" value="Петък, 12 юни 2026" />
-      <BusBlock toVenue="18:30 ч." fromVenue={null} />
+      <BusBlock toVenue="18:30 ч." fromVenue="22:00 ч." />
       <Note>🔔 Автобусът тръгва точно в 18:30 ч. от хотела. Бъдете точни!</Note>
     </div>
   );
 
   if (id === "ses2") return (
     <div style={inner}>
-      <InfoRow icon="📅" label="Дата" value="Събота, 13 юни 2026" />
-      <BusBlock toVenue={null} fromVenue={null} />
+      <InfoRow icon="📅" label="Дата" value="Събота, 14 юни 2026" />
+      <BusBlock toVenue="09:15 ч." fromVenue="13:50 ч." />
       <TBDBlock />
     </div>
   );
 
   if (id === "ses3") return (
     <div style={inner}>
-      <InfoRow icon="📅" label="Дата" value="Събота, 13 юни 2026" />
-      <BusBlock toVenue={null} fromVenue={null} />
+      <InfoRow icon="📅" label="Дата" value="Събота, 14 юни 2026" />
+      <BusBlock toVenue="16:00 ч." fromVenue="18:30 ч." />
       <TBDBlock />
     </div>
   );
 
   if (id === "ses4") return (
     <div style={inner}>
-      <InfoRow icon="📅" label="Дата" value="Неделя, 14 юни 2026" />
-      <BusBlock toVenue={null} fromVenue={null} />
+      <InfoRow icon="📅" label="Дата" value="Неделя, 15 юни 2026" />
+      <BusBlock toVenue="9:15 ч." fromVenue="N/A" />
       <Note>🕓 Имайте предвид, че отпътуваме от Орадя в 16:00 ч.</Note>
     </div>
   );
@@ -309,7 +309,7 @@ const SectionContent = ({ id }: { id: string }) => {
     <div style={inner}>
       <InfoRow icon="🕓" label="Тръгване от Орадя" value="Неделя, 14 юни — 16:00 ч." />
       <InfoRow icon="🌙" label="Прибл. пристигане в София" value="Понеделник, 15 юни — ~04:00 ч." />
-      <Note>😴 Очаква се дълго пътуване — пригответе се с вода, закуска и нещо за четене.</Note>
+      <Note>😴 Очаква ни вълнуващо пътуване — пригответе се с вода, закуска и нещо за четене.</Note>
     </div>
   );
 
