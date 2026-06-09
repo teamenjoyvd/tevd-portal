@@ -406,9 +406,19 @@ const QuickFacts = () => (
       mapsUrl={GATHERING_POINT_URL}
       meta={
         <>
-          <div style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: "var(--text-secondary)", paddingBottom: "6px" }}>
-            Събиране 01:40–01:55 · Автобусът тръгва 02:00
-          </div>
+          <div style={{
+  display: "inline-block",
+  background: "rgba(230,92,0,0.08)",
+  border: `1px solid rgba(230,92,0,0.25)`,
+  borderRadius: "20px",
+  padding: "4px 10px",
+  fontFamily: "var(--font-dm-sans)",
+  fontSize: "12px",
+  fontWeight: 600,
+  color: "#e65c00",
+}}>
+  Товарене на багаж 01:45–01:55 · Автобусът тръгва в 02:00.
+</div>
         </>
       }
     />
@@ -425,7 +435,7 @@ const QuickFacts = () => (
           <DistanceRow label="До центъра" value="~30 мин. пеша" />
           <DistanceRow label="Lidl / Kaufland" value="~10–15 мин. пеша" />
           <div style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: "var(--text-tertiary)", paddingTop: "6px" }}>
-            Закуската е включена · Часовете предстои уточнение
+            Закуската е включена · От колко до колко предстои уточнение.
           </div>
         </>
       }
