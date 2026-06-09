@@ -257,21 +257,18 @@ const SectionContent = ({ id }: { id: string }) => {
   if (id === "ses1") return (
     <div style={inner}>
       <BusBlock toVenue="18:30" fromVenue="22:00" />
-      <Note>Автобусът тръгва точно в 18:30 от хотела.</Note>
     </div>
   );
 
   if (id === "ses2") return (
     <div style={inner}>
       <BusBlock toVenue="09:15" fromVenue="13:50" />
-      <TBDBlock />
     </div>
   );
 
   if (id === "ses3") return (
     <div style={inner}>
-      <BusBlock toVenue="16:00" fromVenue="18:30" />
-      <TBDBlock />
+      <BusBlock toVenue="16:00" fromVenue="20:20" />
     </div>
   );
 
@@ -279,11 +276,11 @@ const SectionContent = ({ id }: { id: string }) => {
     <div style={inner}>
       <BusBlock
         toVenue="09:15"
-        fromVenue={null}
+        fromVenue="16:00"
         toLabel="Хотел → Зала"
-        fromLabel="Зала → Събирателен пункт"
+        fromLabel="Зала → София"
       />
-      <Note>След сесията автобусът не се връща в хотела — отпътуваме директно от залата в 16:00. Имайте багажа със себе.</Note>
+      <Note>След сесията автобусът не се връща до хотела!</Note>
     </div>
   );
 
@@ -489,9 +486,6 @@ export default function ERC2026() {
         </h1>
         <p style={{ fontFamily: "var(--font-sora)", fontSize: "14px", color: "rgba(255,255,255,0.7)", margin: "0 0 2px", fontWeight: 600, letterSpacing: "0.04em" }}>
           12 – 14 ЮНИ 2026
-        </p>
-        <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: "rgba(255,255,255,0.5)", margin: 0, letterSpacing: "0.06em" }}>
-          София ↔ Орадя
         </p>
       </div>
 
