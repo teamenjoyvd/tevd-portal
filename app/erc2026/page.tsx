@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
-import { Sora, DM_Sans } from "next/font/google";
+import { Sora } from "next/font/google";
 
 const sora = Sora({
   subsets: ["latin"],
@@ -11,14 +11,8 @@ const sora = Sora({
   display: "swap",
 });
 
-const dmSans = DM_Sans({
-  subsets: ["latin"],
-  variable: "--font-dm-sans",
-  weight: ["400", "500", "600"],
-  display: "swap",
-});
-
 const TEAL = "#3E7785";
+const TEAL_DARK = "#2a5560";
 const TEAL_BG = "rgba(62,119,133,0.05)";
 const TEAL_BORDER = "rgba(62,119,133,0.15)";
 const TEAL_NOTE_BG = "rgba(62,119,133,0.06)";
@@ -200,7 +194,7 @@ const BusBlock = ({
           {fromLabel}
         </div>
         <div style={{ fontFamily: "var(--font-sora)", fontSize: "18px", fontWeight: 700, color: fromVenue ? "var(--text-primary)" : "var(--text-tertiary)", marginTop: "2px" }}>
-          {fromVenue ?? "—"}
+          {fromVenue === null ? "TBD" : (fromVenue ?? "—")}
         </div>
       </div>
     </div>
@@ -229,7 +223,7 @@ const TBDBlock = () => (
     textAlign: "center",
   }}>
     <div style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: "var(--text-tertiary)" }}>
-      Програмата на сесията предстои уточнение.
+      Програмата на сесията предстои да бъде уточнена.
     </div>
   </div>
 );
@@ -407,18 +401,21 @@ const QuickFacts = () => (
       meta={
         <>
           <div style={{
-  display: "inline-block",
-  background: "rgba(230,92,0,0.08)",
-  border: `1px solid rgba(230,92,0,0.25)`,
-  borderRadius: "20px",
-  padding: "4px 10px",
-  fontFamily: "var(--font-dm-sans)",
-  fontSize: "12px",
-  fontWeight: 600,
-  color: "#e65c00",
-}}>
-  Товарене на багаж 01:45–01:55 · Автобусът тръгва в 02:00.
-</div>
+            display: "block",
+            width: "100%",
+            background: "rgba(230,92,0,0.08)",
+            border: "1px solid rgba(230,92,0,0.25)",
+            borderRadius: "20px",
+            padding: "4px 10px",
+            fontFamily: "var(--font-dm-sans)",
+            fontSize: "12px",
+            fontWeight: 600,
+            color: "#c94400",
+            whiteSpace: "normal",
+            overflowWrap: "anywhere",
+          }}>
+            Товарене на багаж 01:40–01:55 · Автобусът тръгва в 02:00.
+          </div>
         </>
       }
     />
@@ -454,7 +451,7 @@ const QuickFacts = () => (
 export default function ERC2026() {
   return (
     <div
-      className={`${sora.variable} ${dmSans.variable}`}
+      className={sora.variable}
       style={{
         minHeight: "100vh",
         background: "var(--bg-global)",
@@ -465,7 +462,7 @@ export default function ERC2026() {
     >
       {/* Hero */}
       <div style={{
-        background: `linear-gradient(135deg, ${TEAL} 0%, #2a5560 100%)`,
+        background: `linear-gradient(135deg, ${TEAL} 0%, ${TEAL_DARK} 100%)`,
         padding: "40px 20px 32px",
       }}>
         <div style={{
