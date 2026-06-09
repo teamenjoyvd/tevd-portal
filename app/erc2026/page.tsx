@@ -19,14 +19,14 @@ const dmSans = DM_Sans({
 });
 
 const sections = [
-  { id: "departure", icon: "🚌", label: "Тръгване",   time: "Петък, 13.06 — 01:30" },
+  { id: "departure", icon: "🚌", label: "Тръгване",   time: "Петък, 12.06 — 02:00" },
   { id: "travel",    icon: "🛣️",  label: "Пътуване",  time: "~12 часа" },
-  { id: "arrival",   icon: "📍",  label: "Пристигане", time: "Петък, 13.06 — ~14:00" },
-  { id: "checkin",   icon: "🏨",  label: "Хотел",      time: "Петък, 13.06" },
-  { id: "ses1",      icon: "1️⃣", label: "Сесия 1",    time: "Петък, 13.06 — вечер" },
-  { id: "ses2",      icon: "2️⃣", label: "Сесия 2",    time: "Събота, 14.06 — сутрин" },
-  { id: "ses3",      icon: "3️⃣", label: "Сесия 3",    time: "Събота, 14.06 — следобяд" },
-  { id: "ses4",      icon: "4️⃣", label: "Сесия 4",    time: "Неделя, 15.06" },
+  { id: "arrival",   icon: "📍",  label: "Пристигане", time: "Петък, 12.06 — ~14:00" },
+  { id: "checkin",   icon: "🏨",  label: "Хотел",      time: "Петък, 12.06" },
+  { id: "ses1",      icon: "1️⃣", label: "Сесия 1",    time: "Петък, 12.06 — вечер" },
+  { id: "ses2",      icon: "2️⃣", label: "Сесия 2",    time: "Събота, 13.06 — сутрин" },
+  { id: "ses3",      icon: "3️⃣", label: "Сесия 3",    time: "Събота, 13.06 — следобяд" },
+  { id: "ses4",      icon: "4️⃣", label: "Сесия 4",    time: "Неделя, 14.06" },
   { id: "return",    icon: "🏠",  label: "Връщане",    time: "Неделя — Понеделник" },
 ];
 
@@ -233,6 +233,7 @@ const SectionContent = ({ id }: { id: string }) => {
 
   if (id === "departure") return (
     <div style={inner}>
+      <Note>⏰ Моля, бъдете на място поне 15 минути преди тръгване. Автобусът тръгва точно в 02:00 ч.</Note>
       <InfoRow icon="📅" label="Дата и час" value="Петък, 13 юни 2026 — 01:30 ч." />
       <InfoRow icon="🚌" label="Място на тръгване" value="бул. Янко Сакъзов 9, София Център, 1527 София" />
       <div style={{ marginTop: "8px" }}>
@@ -241,16 +242,13 @@ const SectionContent = ({ id }: { id: string }) => {
           url="https://maps.google.com/?q=бул.+Янко+Сакъзов+9,+1527+София"
         />
       </div>
-      <Note>⏰ Моля, бъдете на място поне 15 минути преди тръгване. Автобусът тръгва точно в 01:30 ч.</Note>
     </div>
   );
 
   if (id === "travel") return (
     <div style={inner}>
-      <InfoRow icon="🛣️" label="Маршрут" value="София → Ботевград → Видин → Калафат → Крайова → Орадя" />
       <InfoRow icon="⏱️" label="Прибл. продължителност" value="~12 часа" />
-      <InfoRow icon="🌄" label="Прибл. пристигане" value="Петък, 13 юни — около 14:00 ч." />
-      <Note>🇷🇴 Пресичаме границата при Видин–Калафат. Румъния е в Шенген — няма граничен контрол.</Note>
+      <InfoRow icon="🌄" label="Прибл. пристигане" value="Петък, 12 юни — около 14:00 ч." />
     </div>
   );
 
@@ -271,15 +269,15 @@ const SectionContent = ({ id }: { id: string }) => {
       <InfoRow icon="🚶" label="До Oradea Arena" value="~30 минути пеша" />
       <InfoRow icon="🛍️" label="До центъра на града" value="~30 минути пеша" />
       <InfoRow icon="🛒" label="Lidl / Kaufland" value="~10–15 минути пеша" />
-      <Note>🧳 Оставете багажа, починете малко — вечерта предстои първата сесия.</Note>
+      <Note>🧳 Настаняване, лека почивка и подготовка за вечерта — предстои първата сесия.</Note>
     </div>
   );
 
   if (id === "ses1") return (
     <div style={inner}>
-      <InfoRow icon="📅" label="Дата" value="Петък, 13 юни 2026" />
+      <InfoRow icon="📅" label="Дата" value="Петък, 12 юни 2026" />
       <BusBlock toVenue="18:30 ч." fromVenue={null} />
-      <Note>🔔 Автобусът тръгва точно в 18:30 ч. от хотела. Не закъснявайте!</Note>
+      <Note>🔔 Автобусът тръгва точно в 18:30 ч. от хотела. Бъдете точни!</Note>
     </div>
   );
 
@@ -309,9 +307,8 @@ const SectionContent = ({ id }: { id: string }) => {
 
   if (id === "return") return (
     <div style={inner}>
-      <InfoRow icon="🕓" label="Тръгване от Орадя" value="Неделя, 15 юни — 16:00 ч." />
-      <InfoRow icon="🛣️" label="Маршрут" value="Орадя → Крайова → Калафат → Видин → Ботевград → София" />
-      <InfoRow icon="🌙" label="Прибл. пристигане в София" value="Понеделник, 16 юни — ~04:00 ч." />
+      <InfoRow icon="🕓" label="Тръгване от Орадя" value="Неделя, 14 юни — 16:00 ч." />
+      <InfoRow icon="🌙" label="Прибл. пристигане в София" value="Понеделник, 15 юни — ~04:00 ч." />
       <Note>😴 Очаква се дълго пътуване — пригответе се с вода, закуска и нещо за четене.</Note>
     </div>
   );
@@ -328,10 +325,10 @@ const QuickFacts = () => (
     marginBottom: "24px",
   }}>
     {[
-      { icon: "📅", label: "Дати",       value: "13–15 юни 2026" },
+      { icon: "📅", label: "Дати",       value: "12–14 юни 2026" },
       { icon: "🏙️", label: "Зала",        value: "Oradea Arena" },
-      { icon: "🚌", label: "Тръгване",   value: "13.06 / 01:30" },
-      { icon: "🏠", label: "Завръщане",  value: "16.06 / ~04:00" },
+      { icon: "🚌", label: "Тръгване",   value: "12.06 / 02:00" },
+      { icon: "🏠", label: "Връщане",  value: "15.06 / ~04:00" },
     ].map((f) => (
       <div key={f.label} style={{
         background: "rgba(230,92,0,0.05)",
@@ -394,7 +391,7 @@ export default function ERC2026() {
             background: "rgba(0,0,0,0.25)",
             color: "white",
             fontFamily: "var(--font-sora)",
-            fontSize: "11px",
+            fontSize: "10px",
             fontWeight: 700,
             letterSpacing: "0.12em",
             textTransform: "uppercase",
@@ -402,7 +399,7 @@ export default function ERC2026() {
             borderRadius: "4px",
             marginBottom: "12px",
           }}>
-            Team EnjoyVD
+            Орадя, Румъния
           </div>
           <h1 style={{
             fontFamily: "var(--font-sora)",
@@ -415,11 +412,8 @@ export default function ERC2026() {
           }}>
             ERC 2026
           </h1>
-          <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "15px", color: "rgba(255,255,255,0.75)", margin: "0 0 6px" }}>
-            Орадя, Румъния
-          </p>
-          <p style={{ fontFamily: "var(--font-sora)", fontSize: "13px", color: "rgba(255,255,255,0.55)", margin: 0, fontWeight: 600, letterSpacing: "0.04em" }}>
-            13 – 15 ЮНИ 2026
+          <p style={{ fontFamily: "var(--font-sora)", fontSize: "14px", color: "rgba(255,255,255,0.55)", margin: 0, fontWeight: 600, letterSpacing: "0.04em" }}>
+            12 – 14 ЮНИ 2026
           </p>
         </div>
       </div>
@@ -449,7 +443,7 @@ export default function ERC2026() {
 
       <div style={{ padding: "32px 20px 48px", textAlign: "center" }}>
         <div style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: "var(--text-tertiary)" }}>
-          Team EnjoyVD · ERC 2026 · Орадя
+          teamenjoyvd.com
         </div>
       </div>
     </div>
