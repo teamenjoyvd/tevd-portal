@@ -18,16 +18,19 @@ const dmSans = DM_Sans({
   display: "swap",
 });
 
+const TEAL = "#3E7785";
+const TEAL_BG = "rgba(62,119,133,0.05)";
+const TEAL_BORDER = "rgba(62,119,133,0.15)";
+const TEAL_NOTE_BG = "rgba(62,119,133,0.06)";
+
 const sections = [
-  { id: "departure", icon: "🚌", label: "Тръгване",   time: "Петък, 12.06 — 02:00" },
-  { id: "travel",    icon: "🛣️",  label: "Пътуване",  time: "~12 часа" },
-  { id: "arrival",   icon: "📍",  label: "Пристигане", time: "Петък, 12.06 — ~14:00" },
-  { id: "checkin",   icon: "🏨",  label: "Хотел",      time: "Петък, 12.06" },
-  { id: "ses1",      icon: "1️⃣", label: "Сесия 1",    time: "Петък, 12.06 — вечер" },
-  { id: "ses2",      icon: "2️⃣", label: "Сесия 2",    time: "Събота, 13.06 — сутрин" },
-  { id: "ses3",      icon: "3️⃣", label: "Сесия 3",    time: "Събота, 13.06 — следобяд" },
-  { id: "ses4",      icon: "4️⃣", label: "Сесия 4",    time: "Неделя, 14.06" },
-  { id: "return",    icon: "🏠",  label: "Връщане",    time: "Неделя — Понеделник" },
+  { id: "departure", icon: "🚌", label: "Тръгване",  time: "Петък, 12.06 — 02:00" },
+  { id: "checkin",   icon: "🏨", label: "Хотел",      time: "Петък, 12.06" },
+  { id: "ses1",      icon: "1️⃣", label: "Сесия 1",   time: "Петък, 12.06 — вечер" },
+  { id: "ses2",      icon: "2️⃣", label: "Сесия 2",   time: "Събота, 13.06 — сутрин" },
+  { id: "ses3",      icon: "3️⃣", label: "Сесия 3",   time: "Събота, 13.06 — следобяд" },
+  { id: "ses4",      icon: "4️⃣", label: "Сесия 4",   time: "Неделя, 14.06" },
+  { id: "return",    icon: "🏠", label: "Връщане",   time: "Неделя — Понеделник" },
 ];
 
 const Timeline = () => {
@@ -46,9 +49,9 @@ const Timeline = () => {
               alignItems: "center",
               gap: "12px",
               padding: "14px 16px",
-              background: open === s.id ? "rgba(230,92,0,0.08)" : "transparent",
+              background: open === s.id ? TEAL_BG : "transparent",
               border: "none",
-              borderLeft: open === s.id ? "3px solid #e65c00" : "3px solid transparent",
+              borderLeft: open === s.id ? `3px solid ${TEAL}` : "3px solid transparent",
               cursor: "pointer",
               textAlign: "left",
               transition: "all 0.18s ease",
@@ -60,7 +63,7 @@ const Timeline = () => {
                 fontFamily: "var(--font-sora)",
                 fontWeight: 600,
                 fontSize: "15px",
-                color: open === s.id ? "#e65c00" : "var(--text-primary)",
+                color: open === s.id ? TEAL : "var(--text-primary)",
                 letterSpacing: "-0.01em",
               }}>
                 {s.label}
@@ -95,30 +98,6 @@ const Timeline = () => {
   );
 };
 
-const MapButton = ({ label, url }: { label: string; url: string }) => (
-  <a
-    href={url}
-    target="_blank"
-    rel="noopener noreferrer"
-    style={{
-      display: "inline-flex",
-      alignItems: "center",
-      gap: "6px",
-      padding: "8px 14px",
-      background: "#e65c00",
-      color: "white",
-      borderRadius: "8px",
-      fontFamily: "var(--font-dm-sans)",
-      fontSize: "13px",
-      fontWeight: 600,
-      textDecoration: "none",
-      letterSpacing: "0.01em",
-    }}
-  >
-    <span>📍</span> {label}
-  </a>
-);
-
 const InfoRow = ({ icon, label, value }: { icon: string; label: string; value: string }) => (
   <div style={{
     display: "flex",
@@ -148,10 +127,20 @@ const InfoRow = ({ icon, label, value }: { icon: string; label: string; value: s
   </div>
 );
 
-const BusBlock = ({ toVenue, fromVenue }: { toVenue: string | null; fromVenue: string | null }) => (
+const BusBlock = ({
+  toVenue,
+  fromVenue,
+  toLabel = "Хотел → Зала",
+  fromLabel = "Зала → Хотел",
+}: {
+  toVenue: string | null;
+  fromVenue: string | null;
+  toLabel?: string;
+  fromLabel?: string;
+}) => (
   <div style={{
-    background: "rgba(230,92,0,0.05)",
-    border: "1px solid rgba(230,92,0,0.15)",
+    background: TEAL_BG,
+    border: `1px solid ${TEAL_BORDER}`,
     borderRadius: "10px",
     padding: "12px 14px",
     marginTop: "10px",
@@ -163,7 +152,7 @@ const BusBlock = ({ toVenue, fromVenue }: { toVenue: string | null; fromVenue: s
       fontFamily: "var(--font-sora)",
       fontSize: "11px",
       fontWeight: 700,
-      color: "#e65c00",
+      color: TEAL,
       letterSpacing: "0.08em",
       textTransform: "uppercase",
       marginBottom: "2px",
@@ -173,7 +162,7 @@ const BusBlock = ({ toVenue, fromVenue }: { toVenue: string | null; fromVenue: s
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
       <div>
         <div style={{ fontFamily: "var(--font-dm-sans)", fontSize: "11px", color: "var(--text-tertiary)", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>
-          Хотел → Зала
+          {toLabel}
         </div>
         <div style={{ fontFamily: "var(--font-sora)", fontSize: "16px", fontWeight: 700, color: toVenue ? "var(--text-primary)" : "var(--text-tertiary)" }}>
           {toVenue ?? "TBD"}
@@ -181,10 +170,10 @@ const BusBlock = ({ toVenue, fromVenue }: { toVenue: string | null; fromVenue: s
       </div>
       <div style={{ textAlign: "right" }}>
         <div style={{ fontFamily: "var(--font-dm-sans)", fontSize: "11px", color: "var(--text-tertiary)", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>
-          Зала → Хотел
+          {fromLabel}
         </div>
         <div style={{ fontFamily: "var(--font-sora)", fontSize: "16px", fontWeight: 700, color: fromVenue ? "var(--text-primary)" : "var(--text-tertiary)" }}>
-          {fromVenue ?? "TBD"}
+          {fromVenue ?? "—"}
         </div>
       </div>
     </div>
@@ -193,8 +182,8 @@ const BusBlock = ({ toVenue, fromVenue }: { toVenue: string | null; fromVenue: s
 
 const Note = ({ children }: { children: ReactNode }) => (
   <div style={{
-    background: "rgba(230,92,0,0.06)",
-    borderLeft: "3px solid #e65c00",
+    background: TEAL_NOTE_BG,
+    borderLeft: `3px solid ${TEAL}`,
     borderRadius: "0 8px 8px 0",
     padding: "10px 12px",
     fontFamily: "var(--font-dm-sans)",
@@ -214,7 +203,6 @@ const TBDBlock = () => (
     alignItems: "center",
     gap: "8px",
     padding: "24px 0",
-    opacity: 0.5,
   }}>
     <span style={{ fontSize: "28px" }}>🗓️</span>
     <div style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: "var(--text-tertiary)", textAlign: "center" }}>
@@ -235,38 +223,48 @@ const SectionContent = ({ id }: { id: string }) => {
     <div style={inner}>
       <Note>⏰ Моля, бъдете на място поне 15 минути преди тръгване. Автобусът тръгва точно в 02:00 ч.</Note>
       <InfoRow icon="📅" label="Дата и час" value="Петък, 12 юни 2026 — 02:00 ч." />
-      <InfoRow icon="🚌" label="Място на тръгване" value="бул. Янко Сакъзов 9, София Център, 1527 София" />
-    </div>
-  );
-
-  if (id === "travel") return (
-    <div style={inner}>
-      <InfoRow icon="⏱️" label="Прибл. продължителност" value="~12 часа" />
-      <InfoRow icon="🌄" label="Прибл. пристигане" value="Петък, 12 юни 2026 — около 14:00 ч." />
-    </div>
-  );
-
-  if (id === "arrival") return (
-    <div style={inner}>
-      <InfoRow icon="🏙️" label="Зала" value="Oradea Arena" />
-      <InfoRow icon="📍" label="Дестинация" value="Орадя, Румъния" />
-      <InfoRow icon="🕑" label="Очаквано пристигане" value="~14:00 ч., петък 12 юни 2026" />
+      <InfoRow icon="📍" label="Събирателен пункт" value="бул. Янко Сакъзов 9, София" />
+      <InfoRow icon="⏱️" label="Прибл. пътуване" value="~12 часа" />
+      <InfoRow icon="🌄" label="Очаквано пристигане" value="Орадя, ~14:00 ч." />
+      <InfoRow icon="🏙️" label="Дестинация" value="Oradea Arena, Орадя, Румъния" />
     </div>
   );
 
   if (id === "checkin") return (
     <div style={inner}>
-      <InfoRow icon="🏨" label="Хотел" value="Предстои уточнение" />
-      <InfoRow icon="🚶" label="До Oradea Arena" value="~30 минути пеша" />
-      <InfoRow icon="🛍️" label="До центъра на града" value="~30 минути пеша" />
-      <InfoRow icon="🛒" label="Lidl / Kaufland" value="~10–15 минути пеша" />
+      <InfoRow icon="🏨" label="Хотел" value="Glory Hotel, Oradea" />
+      <InfoRow icon="🚶" label="До Oradea Arena" value="~30 мин. пеша" />
+      <InfoRow icon="🛍️" label="До центъра" value="~30 мин. пеша" />
+      <InfoRow icon="🛒" label="Lidl / Kaufland" value="~10–15 мин. пеша" />
+      <a
+        href="https://maps.google.com/?q=Glory+Hotel+Oradea"
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: "6px",
+          marginTop: "8px",
+          padding: "8px 14px",
+          background: TEAL,
+          color: "white",
+          borderRadius: "8px",
+          fontFamily: "var(--font-dm-sans)",
+          fontSize: "13px",
+          fontWeight: 600,
+          textDecoration: "none",
+          letterSpacing: "0.01em",
+          alignSelf: "flex-start",
+        }}
+      >
+        <span>📍</span> Glory Hotel в Google Maps
+      </a>
       <Note>🧳 Настаняване, лека почивка и подготовка за вечерта — предстои първата сесия.</Note>
     </div>
   );
 
   if (id === "ses1") return (
     <div style={inner}>
-      <InfoRow icon="📅" label="Дата" value="Петък, 12 юни 2026" />
       <BusBlock toVenue="18:30 ч." fromVenue="22:00 ч." />
       <Note>🔔 Автобусът тръгва точно в 18:30 ч. от хотела. Бъдете точни!</Note>
     </div>
@@ -274,7 +272,6 @@ const SectionContent = ({ id }: { id: string }) => {
 
   if (id === "ses2") return (
     <div style={inner}>
-      <InfoRow icon="📅" label="Дата" value="Събота, 13 юни 2026" />
       <BusBlock toVenue="09:15 ч." fromVenue="13:50 ч." />
       <TBDBlock />
     </div>
@@ -282,7 +279,6 @@ const SectionContent = ({ id }: { id: string }) => {
 
   if (id === "ses3") return (
     <div style={inner}>
-      <InfoRow icon="📅" label="Дата" value="Събота, 13 юни 2026" />
       <BusBlock toVenue="16:00 ч." fromVenue="18:30 ч." />
       <TBDBlock />
     </div>
@@ -290,14 +286,19 @@ const SectionContent = ({ id }: { id: string }) => {
 
   if (id === "ses4") return (
     <div style={inner}>
-      <InfoRow icon="📅" label="Дата" value="Неделя, 15 юни 2026" />
-      <BusBlock toVenue="09:15 ч." fromVenue={null} />
-      <Note>🕓 Имайте предвид, че отпътуваме от Орадя в 16:00 ч.</Note>
+      <BusBlock
+        toVenue="09:15 ч."
+        fromVenue={null}
+        toLabel="Хотел → Зала"
+        fromLabel="Зала → Събирателен пункт"
+      />
+      <Note>🕓 След сесията автобусът не се връща в хотела — отпътуваме директно от залата в 16:00 ч. Имайте багажа със себе!</Note>
     </div>
   );
 
   if (id === "return") return (
     <div style={inner}>
+      <Note>📍 Пристигаме обратно на бул. Янко Сакъзов 9 — същото място, от което тръгнахме.</Note>
       <InfoRow icon="🕓" label="Тръгване от Орадя" value="Неделя, 14 юни — 16:00 ч." />
       <InfoRow icon="🌙" label="Прибл. пристигане в София" value="Понеделник, 15 юни — ~04:00 ч." />
       <Note>😴 Очаква ни вълнуващо пътуване — пригответе се с вода, закуска и нещо за четене.</Note>
@@ -307,19 +308,20 @@ const SectionContent = ({ id }: { id: string }) => {
   return null;
 };
 
-type QuickFact = { icon: string; label: string; value: string; url?: string };
+type QuickFact = { icon: string; label: string; value: string; url?: string; fullWidth?: boolean };
 
 const QuickFacts = () => {
   const facts: QuickFact[] = [
-    { icon: "📅", label: "Дати",     value: "12–14 юни 2026" },
-    { icon: "📍", label: "Зала",      value: "Oradea Arena",        url: "https://maps.google.com/?q=Oradea+Arena,+Oradea,+Romania" },
-    { icon: "📍", label: "Тръгване", value: "бул. Янко Сакъзов 9", url: "https://maps.google.com/?q=бул.+Янко+Сакъзов+9,+1527+София" },
-    { icon: "🏠", label: "Връщане",  value: "15.06 / ~04:00" },
+    { icon: "📍", label: "Тръгване",   value: "бул. Янко Сакъзов 9",  url: "https://maps.google.com/?q=бул.+Янко+Сакъзов+9,+1527+София" },
+    { icon: "📍", label: "Пристигане",  value: "бул. Янко Сакъзов 9",  url: "https://maps.google.com/?q=бул.+Янко+Сакъзов+9,+1527+София" },
+    { icon: "🏨", label: "Хотел",      value: "Glory Hotel",             url: "https://maps.google.com/?q=Glory+Hotel+Oradea" },
+    { icon: "🏙️", label: "Зала",       value: "Oradea Arena",            url: "https://maps.google.com/?q=Oradea+Arena,+Oradea,+Romania" },
+    { icon: "🚌", label: "Събирателен пункт", value: "бул. Янко Сакъзов 9, 02:00 ч.", url: "https://maps.google.com/?q=бул.+Янко+Сакъзов+9,+1527+София", fullWidth: true },
   ];
 
-  const cardStyle: CSSProperties = {
-    background: "rgba(230,92,0,0.05)",
-    border: "1px solid rgba(230,92,0,0.15)",
+  const baseCardStyle: CSSProperties = {
+    background: TEAL_BG,
+    border: `1px solid ${TEAL_BORDER}`,
     borderRadius: "10px",
     padding: "12px",
     textDecoration: "none",
@@ -335,6 +337,10 @@ const QuickFacts = () => {
       marginBottom: "24px",
     }}>
       {facts.map((f) => {
+        const style: CSSProperties = f.fullWidth
+          ? { ...baseCardStyle, gridColumn: "1 / -1" }
+          : baseCardStyle;
+
         const inner = (
           <>
             <div style={{ fontSize: "18px", marginBottom: "4px" }}>{f.icon}</div>
@@ -350,24 +356,18 @@ const QuickFacts = () => {
               fontFamily: "var(--font-sora)",
               fontSize: "14px",
               fontWeight: 600,
-              color: f.url ? "#e65c00" : "var(--text-primary)",
+              color: f.url ? TEAL : "var(--text-primary)",
               marginTop: "2px",
             }}>{f.value}</div>
           </>
         );
 
         return f.url ? (
-          <a
-            key={f.label}
-            href={f.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={cardStyle}
-          >
+          <a key={f.label} href={f.url} target="_blank" rel="noopener noreferrer" style={style}>
             {inner}
           </a>
         ) : (
-          <div key={f.label} style={cardStyle}>
+          <div key={f.label} style={style}>
             {inner}
           </div>
         );
@@ -388,22 +388,13 @@ export default function ERC2026() {
         margin: "0 auto",
       }}
     >
+      {/* Hero */}
       <div style={{
-        background: "linear-gradient(135deg, #e65c00 0%, #c94400 40%, #7a1e00 100%)",
+        background: `linear-gradient(135deg, ${TEAL} 0%, #2a5560 100%)`,
         padding: "40px 20px 32px",
         position: "relative",
         overflow: "hidden",
       }}>
-        <div style={{
-          position: "absolute", top: "-40px", right: "-40px",
-          width: "160px", height: "160px", borderRadius: "50%",
-          background: "rgba(255,255,255,0.12)",
-        }} />
-        <div style={{
-          position: "absolute", bottom: "-20px", left: "-20px",
-          width: "80px", height: "80px", borderRadius: "50%",
-          background: "rgba(255,255,255,0.07)",
-        }} />
         <div style={{ position: "relative" }}>
           <div style={{
             display: "inline-block",
@@ -431,16 +422,17 @@ export default function ERC2026() {
           }}>
             ERC 2026
           </h1>
-          <p style={{ fontFamily: "var(--font-sora)", fontSize: "14px", color: "rgba(255,255,255,0.55)", margin: 0, fontWeight: 600, letterSpacing: "0.04em" }}>
+          <p style={{ fontFamily: "var(--font-sora)", fontSize: "14px", color: "rgba(255,255,255,0.7)", margin: "0 0 2px", fontWeight: 600, letterSpacing: "0.04em" }}>
             12 – 14 ЮНИ 2026
+          </p>
+          <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: "rgba(255,255,255,0.5)", margin: 0, letterSpacing: "0.06em" }}>
+            София ↔ Орадя
           </p>
         </div>
       </div>
 
+      {/* Quick facts */}
       <div style={{ padding: "24px 0 0" }}>
-        <div style={{ padding: "0 16px 12px", fontFamily: "var(--font-sora)", fontSize: "11px", fontWeight: 700, color: "var(--text-tertiary)", letterSpacing: "0.1em", textTransform: "uppercase" }}>
-          Накратко
-        </div>
         <QuickFacts />
       </div>
 
@@ -461,9 +453,14 @@ export default function ERC2026() {
       </div>
 
       <div style={{ padding: "32px 20px 48px", textAlign: "center" }}>
-        <div style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: "var(--text-tertiary)" }}>
+        <a
+          href="https://www.teamenjoyvd.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: "var(--text-tertiary)", textDecoration: "none" }}
+        >
           teamenjoyvd.com
-        </div>
+        </a>
       </div>
     </div>
   );
