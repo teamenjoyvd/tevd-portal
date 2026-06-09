@@ -11,6 +11,7 @@ import { createRouteMatcher } from '@clerk/nextjs/server'
  *   /library(.*)       library index + guide detail (was /guides before rename)
  *   /sign-in(.*)       auth
  *   /sign-up(.*)       auth
+ *   /erc2026           ERC 2026 trip guide (public link, no login required)
  *   /api/webhooks/(.*) Clerk + Stripe webhooks
  *   /api/calendar      public calendar API
  *   /api/calendar/(.*) public calendar API
@@ -28,6 +29,7 @@ export const PUBLIC_ROUTE_PATTERNS = [
   '/events/(.*)',
   '/sign-in(.*)',
   '/sign-up(.*)',
+  '/erc2026',
   '/api/webhooks/(.*)',
   '/api/calendar',
   '/api/calendar/(.*)',
