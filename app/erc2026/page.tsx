@@ -120,7 +120,14 @@ const InfoRow = ({ label, value }: { label: string; value: string }) => (
   </div>
 );
 
-const MapsButton = ({ url, label }: { url: string; label: string }) => (
+const MapPinIcon = () => (
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+    <circle cx="12" cy="10" r="3" />
+  </svg>
+);
+
+const MapsButton = ({ url, label, icon }: { url: string; label: string; icon?: ReactNode }) => (
   <a
     href={url}
     target="_blank"
@@ -141,12 +148,21 @@ const MapsButton = ({ url, label }: { url: string; label: string }) => (
       background: "transparent",
     }}
   >
-    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-      <circle cx="12" cy="10" r="3" />
-    </svg>
+    {icon ?? <MapPinIcon />}
     {label}
   </a>
+);
+
+const AppleIcon = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z" />
+  </svg>
+);
+
+const PlayIcon = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M3 20.5v-17c0-.83.94-1.3 1.6-.8l14 8.5c.6.36.6 1.24 0 1.6l-14 8.5c-.66.5-1.6.03-1.6-.8z" />
+  </svg>
 );
 
 const BusBlock = ({
@@ -214,17 +230,6 @@ const Note = ({ children }: { children: ReactNode }) => (
     marginTop: "8px",
   }}>
     {children}
-  </div>
-);
-
-const TBDBlock = () => (
-  <div style={{
-    padding: "20px 0 8px",
-    textAlign: "center",
-  }}>
-    <div style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: "var(--text-tertiary)" }}>
-      Програмата на сесията предстои да бъде уточнена.
-    </div>
   </div>
 );
 
@@ -448,7 +453,145 @@ const QuickFacts = () => (
   </div>
 );
 
+// ─── Tab bar ──────────────────────────────────────────────────────────────────
+
+const TabBar = ({
+  active,
+  onChange,
+}: {
+  active: "program" | "translation";
+  onChange: (tab: "program" | "translation") => void;
+}) => {
+  const tabs: { key: "program" | "translation"; label: string }[] = [
+    { key: "program", label: "Програма" },
+    { key: "translation", label: "Симултанен превод" },
+  ];
+
+  return (
+    <div style={{
+      display: "flex",
+      background: "var(--bg-global)",
+      borderBottom: "1px solid var(--border-default)",
+    }}>
+      {tabs.map((tab) => {
+        const isActive = active === tab.key;
+        return (
+          <button
+            key={tab.key}
+            onClick={() => onChange(tab.key)}
+            style={{
+              flex: 1,
+              padding: "12px 8px",
+              background: "transparent",
+              border: "none",
+              borderBottom: isActive ? `2px solid ${TEAL}` : "2px solid transparent",
+              cursor: "pointer",
+              fontFamily: "var(--font-sora)",
+              fontSize: "13px",
+              fontWeight: isActive ? 600 : 400,
+              color: isActive ? TEAL : "var(--text-tertiary)",
+              transition: "color 0.15s ease, border-color 0.15s ease",
+              marginBottom: "-1px",
+            }}
+          >
+            {tab.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+};
+
+// ─── Translation section ──────────────────────────────────────────────────────
+
+const TranslationSection = () => (
+  <div style={{ padding: "24px 16px" }}>
+    <div style={{
+      background: TEAL_BG,
+      border: `1px solid ${TEAL_BORDER}`,
+      borderRadius: "12px",
+      padding: "16px",
+      display: "flex",
+      flexDirection: "column",
+      gap: "10px",
+    }}>
+      {/* Label */}
+      <div style={{
+        fontFamily: "var(--font-dm-sans)",
+        fontSize: "10px",
+        fontWeight: 700,
+        color: TEAL,
+        letterSpacing: "0.1em",
+        textTransform: "uppercase",
+      }}>
+        Симултанен превод
+      </div>
+
+      {/* Name */}
+      <div style={{
+        fontFamily: "var(--font-sora)",
+        fontSize: "16px",
+        fontWeight: 700,
+        color: "var(--text-primary)",
+        letterSpacing: "-0.01em",
+        lineHeight: 1.2,
+      }}>
+        LiveVoice
+      </div>
+
+      {/* Description */}
+      <div style={{
+        fontFamily: "var(--font-dm-sans)",
+        fontSize: "13px",
+        color: "var(--text-secondary)",
+        lineHeight: 1.5,
+      }}>
+        На всяка сесия ще има симултанен превод на български. За да го ползвате, изтеглете приложението LiveVoice и въведете кода, предоставен на събитието.
+      </div>
+
+      {/* Divider */}
+      <div style={{ height: "1px", background: TEAL_BORDER }} />
+
+      {/* Store buttons */}
+      <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+        <MapsButton
+          url="https://apps.apple.com/us/app/livevoice/id1457677556"
+          label="App Store"
+          icon={<AppleIcon />}
+        />
+        <MapsButton
+          url="https://play.google.com/store/apps/details?id=io.livevoice.client"
+          label="Google Play"
+          icon={<PlayIcon />}
+        />
+      </div>
+
+      {/* Web link */}
+      <div>
+        <a
+          href="https://livevoice.io"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            fontFamily: "var(--font-dm-sans)",
+            fontSize: "12px",
+            color: TEAL,
+            textDecoration: "none",
+            letterSpacing: "0.01em",
+          }}
+        >
+          livevoice.io →
+        </a>
+      </div>
+    </div>
+
+    <Note>Нужни са слушалки. Кодът за достъп ще бъде предоставен на място.</Note>
+  </div>
+);
+
 export default function ERC2026() {
+  const [tab, setTab] = useState<"program" | "translation">("program");
+
   return (
     <div
       className={sora.variable}
@@ -496,28 +639,39 @@ export default function ERC2026() {
         </p>
       </div>
 
-      {/* Location cards */}
-      <div style={{ padding: "24px 0 0" }}>
-        <QuickFacts />
-      </div>
+      {/* Tab bar */}
+      <TabBar active={tab} onChange={setTab} />
 
-      <div style={{ height: "1px", background: "var(--border-default)", margin: "0 16px 24px" }} />
+      {/* Tab content */}
+      {tab === "program" && (
+        <>
+          {/* Location cards */}
+          <div style={{ padding: "24px 0 0" }}>
+            <QuickFacts />
+          </div>
 
-      {/* Schedule */}
-      <div style={{ padding: "0 16px 12px", fontFamily: "var(--font-sora)", fontSize: "11px", fontWeight: 700, color: "var(--text-tertiary)", letterSpacing: "0.1em", textTransform: "uppercase" }}>
-        Програма
-      </div>
+          <div style={{ height: "1px", background: "var(--border-default)", margin: "0 16px 24px" }} />
 
-      <div style={{
-        background: "var(--bg-card)",
-        borderRadius: "16px",
-        margin: "0 12px",
-        overflow: "hidden",
-        boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04)",
-      }}>
-        <Timeline />
-      </div>
+          {/* Schedule */}
+          <div style={{ padding: "0 16px 12px", fontFamily: "var(--font-sora)", fontSize: "11px", fontWeight: 700, color: "var(--text-tertiary)", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+            Програма
+          </div>
 
+          <div style={{
+            background: "var(--bg-card)",
+            borderRadius: "16px",
+            margin: "0 12px",
+            overflow: "hidden",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04)",
+          }}>
+            <Timeline />
+          </div>
+        </>
+      )}
+
+      {tab === "translation" && <TranslationSection />}
+
+      {/* Footer — always visible */}
       <div style={{ padding: "32px 20px 48px", textAlign: "center" }}>
         <a
           href="https://www.teamenjoyvd.com"
