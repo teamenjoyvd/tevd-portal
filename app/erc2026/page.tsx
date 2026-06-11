@@ -238,7 +238,7 @@ const SectionContent = ({ id }: { id: string }) => {
 
   if (id === "departure") return (
     <div style={inner}>
-      <Note>⏰ Бъдете на място между 01:40 и 01:55. Автобусът тръгва точно в 02:00.</Note>
+      <Note>⏰ Бъдете на място между 01:45 и 01:55. Автобусът тръгва точно в 02:00.</Note>
       <div style={{ marginTop: "12px", display: "flex", flexDirection: "column", gap: "0px" }}>
         <InfoRow label="Дата" value="Петък, 12 юни 2026" />
         <InfoRow label="Час" value="02:00" />
@@ -414,7 +414,7 @@ const QuickFacts = () => (
             whiteSpace: "normal",
             overflowWrap: "anywhere",
           }}>
-            Товарене на багаж 01:40–01:55 · Автобусът тръгва в 02:00.
+            Товарене на багаж 01:45–01:55 · Автобусът тръгва в 02:00.
           </div>
         </>
       }
@@ -428,11 +428,11 @@ const QuickFacts = () => (
       mapsUrl={GLORY_HOTEL_URL}
       meta={
         <>
-          <DistanceRow label="До Oradea Arena" value="~30 мин. пеша" />
-          <DistanceRow label="До центъра" value="~30 мин. пеша" />
-          <DistanceRow label="Lidl / Kaufland" value="~10–15 мин. пеша" />
+          <DistanceRow label="До зала" value="~30 мин. пеша" />
+          <DistanceRow label="До център" value="~30 мин. пеша" />
+          <DistanceRow label="Лидл / Кауфланд" value="~10–15 мин. пеша" />
           <div style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: "var(--text-tertiary)", paddingTop: "6px" }}>
-            Закуската е включена · От колко до колко предстои уточнение.
+            Закуската е включена · 07:30 - 10:00.
           </div>
         </>
       }
