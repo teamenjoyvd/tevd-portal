@@ -410,7 +410,21 @@ const TranslationCard = () => (
         marginTop: "3px",
         lineHeight: 1.4,
       }}>
-        На всяка сесия ще има симултанен превод на български. Код ще бъде обявен на място.
+        На всяка сесия ще има симултанен превод на български през приложението LiveVoice.
+      </div>
+      <div style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "8px",
+        background: "rgba(62,119,133,0.1)",
+        borderRadius: "6px",
+        padding: "6px 10px",
+        marginTop: "8px",
+        fontFamily: "var(--font-dm-sans)",
+        fontSize: "12px",
+      }}>
+        <span style={{ color: "var(--text-tertiary)" }}>Код за достъп:</span>
+        <strong style={{ fontFamily: "var(--font-sora)", color: TEAL, fontSize: "13px", fontWeight: 700, letterSpacing: "0.05em", userSelect: "all" }}>167818</strong>
       </div>
     </div>
 
@@ -548,6 +562,33 @@ const QuickFacts = () => (
       name="Oradea Arena"
       address="Str. Cantemir 2, 410100 Oradea"
       mapsUrl={ORADEA_ARENA_URL}
+      meta={
+        <div style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "4px",
+        }}>
+          <div style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "baseline",
+            padding: "4px 0",
+            borderBottom: `1px solid ${TEAL_BORDER}`,
+          }}>
+            <div style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: "var(--text-tertiary)" }}>WiFi</div>
+            <div style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: "var(--text-secondary)", fontWeight: 600 }}>ERC 2026</div>
+          </div>
+          <div style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "baseline",
+            padding: "4px 0",
+          }}>
+            <div style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: "var(--text-tertiary)" }}>Парола</div>
+            <div style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: "var(--text-secondary)", fontWeight: 600, userSelect: "all" }}>Oradea2026!</div>
+          </div>
+        </div>
+      }
     />
 
     <TranslationCard />
