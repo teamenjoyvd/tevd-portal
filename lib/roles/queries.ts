@@ -7,9 +7,11 @@ export async function getQuarterEvents(
   year: number,
   quarter: number
 ): Promise<RoleEvent[]> {
-  const startMonth = (quarter - 1) * 3
-  const startOfQuarter = new Date(Date.UTC(year, startMonth, 1, 0, 0, 0, 0)).toISOString()
-  const startOfNextQuarter = new Date(Date.UTC(year, startMonth + 3, 1, 0, 0, 0, 0)).toISOString()
+  const validatedQuarter = Math.max(1, Math.min(4, quarter))
+  const validatedYear = year < 1970 || year > 2100 ? new Date().getUTCFullYear() : year
+  const startMonth = (validatedQuarter - 1) * 3
+  const startOfQuarter = new Date(Date.UTC(validatedYear, startMonth, 1, 0, 0, 0, 0)).toISOString()
+  const startOfNextQuarter = new Date(Date.UTC(validatedYear, startMonth + 3, 1, 0, 0, 0, 0)).toISOString()
 
   const { data, error } = await supabase
     .from('v_roles_history')
@@ -39,7 +41,8 @@ export async function getHistoryEvents(
   limit: number,
   search: string
 ): Promise<{ events: RoleEvent[]; count: number }> {
-  const from = (page - 1) * limit
+  const validatedPage = Math.max(1, page)
+  const from = (validatedPage - 1) * limit
   const to = from + limit - 1
 
   let query = supabase

@@ -79,5 +79,10 @@ export const events = {
   'event.roles.leaderboard.empty': { en: 'No participation records found.', bg: 'Няма намерени записи за участие.' },
   'event.roles.leaderboard.col.name': { en: 'Name', bg: 'Име' },
   'event.roles.leaderboard.col.total': { en: 'Total', bg: 'Общо' },
+  'event.roles.loading': { en: 'Loading...', bg: 'Зареждане...' },
+  'event.roles.updating': { en: 'Updating view...', bg: 'Обновяване...' },
+  'event.roles.history.prev': { en: 'Prev', bg: 'Предишна' },
+  'event.roles.history.next': { en: 'Next', bg: 'Следваща' },
 } as const
+
 

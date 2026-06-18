@@ -268,7 +268,7 @@ export default function RolesClient({
           </h1>
           {isPending && (
             <p className="text-xs animate-pulse mt-0.5" style={{ color: 'var(--primary-default)' }}>
-              Updating view...
+              {t('event.roles.updating' as TranslationKey)}
             </p>
           )}
         </div>
@@ -349,7 +349,6 @@ export default function RolesClient({
             page={historyPage}
             limit={historyLimit}
             search={historySearch}
-            currentTime={currentTime}
           />
         </TabsContent>
 

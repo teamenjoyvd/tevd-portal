@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { formatDate, formatTime } from '@/lib/format'
 import type { RoleEvent } from '@/lib/roles/types'
+import type { TranslationKey } from '@/lib/i18n'
 
 type HistoryPanelProps = {
   events: RoleEvent[]
@@ -12,7 +13,6 @@ type HistoryPanelProps = {
   page: number
   limit: number
   search: string
-  currentTime: string
 }
 
 function OccupantCell({ name }: { name: string | null }) {
@@ -32,7 +32,6 @@ export default function HistoryPanel({
   page,
   limit,
   search,
-  currentTime,
 }: HistoryPanelProps) {
   const { t } = useLanguage()
   const router = useRouter()
@@ -105,7 +104,7 @@ export default function HistoryPanel({
       {/* Loading overlay indicator */}
       {isPending && (
         <div className="text-xs animate-pulse" style={{ color: 'var(--primary-default)' }}>
-          Loading...
+          {t('event.roles.loading' as TranslationKey)}
         </div>
       )}
 
@@ -246,7 +245,7 @@ export default function HistoryPanel({
                     color: 'var(--text-primary)',
                   }}
                 >
-                  Prev
+                  {t('event.roles.history.prev' as TranslationKey)}
                 </button>
                 <button
                   onClick={() => handlePageChange(page + 1)}
@@ -258,7 +257,7 @@ export default function HistoryPanel({
                     color: 'var(--text-primary)',
                   }}
                 >
-                  Next
+                  {t('event.roles.history.next' as TranslationKey)}
                 </button>
               </div>
             </div>
