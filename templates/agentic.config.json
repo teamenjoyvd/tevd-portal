@@ -1,0 +1,26 @@
+{
+  "$schemaVersion": 1,
+  "project": {
+    "name": "__PROJECT_NAME__",
+    "repo": "__GITHUB_REPO__",
+    "productionUrl": "__PRODUCTION_URL__"
+  },
+  "techStack": {
+    "framework": "nextjs-app-router",
+    "auth": "clerk",
+    "database": "supabase",
+    "styling": "tailwind-shadcn",
+    "hosting": "vercel"
+  },
+  "conventions": {
+    "idFormat": "[YYMM]-DEV-[GH#]",
+    "branchPrefix": "dev/",
+    "mobileBreakpoint": 390
+  },
+  "agentic": {
+    "version": "2.0.0",
+    "sha": "f3acc1b",
+    "repo": "git@github.com:teamenjoyvd/agentic.git",
+    "hashes": {}
+  }
+}

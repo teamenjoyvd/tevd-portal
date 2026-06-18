@@ -35,52 +35,26 @@ export async function getQuarterEvents(
   }))
 }
 
-export async function getHistoryEvents(
-  supabase: SupabaseClient<Database>,
-  page: number,
-  limit: number,
-  search: string
-): Promise<{ events: RoleEvent[]; count: number }> {
-  const validatedPage = Math.max(1, page)
-  const from = (validatedPage - 1) * limit
-  const to = from + limit - 1
-
-  let query = supabase
-    .from('v_roles_history')
-    .select('*', { count: 'exact' })
-    .order('start_time', { ascending: false })
-
-  if (search.trim()) {
-    const s = `%${search.trim()}%`
-    query = query.or(`title.ilike.${s},host_name.ilike.${s},speaker_name.ilike.${s},products_name.ilike.${s}`)
-  }
-
-  const { data, count, error } = await query.range(from, to)
-
-  if (error || !data) return { events: [], count: 0 }
-
-  const events = data.map(row => ({
-    id: row.event_id ?? '',
-    title: row.title ?? '',
-    start_time: row.start_time ?? '',
-    end_time: row.end_time ?? '',
-    slots: {
-      HOST: row.host_name || null,
-      SPEAKER: row.speaker_name || null,
-      PRODUCTS: row.products_name || null,
-    },
-  }))
-
-  return { events, count: count ?? 0 }
-}
-
-export async function getLeaderboard(
+export async function getParticipationHistory(
   supabase: SupabaseClient<Database>
 ) {
   const { data, error } = await supabase
-    .from('member_roles_leaderboard')
+    .from('member_roles_history')
     .select('*')
     .order('total_count', { ascending: false })
 
+  if (error) {
+    console.error('Error fetching participation history:', error)
+  }
   return data ?? []
+}
+
+export async function getEventYears(
+  supabase: SupabaseClient<Database>
+): Promise<number[]> {
+  const { data, error } = await supabase.rpc('get_event_years')
+  if (error) {
+    console.error('Error fetching event years:', error)
+  }
+  return data?.map(row => row.year) ?? []
 }
