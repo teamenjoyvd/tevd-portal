@@ -116,7 +116,7 @@ export default function UserDropdown() {
 
         {/* Actions */}
         <div>
-          {isAdmin ? (
+          {isAdmin && (
             <DropdownMenuItem asChild>
               <Link
                 href="/admin"
@@ -136,25 +136,25 @@ export default function UserDropdown() {
                 Admin
               </Link>
             </DropdownMenuItem>
-          ) : (
-            <DropdownMenuItem asChild>
-              <Link
-                href="/profile"
-                onClick={() => setOpen(false)}
-                className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors cursor-pointer"
-                style={{ color: 'var(--text-primary)' }}
-                onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--bg-global)')}
-                onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                  stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-                  <circle cx="12" cy="7" r="4" />
-                </svg>
-                {lang === 'en' ? 'Profile' : 'Профил'}
-              </Link>
-            </DropdownMenuItem>
           )}
+
+          <DropdownMenuItem asChild>
+            <Link
+              href="/profile"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors cursor-pointer"
+              style={{ color: 'var(--text-primary)' }}
+              onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--bg-global)')}
+              onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
+              </svg>
+              {lang === 'en' ? 'Profile' : 'Профил'}
+            </Link>
+          </DropdownMenuItem>
 
           {/* Language — borderTop is now unconditional */}
           <DropdownMenuItem

@@ -36,6 +36,7 @@ function OccupantCell({ name }: { name: string | null }) {
 // ── Desktop table ────────────────────────────────────────────────────────────
 
 function RolesTable({ events, headers, currentTime }: { events: RoleEvent[]; headers: string[]; currentTime: string }) {
+  const currentDate = new Date(currentTime)
   return (
     <div
       className="rounded-2xl overflow-hidden"
@@ -56,7 +57,7 @@ function RolesTable({ events, headers, currentTime }: { events: RoleEvent[]; hea
 
       {/* Data rows */}
       {events.map((event, i) => {
-        const isPast = new Date(event.start_time) < new Date(currentTime)
+        const isPast = new Date(event.start_time) < currentDate
         return (
           <div
             key={event.id}
@@ -93,10 +94,11 @@ function RolesTable({ events, headers, currentTime }: { events: RoleEvent[]; hea
 // ── Mobile cards ─────────────────────────────────────────────────────────────
 
 function RolesCards({ events, slotLabels, currentTime }: { events: RoleEvent[]; slotLabels: Record<SlotLabel, string>; currentTime: string }) {
+  const currentDate = new Date(currentTime)
   return (
     <div className="flex flex-col gap-3">
       {events.map(event => {
-        const isPast = new Date(event.start_time) < new Date(currentTime)
+        const isPast = new Date(event.start_time) < currentDate
         return (
           <div
             key={event.id}
