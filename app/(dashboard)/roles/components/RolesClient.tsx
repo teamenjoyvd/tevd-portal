@@ -211,7 +211,7 @@ export default function RolesClient({
   }
 
   // Generate Year options by merging selectedYear and eventYears
-  const yearOptions = Array.from(new Set([selectedYear, ...eventYears])).sort((a, b) => b - a)
+  const yearOptions = Array.from(new Set([selectedYear, ...(eventYears || [])])).sort((a, b) => b - a)
 
   function handleHistoryToggle() {
     const nextTab = tab === 'history' ? 'quarter' : 'history'

@@ -40,8 +40,8 @@ export default async function RolesPage({
   const currentYear = now.getUTCFullYear()
   const currentQuarter = Math.floor(now.getUTCMonth() / 3) + 1
 
-  const year = parseInt(params.year || '') || currentYear
-  const quarter = parseInt(params.quarter || params.q || '') || currentQuarter
+  const year = parseInt((params.year || '').replace(/[^0-9]/g, '')) || currentYear
+  const quarter = parseInt((params.quarter || params.q || '').replace(/[^0-9]/g, '')) || currentQuarter
 
   // Conditional RSC Fetching based on the active tab with safe defaults
   const quarterEvents = tab !== 'history'
