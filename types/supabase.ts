@@ -53,6 +53,13 @@ export type Database = {
             foreignKeyName: "abo_verification_requests_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: true
+            referencedRelation: "member_roles_leaderboard"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "abo_verification_requests_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -216,6 +223,13 @@ export type Database = {
             foreignKeyName: "calendar_events_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "member_roles_leaderboard"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "calendar_events_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -297,6 +311,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "event_role_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_roles_history"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "event_role_requests_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "member_roles_leaderboard"
+            referencedColumns: ["profile_id"]
+          },
+          {
             foreignKeyName: "event_role_requests_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
@@ -331,6 +359,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "calendar_events"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_role_slots_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_roles_history"
+            referencedColumns: ["event_id"]
           },
         ]
       }
@@ -369,6 +404,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "calendar_events"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_share_links_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_roles_history"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "event_share_links_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "member_roles_leaderboard"
+            referencedColumns: ["profile_id"]
           },
           {
             foreignKeyName: "event_share_links_profile_id_fkey"
@@ -423,6 +472,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "calendar_events"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_registrations_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_roles_history"
+            referencedColumns: ["event_id"]
           },
           {
             foreignKeyName: "guest_registrations_share_link_id_fkey"
@@ -629,6 +685,13 @@ export type Database = {
             foreignKeyName: "los_imports_imported_by_fkey"
             columns: ["imported_by"]
             isOneToOne: false
+            referencedRelation: "member_roles_leaderboard"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "los_imports_imported_by_fkey"
+            columns: ["imported_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -751,6 +814,13 @@ export type Database = {
             foreignKeyName: "member_event_log_subject_id_fkey"
             columns: ["subject_id"]
             isOneToOne: false
+            referencedRelation: "member_roles_leaderboard"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "member_event_log_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -799,8 +869,22 @@ export type Database = {
             foreignKeyName: "member_vital_signs_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
+            referencedRelation: "member_roles_leaderboard"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "member_vital_signs_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_vital_signs_recorded_by_fkey"
+            columns: ["recorded_by"]
+            isOneToOne: false
+            referencedRelation: "member_roles_leaderboard"
+            referencedColumns: ["profile_id"]
           },
           {
             foreignKeyName: "member_vital_signs_recorded_by_fkey"
@@ -846,6 +930,13 @@ export type Database = {
           type?: Database["public"]["Enums"]["notification_type"]
         }
         Relationships: [
+          {
+            foreignKeyName: "notifications_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "member_roles_leaderboard"
+            referencedColumns: ["profile_id"]
+          },
           {
             foreignKeyName: "notifications_profile_id_fkey"
             columns: ["profile_id"]
@@ -896,6 +987,13 @@ export type Database = {
           title?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "payable_items_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "member_roles_leaderboard"
+            referencedColumns: ["profile_id"]
+          },
           {
             foreignKeyName: "payable_items_created_by_fkey"
             columns: ["created_by"]
@@ -978,6 +1076,13 @@ export type Database = {
             foreignKeyName: "payments_logged_by_admin_fkey"
             columns: ["logged_by_admin"]
             isOneToOne: false
+            referencedRelation: "member_roles_leaderboard"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "payments_logged_by_admin_fkey"
+            columns: ["logged_by_admin"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -987,6 +1092,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "payable_items"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "member_roles_leaderboard"
+            referencedColumns: ["profile_id"]
           },
           {
             foreignKeyName: "payments_profile_id_fkey"
@@ -1073,6 +1185,13 @@ export type Database = {
             foreignKeyName: "profiles_primary_profile_id_fkey"
             columns: ["primary_profile_id"]
             isOneToOne: false
+            referencedRelation: "member_roles_leaderboard"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "profiles_primary_profile_id_fkey"
+            columns: ["primary_profile_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -1126,6 +1245,13 @@ export type Database = {
             foreignKeyName: "profiles_audit_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
+            referencedRelation: "member_roles_leaderboard"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "profiles_audit_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -1160,6 +1286,13 @@ export type Database = {
           profile_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "role_change_audit_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "member_roles_leaderboard"
+            referencedColumns: ["profile_id"]
+          },
           {
             foreignKeyName: "role_change_audit_profile_id_fkey"
             columns: ["profile_id"]
@@ -1201,6 +1334,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "calendar_events"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheduled_reminders_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_roles_history"
+            referencedColumns: ["event_id"]
           },
           {
             foreignKeyName: "scheduled_reminders_registration_id_fkey"
@@ -1298,8 +1438,22 @@ export type Database = {
             foreignKeyName: "spouse_link_requests_claimed_primary_id_fkey"
             columns: ["claimed_primary_id"]
             isOneToOne: false
+            referencedRelation: "member_roles_leaderboard"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "spouse_link_requests_claimed_primary_id_fkey"
+            columns: ["claimed_primary_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "spouse_link_requests_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: true
+            referencedRelation: "member_roles_leaderboard"
+            referencedColumns: ["profile_id"]
           },
           {
             foreignKeyName: "spouse_link_requests_requester_id_fkey"
@@ -1347,6 +1501,13 @@ export type Database = {
             foreignKeyName: "tree_nodes_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
+            referencedRelation: "member_roles_leaderboard"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "tree_nodes_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -1384,6 +1545,13 @@ export type Database = {
           trip_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "trip_attachments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "member_roles_leaderboard"
+            referencedColumns: ["profile_id"]
+          },
           {
             foreignKeyName: "trip_attachments_created_by_fkey"
             columns: ["created_by"]
@@ -1426,6 +1594,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "trip_messages_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "member_roles_leaderboard"
+            referencedColumns: ["profile_id"]
+          },
           {
             foreignKeyName: "trip_messages_created_by_fkey"
             columns: ["created_by"]
@@ -1478,8 +1653,22 @@ export type Database = {
             foreignKeyName: "trip_registrations_cancelled_by_fkey"
             columns: ["cancelled_by"]
             isOneToOne: false
+            referencedRelation: "member_roles_leaderboard"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "trip_registrations_cancelled_by_fkey"
+            columns: ["cancelled_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_registrations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "member_roles_leaderboard"
+            referencedColumns: ["profile_id"]
           },
           {
             foreignKeyName: "trip_registrations_profile_id_fkey"
@@ -1639,6 +1828,18 @@ export type Database = {
       }
     }
     Views: {
+      member_roles_leaderboard: {
+        Row: {
+          first_name: string | null
+          host_count: number | null
+          last_name: string | null
+          products_count: number | null
+          profile_id: string | null
+          speaker_count: number | null
+          total_count: number | null
+        }
+        Relationships: []
+      }
       v_member_history: {
         Row: {
           changed_at: string | null
@@ -1648,6 +1849,36 @@ export type Database = {
           new_value: string | null
           old_value: string | null
           profile_id: string | null
+        }
+        Relationships: []
+      }
+      v_roles_history: {
+        Row: {
+          end_time: string | null
+          event_id: string | null
+          host_name: string | null
+          products_name: string | null
+          speaker_name: string | null
+          start_time: string | null
+          title: string | null
+        }
+        Insert: {
+          end_time?: string | null
+          event_id?: string | null
+          host_name?: never
+          products_name?: never
+          speaker_name?: never
+          start_time?: string | null
+          title?: string | null
+        }
+        Update: {
+          end_time?: string | null
+          event_id?: string | null
+          host_name?: never
+          products_name?: never
+          speaker_name?: never
+          start_time?: string | null
+          title?: string | null
         }
         Relationships: []
       }
