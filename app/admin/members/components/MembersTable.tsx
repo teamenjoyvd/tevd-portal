@@ -30,8 +30,8 @@ import { buildMembersCSV } from '@/lib/csv-export'
 
 const numberFormatter = new Intl.NumberFormat('en-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
-function formatNum(n: number) {
-  return numberFormatter.format(n)
+function formatNum(n: number | null) {
+  return numberFormatter.format(n ?? 0)
 }
 
 /**
@@ -91,7 +91,9 @@ export function MembersTable({
     const a = document.createElement('a')
     a.href = url
     a.download = `los-export-${new Date().toISOString().slice(0, 10)}.csv`
+    document.body.appendChild(a)
     a.click()
+    document.body.removeChild(a)
     URL.revokeObjectURL(url)
   }, [members])
 
@@ -172,8 +174,8 @@ export function MembersTable({
       enableSorting: true,
       cell: ({ getValue }) => (
         <span className="text-xs tabular-nums font-semibold"
-          style={{ color: Number(getValue()) > 0 ? 'var(--brand-teal)' : 'var(--text-secondary)' }}>
-          {getValue()}%
+          style={{ color: Number(getValue() ?? 0) > 0 ? 'var(--brand-teal)' : 'var(--text-secondary)' }}>
+          {getValue() ?? 0}%
         </span>
       ),
     }),

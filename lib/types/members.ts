@@ -10,20 +10,20 @@ export type LOSMember = {
   email: string | null
   address: string | null
   renewal_date: string | null
-  gpv: number
-  ppv: number
-  bonus_percent: number
-  gbv: number
-  customer_pv: number
-  ruby_pv: number
-  customers: number
-  points_to_next_level: number
-  qualified_legs: number
-  group_size: number
-  personal_order_count: number
-  group_orders_count: number
-  sponsoring: number
-  annual_ppv: number
+  gpv: number | null
+  ppv: number | null
+  bonus_percent: number | null
+  gbv: number | null
+  customer_pv: number | null
+  ruby_pv: number | null
+  customers: number | null
+  points_to_next_level: number | null
+  qualified_legs: number | null
+  group_size: number | null
+  personal_order_count: number | null
+  group_orders_count: number | null
+  sponsoring: number | null
+  annual_ppv: number | null
   last_synced_at: string | null
 
   // Joins
