@@ -65,8 +65,8 @@ dev/[YYMM]-DEV-[GH#]
 **Question:** Are you able to list the complete current authentication?
 
 **Answer:** 
-* **The Entry Point Proxy Middleware ([proxy.ts](file:///c:/Users/fefence/Downloads/react/teamenjoyvd/tevd-portal/proxy.ts)):** Consolidates Clerk's middleware and routing logic. Unauthenticated API calls return `401`, and unauthenticated page hits redirect to `/sign-in`.
-* **Public vs. Private Routes ([lib/public-routes.ts](file:///c:/Users/fefence/Downloads/react/teamenjoyvd/tevd-portal/lib/public-routes.ts)):** Controls the list of routes that bypass auth.
+* **The Entry Point Proxy Middleware ([proxy.ts](../../proxy.ts)):** Consolidates Clerk's middleware and routing logic. Unauthenticated API calls return `401`, and unauthenticated page hits redirect to `/sign-in`.
+* **Public vs. Private Routes ([lib/public-routes.ts](../../lib/public-routes.ts)):** Controls the list of routes that bypass auth.
 * **Route/Action-Level Verification:** Every protected component, handler, or Action calls `await auth()` asynchronously.
 * **Database RLS Mapping:** Maps Clerk IDs to profiles and evaluates rules via custom RLS helper functions like `is_admin()`.
 

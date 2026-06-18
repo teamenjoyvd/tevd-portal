@@ -23,8 +23,8 @@ export default async function RolesPage() {
   }
 
   const now = new Date()
-  const year = now.getFullYear()
-  const month = now.getMonth()
+  const year = now.getUTCFullYear()
+  const month = now.getUTCMonth()
   const quarter = Math.floor(month / 3)
   const startMonth = quarter * 3
   const startOfQuarter = new Date(Date.UTC(year, startMonth, 1, 0, 0, 0, 0))
@@ -43,7 +43,7 @@ export default async function RolesPage() {
   )
 
   if (eventsWithSlots.length === 0) {
-    return <RolesClient events={[]} />
+    return <RolesClient events={[]} currentTime={now.toISOString()} />
   }
 
   const eventIds = eventsWithSlots.map(e => e.id)
@@ -75,5 +75,5 @@ export default async function RolesPage() {
     },
   }))
 
-  return <RolesClient events={roleEvents} />
+  return <RolesClient events={roleEvents} currentTime={now.toISOString()} />
 }

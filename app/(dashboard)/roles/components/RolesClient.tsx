@@ -6,6 +6,7 @@ import type { RoleEvent } from '@/app/api/roles/route'
 
 type Props = {
   events: RoleEvent[]
+  currentTime: string
 }
 
 type SlotLabel = 'HOST' | 'SPEAKER' | 'PRODUCTS'
@@ -34,7 +35,7 @@ function OccupantCell({ name }: { name: string | null }) {
 
 // ── Desktop table ────────────────────────────────────────────────────────────
 
-function RolesTable({ events, headers }: { events: RoleEvent[]; headers: string[] }) {
+function RolesTable({ events, headers, currentTime }: { events: RoleEvent[]; headers: string[]; currentTime: string }) {
   return (
     <div
       className="rounded-2xl overflow-hidden"
@@ -55,7 +56,7 @@ function RolesTable({ events, headers }: { events: RoleEvent[]; headers: string[
 
       {/* Data rows */}
       {events.map((event, i) => {
-        const isPast = new Date(event.start_time) < new Date()
+        const isPast = new Date(event.start_time) < new Date(currentTime)
         return (
           <div
             key={event.id}
@@ -91,11 +92,11 @@ function RolesTable({ events, headers }: { events: RoleEvent[]; headers: string[
 
 // ── Mobile cards ─────────────────────────────────────────────────────────────
 
-function RolesCards({ events, slotLabels }: { events: RoleEvent[]; slotLabels: Record<SlotLabel, string> }) {
+function RolesCards({ events, slotLabels, currentTime }: { events: RoleEvent[]; slotLabels: Record<SlotLabel, string>; currentTime: string }) {
   return (
     <div className="flex flex-col gap-3">
       {events.map(event => {
-        const isPast = new Date(event.start_time) < new Date()
+        const isPast = new Date(event.start_time) < new Date(currentTime)
         return (
           <div
             key={event.id}
@@ -143,7 +144,7 @@ function RolesCards({ events, slotLabels }: { events: RoleEvent[]; slotLabels: R
 
 // ── Main component ───────────────────────────────────────────────────────────
 
-export default function RolesClient({ events }: Props) {
+export default function RolesClient({ events, currentTime }: Props) {
   const { t } = useLanguage()
 
   const headers = [
@@ -181,7 +182,7 @@ export default function RolesClient({ events }: Props) {
             {t('event.rolesEmpty')}
           </p>
         ) : (
-          <RolesTable events={events} headers={headers} />
+          <RolesTable events={events} headers={headers} currentTime={currentTime} />
         )}
       </div>
 
@@ -202,7 +203,7 @@ export default function RolesClient({ events }: Props) {
             {t('event.rolesEmpty')}
           </p>
         ) : (
-          <RolesCards events={events} slotLabels={slotLabels} />
+          <RolesCards events={events} slotLabels={slotLabels} currentTime={currentTime} />
         )}
       </div>
 
