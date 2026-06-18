@@ -3,19 +3,19 @@
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { Database } from '@/types/supabase'
 
-type LeaderboardRow = Database['public']['Views']['member_roles_leaderboard']['Row']
+type HistoryRow = Database['public']['Views']['member_roles_history']['Row']
 
-type LeaderboardPanelProps = {
-  data: LeaderboardRow[]
+type HistoryProps = {
+  data: HistoryRow[]
 }
 
-export default function LeaderboardPanel({ data }: LeaderboardPanelProps) {
+export default function History({ data }: HistoryProps) {
   const { t } = useLanguage()
 
   if (data.length === 0) {
     return (
       <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-        {t('event.roles.leaderboard.empty')}
+        {t('event.roles.history.empty')}
       </p>
     )
   }
@@ -37,11 +37,11 @@ export default function LeaderboardPanel({ data }: LeaderboardPanelProps) {
             backgroundColor: 'rgba(0,0,0,0.02)',
           }}
         >
-          <span>{t('event.roles.leaderboard.col.name')}</span>
+          <span>{t('event.roles.history.col.name')}</span>
           <span>{t('event.roles.label.host')}</span>
           <span>{t('event.roles.label.speaker')}</span>
           <span>{t('event.roles.label.products')}</span>
-          <span className="text-right pr-4">{t('event.roles.leaderboard.col.total')}</span>
+          <span className="text-right pr-4">{t('event.roles.history.col.total')}</span>
         </div>
 
         {/* Data rows */}

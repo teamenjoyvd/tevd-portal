@@ -66,23 +66,11 @@ export const events = {
   'event.register.emailDesc':      { en: "We'll email you a personal link to join",                  bg: 'Ще ви изпратим личен линк за присъединяване към'                },
 
   // roles page quarters and view controls
-  'event.roles.quarter.Q1': { en: 'Roles - Q1 - Jan-Mar', bg: 'Роли - Q1 - Янв-Март' },
-  'event.roles.quarter.Q2': { en: 'Roles - Q2 - Apr-Jun', bg: 'Роли - Q2 - Апр-Юни' },
-  'event.roles.quarter.Q3': { en: 'Roles - Q3 - Jul-Sep', bg: 'Роли - Q3 - Юли-Септ' },
-  'event.roles.quarter.Q4': { en: 'Roles - Q4 - Oct-Dec', bg: 'Роли - Q4 - Окт-Дек' },
-  'event.roles.view.quarter': { en: 'Quarterly', bg: 'Тримесечие' },
   'event.roles.view.history': { en: 'History', bg: 'История' },
-  'event.roles.view.leaderboard': { en: 'Leaderboard', bg: 'Класация' },
-  'event.roles.search.placeholder': { en: 'Search events or members...', bg: 'Търсене на събития или членове...' },
-  'event.roles.search.button': { en: 'Search', bg: 'Търси' },
-  'event.roles.history.empty': { en: 'No matching history records found.', bg: 'Няма намерени записи в историята.' },
-  'event.roles.leaderboard.empty': { en: 'No participation records found.', bg: 'Няма намерени записи за участие.' },
-  'event.roles.leaderboard.col.name': { en: 'Name', bg: 'Име' },
-  'event.roles.leaderboard.col.total': { en: 'Total', bg: 'Общо' },
-  'event.roles.loading': { en: 'Loading...', bg: 'Зареждане...' },
+  'event.roles.history.empty': { en: 'No participation records found.', bg: 'Няма намерени записи за участие.' },
+  'event.roles.history.col.name': { en: 'Name', bg: 'Име' },
+  'event.roles.history.col.total': { en: 'Total', bg: 'Общо' },
   'event.roles.updating': { en: 'Updating view...', bg: 'Обновяване...' },
-  'event.roles.history.prev': { en: 'Prev', bg: 'Предишна' },
-  'event.roles.history.next': { en: 'Next', bg: 'Следваща' },
 } as const
 
 

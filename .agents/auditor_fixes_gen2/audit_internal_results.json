@@ -1,0 +1,196 @@
+{
+  "pathContainment": {
+    "passed": true,
+    "details": [
+      {
+        "path": "scripts/bootstrap.js",
+        "expected": true,
+        "actual": true,
+        "passed": true
+      },
+      {
+        "path": "docs/ai/PLAN.md",
+        "expected": true,
+        "actual": true,
+        "passed": true
+      },
+      {
+        "path": "../tevd-portal",
+        "expected": false,
+        "actual": false,
+        "passed": true
+      },
+      {
+        "path": "scripts/../../outside.js",
+        "expected": false,
+        "actual": false,
+        "passed": true
+      },
+      {
+        "path": "C:\\Windows\\System32\\cmd.exe",
+        "expected": false,
+        "actual": false,
+        "passed": true
+      },
+      {
+        "path": "c:\\Users\\fefence\\Downloads\\react\\teamenjoyvd\\tevd-portal",
+        "expected": true,
+        "actual": true,
+        "passed": true
+      },
+      {
+        "path": "C:\\Users\\fefence\\Downloads\\react\\teamenjoyvd\\tevd-portal\\scripts\\bootstrap.js",
+        "expected": true,
+        "actual": true,
+        "passed": true
+      }
+    ]
+  },
+  "ttyGuards": {
+    "passed": true,
+    "details": [
+      {
+        "bootstrapHasTTYGuard": true,
+        "upgradeHasTTYGuard": true
+      }
+    ]
+  },
+  "hashCheck": {
+    "passed": true,
+    "details": [
+      {
+        "file": ".cursor/rules/auth.mdc",
+        "oldHash": "none",
+        "newHash": "1031ad298799a7245ba210047c0d1c90",
+        "match": false
+      },
+      {
+        "file": ".cursor/rules/database.mdc",
+        "oldHash": "1edc0a32f06b77bb086f6990349a49ee",
+        "newHash": "0d62360b90c6a7ddf943e48c36806b11",
+        "match": false
+      },
+      {
+        "file": ".cursor/rules/frontend.mdc",
+        "oldHash": "none",
+        "newHash": "59942ea996f12621a84e7859e2fe043a",
+        "match": false
+      },
+      {
+        "file": "CLAUDE.md",
+        "oldHash": "none",
+        "newHash": "f09fa7f73daaa3cb413be0f74a57241c",
+        "match": false
+      },
+      {
+        "file": "docs/ai/archive/CONTEXT.md",
+        "oldHash": "none",
+        "newHash": "f8b5926b99db23f23ab1447d3a3caff8",
+        "match": false
+      },
+      {
+        "file": "docs/ai/archive/LOOKUP.md",
+        "oldHash": "none",
+        "newHash": "3ee7bef14aee179dfa9efbe28ab96243",
+        "match": false
+      },
+      {
+        "file": "docs/ai/archive/REFACTOR.md",
+        "oldHash": "none",
+        "newHash": "26c3f4eef6922964170e14e5ec13b27d",
+        "match": false
+      },
+      {
+        "file": "docs/ai/BUILD.md",
+        "oldHash": "none",
+        "newHash": "0bef513396d4482ac29b17cf9e75acbb",
+        "match": false
+      },
+      {
+        "file": "docs/ai/CLAIM.md",
+        "oldHash": "none",
+        "newHash": "38d1903f38fa56e6183905502366ef4c",
+        "match": false
+      },
+      {
+        "file": "docs/ai/CONTEXT.md",
+        "oldHash": "none",
+        "newHash": "9488959a612e1793d6e6ac6b6afc6a03",
+        "match": false
+      },
+      {
+        "file": "docs/ai/GCR.md",
+        "oldHash": "none",
+        "newHash": "1bcb7ba042285a8e3e07233d2b801f7a",
+        "match": false
+      },
+      {
+        "file": "docs/ai/GEMINI.md",
+        "oldHash": "none",
+        "newHash": "dc5023c24e3b88757a8a96cec4dccdb3",
+        "match": false
+      },
+      {
+        "file": "docs/ai/GOTCHAS.md",
+        "oldHash": "none",
+        "newHash": "4171fe5c7029db0f177e05cedeb07d1b",
+        "match": false
+      },
+      {
+        "file": "docs/ai/LOOKUP.md",
+        "oldHash": "none",
+        "newHash": "48a311f2af149626e44a7c75fbc6faa6",
+        "match": false
+      },
+      {
+        "file": "docs/ai/PLAN.md",
+        "oldHash": "none",
+        "newHash": "a2037f4354c250ac18685c410769328c",
+        "match": false
+      },
+      {
+        "file": "docs/ai/REF.md",
+        "oldHash": "none",
+        "newHash": "b52958e5d3c1317043d2003a5c84219c",
+        "match": false
+      },
+      {
+        "file": "docs/ai/REFACTOR.md",
+        "oldHash": "none",
+        "newHash": "2d28e8e1b96bb62ba1474824fd4368b0",
+        "match": false
+      },
+      {
+        "file": "docs/ai/RULES.md",
+        "oldHash": "none",
+        "newHash": "197067cf948462f68e993b11bf669615",
+        "match": false
+      },
+      {
+        "file": "docs/ai/system-prompt.xml",
+        "oldHash": "none",
+        "newHash": "ddd61a655cdf4f94b617dd26a0909ea6",
+        "match": false
+      },
+      {
+        "file": "scripts/bootstrap.js",
+        "oldHash": "02a8948a86bd4f445c9e7ff58a5e03e0",
+        "newHash": "d058fadc68adb4b5fe5adb9a20b4bf14",
+        "match": false
+      },
+      {
+        "file": "scripts/check-infra.js",
+        "oldHash": "3ef2fac1bd2f7c86d4714f0d95a1f448",
+        "newHash": "6e289ca48666c7a84987173e808e47a1",
+        "match": false
+      },
+      {
+        "file": "scripts/upgrade-infra.js",
+        "oldHash": "fa5fd309500f28aae1f1fe3e1b42e501",
+        "newHash": "7ad7c844a16a50947785aa1622f2cf9f",
+        "match": false
+      }
+    ],
+    "updated": true
+  }
+}

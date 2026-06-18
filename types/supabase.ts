@@ -53,7 +53,7 @@ export type Database = {
             foreignKeyName: "abo_verification_requests_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: true
-            referencedRelation: "member_roles_leaderboard"
+            referencedRelation: "member_roles_history"
             referencedColumns: ["profile_id"]
           },
           {
@@ -223,7 +223,7 @@ export type Database = {
             foreignKeyName: "calendar_events_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
-            referencedRelation: "member_roles_leaderboard"
+            referencedRelation: "member_roles_history"
             referencedColumns: ["profile_id"]
           },
           {
@@ -321,7 +321,7 @@ export type Database = {
             foreignKeyName: "event_role_requests_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
-            referencedRelation: "member_roles_leaderboard"
+            referencedRelation: "member_roles_history"
             referencedColumns: ["profile_id"]
           },
           {
@@ -416,7 +416,7 @@ export type Database = {
             foreignKeyName: "event_share_links_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
-            referencedRelation: "member_roles_leaderboard"
+            referencedRelation: "member_roles_history"
             referencedColumns: ["profile_id"]
           },
           {
@@ -685,7 +685,7 @@ export type Database = {
             foreignKeyName: "los_imports_imported_by_fkey"
             columns: ["imported_by"]
             isOneToOne: false
-            referencedRelation: "member_roles_leaderboard"
+            referencedRelation: "member_roles_history"
             referencedColumns: ["profile_id"]
           },
           {
@@ -814,7 +814,7 @@ export type Database = {
             foreignKeyName: "member_event_log_subject_id_fkey"
             columns: ["subject_id"]
             isOneToOne: false
-            referencedRelation: "member_roles_leaderboard"
+            referencedRelation: "member_roles_history"
             referencedColumns: ["profile_id"]
           },
           {
@@ -869,7 +869,7 @@ export type Database = {
             foreignKeyName: "member_vital_signs_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
-            referencedRelation: "member_roles_leaderboard"
+            referencedRelation: "member_roles_history"
             referencedColumns: ["profile_id"]
           },
           {
@@ -883,7 +883,7 @@ export type Database = {
             foreignKeyName: "member_vital_signs_recorded_by_fkey"
             columns: ["recorded_by"]
             isOneToOne: false
-            referencedRelation: "member_roles_leaderboard"
+            referencedRelation: "member_roles_history"
             referencedColumns: ["profile_id"]
           },
           {
@@ -934,7 +934,7 @@ export type Database = {
             foreignKeyName: "notifications_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
-            referencedRelation: "member_roles_leaderboard"
+            referencedRelation: "member_roles_history"
             referencedColumns: ["profile_id"]
           },
           {
@@ -991,7 +991,7 @@ export type Database = {
             foreignKeyName: "payable_items_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
-            referencedRelation: "member_roles_leaderboard"
+            referencedRelation: "member_roles_history"
             referencedColumns: ["profile_id"]
           },
           {
@@ -1076,7 +1076,7 @@ export type Database = {
             foreignKeyName: "payments_logged_by_admin_fkey"
             columns: ["logged_by_admin"]
             isOneToOne: false
-            referencedRelation: "member_roles_leaderboard"
+            referencedRelation: "member_roles_history"
             referencedColumns: ["profile_id"]
           },
           {
@@ -1097,7 +1097,7 @@ export type Database = {
             foreignKeyName: "payments_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
-            referencedRelation: "member_roles_leaderboard"
+            referencedRelation: "member_roles_history"
             referencedColumns: ["profile_id"]
           },
           {
@@ -1185,7 +1185,7 @@ export type Database = {
             foreignKeyName: "profiles_primary_profile_id_fkey"
             columns: ["primary_profile_id"]
             isOneToOne: false
-            referencedRelation: "member_roles_leaderboard"
+            referencedRelation: "member_roles_history"
             referencedColumns: ["profile_id"]
           },
           {
@@ -1245,7 +1245,7 @@ export type Database = {
             foreignKeyName: "profiles_audit_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
-            referencedRelation: "member_roles_leaderboard"
+            referencedRelation: "member_roles_history"
             referencedColumns: ["profile_id"]
           },
           {
@@ -1290,7 +1290,7 @@ export type Database = {
             foreignKeyName: "role_change_audit_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
-            referencedRelation: "member_roles_leaderboard"
+            referencedRelation: "member_roles_history"
             referencedColumns: ["profile_id"]
           },
           {
@@ -1438,7 +1438,7 @@ export type Database = {
             foreignKeyName: "spouse_link_requests_claimed_primary_id_fkey"
             columns: ["claimed_primary_id"]
             isOneToOne: false
-            referencedRelation: "member_roles_leaderboard"
+            referencedRelation: "member_roles_history"
             referencedColumns: ["profile_id"]
           },
           {
@@ -1452,7 +1452,7 @@ export type Database = {
             foreignKeyName: "spouse_link_requests_requester_id_fkey"
             columns: ["requester_id"]
             isOneToOne: true
-            referencedRelation: "member_roles_leaderboard"
+            referencedRelation: "member_roles_history"
             referencedColumns: ["profile_id"]
           },
           {
@@ -1501,7 +1501,7 @@ export type Database = {
             foreignKeyName: "tree_nodes_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
-            referencedRelation: "member_roles_leaderboard"
+            referencedRelation: "member_roles_history"
             referencedColumns: ["profile_id"]
           },
           {
@@ -1549,7 +1549,7 @@ export type Database = {
             foreignKeyName: "trip_attachments_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
-            referencedRelation: "member_roles_leaderboard"
+            referencedRelation: "member_roles_history"
             referencedColumns: ["profile_id"]
           },
           {
@@ -1598,7 +1598,7 @@ export type Database = {
             foreignKeyName: "trip_messages_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
-            referencedRelation: "member_roles_leaderboard"
+            referencedRelation: "member_roles_history"
             referencedColumns: ["profile_id"]
           },
           {
@@ -1653,7 +1653,7 @@ export type Database = {
             foreignKeyName: "trip_registrations_cancelled_by_fkey"
             columns: ["cancelled_by"]
             isOneToOne: false
-            referencedRelation: "member_roles_leaderboard"
+            referencedRelation: "member_roles_history"
             referencedColumns: ["profile_id"]
           },
           {
@@ -1667,7 +1667,7 @@ export type Database = {
             foreignKeyName: "trip_registrations_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
-            referencedRelation: "member_roles_leaderboard"
+            referencedRelation: "member_roles_history"
             referencedColumns: ["profile_id"]
           },
           {
@@ -1828,7 +1828,7 @@ export type Database = {
       }
     }
     Views: {
-      member_roles_leaderboard: {
+      member_roles_history: {
         Row: {
           first_name: string | null
           host_count: number | null
@@ -1907,6 +1907,12 @@ export type Database = {
         }[]
       }
       get_core_ancestors: { Args: { p_profile_id: string }; Returns: string[] }
+      get_event_years: {
+        Args: never
+        Returns: {
+          year: number
+        }[]
+      }
       get_los_members_with_profiles: {
         Args: never
         Returns: {

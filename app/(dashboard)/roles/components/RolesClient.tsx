@@ -4,7 +4,7 @@ import { useTransition } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { formatDate, formatTime } from '@/lib/format'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Select,
   SelectTrigger,
@@ -14,24 +14,19 @@ import {
 } from '@/components/ui/select'
 import type { RoleEvent } from '@/lib/roles/types'
 import { Database } from '@/types/supabase'
-import type { TranslationKey } from '@/lib/i18n'
-import HistoryPanel from './HistoryPanel'
-import LeaderboardPanel from './LeaderboardPanel'
+import { cn } from '@/lib/utils'
+import History from './History'
 
 type Props = {
-  tab: string
+  tab: 'quarter' | 'history'
   selectedYear: number
   selectedQuarter: number
   currentYear: number
   currentQuarter: number
   currentTime: string
   quarterEvents: RoleEvent[]
-  historyEvents: RoleEvent[]
-  historyCount: number
-  historyPage: number
-  historyLimit: number
-  historySearch: string
-  leaderboardData: Database['public']['Views']['member_roles_leaderboard']['Row'][]
+  participationHistoryData: Database['public']['Views']['member_roles_history']['Row'][]
+  eventYears: number[]
 }
 
 type SlotLabel = 'HOST' | 'SPEAKER' | 'PRODUCTS'
@@ -190,12 +185,8 @@ export default function RolesClient({
   currentQuarter,
   currentTime,
   quarterEvents,
-  historyEvents,
-  historyCount,
-  historyPage,
-  historyLimit,
-  historySearch,
-  leaderboardData,
+  participationHistoryData,
+  eventYears,
 }: Props) {
   const { t } = useLanguage()
   const router = useRouter()
@@ -219,17 +210,13 @@ export default function RolesClient({
     PRODUCTS: t(SLOT_LABEL_KEY.PRODUCTS),
   }
 
-  // Generate Year options from currentYear - 2 to currentYear + 2
-  const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i)
+  // Generate Year options by merging selectedYear and eventYears
+  const yearOptions = Array.from(new Set([selectedYear, ...(eventYears || [])])).sort((a, b) => b - a)
 
-  function handleTabChange(value: string) {
+  function handleHistoryToggle() {
+    const nextTab = tab === 'history' ? 'quarter' : 'history'
     const params = new URLSearchParams(searchParams.toString())
-    params.set('tab', value)
-    // Clear other params when changing primary view tabs
-    params.delete('page')
-    params.delete('search')
-    params.delete('quarter')
-    params.delete('year')
+    params.set('tab', nextTab)
     startTransition(() => {
       router.replace(`/roles?${params.toString()}`, { scroll: false })
     })
@@ -255,42 +242,15 @@ export default function RolesClient({
   return (
     <div className="py-8 pb-16 max-w-5xl mx-auto px-4 lg:px-6">
       
-      {/* Header and View Selector Tab list */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
-        <div>
-          <h1
-            className="font-display text-2xl font-bold"
-            style={{ color: 'var(--text-primary)' }}
-          >
-            {tab === 'quarter'
-              ? `${t(`event.roles.quarter.Q${selectedQuarter}` as TranslationKey)} ${selectedYear}`
-              : t(`event.roles.view.${tab}` as TranslationKey)}
-          </h1>
-          {isPending && (
-            <p className="text-xs animate-pulse mt-0.5" style={{ color: 'var(--primary-default)' }}>
-              {t('event.roles.updating' as TranslationKey)}
-            </p>
-          )}
-        </div>
-
-        <Tabs value={tab} onValueChange={handleTabChange}>
-          <TabsList>
-            <TabsTrigger value="quarter">{t('event.roles.view.quarter')}</TabsTrigger>
-            <TabsTrigger value="history">{t('event.roles.view.history')}</TabsTrigger>
-            <TabsTrigger value="leaderboard">{t('event.roles.view.leaderboard')}</TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </div>
-
-      {/* Main Panel Content */}
-      <Tabs value={tab}>
-        {/* Quarterly tab content */}
-        <TabsContent value="quarter" className="flex flex-col gap-6">
-          {/* Quarter filters toolbar */}
-          <div className="flex flex-wrap items-center gap-4 py-2 border-b pb-4 mb-2" style={{ borderColor: 'rgba(0,0,0,0.06)' }}>
-            <div className="w-32">
+      {/* View Selector Controls Row */}
+      <div className="flex items-center justify-between gap-4 mb-8">
+        
+        {/* Left Cluster: Year and Quarter select (visible only when tab !== 'history') */}
+        {tab !== 'history' ? (
+          <div className="flex items-center gap-2">
+            <div className="w-16">
               <Select value={selectedYear.toString()} onValueChange={handleYearChange}>
-                <SelectTrigger>
+                <SelectTrigger className="w-16 h-8 px-2 text-xs">
                   <SelectValue placeholder="Year" />
                 </SelectTrigger>
                 <SelectContent>
@@ -304,59 +264,70 @@ export default function RolesClient({
             </div>
 
             <Tabs value={`Q${selectedQuarter}`} onValueChange={handleQuarterChange}>
-              <TabsList>
-                <TabsTrigger value="Q1">Q1</TabsTrigger>
-                <TabsTrigger value="Q2">Q2</TabsTrigger>
-                <TabsTrigger value="Q3">Q3</TabsTrigger>
-                <TabsTrigger value="Q4">Q4</TabsTrigger>
+              <TabsList className="h-8 p-0.5 gap-0.5">
+                <TabsTrigger value="Q1" className="w-9 h-7 px-0 text-xs">Q1</TabsTrigger>
+                <TabsTrigger value="Q2" className="w-9 h-7 px-0 text-xs">Q2</TabsTrigger>
+                <TabsTrigger value="Q3" className="w-9 h-7 px-0 text-xs">Q3</TabsTrigger>
+                <TabsTrigger value="Q4" className="w-9 h-7 px-0 text-xs">Q4</TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
+        ) : (
+          <div />
+        )}
 
-          {quarterEvents.length === 0 ? (
-            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-              {t('event.rolesEmpty')}
-            </p>
-          ) : (
-            <>
-              {/* Desktop view */}
-              <div className="hidden lg:block">
-                <RolesTable
-                  events={quarterEvents}
-                  headers={headers}
-                  currentTime={currentTime}
-                  isCurrentQuarter={isCurrentQuarter}
-                />
-              </div>
-              {/* Mobile view */}
-              <div className="lg:hidden">
-                <RolesCards
-                  events={quarterEvents}
-                  slotLabels={slotLabels}
-                  currentTime={currentTime}
-                  isCurrentQuarter={isCurrentQuarter}
-                />
-              </div>
-            </>
+        {/* Right Toggle Button: History */}
+        <button
+          onClick={handleHistoryToggle}
+          className={cn(
+            'inline-flex items-center justify-center whitespace-nowrap rounded-lg',
+            'h-8 px-3 text-xs font-medium transition-all cursor-pointer',
+            tab === 'history'
+              ? 'bg-[var(--bg-global)] text-[var(--text-primary)] shadow-sm border border-[var(--border-default)]'
+              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
           )}
-        </TabsContent>
+        >
+          {t('event.roles.view.history')}
+        </button>
+      </div>
 
-        {/* History tab content */}
-        <TabsContent value="history">
-          <HistoryPanel
-            events={historyEvents}
-            count={historyCount}
-            page={historyPage}
-            limit={historyLimit}
-            search={historySearch}
-          />
-        </TabsContent>
+      {isPending && (
+        <p className="text-xs animate-pulse mb-4" style={{ color: 'var(--primary-default)' }}>
+          {t('event.roles.updating')}
+        </p>
+      )}
 
-        {/* Leaderboard tab content */}
-        <TabsContent value="leaderboard">
-          <LeaderboardPanel data={leaderboardData} />
-        </TabsContent>
-      </Tabs>
+      {/* Main Panel Content */}
+      {tab === 'quarter' ? (
+        quarterEvents.length === 0 ? (
+          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+            {t('event.rolesEmpty')}
+          </p>
+        ) : (
+          <>
+            {/* Desktop view */}
+            <div className="hidden lg:block">
+              <RolesTable
+                events={quarterEvents}
+                headers={headers}
+                currentTime={currentTime}
+                isCurrentQuarter={isCurrentQuarter}
+              />
+            </div>
+            {/* Mobile view */}
+            <div className="lg:hidden">
+              <RolesCards
+                events={quarterEvents}
+                slotLabels={slotLabels}
+                currentTime={currentTime}
+                isCurrentQuarter={isCurrentQuarter}
+              />
+            </div>
+          </>
+        )
+      ) : (
+        <History data={participationHistoryData} />
+      )}
       
     </div>
   )

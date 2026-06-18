@@ -3,12 +3,9 @@ import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/service'
 import RolesClient from './components/RolesClient'
-import { getQuarterEvents, getHistoryEvents, getLeaderboard } from '@/lib/roles/queries'
-import { RoleEvent } from '@/lib/roles/types'
-import { Database } from '@/types/supabase'
+import { getQuarterEvents, getEventYears, getParticipationHistory } from '@/lib/roles/queries'
 
 const ROLE_RANK: Record<string, number> = { guest: 0, member: 1, core: 2, admin: 3 }
-const HISTORY_LIMIT = 15
 
 export default async function RolesPage({
   searchParams,
@@ -16,9 +13,9 @@ export default async function RolesPage({
   searchParams: Promise<{
     tab?: string
     quarter?: string
+    q?: string
     year?: string
-    page?: string
-    search?: string
+    view?: string
   }>
 }) {
   const { userId } = await auth()
@@ -38,28 +35,26 @@ export default async function RolesPage({
 
   // Parse parameters
   const params = await searchParams
-  const tab = params.tab || 'quarter'
+  const tab: 'quarter' | 'history' = params.tab === 'leaderboard' || params.tab === 'history' || params.view === 'history' ? 'history' : 'quarter'
   const now = new Date()
   const currentYear = now.getUTCFullYear()
   const currentQuarter = Math.floor(now.getUTCMonth() / 3) + 1
 
-  const year = parseInt(params.year || '') || currentYear
-  const quarter = parseInt(params.quarter || '') || currentQuarter
-  const page = parseInt(params.page || '') || 1
-  const search = params.search || ''
+  const year = parseInt((params.year || '').replace(/[^0-9]/g, '')) || currentYear
+  const quarter = parseInt((params.quarter || params.q || '').replace(/[^0-9]/g, '')) || currentQuarter
 
-  // Conditional RSC Fetching based on the active tab
-  let quarterEvents: RoleEvent[] = []
-  let historyData: { events: RoleEvent[]; count: number } = { events: [], count: 0 }
-  let leaderboardData: Database['public']['Views']['member_roles_leaderboard']['Row'][] = []
+  // Conditional RSC Fetching based on the active tab with safe defaults
+  const quarterEvents = tab !== 'history'
+    ? await getQuarterEvents(supabase, year, quarter)
+    : []
 
-  if (tab === 'quarter') {
-    quarterEvents = await getQuarterEvents(supabase, year, quarter)
-  } else if (tab === 'history') {
-    historyData = await getHistoryEvents(supabase, page, HISTORY_LIMIT, search)
-  } else if (tab === 'leaderboard') {
-    leaderboardData = await getLeaderboard(supabase)
-  }
+  const participationHistoryData = tab === 'history'
+    ? await getParticipationHistory(supabase)
+    : []
+
+  const eventYears = tab !== 'history'
+    ? await getEventYears(supabase)
+    : []
 
   return (
     <Suspense>
@@ -71,12 +66,8 @@ export default async function RolesPage({
         currentQuarter={currentQuarter}
         currentTime={now.toISOString()}
         quarterEvents={quarterEvents}
-        historyEvents={historyData.events}
-        historyCount={historyData.count}
-        historyPage={page}
-        historyLimit={HISTORY_LIMIT}
-        historySearch={search}
-        leaderboardData={leaderboardData}
+        participationHistoryData={participationHistoryData}
+        eventYears={eventYears}
       />
     </Suspense>
   )
