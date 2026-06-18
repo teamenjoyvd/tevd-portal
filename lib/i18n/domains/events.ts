@@ -19,7 +19,7 @@ export const events = {
 
   // roles page
   'event.rolesPageTitle':   { en: 'Roles',             bg: 'Роли'                            },
-  'event.rolesEmpty':       { en: 'No upcoming events with roles configured.', bg: 'Няма предстоящи събития с конфигурирани роли.' },
+  'event.rolesEmpty':       { en: 'No events with roles configured this quarter.', bg: 'Няма събития с конфигурирани роли за това тримесечие.' },
 
   // roles page — table headers
   'event.roles.col.event':    { en: 'Event',    bg: 'Събитие'  },

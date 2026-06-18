@@ -6,6 +6,7 @@ import type { RoleEvent } from '@/app/api/roles/route'
 
 type Props = {
   events: RoleEvent[]
+  currentTime: string
 }
 
 type SlotLabel = 'HOST' | 'SPEAKER' | 'PRODUCTS'
@@ -34,7 +35,7 @@ function OccupantCell({ name }: { name: string | null }) {
 
 // ── Desktop table ────────────────────────────────────────────────────────────
 
-function RolesTable({ events, headers }: { events: RoleEvent[]; headers: string[] }) {
+function RolesTable({ events, headers, currentTime }: { events: RoleEvent[]; headers: string[]; currentTime: string }) {
   return (
     <div
       className="rounded-2xl overflow-hidden"
@@ -54,50 +55,59 @@ function RolesTable({ events, headers }: { events: RoleEvent[]; headers: string[
       </div>
 
       {/* Data rows */}
-      {events.map((event, i) => (
-        <div
-          key={event.id}
-          className="grid items-center px-4 py-3 text-sm"
-          style={{
-            gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr',
-            borderTop: i === 0 ? undefined : '1px solid rgba(0,0,0,0.04)',
-          }}
-        >
-          <span
-            className="font-semibold truncate pr-4"
-            style={{ color: 'var(--text-primary)' }}
+      {events.map((event, i) => {
+        const isPast = new Date(event.start_time) < new Date(currentTime)
+        return (
+          <div
+            key={event.id}
+            className="grid items-center px-4 py-3 text-sm transition-all"
+            style={{
+              gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr',
+              borderTop: i === 0 ? undefined : '1px solid rgba(0,0,0,0.04)',
+              opacity: isPast ? 0.6 : undefined,
+              filter: isPast ? 'grayscale(0.5)' : undefined,
+            }}
           >
-            {event.title}
-          </span>
-          <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-            {formatDate(event.start_time)}
-          </span>
-          <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-            {formatTime(event.start_time)}
-          </span>
-          <span className="text-xs"><OccupantCell name={event.slots.HOST} /></span>
-          <span className="text-xs"><OccupantCell name={event.slots.SPEAKER} /></span>
-          <span className="text-xs"><OccupantCell name={event.slots.PRODUCTS} /></span>
-        </div>
-      ))}
+            <span
+              className="font-semibold truncate pr-4"
+              style={{ color: 'var(--text-primary)' }}
+            >
+              {event.title}
+            </span>
+            <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+              {formatDate(event.start_time)}
+            </span>
+            <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+              {formatTime(event.start_time)}
+            </span>
+            <span className="text-xs"><OccupantCell name={event.slots.HOST} /></span>
+            <span className="text-xs"><OccupantCell name={event.slots.SPEAKER} /></span>
+            <span className="text-xs"><OccupantCell name={event.slots.PRODUCTS} /></span>
+          </div>
+        )
+      })}
     </div>
   )
 }
 
 // ── Mobile cards ─────────────────────────────────────────────────────────────
 
-function RolesCards({ events, slotLabels }: { events: RoleEvent[]; slotLabels: Record<SlotLabel, string> }) {
+function RolesCards({ events, slotLabels, currentTime }: { events: RoleEvent[]; slotLabels: Record<SlotLabel, string>; currentTime: string }) {
   return (
     <div className="flex flex-col gap-3">
-      {events.map(event => (
-        <div
-          key={event.id}
-          className="rounded-2xl p-4"
-          style={{
-            border: '1px solid rgba(0,0,0,0.07)',
-            backgroundColor: 'var(--bg-card)',
-          }}
-        >
+      {events.map(event => {
+        const isPast = new Date(event.start_time) < new Date(currentTime)
+        return (
+          <div
+            key={event.id}
+            className="rounded-2xl p-4 transition-all"
+            style={{
+              border: '1px solid rgba(0,0,0,0.07)',
+              backgroundColor: 'var(--bg-card)',
+              opacity: isPast ? 0.6 : undefined,
+              filter: isPast ? 'grayscale(0.5)' : undefined,
+            }}
+          >
           {/* Event title + date/time */}
           <p
             className="text-sm font-semibold mb-1 leading-snug"
@@ -125,15 +135,16 @@ function RolesCards({ events, slotLabels }: { events: RoleEvent[]; slotLabels: R
               </div>
             ))}
           </div>
-        </div>
-      ))}
+          </div>
+        )
+      })}
     </div>
   )
 }
 
 // ── Main component ───────────────────────────────────────────────────────────
 
-export default function RolesClient({ events }: Props) {
+export default function RolesClient({ events, currentTime }: Props) {
   const { t } = useLanguage()
 
   const headers = [
@@ -171,7 +182,7 @@ export default function RolesClient({ events }: Props) {
             {t('event.rolesEmpty')}
           </p>
         ) : (
-          <RolesTable events={events} headers={headers} />
+          <RolesTable events={events} headers={headers} currentTime={currentTime} />
         )}
       </div>
 
@@ -192,7 +203,7 @@ export default function RolesClient({ events }: Props) {
             {t('event.rolesEmpty')}
           </p>
         ) : (
-          <RolesCards events={events} slotLabels={slotLabels} />
+          <RolesCards events={events} slotLabels={slotLabels} currentTime={currentTime} />
         )}
       </div>
 

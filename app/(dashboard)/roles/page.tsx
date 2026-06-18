@@ -22,11 +22,20 @@ export default async function RolesPage() {
     redirect('/calendar')
   }
 
-  // Fetch upcoming events with slots
+  const now = new Date()
+  const year = now.getUTCFullYear()
+  const month = now.getUTCMonth()
+  const quarter = Math.floor(month / 3)
+  const startMonth = quarter * 3
+  const startOfQuarter = new Date(Date.UTC(year, startMonth, 1, 0, 0, 0, 0))
+  const startOfNextQuarter = new Date(Date.UTC(year, startMonth + 3, 1, 0, 0, 0, 0))
+
+  // Fetch current quarter events with slots
   const { data: events } = await supabase
     .from('calendar_events')
     .select('id, title, start_time, end_time, event_role_slots ( role_label )')
-    .gte('start_time', new Date().toISOString())
+    .gte('start_time', startOfQuarter.toISOString())
+    .lt('start_time', startOfNextQuarter.toISOString())
     .order('start_time', { ascending: true })
 
   const eventsWithSlots = (events ?? []).filter(
@@ -34,7 +43,7 @@ export default async function RolesPage() {
   )
 
   if (eventsWithSlots.length === 0) {
-    return <RolesClient events={[]} />
+    return <RolesClient events={[]} currentTime={now.toISOString()} />
   }
 
   const eventIds = eventsWithSlots.map(e => e.id)
@@ -66,5 +75,5 @@ export default async function RolesPage() {
     },
   }))
 
-  return <RolesClient events={roleEvents} />
+  return <RolesClient events={roleEvents} currentTime={now.toISOString()} />
 }
