@@ -14,10 +14,12 @@ export function MembersFilterBar<T>({
   table,
   globalFilter,
   onFilterChange,
+  onExport,
 }: {
   table: Table<T>
   globalFilter: string
   onFilterChange: (value: string) => void
+  onExport?: () => void
 }) {
   const { t } = useLanguage()
   const [colsOpen, setColsOpen] = useState(false)
@@ -51,6 +53,18 @@ export function MembersFilterBar<T>({
         className="flex-1 min-w-[180px] border rounded-xl px-3 py-2 text-sm"
         style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
       />
+      {onExport && (
+        <button
+          onClick={onExport}
+          className="px-3 py-2 rounded-xl text-xs font-semibold border hover:bg-black/5 transition-colors flex items-center gap-1.5"
+          style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+        >
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+          {t('admin.members.btn.export')}
+        </button>
+      )}
       <div ref={colsRef} className="relative">
         <button
           onClick={() => setColsOpen(o => !o)}

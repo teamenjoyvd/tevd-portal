@@ -6,32 +6,7 @@ import { useLanguage } from '@/lib/hooks/useLanguage'
 import { promoteMember } from '@/lib/actions/members'
 import { MembersTable } from './MembersTable'
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-export type LOSMember = {
-  abo_number: string
-  sponsor_abo_number: string | null
-  abo_level: string | null
-  name: string | null
-  country: string | null
-  gpv: number
-  ppv: number
-  bonus_percent: number
-  group_size: number
-  annual_ppv: number
-  renewal_date: string | null
-  profile: {
-    id: string
-    first_name: string
-    last_name: string
-    role: string
-    primary_profile_id: string | null
-  } | null
-}
-
-export type MembersData = {
-  los_members: LOSMember[]
-}
+import type { LOSMember, MembersData } from '@/lib/types/members'
 
 // ── MembersTab ────────────────────────────────────────────────────────────────
 

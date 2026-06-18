@@ -17,6 +17,7 @@ export const adminCore = {
   'admin.members.noLosData': { en: 'No LOS data. Import a CSV in Data Center.', bg: 'Няма данни за LOS. Импортирайте CSV в Център за данни.' },
   'admin.members.searchPlaceholder': { en: 'Search name or ABO…', bg: 'Търсене на ime или СБА…' },
   'admin.members.btn.columns': { en: 'Columns', bg: 'Колони' },
+  'admin.members.btn.export': { en: 'Export', bg: 'Експорт' },
   'admin.members.pageInfo': { en: 'Page {{current}} of {{total}}', bg: 'Страница {{current}} от {{total}}' },
   'admin.members.btn.prev': { en: 'Prev', bg: 'Предишна' },
   'admin.members.btn.next': { en: 'Next', bg: 'Следваща' },

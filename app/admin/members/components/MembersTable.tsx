@@ -23,7 +23,8 @@ import {
 import { getRoleColors } from '@/lib/role-colors'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { MembersFilterBar } from './MembersFilterBar'
-import type { LOSMember } from './MembersTab'
+import type { LOSMember } from '@/lib/types/members'
+import { buildMembersCSV } from '@/lib/csv-export'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -82,6 +83,17 @@ export function MembersTable({
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => setDebouncedFilter(value), 300)
   }, [])
+
+  const handleExport = useCallback(() => {
+    const csv = buildMembersCSV(members)
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `los-export-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }, [members])
 
   const columns = useMemo(() => [
     colHelper.accessor(row => resolveDisplayName(row), {
@@ -257,6 +269,7 @@ export function MembersTable({
         table={table}
         globalFilter={globalFilter}
         onFilterChange={handleSearch}
+        onExport={handleExport}
       />
 
       <div className="rounded-2xl border shadow-sm overflow-hidden" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>

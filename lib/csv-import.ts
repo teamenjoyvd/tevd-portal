@@ -100,9 +100,12 @@ export const NUMERIC_KEYS = new Set([
 ])
 
 export const MONTH_MAP: Record<string, string> = {
-  January: '01', February: '02', March: '03', April: '04',
-  May: '05', June: '06', July: '07', August: '08',
-  September: '09', October: '10', November: '11', December: '12',
+  january: '01', february: '02', march: '03', april: '04',
+  may: '05', june: '06', july: '07', august: '08',
+  september: '09', october: '10', november: '11', december: '12',
+  януари: '01', февруари: '02', март: '03', април: '04',
+  май: '05', юни: '06', юли: '07', август: '08',
+  септември: '09', октомври: '10', ноември: '11', декември: '12',
 }
 
 // ── Parsing functions ─────────────────────────────────────────────────────────
@@ -120,10 +123,12 @@ export function sanitizeNumeric(val: string, isBG: boolean): string {
 
 export function parseDate(val: string): string {
   if (!val) return ''
-  if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val
-  const m = val.match(/^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$/)
+  let cleaned = val.replace(/^'+/, '').trim()
+  if (/^\d{4}-\d{2}-\d{2}$/.test(cleaned)) return cleaned
+  cleaned = cleaned.replace(/\s*г\.?$/, '')
+  const m = cleaned.match(/^(\d{1,2})\s+([A-Za-z\u0400-\u04FF]+)\s+(\d{4})$/)
   if (m) {
-    const month = MONTH_MAP[m[2]]
+    const month = MONTH_MAP[m[2].toLowerCase()]
     if (month) return `${m[3]}-${month}-${m[1].padStart(2, '0')}`
   }
   return ''
