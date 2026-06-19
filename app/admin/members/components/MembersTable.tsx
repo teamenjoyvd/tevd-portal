@@ -23,14 +23,15 @@ import {
 import { getRoleColors } from '@/lib/role-colors'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { MembersFilterBar } from './MembersFilterBar'
-import type { LOSMember } from './MembersTab'
+import type { LOSMember } from '@/lib/types/members'
+import { buildMembersCSV } from '@/lib/csv-export'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 const numberFormatter = new Intl.NumberFormat('en-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
-function formatNum(n: number) {
-  return numberFormatter.format(n)
+function formatNum(n: number | null) {
+  return numberFormatter.format(n ?? 0)
 }
 
 /**
@@ -82,6 +83,19 @@ export function MembersTable({
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => setDebouncedFilter(value), 300)
   }, [])
+
+  const handleExport = useCallback(() => {
+    const csv = buildMembersCSV(members)
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `los-export-${new Date().toISOString().slice(0, 10)}.csv`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }, [members])
 
   const columns = useMemo(() => [
     colHelper.accessor(row => resolveDisplayName(row), {
@@ -160,8 +174,8 @@ export function MembersTable({
       enableSorting: true,
       cell: ({ getValue }) => (
         <span className="text-xs tabular-nums font-semibold"
-          style={{ color: Number(getValue()) > 0 ? 'var(--brand-teal)' : 'var(--text-secondary)' }}>
-          {getValue()}%
+          style={{ color: Number(getValue() ?? 0) > 0 ? 'var(--brand-teal)' : 'var(--text-secondary)' }}>
+          {getValue() ?? 0}%
         </span>
       ),
     }),
@@ -257,6 +271,7 @@ export function MembersTable({
         table={table}
         globalFilter={globalFilter}
         onFilterChange={handleSearch}
+        onExport={handleExport}
       />
 
       <div className="rounded-2xl border shadow-sm overflow-hidden" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>

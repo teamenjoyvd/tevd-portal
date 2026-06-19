@@ -16,7 +16,9 @@ export async function GET() {
     .select(`
       abo_number, sponsor_abo_number, abo_level, name, country,
       gpv, ppv, bonus_percent, group_size, qualified_legs, annual_ppv,
-      renewal_date, last_synced_at
+      renewal_date, last_synced_at, entry_date, phone, email, address,
+      gbv, customer_pv, ruby_pv, customers, points_to_next_level,
+      personal_order_count, group_orders_count, sponsoring
     `)
     .order('abo_level')
     .order('abo_number')
