@@ -32,14 +32,7 @@ This unified handbook serves as the master developer instructions for all AI cod
     - `get_my_role()`
   - **NEVER** write inline `auth.jwt()` logic inside RLS policies.
 - **Detail Table Access Gating:**
-  - Tables that don't possess a `profile_id` (e.g. `call_details`, `email_details`, `note_details`) must gate access using an `EXISTS` check on their parent `interactions` table:
-    ```sql
-    EXISTS (
-      SELECT 1 FROM interactions
-      WHERE interactions.id = interaction_id
-      AND interactions.profile_id = get_my_profile_id()
-    )
-    ```
+  - This project's schema does not have an `interactions`-style detail-table pattern (no `call_details` / `email_details` / `note_details` tables exist). If a future table needs gating via a parent-row `EXISTS` check rather than a direct `profile_id` column, model it on the real comparable case in this codebase: the `payments` table's two-FK ambiguity to `profiles` (see §5 Schema in `docs/ai/REF.md` — any PostgREST join MUST use `profiles!profile_id(...)`).
 - **Supabase Cookie method type mapping:**
   - Do not derive database types from `CookieMethodsServer['setAll']` (breaks since `setAll` is optional).
   - Use the explicit type: `{ name: string; value: string; options?: Record<string, unknown> }`.

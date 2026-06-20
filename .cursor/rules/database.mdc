@@ -9,16 +9,23 @@ This rule enforces the strict usage of RLS policies, Pattern A helpers, and deta
 
 ## RLS Gating and Helpers (Pattern A)
 
-- **RLS policies must ONLY reference Pattern A helper functions** which live in `20260520_002_rls.sql`:
-  - `get_my_clerk_id()` - Returns the Clerk user ID from the JWT sub claim.
+- **RLS policies must ONLY reference Pattern A helper functions** which live in `20260315000000_baseline.sql`:
+  - `get_my_clerk_id()` - Returns the Clerk user ID from the JWT custom claim.
   - `get_my_profile_id()` - Returns the profile ID for the current Clerk user.
 - **NEVER** use raw `auth.jwt()` or other inline mechanisms within RLS policies.
 
 ### Helper Definitions
 ```sql
+-- DO NOT use auth.jwt() ->> 'sub' — resolves to the Supabase Auth UUID, not the
+-- Clerk user ID. Clerk users have no Supabase Auth row, so 'sub' never matches.
+-- This exact mistake has been reintroduced into this file at least three times
+-- (see docs/architecture/DECISIONS.md ADR-011 for the original incident).
+-- If you are about to "fix" this function, verify against the live migration
+-- (supabase/migrations/20260315000000_baseline.sql) first, not against an
+-- assumption of what it should say.
 CREATE OR REPLACE FUNCTION get_my_clerk_id()
 RETURNS text LANGUAGE sql STABLE
-AS $$ SELECT auth.jwt() ->> 'sub' $$;
+AS $$ SELECT current_setting('request.jwt.claims', true)::jsonb ->> 'user_id' $$;
 
 CREATE OR REPLACE FUNCTION get_my_profile_id()
 RETURNS uuid LANGUAGE sql STABLE
@@ -27,15 +34,7 @@ AS $$ SELECT id FROM profiles WHERE clerk_id = get_my_clerk_id() $$;
 
 ## Detail Table Security
 
-Detail tables (`call_details`, `email_details`, `note_details`) do not have their own direct `profile_id` columns.
-Security gates for these detail tables **MUST** verify access via an `EXISTS` check on their parent `interactions` table:
-```sql
-EXISTS (
-  SELECT 1 FROM interactions
-  WHERE interactions.id = interaction_id
-  AND interactions.profile_id = get_my_profile_id()
-)
-```
+This project's schema does not have an `interactions`-style detail-table pattern — no `call_details`, `email_details`, or `note_details` tables exist here. If a future table needs gating via a parent-row `EXISTS` check rather than a direct `profile_id` column, model it on the real comparable case in this codebase: the `payments` table's two-FK ambiguity to `profiles` (see `docs/ai/REF.md` §5 — any PostgREST join MUST use `profiles!profile_id(...)`).
 
 ## TypeScript Code Constraints
 
