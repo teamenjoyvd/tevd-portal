@@ -1,6 +1,13 @@
 # REF.md — teamenjoyVD Portal Reference
+> Last updated: 2026-06-20 — merged with `docs/ai/LOOKUP.md` (see note below).
 > Read on demand at GATHER only. Never read at SSU.
 > Pull only the sections the ticket needs.
+
+> **This file is the single canonical reference doc.** `docs/ai/LOOKUP.md` was deleted on 2026-06-20
+> after a second duplication incident: it was archived once before (2026-05) with an explicit
+> "superseded by REF.md, do not recreate" note, then recreated from scratch on 2026-05-16 with
+> the same content split, and drifted from this file again within a month. **Do not recreate
+> `docs/ai/LOOKUP.md`.** If reference content needs a new section, add it here.
 
 ## Section Map
 
@@ -15,6 +22,8 @@
 | §7 Design System | Bento, tokens, colors, layout |
 | §8 i18n & Regional | `translations.ts`, `t()`, `lib/format.ts` |
 | §9 Env Vars | New secrets, deployment config |
+| §10 Notification Engine | DB-trigger notifications, `notify_*` functions |
+| §11 Airtable Field IDs | Airtable issue sync, `Claude Notes`, `Commit Link` |
 
 ---
 
@@ -60,6 +69,8 @@ Used by `TripHeroSection` (admin canvas sampling) and `shared.tsx` (member count
 **`lib/email/send.ts`** — two public dispatchers:
 - `sendNotificationEmail(payload)` — `Promise<void>`, fire-and-forget, respects `email_config` gates, errors swallowed to `email_log`.
 - `sendTransactionalEmail(payload)` — `Promise<TransactionalEmailResult>`, bypasses gates, caller checks `result.sent`. Use when the email IS the feature (magic links, access links).
+
+**`lib/notifications/share-events.ts`** — `notifySharerOfRegistration()` and `notifySharerOfAttendance()`. Fire-and-forget calls made from `lib/actions/guest-registration.ts` (on registration, when a `shareToken` resolves) and from the `/events/[eventId]/join` page (on attendance, when the guest's registration has a `share_link_id`). Both ultimately call `sendNotificationEmail` with `ShareGuestRegisteredEmail` / `ShareGuestAttendedEmail`.
 
 **`inngest/client.ts`** — shared Inngest client (`id: 'tevd-portal'`). Import `inngest` from here to send events or create functions.
 
@@ -195,6 +206,8 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
     /notifications/route.ts        # GET, PATCH — own notifications
     /payable-items/route.ts
     /payments/route.ts
+    /profile/event-shares/route.ts        # GET (list own, filterable), POST (create/update link)
+    /profile/event-shares/export/route.ts # GET ?format=csv — streamed CSV download
     /profile/payments/route.ts
     /profile/route.ts
     /profile/spouse-link/route.ts  # ADR-016: GET own request, POST submit, DELETE cancel
@@ -235,19 +248,21 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
   /nav.ts
   /role-colors.ts
   /og-scrape.ts                   # Server-only. Returns nulls for IG/FB URLs.
+  /notifications/share-events.ts  # notifySharerOfRegistration, notifySharerOfAttendance
   /supabase/client.ts
   /supabase/server.ts
   /supabase/service.ts
   /i18n/translations.ts
   /email/send.ts
-  /actions/guest-registration.ts  # Server action — magic link via sendTransactionalEmail
+  /actions/guest-registration.ts  # Server action — magic link via sendTransactionalEmail; resolves shareToken
 /styles/brand-tokens.css
 /proxy.ts                         # Auth middleware — NEVER create middleware.ts
-/.github/workflows/check-types.yml
+/.github/workflows/ci.yml         # typecheck → lint → build → npm audit (audit is non-blocking)
 /docs/ai/REF.md
 /docs/architecture/C4.md
 /docs/architecture/FLOWS.md
 /docs/architecture/DECISIONS.md
+/docs/architecture/SYSTEM-MAP.mermaid  # Exhaustive current-state flow diagram — see FLOWS.md index
 /supabase/migrations/
 /supabase/functions/sync-google-calendar/index.ts
 /supabase/functions/send-event-reminders/index.ts
@@ -273,9 +288,10 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
 
 > Live schema is always the source of truth. Run `Supabase:list_tables` before touching any table.
 
-**`profiles`** — `id, clerk_id, first_name, last_name, display_names, role, abo_number, upline_abo_number, primary_profile_id, document_active_type, id_number, passport_number, valid_through, ical_token, phone, contact_email, created_at, ui_prefs`
+**`profiles`** — `id, clerk_id, first_name, last_name, display_names, role, abo_number, upline_abo_number, primary_profile_id, document_active_type, id_number, passport_number, valid_through, ical_token, phone, contact_email, created_at, ui_prefs, notification_prefs`
 - `role` default: `'guest'`
 - `ui_prefs` JSONB NOT NULL default `{}` — shape: `{ bento_order: string[], bento_collapsed: Record<string, boolean> }`
+- `notification_prefs` — JSONB. Shape not yet documented here; confirm against `types/supabase.ts` before reading/writing it.
 - `upline_abo_number`: written by `approve_member_verification` (both paths) and by `import_los_members` on sponsor change.
 - `primary_profile_id`: ADR-016. NULL = primary or standalone. NOT NULL = secondary/spouse profile pointing to its primary. Self-referential FK with ON DELETE SET NULL.
 - `abo_number: text | null` invariant:
@@ -315,12 +331,22 @@ Normalised UNION ALL over `profiles_audit` + `role_change_audit`. Columns: `prof
 **`trip_attachments`** — `id, trip_id, created_by, file_name, file_type, file_url, sort_order, created_at`
 
 **`trip_messages`** — `id, trip_id, created_by, body, created_at, updated_at`
+- Admin-authored only. Member route (`/api/trips/[id]/messages`) is GET-only — a read-only bulletin, no author shown to members. Admin CRUD via `/api/admin/trips/[id]/messages` and `/api/admin/trips/[id]/messages/[messageId]`.
 
 **`event_role_requests`** — `id, event_id, profile_id, role_label, status, created_at, updated_at, note`
 - `status`: `pending | approved | denied`.
 
-**`guest_registrations`** — `id, event_id, name, email, token, status, expires_at, created_at`
+**`event_share_links`** — `id, profile_id → profiles, event_id → calendar_events, token (text, 22-char base64url), share_method ('native'|'clipboard'), click_count, created_at`
+- Found in `lib/notifications/share-events.ts` and `app/api/profile/event-shares/route.ts` — was previously undocumented in any reference file until 2026-06-20.
+- Created via `POST /api/profile/event-shares`: checked-then-insert/update on `(profile_id, event_id)` — **not** a DB-level UPSERT. If a link already exists for the pair, the route updates `share_method` and returns the existing `token` without regenerating it (the member may have already distributed the old link).
+- `click_count` incremented via RPC `increment_share_link_click` when a guest lands on the registration page through a share token.
+- Gated: only `event_role_requests`-style member/core roles can create links (`role === 'guest'` is rejected 403); target event must have `allow_guest_registration = true`.
+- Drives two notification emails: `ShareGuestRegisteredEmail` (on guest registration via the link) and `ShareGuestAttendedEmail` (on guest attendance, i.e. `guest_registrations.attended_at` set).
+
+**`guest_registrations`** — `id, event_id, name, email, token, status, expires_at, attended_at, created_at`
 - `status`: `pending | confirmed`.
+- `attended_at`: set when the guest clicks through their magic link on the event day (`/events/[eventId]/join`). Drives `notifySharerOfAttendance()` when the registration has a `share_link_id`.
+- `share_link_id → event_share_links` (nullable) — present when the guest registered via a member's share link rather than directly.
 
 **`scheduled_reminders`** — `id, registration_id → guest_registrations, event_id → calendar_events, reminder_type (enum: '1_hour'|'15_min'), send_at, sent_at`
 - UNIQUE on `(registration_id, reminder_type)`.
@@ -331,6 +357,7 @@ Normalised UNION ALL over `profiles_audit` + `role_change_audit`. Columns: `prof
 
 **`notifications`** — `id, profile_id, is_read, type, title, message, action_url, created_at, deleted_at`
 - Soft-delete: filter `deleted_at IS NULL`.
+- `type` values currently produced by DB triggers: see §10 Notification Engine.
 
 **`calendar_events`** — `id, google_event_id, title, description, location, meeting_url, start_time, end_time, category, access_roles, week_number, event_type, allow_guest_registration, available_roles, created_at, created_by`
 - `location`: physical/named location from GCal `location` field (migration `20260503000000`).
@@ -370,12 +397,14 @@ Normalised UNION ALL over `profiles_audit` + `role_change_audit`. Columns: `prof
 - UNIQUE on `(profile_id, definition_id)`.
 
 **`abo_verification_requests`** — `id, profile_id, claimed_abo, claimed_upline_abo, request_type, status, admin_note, created_at, resolved_at`
+- `request_type`: `'standard' | 'manual'`
 
 **`role_change_audit`** — `id, profile_id, old_role, new_role, changed_by, note, changed_at`
 
-**`verification_log`** — `id, request_id → abo_verification_requests (nullable), error_code, error_message, error_context (jsonb), created_at`
-- Written by `approve_member_verification` EXCEPTION block. Service-role only.
-- Added in #307 (migration `20260509_001`).
+**`verification_log`** — `id, request_id → abo_verification_requests (nullable, ON DELETE SET NULL), error_code, error_message (NOT NULL — primary log message), error_context (jsonb), created_at`
+- Added in #307 (migration `20260509_001`). Written exclusively by `approve_member_verification`'s EXCEPTION block.
+- Service-role only: RLS enabled, no authenticated/anon policies.
+- Used by #307 idempotency guards and by the Clerk reconciliation job to log drift corrections. `error_code` is a machine-readable tag.
 
 **`tree_nodes`** — `id, profile_id, parent_id, path (ltree), depth, created_at`
 - No-ABO label: `p_<uuid_no_hyphens>`. ABO assignment renames node → calls `rebuild_tree_paths`.
@@ -383,16 +412,13 @@ Normalised UNION ALL over `profiles_audit` + `role_change_audit`. Columns: `prof
 
 **`los_members`** — `abo_number (PK), sponsor_abo_number, name, abo_level, bonus_percent, gpv, ppv, annual_ppv, gbv, ruby_pv, customer_pv, customers, group_size, group_orders_count, personal_order_count, qualified_legs, sponsoring, points_to_next_level, phone, email, address, country, entry_date, renewal_date, last_synced_at`
 
-**`los_imports`** — `id (uuid PK), imported_by (uuid → profiles.id), status (text: 'complete'|'partial'|'rolled_back'), file_count (int), row_count (int), removed_count (int), snapshot (jsonb), imported_at (timestamptz)`
+**`los_imports`** — `id (uuid PK), imported_by (uuid → profiles.id), status (text: 'complete'|'partial'|'rolled_back'), file_count (int, default 1), row_count (int), removed_count (int, default 0), snapshot (jsonb — full pre-import los_members rows), imported_at (timestamptz, default now())`
 - RLS: admin-only via `is_admin()`.
+- Snapshot acceptable at current LOS scale (~69 rows); revisit if LOS exceeds ~5K rows.
 
 **`approval_jobs`** — `id, request_id → abo_verification_requests, inngest_event_id, status (processing|clerk_synced|done|failed), error, created_at, updated_at, settled_at`
 - RLS: service role only.
 - UNIQUE on `request_id`.
-
-**`verification_log`** — `id, request_id → abo_verification_requests, error_message, error_code, error_context, created_at`
-- Used by #307 idempotency guards and by the Clerk reconciliation job to log drift corrections.
-- `error_message` is the primary log message (NOT NULL). `error_code` is a machine-readable tag.
 
 ---
 
@@ -406,6 +432,8 @@ Normalised UNION ALL over `profiles_audit` + `role_change_audit`. Columns: `prof
 | `/api/profile/spouse-link` | GET, POST, DELETE | ADR-016: GET own request; POST submit (guest only, guards: requester is guest with no primary_profile_id, claimed_primary is member with abo_number and no existing secondary); DELETE cancel own pending |
 | `/api/profile/vitals` | GET | |
 | `/api/profile/event-roles` | GET | |
+| `/api/profile/event-shares` | GET, POST | GET: own share links + nested guest registrations, filterable by `event_id`/`status`/`method`/`from`/`to`/`q`. POST: create or update a share link for an event (`event_id`, `share_method: 'native'\|'clipboard'`); 403 for guests; 400 if target event has `allow_guest_registration = false`. |
+| `/api/profile/event-shares/export` | GET | `?format=csv` — streams a CSV of the member's own share links + guest rows. Same filters as GET above. |
 | `/api/profile/los-summary` | GET | ADR-016: resolves `treeProfileId = primary_profile_id ?? id` for secondary profiles |
 | `/api/profile/upline` | GET | ADR-016: secondary profiles share abo_number with primary — los_members lookup works without proxy |
 | `/api/profile/payments` | GET, POST | POST triggers `sendNotificationEmail` to admin |
@@ -479,23 +507,24 @@ Normalised UNION ALL over `profiles_audit` + `role_change_audit`. Columns: `prof
 | `pin_social_post(p_id uuid)` | Atomic pin swap |
 | `get_core_ancestors(uuid)` | Core-role UUIDs above a node |
 | `rebuild_tree_paths` | Cascade ABO label rename to descendants |
-| `upsert_tree_node(p_profile_id, p_abo_number, p_sponsor_abo_number?)` | Insert/update tree node; walks `los_members` sponsor chain (max 20 hops) |
-| `approve_member_verification(p_request_id, p_admin_note?)` | **DEPRECATED** — retained as fallback only. Logic now in Inngest Step 1. |
+| `upsert_tree_node(p_profile_id, p_abo_number, p_sponsor_abo_number?)` | Insert/update tree node; walks `los_members` sponsor chain (max 20 hops, cycle guard) if direct sponsor has no portal profile |
+| `increment_share_link_click(p_token text)` | Atomic click-count increment on `event_share_links`, called when a guest lands on the registration page via a share token |
+| `approve_member_verification(p_request_id, p_admin_note?)` | **DEPRECATED** — retained as fallback only. Logic now in Inngest Step 1. Guard added #350: raises `P0002` if `profile.primary_profile_id IS NOT NULL`. |
 | `patch_member_role(p_profile_id, p_new_role, p_changed_by, p_note?)` | Role update with audit trail |
 | `get_trip_team_attendees(p_trip_id, p_viewer_profile)` | Returns Core/admin attendees for a trip |
-| `import_los_members(p_rows, p_imported_by?, p_expected_row_count?)` | Transactional LOS import. Returns `{ inserted, removed, import_id, errors }`. |
-| `rollback_los_import(p_import_id uuid)` | Restores pre-import snapshot, re-runs `rebuild_tree_paths`. Returns `{ restored, import_id }`. |
-| `promote_to_primary(p_current_primary_id, p_current_secondary_id)` | ADR-016: atomic swap. SECURITY DEFINER. ⚠️ High-risk: restructures the LOS tree. |
+| `import_los_members(p_rows, p_imported_by?, p_expected_row_count?)` | Transactional LOS import: concurrency check → snapshot → upsert → server-side delete → `rebuild_tree_paths` → insert `los_imports`. Returns `{ inserted, removed, import_id, errors }`. |
+| `rollback_los_import(p_import_id uuid)` | Restores pre-import snapshot, re-runs `rebuild_tree_paths`, marks import `rolled_back`. Returns `{ restored, import_id }`. |
+| `promote_to_primary(p_current_primary_id, p_current_secondary_id)` | ADR-016: atomic swap — transfers `tree_nodes` row, calls `rebuild_tree_paths`, swaps `primary_profile_id` values. SECURITY DEFINER. ⚠️ High-risk: restructures the LOS tree. |
 | `get_los_members_with_profiles` | Joined LOS + profile data for admin view |
 | `notify_role_request` | Fan-out to admins + Core ancestors |
 | `notify_trip_created` | Fan-out to all member/core/admin |
 | `notify_calendar_event_created` | Fan-out to descendants + Core ancestors (Core-created only) |
-| `run_los_digest` | pg_cron daily 06:00 UTC |
+| `run_los_digest` | pg_cron daily 06:00 UTC — see §10 |
 
 ### Edge Functions
 | Function | Trigger | Purpose |
 |---|---|---|
-| `sync-google-calendar` | Manual via `/api/admin/calendar-sync` | Syncs GCal events to `calendar_events` |
+| `sync-google-calendar` | Manual via `/api/admin/calendar-sync` **and** automatic hourly pg_cron (`0 * * * *` via `pg_net`) | Syncs GCal events to `calendar_events`. The hourly auto-sync is easy to miss — the admin "sync" button is not the only trigger. |
 | `send-event-reminders` | pg_cron every 5 min | Fetches unsent `scheduled_reminders`, sends via Resend, marks `sent_at`, logs to `email_log` |
 
 ---
@@ -543,6 +572,7 @@ All tokens: `styles/brand-tokens.css`. Role colors: `getRoleColors(role)` from `
 - Wrapper: `max-w-[1280px] mx-auto px-4 sm:px-6 xl:px-8`
 - Mobile: `.bento-mobile-full` = `grid-column: 1/-1 !important` | `.bento-mobile-half` = `span 6 !important`
 - Eyebrow default: `var(--brand-crimson)`. On teal/forest: `style={{ color: 'var(--brand-parchment)' }}`.
+- `rowSpan` prop must be accepted and applied by every client tile component or the grid collapses (ADR-010).
 
 ### Homepage Grid
 ```
@@ -585,7 +615,7 @@ Period selector order: AGENDA → DAY → WEEK → MONTH
 | `SUPABASE_SERVICE_ROLE_KEY` | ✅ server-only |
 | `NEXT_PUBLIC_MAPBOX_TOKEN` | ✅ `pk.` prefix |
 | `ICAL_TOKEN_SECRET` | ✅ |
-| `NEXT_PUBLIC_APP_URL` | `https://www.teamenjoyvd.com` |
+| `NEXT_PUBLIC_APP_URL` | ⚠️ **Conflicting values found in source docs as of 2026-06-20** — `https://www.teamenjoyvd.com` in one prior copy of this reference, `https://tevd-portal.vercel.app` in another. Not resolved here; check the actual Vercel project env vars before relying on either value. |
 | `RESEND_API_KEY` | ✅ |
 | `DATABASE_URL` | ⚠️ **Must be set** — direct Postgres connection (port 5432, NOT pooler 6543). Used by `lib/db/client.ts` inside Inngest jobs. |
 | `INNGEST_SIGNING_KEY` | ⚠️ **Must be set** — authenticates Inngest callbacks to `/api/inngest`. Signing key is the only security gate. |
@@ -593,3 +623,51 @@ Period selector order: AGENDA → DAY → WEEK → MONTH
 | `INSTAGRAM_ACCESS_TOKEN` | ⏳ pending |
 | `FB_PAGE_ACCESS_TOKEN` | ⏳ pending |
 | `FB_PAGE_ID` | ⏳ pending |
+
+---
+
+## §10 Notification Engine
+
+Eight DB-trigger functions write rows to `notifications` (in-app only — separate from the email system in §1/§6). Added here 2026-06-20; previously only discoverable by reading trigger bodies in `supabase/migrations/`.
+
+| Type | Trigger | Fires on | Recipients |
+|---|---|---|---|
+| `trip_created` | `on_trip_created` → `notify_trip_created` | `trips` INSERT | All member/core/admin |
+| `trip_request` | `on_trip_registration_insert` → `notify_trip_request` | `trip_registrations` INSERT | All admins |
+| `registration_status_change` | `on_trip_registration_status_change` → `notify_registration_status_change` | `trip_registrations` UPDATE OF status | Registrant |
+| `role_request` | `on_event_role_request_insert` → `notify_role_request` | `event_role_requests` INSERT | Admins + Core ancestors of requester (`get_core_ancestors`) |
+| `role_request_status_change` | `on_event_role_request_status_change` → `notify_role_request_status_change` | `event_role_requests` UPDATE OF status | Requester |
+| `doc_expiry` | `on_profile_doc_expiry_check` → `notify_doc_expiry` | `profiles` UPDATE OF `valid_through`, when within 6 months | Profile owner — **in-app only**. `DocumentExpiryEmail.tsx` exists but nothing in app code calls `sendTransactionalEmail` with it outside the generic admin email-retry-by-log-id route, which can't reach it either since no log row is ever created. Confirm this is still true before assuming the email side is dead. |
+| `calendar_event_created` | `on_calendar_event_created` → `notify_calendar_event_created` | `calendar_events` INSERT, **only if creator role = core** | Tree descendants + Core ancestors of creator |
+| `los_digest` | pg_cron daily 06:00 UTC → `run_los_digest` RPC | n/a (scheduled) | Per Core member, when `trip_request` OR `doc_expiry` count > 0 in their direct downline (24h/30d window). Skips if already sent that day. In-app only, no email. |
+
+---
+
+## §11 Airtable Field IDs
+
+**Base:** `app1n7KYX8i8xSiB7` — **Issues Table:** `tblUq45Wo3xngSf3w`
+
+| Field | ID |
+|---|---|
+| Issue ID | `fldE1F4ViLRQml5Hw` |
+| Seq (unique PK) | `fldnKdNxb4YjdHoIf` |
+| Name | `fldOSw4VEE9mXDpTm` |
+| Type | `fldQN5hAQoMFdXxyl` |
+| Status | `fldsTwNbtnh6SUuF0` |
+| Priority | `flde5GkbsiEi4jtwq` |
+| Blocked By | `fldRq9a57bHubveIx` |
+| Target Files | `fld2hLIPYvrhcyiMA` |
+| Definition of Done | `fld5U92AZuxpLHsuJ` |
+| Claude Notes | `fldYsznuq4tUt79o4` |
+| Commit Link | `fld0VWrOimUTolMIe` |
+| Duplicate | `fld2P6m5fMOsi1q3G` |
+
+| Status | Choice ID |
+|---|---|
+| To Do | `selO8Bg7VWY6E9sxB` |
+| In Progress | `sel4MPU6wsEW7uclv` |
+| Done | `selRTL4WT8qro1TnL` |
+| Not relevant | `sellrX5il5BmfBxm9` |
+| Needs Design | `sel98265UTlgLcw5r` |
+| Blocked | `sellZeVnRByP94606` |
+| Archived | `selfMrAD2qCxrMoXg` |

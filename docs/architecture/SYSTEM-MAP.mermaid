@@ -1,0 +1,254 @@
+%%{init: {'flowchart': {'curve': 'basis'}} }%%
+flowchart TD
+    ENTRY([User arrives at teamenjoyvd.com]) --> AUTH{Clerk session?}
+
+    AUTH -- No --> PUBLIC
+    subgraph PUBLIC["Public Surface (no auth)"]
+        P1["/ . /about . /calendar . /trips"]
+        P2["registerGuest() server action\nlib/actions/guest-registration.ts\nname + email (+ optional shareToken)"]
+    end
+
+    P2 --> P2CHK{shareToken present?}
+    P2CHK -- yes --> SHARELOOKUP["Resolve token to event_share_links.id"]
+    P2CHK -- no --> GR
+    SHARELOOKUP --> CLICKRPC["RPC increment_share_link_click"]
+    CLICKRPC --> GR
+
+    GR[("guest_registrations\nUPSERT on (event_id, email)\nstatus: pending to confirmed\n+ share_link_id (nullable)")]
+    GR --> ML["GuestEventMagicLinkEmail\nvia sendTransactionalEmail"]
+    GR -. "trigger: trg_schedule_guest_reminders" .-> SR
+    SR[("scheduled_reminders\n1_hour + 15_min,\nUNIQUE per (registration,type)")]
+    SR --> CRON5["pg_cron - every 5 min\nsend-event-reminders edge fn"]
+    CRON5 --> RESEND_REM["Resend API"]
+    RESEND_REM --> EL5[("email_log")]
+
+    SHARELOOKUP -. "fire-and-forget" .-> SHAREREG["notifySharerOfRegistration()\nlib/notifications/share-events.ts"]
+    SHAREREG --> SGR["ShareGuestRegisteredEmail\nto sharer's email"]
+
+    ML --> JOIN["Guest clicks magic link\n/events/[eventId]/join"]
+    JOIN --> ATTEND["Mark guest_registrations.attended_at"]
+    ATTEND -. if share_link_id .-> SHAREATT["notifySharerOfAttendance()"]
+    SHAREATT --> SGA["ShareGuestAttendedEmail\nto sharer's email"]
+
+    AUTH -- Yes --> WH["/api/webhooks/clerk\nsvix-verified, user.created/updated"]
+    WH --> PROF[("profiles\nrole: 'guest' on first create\nui_prefs jsonb default {}")]
+    PROF --> ROLE{role?}
+
+    ROLE -- guest --> GD["Guest dashboard\n(limited bento)"]
+    GD --> ABO["POST /api/profile/verify-abo\nLOS existence + sponsor match\nguard: secondary_cannot_verify (ADR-016)"]
+    GD --> SPOUSE["/api/profile/spouse-link\nGET own . POST submit . DELETE cancel"]
+    ABO --> AVR[("abo_verification_requests\nstatus: pending")]
+    AVR -. "trigger: on_verification_request_created" .-> NVR["notify_verification_request\nin-app notif, all admins"]
+    SPOUSE --> SLR[("spouse_link_requests\nUNIQUE on requester_id\nstatus: pending")]
+    SLR --> SLREMAIL["SpouseLinkRequestEmail"]
+
+    ROLE -- "member / core" --> MD["Member dashboard (full bento)"]
+    MD --> MEMBER
+
+    subgraph MEMBER["Member and Core Surface"]
+        direction TB
+
+        subgraph M_TRIPS["/trips"]
+            M1a["Browse - GET /api/trips"]
+            M1b["Register - POST /trips/[id]/register"]
+            M1c["Cancel - POST /profile/trips/[id]/cancel"]
+            M1d["Attachments - GET .../attachments\nDownload via signed URL"]
+            M1e["Messages - GET .../messages\n(read-only bulletin, no author shown)"]
+            M1f["Payments - GET /trips/[id]/payments"]
+        end
+
+        subgraph M_CAL["/calendar"]
+            M2a["Agenda/Week/Month\nGET /api/calendar"]
+            M2b["iCal token\nGET/POST /api/calendar/feed-token"]
+            M2c["iCal feed\nGET /api/calendar/feed.ics\n(JWT token param auth)"]
+            M2d["Event role request\nPOST /events/[id]/request-role"]
+            M2e["Event share link\nPOST /profile/event-shares\nexport CSV /event-shares/export"]
+        end
+
+        M3["/guides - GET /api/guides\naccess-role gated, w/ attachments"]
+
+        subgraph M_LOS["/los"]
+            M4a["Tree view - GET /api/los/tree"]
+            M4b["LOS summary - GET /profile/los-summary\nresolves treeProfileId = primary_profile_id ?? id"]
+            M4c["Upline - GET /profile/upline"]
+        end
+
+        subgraph M_PROFILE["/profile (multi-bento, drag/drop)"]
+            M5a["Personal details - GET/PATCH /api/profile"]
+            M5b["Payments - GET/POST /profile/payments\n+ proof upload (signed URL)"]
+            M5c["Vital signs (read-only) - GET /profile/vitals"]
+            M5d["Participation - GET /profile/event-roles"]
+            M5e["Bento reorder/collapse - PATCH ui_prefs jsonb"]
+        end
+
+        M6["/notifications\nGET/PATCH read . POST read-all"]
+    end
+
+    M1b --> TREG[("trip_registrations\nstatus: pending")]
+    TREG -. "trigger: on_trip_registration_insert" .-> NTR["notify_trip_request\nin-app notif, all admins"]
+    TREG -. "trigger: on_trip_registration_status_change" .-> NRSC["notify_registration_status_change\nin-app notif, registrant"]
+    M1c --> TREG
+
+    M5b --> PMNT[("payments\nmember_status='approved'\nadmin_status='pending'\nlogged_by_admin=NULL")]
+    PMNT --> PSUB["PaymentSubmittedEmail to admin"]
+
+    M2d --> ERR[("event_role_requests\nstatus: pending")]
+    ERR -. "trigger: on_event_role_request_insert" .-> NRR["notify_role_request\nadmins + Core ancestors\n(get_core_ancestors RPC)"]
+    ERR -. "trigger: on_event_role_request_status_change" .-> NRRSC["notify_role_request_status_change\nin-app notif, requester"]
+    ERR --> ERREMAIL["EventRoleRequestEmail"]
+
+    M2e --> SHARELINK[("event_share_links\nUPSERT per (profile_id,event_id)\nclick_count, share_method")]
+
+    ROLE -- admin --> AP["Admin panel"]
+    AP --> ADMIN
+
+    subgraph ADMIN["Admin Surface"]
+        direction TB
+
+        subgraph A_HUB["/admin/approval-hub"]
+            A1a["ABO verifications\nPATCH /admin/members/verify/[id]"]
+            A1b["Spouse-link requests\nGET/PATCH /admin/spouse-link-requests"]
+            A1c["Event role requests\nGET/PATCH /admin/event-role-requests"]
+        end
+
+        subgraph A_OPS["/admin/operations"]
+            A2a["Trips CRUD + hero image\n/admin/trips/[id], .../hero"]
+            A2b["Trip attachments CRUD\n.../attachments, download"]
+            A2c["Trip messages CRUD\n.../messages, .../messages/[id]"]
+            A2d["Payable items CRUD"]
+            A2e["Payments - admin log (POST)\n+ status update (PATCH)"]
+            A2f["Trip registrations - list/PATCH/cancel"]
+        end
+
+        subgraph A_CAL["/admin/calendar"]
+            A3a["Event CRUD\n/admin/calendar, .../[id]"]
+            A3b["Manual sync trigger\nPOST /admin/calendar-sync"]
+            A3c["Reminder audit\n/admin/event-reminders"]
+        end
+
+        subgraph A_CONTENT["/admin/content"]
+            A4a["Announcements CRUD"]
+            A4b["Links + Quick-links CRUD"]
+            A4c["Guides CRUD + attachments\n(upload, bulk sort, label, delete)\n+ cover image upload"]
+            A4d["Social posts CRUD\npin_social_post RPC (atomic swap)\nOG preview . thumbnail upload/refresh"]
+            A4e["Home settings (carets, featured announcement)"]
+        end
+
+        subgraph A_DC["/admin/data-center"]
+            A5a["LOS import (multi-file, transactional)\nimport_los_members RPC"]
+            A5b["LOS rollback\nrollback_los_import RPC"]
+            A5c["LOS scan (pre-import diff preview)"]
+            A5d["LOS tree (admin view)\nGET /admin/los-tree"]
+        end
+
+        subgraph A_MEMBERS["/admin/members"]
+            A6a["List: LOS + profiles + pending\nverifications + guests +\nlos_last_synced_at staleness"]
+            A6b["Detail GET - unified profile +\nLOS + registrations + payments + roles"]
+            A6c["PATCH: field update / role\n(patch_member_role RPC)"]
+            A6d["PATCH action=promote_to_primary\nrebuild_tree_paths - high-risk"]
+            A6e["PATCH action=dissolve_partnership\nto guest, Clerk sync"]
+            A6f["Assign ABO (manual)"]
+            A6g["Vital signs - record/update/deactivate\n(never DELETE - is_active flag only)"]
+            A6h["Vital sign definitions CRUD"]
+        end
+
+        subgraph A_SET["/admin/settings"]
+            A7a["Email config (master + per-template gates)"]
+            A7b["Email retry by log id"]
+            A7c["Event log (admin action audit)"]
+            A7d["Email log (delivery audit)"]
+        end
+
+        A8["Legacy /api/admin/verify\nstandalone ABO+upline approve/deny,\nno Inngest, direct Clerk sync"]
+    end
+
+    AVR --> A1a
+    A1a --> DEC{Admin decision}
+    DEC -- deny --> DENY["status: denied"]
+    DENY --> DENYEMAIL["AboVerificationEmail (denied) to guest"]
+    DEC -- approve --> INN["202 + Inngest event enqueued\napproval_jobs row created"]
+
+    subgraph INNGEST["Inngest: approve-verification (3-step durable job)"]
+        I1["Step 1 - DB transaction\nrole to member/core, abo_number set\nupline_abo_number written\nupsert_tree_node (LOS chain walk, max 20 hops)"]
+        I2["Step 2 - Clerk metadata sync\nrole + abo_number pushed"]
+        I3["Step 3 - Notifications fan-out\n+ AboVerificationEmail (approved/Welcome)"]
+        I1 --> I2 --> I3
+    end
+    INN --> INNGEST
+    I3 --> MD
+    I1 -. on exception .-> VLOG[("verification_log\nerror_code/context")]
+
+    SLR --> A1b
+    A1b --> SDEC{Admin decision}
+    SDEC -- deny --> SDENY["status: denied"]
+    SDEC -- approve --> SAPPR["Re-verify 3 guards\nprofile update . profiles_audit\nClerk sync . WelcomeEmail"]
+
+    A1c --> ERDEC{Admin decision}
+    ERDEC --> ERR
+
+    A2f --> TDEC{Trip reg decision}
+    TDEC --> TREG
+    TDEC --> TRIPREGEMAIL["TripRegistrationEmail to member"]
+
+    A2e --> PMNT
+    PMNT --> PADEC{Admin status update}
+    PADEC --> PMNT
+    PADEC --> PSTATUSEMAIL["PaymentStatusEmail to member"]
+
+    A5a --> LOSRPC["import_los_members RPC\nsnapshot, upsert, sponsor-change\nreconciliation, rebuild_tree_paths"]
+    LOSRPC --> LOSDB[("los_members + tree_nodes\n+ los_imports snapshot")]
+    A5b --> ROLLBACK["rollback_los_import RPC\nrestores snapshot, marks 'rolled_back'"]
+    ROLLBACK --> LOSDB
+
+    A6c --> AUDIT[("profiles_audit\nAFTER UPDATE trigger\ntracks abo/upline/primary/role")]
+    A6d --> PROMOTE["promote_to_primary RPC\nSECURITY DEFINER - swaps\ntree_nodes + primary_profile_id"]
+    PROMOTE --> AUDIT
+    A6e --> DISSOLVE["dissolve_partnership RPC\nto guest role, Clerk sync"]
+    DISSOLVE --> AUDIT
+
+    A3b --> GSYNC["sync-google-calendar edge function"]
+    CRONHOURLY["pg_cron - hourly (0 star star star star)\nauto-trigger via pg_net http_post"] --> GSYNC
+    GSYNC --> CE[("calendar_events")]
+    CE -. "trigger: on_calendar_event_created" .-> NCEC{"Core-created?"}
+    NCEC -- yes --> NCECFAN["notify_calendar_event_created\nfans to tree descendants +\nCore ancestors"]
+    NCEC -- no --> NCECSKIP["no-op (admin-created events\ndo not fan out)"]
+    CE --> SR
+
+    A2a -- "INSERT" --> TRIPSDB[("trips")]
+    TRIPSDB -. "trigger: on_trip_created" .-> NTC["notify_trip_created\nin-app notif, all member/core/admin"]
+
+    PROF -. "AFTER UPDATE OF valid_through" .-> DOCTRIG["on_profile_doc_expiry_check\nnotify_doc_expiry"]
+    DOCTRIG -- "if valid_through within 6 months" --> DOCNOTIF["in-app notification\ntype: doc_expiry"]
+    DOCNOTIF -. "no caller sends this - DocumentExpiryEmail tsx file exists but is only reachable via the generic admin email-retry-by-log-id route" .-> DOCEMAIL["DocumentExpiryEmail\n(orphaned - never auto-sent)"]
+
+    CRONDIGEST["pg_cron - daily 06:00 UTC"] --> LOSDIGEST["run_los_digest RPC"]
+    LOSDIGEST --> DIGESTCHECK{"trip_request OR doc_expiry count over 0 in direct downline (24h/30d)?"}
+    DIGESTCHECK -- yes --> DIGESTNOTIF["in-app notification\ntype: los_digest, per Core member\n(skips if already sent today)"]
+    DIGESTCHECK -- no --> DIGESTSKIP["no-op"]
+
+    CRON15["Inngest scheduled - every 15 min"] --> RECON["clerk-reconciliation function\nDetects Supabase role=member but\nstale/missing Clerk metadata"]
+    RECON --> PATCHCLERK["Patches Clerk publicMetadata\nto match Supabase (source of truth)"]
+
+    INGSERVE["/api/inngest serve handler\npublic route - Inngest signing-key auth only"] -. "hosts" .-> INNGEST
+    INGSERVE -. "hosts" .-> RECON
+
+    subgraph EMAIL["Email Infrastructure"]
+        direction LR
+        EC["email_config in settings\n(master toggle + per-template gates)"]
+        RSD["Resend API"]
+        EL[("email_log\nstatus . resend_id . error")]
+        EC --> RSD --> EL
+    end
+
+    ML --> EMAIL
+    SGR --> EMAIL
+    SGA --> EMAIL
+    DENYEMAIL --> EMAIL
+    I3 --> EMAIL
+    SLREMAIL --> EMAIL
+    SAPPR --> EMAIL
+    ERREMAIL --> EMAIL
+    PSUB --> EMAIL
+    TRIPREGEMAIL --> EMAIL
+    PSTATUSEMAIL --> EMAIL
+    A7b -. "re-renders any of 11 templates by email_log template, re-sends via Resend" .-> EMAIL

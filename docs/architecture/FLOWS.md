@@ -1,5 +1,5 @@
 # FLOWS.md — Component Flows (C4 L3)
-> tevd-portal · Last updated: 2026-05-07
+> tevd-portal · Last updated: 2026-06-20
 > Scope: Ambiguous zones only. Simple CRUD with no branching logic is not documented here.
 > Tooling: Mermaid state and sequence diagrams.
 
@@ -12,6 +12,8 @@
 3. [Payment Lifecycle](#3-payment-lifecycle)
 4. [LOS Tree Propagation](#4-los-tree-propagation)
 5. [Vital Signs](#5-vital-signs)
+
+> For the exhaustive current-state system map (every route, trigger, cron job, and email path — not just ambiguous zones), see [`docs/architecture/SYSTEM-MAP.mermaid`](./SYSTEM-MAP.mermaid).
 
 A flow is added here when a ticket produces ambiguity about state transitions, ownership boundaries, or sequencing. If a feature idea touches one of these flows, the flow diagram must be verified (and updated if it changes) before the ticket is executed.
 
@@ -141,7 +143,7 @@ stateDiagram-v2
     member_pending_admin_approved --> GREEN : Member confirms\nadmin-logged payment
     member_pending_admin_approved --> member_rejected_admin_approved : Member disputes
 
-    GREEN : ✅ Both approved\n(admin_status=approved\nmember_status=approved)
+    GREEN : Both approved\n(admin_status=approved\nmember_status=approved)
 ```
 
 ### Member Submission Flow
@@ -376,7 +378,7 @@ Tree structure drives targeted notification delivery:
 
 ## 5. Vital Signs
 
-> ✅ Status: **Stable / Implemented** — state model established via 2604-BUG-001 (PR #32) and API corrected via 2604-BUG-002 (PR #33), both 2026-04-14.
+> Status: **Stable / Implemented** — state model established via 2604-BUG-001 (PR #32) and API corrected via 2604-BUG-002 (PR #33), both 2026-04-14.
 
 ### Context
 

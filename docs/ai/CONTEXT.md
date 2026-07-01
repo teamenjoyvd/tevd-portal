@@ -1,8 +1,9 @@
 # CONTEXT.md — teamenjoyVD Portal
-> Last updated: 2026-04-10 — v2.3.1. Latest stable commit: 5de6c8b.
+> Last updated: 2026-06-20.
 > **Read at GATHER start. Never read at SSU.**
-> For reference tables (schema, design system, i18n, env vars, API map): `docs/ai/LOOKUP.md`
+> For reference tables (schema, design system, i18n, env vars, API map): `docs/ai/REF.md` §4-§11 — see its own Section Map.
 > For architecture, flows, and decisions: `docs/architecture/`
+> `docs/ai/LOOKUP.md` no longer exists — do not recreate it. It was archived once (2026-05) as superseded by REF.md, recreated anyway, drifted from REF.md again within a month, and was deleted for good on 2026-06-20. All reference content lives in REF.md now.
 
 ---
 
@@ -13,19 +14,8 @@
 | §1 Key Files & Patterns | `lib/`, `components/`, established patterns |
 | §2 Navigation | Header, Footer, AdminNav, `lib/nav.ts` |
 | §3 Admin Pages | Any `/admin/*` page |
-| §4 CI | `types/supabase.ts`, `check-types.yml` |
+| §4 CI | `types/supabase.ts`, `ci.yml` |
 | §5 Releases | Release history, pending issues |
-
-**LOOKUP.md section map:**
-
-| Section | Read when ticket touches |
-|---|---|
-| §1 Directory Tree | New files, new routes, component moves |
-| §2 Schema | DB, API routes, migrations, `types/supabase.ts` |
-| §3 API / RPC Map | Any API route, TanStack Query fetch |
-| §4 Design System | Bento, tokens, colors, layout, role colors |
-| §5 i18n & Regional | `translations.ts`, `t()`, `lib/format.ts` |
-| §6 Env Vars | New secrets, deployment config |
 
 ---
 
@@ -127,7 +117,7 @@ Client Mapbox tile. Theme-aware (`outdoors-v12` light / `dark-v11` dark). Mutati
 
 ## 4. CI
 
-On every push to `main`: `npx tsc --noEmit`. Workflow: `.github/workflows/check-types.yml`.
+On every push to `main`: typecheck (`npx tsc --noEmit`) → lint → build → `npm audit` (audit is non-blocking, `|| true`). Workflow: `.github/workflows/ci.yml`. No test job exists — there is no test runner in the repo.
 
 Types are maintained exclusively via `Supabase:generate_typescript_types` MCP tool after every migration. CLI not installed. No drift diff step.
 
