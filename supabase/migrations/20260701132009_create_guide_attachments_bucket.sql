@@ -12,6 +12,8 @@ VALUES ('guide-attachments', 'guide-attachments', true, 20971520)
 ON CONFLICT (id) DO NOTHING;
 
 -- Public read
+DROP POLICY IF EXISTS "guide-attachments public read" ON storage.objects;
+
 CREATE POLICY "guide-attachments public read"
 ON storage.objects
 FOR SELECT
