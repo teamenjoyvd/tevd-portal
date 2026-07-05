@@ -22,7 +22,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   }
 
   const { data, error } = await supabase
-    .from('notifications')
+    .from('member_notifications')
     .update(update)
     .eq('id', id)
     .eq('profile_id', profile.id)

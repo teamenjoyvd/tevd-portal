@@ -243,7 +243,7 @@ Deno.serve(async (req: Request) => {
   if (newEvents > 0) {
     const {data:profiles} = await sb.from('profiles').select('id').in('role',['member','core','admin'])
     if (profiles?.length) {
-      await sb.from('notifications').insert(
+      await sb.from('member_notifications').insert(
         profiles.map((p:{id:string}) => ({
           profile_id: p.id,
           type:       'event_fetched',

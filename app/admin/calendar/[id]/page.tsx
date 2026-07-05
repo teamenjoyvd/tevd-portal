@@ -24,11 +24,11 @@ export default async function AdminCalendarEventPage({
   if (!event) notFound()
 
   const { data: reminders } = await sb
-    .from('scheduled_reminders')
+    .from('notification_queue')
     .select(
-      `id, reminder_type, send_at, sent_at,
+      `id, type, send_at, sent_at, status,
        registration_id,
-       guest_registrations ( name, email )`,
+       guest_registrations!registration_id ( name, email )`,
     )
     .eq('event_id', id)
     .order('send_at', { ascending: true })

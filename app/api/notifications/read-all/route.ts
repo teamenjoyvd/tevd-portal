@@ -11,7 +11,7 @@ export async function POST() {
   if (!profile) return Response.json({ error: 'Profile not found' }, { status: 404 })
 
   const { error } = await supabase
-    .from('notifications')
+    .from('member_notifications')
     .update({ is_read: true })
     .eq('profile_id', profile.id)
     .eq('is_read', false)

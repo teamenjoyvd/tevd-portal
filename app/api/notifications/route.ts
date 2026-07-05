@@ -11,7 +11,7 @@ export async function GET(_req: Request) {
   if (!profile) return Response.json({ error: 'Profile not found' }, { status: 404 })
 
   const { data, error } = await supabase
-    .from('notifications')
+    .from('member_notifications')
     .select('*')
     .eq('profile_id', profile.id)
     .is('deleted_at', null)
@@ -34,7 +34,7 @@ export async function DELETE(req: Request) {
   if (!profile) return Response.json({ error: 'Profile not found' }, { status: 404 })
 
   const { error } = await supabase
-    .from('notifications')
+    .from('member_notifications')
     .update({ deleted_at: new Date().toISOString() })
     .eq('profile_id', profile.id)
     .is('deleted_at', null)

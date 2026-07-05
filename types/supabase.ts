@@ -10,7 +10,32 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.4"
+    PostgrestVersion: "14.5"
+  }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
@@ -280,7 +305,6 @@ export type Database = {
           profile_id: string
           role_label: string
           status: Database["public"]["Enums"]["registration_status"]
-          updated_at: string
         }
         Insert: {
           created_at?: string
@@ -290,7 +314,6 @@ export type Database = {
           profile_id: string
           role_label: string
           status?: Database["public"]["Enums"]["registration_status"]
-          updated_at?: string
         }
         Update: {
           created_at?: string
@@ -300,7 +323,6 @@ export type Database = {
           profile_id?: string
           role_label?: string
           status?: Database["public"]["Enums"]["registration_status"]
-          updated_at?: string
         }
         Relationships: [
           {
@@ -826,6 +848,57 @@ export type Database = {
           },
         ]
       }
+      member_notifications: {
+        Row: {
+          action_url: string | null
+          created_at: string
+          deleted_at: string | null
+          id: string
+          is_read: boolean
+          message: string
+          profile_id: string
+          title: string
+          type: Database["public"]["Enums"]["notification_type"]
+        }
+        Insert: {
+          action_url?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_read?: boolean
+          message: string
+          profile_id: string
+          title: string
+          type: Database["public"]["Enums"]["notification_type"]
+        }
+        Update: {
+          action_url?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_read?: boolean
+          message?: string
+          profile_id?: string
+          title?: string
+          type?: Database["public"]["Enums"]["notification_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_notifications_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "member_roles_history"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "member_notifications_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       member_vital_signs: {
         Row: {
           created_at: string
@@ -895,53 +968,211 @@ export type Database = {
           },
         ]
       }
-      notifications: {
+      notification_config: {
         Row: {
-          action_url: string | null
           created_at: string
-          deleted_at: string | null
-          id: string
-          is_read: boolean
-          message: string
-          profile_id: string
-          title: string
-          type: Database["public"]["Enums"]["notification_type"]
+          description: string | null
+          key: string
+          updated_at: string
+          value: Json
         }
         Insert: {
-          action_url?: string | null
           created_at?: string
-          deleted_at?: string | null
-          id?: string
-          is_read?: boolean
-          message: string
-          profile_id: string
-          title: string
-          type: Database["public"]["Enums"]["notification_type"]
+          description?: string | null
+          key: string
+          updated_at?: string
+          value?: Json
         }
         Update: {
-          action_url?: string | null
           created_at?: string
-          deleted_at?: string | null
+          description?: string | null
+          key?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
+      }
+      notification_delivery_log: {
+        Row: {
+          channel: Database["public"]["Enums"]["notification_channel"]
+          created_at: string
+          error: string | null
+          id: string
+          payload: Json
+          queue_id: string | null
+          recipient: string
+          resend_id: string | null
+          status: string
+          template: string
+        }
+        Insert: {
+          channel: Database["public"]["Enums"]["notification_channel"]
+          created_at?: string
+          error?: string | null
           id?: string
-          is_read?: boolean
-          message?: string
-          profile_id?: string
-          title?: string
-          type?: Database["public"]["Enums"]["notification_type"]
+          payload?: Json
+          queue_id?: string | null
+          recipient: string
+          resend_id?: string | null
+          status: string
+          template: string
+        }
+        Update: {
+          channel?: Database["public"]["Enums"]["notification_channel"]
+          created_at?: string
+          error?: string | null
+          id?: string
+          payload?: Json
+          queue_id?: string | null
+          recipient?: string
+          resend_id?: string | null
+          status?: string
+          template?: string
         }
         Relationships: [
           {
-            foreignKeyName: "notifications_profile_id_fkey"
+            foreignKeyName: "notification_delivery_log_queue_id_fkey"
+            columns: ["queue_id"]
+            isOneToOne: false
+            referencedRelation: "notification_queue"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_preferences: {
+        Row: {
+          created_at: string
+          email_enabled: boolean
+          in_app_enabled: boolean
+          preferences: Json
+          profile_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email_enabled?: boolean
+          in_app_enabled?: boolean
+          preferences?: Json
+          profile_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email_enabled?: boolean
+          in_app_enabled?: boolean
+          preferences?: Json
+          profile_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_preferences_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "member_roles_history"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "notification_preferences_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_queue: {
+        Row: {
+          attempts: number
+          channel: Database["public"]["Enums"]["notification_channel"]
+          claimed_at: string | null
+          claimed_by: string | null
+          created_at: string
+          event_id: string | null
+          id: string
+          last_error: string | null
+          max_attempts: number
+          payload: Json
+          profile_id: string | null
+          registration_id: string | null
+          send_at: string
+          sent_at: string | null
+          status: string
+          type: Database["public"]["Enums"]["notification_queue_type"]
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          channel: Database["public"]["Enums"]["notification_channel"]
+          claimed_at?: string | null
+          claimed_by?: string | null
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          last_error?: string | null
+          max_attempts?: number
+          payload?: Json
+          profile_id?: string | null
+          registration_id?: string | null
+          send_at?: string
+          sent_at?: string | null
+          status?: string
+          type: Database["public"]["Enums"]["notification_queue_type"]
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          channel?: Database["public"]["Enums"]["notification_channel"]
+          claimed_at?: string | null
+          claimed_by?: string | null
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          last_error?: string | null
+          max_attempts?: number
+          payload?: Json
+          profile_id?: string | null
+          registration_id?: string | null
+          send_at?: string
+          sent_at?: string | null
+          status?: string
+          type?: Database["public"]["Enums"]["notification_queue_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_queue_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_queue_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_roles_history"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "notification_queue_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "member_roles_history"
             referencedColumns: ["profile_id"]
           },
           {
-            foreignKeyName: "notifications_profile_id_fkey"
+            foreignKeyName: "notification_queue_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_queue_registration_id_fkey"
+            columns: ["registration_id"]
+            isOneToOne: false
+            referencedRelation: "guest_registrations"
             referencedColumns: ["id"]
           },
         ]
@@ -1129,7 +1360,6 @@ export type Database = {
           id: string
           id_number: string | null
           last_name: string
-          notification_prefs: Json
           passport_number: string | null
           phone: string | null
           primary_profile_id: string | null
@@ -1150,7 +1380,6 @@ export type Database = {
           id?: string
           id_number?: string | null
           last_name: string
-          notification_prefs?: Json
           passport_number?: string | null
           phone?: string | null
           primary_profile_id?: string | null
@@ -1171,7 +1400,6 @@ export type Database = {
           id?: string
           id_number?: string | null
           last_name?: string
-          notification_prefs?: Json
           passport_number?: string | null
           phone?: string | null
           primary_profile_id?: string | null
@@ -1375,7 +1603,6 @@ export type Database = {
           is_visible: boolean
           platform: string
           post_url: string
-          posted_at: string | null
           sort_order: number
           thumbnail_url: string | null
         }
@@ -1387,7 +1614,6 @@ export type Database = {
           is_visible?: boolean
           platform: string
           post_url: string
-          posted_at?: string | null
           sort_order?: number
           thumbnail_url?: string | null
         }
@@ -1399,7 +1625,6 @@ export type Database = {
           is_visible?: boolean
           platform?: string
           post_url?: string
-          posted_at?: string | null
           sort_order?: number
           thumbnail_url?: string | null
         }
@@ -1626,7 +1851,6 @@ export type Database = {
           profile_id: string
           status: Database["public"]["Enums"]["registration_status"]
           trip_id: string
-          updated_at: string
         }
         Insert: {
           cancelled_at?: string | null
@@ -1636,7 +1860,6 @@ export type Database = {
           profile_id: string
           status?: Database["public"]["Enums"]["registration_status"]
           trip_id: string
-          updated_at?: string
         }
         Update: {
           cancelled_at?: string | null
@@ -1646,7 +1869,6 @@ export type Database = {
           profile_id?: string
           status?: Database["public"]["Enums"]["registration_status"]
           trip_id?: string
-          updated_at?: string
         }
         Relationships: [
           {
@@ -1899,12 +2121,86 @@ export type Database = {
           upline_abo_number: string
         }[]
       }
+      claim_due_notifications: {
+        Args: {
+          p_channel: Database["public"]["Enums"]["notification_channel"]
+          p_limit?: number
+          p_worker_id: string
+        }
+        Returns: {
+          attempts: number
+          channel: Database["public"]["Enums"]["notification_channel"]
+          claimed_at: string | null
+          claimed_by: string | null
+          created_at: string
+          event_id: string | null
+          id: string
+          last_error: string | null
+          max_attempts: number
+          payload: Json
+          profile_id: string | null
+          registration_id: string | null
+          send_at: string
+          sent_at: string | null
+          status: string
+          type: Database["public"]["Enums"]["notification_queue_type"]
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "notification_queue"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       dissolve_partnership: {
         Args: { p_changed_by: string; p_profile_id: string }
         Returns: {
           clerk_id: string
           old_role: Database["public"]["Enums"]["user_role"]
         }[]
+      }
+      enqueue_notification: {
+        Args: {
+          p_channel: Database["public"]["Enums"]["notification_channel"]
+          p_payload: Json
+          p_profile_id: string
+          p_send_at?: string
+          p_type: Database["public"]["Enums"]["notification_queue_type"]
+        }
+        Returns: {
+          attempts: number
+          channel: Database["public"]["Enums"]["notification_channel"]
+          claimed_at: string | null
+          claimed_by: string | null
+          created_at: string
+          event_id: string | null
+          id: string
+          last_error: string | null
+          max_attempts: number
+          payload: Json
+          profile_id: string | null
+          registration_id: string | null
+          send_at: string
+          sent_at: string | null
+          status: string
+          type: Database["public"]["Enums"]["notification_queue_type"]
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "notification_queue"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      fn_schedule_guest_reminders_record: {
+        Args: {
+          p_event_title: string
+          p_registration_id: string
+          p_start_time: string
+        }
+        Returns: undefined
       }
       get_core_ancestors: { Args: { p_profile_id: string }; Returns: string[] }
       get_event_years: {
@@ -1979,7 +2275,6 @@ export type Database = {
           id: string
           id_number: string | null
           last_name: string
-          notification_prefs: Json
           passport_number: string | null
           phone: string | null
           primary_profile_id: string | null
@@ -2029,6 +2324,11 @@ export type Database = {
       event_category: "N21" | "Personal"
       event_type: "in-person" | "online" | "hybrid"
       guest_registration_status: "pending" | "confirmed"
+      notification_channel: "email" | "in_app"
+      notification_queue_type:
+        | "event_reminder_1h"
+        | "event_reminder_15m"
+        | "doc_expiry"
       notification_type:
         | "role_request"
         | "trip_request"
@@ -2036,12 +2336,459 @@ export type Database = {
         | "event_fetched"
         | "doc_expiry"
         | "los_digest"
-        | "trip_message"
-        | "trip_attachment"
-        | "spouse_link_request"
       registration_status: "pending" | "approved" | "denied"
       reminder_type: "1_hour" | "15_min"
       user_role: "admin" | "core" | "member" | "guest"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+  storage: {
+    Tables: {
+      buckets: {
+        Row: {
+          allowed_mime_types: string[] | null
+          avif_autodetection: boolean | null
+          created_at: string | null
+          file_size_limit: number | null
+          id: string
+          name: string
+          owner: string | null
+          owner_id: string | null
+          public: boolean | null
+          type: Database["storage"]["Enums"]["buckettype"]
+          updated_at: string | null
+        }
+        Insert: {
+          allowed_mime_types?: string[] | null
+          avif_autodetection?: boolean | null
+          created_at?: string | null
+          file_size_limit?: number | null
+          id: string
+          name: string
+          owner?: string | null
+          owner_id?: string | null
+          public?: boolean | null
+          type?: Database["storage"]["Enums"]["buckettype"]
+          updated_at?: string | null
+        }
+        Update: {
+          allowed_mime_types?: string[] | null
+          avif_autodetection?: boolean | null
+          created_at?: string | null
+          file_size_limit?: number | null
+          id?: string
+          name?: string
+          owner?: string | null
+          owner_id?: string | null
+          public?: boolean | null
+          type?: Database["storage"]["Enums"]["buckettype"]
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      buckets_analytics: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          format: string
+          id: string
+          name: string
+          type: Database["storage"]["Enums"]["buckettype"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          format?: string
+          id?: string
+          name: string
+          type?: Database["storage"]["Enums"]["buckettype"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          format?: string
+          id?: string
+          name?: string
+          type?: Database["storage"]["Enums"]["buckettype"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      buckets_vectors: {
+        Row: {
+          created_at: string
+          id: string
+          type: Database["storage"]["Enums"]["buckettype"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          type?: Database["storage"]["Enums"]["buckettype"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          type?: Database["storage"]["Enums"]["buckettype"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      migrations: {
+        Row: {
+          executed_at: string | null
+          hash: string
+          id: number
+          name: string
+        }
+        Insert: {
+          executed_at?: string | null
+          hash: string
+          id: number
+          name: string
+        }
+        Update: {
+          executed_at?: string | null
+          hash?: string
+          id?: number
+          name?: string
+        }
+        Relationships: []
+      }
+      objects: {
+        Row: {
+          bucket_id: string | null
+          created_at: string | null
+          id: string
+          last_accessed_at: string | null
+          metadata: Json | null
+          name: string | null
+          owner: string | null
+          owner_id: string | null
+          path_tokens: string[] | null
+          updated_at: string | null
+          user_metadata: Json | null
+          version: string | null
+        }
+        Insert: {
+          bucket_id?: string | null
+          created_at?: string | null
+          id?: string
+          last_accessed_at?: string | null
+          metadata?: Json | null
+          name?: string | null
+          owner?: string | null
+          owner_id?: string | null
+          path_tokens?: string[] | null
+          updated_at?: string | null
+          user_metadata?: Json | null
+          version?: string | null
+        }
+        Update: {
+          bucket_id?: string | null
+          created_at?: string | null
+          id?: string
+          last_accessed_at?: string | null
+          metadata?: Json | null
+          name?: string | null
+          owner?: string | null
+          owner_id?: string | null
+          path_tokens?: string[] | null
+          updated_at?: string | null
+          user_metadata?: Json | null
+          version?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "objects_bucketId_fkey"
+            columns: ["bucket_id"]
+            isOneToOne: false
+            referencedRelation: "buckets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      s3_multipart_uploads: {
+        Row: {
+          bucket_id: string
+          created_at: string
+          id: string
+          in_progress_size: number
+          key: string
+          metadata: Json | null
+          owner_id: string | null
+          upload_signature: string
+          user_metadata: Json | null
+          version: string
+        }
+        Insert: {
+          bucket_id: string
+          created_at?: string
+          id: string
+          in_progress_size?: number
+          key: string
+          metadata?: Json | null
+          owner_id?: string | null
+          upload_signature: string
+          user_metadata?: Json | null
+          version: string
+        }
+        Update: {
+          bucket_id?: string
+          created_at?: string
+          id?: string
+          in_progress_size?: number
+          key?: string
+          metadata?: Json | null
+          owner_id?: string | null
+          upload_signature?: string
+          user_metadata?: Json | null
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "s3_multipart_uploads_bucket_id_fkey"
+            columns: ["bucket_id"]
+            isOneToOne: false
+            referencedRelation: "buckets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      s3_multipart_uploads_parts: {
+        Row: {
+          bucket_id: string
+          created_at: string
+          etag: string
+          id: string
+          key: string
+          owner_id: string | null
+          part_number: number
+          size: number
+          upload_id: string
+          version: string
+        }
+        Insert: {
+          bucket_id: string
+          created_at?: string
+          etag: string
+          id?: string
+          key: string
+          owner_id?: string | null
+          part_number: number
+          size?: number
+          upload_id: string
+          version: string
+        }
+        Update: {
+          bucket_id?: string
+          created_at?: string
+          etag?: string
+          id?: string
+          key?: string
+          owner_id?: string | null
+          part_number?: number
+          size?: number
+          upload_id?: string
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "s3_multipart_uploads_parts_bucket_id_fkey"
+            columns: ["bucket_id"]
+            isOneToOne: false
+            referencedRelation: "buckets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "s3_multipart_uploads_parts_upload_id_fkey"
+            columns: ["upload_id"]
+            isOneToOne: false
+            referencedRelation: "s3_multipart_uploads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vector_indexes: {
+        Row: {
+          bucket_id: string
+          created_at: string
+          data_type: string
+          dimension: number
+          distance_metric: string
+          id: string
+          metadata_configuration: Json | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          bucket_id: string
+          created_at?: string
+          data_type: string
+          dimension: number
+          distance_metric: string
+          id?: string
+          metadata_configuration?: Json | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          bucket_id?: string
+          created_at?: string
+          data_type?: string
+          dimension?: number
+          distance_metric?: string
+          id?: string
+          metadata_configuration?: Json | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vector_indexes_bucket_id_fkey"
+            columns: ["bucket_id"]
+            isOneToOne: false
+            referencedRelation: "buckets_vectors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      allow_any_operation: {
+        Args: { expected_operations: string[] }
+        Returns: boolean
+      }
+      allow_only_operation: {
+        Args: { expected_operation: string }
+        Returns: boolean
+      }
+      can_insert_object: {
+        Args: { bucketid: string; metadata: Json; name: string; owner: string }
+        Returns: undefined
+      }
+      extension: { Args: { name: string }; Returns: string }
+      filename: { Args: { name: string }; Returns: string }
+      foldername: { Args: { name: string }; Returns: string[] }
+      get_common_prefix: {
+        Args: { p_delimiter: string; p_key: string; p_prefix: string }
+        Returns: string
+      }
+      get_size_by_bucket: {
+        Args: never
+        Returns: {
+          bucket_id: string
+          size: number
+        }[]
+      }
+      list_multipart_uploads_with_delimiter: {
+        Args: {
+          bucket_id: string
+          delimiter_param: string
+          max_keys?: number
+          next_key_token?: string
+          next_upload_token?: string
+          prefix_param: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          key: string
+        }[]
+      }
+      list_objects_with_delimiter: {
+        Args: {
+          _bucket_id: string
+          delimiter_param: string
+          max_keys?: number
+          next_token?: string
+          prefix_param: string
+          sort_order?: string
+          start_after?: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          last_accessed_at: string
+          metadata: Json
+          name: string
+          updated_at: string
+        }[]
+      }
+      operation: { Args: never; Returns: string }
+      search: {
+        Args: {
+          bucketname: string
+          levels?: number
+          limits?: number
+          offsets?: number
+          prefix: string
+          search?: string
+          sortcolumn?: string
+          sortorder?: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          last_accessed_at: string
+          metadata: Json
+          name: string
+          updated_at: string
+        }[]
+      }
+      search_by_timestamp: {
+        Args: {
+          p_bucket_id: string
+          p_level: number
+          p_limit: number
+          p_prefix: string
+          p_sort_column: string
+          p_sort_column_after: string
+          p_sort_order: string
+          p_start_after: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          key: string
+          last_accessed_at: string
+          metadata: Json
+          name: string
+          updated_at: string
+        }[]
+      }
+      search_v2: {
+        Args: {
+          bucket_name: string
+          levels?: number
+          limits?: number
+          prefix: string
+          sort_column?: string
+          sort_column_after?: string
+          sort_order?: string
+          start_after?: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          key: string
+          last_accessed_at: string
+          metadata: Json
+          name: string
+          updated_at: string
+        }[]
+      }
+    }
+    Enums: {
+      buckettype: "STANDARD" | "ANALYTICS" | "VECTOR"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2167,12 +2914,21 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       document_type: ["id", "passport"],
       event_category: ["N21", "Personal"],
       event_type: ["in-person", "online", "hybrid"],
       guest_registration_status: ["pending", "confirmed"],
+      notification_channel: ["email", "in_app"],
+      notification_queue_type: [
+        "event_reminder_1h",
+        "event_reminder_15m",
+        "doc_expiry",
+      ],
       notification_type: [
         "role_request",
         "trip_request",
@@ -2180,13 +2936,15 @@ export const Constants = {
         "event_fetched",
         "doc_expiry",
         "los_digest",
-        "trip_message",
-        "trip_attachment",
-        "spouse_link_request",
       ],
       registration_status: ["pending", "approved", "denied"],
       reminder_type: ["1_hour", "15_min"],
       user_role: ["admin", "core", "member", "guest"],
+    },
+  },
+  storage: {
+    Enums: {
+      buckettype: ["STANDARD", "ANALYTICS", "VECTOR"],
     },
   },
 } as const

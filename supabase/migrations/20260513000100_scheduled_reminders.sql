@@ -1,12 +1,19 @@
 -- Migration: scheduled_reminders table + guest reminder trigger
 -- Ticket: 2505-FEAT-346
 
+DROP TRIGGER IF EXISTS trg_reschedule_guest_reminders ON calendar_events;
+DROP TRIGGER IF EXISTS trg_schedule_guest_reminders ON guest_registrations;
+DROP FUNCTION IF EXISTS fn_reschedule_guest_reminders();
+DROP FUNCTION IF EXISTS fn_schedule_guest_reminders();
+DROP TABLE IF EXISTS scheduled_reminders;
+DROP TYPE IF EXISTS reminder_type;
+
 -- 1. New enum
 CREATE TYPE reminder_type AS ENUM ('1_hour', '15_min');
 
 -- 2. Table
 CREATE TABLE scheduled_reminders (
-  id              uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   registration_id uuid NOT NULL REFERENCES guest_registrations(id) ON DELETE CASCADE,
   event_id        uuid NOT NULL REFERENCES calendar_events(id) ON DELETE CASCADE,
   reminder_type   reminder_type NOT NULL,

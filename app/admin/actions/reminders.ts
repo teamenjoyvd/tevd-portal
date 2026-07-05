@@ -49,28 +49,34 @@ export async function toggleEventReminders(eventId: string, enabled: boolean) {
 
 // ---------------------------------------------------------------------------
 // cancelReminder
-// Deletes a pending (unsent) scheduled_reminder row.
+// Deletes a scheduled reminder from notification_queue where status is pending or failed.
 // ---------------------------------------------------------------------------
 export async function cancelReminder(reminderId: string) {
   const sb = await requireAdminAuth()
   await sb
-    .from('scheduled_reminders')
+    .from('notification_queue')
     .delete()
     .eq('id', reminderId)
-    .is('sent_at', null) // only pending rows
+    .in('status', ['pending', 'failed'])
   revalidatePath('/admin/settings')
 }
 
 // ---------------------------------------------------------------------------
 // resendReminder
-// Resets sent_at to null and sets send_at = now() so the cron picks it up
-// immediately on the next run.
+// Resets status to pending, attempts to 0, sent_at to null, last_error to null,
+// and sets send_at = now() so the background worker retries it.
 // ---------------------------------------------------------------------------
 export async function resendReminder(reminderId: string) {
   const sb = await requireAdminAuth()
   await sb
-    .from('scheduled_reminders')
-    .update({ sent_at: null, send_at: new Date().toISOString() })
+    .from('notification_queue')
+    .update({
+      status: 'pending',
+      attempts: 0,
+      sent_at: null,
+      last_error: null,
+      send_at: new Date().toISOString(),
+    })
     .eq('id', reminderId)
   revalidatePath('/admin/settings')
 }
@@ -85,8 +91,14 @@ export async function rescheduleReminder(reminderId: string, newSendAt: string) 
   }
   const sb = await requireAdminAuth()
   await sb
-    .from('scheduled_reminders')
-    .update({ send_at: newSendAt, sent_at: null })
+    .from('notification_queue')
+    .update({
+      send_at: newSendAt,
+      status: 'pending',
+      attempts: 0,
+      sent_at: null,
+      last_error: null,
+    })
     .eq('id', reminderId)
   revalidatePath('/admin/settings')
 }

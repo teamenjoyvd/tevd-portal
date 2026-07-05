@@ -287,7 +287,7 @@ export async function POST(req: Request) {
   }
 
   // In-app notification
-  const { error: notifyError } = await supabase.from('notifications').insert({
+  const { error: notifyError } = await supabase.from('member_notifications').insert({
     profile_id: profile.id,
     type: 'role_request',
     title: 'ABO Verification Approved',

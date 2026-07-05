@@ -24,27 +24,54 @@ import { Drawer } from '@/components/ui/drawer'
 
 type Reminder = {
   id: string
-  reminder_type: Database['public']['Enums']['reminder_type']
+  type: 'event_reminder_1h' | 'event_reminder_15m' | 'doc_expiry'
   send_at: string
   sent_at: string | null
-  registration_id: string
+  status: string
+  registration_id: string | null
   guest_registrations: { name: string; email: string } | null
 }
 
 const REMINDER_LABEL: Record<string, string> = {
-  '1_hour': '1 hour before',
-  '15_min': '15 min before',
+  'event_reminder_1h': '1 hour before',
+  'event_reminder_15m': '15 min before',
+  'doc_expiry': 'Doc Expiry',
 }
 
-function StatusPill({ sent }: { sent: boolean }) {
+function StatusPill({ status }: { status: string }) {
+  let colors = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+  let label = 'Pending'
+
+  switch (status) {
+    case 'sent':
+      colors = 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+      label = 'Sent'
+      break
+    case 'claimed':
+      colors = 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
+      label = 'Claimed'
+      break
+    case 'failed':
+      colors = 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400'
+      label = 'Failed'
+      break
+    case 'permanently_failed':
+      colors = 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+      label = 'Permanently Failed'
+      break
+    case 'pending':
+    default:
+      colors = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+      label = 'Pending'
+      break
+  }
+
   return (
     <span className={[
       'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
-      sent
-        ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-        : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
+      colors,
     ].join(' ')}>
-      {sent ? 'Sent' : 'Pending'}
+      {label}
     </span>
   )
 }
@@ -93,7 +120,8 @@ function RowActions({ reminder }: { reminder: Reminder }) {
   const [rescheduleOpen, setRescheduleOpen] = useState(false)
   const [newSendAt, setNewSendAt] = useState('')
   const [pending, startTransition] = useTransition()
-  const isSent = !!reminder.sent_at
+  const canCancelOrReschedule = reminder.status === 'pending' || reminder.status === 'failed'
+  const canResend = reminder.status === 'sent' || reminder.status === 'permanently_failed'
 
   function handleCancel() {
     startTransition(async () => {
@@ -120,7 +148,7 @@ function RowActions({ reminder }: { reminder: Reminder }) {
 
   return (
     <div className="flex items-center gap-2">
-      {!isSent && (
+      {canCancelOrReschedule && (
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <button
@@ -147,7 +175,7 @@ function RowActions({ reminder }: { reminder: Reminder }) {
         </AlertDialog>
       )}
 
-      {isSent && (
+      {canResend && (
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <button
@@ -173,7 +201,7 @@ function RowActions({ reminder }: { reminder: Reminder }) {
         </AlertDialog>
       )}
 
-      {!isSent && (
+      {canCancelOrReschedule && (
         <>
           <button
             disabled={pending}
@@ -187,7 +215,7 @@ function RowActions({ reminder }: { reminder: Reminder }) {
             <div className="space-y-4">
               <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                 New send time for <strong>{reminder.guest_registrations?.name ?? 'this guest'}</strong>&apos;s{' '}
-                {REMINDER_LABEL[reminder.reminder_type]} reminder.
+                {REMINDER_LABEL[reminder.type]} reminder.
               </p>
               <div className="space-y-1">
                 <label className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>New send time</label>
@@ -264,11 +292,11 @@ export default function ReminderTable({
                   <tr key={r.id} style={{ backgroundColor: 'var(--bg-card)' }}>
                     <td className="px-4 py-3" style={{ color: 'var(--text-primary)' }}>{r.guest_registrations?.name ?? '—'}</td>
                     <td className="px-4 py-3" style={{ color: 'var(--text-muted)' }}>{r.guest_registrations?.email ?? '—'}</td>
-                    <td className="px-4 py-3" style={{ color: 'var(--text-secondary)' }}>{REMINDER_LABEL[r.reminder_type] ?? r.reminder_type}</td>
+                    <td className="px-4 py-3" style={{ color: 'var(--text-secondary)' }}>{REMINDER_LABEL[r.type] ?? r.type}</td>
                     <td className="px-4 py-3 tabular-nums" style={{ color: 'var(--text-muted)' }}>
                       {new Date(r.send_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                     </td>
-                    <td className="px-4 py-3"><StatusPill sent={!!r.sent_at} /></td>
+                    <td className="px-4 py-3"><StatusPill status={r.status} /></td>
                     <td className="px-4 py-3"><RowActions reminder={r} /></td>
                   </tr>
                 ))}
@@ -282,11 +310,11 @@ export default function ReminderTable({
               <div key={r.id} className="rounded-lg border p-4 space-y-2" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--bg-card)' }}>
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-medium text-sm truncate" style={{ color: 'var(--text-primary)' }}>{r.guest_registrations?.name ?? '—'}</span>
-                  <StatusPill sent={!!r.sent_at} />
+                  <StatusPill status={r.status} />
                 </div>
                 <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{r.guest_registrations?.email ?? '—'}</p>
                 <div className="flex items-center justify-between text-xs" style={{ color: 'var(--text-secondary)' }}>
-                  <span>{REMINDER_LABEL[r.reminder_type] ?? r.reminder_type}</span>
+                  <span>{REMINDER_LABEL[r.type] ?? r.type}</span>
                   <span className="tabular-nums">{new Date(r.send_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
                 </div>
                 <RowActions reminder={r} />

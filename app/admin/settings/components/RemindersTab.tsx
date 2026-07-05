@@ -24,14 +24,15 @@ import {
 import { Drawer } from '@/components/ui/drawer'
 import { Database } from '@/types/supabase'
 
-type ReminderType = Database['public']['Enums']['reminder_type']
+type ReminderType = 'event_reminder_1h' | 'event_reminder_15m' | 'doc_expiry'
 
 type ReminderRow = {
   id: string
   event_id: string
-  reminder_type: ReminderType
+  type: ReminderType
   send_at: string
   sent_at: string | null
+  status: string
   calendar_events: { id: string; title: string; start_time: string; reminders_enabled: boolean } | null
   guest_registrations: { name: string; email: string } | null
 }
@@ -45,19 +46,45 @@ type EventGroup = {
 }
 
 const REMINDER_LABEL: Record<string, string> = {
-  '1_hour': '1 hr',
-  '15_min': '15 min',
+  'event_reminder_1h': '1 hr',
+  'event_reminder_15m': '15 min',
+  'doc_expiry': 'Doc Expiry',
 }
 
-function StatusPill({ sent }: { sent: boolean }) {
+function StatusPill({ status }: { status: string }) {
+  let colors = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+  let label = 'Pending'
+
+  switch (status) {
+    case 'sent':
+      colors = 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+      label = 'Sent'
+      break
+    case 'claimed':
+      colors = 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
+      label = 'Claimed'
+      break
+    case 'failed':
+      colors = 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400'
+      label = 'Failed'
+      break
+    case 'permanently_failed':
+      colors = 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+      label = 'Permanently Failed'
+      break
+    case 'pending':
+    default:
+      colors = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+      label = 'Pending'
+      break
+  }
+
   return (
     <span className={[
       'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
-      sent
-        ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-        : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
+      colors,
     ].join(' ')}>
-      {sent ? 'Sent' : 'Pending'}
+      {label}
     </span>
   )
 }
@@ -147,7 +174,8 @@ function ReminderRowActions({ reminder }: { reminder: ReminderRow }) {
   const [rescheduleOpen, setRescheduleOpen] = useState(false)
   const [newSendAt, setNewSendAt] = useState('')
   const [pending, startTransition] = useTransition()
-  const isSent = !!reminder.sent_at
+  const canCancelOrReschedule = reminder.status === 'pending' || reminder.status === 'failed'
+  const canResend = reminder.status === 'sent' || reminder.status === 'permanently_failed'
 
   function handleCancel() {
     startTransition(async () => {
@@ -174,8 +202,8 @@ function ReminderRowActions({ reminder }: { reminder: ReminderRow }) {
 
   return (
     <div className="flex items-center gap-2">
-      {!isSent && (
-        // Cancel — pending only
+      {canCancelOrReschedule && (
+        // Cancel — pending/failed only
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <button
@@ -202,8 +230,8 @@ function ReminderRowActions({ reminder }: { reminder: ReminderRow }) {
         </AlertDialog>
       )}
 
-      {isSent && (
-        // Resend — sent only, needs confirm
+      {canResend && (
+        // Resend — sent/permanently_failed, needs confirm
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <button
@@ -229,8 +257,8 @@ function ReminderRowActions({ reminder }: { reminder: ReminderRow }) {
         </AlertDialog>
       )}
 
-      {!isSent && (
-        // Reschedule — pending only
+      {canCancelOrReschedule && (
+        // Reschedule — pending/failed only
         <>
           <button
             disabled={pending}
@@ -249,7 +277,7 @@ function ReminderRowActions({ reminder }: { reminder: ReminderRow }) {
               <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                 Set a new send time for{' '}
                 <strong>{reminder.guest_registrations?.name ?? 'this guest'}</strong>&apos;s{' '}
-                {REMINDER_LABEL[reminder.reminder_type]} reminder.
+                {REMINDER_LABEL[reminder.type]} reminder.
               </p>
               <div className="space-y-1">
                 <label className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>New send time</label>
@@ -379,11 +407,11 @@ export function RemindersTab({ globalToggles, reminders, truncated }: RemindersT
                           <div>{r.guest_registrations?.name ?? '—'}</div>
                           <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>{r.guest_registrations?.email ?? ''}</div>
                         </td>
-                        <td className="px-4 py-3 text-xs" style={{ color: 'var(--text-secondary)' }}>{REMINDER_LABEL[r.reminder_type] ?? r.reminder_type}</td>
+                        <td className="px-4 py-3 text-xs" style={{ color: 'var(--text-secondary)' }}>{REMINDER_LABEL[r.type] ?? r.type}</td>
                         <td className="px-4 py-3 tabular-nums text-xs" style={{ color: 'var(--text-secondary)' }}>
                           {new Date(r.send_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                         </td>
-                        <td className="px-4 py-3"><StatusPill sent={!!r.sent_at} /></td>
+                        <td className="px-4 py-3"><StatusPill status={r.status} /></td>
                         <td className="px-4 py-3">
                           <ReminderRowActions reminder={r} />
                         </td>
@@ -399,11 +427,11 @@ export function RemindersTab({ globalToggles, reminders, truncated }: RemindersT
                   <div key={r.id} className="p-4 space-y-2" style={{ backgroundColor: 'var(--bg-card)' }}>
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{r.guest_registrations?.name ?? '—'}</span>
-                      <StatusPill sent={!!r.sent_at} />
+                      <StatusPill status={r.status} />
                     </div>
                     <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{r.guest_registrations?.email ?? '—'}</p>
                     <div className="flex items-center justify-between text-xs" style={{ color: 'var(--text-secondary)' }}>
-                      <span>{REMINDER_LABEL[r.reminder_type] ?? r.reminder_type}</span>
+                      <span>{REMINDER_LABEL[r.type] ?? r.type}</span>
                       <span className="tabular-nums">{new Date(r.send_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
                     </div>
                     <ReminderRowActions reminder={r} />
