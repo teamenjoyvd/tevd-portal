@@ -2,12 +2,12 @@
 Review CLAUDE.md + guardrails/ai/architecture/cursor-rules infrastructure; apply the approved doc fixes (findings 1-14, 16) from the review plan.
 
 ## Now
-CLAIM complete for the test-infra ticket: GitHub issue #472, branch dev/2607-DEV-472 (from main), Design Checklist + ## Branch both on the issue body. Phantom-Inngest doc purge also complete and grep-verified clean.
+Doc-fix commit (1cce4c2, 15 files) pushed to claude/mystifying-almeida-2e1a2e; PR #473 opened against main per explicit user create-pr-command. CLAIM for the separate test-infra ticket (#472 / dev/2607-DEV-472) already complete.
 
 ## Next
-1. BUILD #472 (separate invocation — anthropic-skills:build; BUILD does no design work, CLAIM already complete)
-2. This worktree's local doc-fix edits (11+ files, uncommitted) are unrelated to #472's branch — if user wants them committed/pushed, confirm target branch first (never main; never push unless asked)
-3. User-side: point Antigravity's config at root AGENTS.md / CLAUDE.md
+1. BUILD #472 (separate invocation — anthropic-skills:build; different branch, unrelated to PR #473)
+2. User-side: point Antigravity's config at root AGENTS.md / CLAUDE.md
+3. Watch PR #473 for CI/Vercel preview result (doc-only change, build should be unaffected)
 
 ## Constraints
 - PLAN-mode review first, "do not edit any file... Wait for approval before touching anything" (approval granted via ExitPlanMode)
@@ -25,6 +25,7 @@ DECISION: ADR-009/ADR-006 get dated amendment/correction notes, not rewrites —
 ## Facts
 - Issue #472 "[2607-DEV-472] Add test infrastructure: Vitest + CI test job + first unit tests" — https://github.com/teamenjoyvd/tevd-portal/issues/472
 - Branch dev/2607-DEV-472 created from main (sha 2e8a745, current main tip at CLAIM time)
+- PR #473 (doc fixes) — https://github.com/teamenjoyvd/tevd-portal/pull/473, branch claude/mystifying-almeida-2e1a2e -> main, commit 1cce4c2
 - Worktree: .claude/worktrees/mystifying-almeida-2e1a2e, branch claude/mystifying-almeida-2e1a2e, tree clean at session start
 - No middleware.ts, no lib/proxy.ts; Clerk middleware = root proxy.ts; next.config.ts has no proxy mention
 - Actual vitals route dir: app/api/profile/vital-signs (no `vitals` dir)
@@ -44,6 +45,7 @@ Fixes applied — RESULT: 11 files modified + docs/STATE.md created; 52 insertio
 NOTED (not done): docs/archive/CLAUDE.md.bak still contains 2 `add <n>` occurrences — archived file, left untouched.
 Finding-5 correction — RESULT: original FLOWS.md text was right all along (Inngest removed in #322); my Inngest rewrite reverted same session, net FLOWS diff = header date + one history-note sentence. Evidence: git diff quoted in transcript; git log -S inngest -> 0272e7a "Rip out Inngest".
 Phantom-Inngest purge — RESULT: C4.md/REF.md/SYSTEM-MAP.mermaid corrected; final grep shows only 5 intentional "removed in #322" notes remain repo-wide; mermaid subgraph/end counts balanced 15/15 post-edit.
+PR creation — RESULT: 15 files committed (1cce4c2), pushed to claude/mystifying-almeida-2e1a2e, PR #473 opened. Pre-commit hook (validate-rules.js): 2 passed, 101 warnings (pre-existing migration ROLLBACK-comment convention + branch-naming heuristic), 0 failures.
 
 ## Open items
 - Finding 15 CLOSED: user decision = leave DEBUG.md as-is; report the F11 overage upstream to the kit source if desired

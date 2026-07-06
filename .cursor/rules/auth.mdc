@@ -1,6 +1,6 @@
 ---
 description: Enforces Clerk authentication, protected routes, middleware scope, and proxy routing
-globs: ["app/api/**/*.ts", "proxy.ts", "lib/public-routes.ts"]
+globs: ["app/api/**/*.ts", "proxy.ts", "lib/public-routes.ts", "lib/actions/**/*.ts", "app/**/actions/**/*.ts"]
 alwaysApply: false
 ---
 # Authentication and Edge Protection Rule

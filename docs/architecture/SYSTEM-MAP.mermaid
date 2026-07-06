@@ -76,7 +76,7 @@ flowchart TD
         subgraph M_PROFILE["/profile (multi-bento, drag/drop)"]
             M5a["Personal details - GET/PATCH /api/profile"]
             M5b["Payments - GET/POST /profile/payments\n+ proof upload (signed URL)"]
-            M5c["Vital signs (read-only) - GET /profile/vitals"]
+            M5c["Vital signs (read-only) - GET /api/profile/vital-signs"]
             M5d["Participation - GET /profile/event-roles"]
             M5e["Bento reorder/collapse - PATCH ui_prefs jsonb"]
         end

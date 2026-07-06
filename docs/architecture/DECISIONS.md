@@ -288,13 +288,13 @@ next-intl and react-i18next both require: a provider wrapping the app, locale de
 ## ADR-009 — Dual-Layout Pattern (Two Complete Layouts, Not Responsive)
 
 **Date:** 2026-03
-**Status:** Amended 2026-07-06 — the quantitative Layout Decision Rules (CLAUDE.md `## Project` and `.cursor/rules/frontend.mdc`) now govern when a dual layout applies: default is a single responsive layout; dual layout only on the four listed triggers. When a trigger applies, the pattern below remains the canonical dual-layout implementation.
+**Status:** Amended 2026-07-06 — the quantitative Layout Decision Rules (CLAUDE.md `## Project` and `.cursor/rules/frontend.mdc`) now govern when a dual layout applies: default is a single responsive layout; use the canonical dual-layout pattern only when one of the four listed triggers applies.
 
 ### Context
 Pages need to render correctly on both desktop (1024px+) and mobile (390px+). Options: a single responsive layout using breakpoint utilities, or two separate complete layout trees with `hidden md:block` / `md:hidden`.
 
 ### Decision
-Every page that has meaningfully different desktop and mobile UX uses two separate complete layout trees. No hybrid responsive layout. Canonical reference: `app/(dashboard)/about/page.tsx`.
+Use two separate complete layout trees only for the four documented triggers; otherwise prefer a single responsive layout. Canonical reference: `app/(dashboard)/about/page.tsx`.
 
 ### Why not a single responsive layout
 Desktop and mobile UX contracts for this application are fundamentally different: navigation pattern (persistent header nav vs. hamburger), content density (multi-column bento grid vs. stacked single column), and component behaviour (popovers vs. bottom sheets in `EventPopup`). A single responsive layout that satisfies both produces compromises on both. Two complete layouts make each contract explicit and independently maintainable.
@@ -542,7 +542,7 @@ Existing hand-rolled components (`Drawer.tsx`, `UserDropdown`, `UserPopup`, `Not
 | Hover hint | `Tooltip` | `npx shadcn@latest add tooltip` |
 
 ### Installation note
-`npx shadcn@latest init` was intentionally NOT run in SEQ247 — the CLI assumes Tailwind v3 and would have corrupted `globals.css`. Components are added individually via `npx shadcn@latest add <component>`, which only touches `components/ui/`. This is the correct workflow for this stack.
+`npx shadcn@latest init` was intentionally NOT run in SEQ247 — the CLI assumes Tailwind v3 and would have corrupted `globals.css`. Components are added individually via `npx shadcn@latest add <component>`, but each install still needs a diff review because it may also touch `globals.css` and other shadcn-managed files. This is the correct workflow for this stack.
 
 ### Consequences
 
