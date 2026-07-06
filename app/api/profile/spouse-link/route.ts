@@ -128,7 +128,7 @@ export async function POST(req: Request) {
 
   // In-app notification for primary — best-effort
   // Use db (any) to avoid PromiseLike.catch TS error on the typed supabase client
-  db.from('notifications').insert({
+  db.from('member_notifications').insert({
     profile_id: primary.id,
     type: 'spouse_link_request',
     title: 'Spouse link request',

@@ -13,6 +13,8 @@
 --    re-raises, ensuring failures are traceable.
 -- ============================================================
 
+DROP FUNCTION IF EXISTS public.approve_member_verification(uuid, text);
+
 CREATE OR REPLACE FUNCTION public.approve_member_verification(
   p_request_id uuid,
   p_admin_note text DEFAULT NULL

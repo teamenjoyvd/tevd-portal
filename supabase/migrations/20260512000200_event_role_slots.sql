@@ -17,11 +17,13 @@ CREATE INDEX IF NOT EXISTS event_role_slots_event_id_idx ON event_role_slots (ev
 ALTER TABLE event_role_slots ENABLE ROW LEVEL SECURITY;
 
 -- Members and above can read slots (to display available roles on an event)
+DROP POLICY IF EXISTS "member_read_event_role_slots" ON event_role_slots;
 CREATE POLICY "member_read_event_role_slots"
   ON event_role_slots FOR SELECT
   USING (get_my_role() IN ('member', 'core', 'admin'));
 
 -- Admins have full write access
+DROP POLICY IF EXISTS "admin_all_event_role_slots" ON event_role_slots;
 CREATE POLICY "admin_all_event_role_slots"
   ON event_role_slots FOR ALL
   USING (is_admin())

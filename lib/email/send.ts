@@ -27,9 +27,9 @@ export async function getEmailConfig(): Promise<EmailConfig> {
 
   const supabase = createServiceClient()
   const { data } = await supabase
-    .from('settings')
+    .from('notification_config')
     .select('value')
-    .eq('key', 'email_config')
+    .eq('key', 'email_settings')
     .single()
 
   _configCache = (data?.value as EmailConfig) ?? { enabled: false, notification_types: {}, alert_recipient: '' }
@@ -88,14 +88,15 @@ async function _dispatch(
 
   // -- Audit log -- never throws ----------------------------------------------
   try {
-    await supabase.from('email_log').insert({
+    await supabase.from('notification_delivery_log').insert({
+      channel:   'email',
       template:  payload.template,
       recipient: payload.to,
       payload:   (payload.meta ?? {}) as import('@/types/supabase').Json,
       status,
       resend_id: resendId,
       error:     errorMsg,
-      sent_at:   status === 'sent' ? new Date().toISOString() : null,
+      created_at: new Date().toISOString(),
     })
   } catch {
     // Logging failure must never propagate.

@@ -20,8 +20,9 @@ export async function GET(req: Request) {
   const to = from + pageSize - 1
 
   let query = supabase
-    .from('email_log')
-    .select('id, template, recipient, status, error, resend_id, created_at, sent_at, payload', { count: 'exact' })
+    .from('notification_delivery_log')
+    .select('id, template, recipient, status, error, resend_id, created_at, payload, queue_id', { count: 'exact' })
+    .eq('channel', 'email')
     .order('created_at', { ascending: false })
     .range(from, to)
 

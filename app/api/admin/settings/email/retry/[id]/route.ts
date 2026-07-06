@@ -45,13 +45,30 @@ export async function POST(
 
   // 1. Fetch the failed log row
   const { data: log, error: fetchErr } = await supabase
-    .from('email_log')
+    .from('notification_delivery_log')
     .select('*')
     .eq('id', id)
     .single()
 
-  if (fetchErr || !log) return Response.json({ error: 'Log entry not found' }, { status: 444 })
+  if (fetchErr || !log) return Response.json({ error: 'Log entry not found' }, { status: 404 })
   if (log.status === 'sent') return Response.json({ error: 'Email already sent' }, { status: 400 })
+
+  if (log.queue_id) {
+    const { error: queueErr } = await supabase
+      .from('notification_queue')
+      .update({
+        status: 'pending',
+        attempts: 0,
+        send_at: new Date().toISOString(),
+        sent_at: null,
+        last_error: null,
+      })
+      .eq('id', log.queue_id)
+    if (queueErr) {
+      return Response.json({ error: queueErr.message }, { status: 500 })
+    }
+    return Response.json({ success: true })
+  }
 
   // 2. Re-render the HTML based on the original payload/template
   const TemplateComponent = TEMPLATE_COMPONENTS[log.template]
@@ -72,9 +89,6 @@ export async function POST(
       template: log.template,
       meta: log.payload as Record<string, unknown>,
     })
-
-    // Update old row status so it's not retried again indefinitely
-    await supabase.from('email_log').update({ status: 'retried' }).eq('id', id)
 
     return Response.json({ success: true })
   } catch (err: unknown) {

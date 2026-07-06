@@ -143,7 +143,7 @@ export async function PATCH(
         ? `Welcome ${profile?.first_name ?? ''}! Your manual verification has been approved. You are now a Member.`
         : `Welcome ${profile?.first_name ?? ''}! Your ABO number ${preReq?.claimed_abo} has been verified. You are now a Member.`
 
-    await supabase.from('notifications').insert({
+    await supabase.from('member_notifications').insert({
       profile_id: result.profile_id,
       type: 'role_request',
       title: 'Verification approved',
@@ -166,7 +166,7 @@ export async function PATCH(
   if (!verReq)
     return Response.json({ error: 'Request not found' }, { status: 404 })
 
-  await supabase.from('notifications').insert({
+  await supabase.from('member_notifications').insert({
     profile_id: verReq.profile_id,
     type: 'role_request',
     title: 'ABO verification not approved',

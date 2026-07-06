@@ -4,16 +4,18 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "node --max-old-space-size=4096 node_modules/next/dist/bin/next build",
     "start": "next start",
     "lint": "eslint",
     "check-types": "tsc --noEmit",
+    "test:mock": "node scripts/run-e2e-tests.js --mock",
     "agentic:validate": "node scripts/validate-rules.js",
     "agentic:handoff": "node scripts/handoff.js",
     "agentic:bootstrap": "node scripts/bootstrap.js",
     "agentic:smoke": "node scripts/smoke.js",
     "agentic:check": "node scripts/check-infra.js",
-    "agentic:upgrade": "node scripts/upgrade-infra.js"
+    "agentic:upgrade": "node scripts/upgrade-infra.js",
+    "db:clean-fixes": "node -e \"const fs = require('fs'); if (fs.existsSync('apply_fixes.sql')) fs.unlinkSync('apply_fixes.sql')\""
   },
   "dependencies": {
     "@clerk/nextjs": "^7.0.4",

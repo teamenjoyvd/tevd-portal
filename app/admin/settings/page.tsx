@@ -44,7 +44,7 @@ export default async function AdminSettingsPage({
   }
 
   if (tab === 'email') {
-    const { data } = await sb.from('settings').select('value').eq('key', 'email_config').single()
+    const { data } = await sb.from('notification_config').select('value').eq('key', 'email_settings').single()
     emailConfig = (data?.value as unknown as EmailConfig) ?? emailConfig
   }
 
@@ -52,8 +52,8 @@ export default async function AdminSettingsPage({
     const from = (page - 1) * PAGE_SIZE
     const to = from + PAGE_SIZE - 1
     const { data, count } = await sb
-      .from('notifications')
-      .select('id, created_at, type, title, is_read, deleted_at, profiles!notifications_profile_id_fkey(first_name, last_name)', { count: 'exact' })
+      .from('member_notifications')
+      .select('id, created_at, type, title, is_read, deleted_at, profiles!member_notifications_profile_id_fkey(first_name, last_name)', { count: 'exact' })
       .order('created_at', { ascending: false })
       .range(from, to)
     notificationsData = {
@@ -76,12 +76,13 @@ export default async function AdminSettingsPage({
     }
 
     const { data: reminders, count: remindersCount } = await sb
-      .from('scheduled_reminders')
+      .from('notification_queue')
       .select(`
-        id, reminder_type, send_at, sent_at, event_id,
+        id, type, send_at, sent_at, status, event_id,
         calendar_events!event_id ( id, title, start_time, reminders_enabled ),
         guest_registrations!registration_id ( name, email )
       `, { count: 'exact' })
+      .in('type', ['event_reminder_1h', 'event_reminder_15m'])
       .order('send_at', { ascending: false })
       .limit(REMINDERS_LIMIT)
 
