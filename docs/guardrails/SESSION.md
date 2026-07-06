@@ -1,5 +1,5 @@
 <!-- guardrails-kit: v1.0 | Editing this file? Read docs/guardrails/_FORMAT.md first. Never paraphrase kit text. -->
-You are here because you returned from compaction or /resume, the user paused the work ("stop", "later", "tomorrow"), or a task with a TASK block has no docs/STATE.md.
+You are here because you return from compaction or /resume, the user pauses the work ("stop", "later", "tomorrow"), or a task with a TASK block has no docs/STATE.md.
 
 - S1. Returned from compaction or /resume? Do this FIRST, before any file-modifying tool call:
     1. Read docs/STATE.md in full. Missing? Create it via S2, filling Goal/Now from the compaction summary plus `git log --oneline -10` and `git diff --stat HEAD`, marking every entry UNVERIFIED.

@@ -1,5 +1,5 @@
 <!-- guardrails-kit: v1.0 | Editing this file? Read docs/guardrails/_FORMAT.md first. Never paraphrase kit text. -->
-You are here because a test you expected to pass failed, a build/test/run command exited non-zero, a traceback appeared, run output contradicted your prediction, or the user reported a bug you have not reproduced this session.
+You are here because you see a test you expected to pass fail, a build/test/run command exit non-zero, a traceback, run output that contradicts your prediction, or a user-reported bug you have not reproduced this session.
 
 Checklist — cite IDs as you go; the ESCALATION LADDER below is mandatory, not optional.
 

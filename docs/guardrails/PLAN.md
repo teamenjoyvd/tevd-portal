@@ -1,5 +1,5 @@
 <!-- guardrails-kit: v1.0 | Editing this file? Read docs/guardrails/_FORMAT.md first. Never paraphrase kit text. -->
-You are here because you realized — at start or mid-task — the task needs >2 file edits or edits in >1 top-level directory, you are about to Edit a 3rd file with no TASK block posted, or no other routing row matched.
+You are here because you realize — at start or mid-task — the task needs >2 file edits or edits in >1 top-level directory, or are about to Edit a 3rd file with no TASK block posted, or no row above matches but the work feels risky.
 
 Walk items in order, running the tool calls each item needs; every `P<n>: <content, or N/A — reason>` line must appear in your transcript BEFORE your first Edit — they need not share one message. P4 is the sole multi-line item.
 
