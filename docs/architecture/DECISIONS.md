@@ -17,7 +17,7 @@
 | ADR-006 | proxy.ts as the sole middleware file (never middleware.ts) | 2026-03 | Active |
 | ADR-007 | Unified payments table (single table, entity check constraint) | 2026-03 | Active |
 | ADR-008 | Strict TranslationKey union over i18n library | 2026-03 | Active |
-| ADR-009 | Dual-layout pattern (two complete layouts, not responsive) | 2026-03 | Active |
+| ADR-009 | Dual-layout pattern (two complete layouts, not responsive) | 2026-03 | Amended 2026-07-06 |
 | ADR-010 | 12-column CSS grid for BentoGrid (not a component library) | 2026-03 | Active |
 | ADR-011 | RLS as defence-in-depth layer; canonical policy pattern uses Clerk JWT helper functions | 2026-03 | Active |
 | ADR-012 | Feature-based folder structure: co-locate route-scoped components | 2026-03 | Active |
@@ -204,7 +204,7 @@ Supabase Auth is tightly coupled to the Supabase JWT secret. Clerk provides a mo
 Next.js middleware runs on every request and is the correct place to enforce Clerk authentication at the edge. Next.js looks for `middleware.ts` by default.
 
 ### Decision
-The middleware file is named `proxy.ts`, not `middleware.ts`. This is configured explicitly in `next.config.ts`. Creating a `middleware.ts` file is a hard constraint violation.
+The middleware file is named `proxy.ts`, not `middleware.ts`. Creating a `middleware.ts` file is a hard constraint violation. (Correction 2026-07-06: no `next.config.ts` setting exists or is needed — Next.js 16 resolves root `proxy.ts` natively, having renamed the `middleware.ts` convention to `proxy.ts`.)
 
 ### Why not middleware.ts
 During early development, a naming conflict or accidental creation of `middleware.ts` alongside `proxy.ts` caused two middleware files to run simultaneously, producing unpredictable auth behaviour. Renaming to `proxy.ts` makes the unconventional choice explicit and prevents accidental recreation.
@@ -221,7 +221,7 @@ During early development, a naming conflict or accidental creation of `middlewar
 
 **Mitigations:**
 - Documented as the first hard constraint in CLAUDE.md
-- `next.config.ts` explicitly points to `proxy.ts`
+- Next.js 16 resolves root `proxy.ts` natively; no `next.config.ts` configuration exists (corrected 2026-07-06)
 
 ---
 
@@ -288,13 +288,13 @@ next-intl and react-i18next both require: a provider wrapping the app, locale de
 ## ADR-009 — Dual-Layout Pattern (Two Complete Layouts, Not Responsive)
 
 **Date:** 2026-03
-**Status:** Active
+**Status:** Amended 2026-07-06 — the quantitative Layout Decision Rules (CLAUDE.md `## Project` and `.cursor/rules/frontend.mdc`) now govern when a dual layout applies: default is a single responsive layout; use the canonical dual-layout pattern only when one of the four listed triggers applies.
 
 ### Context
 Pages need to render correctly on both desktop (1024px+) and mobile (390px+). Options: a single responsive layout using breakpoint utilities, or two separate complete layout trees with `hidden md:block` / `md:hidden`.
 
 ### Decision
-Every page that has meaningfully different desktop and mobile UX uses two separate complete layout trees. No hybrid responsive layout. Canonical reference: `app/(dashboard)/about/page.tsx`.
+Use two separate complete layout trees only for the four documented triggers; otherwise prefer a single responsive layout. Canonical reference: `app/(dashboard)/about/page.tsx`.
 
 ### Why not a single responsive layout
 Desktop and mobile UX contracts for this application are fundamentally different: navigation pattern (persistent header nav vs. hamburger), content density (multi-column bento grid vs. stacked single column), and component behaviour (popovers vs. bottom sheets in `EventPopup`). A single responsive layout that satisfies both produces compromises on both. Two complete layouts make each contract explicit and independently maintainable.
@@ -542,7 +542,7 @@ Existing hand-rolled components (`Drawer.tsx`, `UserDropdown`, `UserPopup`, `Not
 | Hover hint | `Tooltip` | `npx shadcn@latest add tooltip` |
 
 ### Installation note
-`npx shadcn@latest init` was intentionally NOT run in SEQ247 — the CLI assumes Tailwind v3 and would have corrupted `globals.css`. Components are added individually via `npx shadcn@latest add <n>`, which only touches `components/ui/`. This is the correct workflow for this stack.
+`npx shadcn@latest init` was intentionally NOT run in SEQ247 — the CLI assumes Tailwind v3 and would have corrupted `globals.css`. Components are added individually via `npx shadcn@latest add <component>`, but each install still needs a diff review because it may also touch `globals.css` and other shadcn-managed files. This is the correct workflow for this stack.
 
 ### Consequences
 

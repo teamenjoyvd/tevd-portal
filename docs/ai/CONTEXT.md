@@ -1,5 +1,5 @@
 # CONTEXT.md — teamenjoyVD Portal
-> Last updated: 2026-06-20.
+> Last updated: 2026-07-06.
 > **Read at GATHER start. Never read at SSU.**
 > For reference tables (schema, design system, i18n, env vars, API map): `docs/ai/REF.md` §4-§11 — see its own Section Map.
 > For architecture, flows, and decisions: `docs/architecture/`
@@ -11,107 +11,22 @@
 
 | Section | Read when ticket touches |
 |---|---|
-| §1 Key Files & Patterns | `lib/`, `components/`, established patterns |
-| §2 Navigation | Header, Footer, AdminNav, `lib/nav.ts` |
-| §3 Admin Pages | Any `/admin/*` page |
+| §1-§3 → `docs/ai/REF.md` §1-§3 | Key files & patterns, navigation, admin pages |
 | §4 CI | `types/supabase.ts`, `ci.yml` |
 | §5 Releases | Release history, pending issues |
 
 ---
 
-## 1. Key Files & Patterns
+## 1-3. Key Files & Patterns / Navigation / Admin Pages — moved to REF.md
 
-### `lib/nav.ts`
-Single source of truth for all navigation. Never hardcode nav labels in components.
-```ts
-PUBLIC_NAV          // Home, About, Calendar, Trips
-MEMBER_NAV          // Guides, My Network (/los), Profile (/profile)
-FOOTER_MEMBER_NAV   // MEMBER_NAV filtered — excludes /los
-ADMIN_NAV           // Approval Hub, Operations, Calendar, Content, Notifications, Members
-```
-Nav labels use inline `labels: { en, bg }` — NOT the `t()` i18n system.
+Removed from this file on 2026-07-06. These sections duplicated `docs/ai/REF.md` §1-§3 and had drifted:
+this file still said `lib/supabase/service.ts` is a singleton (the singleton was removed in #307 — it
+returns a fresh client per call), still prescribed `window.confirm` for deletes (all deletes use
+`AlertDialog`), and was missing the Event Reminders nav entry and admin pages. That is the same
+duplication failure that killed LOOKUP.md twice.
 
-### `lib/format.ts`
-EET/EEST regional formatting. Always import from here — never inline `toLocaleDateString` or Intl.
-```ts
-formatDate(iso)       // 18.03.2026
-formatShortDate(iso)  // 18.03.
-formatLongDate(iso)   // Сряда, 18.03.2026
-formatTime(iso)       // 14:30
-formatDateTime(iso)   // 18.03.2026, 14:30
-formatCurrency(n)     // 1.234,00 €
-calDay(iso)           // 18
-calMonth(iso)         // MAR
-```
-
-### `lib/hooks/useTheme.ts`
-Single-source-of-truth theme hook. Returns `{ theme, mounted, toggle }`. Same-tab sync via `tevd-theme-change` CustomEvent. Cross-tab via `StorageEvent`. Key: `tevd-theme`.
-
-### `lib/role-colors.ts`
-Always `getRoleColors(role)` — never hardcode role bg/font inline.
-
-### `lib/supabase/service.ts`
-Singleton service role client. Do not create a new client per request.
-
-### `lib/i18n/translations.ts`
-`TranslationKey = keyof typeof translations` — strict union. Every new `t()` call requires a corresponding entry or the build breaks.
-
-### `lib/og-scrape.ts`
-Server-only. Returns nulls for IG/FB URLs. Preview endpoint: `/api/admin/social-posts/preview?url=...`.
-
-### `lib/email/send.ts`
-Two public dispatchers — never import `sendEmail` (removed):
-- `sendNotificationEmail(payload)` — fire-and-forget (`Promise<void>`). Respects `email_config.enabled` and per-type toggles. All errors swallowed and written to `email_log`.
-- `sendTransactionalEmail(payload)` — returns `Promise<TransactionalEmailResult>`. Bypasses all config gates. Caller must check `result.sent`. Use for flows where the email IS the feature (magic links, access links).
-- Both delegate to private `_dispatch()` — do not inline send/log logic.
-
-### `components/ui/Drawer.tsx`
-Right slide-over. Use for ALL admin create/edit forms and member-facing modal flows.
-Props: `open`, `onClose`, `title`, `children`. Backdrop click + Escape close. Body scroll locked.
-Exceptions: Announcements create + Quick Links create stay as inline cards. Delete stays inline with `window.confirm`.
-
-### `components/about/AboutMapTile.tsx`
-Client Mapbox tile. Theme-aware (`outdoors-v12` light / `dark-v11` dark). MutationObserver on `data-theme`.
-
-### `components/events/EventPopup.tsx`
-- **Mobile (<768px):** Fixed bottom sheet — `85dvh` max, drag handle, `overflow-y-auto`. Backdrop tap-to-close.
-- **Desktop:** Anchor-relative popover, clamped to viewport, `maxHeight: 360` on body scroll container.
-- **Guest / unauthenticated:** Roles section hidden entirely.
-
-### About Page (`app/(dashboard)/about/page.tsx`) — CANONICAL DUAL LAYOUT REFERENCE
-`hidden md:block` desktop grid + `md:hidden` mobile stack. Read before implementing any new dual-layout page.
-
----
-
-## 2. Navigation
-
-### Header
-- Public: `/`, `/about`, `/calendar`, `/trips`
-- Auth-only: `/profile`, `/notifications`, `/los`, `/guides`, `/admin`
-- Desktop nav: `hidden lg:flex` (1024px+). Mobile hamburger: `lg:hidden`.
-- Nav color: `var(--text-nav)` → `var(--brand-parchment)` in dark mode.
-
-### Footer
-- Nav order: Home → About → Calendar → Trips → Guides → Profile
-- 3-col: brand | nav | socials
-- Bottom bar: `© 2026 teamenjoyVD · All rights reserved` | `Built with ♥ by Vera & Deniz in Sofia.`
-- **NO BottomNav. Mobile nav = Header hamburger only.**
-
----
-
-## 3. Admin Pages
-
-| Page | Notes |
-|---|---|
-| `/admin/approval-hub` | ABO + manual verification + Path C direct-verify |
-| `/admin/calendar` | Events ascending by `start_time`. Create/edit via Drawer. |
-| `/admin/content` | Tabs: Announcements \| Quick Links \| Guides \| Social Posts \| Bento. Edit via Drawer. |
-| `/admin/data-center` | LOS import + reconciliation panel |
-| `/admin/notifications` | All-time audit log incl. soft-deleted, paginated 50/page |
-| `/admin/operations` | 3 URL-param tabs: `?tab=trips\|items\|payments`. All create/edit via Drawer. |
-| `/admin/payable-items` | `redirect()` → `/admin/operations?tab=items` |
-
-**Operations payments tab:** Log Payment Drawer with `<optgroup>` entity select; member selector from `/api/admin/members`; status filter pills; pending member submissions at top.
+Read `docs/ai/REF.md` §1 (Key Files & Patterns), §2 (Navigation), §3 (Admin Pages) instead.
+Do not re-add reference content here — REF.md is the single canonical reference doc.
 
 ---
 

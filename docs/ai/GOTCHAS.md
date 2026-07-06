@@ -15,7 +15,7 @@ Read in full during SHAPE and GATHER. Add new entries here immediately when a sh
 | Large GitHub files | `create_or_update_file` times out above ~10KB. Use `push_files`. |
 | Mapbox | CDN only — never npm. Dupe guard on load. |
 | Mapbox theme swap | `map.setStyle()` + `styledata` event. MutationObserver on `data-theme`. |
-| shadcn install | NEVER `npx shadcn@latest init` — corrupts globals.css. Use `npx shadcn@latest add <n>`. After each add, revert any injected `@layer base` blocks. |
+| shadcn install | NEVER `npx shadcn@latest init` — corrupts globals.css. Use `npx shadcn@latest add <component>`. After each add, revert any injected `@layer base` blocks. |
 | shadcn CSS vars | Edit vended source in `components/ui/` to use project tokens (`--bg-card`, `--text-primary`) not shadcn defaults. |
 | shadcn Tabs | NEVER `defaultValue`. Always `value={tab}` + `onValueChange` → `router.replace(?tab=..., { scroll: false })`. Wrap in `<Suspense>`. |
 | `--bg-global-rgb` dark | MUST be `26, 31, 24`. Wrong value = white navbar in dark mode. |

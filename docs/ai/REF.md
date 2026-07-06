@@ -64,19 +64,11 @@ Used by `TripHeroSection` (admin canvas sampling) and `shared.tsx` (member count
 
 **`lib/supabase/service.ts`** — returns a fresh `createClient` on every call. No module-level singleton (removed in #307 — singleton risked auth-header contamination across warm lambda requests).
 
-**`lib/db/client.ts`** — postgres.js direct connection client (port 5432). Use ONLY inside Inngest job steps where explicit transactions are required. Never use in Next.js route handlers or RSC — use `createServiceClient()` there.
-
 **`lib/email/send.ts`** — two public dispatchers:
 - `sendNotificationEmail(payload)` — `Promise<void>`, fire-and-forget, respects `email_config` gates, errors swallowed to `email_log`.
 - `sendTransactionalEmail(payload)` — `Promise<TransactionalEmailResult>`, bypasses gates, caller checks `result.sent`. Use when the email IS the feature (magic links, access links).
 
 **`lib/notifications/share-events.ts`** — `notifySharerOfRegistration()` and `notifySharerOfAttendance()`. Fire-and-forget calls made from `lib/actions/guest-registration.ts` (on registration, when a `shareToken` resolves) and from the `/events/[eventId]/join` page (on attendance, when the guest's registration has a `share_link_id`). Both ultimately call `sendNotificationEmail` with `ShareGuestRegisteredEmail` / `ShareGuestAttendedEmail`.
-
-**`inngest/client.ts`** — shared Inngest client (`id: 'tevd-portal'`). Import `inngest` from here to send events or create functions.
-
-**`inngest/functions/approve-verification.ts`** — 3-step durable function for member approval: Step 1 DB transaction, Step 2 Clerk sync, Step 3 notifications+email.
-
-**`inngest/functions/clerk-reconciliation.ts`** — scheduled function (every 15 min): detects and patches any split-state profiles where Supabase role=member but Clerk metadata stale.
 
 **`components/ui/Drawer.tsx`** — right slide-over. Props: `open`, `onClose`, `title`, `children`. Use for ALL admin create/edit forms. Exceptions: Announcements + Quick Links create = inline cards. All deletes use `AlertDialog`.
 
@@ -190,6 +182,8 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
     /admin/spouse-link-requests/[id]/route.ts  # ADR-016: PATCH approve/deny
     /admin/trips/route.ts
     /admin/trips/[id]/route.ts     # PATCH: counter_bg_color (hex validation), admin-only
+    /admin/trips/[id]/messages/route.ts             # GET, POST — trip messages admin CRUD
+    /admin/trips/[id]/messages/[messageId]/route.ts # PATCH, DELETE
     /admin/trips/registrations/[id]/cancel/route.ts
     /admin/verify/route.ts
     /admin/vital-sign-definitions/route.ts
@@ -200,7 +194,6 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
     /events/[id]/register/route.ts # POST — guest registration (public)
     /guides/route.ts
     /home/route.ts                 # GET — home_settings for homepage RSC
-    /inngest/route.ts              # Inngest serve handler — public route, signing key auth only
     /links/route.ts                # GET — active links for member view
     /los/tree/route.ts             # GET — member LOS tree
     /notifications/route.ts        # GET, PATCH — own notifications
@@ -212,11 +205,13 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
     /profile/route.ts
     /profile/spouse-link/route.ts  # ADR-016: GET own request, POST submit, DELETE cancel
     /profile/verify-abo/route.ts
-    /profile/vitals/route.ts
+    /profile/vital-signs/route.ts
     /profile/event-roles/route.ts
     /profile/los-summary/route.ts
     /profile/upline/route.ts
     /profile/trips/[id]/cancel/route.ts
+    /trips/route.ts                # GET — role-filtered trips list (unauthenticated → guest); POST — admin-only create
+    /trips/[id]/messages/route.ts  # GET — member read-only trip bulletin
     /trips/[id]/payments/route.ts
     /socials/route.ts
     /webhooks/clerk/route.ts
@@ -233,14 +228,8 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
   /layout/UserPopup.tsx
   /layout/BottomNav.tsx            # DEAD STUB — do not import
   /ui/Drawer.tsx
-/inngest
-  /client.ts                      # Inngest client (id: 'tevd-portal')
-  /functions/
-    /approve-verification.ts      # 3-step durable approval function
-    /clerk-reconciliation.ts      # Scheduled Clerk drift patch (every 15 min)
 /lib
   /color.ts                       # clampLuminance, hslToHex, sampleImageRegion — trip counter colour helpers
-  /db/client.ts                   # postgres.js direct connection — Inngest steps only
   /format.ts
   /hooks/useTheme.ts
   /hooks/useLanguage.ts
@@ -419,6 +408,7 @@ Normalised UNION ALL over `profiles_audit` + `role_change_audit`. Columns: `prof
 **`approval_jobs`** — `id, request_id → abo_verification_requests, inngest_event_id, status (processing|clerk_synced|done|failed), error, created_at, updated_at, settled_at`
 - RLS: service role only.
 - UNIQUE on `request_id`.
+- Orphaned since #322 (Inngest removed) — table exists in schema but no application code writes to it; do not build new features assuming it is populated.
 
 ---
 
@@ -430,7 +420,7 @@ Normalised UNION ALL over `profiles_audit` + `role_change_audit`. Columns: `prof
 | `/api/profile` | GET, PATCH | |
 | `/api/profile/verify-abo` | POST | LOS-validated at submit: existence check + sponsor match + duplicate ABO check. Returns `abo_has_primary` error_code if the existing holder is a primary (ADR-016). Guard added #350: secondary accounts (`primary_profile_id IS NOT NULL`) receive 400 `secondary_cannot_verify`. |
 | `/api/profile/spouse-link` | GET, POST, DELETE | ADR-016: GET own request; POST submit (guest only, guards: requester is guest with no primary_profile_id, claimed_primary is member with abo_number and no existing secondary); DELETE cancel own pending |
-| `/api/profile/vitals` | GET | |
+| `/api/profile/vital-signs` | GET | |
 | `/api/profile/event-roles` | GET | |
 | `/api/profile/event-shares` | GET, POST | GET: own share links + nested guest registrations, filterable by `event_id`/`status`/`method`/`from`/`to`/`q`. POST: create or update a share link for an event (`event_id`, `share_method: 'native'\|'clipboard'`); 403 for guests; 400 if target event has `allow_guest_registration = false`. |
 | `/api/profile/event-shares/export` | GET | `?format=csv` — streams a CSV of the member's own share links + guest rows. Same filters as GET above. |
@@ -440,6 +430,8 @@ Normalised UNION ALL over `profiles_audit` + `role_change_audit`. Columns: `prof
 | `/api/profile/trips/[id]/cancel` | POST | |
 | `/api/payable-items` | GET | Active items only |
 | `/api/payments` | GET, POST | Unified |
+| `/api/trips` | GET, POST | GET: role-filtered list (unauthenticated → guest). POST: admin-only create |
+| `/api/trips/[id]/messages` | GET | Read-only trip bulletin (admin-authored; no author shown to members) |
 | `/api/trips/[id]/payments` | GET | |
 | `/api/calendar` | GET | Role-filtered; no `?month` → agenda from today |
 | `/api/calendar/feed.ics` | GET | iCal feed; `?token=` JWT auth; emits LOCATION + URL + CATEGORIES |
@@ -494,12 +486,13 @@ Normalised UNION ALL over `profiles_audit` + `role_change_audit`. Columns: `prof
 | `/api/admin/spouse-link-requests/[id]` | PATCH | ADR-016: approve/deny. On approve: writes profile + request + audit + Clerk sync + welcome email |
 | `/api/admin/trips` | GET, POST | |
 | `/api/admin/trips/[id]` | GET, PATCH, DELETE | PATCH accepts `counter_bg_color: string \| null` — hex validation `/^#[0-9a-fA-F]{6}$/` |
+| `/api/admin/trips/[id]/messages` | GET, POST | Trip messages admin CRUD |
+| `/api/admin/trips/[id]/messages/[messageId]` | PATCH, DELETE | |
 | `/api/admin/trips/registrations/[id]/cancel` | POST | Triggers `sendNotificationEmail` |
 | `/api/admin/verify` | POST | ABO approve/deny — MUST sync Clerk metadata |
 | `/api/admin/vital-sign-definitions` | GET, POST | |
 | `/api/admin/vital-sign-definitions/[id]` | PATCH, DELETE | |
-| `/api/inngest` | GET, POST, PUT | Inngest serve handler — **public route**; Inngest signing key auth only. Must be in proxy.ts public list. |
-| `/api/admin/members/verify/[id]` | PATCH | approve → 202+enqueue Inngest job; deny → synchronous in-route |
+| `/api/admin/members/verify/[id]` | PATCH | approve → synchronous: `approve_member_verification` RPC + Clerk sync + email; deny → synchronous in-route |
 
 ### Supabase RPCs
 | RPC | Purpose |
@@ -509,7 +502,7 @@ Normalised UNION ALL over `profiles_audit` + `role_change_audit`. Columns: `prof
 | `rebuild_tree_paths` | Cascade ABO label rename to descendants |
 | `upsert_tree_node(p_profile_id, p_abo_number, p_sponsor_abo_number?)` | Insert/update tree node; walks `los_members` sponsor chain (max 20 hops, cycle guard) if direct sponsor has no portal profile |
 | `increment_share_link_click(p_token text)` | Atomic click-count increment on `event_share_links`, called when a guest lands on the registration page via a share token |
-| `approve_member_verification(p_request_id, p_admin_note?)` | **DEPRECATED** — retained as fallback only. Logic now in Inngest Step 1. Guard added #350: raises `P0002` if `profile.primary_profile_id IS NOT NULL`. |
+| `approve_member_verification(p_request_id, p_admin_note?)` | Live path for ABO approval — called directly by `/api/admin/members/verify/[id]` PATCH (an Inngest-based version was tried in #308, removed in #322). Guard added #350: raises `P0002` if `profile.primary_profile_id IS NOT NULL`. |
 | `patch_member_role(p_profile_id, p_new_role, p_changed_by, p_note?)` | Role update with audit trail |
 | `get_trip_team_attendees(p_trip_id, p_viewer_profile)` | Returns Core/admin attendees for a trip |
 | `import_los_members(p_rows, p_imported_by?, p_expected_row_count?)` | Transactional LOS import: concurrency check → snapshot → upsert → server-side delete → `rebuild_tree_paths` → insert `los_imports`. Returns `{ inserted, removed, import_id, errors }`. |
@@ -617,9 +610,6 @@ Period selector order: AGENDA → DAY → WEEK → MONTH
 | `ICAL_TOKEN_SECRET` | ✅ |
 | `NEXT_PUBLIC_APP_URL` | ⚠️ **Conflicting values found in source docs as of 2026-06-20** — `https://www.teamenjoyvd.com` in one prior copy of this reference, `https://tevd-portal.vercel.app` in another. Not resolved here; check the actual Vercel project env vars before relying on either value. |
 | `RESEND_API_KEY` | ✅ |
-| `DATABASE_URL` | ⚠️ **Must be set** — direct Postgres connection (port 5432, NOT pooler 6543). Used by `lib/db/client.ts` inside Inngest jobs. |
-| `INNGEST_SIGNING_KEY` | ⚠️ **Must be set** — authenticates Inngest callbacks to `/api/inngest`. Signing key is the only security gate. |
-| `INNGEST_EVENT_KEY` | ⚠️ **Must be set** — authenticates event ingestion from `inngest.send()`. |
 | `INSTAGRAM_ACCESS_TOKEN` | ⏳ pending |
 | `FB_PAGE_ACCESS_TOKEN` | ⏳ pending |
 | `FB_PAGE_ID` | ⏳ pending |

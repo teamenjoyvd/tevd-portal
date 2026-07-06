@@ -12,6 +12,8 @@ This rule enforces the strict usage of RLS policies, Pattern A helpers, and deta
 - **RLS policies must ONLY reference Pattern A helper functions** which live in `20260315000000_baseline.sql`:
   - `get_my_clerk_id()` - Returns the Clerk user ID from the JWT custom claim.
   - `get_my_profile_id()` - Returns the profile ID for the current Clerk user.
+  - `get_my_role()` - Returns the `user_role` claim from the JWT (`user_role` enum).
+  - `is_admin()` - Returns true when `get_my_role()` = 'admin'.
 - **NEVER** use raw `auth.jwt()` or other inline mechanisms within RLS policies.
 
 ### Helper Definitions
