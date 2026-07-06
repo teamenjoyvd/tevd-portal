@@ -68,6 +68,7 @@ Violation = immediate stop, no exceptions.
 - Gotchas (read at SHAPE + GATHER) -> Read docs/guardrails/PROJECT.md#gotchas
 - Carried technical notes (Supabase cookie type, payments FK join, Clerk auth snippet) -> Read docs/guardrails/PROJECT.md#carried-technical-notes
 > Reference: `docs/ai/REF.md` (read on demand at GATHER, sections only)
+> Context: `docs/ai/CONTEXT.md` (read on demand at GATHER, sections only)
 > Architecture: `docs/architecture/` (FLOWS.md, DECISIONS.md, C4.md)
 
 <!-- BEGIN KIT FOOTER v1.0 -->
