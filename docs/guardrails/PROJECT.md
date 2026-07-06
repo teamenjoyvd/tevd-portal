@@ -1,0 +1,127 @@
+# PROJECT.md — teamenjoyVD Portal (migrated project content)
+
+Project-authored archive. Content transported verbatim from the pre-migration `CLAUDE.md` and `docs/ai/RULES.md` during the guardrails-kit v1.0 migration (2026-07-06). Exempt from `docs/guardrails/_FORMAT.md` doc-shape rules. Every `##` anchor below is reachable from a `## Project` pointer in `CLAUDE.md`. (The `## Workflow commands` anchor was `## Commands` in the pre-migration CLAUDE.md — heading repurposed as the nav anchor; body verbatim.)
+
+## ID Format
+
+```
+[YYMM]-DEV-[GH#]
+```
+
+- `YYMM` — year + month of creation (e.g. `2605` for May 2026)
+- `DEV` — fixed segment, all work types
+- `GH#` — the GitHub issue number assigned when the issue is created (no padding)
+
+Examples: `2605-DEV-171`, `2605-DEV-182`
+
+| Artifact | Format |
+|---|---|
+| GitHub Issue title | `[2605-DEV-171] Short description` |
+| Branch | `dev/2605-DEV-171` |
+| Commit prefix | `[2605-DEV-171] description` |
+| PR title | `[2605-DEV-171] description` |
+
+The GitHub issue number is the canonical unique identifier. It is assigned atomically by GitHub — no counter to maintain, no inference required. Never check existing issue numbers and increment — always create the issue and read the number from the response.
+
+## GitHub Issue Labels
+
+| Label | Purpose |
+|---|---|
+| `feat` | New functionality |
+| `bug` | Something broken |
+| `chore` | Refactor, deps, infrastructure |
+| `priority:high` | Pick before anything else |
+| `priority:low` | Pick last |
+| `blocked` | Do not pick — has a dependency that isn't resolved |
+
+READ order: `priority:high` first, then unlabelled, then `priority:low`. Never pick a `blocked` issue without explicit user acknowledgment.
+
+## Workflow commands
+
+### SSU — System Startup
+
+Run at the start of every session. Warms up tools and establishes ground truth before any other action.
+
+1. **Tool warm-up (before anything else):**
+   - `tool_search("get file contents github")`
+   - `tool_search("branch issue pull request create")`
+   Confirm both return results. If either fails — stop.
+
+2. `get_file_contents` on `CLAUDE.md` — confirms GitHub connectivity and loads current state.
+
+3. `list_pull_requests` — check for any open PRs.
+   - **Open PR found:** read its `## Session State` block and report what's in flight before doing anything else.
+   - **No open PR, but a CLAIM-complete issue exists** (has `## Branch` block, no PR): report as CLAIM-complete/BUILD-not-started → ready to proceed to SHAPE.
+   - **Nothing in flight:** report ready to pick up next issue.
+
+Output format:
+```
+| GitHub    | ✅/❌ |
+| In flight | [YYMM]-DEV-[GH#] <title> / None |
+| Handoff   | IN PROGRESS: <next action> / DONE / CLAIM-complete: ready for SHAPE / No active PR |
+| Commands  | SSU · PLAN · CLAIM · BUILD · GCR |
+```
+If GitHub ❌ — stop.
+
+### PLAN — See `docs/ai/PLAN.md`
+
+### CLAIM — See `docs/ai/CLAIM.md`
+
+### BUILD — See `docs/ai/BUILD.md`
+
+### GCR — See `docs/ai/GCR.md`
+
+## CLAIM-Complete Definition
+
+An issue is CLAIM-complete (ready for BUILD) when its body contains:
+1. A `## Design Checklist` section with all four items checked.
+2. A `## Branch` section with the feature branch name.
+
+```
+## Design Checklist
+- [x] DoD defined (specific, file-path-level)
+- [x] Affected files listed by path
+- [x] Gotchas flagged against docs/ai/GOTCHAS.md
+- [x] Blocking unknowns: none
+
+## Branch
+`dev/YYMM-DEV-GH#`
+```
+
+BUILD verifies both at startup. If either section is absent or any checklist item is unchecked, BUILD refuses and states exactly what is missing.
+
+## Gotchas
+
+See `docs/ai/GOTCHAS.md`. Read in full during SHAPE and GATHER.
+
+## Multi-agent coexistence
+
+_Transported verbatim from `docs/ai/RULES.md` §4 (pre-migration). Live requirement: Claude + Antigravity operate on an identical 1:1 ruleset with shared session-state awareness._
+
+- **Shared State Tracking:**
+  - Antigravity and Claude.ai must align and synchronize on execution state.
+  - Claude.ai should read the brain directory's `implementation_plan.md` to pick up prior research.
+  - Antigravity must format its planning mode `implementation_plan.md` artifact to exactly match the `PLAN` output layout from `docs/ai/PLAN.md`.
+  - PR descriptors must include an `Agent Type: Antigravity | Claude` tag in their session state block.
+
+## Carried technical notes
+
+_Transported verbatim from `docs/ai/RULES.md` §1-§2 (pre-migration). The unique items that had no equivalent in the pre-migration CLAUDE.md Hard Constraints._
+
+**Detail-table access gating / payments two-FK join** (RULES.md §2):
+- **Detail Table Access Gating:**
+  - This project's schema does not have an `interactions`-style detail-table pattern (no `call_details` / `email_details` / `note_details` tables exist). If a future table needs gating via a parent-row `EXISTS` check rather than a direct `profile_id` column, model it on the real comparable case in this codebase: the `payments` table's two-FK ambiguity to `profiles` (see §5 Schema in `docs/ai/REF.md` — any PostgREST join MUST use `profiles!profile_id(...)`).
+
+**Supabase Cookie method type mapping** (RULES.md §2):
+- **Supabase Cookie method type mapping:**
+  - Do not derive database types from `CookieMethodsServer['setAll']` (breaks since `setAll` is optional).
+  - Use the explicit type: `{ name: string; value: string; options?: Record<string, unknown> }`.
+
+**Clerk authentication check** (RULES.md §1):
+- **Clerk Authentication:**
+  - All protected routes must asynchronously check `userId` from `@clerk/nextjs/server`:
+    ```typescript
+    const { userId } = await auth();
+    if (!userId) return new NextResponse("Unauthorized", { status: 401 });
+    ```
+  - **NEVER** bypass, mock, or omit authentication checks on protected endpoints.
