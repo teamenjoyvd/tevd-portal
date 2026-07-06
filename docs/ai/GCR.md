@@ -8,3 +8,7 @@ Invoked via the `GCR` command in a BUILD session. Given a PR number:
 3. **Address:** Apply all HIGH-priority comments. Apply MEDIUM-priority comments unless there is a concrete reason not to — state it explicitly.
 4. **Commit:** Push all fixes in a single commit. Commit message: `[YYMM-DEV-GH#] fix: address Gemini PR<N> review comments`.
 5. **Report:** Provide a simple status list: ✅ Applied / ⚠️ Skipped (reason) for each comment.
+6. **Resolve:** After the commit is pushed, walk every review thread:
+   - Applied -> call `pull_request_review_write` (`method: resolve_thread`) with the thread's `threadId`.
+   - Skipped -> call `add_reply_to_pull_request_comment` stating the reason, then leave the thread unresolved for human follow-up.
+   Never resolve a thread before its fix is pushed.

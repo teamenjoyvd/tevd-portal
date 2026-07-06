@@ -11,7 +11,7 @@ Read the issue body. Verify `## Design Checklist` exists with all four items che
 
 ### READ & SHAPE (Read-only)
 - Find in-progress issues (open PRs) or CLAIM-completed issues. If none, pick the highest `priority:high` open issue without the `blocked` label.
-- Verify the DoD is coherent with the current codebase. Rely on `.cursor/rules/`, `docs/ai/RULES.md` and project architecture docs:
+- Verify the DoD is coherent with the current codebase. Rely on `CLAUDE.md` (hard constraints), `.cursor/rules/`, `docs/guardrails/PROJECT.md` and project architecture docs:
   - Auth / role / Clerk sync → `FLOWS.md §1`
   - Registration → `FLOWS.md §2`
   - Payments → `FLOWS.md §3`
