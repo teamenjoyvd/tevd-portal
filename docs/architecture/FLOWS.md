@@ -1,5 +1,5 @@
 # FLOWS.md — Component Flows (C4 L3)
-> tevd-portal · Last updated: 2026-06-20
+> tevd-portal · Last updated: 2026-07-06
 > Scope: Ambiguous zones only. Simple CRUD with no branching logic is not documented here.
 > Tooling: Mermaid state and sequence diagrams.
 
@@ -46,7 +46,7 @@ sequenceDiagram
 
 ### Role Promotion
 
-Role promotion happens through three admin routes. Every promotion is a two-write atomic operation: Supabase first, then Clerk. If the Clerk write fails, the Supabase write is not rolled back — this is a known gap. Re-login by the user will re-read Clerk metadata, but Supabase will already have the new role.
+Role promotion happens through three admin routes. Every promotion is a two-write atomic operation: Supabase first, then Clerk. If the Clerk write fails, the Supabase write is not rolled back — this is a known gap. Re-login by the user will re-read Clerk metadata, but Supabase will already have the new role. (An Inngest-based durable approve path with retry + reconciliation was added in #310 and removed again in #322 "Rip out Inngest" — do not re-document it as current.)
 
 ```mermaid
 sequenceDiagram

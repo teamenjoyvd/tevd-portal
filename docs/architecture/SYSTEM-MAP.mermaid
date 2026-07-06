@@ -159,24 +159,16 @@ flowchart TD
             A7d["Email log (delivery audit)"]
         end
 
-        A8["Legacy /api/admin/verify\nstandalone ABO+upline approve/deny,\nno Inngest, direct Clerk sync"]
+        A8["/api/admin/verify\nstandalone ABO+upline approve/deny,\ndirect Clerk sync"]
     end
 
     AVR --> A1a
     A1a --> DEC{Admin decision}
     DEC -- deny --> DENY["status: denied"]
     DENY --> DENYEMAIL["AboVerificationEmail (denied) to guest"]
-    DEC -- approve --> INN["202 + Inngest event enqueued\napproval_jobs row created"]
-
-    subgraph INNGEST["Inngest: approve-verification (3-step durable job)"]
-        I1["Step 1 - DB transaction\nrole to member/core, abo_number set\nupline_abo_number written\nupsert_tree_node (LOS chain walk, max 20 hops)"]
-        I2["Step 2 - Clerk metadata sync\nrole + abo_number pushed"]
-        I3["Step 3 - Notifications fan-out\n+ AboVerificationEmail (approved/Welcome)"]
-        I1 --> I2 --> I3
-    end
-    INN --> INNGEST
-    I3 --> MD
-    I1 -. on exception .-> VLOG[("verification_log\nerror_code/context")]
+    DEC -- approve --> APPR["approve_member_verification RPC\nrole to member/core, abo_number set\nupline_abo_number written\nupsert_tree_node (LOS chain walk, max 20 hops)\n+ Clerk metadata sync\n+ AboVerificationEmail (approved/Welcome)"]
+    APPR --> MD
+    APPR -. on exception .-> VLOG[("verification_log\nerror_code/context")]
 
     SLR --> A1b
     A1b --> SDEC{Admin decision}
@@ -226,12 +218,6 @@ flowchart TD
     DIGESTCHECK -- yes --> DIGESTNOTIF["in-app notification\ntype: los_digest, per Core member\n(skips if already sent today)"]
     DIGESTCHECK -- no --> DIGESTSKIP["no-op"]
 
-    CRON15["Inngest scheduled - every 15 min"] --> RECON["clerk-reconciliation function\nDetects Supabase role=member but\nstale/missing Clerk metadata"]
-    RECON --> PATCHCLERK["Patches Clerk publicMetadata\nto match Supabase (source of truth)"]
-
-    INGSERVE["/api/inngest serve handler\npublic route - Inngest signing-key auth only"] -. "hosts" .-> INNGEST
-    INGSERVE -. "hosts" .-> RECON
-
     subgraph EMAIL["Email Infrastructure"]
         direction LR
         EC["email_config in settings\n(master toggle + per-template gates)"]
@@ -244,7 +230,7 @@ flowchart TD
     SGR --> EMAIL
     SGA --> EMAIL
     DENYEMAIL --> EMAIL
-    I3 --> EMAIL
+    APPR --> EMAIL
     SLREMAIL --> EMAIL
     SAPPR --> EMAIL
     ERREMAIL --> EMAIL

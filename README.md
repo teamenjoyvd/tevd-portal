@@ -626,3 +626,7 @@ lib/hooks/
   color: var(--crimson) !important;
 }
 ```
+
+## Upgrade notes
+
+- 2026-07-06 — Guardrails review follow-up: added Hard Constraint "NEVER introduce a Clerk JWT Supabase client on the server" to `CLAUDE.md` `## Project` (implements the mitigation ADR-002 already claimed existed). Kit core/footer untouched — sentinel stays `guardrails-kit: v1.0`. Doc corrections in the same change: C4.md RLS lines now cite Pattern A helpers (ADR-011); FLOWS.md §1/§4 briefly rewritten to an Inngest approval flow per REF/C4, then reverted same-day — git history (#322 "Rip out Inngest") proved Inngest was removed and REF/C4 are the stale docs (net FLOWS change: one history note in §1); CONTEXT.md §1-§3 de-duplicated into pointers to REF.md; auth.mdc rewritten (middleware.ts never permitted; globs now match root `proxy.ts`); REF.md vitals route corrected to `/api/profile/vital-signs` + trips/messages routes added; ADR-009 marked Amended (quantitative layout rules govern); ADR-006 next.config claim corrected; QA.md/database.mdc/GOTCHAS.md minor corrections.

@@ -25,7 +25,7 @@ This document compiles technical questions, answers, and the current backlog of 
 
 **Question:** If I had to ask you to refactor the authentication, how should that prompt look like?
 
-**Answer:** Use the issue structure defined in `CLAUDE.md`:
+**Answer:** Use the issue structure defined in `docs/guardrails/PROJECT.md` (`#id-format`, `#claim-complete-definition`):
 ```markdown
 REFACTOR: [Short description of the authentication refactor]
 
@@ -33,7 +33,7 @@ REFACTOR: [Short description of the authentication refactor]
 [Explain the goal of the refactor. For example: "We need to split API routes into public/private tiers, update public-routes helper list, or introduce role-based API protection via custom headers set in proxy.ts."]
 
 ## Design
-- **Proxy/Routing:** All custom authentication routing, request rewriting, or route matching must reside inside `proxy.ts` (Option C Hybrid middleware structure). Do not place custom routing logic directly in `middleware.ts`.
+- **Proxy/Routing:** All custom authentication routing, request rewriting, or route matching must reside inside root `proxy.ts`. Never create `middleware.ts` (CLAUDE.md hard constraint; `docs/architecture/DECISIONS.md` ADR-006).
 - **Async Verification:** All check/verification sites must use the asynchronous `auth()` call:
   ```typescript
   const { userId } = await auth();
