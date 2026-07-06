@@ -7,7 +7,7 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
 Deno.serve(async (req: Request) => {
   const secret = Deno.env.get('SYNC_SECRET')
-  if (secret && req.headers.get('x-sync-secret') !== secret) {
+  if (!secret || req.headers.get('x-sync-secret') !== secret) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 })
   }
 
@@ -45,7 +45,7 @@ Deno.serve(async (req: Request) => {
 
       const templateVal = buildInAppMessage(item.type, item.payload)
       const title = item.payload.title || templateVal.title
-      const message = item.payload.message || item.payload.body || templateVal.message || 'Your document is expiring soon.'
+      const message = item.payload.message || item.payload.body || templateVal.message || 'You have a new notification.'
       const action_url = item.payload.action_url || templateVal.action_url
 
       const { error: insertErr } = await sb

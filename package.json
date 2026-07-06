@@ -15,7 +15,7 @@
     "agentic:smoke": "node scripts/smoke.js",
     "agentic:check": "node scripts/check-infra.js",
     "agentic:upgrade": "node scripts/upgrade-infra.js",
-    "db:clean-fixes": "node -e \"require('fs').unlinkSync('apply_fixes.sql')\""
+    "db:clean-fixes": "node -e \"const fs = require('fs'); if (fs.existsSync('apply_fixes.sql')) fs.unlinkSync('apply_fixes.sql')\""
   },
   "dependencies": {
     "@clerk/nextjs": "^7.0.4",

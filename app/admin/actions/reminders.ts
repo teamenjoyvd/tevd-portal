@@ -100,5 +100,6 @@ export async function rescheduleReminder(reminderId: string, newSendAt: string) 
       last_error: null,
     })
     .eq('id', reminderId)
+    .in('status', ['pending', 'failed'])
   revalidatePath('/admin/settings')
 }

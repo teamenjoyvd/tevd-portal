@@ -28,7 +28,9 @@ export function buildReminderEmail(
   const safeName = escapeHtml(name);
   const safeEventTitle = escapeHtml(eventTitle);
   const safeFormattedTime = escapeHtml(formattedTime);
-  const safeMeetingUrl = meetingUrl ? escapeHtml(meetingUrl) : null;
+  const safeMeetingUrl = (meetingUrl && (meetingUrl.startsWith('http://') || meetingUrl.startsWith('https://')))
+    ? escapeHtml(meetingUrl)
+    : null;
 
   return `
     <!DOCTYPE html>

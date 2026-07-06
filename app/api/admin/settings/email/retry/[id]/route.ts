@@ -50,7 +50,7 @@ export async function POST(
     .eq('id', id)
     .single()
 
-  if (fetchErr || !log) return Response.json({ error: 'Log entry not found' }, { status: 444 })
+  if (fetchErr || !log) return Response.json({ error: 'Log entry not found' }, { status: 404 })
   if (log.status === 'sent') return Response.json({ error: 'Email already sent' }, { status: 400 })
 
   if (log.queue_id) {

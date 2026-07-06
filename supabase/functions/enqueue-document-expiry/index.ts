@@ -6,8 +6,12 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
 Deno.serve(async (req: Request) => {
   const secret = Deno.env.get('SYNC_SECRET')
-  if (secret && req.headers.get('x-sync-secret') !== secret) {
+  if (!secret || req.headers.get('x-sync-secret') !== secret) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 })
+  }
+
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    return new Response(JSON.stringify({ error: 'Missing environment variables' }), { status: 500 })
   }
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
