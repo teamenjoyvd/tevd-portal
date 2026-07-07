@@ -36,10 +36,12 @@ export default function GuideBody({
   body,
   lang,
   attachments = [],
+  guideId,
 }: {
   body: JSONContent | null
   lang: string
   attachments?: Attachment[]
+  guideId: string
 }) {
   const { t } = useLanguage()
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
@@ -70,7 +72,7 @@ export default function GuideBody({
               {attachments.map(att => (
                 <a
                   key={att.id}
-                  href={att.file_url}
+                  href={`/api/guides/${guideId}/attachments/${att.id}/download`}
                   target="_blank"
                   rel="noopener noreferrer"
                   download
