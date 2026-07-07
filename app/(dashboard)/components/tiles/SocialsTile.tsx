@@ -107,14 +107,8 @@ export default function SocialsTile({
         >
           {post.thumbnail_url && (
             <div
-              className="flex-shrink-0 rounded-xl overflow-hidden self-start md:self-auto"
-              style={{
-                width: 80,
-                height: 80,
-                backgroundColor: 'rgba(0,0,0,0.06)',
-                outline: '2px solid rgba(0,0,0,0.08)',
-                outlineOffset: 1,
-              }}
+              className="flex-shrink-0 rounded-xl overflow-hidden self-start md:self-auto w-20 h-20 md:w-[100px] md:h-[100px] outline outline-2 outline-offset-1 outline-[rgba(0,0,0,0.08)] md:outline-0 md:shadow-[0_2px_8px_rgba(0,0,0,0.10)]"
+              style={{ backgroundColor: 'rgba(0,0,0,0.06)' }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
