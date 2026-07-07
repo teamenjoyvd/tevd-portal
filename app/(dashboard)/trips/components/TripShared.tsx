@@ -25,19 +25,20 @@ export function PinIcon({ size }: { size: number }) {
  */
 export function TripImage({
   src,
-  height,
+  heightClassName,
   overlay = false,
   children,
 }: {
   src: string | null | undefined
-  height: number
+  /** Tailwind height classes, e.g. `"h-[180px] md:h-[220px]"` — responsive since desktop/mobile use different fixed heights. */
+  heightClassName: string
   overlay?: boolean
   children?: React.ReactNode
 }) {
   return (
     <div
-      className="w-full flex-shrink-0 relative"
-      style={{ height, backgroundColor: 'var(--brand-forest)' }}
+      className={`w-full flex-shrink-0 relative ${heightClassName}`}
+      style={{ backgroundColor: 'var(--brand-forest)' }}
     >
       {src && (
         // eslint-disable-next-line @next/next/no-img-element

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import BentoCard from '@/components/bento/BentoCard'
 import { useLanguage } from '@/lib/hooks/useLanguage'
@@ -15,6 +15,7 @@ type SocialPost = {
   thumbnail_url: string | null
   is_pinned: boolean
   created_at: string
+  posted_at: string | null
 }
 
 type SocialsData = {
@@ -23,11 +24,6 @@ type SocialsData = {
 
 const STORAGE_URL_FRAGMENT = '/storage/v1/object/public/social-thumbnails/'
 
-/**
- * Storage URLs are public — serve directly.
- * CDN URLs (fbcdn, cdninstagram) require the server-side proxy to bypass
- * hotlink protection. Any URL not matching Storage is assumed to need proxying.
- */
 function thumbnailSrc(url: string): string {
   if (url.includes(STORAGE_URL_FRAGMENT)) return url
   return `/api/socials/thumbnail?src=${encodeURIComponent(url)}`
@@ -51,14 +47,17 @@ function FacebookIcon() {
   )
 }
 
+/**
+ * SocialsTile — single responsive component (merged from SocialsTileDesktop/Mobile,
+ * see issue #482). `colSpan`/`rowSpan` only take effect inside a CSS grid parent
+ * (the desktop bento layout); they're harmless no-ops in the mobile flex stack.
+ */
 export default function SocialsTile({
-  colSpan = 4,
-  mobileColSpan = 12,
+  colSpan = 3,
   rowSpan,
   style,
 }: {
   colSpan?: number
-  mobileColSpan?: number
   rowSpan?: number
   style?: React.CSSProperties
 }) {
@@ -70,9 +69,11 @@ export default function SocialsTile({
   })
 
   const post = data?.post ?? null
+  const [now, setNow] = useState<number | null>(null)
+  useEffect(() => { setNow(Date.now()) }, [])
 
-  const [now] = useState(() => Date.now())
   function timeAgo(dateStr: string): string {
+    if (now === null) return ''
     return timeAgoMs(now - new Date(dateStr).getTime(), t)
   }
 
@@ -80,90 +81,83 @@ export default function SocialsTile({
     <BentoCard
       variant="default"
       colSpan={colSpan}
-      mobileColSpan={mobileColSpan}
       rowSpan={rowSpan}
-      className="bento-tile flex flex-col relative overflow-hidden"
+      className="bento-tile flex flex-col"
       style={{ animationDelay: '350ms', ...style }}
     >
-      {/* Decorative background image */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/socials-image.jpg"
-        alt=""
-        aria-hidden="true"
-        style={{
-          position: 'absolute',
-          inset: 0,
-          width: '100%',
-          height: '100%',
-          objectFit: 'cover',
-          opacity: 0.15,
-          pointerEvents: 'none',
-          zIndex: 0,
-        }}
-      />
+      {isLoading && (
+        <div className="flex-1 flex flex-col justify-center gap-3 mt-3 md:mt-0">
+          <div className="h-14 rounded-lg animate-pulse" style={{ backgroundColor: 'rgba(0,0,0,0.06)' }} />
+        </div>
+      )}
 
-      <div className="relative flex flex-col flex-1" style={{ zIndex: 1 }}>
-        {isLoading && (
-          <div className="flex-1 flex flex-col justify-center gap-3 mt-3">
-            <div className="h-14 rounded-lg animate-pulse" style={{ backgroundColor: 'rgba(0,0,0,0.06)' }} />
-          </div>
-        )}
+      {!isLoading && !post && (
+        <p className="font-body text-xs mt-3 md:mt-0" style={{ color: 'var(--text-secondary)' }}>
+          {t('home.socials.comingSoon')}
+        </p>
+      )}
 
-        {!isLoading && !post && (
-          <p className="font-body text-xs mt-3" style={{ color: 'var(--text-secondary)' }}>
-            {t('home.socials.comingSoon')}
-          </p>
-        )}
+      {!isLoading && post && (
+        <a
+          href={post.post_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex gap-3 md:gap-4 group mt-3 md:mt-0 flex-1 md:items-center"
+          style={{ textDecoration: 'none' }}
+        >
+          {post.thumbnail_url && (
+            <div
+              className="flex-shrink-0 rounded-xl overflow-hidden self-start md:self-auto"
+              style={{
+                width: 80,
+                height: 80,
+                backgroundColor: 'rgba(0,0,0,0.06)',
+                outline: '2px solid rgba(0,0,0,0.08)',
+                outlineOffset: 1,
+              }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={thumbnailSrc(post.thumbnail_url)}
+                alt={`${post.platform} ${t('home.socials.postAlt')}`}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            </div>
+          )}
 
-        {!isLoading && post && (
-          <a
-            href={post.post_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex gap-3 group mt-3 flex-1"
-            style={{ textDecoration: 'none' }}
-          >
-            <div className="flex-1 min-w-0 flex flex-col justify-between">
-              <div className="flex items-center gap-1.5 mb-1.5" style={{ color: 'var(--text-secondary)' }}>
-                {post.platform === 'instagram' ? <InstagramIcon /> : <FacebookIcon />}
-                <span className="text-xs font-medium capitalize" style={{ color: 'var(--text-secondary)' }}>{post.platform}</span>
-                <span className="text-xs" style={{ color: 'var(--text-secondary)', opacity: 0.55 }}>· {timeAgo(post.created_at)}</span>
-              </div>
-              {post.caption ? (
-                <p
-                  className="text-xs leading-relaxed group-hover:underline"
-                  style={{
-                    color: 'var(--text-primary)',
-                    display: '-webkit-box',
-                    WebkitLineClamp: 3,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden',
-                  }}
-                >
-                  {post.caption}
-                </p>
-              ) : (
-                <p className="text-xs italic" style={{ color: 'var(--text-secondary)' }}>{t('home.socials.viewPost')}</p>
+          <div className="flex-1 min-w-0 flex flex-col justify-between md:justify-start md:gap-1.5">
+            <div className="flex items-center gap-1.5 mb-1.5 md:mb-0" style={{ color: 'var(--text-secondary)' }}>
+              {post.platform === 'instagram' ? <InstagramIcon /> : <FacebookIcon />}
+              <span className="text-xs font-medium capitalize" style={{ color: 'var(--text-secondary)' }}>
+                {post.platform}
+              </span>
+              {now !== null && (
+                <span className="text-xs" style={{ color: 'var(--text-secondary)', opacity: 0.55 }}>
+                  · {timeAgo(post.posted_at ?? post.created_at)}
+                </span>
               )}
             </div>
-
-            {post.thumbnail_url && (
-              <div
-                className="flex-shrink-0 rounded-lg overflow-hidden self-start"
-                style={{ width: 64, height: 64, backgroundColor: 'rgba(0,0,0,0.06)' }}
+            {post.caption ? (
+              <p
+                className="text-xs leading-relaxed group-hover:underline"
+                style={{
+                  color: 'var(--text-primary)',
+                  display: '-webkit-box',
+                  WebkitLineClamp: 3,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                }}
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={thumbnailSrc(post.thumbnail_url)}
-                  alt={`${post.platform} ${t('home.socials.postAlt')}`}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
-              </div>
+                {post.caption}
+              </p>
+            ) : (
+              <p className="text-xs italic" style={{ color: 'var(--text-secondary)' }}>
+                {t('home.socials.viewPost')}
+              </p>
             )}
-          </a>
-        )}
-      </div>
+          </div>
+        </a>
+      )}
     </BentoCard>
   )
 }
