@@ -1,0 +1,20 @@
+'use client'
+
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+
+export function Default() {
+  return (
+    <Tabs defaultValue="overview" style={{ width: 360 }}>
+      <TabsList>
+        <TabsTrigger value="overview">Overview</TabsTrigger>
+        <TabsTrigger value="guests">Guests</TabsTrigger>
+        <TabsTrigger value="payments">Payments</TabsTrigger>
+      </TabsList>
+      <TabsContent value="overview">
+        <p style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+          Trip summary and key dates.
+        </p>
+      </TabsContent>
+    </Tabs>
+  )
+}
