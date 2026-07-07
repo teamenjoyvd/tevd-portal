@@ -36,11 +36,11 @@ describe('formatDateTime', () => {
 describe('formatCurrency', () => {
   // de-DE inserts a non-breaking space (U+00A0) before the currency symbol.
   it('formats EUR with de-DE grouping/decimal separators', () => {
-    expect(formatCurrency(1234)).toBe('1.234,00 €')
+    expect(formatCurrency(1234)).toBe('1.234,00\u00A0€')
   })
 
   it('formats zero correctly', () => {
-    expect(formatCurrency(0)).toBe('0,00 €')
+    expect(formatCurrency(0)).toBe('0,00\u00A0€')
   })
 })
 
