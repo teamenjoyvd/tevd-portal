@@ -21,6 +21,11 @@ BEGIN
     RAISE EXCEPTION 'p_keep_abos cannot be NULL';
   END IF;
 
+  -- Strip embedded NULLs: `x != ALL(array)` evaluates to NULL (not TRUE) for
+  -- any row that doesn't exactly match a non-null element once the array
+  -- contains a NULL, which would silently turn the DELETE below into a no-op.
+  p_keep_abos := array_remove(p_keep_abos, NULL);
+
   -- Snapshot current state before deletion
   SELECT jsonb_agg(row_to_json(lm)::jsonb)
     INTO v_snapshot
