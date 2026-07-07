@@ -17,6 +17,10 @@ BEGIN
     RAISE EXCEPTION 'Unauthorized';
   END IF;
 
+  IF p_keep_abos IS NULL THEN
+    RAISE EXCEPTION 'p_keep_abos cannot be NULL';
+  END IF;
+
   -- Snapshot current state before deletion
   SELECT jsonb_agg(row_to_json(lm)::jsonb)
     INTO v_snapshot
@@ -49,10 +53,6 @@ SECURITY DEFINER
 AS $$
 DECLARE
   v_snapshot      jsonb;
-  v_snap_row      jsonb;
-  v_entry_date    date;
-  v_renewal_date  date;
-  v_snap_abos     text[];
   v_restored      integer := 0;
 BEGIN
   IF auth.role() <> 'service_role' AND NOT is_admin() THEN
@@ -68,94 +68,85 @@ BEGIN
     RAISE EXCEPTION 'Import % not found or already rolled back', p_import_id;
   END IF;
 
-  -- ── Build ABO set from snapshot ────────────────────────────────────────────
-  SELECT ARRAY(
-    SELECT elem->>'abo_number'
-    FROM jsonb_array_elements(v_snapshot) AS elem
-    WHERE nullif(elem->>'abo_number', '') IS NOT NULL
-  ) INTO v_snap_abos;
-
   -- ── Truncate and restore from snapshot ────────────────────────────────────
-  -- Delete any ABO not in snapshot first, then upsert snapshot rows
-  DELETE FROM public.los_members
-  WHERE abo_number != ALL(v_snap_abos);
+  -- Delete any ABO not in snapshot first, then bulk-upsert snapshot rows
+  DELETE FROM public.los_members lm
+  WHERE NOT EXISTS (
+    SELECT 1
+    FROM jsonb_array_elements(v_snapshot) AS elem
+    WHERE elem->>'abo_number' = lm.abo_number
+  );
 
-  FOR v_snap_row IN SELECT * FROM jsonb_array_elements(v_snapshot)
-  LOOP
-    v_entry_date := CASE
-      WHEN nullif(v_snap_row->>'entry_date', '') IS NULL THEN NULL
-      WHEN v_snap_row->>'entry_date' ~ '^\d{4}-\d{2}-\d{2}$' THEN (v_snap_row->>'entry_date')::date
+  INSERT INTO public.los_members (
+    abo_number, sponsor_abo_number, abo_level, country, name,
+    entry_date, phone, email, address, renewal_date,
+    gpv, ppv, bonus_percent, gbv, customer_pv, ruby_pv,
+    customers, points_to_next_level, qualified_legs, group_size,
+    personal_order_count, group_orders_count, sponsoring,
+    annual_ppv, last_synced_at
+  )
+  SELECT
+    elem->>'abo_number',
+    nullif(elem->>'sponsor_abo_number', ''),
+    elem->>'abo_level',
+    elem->>'country',
+    elem->>'name',
+    CASE
+      WHEN nullif(elem->>'entry_date', '') IS NULL THEN NULL
+      WHEN elem->>'entry_date' ~ '^\d{4}-\d{2}-\d{2}$' THEN (elem->>'entry_date')::date
       ELSE NULL
-    END;
-
-    v_renewal_date := CASE
-      WHEN nullif(v_snap_row->>'renewal_date', '') IS NULL THEN NULL
-      WHEN v_snap_row->>'renewal_date' ~ '^\d{4}-\d{2}-\d{2}$' THEN (v_snap_row->>'renewal_date')::date
+    END,
+    elem->>'phone',
+    elem->>'email',
+    elem->>'address',
+    CASE
+      WHEN nullif(elem->>'renewal_date', '') IS NULL THEN NULL
+      WHEN elem->>'renewal_date' ~ '^\d{4}-\d{2}-\d{2}$' THEN (elem->>'renewal_date')::date
       ELSE NULL
-    END;
+    END,
+    COALESCE(nullif(elem->>'gpv',                  '')::numeric, 0),
+    COALESCE(nullif(elem->>'ppv',                  '')::numeric, 0),
+    COALESCE(nullif(elem->>'bonus_percent',         '')::numeric, 0),
+    COALESCE(nullif(elem->>'gbv',                  '')::numeric, 0),
+    COALESCE(nullif(elem->>'customer_pv',           '')::numeric, 0),
+    COALESCE(nullif(elem->>'ruby_pv',              '')::numeric, 0),
+    COALESCE(nullif(elem->>'customers',             '')::integer, 0),
+    COALESCE(nullif(elem->>'points_to_next_level',  '')::numeric, 0),
+    COALESCE(nullif(elem->>'qualified_legs',        '')::integer, 0),
+    COALESCE(nullif(elem->>'group_size',            '')::integer, 0),
+    COALESCE(nullif(elem->>'personal_order_count',  '')::integer, 0),
+    COALESCE(nullif(elem->>'group_orders_count',    '')::integer, 0),
+    COALESCE(nullif(elem->>'sponsoring',            '')::integer, 0),
+    COALESCE(nullif(elem->>'annual_ppv',            '')::numeric, 0),
+    now()
+  FROM jsonb_array_elements(v_snapshot) AS elem
+  ON CONFLICT (abo_number) DO UPDATE SET
+    sponsor_abo_number   = excluded.sponsor_abo_number,
+    abo_level            = excluded.abo_level,
+    country              = excluded.country,
+    name                 = excluded.name,
+    entry_date           = excluded.entry_date,
+    phone                = excluded.phone,
+    email                = excluded.email,
+    address              = excluded.address,
+    renewal_date         = excluded.renewal_date,
+    gpv                  = excluded.gpv,
+    ppv                  = excluded.ppv,
+    bonus_percent        = excluded.bonus_percent,
+    gbv                  = excluded.gbv,
+    customer_pv          = excluded.customer_pv,
+    ruby_pv              = excluded.ruby_pv,
+    customers            = excluded.customers,
+    points_to_next_level = excluded.points_to_next_level,
+    qualified_legs       = excluded.qualified_legs,
+    group_size           = excluded.group_size,
+    personal_order_count = excluded.personal_order_count,
+    group_orders_count   = excluded.group_orders_count,
+    sponsoring           = excluded.sponsoring,
+    annual_ppv           = excluded.annual_ppv,
+    last_synced_at       = now();
 
-    INSERT INTO public.los_members (
-      abo_number, sponsor_abo_number, abo_level, country, name,
-      entry_date, phone, email, address, renewal_date,
-      gpv, ppv, bonus_percent, gbv, customer_pv, ruby_pv,
-      customers, points_to_next_level, qualified_legs, group_size,
-      personal_order_count, group_orders_count, sponsoring,
-      annual_ppv, last_synced_at
-    ) VALUES (
-      v_snap_row->>'abo_number',
-      nullif(v_snap_row->>'sponsor_abo_number', ''),
-      v_snap_row->>'abo_level',
-      v_snap_row->>'country',
-      v_snap_row->>'name',
-      v_entry_date,
-      v_snap_row->>'phone',
-      v_snap_row->>'email',
-      v_snap_row->>'address',
-      v_renewal_date,
-      COALESCE(nullif(v_snap_row->>'gpv',                  '')::numeric, 0),
-      COALESCE(nullif(v_snap_row->>'ppv',                  '')::numeric, 0),
-      COALESCE(nullif(v_snap_row->>'bonus_percent',         '')::numeric, 0),
-      COALESCE(nullif(v_snap_row->>'gbv',                  '')::numeric, 0),
-      COALESCE(nullif(v_snap_row->>'customer_pv',           '')::numeric, 0),
-      COALESCE(nullif(v_snap_row->>'ruby_pv',              '')::numeric, 0),
-      COALESCE(nullif(v_snap_row->>'customers',             '')::integer, 0),
-      COALESCE(nullif(v_snap_row->>'points_to_next_level',  '')::numeric, 0),
-      COALESCE(nullif(v_snap_row->>'qualified_legs',        '')::integer, 0),
-      COALESCE(nullif(v_snap_row->>'group_size',            '')::integer, 0),
-      COALESCE(nullif(v_snap_row->>'personal_order_count',  '')::integer, 0),
-      COALESCE(nullif(v_snap_row->>'group_orders_count',    '')::integer, 0),
-      COALESCE(nullif(v_snap_row->>'sponsoring',            '')::integer, 0),
-      COALESCE(nullif(v_snap_row->>'annual_ppv',            '')::numeric, 0),
-      now()
-    )
-    ON CONFLICT (abo_number) DO UPDATE SET
-      sponsor_abo_number   = excluded.sponsor_abo_number,
-      abo_level            = excluded.abo_level,
-      country              = excluded.country,
-      name                 = excluded.name,
-      entry_date           = excluded.entry_date,
-      phone                = excluded.phone,
-      email                = excluded.email,
-      address              = excluded.address,
-      renewal_date         = excluded.renewal_date,
-      gpv                  = excluded.gpv,
-      ppv                  = excluded.ppv,
-      bonus_percent        = excluded.bonus_percent,
-      gbv                  = excluded.gbv,
-      customer_pv          = excluded.customer_pv,
-      ruby_pv              = excluded.ruby_pv,
-      customers            = excluded.customers,
-      points_to_next_level = excluded.points_to_next_level,
-      qualified_legs       = excluded.qualified_legs,
-      group_size           = excluded.group_size,
-      personal_order_count = excluded.personal_order_count,
-      group_orders_count   = excluded.group_orders_count,
-      sponsoring           = excluded.sponsoring,
-      annual_ppv           = excluded.annual_ppv,
-      last_synced_at       = now();
-
-    v_restored := v_restored + 1;
-  END LOOP;
+  GET DIAGNOSTICS v_restored = ROW_COUNT;
 
   -- ── Rebuild tree paths ─────────────────────────────────────────────────────
   PERFORM public.rebuild_tree_paths();
