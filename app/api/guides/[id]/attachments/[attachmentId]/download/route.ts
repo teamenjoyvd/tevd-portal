@@ -22,26 +22,30 @@ export async function GET(
 
   const role = await getRoleForAccess()
 
-  const { data: guide } = await supabase
-    .from('guides')
-    .select('id, is_published, access_roles')
-    .eq('id', guideId)
-    .eq('is_published', true)
-    .single()
+  const [guideRes, attachmentRes] = await Promise.all([
+    supabase
+      .from('guides')
+      .select('id, is_published, access_roles')
+      .eq('id', guideId)
+      .eq('is_published', true)
+      .single(),
+    supabase
+      .from('guide_attachments')
+      .select('id, file_url, file_name')
+      .eq('id', attachmentId)
+      .eq('guide_id', guideId)
+      .single(),
+  ])
+
+  const guide = guideRes.data
+  const attachment = attachmentRes.data
 
   if (!guide) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  const accessRoles = guide.access_roles as string[]
+  const accessRoles = (guide.access_roles as string[] | null) ?? []
   if (!accessRoles.includes(role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
-
-  const { data: attachment } = await supabase
-    .from('guide_attachments')
-    .select('id, file_url, file_name')
-    .eq('id', attachmentId)
-    .eq('guide_id', guideId)
-    .single()
 
   if (!attachment) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
