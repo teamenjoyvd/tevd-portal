@@ -11,7 +11,7 @@ CREATE OR REPLACE FUNCTION patch_member_role(
 RETURNS SETOF profiles
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, pg_temp
 AS $$
 DECLARE
   v_old_role user_role;
@@ -20,10 +20,13 @@ BEGIN
     RAISE EXCEPTION 'Unauthorized';
   END IF;
 
-  -- Fetch current role inside the transaction
+  -- Fetch current role inside the transaction; lock the row so concurrent
+  -- role changes on the same profile serialize instead of interleaving
+  -- their audit rows.
   SELECT role INTO v_old_role
   FROM profiles
-  WHERE id = p_profile_id;
+  WHERE id = p_profile_id
+  FOR UPDATE;
 
   IF NOT FOUND THEN
     RAISE EXCEPTION 'profile not found: %', p_profile_id;
@@ -45,6 +48,6 @@ END;
 $$;
 
 REVOKE EXECUTE ON FUNCTION patch_member_role(uuid, user_role, text, text) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION patch_member_role(uuid, user_role, text, text) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION patch_member_role(uuid, user_role, text, text) FROM anon;
+GRANT  EXECUTE ON FUNCTION patch_member_role(uuid, user_role, text, text) TO authenticated;
 GRANT  EXECUTE ON FUNCTION patch_member_role(uuid, user_role, text, text) TO service_role;
