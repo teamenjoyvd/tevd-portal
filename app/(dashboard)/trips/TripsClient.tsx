@@ -8,8 +8,7 @@ import RegisterButton from '@/components/trips/RegisterButton'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import { PinIcon } from './components/TripShared'
-import TripCardMobile from './components/TripCardMobile'
-import TripCardDesktop from './components/TripCardDesktop'
+import TripCard from './components/TripCard'
 import type { Trip } from './page'
 import { apiClient } from '@/lib/apiClient'
 
@@ -232,7 +231,7 @@ export default function TripsClient({ initialTrips }: { initialTrips: Trip[] }) 
         {/* Mobile */}
         <div className="md:hidden flex flex-col gap-3">
           {trips.length === 0 ? emptyState : trips.map(trip => (
-            <TripCardMobile key={trip.id} {...cardProps(trip)} />
+            <TripCard key={trip.id} {...cardProps(trip)} />
           ))}
         </div>
 
@@ -242,7 +241,7 @@ export default function TripsClient({ initialTrips }: { initialTrips: Trip[] }) 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: '12px' }}>
               {trips.map(trip => (
                 <div key={trip.id} style={{ gridColumn: isSingle ? '3 / span 8' : 'span 6' }}>
-                  <TripCardDesktop {...cardProps(trip)} />
+                  <TripCard {...cardProps(trip)} />
                 </div>
               ))}
             </div>
