@@ -15,9 +15,13 @@ const SIGNED_URL_TTL_SECONDS = 60
 // is the only supported read path.
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string; attachmentId: string }> }
+  { params }: { params: Promise<{ slug: string; attachmentId: string }> }
 ): Promise<NextResponse> {
-  const { id: guideId, attachmentId } = await params
+  // NOTE: despite the `slug` param name (required to match the sibling
+  // app/api/guides/[slug]/route.ts segment — Next.js requires the same
+  // dynamic-segment name at a given route position across the whole app),
+  // this value is the guide's UUID, not its slug. See guides.id query below.
+  const { slug: guideId, attachmentId } = await params
   const supabase = createServiceClient()
 
   const role = await getRoleForAccess()
