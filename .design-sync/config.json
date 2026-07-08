@@ -1,0 +1,27 @@
+{
+  "projectId": "419d3e32-e2cd-42d3-84f5-38f5b071abad",
+  "pkg": "tevd-portal",
+  "globalName": "TevdPortalUI",
+  "shape": "package",
+  "srcDir": "components/ui",
+  "tsconfig": "tsconfig.json",
+  "cssEntry": ".design-sync/.cache/tw-compiled.css",
+  "buildCmd": "node .design-sync/scripts/compile-css.mjs",
+  "readmeHeader": ".design-sync/conventions.md",
+  "overrides": {
+    "Dialog": { "cardMode": "single", "primaryStory": "Open", "viewport": "480x360" },
+    "AlertDialog": { "cardMode": "single", "primaryStory": "Open", "viewport": "440x320" },
+    "Sheet": { "cardMode": "single", "primaryStory": "Open", "viewport": "480x560" },
+    "SheetHeader": { "cardMode": "single", "primaryStory": "Open", "viewport": "480x560" },
+    "Drawer": { "cardMode": "single", "primaryStory": "Open", "viewport": "480x560" },
+    "VaulDrawer": { "cardMode": "single", "primaryStory": "Open", "viewport": "390x480" },
+    "DropdownMenu": { "cardMode": "single", "primaryStory": "Open", "viewport": "320x320" },
+    "Select": { "cardMode": "single", "primaryStory": "Open", "viewport": "320x360" },
+    "Popover": { "cardMode": "single", "primaryStory": "Open", "viewport": "320x260" },
+    "Toaster": { "cardMode": "single", "primaryStory": "Default", "viewport": "420x200" },
+    "Table": { "cardMode": "column" },
+    "TableCaption": { "cardMode": "column" },
+    "TableCell": { "cardMode": "column" },
+    "TableHead": { "cardMode": "column" }
+  }
+}
