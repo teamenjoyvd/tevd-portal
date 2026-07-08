@@ -214,7 +214,7 @@ export default async function HomePage() {
           <FontSizeTile />
         </div>
 
-        <SocialsTile />
+        <SocialsTile style={{ minHeight: 200 }} />
 
       </div>
 
