@@ -111,7 +111,7 @@ export default async function LibraryDetailPage({
       </h1>
 
       {/* Body + Downloads */}
-      <GuideBody body={body ?? null} lang={lang} attachments={attachments} />
+      <GuideBody body={body ?? null} lang={lang} attachments={attachments} guideId={guide.id} />
     </div>
   )
 }
