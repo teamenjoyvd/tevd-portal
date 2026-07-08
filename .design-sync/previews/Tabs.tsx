@@ -15,6 +15,16 @@ export function Default() {
           Trip summary and key dates.
         </p>
       </TabsContent>
+      <TabsContent value="guests">
+        <p style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+          Guest list and RSVP status.
+        </p>
+      </TabsContent>
+      <TabsContent value="payments">
+        <p style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+          Payment history for this trip.
+        </p>
+      </TabsContent>
     </Tabs>
   )
 }

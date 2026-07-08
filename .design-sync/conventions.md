@@ -13,7 +13,7 @@ Components mix two systems, and getting this right matters:
 - **Structure/layout** — plain Tailwind utility classes (`flex`, `fixed`, `z-50`, `rounded-xl`, `px-4 py-2`, etc.).
 - **Color** — inline `style={{ color: 'var(--text-primary)' }}` referencing real CSS custom properties, **not** Tailwind color utility classes. shadcn's usual `bg-background` / `text-foreground` / `border-input` classes were deliberately replaced in this fork — do not use them, they resolve to nothing here.
 
-The real token names (defined in `_ds_bundle.css`, reachable via `styles.css`):
+The real token names live in `styles/brand-tokens.css` and are compiled into `.design-sync/.cache/tw-compiled.css`:
 
 | Token | Use |
 |---|---|
