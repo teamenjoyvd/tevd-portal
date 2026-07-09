@@ -15,6 +15,10 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { useLanguage } from '@/lib/hooks/useLanguage'
+import { formatDate, formatEur } from './components/memberDetailFormat'
+import { TripsPanel } from './components/TripsPanel'
+import { PaymentsPanel } from './components/PaymentsPanel'
+import { RoleRequestsPanel } from './components/RoleRequestsPanel'
 
 type MemberDetail = {
   profile: {
@@ -49,13 +53,6 @@ type PartnerProfile = {
   }
 }
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-}
-function formatEur(n: number) {
-  return new Intl.NumberFormat('en-DE', { style: 'currency', currency: 'EUR' }).format(n)
-}
-
 function getExpiryState(v: string | null) {
   if (!v) return null
   const diff = (new Date(v).getTime() - Date.now()) / 86400000
@@ -63,14 +60,6 @@ function getExpiryState(v: string | null) {
   if (diff < 90) return 'critical'
   if (diff < 180) return 'warning'
   return 'ok'
-}
-
-const STATUS_PILL: Record<string, string> = {
-  pending:   'bg-[#f2cc8f33] text-[#7a5c00]',
-  approved:  'bg-[#81b29a33] text-[#2d6a4f]',
-  denied:    'bg-[#bc474920] text-[#bc4749]',
-  completed: 'bg-[#81b29a33] text-[#2d6a4f]',
-  failed:    'bg-[#bc474920] text-[#bc4749]',
 }
 
 const ROLES: Array<'admin' | 'core' | 'member' | 'guest'> = ['admin', 'core', 'member', 'guest']
@@ -82,7 +71,7 @@ const LOS_KEYS = [
   ['annual_ppv', 'Annual PPV'], ['sponsoring', 'Sponsoring'],
 ]
 
-// ── Partnership section ───────────────────────────────────────────────────
+// ── Partnership section ─────────────────────────────────────────────────────
 // Hoisted to module scope — avoids React remount anti-pattern.
 function PartnershipSection({
   profile,
@@ -466,99 +455,9 @@ export default function MemberDetailPage() {
         </div>
       )}
 
-      {/* Trips */}
-      {registrations.length > 0 && (
-        <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-5 mb-4">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-semibold tracking-widest uppercase"
-              style={{ color: 'var(--text-secondary)' }}>
-              Trips
-            </p>
-            {totalPaid > 0 && (
-              <p className="text-xs font-medium" style={{ color: 'var(--brand-teal)' }}>
-                {formatEur(totalPaid)} total paid
-              </p>
-            )}
-          </div>
-          <div className="space-y-2">
-            {registrations.map(r => (
-              <div key={r.id} className="flex items-center justify-between py-2 border-b border-black/5 last:border-0">
-                <div>
-                  <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                    {r.trip.title}
-                  </p>
-                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                    {r.trip.destination} · {formatDate(r.trip.start_date)}
-                  </p>
-                </div>
-                <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${STATUS_PILL[r.status] ?? ''}`}>
-                  {r.status}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Payments */}
-      {payments.length > 0 && (
-        <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-5 mb-4">
-          <p className="text-xs font-semibold tracking-widest uppercase mb-3"
-            style={{ color: 'var(--text-secondary)' }}>
-            Payment history
-          </p>
-          <div className="space-y-2">
-            {payments.map(p => (
-              <div key={p.id} className="flex items-center justify-between py-2 border-b border-black/5 last:border-0">
-                <div>
-                  <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                    {p.trip.title}
-                  </p>
-                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                    {formatDate(p.transaction_date)}
-                    {p.note && ` · ${p.note}`}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                    {formatEur(p.amount)}
-                  </p>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${STATUS_PILL[p.status] ?? ''}`}>
-                    {p.status}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Event role requests */}
-      {roleRequests.length > 0 && (
-        <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-5 mb-4">
-          <p className="text-xs font-semibold tracking-widest uppercase mb-3"
-            style={{ color: 'var(--text-secondary)' }}>
-            Event role requests
-          </p>
-          <div className="space-y-2">
-            {roleRequests.map(r => (
-              <div key={r.id} className="flex items-center justify-between py-2 border-b border-black/5 last:border-0">
-                <div>
-                  <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                    {r.role_label} · {r.event.title}
-                  </p>
-                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                    {formatDate(r.event.start_time)}
-                  </p>
-                </div>
-                <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${STATUS_PILL[r.status] ?? ''}`}>
-                  {r.status}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      <TripsPanel registrations={registrations} totalPaid={totalPaid} />
+      <PaymentsPanel payments={payments} />
+      <RoleRequestsPanel roleRequests={roleRequests} />
     </div>
   )
 }

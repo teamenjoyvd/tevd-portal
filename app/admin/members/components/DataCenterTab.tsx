@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState } from 'react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
-import { apiClient } from '@/lib/apiClient'
-import { parseCSV, assembleFiles, type ImportResult, type AssemblyResult, type JunctionNode } from '@/lib/csv-import'
+import { type JunctionNode } from '@/lib/csv-import'
 import { ReconciliationPanel } from './ReconciliationPanel'
+import { useLosImport, type LOSStatus, type PurgeResult } from './useLosImport'
+import type { AssemblyResult } from '@/lib/csv-import'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,21 +17,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-type FileEntry = { filename: string; rows: Record<string, string>[] }
-
-type LOSStatus = {
-  row_count: number
-  last_synced_at: string | null
-  last_import_id: string | null
-  last_import: { id: string; imported_at: string; row_count: number; removed_count: number; status: string } | null
-}
-
-type PurgeResult = { removed: number; import_id: string }
-
-type Phase = 'assembly' | 'diff' | 'result'
 
 // ── DiffSection ───────────────────────────────────────────────────────────────
 
@@ -95,11 +81,11 @@ function JunctionPanel({ junctions }: { junctions: JunctionNode[] }) {
 function ScanPurgeButton({
   assembly,
   losStatus,
-  onPurgeComplete,
+  runScanPurge,
 }: {
   assembly: AssemblyResult
   losStatus: LOSStatus | null
-  onPurgeComplete: (result: PurgeResult) => void
+  runScanPurge: (keepAbos: string[]) => Promise<PurgeResult>
 }) {
   const [purging, setPurging] = useState(false)
   const [purgeError, setPurgeError] = useState<string | null>(null)
@@ -115,11 +101,7 @@ function ScanPurgeButton({
     setPurging(true)
     setPurgeError(null)
     try {
-      const data = await apiClient<PurgeResult>('/api/admin/los-scan', {
-        method: 'POST',
-        body: JSON.stringify({ keep_abos: keepAbos }),
-      })
-      onPurgeComplete(data)
+      await runScanPurge(keepAbos)
     } catch (err: unknown) {
       setPurgeError(err instanceof Error ? err.message : 'Purge failed')
     } finally {
@@ -176,126 +158,21 @@ function ScanPurgeButton({
 
 export function DataCenterTab() {
   const { t } = useLanguage()
-  const fileRef = useRef<HTMLInputElement>(null)
-
-  const [phase, setPhase] = useState<Phase>('assembly')
-
-  const [files, setFiles] = useState<FileEntry[]>([])
-  const [assembly, setAssembly] = useState<AssemblyResult | null>(null)
-
-  const [losStatus, setLosStatus] = useState<LOSStatus | null>(null)
-
-  const [importing, setImporting] = useState(false)
-  const [result, setResult] = useState<ImportResult | null>(null)
-  const [importError, setImportError] = useState<string | null>(null)
-
-  const [purgeResult, setPurgeResult] = useState<PurgeResult | null>(null)
-
-  const [rollingBack, setRollingBack] = useState(false)
-  const [rollbackError, setRollbackError] = useState<string | null>(null)
-
-  const [purgingBack, setPurgingBack] = useState(false)
-  const [purgeRollbackError, setPurgeRollbackError] = useState<string | null>(null)
-
-  useEffect(() => {
-    apiClient<LOSStatus>('/api/admin/los-import').then(setLosStatus).catch(() => null)
-  }, [])
-
-  useEffect(() => {
-    if (files.length === 0) { setAssembly(null); return }
-    setAssembly(assembleFiles(files))
-  }, [files])
-
-  function handleFileAdd(e: React.ChangeEvent<HTMLInputElement>) {
-    const added = Array.from(e.target.files ?? [])
-    if (added.length === 0) return
-    if (fileRef.current) fileRef.current.value = ''
-
-    const readers = added.map(file => new Promise<FileEntry>((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onload = ev => {
-        const text = (ev.target?.result as string).replace(/^\uFEFF/, '')
-        const rows = parseCSV(text)
-        resolve({ filename: file.name, rows })
-      }
-      reader.onerror = reject
-      reader.readAsText(file)
-    }))
-
-    Promise.all(readers).then(newEntries => {
-      setFiles(prev => {
-        const existing = new Set(prev.map(f => f.filename))
-        const unique = newEntries.filter(e => !existing.has(e.filename))
-        return [...prev, ...unique]
-      })
-    }).catch(() => null)
-  }
-
-  function removeFile(filename: string) {
-    setFiles(prev => prev.filter(f => f.filename !== filename))
-  }
-
-  async function handleImport() {
-    if (!assembly) return
-    setImporting(true)
-    setImportError(null)
-    setResult(null)
-    try {
-      const data = await apiClient<ImportResult>('/api/admin/los-import', {
-        method: 'POST',
-        body: JSON.stringify({ rows: assembly.rows }),
-      })
-      setResult(data)
-      setPhase('result')
-      apiClient<LOSStatus>('/api/admin/los-import').then(setLosStatus).catch(() => null)
-    } catch (err: unknown) {
-      setImportError(err instanceof Error ? err.message : 'Unknown error')
-    } finally {
-      setImporting(false)
-    }
-  }
-
-  async function handleRollback() {
-    if (!result?.import_id) return
-    setRollingBack(true)
-    setRollbackError(null)
-    try {
-      await apiClient('/api/admin/los-import/rollback', {
-        method: 'POST',
-        body: JSON.stringify({ import_id: result.import_id }),
-      })
-      setResult(null)
-      setFiles([])
-      setAssembly(null)
-      setPhase('assembly')
-      apiClient<LOSStatus>('/api/admin/los-import').then(setLosStatus).catch(() => null)
-    } catch (err: unknown) {
-      setRollbackError(err instanceof Error ? err.message : 'Rollback failed')
-    } finally {
-      setRollingBack(false)
-    }
-  }
-
-  async function handlePurgeRollback() {
-    if (!purgeResult?.import_id) return
-    setPurgingBack(true)
-    setPurgeRollbackError(null)
-    try {
-      await apiClient('/api/admin/los-import/rollback', {
-        method: 'POST',
-        body: JSON.stringify({ import_id: purgeResult.import_id }),
-      })
-      setPurgeResult(null)
-      apiClient<LOSStatus>('/api/admin/los-import').then(setLosStatus).catch(() => null)
-    } catch (err: unknown) {
-      setPurgeRollbackError(err instanceof Error ? err.message : 'Rollback failed')
-    } finally {
-      setPurgingBack(false)
-    }
-  }
-
-  // Import can proceed as long as there are rows — conflicts are warnings only
-  const canReview = (assembly?.total_row_count ?? 0) > 0
+  const {
+    fileRef,
+    phase, setPhase,
+    files,
+    assembly,
+    losStatus,
+    importing, result, importError,
+    purgeResult,
+    rollingBack, rollbackError,
+    purgingBack, purgeRollbackError,
+    canReview,
+    handleFileAdd, handleFileDrop, removeFile,
+    handleImport, handleRollback, handlePurgeRollback,
+    runScanPurge, resetForNewImport,
+  } = useLosImport()
 
   // ── Phase: Assembly ───────────────────────────────────────────────────────
   if (phase === 'assembly') {
@@ -317,26 +194,7 @@ export function DataCenterTab() {
           className="border-2 border-dashed rounded-lg p-8 text-center"
           style={{ borderColor: 'var(--border-default)', backgroundColor: 'var(--bg-card)' }}
           onDragOver={e => e.preventDefault()}
-          onDrop={e => {
-            e.preventDefault()
-            const droppedFiles = Array.from(e.dataTransfer.files).filter(f => f.name.endsWith('.csv'))
-            if (droppedFiles.length === 0) return
-            const readers = droppedFiles.map(file => new Promise<FileEntry>((resolve, reject) => {
-              const reader = new FileReader()
-              reader.onload = ev => {
-                const text = (ev.target?.result as string).replace(/^\uFEFF/, '')
-                resolve({ filename: file.name, rows: parseCSV(text) })
-              }
-              reader.onerror = reject
-              reader.readAsText(file)
-            }))
-            Promise.all(readers).then(newEntries => {
-              setFiles(prev => {
-                const existing = new Set(prev.map(f => f.filename))
-                return [...prev, ...newEntries.filter(e => !existing.has(e.filename))]
-              })
-            }).catch(() => null)
-          }}
+          onDrop={handleFileDrop}
         >
           <input
             ref={fileRef}
@@ -413,14 +271,7 @@ export function DataCenterTab() {
 
         {/* Scan & purge — shown when files are loaded, after the import CTA */}
         {assembly && assembly.total_row_count > 0 && (
-          <ScanPurgeButton
-            assembly={assembly}
-            losStatus={losStatus}
-            onPurgeComplete={result => {
-              setPurgeResult(result)
-              apiClient<LOSStatus>('/api/admin/los-import').then(setLosStatus).catch(() => null)
-            }}
-          />
+          <ScanPurgeButton assembly={assembly} losStatus={losStatus} runScanPurge={runScanPurge} />
         )}
 
         {/* Purge result */}
@@ -533,7 +384,7 @@ export function DataCenterTab() {
     <div className="space-y-6">
       <div className="flex items-center gap-3 flex-wrap">
         <button
-          onClick={() => { setPhase('assembly'); setFiles([]); setAssembly(null); setResult(null); setPurgeResult(null) }}
+          onClick={resetForNewImport}
           className="text-xs px-3 py-1.5 rounded-lg border"
           style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
         >
@@ -657,14 +508,7 @@ export function DataCenterTab() {
 
       {/* Scan & purge available after import */}
       {assembly && assembly.total_row_count > 0 && (
-        <ScanPurgeButton
-          assembly={assembly}
-          losStatus={losStatus}
-          onPurgeComplete={result => {
-            setPurgeResult(result)
-            apiClient<LOSStatus>('/api/admin/los-import').then(setLosStatus).catch(() => null)
-          }}
-        />
+        <ScanPurgeButton assembly={assembly} losStatus={losStatus} runScanPurge={runScanPurge} />
       )}
 
       {/* Reconciliation */}
