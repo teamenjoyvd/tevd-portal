@@ -42,11 +42,14 @@ export async function GET() {
     upline_abo_number: string | null
   } | null = null
   if (primaryProfileId) {
-    const { data: primary } = await supabase
+    const { data: primary, error: primaryError } = await supabase
       .from('profiles')
       .select('id, first_name, last_name, abo_number, upline_abo_number')
       .eq('id', primaryProfileId)
       .maybeSingle()
+    if (primaryError) {
+      return Response.json({ error: primaryError.message }, { status: 500 })
+    }
     primaryInfo = primary ?? null
   }
 
