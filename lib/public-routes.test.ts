@@ -46,7 +46,6 @@ describe('isPublicRoute', () => {
     '/sign-up/verify',
     '/erc2026',
     '/api/webhooks/clerk',
-    '/api/webhooks/stripe',
     '/api/calendar',
     '/api/calendar/feed',
     '/api/events/123',

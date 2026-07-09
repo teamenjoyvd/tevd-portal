@@ -4,7 +4,6 @@ import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { useUser } from '@clerk/nextjs'
 import { useLanguage } from '@/lib/hooks/useLanguage'
-import { useTileMaxItems } from '@/lib/hooks/useBentoConfig'
 import BentoCard from '@/components/bento/BentoCard'
 import { Eyebrow } from '@/components/bento/BentoCard'
 import { apiClient } from '@/lib/apiClient'
@@ -19,7 +18,7 @@ type Guide = {
 export default function GuidesTile({ colSpan = 6, rowSpan, mobileColSpan }: { colSpan?: number; rowSpan?: number; mobileColSpan?: number }) {
   const { isLoaded } = useUser()
   const { lang, t } = useLanguage()
-  const maxItems = useTileMaxItems('guides', 4)
+  const maxItems = 4
 
   const { data: guides = [], isLoading } = useQuery<Guide[]>({
     queryKey: ['guides', 'tile', maxItems],
