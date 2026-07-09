@@ -155,13 +155,11 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
     /admin/guides/[id]/route.ts
     /admin/guides/[id]/attachments/route.ts              # GET, POST (upload), PATCH (bulk sort)
     /admin/guides/[id]/attachments/[attachmentId]/route.ts  # PATCH (label), DELETE
-    /admin/guides/upload/route.ts
     /admin/home-settings/route.ts  # GET, PATCH — home_settings table
     /admin/links/route.ts
     /admin/links/[id]/route.ts
     /admin/los-import/route.ts     # GET + POST — LOS import (transactional RPC)
     /admin/los-import/rollback/route.ts  # POST — rollback import by import_id
-    /admin/los-tree/route.ts       # GET — returns tree nodes for admin LOS view
     /admin/members/route.ts
     /admin/members/[id]/route.ts
     /admin/members/[id]/vital-signs/route.ts
@@ -170,8 +168,6 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
     /admin/payable-items/[id]/route.ts
     /admin/payments/route.ts
     /admin/payments/[id]/route.ts
-    /admin/quick-links/route.ts
-    /admin/quick-links/[id]/route.ts
     /admin/registrations/route.ts
     /admin/registrations/[id]/route.ts
     /admin/settings/route.ts       # GET, PATCH — settings table (key/value config)
@@ -185,7 +181,6 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
     /admin/trips/[id]/messages/route.ts             # GET, POST — trip messages admin CRUD
     /admin/trips/[id]/messages/[messageId]/route.ts # PATCH, DELETE
     /admin/trips/registrations/[id]/cancel/route.ts
-    /admin/verify/route.ts
     /admin/vital-sign-definitions/route.ts
     /admin/vital-sign-definitions/[id]/route.ts
     /calendar/route.ts
@@ -216,6 +211,7 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
     /socials/route.ts
     /webhooks/clerk/route.ts
 /components
+  /about/AboutMapTile.tsx
   /bento/BentoCard.tsx
   /bento/BentoGrid.tsx
   /bento/tiles/LocationTile.tsx
@@ -437,6 +433,7 @@ Normalised UNION ALL over `profiles_audit` + `role_change_audit`. Columns: `prof
 | `/api/calendar/feed-token` | GET, POST | Issue/regenerate iCal subscription token |
 | `/api/guides` | GET | Published, access_roles respected |
 | `/api/links` | GET | Active links, role-filtered |
+| `/api/home` | GET | home_settings for homepage RSC |
 | `/api/los/tree` | GET | Member LOS tree |
 | `/api/notifications` | GET, PATCH | Own notifications; PATCH marks read |
 | `/api/socials` | GET | |
@@ -445,7 +442,7 @@ Normalised UNION ALL over `profiles_audit` + `role_change_audit`. Columns: `prof
 
 ### Admin routes
 | Route | Method | Notes |
-|---|---|---|
+|---|---|
 | `/api/admin/announcements` | GET, POST, PATCH, DELETE | |
 | `/api/admin/calendar` | GET, POST, PATCH, DELETE | |
 | `/api/admin/calendar-sync` | POST | Triggers sync-google-calendar edge function |
@@ -456,14 +453,12 @@ Normalised UNION ALL over `profiles_audit` + `role_change_audit`. Columns: `prof
 | `/api/admin/guides/[id]` | GET, PATCH, DELETE | |
 | `/api/admin/guides/[id]/attachments` | GET, POST, PATCH | GET: ordered list; POST: upload (max 20MB, multipart); PATCH: bulk sort_order update |
 | `/api/admin/guides/[id]/attachments/[attachmentId]` | PATCH, DELETE | PATCH: label update; DELETE: DB row + storage best-effort |
-| `/api/admin/guides/upload` | POST | Uploads to `guide-covers` bucket |
 | `/api/admin/home-settings` | GET, PATCH | home_settings table |
 | `/api/admin/links` | GET, POST | |
 | `/api/admin/links/[id]` | PATCH, DELETE | |
 | `/api/admin/los-import` | GET | Returns `{ row_count, last_synced_at, last_import_id, last_import }` |
 | `/api/admin/los-import` | POST | Transactional import via `import_los_members` RPC; body: `{ rows, expected_row_count?, imported_by_profile_id? }` |
 | `/api/admin/los-import/rollback` | POST | Rolls back import by `import_id` via `rollback_los_import` RPC |
-| `/api/admin/los-tree` | GET | Tree nodes for admin LOS view |
 | `/api/admin/members` | GET | LOS + profiles + pending verifications + guests + `los_last_synced_at` |
 | `/api/admin/members/[id]` | GET, PATCH | PATCH actions: standard field update; `action: 'promote_to_primary'`; `action: 'dissolve_partnership'`. Deletion block returns 409 `has_secondary`. |
 | `/api/admin/members/[id]/vital-signs` | GET, POST | |
@@ -472,8 +467,6 @@ Normalised UNION ALL over `profiles_audit` + `role_change_audit`. Columns: `prof
 | `/api/admin/payable-items/[id]` | PATCH, DELETE | |
 | `/api/admin/payments` | GET, POST | |
 | `/api/admin/payments/[id]` | PATCH | Triggers `sendNotificationEmail` |
-| `/api/admin/quick-links` | GET, POST | |
-| `/api/admin/quick-links/[id]` | PATCH, DELETE | |
 | `/api/admin/registrations` | GET | Flat join, no N+1 |
 | `/api/admin/registrations/[id]` | PATCH | Triggers `sendNotificationEmail` |
 | `/api/admin/settings` | GET, PATCH | settings key/value table |
@@ -487,10 +480,9 @@ Normalised UNION ALL over `profiles_audit` + `role_change_audit`. Columns: `prof
 | `/api/admin/trips/[id]/messages` | GET, POST | Trip messages admin CRUD |
 | `/api/admin/trips/[id]/messages/[messageId]` | PATCH, DELETE | |
 | `/api/admin/trips/registrations/[id]/cancel` | POST | Triggers `sendNotificationEmail` |
-| `/api/admin/verify` | POST | ABO approve/deny — MUST sync Clerk metadata |
 | `/api/admin/vital-sign-definitions` | GET, POST | |
 | `/api/admin/vital-sign-definitions/[id]` | PATCH, DELETE | |
-| `/api/admin/members/verify/[id]` | PATCH | approve → synchronous: `approve_member_verification` RPC + Clerk sync + email; deny → synchronous in-route |
+| `/api/admin/members/verify/[id]` | PATCH | approve → synchronous: `approve_member_verification` RPC + Clerk sync + email; deny → synchronous in-route. (This is the live ABO approve/deny path with Clerk metadata sync — `/api/admin/verify` was a gutted stub, removed in #493.) |
 
 ### Supabase RPCs
 | RPC | Purpose |
