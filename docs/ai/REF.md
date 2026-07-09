@@ -155,7 +155,6 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
     /admin/guides/[id]/route.ts
     /admin/guides/[id]/attachments/route.ts              # GET, POST (upload), PATCH (bulk sort)
     /admin/guides/[id]/attachments/[attachmentId]/route.ts  # PATCH (label), DELETE
-    /admin/guides/upload/route.ts
     /admin/home-settings/route.ts  # GET, PATCH — home_settings table
     /admin/links/route.ts
     /admin/links/[id]/route.ts
@@ -169,8 +168,6 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
     /admin/payable-items/[id]/route.ts
     /admin/payments/route.ts
     /admin/payments/[id]/route.ts
-    /admin/quick-links/route.ts
-    /admin/quick-links/[id]/route.ts
     /admin/registrations/route.ts
     /admin/registrations/[id]/route.ts
     /admin/settings/route.ts       # GET, PATCH — settings table (key/value config)
@@ -184,7 +181,6 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
     /admin/trips/[id]/messages/route.ts             # GET, POST — trip messages admin CRUD
     /admin/trips/[id]/messages/[messageId]/route.ts # PATCH, DELETE
     /admin/trips/registrations/[id]/cancel/route.ts
-    /admin/verify/route.ts
     /admin/vital-sign-definitions/route.ts
     /admin/vital-sign-definitions/[id]/route.ts
     /calendar/route.ts
@@ -415,7 +411,7 @@ Normalised UNION ALL over `profiles_audit` + `role_change_audit`. Columns: `prof
 
 ### Member routes
 | Route | Method | Notes |
-|---|---|
+|---|---|---|
 | `/api/profile` | GET, PATCH | |
 | `/api/profile/verify-abo` | POST | LOS-validated at submit: existence check + sponsor match + duplicate ABO check. Returns `abo_has_primary` error_code if the existing holder is a primary (ADR-016). Guard added #350: secondary accounts (`primary_profile_id IS NOT NULL`) receive 400 `secondary_cannot_verify`. |
 | `/api/profile/spouse-link` | GET, POST, DELETE | ADR-016: GET own request; POST submit (guest only, guards: requester is guest with no primary_profile_id, claimed_primary is member with abo_number and no existing secondary); DELETE cancel own pending |
@@ -457,7 +453,6 @@ Normalised UNION ALL over `profiles_audit` + `role_change_audit`. Columns: `prof
 | `/api/admin/guides/[id]` | GET, PATCH, DELETE | |
 | `/api/admin/guides/[id]/attachments` | GET, POST, PATCH | GET: ordered list; POST: upload (max 20MB, multipart); PATCH: bulk sort_order update |
 | `/api/admin/guides/[id]/attachments/[attachmentId]` | PATCH, DELETE | PATCH: label update; DELETE: DB row + storage best-effort |
-| `/api/admin/guides/upload` | POST | Uploads to `guide-covers` bucket |
 | `/api/admin/home-settings` | GET, PATCH | home_settings table |
 | `/api/admin/links` | GET, POST | |
 | `/api/admin/links/[id]` | PATCH, DELETE | |
@@ -472,8 +467,6 @@ Normalised UNION ALL over `profiles_audit` + `role_change_audit`. Columns: `prof
 | `/api/admin/payable-items/[id]` | PATCH, DELETE | |
 | `/api/admin/payments` | GET, POST | |
 | `/api/admin/payments/[id]` | PATCH | Triggers `sendNotificationEmail` |
-| `/api/admin/quick-links` | GET, POST | |
-| `/api/admin/quick-links/[id]` | PATCH, DELETE | |
 | `/api/admin/registrations` | GET | Flat join, no N+1 |
 | `/api/admin/registrations/[id]` | PATCH | Triggers `sendNotificationEmail` |
 | `/api/admin/settings` | GET, PATCH | settings key/value table |
@@ -487,10 +480,9 @@ Normalised UNION ALL over `profiles_audit` + `role_change_audit`. Columns: `prof
 | `/api/admin/trips/[id]/messages` | GET, POST | Trip messages admin CRUD |
 | `/api/admin/trips/[id]/messages/[messageId]` | PATCH, DELETE | |
 | `/api/admin/trips/registrations/[id]/cancel` | POST | Triggers `sendNotificationEmail` |
-| `/api/admin/verify` | POST | ABO approve/deny — MUST sync Clerk metadata |
 | `/api/admin/vital-sign-definitions` | GET, POST | |
 | `/api/admin/vital-sign-definitions/[id]` | PATCH, DELETE | |
-| `/api/admin/members/verify/[id]` | PATCH | approve → synchronous: `approve_member_verification` RPC + Clerk sync + email; deny → synchronous in-route |
+| `/api/admin/members/verify/[id]` | PATCH | approve → synchronous: `approve_member_verification` RPC + Clerk sync + email; deny → synchronous in-route. (This is the live ABO approve/deny path with Clerk metadata sync — `/api/admin/verify` was a gutted stub, removed in #493.) |
 
 ### Supabase RPCs
 | RPC | Purpose |
