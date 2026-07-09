@@ -411,7 +411,7 @@ Normalised UNION ALL over `profiles_audit` + `role_change_audit`. Columns: `prof
 
 ### Member routes
 | Route | Method | Notes |
-|---|---|
+|---|---|---|
 | `/api/profile` | GET, PATCH | |
 | `/api/profile/verify-abo` | POST | LOS-validated at submit: existence check + sponsor match + duplicate ABO check. Returns `abo_has_primary` error_code if the existing holder is a primary (ADR-016). Guard added #350: secondary accounts (`primary_profile_id IS NOT NULL`) receive 400 `secondary_cannot_verify`. |
 | `/api/profile/spouse-link` | GET, POST, DELETE | ADR-016: GET own request; POST submit (guest only, guards: requester is guest with no primary_profile_id, claimed_primary is member with abo_number and no existing secondary); DELETE cancel own pending |
@@ -442,7 +442,7 @@ Normalised UNION ALL over `profiles_audit` + `role_change_audit`. Columns: `prof
 
 ### Admin routes
 | Route | Method | Notes |
-|---|---|
+|---|---|---|
 | `/api/admin/announcements` | GET, POST, PATCH, DELETE | |
 | `/api/admin/calendar` | GET, POST, PATCH, DELETE | |
 | `/api/admin/calendar-sync` | POST | Triggers sync-google-calendar edge function |
