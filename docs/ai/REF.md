@@ -161,7 +161,6 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
     /admin/links/[id]/route.ts
     /admin/los-import/route.ts     # GET + POST — LOS import (transactional RPC)
     /admin/los-import/rollback/route.ts  # POST — rollback import by import_id
-    /admin/los-tree/route.ts       # GET — returns tree nodes for admin LOS view
     /admin/members/route.ts
     /admin/members/[id]/route.ts
     /admin/members/[id]/vital-signs/route.ts
@@ -216,6 +215,7 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
     /socials/route.ts
     /webhooks/clerk/route.ts
 /components
+  /about/AboutMapTile.tsx
   /bento/BentoCard.tsx
   /bento/BentoGrid.tsx
   /bento/tiles/LocationTile.tsx
@@ -437,6 +437,7 @@ Normalised UNION ALL over `profiles_audit` + `role_change_audit`. Columns: `prof
 | `/api/calendar/feed-token` | GET, POST | Issue/regenerate iCal subscription token |
 | `/api/guides` | GET | Published, access_roles respected |
 | `/api/links` | GET | Active links, role-filtered |
+| `/api/home` | GET | home_settings for homepage RSC |
 | `/api/los/tree` | GET | Member LOS tree |
 | `/api/notifications` | GET, PATCH | Own notifications; PATCH marks read |
 | `/api/socials` | GET | |
@@ -445,7 +446,7 @@ Normalised UNION ALL over `profiles_audit` + `role_change_audit`. Columns: `prof
 
 ### Admin routes
 | Route | Method | Notes |
-|---|---|---|
+|---|---|
 | `/api/admin/announcements` | GET, POST, PATCH, DELETE | |
 | `/api/admin/calendar` | GET, POST, PATCH, DELETE | |
 | `/api/admin/calendar-sync` | POST | Triggers sync-google-calendar edge function |
@@ -463,7 +464,6 @@ Normalised UNION ALL over `profiles_audit` + `role_change_audit`. Columns: `prof
 | `/api/admin/los-import` | GET | Returns `{ row_count, last_synced_at, last_import_id, last_import }` |
 | `/api/admin/los-import` | POST | Transactional import via `import_los_members` RPC; body: `{ rows, expected_row_count?, imported_by_profile_id? }` |
 | `/api/admin/los-import/rollback` | POST | Rolls back import by `import_id` via `rollback_los_import` RPC |
-| `/api/admin/los-tree` | GET | Tree nodes for admin LOS view |
 | `/api/admin/members` | GET | LOS + profiles + pending verifications + guests + `los_last_synced_at` |
 | `/api/admin/members/[id]` | GET, PATCH | PATCH actions: standard field update; `action: 'promote_to_primary'`; `action: 'dissolve_partnership'`. Deletion block returns 409 `has_secondary`. |
 | `/api/admin/members/[id]/vital-signs` | GET, POST | |
