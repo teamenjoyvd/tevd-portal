@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { isBlockedTarget } from './og-scrape'
+import { safeFetch } from './ssrf-guard'
 
 const STORAGE_URL_PREFIX = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/social-thumbnails/`
 
@@ -17,24 +17,6 @@ export function isCdnUrl(url: string): boolean {
     return false
   }
   return ALLOWED_CDN_HOST_SUFFIXES.some(suffix => hostname.endsWith(suffix))
-}
-
-/** fetch() that manually follows redirects, re-validating each hop against isBlockedTarget (prevents SSRF via redirect). */
-async function safeFetch(url: string, init: RequestInit, maxRedirects = 5): Promise<Response> {
-  let currentUrl = url
-  for (let i = 0; i <= maxRedirects; i++) {
-    if (isBlockedTarget(currentUrl)) throw new Error(`Blocked target: ${currentUrl}`)
-
-    const res = await fetch(currentUrl, { ...init, redirect: 'manual' })
-    if (res.status >= 300 && res.status < 400) {
-      const location = res.headers.get('location')
-      if (!location) return res
-      currentUrl = new URL(location, currentUrl).toString()
-      continue
-    }
-    return res
-  }
-  throw new Error(`Too many redirects fetching ${url}`)
 }
 
 export function isStorageUrl(url: string): boolean {
