@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { getCallerContext } from '@/lib/supabase/guards'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,16 +15,8 @@ export async function GET(
   const { id } = await params
   const supabase = createServiceClient()
 
-  // Admin check via profile
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('clerk_id', userId)
-    .single()
-
-  if (!profile || profile.role !== 'admin') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
+  const ctx = await getCallerContext(userId, supabase, 'admin')
+  if (ctx.guard) return ctx.guard
 
   // Fetch payment — no ownership restriction for admin
   const { data: payment } = await supabase

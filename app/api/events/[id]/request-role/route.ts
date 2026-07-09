@@ -1,5 +1,6 @@
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { getCallerProfile } from '@/lib/supabase/guards'
 
 export async function POST(
   req: Request,
@@ -10,8 +11,7 @@ export async function POST(
   if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
   const supabase = createServiceClient()
-  const { data: profile } = await supabase
-    .from('profiles').select('id, role').eq('clerk_id', userId).single()
+  const profile = await getCallerProfile(userId, supabase)
   if (!profile) return Response.json({ error: 'Profile not found' }, { status: 404 })
 
   // Guests cannot request roles
@@ -74,8 +74,7 @@ export async function DELETE(
   if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
   const supabase = createServiceClient()
-  const { data: profile } = await supabase
-    .from('profiles').select('id').eq('clerk_id', userId).single()
+  const profile = await getCallerProfile(userId, supabase)
   if (!profile) return Response.json({ error: 'Profile not found' }, { status: 404 })
 
   const { error } = await supabase

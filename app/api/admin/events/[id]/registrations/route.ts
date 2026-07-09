@@ -4,6 +4,7 @@
 
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { getCallerContext } from '@/lib/supabase/guards'
 
 export async function GET(
   _req: Request,
@@ -14,15 +15,8 @@ export async function GET(
 
   const supabase = createServiceClient()
 
-  const { data: caller } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('clerk_id', userId)
-    .single()
-
-  if (!caller || caller.role !== 'admin') {
-    return Response.json({ error: 'Forbidden' }, { status: 403 })
-  }
+  const ctx = await getCallerContext(userId, supabase, 'admin')
+  if (ctx.guard) return ctx.guard
 
   const { id } = await params
 

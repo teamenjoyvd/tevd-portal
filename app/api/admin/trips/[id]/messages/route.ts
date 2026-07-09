@@ -1,5 +1,6 @@
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { getCallerContext } from '@/lib/supabase/guards'
 import { NextResponse } from 'next/server'
 
 export async function GET(
@@ -11,15 +12,8 @@ export async function GET(
 
   const supabase = createServiceClient()
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, role')
-    .eq('clerk_id', userId)
-    .single()
-
-  if (!profile || profile.role !== 'admin') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
+  const ctx = await getCallerContext(userId, supabase, 'admin')
+  if (ctx.guard) return ctx.guard
 
   const { id: tripId } = await params
 
@@ -43,15 +37,9 @@ export async function POST(
 
   const supabase = createServiceClient()
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, role')
-    .eq('clerk_id', userId)
-    .single()
-
-  if (!profile || profile.role !== 'admin') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
+  const ctx = await getCallerContext(userId, supabase, 'admin')
+  if (ctx.guard) return ctx.guard
+  const profile = ctx.profile
 
   const { id: tripId } = await params
 

@@ -1,5 +1,6 @@
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { getCallerProfile } from '@/lib/supabase/guards'
 
 export async function GET(): Promise<Response> {
   const { userId } = await auth()
@@ -7,9 +8,8 @@ export async function GET(): Promise<Response> {
 
   const supabase = createServiceClient()
 
-  const { data: profile } = await supabase
-    .from('profiles').select('id').eq('clerk_id', userId).single()
-  if (!profile?.id) return Response.json({ error: 'Profile not found' }, { status: 404 })
+  const profile = await getCallerProfile(userId, supabase)
+  if (!profile) return Response.json({ error: 'Profile not found' }, { status: 404 })
 
   // Registrations with trip details — include cancelled_at so the UI can detect cancellation
   const { data: registrations, error: regError } = await supabase
