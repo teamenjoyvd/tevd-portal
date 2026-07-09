@@ -442,7 +442,7 @@ Normalised UNION ALL over `profiles_audit` + `role_change_audit`. Columns: `prof
 
 ### Admin routes
 | Route | Method | Notes |
-|---|---|
+|---|---|---|
 | `/api/admin/announcements` | GET, POST, PATCH, DELETE | |
 | `/api/admin/calendar` | GET, POST, PATCH, DELETE | |
 | `/api/admin/calendar-sync` | POST | Triggers sync-google-calendar edge function |
