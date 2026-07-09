@@ -28,16 +28,45 @@ export async function GET() {
   const role: string = data.role
   const primaryProfileId: string | null = data.primary_profile_id ?? null
 
+  // Spouse-linked secondary profiles (primary_profile_id set) intentionally have
+  // null abo_number/upline_abo_number — the primary profile holds the shared ABO
+  // account (ADR-016), so it can't also live on the secondary's row without
+  // tripping the abo_partnership_unique_constraint. Resolve the primary once here
+  // so the upline lookup and the abo_number/upline_abo_number returned to the
+  // client reflect the shared account instead of showing blank.
+  let primaryInfo: {
+    id: string
+    first_name: string
+    last_name: string
+    abo_number: string | null
+    upline_abo_number: string | null
+  } | null = null
+  if (primaryProfileId) {
+    const { data: primary, error: primaryError } = await supabase
+      .from('profiles')
+      .select('id, first_name, last_name, abo_number, upline_abo_number')
+      .eq('id', primaryProfileId)
+      .maybeSingle()
+    if (primaryError) {
+      return Response.json({ error: primaryError.message }, { status: 500 })
+    }
+    primaryInfo = primary ?? null
+  }
+
+  const effectiveAboNumber: string | null = aboNumber ?? primaryInfo?.abo_number ?? null
+  const effectiveUplineAboNumber: string | null = uplineAboNumber ?? primaryInfo?.upline_abo_number ?? null
+
   const [upline, verRequest, spouse, pendingSpouseLinkCount] = await Promise.all([
-    // Resolve upline for any verified member.
+    // Resolve upline for any verified member (own account, or via the primary
+    // profile's shared ABO when this is a spouse-linked secondary).
     // Standard path: abo_number set — look up sponsor via los_members tree.
     // Manual path: abo_number null but upline_abo_number set — resolve name directly.
-    aboNumber
+    effectiveAboNumber
       ? (async () => {
           const { data: losMember } = await supabase
             .from('los_members')
             .select('sponsor_abo_number')
-            .eq('abo_number', aboNumber)
+            .eq('abo_number', effectiveAboNumber)
             .single()
 
           if (!losMember?.sponsor_abo_number) {
@@ -55,18 +84,18 @@ export async function GET() {
             upline_abo_number: uplineMember?.abo_number ?? null,
           }
         })()
-      : uplineAboNumber
+      : effectiveUplineAboNumber
         ? (async () => {
             // Manual path: upline ABO already known, just resolve the name
             const { data: uplineMember } = await supabase
               .from('los_members')
               .select('abo_number, name')
-              .eq('abo_number', uplineAboNumber)
+              .eq('abo_number', effectiveUplineAboNumber)
               .single()
 
             return {
               upline_name: uplineMember?.name ?? null,
-              upline_abo_number: uplineMember?.abo_number ?? uplineAboNumber,
+              upline_abo_number: uplineMember?.abo_number ?? effectiveUplineAboNumber,
             }
           })()
         : Promise.resolve(null),
@@ -84,13 +113,10 @@ export async function GET() {
     // Returns null for unlinked profiles.
     (async () => {
       if (primaryProfileId) {
-        // This profile is a secondary — fetch the primary
-        const { data: primary } = await supabase
-          .from('profiles')
-          .select('id, first_name, last_name')
-          .eq('id', primaryProfileId)
-          .maybeSingle()
-        return primary ?? null
+        // This profile is a secondary — reuse the primary fetched above
+        return primaryInfo
+          ? { id: primaryInfo.id, first_name: primaryInfo.first_name, last_name: primaryInfo.last_name }
+          : null
       } else {
         // This profile may be a primary — fetch any secondary linked to it
         const { data: secondary } = await supabase
@@ -115,7 +141,15 @@ export async function GET() {
       : Promise.resolve(0),
   ])
 
-  return Response.json({ ...data, upline, verRequest, spouse, pendingSpouseLinkCount })
+  return Response.json({
+    ...data,
+    abo_number: effectiveAboNumber,
+    upline_abo_number: effectiveUplineAboNumber,
+    upline,
+    verRequest,
+    spouse,
+    pendingSpouseLinkCount,
+  })
 }
 
 export async function PATCH(req: Request): Promise<Response> {
