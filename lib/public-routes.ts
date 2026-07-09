@@ -12,7 +12,7 @@ import { createRouteMatcher } from '@clerk/nextjs/server'
  *   /sign-in(.*)       auth
  *   /sign-up(.*)       auth
  *   /erc2026           ERC 2026 trip guide (public link, no login required)
- *   /api/webhooks/(.*) Clerk + Stripe webhooks
+ *   /api/webhooks/(.*) Clerk webhooks
  *   /api/calendar      public calendar API
  *   /api/calendar/(.*) public calendar API
  *   /api/events/:id    public event detail API
