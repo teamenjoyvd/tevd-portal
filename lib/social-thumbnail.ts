@@ -1,18 +1,40 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { isBlockedTarget } from './og-scrape'
 
 const STORAGE_URL_PREFIX = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/social-thumbnails/`
 
-const CDN_PATTERNS = [
-  /\.fbcdn\.net\//,
-  /\.cdninstagram\.com\//,
-]
+const ALLOWED_CDN_HOST_SUFFIXES = ['.fbcdn.net', '.cdninstagram.com']
 
 // Common browser UA — required to avoid 403s from FB/IG CDNs on headless fetches.
 const FETCH_USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
 
 export function isCdnUrl(url: string): boolean {
-  return CDN_PATTERNS.some(p => p.test(url))
+  let hostname: string
+  try {
+    hostname = new URL(url).hostname.toLowerCase()
+  } catch {
+    return false
+  }
+  return ALLOWED_CDN_HOST_SUFFIXES.some(suffix => hostname.endsWith(suffix))
+}
+
+/** fetch() that manually follows redirects, re-validating each hop against isBlockedTarget (prevents SSRF via redirect). */
+async function safeFetch(url: string, init: RequestInit, maxRedirects = 5): Promise<Response> {
+  let currentUrl = url
+  for (let i = 0; i <= maxRedirects; i++) {
+    if (isBlockedTarget(currentUrl)) throw new Error(`Blocked target: ${currentUrl}`)
+
+    const res = await fetch(currentUrl, { ...init, redirect: 'manual' })
+    if (res.status >= 300 && res.status < 400) {
+      const location = res.headers.get('location')
+      if (!location) return res
+      currentUrl = new URL(location, currentUrl).toString()
+      continue
+    }
+    return res
+  }
+  throw new Error(`Too many redirects fetching ${url}`)
 }
 
 export function isStorageUrl(url: string): boolean {
@@ -35,7 +57,7 @@ export async function mirrorToStorage(
   const timeout = setTimeout(() => controller.abort(), 8_000)
 
   try {
-    const res = await fetch(url, {
+    const res = await safeFetch(url, {
       signal: controller.signal,
       headers: { 'User-Agent': FETCH_USER_AGENT },
     })

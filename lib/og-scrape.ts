@@ -36,7 +36,7 @@ function decodeEntities(str: string): string {
 }
 
 /** Reject non-http(s) schemes and obvious private/internal/loopback/link-local hosts (SSRF guard). */
-function isBlockedTarget(rawUrl: string): boolean {
+export function isBlockedTarget(rawUrl: string): boolean {
   let parsed: URL
   try {
     parsed = new URL(rawUrl)
@@ -60,10 +60,33 @@ function isBlockedTarget(rawUrl: string): boolean {
     return false
   }
 
-  // IPv6 loopback / link-local / unique-local
-  if (hostname === '::1' || hostname.startsWith('fe80:') || hostname.startsWith('fc') || hostname.startsWith('fd')) return true
+  // URL.hostname returns bracketed IPv6 literals, e.g. "[::1]", "[fc00::1]" — unwrap before checking.
+  if (hostname.startsWith('[') && hostname.endsWith(']')) {
+    const v6 = hostname.slice(1, -1)
+    const firstHextet = v6.split(':')[0]
+    if (v6 === '::1' || v6 === '::' || firstHextet.startsWith('fe80') || /^f[cd]/.test(firstHextet)) return true
+    return false
+  }
 
   return false
+}
+
+/** fetch() that manually follows redirects, re-validating each hop against isBlockedTarget (prevents SSRF via redirect). */
+async function safeFetch(url: string, init: RequestInit, maxRedirects = 5): Promise<Response> {
+  let currentUrl = url
+  for (let i = 0; i <= maxRedirects; i++) {
+    if (isBlockedTarget(currentUrl)) throw new Error(`Blocked target: ${currentUrl}`)
+
+    const res = await fetch(currentUrl, { ...init, redirect: 'manual' })
+    if (res.status >= 300 && res.status < 400) {
+      const location = res.headers.get('location')
+      if (!location) return res
+      currentUrl = new URL(location, currentUrl).toString()
+      continue
+    }
+    return res
+  }
+  throw new Error(`Too many redirects fetching ${url}`)
 }
 
 export async function scrapeOgTags(url: string): Promise<OgScrapeResult> {
@@ -76,7 +99,7 @@ export async function scrapeOgTags(url: string): Promise<OgScrapeResult> {
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), 5000)
 
-    const res = await fetch(url, {
+    const res = await safeFetch(url, {
       signal: controller.signal,
       headers: { 'User-Agent': 'Mozilla/5.0 (compatible; tevd-portal/1.0)' },
     })
