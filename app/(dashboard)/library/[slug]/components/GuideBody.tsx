@@ -1,11 +1,6 @@
 'use client'
 
-import { useMemo, useRef, useState } from 'react'
-import { generateHTML } from '@tiptap/html'
-import StarterKit from '@tiptap/starter-kit'
-import Link from '@tiptap/extension-link'
-import Image from '@tiptap/extension-image'
-import type { JSONContent } from '@tiptap/core'
+import { useRef, useState } from 'react'
 import { FileText, Image as ImageIcon, File, Download } from 'lucide-react'
 import {
   Dialog,
@@ -24,8 +19,6 @@ type Attachment = {
   sort_order: number
 }
 
-const TIPTAP_EXTENSIONS = [StarterKit, Link, Image]
-
 function AttachmentIcon({ type }: { type: Attachment['file_type'] }) {
   if (type === 'pdf')   return <FileText size={16} style={{ color: 'var(--brand-crimson)', flexShrink: 0 }} />
   if (type === 'image') return <ImageIcon size={16} style={{ color: 'var(--brand-teal)',    flexShrink: 0 }} />
@@ -33,12 +26,12 @@ function AttachmentIcon({ type }: { type: Attachment['file_type'] }) {
 }
 
 export default function GuideBody({
-  body,
+  html,
   lang,
   attachments = [],
   guideId,
 }: {
-  body: JSONContent | null
+  html: string
   lang: string
   attachments?: Attachment[]
   guideId: string
@@ -46,8 +39,6 @@ export default function GuideBody({
   const { t } = useLanguage()
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
   const outputRef = useRef<HTMLDivElement>(null)
-
-  const html = useMemo(() => (body ? generateHTML(body, TIPTAP_EXTENSIONS) : ''), [body])
 
   useTiptapCopyButtons(outputRef, [html])
 
