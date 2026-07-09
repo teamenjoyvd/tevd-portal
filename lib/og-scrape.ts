@@ -1,5 +1,6 @@
 // server-only — do not import from client components
 import 'server-only'
+import { isBlockedTarget, safeFetch } from './ssrf-guard'
 
 export type OgScrapeResult = {
   thumbnail_url: string | null
@@ -36,11 +37,16 @@ function decodeEntities(str: string): string {
 }
 
 export async function scrapeOgTags(url: string): Promise<OgScrapeResult> {
+  if (isBlockedTarget(url)) {
+    console.error(`[og-scrape] Blocked disallowed target ${url}`)
+    return { thumbnail_url: null, caption: null }
+  }
+
   try {
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), 5000)
 
-    const res = await fetch(url, {
+    const res = await safeFetch(url, {
       signal: controller.signal,
       headers: { 'User-Agent': 'Mozilla/5.0 (compatible; tevd-portal/1.0)' },
     })

@@ -216,7 +216,6 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
     /socials/route.ts
     /webhooks/clerk/route.ts
 /components
-  /about/AboutMapTile.tsx
   /bento/BentoCard.tsx
   /bento/BentoGrid.tsx
   /bento/tiles/LocationTile.tsx
@@ -438,7 +437,6 @@ Normalised UNION ALL over `profiles_audit` + `role_change_audit`. Columns: `prof
 | `/api/calendar/feed-token` | GET, POST | Issue/regenerate iCal subscription token |
 | `/api/guides` | GET | Published, access_roles respected |
 | `/api/links` | GET | Active links, role-filtered |
-| `/api/home` | GET | home_settings for homepage RSC |
 | `/api/los/tree` | GET | Member LOS tree |
 | `/api/notifications` | GET, PATCH | Own notifications; PATCH marks read |
 | `/api/socials` | GET | |
