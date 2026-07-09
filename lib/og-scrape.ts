@@ -35,7 +35,43 @@ function decodeEntities(str: string): string {
     .replace(/&apos;/g, "'")
 }
 
+/** Reject non-http(s) schemes and obvious private/internal/loopback/link-local hosts (SSRF guard). */
+function isBlockedTarget(rawUrl: string): boolean {
+  let parsed: URL
+  try {
+    parsed = new URL(rawUrl)
+  } catch {
+    return true
+  }
+
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return true
+
+  const hostname = parsed.hostname.toLowerCase()
+  if (hostname === 'localhost' || hostname.endsWith('.localhost') || hostname.endsWith('.local')) return true
+
+  // IPv4 literal — block loopback, private, link-local (incl. cloud metadata 169.254.169.254), and unspecified ranges
+  const ipv4 = hostname.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/)
+  if (ipv4) {
+    const [a, b] = [Number(ipv4[1]), Number(ipv4[2])]
+    if (a === 127 || a === 10 || a === 0) return true
+    if (a === 169 && b === 254) return true
+    if (a === 172 && b >= 16 && b <= 31) return true
+    if (a === 192 && b === 168) return true
+    return false
+  }
+
+  // IPv6 loopback / link-local / unique-local
+  if (hostname === '::1' || hostname.startsWith('fe80:') || hostname.startsWith('fc') || hostname.startsWith('fd')) return true
+
+  return false
+}
+
 export async function scrapeOgTags(url: string): Promise<OgScrapeResult> {
+  if (isBlockedTarget(url)) {
+    console.error(`[og-scrape] Blocked disallowed target ${url}`)
+    return { thumbnail_url: null, caption: null }
+  }
+
   try {
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), 5000)
