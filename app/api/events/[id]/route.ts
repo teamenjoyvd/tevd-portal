@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { createClient } from '@/lib/supabase/server'
+import { getCallerProfile } from '@/lib/supabase/guards'
 
 export async function GET(
   _req: Request,
@@ -21,8 +22,7 @@ export async function GET(
 
   const supabase = createServiceClient()
 
-  const { data: callerProfile } = await supabase
-    .from('profiles').select('id, role').eq('clerk_id', userId).single()
+  const callerProfile = await getCallerProfile(userId, supabase)
   if (!callerProfile) return Response.json({ error: 'Profile not found' }, { status: 404 })
 
   const { data: event, error } = await supabase

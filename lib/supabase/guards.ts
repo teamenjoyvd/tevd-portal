@@ -39,6 +39,29 @@ export async function getCallerContext(
 }
 
 /**
+ * Fetches the caller's profile in a single DB round trip with no role
+ * requirement — for routes that need the caller's id/role to branch
+ * response shape or ownership, not to gate access. Returns null if no
+ * profile row exists for this clerk_id.
+ *
+ * Usage:
+ *   const profile = await getCallerProfile(userId, supabase)
+ *   if (!profile) return Response.json({ error: 'Profile not found' }, { status: 404 })
+ */
+export async function getCallerProfile(
+  userId: string,
+  supabase: SupabaseClient
+): Promise<CallerProfile | null> {
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('id, role')
+    .eq('clerk_id', userId)
+    .single()
+
+  return profile ?? null
+}
+
+/**
  * @deprecated Use getCallerContext instead.
  * Returns a 403 Response if the caller is not an admin, null otherwise.
  */

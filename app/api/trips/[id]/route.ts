@@ -1,5 +1,6 @@
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { getCallerContext, getCallerProfile } from '@/lib/supabase/guards'
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -8,12 +9,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
   const supabase = createServiceClient()
 
-  const { data: profile, error: profileError } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('clerk_id', userId)
-    .single()
-  if (profileError || !profile) return Response.json({ error: 'Profile not found' }, { status: 404 })
+  const profile = await getCallerProfile(userId, supabase)
+  if (!profile) return Response.json({ error: 'Profile not found' }, { status: 404 })
 
   const { data: trip, error: tripError } = await supabase
     .from('trips')
@@ -45,9 +42,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
   const supabase = createServiceClient()
-  const { data: profile } = await supabase
-    .from('profiles').select('role').eq('clerk_id', userId).single()
-  if (profile?.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 })
+  const ctx = await getCallerContext(userId, supabase, 'admin')
+  if (ctx.guard) return ctx.guard
 
   const body = await req.json()
   const { data, error } = await supabase
@@ -63,9 +59,8 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
   const supabase = createServiceClient()
-  const { data: profile } = await supabase
-    .from('profiles').select('role').eq('clerk_id', userId).single()
-  if (profile?.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 })
+  const ctx = await getCallerContext(userId, supabase, 'admin')
+  if (ctx.guard) return ctx.guard
 
   const { error } = await supabase.from('trips').delete().eq('id', id)
   if (error) return Response.json({ error: error.message }, { status: 500 })

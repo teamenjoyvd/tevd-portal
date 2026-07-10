@@ -1,5 +1,6 @@
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { getCallerContext } from '@/lib/supabase/guards'
 
 const ALLOWED_MIME: Record<string, 'pdf' | 'image'> = {
   'application/pdf': 'pdf',
@@ -19,15 +20,9 @@ export async function POST(
   if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
   const supabase = createServiceClient()
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, role')
-    .eq('clerk_id', userId)
-    .single()
-
-  if (!profile || profile.role !== 'admin') {
-    return Response.json({ error: 'Forbidden' }, { status: 403 })
-  }
+  const ctx = await getCallerContext(userId, supabase, 'admin')
+  if (ctx.guard) return ctx.guard
+  const profile = ctx.profile
 
   const body = await req.json().catch(() => ({})) as { path?: string; filename?: string; fileType?: string }
   const { path, filename, fileType } = body

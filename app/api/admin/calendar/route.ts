@@ -1,6 +1,6 @@
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { requireAdmin } from '@/lib/supabase/guards'
+import { requireAdmin, getCallerContext } from '@/lib/supabase/guards'
 
 export async function GET(): Promise<Response> {
   const { userId } = await auth()
@@ -21,8 +21,9 @@ export async function POST(req: Request): Promise<Response> {
   const { userId } = await auth()
   if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
   const supabase = createServiceClient()
-  const { data: caller } = await supabase.from('profiles').select('id, role').eq('clerk_id', userId).single()
-  if (caller?.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 })
+  const ctx = await getCallerContext(userId, supabase, 'admin')
+  if (ctx.guard) return ctx.guard
+  const caller = ctx.profile
 
   const body = await req.json()
   // Auto-compute week_number from start_time if not provided

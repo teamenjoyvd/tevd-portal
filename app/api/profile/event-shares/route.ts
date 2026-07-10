@@ -4,6 +4,7 @@
 
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { getCallerProfile } from '@/lib/supabase/guards'
 import { randomBytes } from 'crypto'
 import { z } from 'zod'
 import { NextRequest } from 'next/server'
@@ -26,11 +27,7 @@ export async function POST(req: NextRequest): Promise<Response> {
   const { event_id, share_method } = parsed.data
   const supabase = createServiceClient()
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, role')
-    .eq('clerk_id', userId)
-    .single()
+  const profile = await getCallerProfile(userId, supabase)
 
   if (!profile) return Response.json({ error: 'Profile not found' }, { status: 404 })
   if (profile.role === 'guest') return Response.json({ error: 'Guests cannot share events' }, { status: 403 })
@@ -89,11 +86,7 @@ export async function GET(req: NextRequest): Promise<Response> {
 
   const supabase = createServiceClient()
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('clerk_id', userId)
-    .single()
+  const profile = await getCallerProfile(userId, supabase)
 
   if (!profile) return Response.json({ error: 'Profile not found' }, { status: 404 })
 

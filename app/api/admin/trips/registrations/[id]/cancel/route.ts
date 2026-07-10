@@ -1,5 +1,6 @@
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { getCallerContext } from '@/lib/supabase/guards'
 import { sendNotificationEmail } from '@/lib/email/send'
 import { renderEmailTemplate } from '@/lib/email/templates/render'
 import { TripRegistrationEmail } from '@/lib/email/templates/TripRegistrationEmail'
@@ -10,11 +11,9 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
 
   const supabase = createServiceClient()
 
-  const { data: adminProfile } = await supabase
-    .from('profiles').select('id, role').eq('clerk_id', userId).single()
-  if (!adminProfile || (adminProfile.role !== 'admin' && adminProfile.role !== 'core')) {
-    return Response.json({ error: 'Forbidden' }, { status: 403 })
-  }
+  const ctx = await getCallerContext(userId, supabase, 'adminOrCore')
+  if (ctx.guard) return ctx.guard
+  const adminProfile = ctx.profile
 
   const { id: registrationId } = await params
 

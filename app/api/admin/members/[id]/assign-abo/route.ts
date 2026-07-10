@@ -1,5 +1,6 @@
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { getCallerContext } from '@/lib/supabase/guards'
 
 // PATCH /api/admin/members/[id]/assign-abo
 // Links a manually-verified no-ABO profile to a real LOS ABO number.
@@ -13,9 +14,8 @@ export async function PATCH(
   if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
   const supabase = createServiceClient()
-  const { data: admin } = await supabase
-    .from('profiles').select('role').eq('clerk_id', userId).single()
-  if (admin?.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 })
+  const ctx = await getCallerContext(userId, supabase, 'admin')
+  if (ctx.guard) return ctx.guard
 
   const { abo_number, sponsor_abo_number } = await req.json()
   if (!abo_number) {
