@@ -37,7 +37,7 @@ export default function AdminCalendarClient() {
   const [form, setForm] = useState<EventFormState>(emptyForm())
   const [formError, setFormError] = useState<string | null>(null)
 
-  // ── Filter state ─────────────────────────────────────────────────────────────────────
+  // ── Filter state ────────────────────────────────────────────────────────────────────
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)

@@ -1,6 +1,7 @@
 'use client'
 
 import { createContext, useContext, useState, useCallback, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import { translate, TranslationKey, Lang } from '@/lib/i18n/translations'
 
 const COOKIE_KEY = 'tevd_lang'
@@ -21,6 +22,7 @@ export function LangProvider({
   children: React.ReactNode
 }) {
   const [lang, setLang] = useState<Lang>(initialLang)
+  const router = useRouter()
 
   const toggle = useCallback(() => {
     const next: Lang = lang === 'en' ? 'bg' : 'en'
@@ -28,7 +30,8 @@ export function LangProvider({
     document.cookie = `${COOKIE_KEY}=${next}; path=/; max-age=${
       60 * 60 * 24 * 365
     }; SameSite=Lax`
-  }, [lang])
+    router.refresh()
+  }, [lang, router])
 
   const t = useCallback(
     (key: TranslationKey) => translate(key, lang),
