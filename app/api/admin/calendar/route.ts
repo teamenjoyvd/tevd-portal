@@ -19,7 +19,6 @@ export async function GET(req: Request): Promise<Response> {
   const search = searchParams.get('search')
   const category = parseCategory(searchParams.get('category'))
   const timeScope = searchParams.get('timeScope') ?? 'upcoming' // 'upcoming' | 'past' | 'all'
-  const month = searchParams.get('month') // 'YYYY-MM'
 
   let query = supabase
     .from('calendar_events')
@@ -32,16 +31,6 @@ export async function GET(req: Request): Promise<Response> {
   const now = new Date().toISOString()
   if (timeScope === 'upcoming') query = query.gte('start_time', now)
   else if (timeScope === 'past') query = query.lt('start_time', now)
-
-  if (month) {
-    const start = new Date(`${month}-01`).toISOString()
-    const end = new Date(
-      new Date(`${month}-01`).getFullYear(),
-      new Date(`${month}-01`).getMonth() + 1,
-      1
-    ).toISOString()
-    query = query.gte('start_time', start).lt('start_time', end)
-  }
 
   const { data, error } = await query
   if (error) return Response.json({ error: error.message }, { status: 500 })
