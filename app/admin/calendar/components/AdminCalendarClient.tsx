@@ -44,11 +44,18 @@ export default function AdminCalendarClient() {
   const [monthFilter, setMonthFilter] = useState<string>('')
 
   const { data: events = [], isLoading } = useQuery<CalEvent[]>({
-    queryKey: ['admin-calendar'],
-    queryFn: () => fetch('/api/admin/calendar').then(async r => { if (!r.ok) throw new Error('Failed to fetch events'); return r.json() }),
+    queryKey: ['admin-calendar', search, categoryFilter, timeScope, monthFilter],
+    queryFn: () => {
+      const params = new URLSearchParams()
+      if (search) params.set('search', search)
+      if (categoryFilter !== 'All') params.set('category', categoryFilter)
+      params.set('timeScope', timeScope)
+      if (monthFilter) params.set('month', monthFilter)
+      return fetch(`/api/admin/calendar?${params.toString()}`).then(async r => { if (!r.ok) throw new Error('Failed to fetch events'); return r.json() })
+    },
   })
 
-  // ── Derived filter options ───────────────────────────────────────────────────────────
+  // ── Derived filter options (reflects the currently fetched scope) ───────────────────
   const availableMonths = useMemo(() => {
     const seen = new Set<string>()
     const months: { value: string; label: string }[] = []
@@ -71,23 +78,6 @@ export default function AdminCalendarClient() {
     setTimeScope(scope)
     setMonthFilter('')
   }
-
-  // ── Filtered events ───────────────────────────────────────────────────────────────────
-  const now = new Date()
-  const filteredEvents = useMemo(() => {
-    return events.filter(ev => {
-      if (search && !ev.title.toLowerCase().includes(search.toLowerCase())) return false
-      if (categoryFilter !== 'All' && ev.category !== categoryFilter) return false
-      const start = new Date(ev.start_time)
-      if (timeScope === 'upcoming' && start < now) return false
-      if (timeScope === 'past' && start >= now) return false
-      if (monthFilter) {
-        const evMonth = toSofiaLocalInput(ev.start_time).slice(0, 7)
-        if (evMonth !== monthFilter) return false
-      }
-      return true
-    })
-  }, [events, search, categoryFilter, timeScope, monthFilter])
 
   const syncMutation = useMutation({
     mutationFn: async () => {
@@ -273,13 +263,13 @@ export default function AdminCalendarClient() {
             <div key={i} className="h-14 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--border-default)' }} />
           ))}
         </div>
-      ) : filteredEvents.length === 0 ? (
+      ) : events.length === 0 ? (
         <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-          {events.length === 0 ? t('admin.calendar.empty') : 'No events match the current filters.'}
+          {t('admin.calendar.empty')}
         </p>
       ) : (
         <div className="rounded-2xl border overflow-hidden" style={{ borderColor: 'var(--border-default)' }}>
-          {filteredEvents.map((ev, i) => (
+          {events.map((ev, i) => (
             <div key={ev.id} className="px-5 py-4 flex items-center gap-4"
               style={{ borderTop: i > 0 ? '1px solid var(--border-default)' : 'none', backgroundColor: i % 2 === 0 ? 'var(--bg-card)' : 'var(--bg-global)' }}>
               <div className="flex-1 min-w-0">
