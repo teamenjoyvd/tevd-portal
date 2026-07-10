@@ -1,6 +1,8 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { getRoleForAccess } from '@/lib/server/guides'
 
+const AGENDA_COLUMNS = 'id, title, description, start_time, end_time, category, event_type, week_number, access_roles, is_all_day'
+
 export async function GET(req: Request) {
   const supabase = createServiceClient()
   const { searchParams } = new URL(req.url)
@@ -12,7 +14,7 @@ export async function GET(req: Request) {
 
   let query = supabase
     .from('calendar_events')
-    .select('*')
+    .select(AGENDA_COLUMNS)
     .contains('access_roles', [role])
     .order('start_time')
 
@@ -25,11 +27,15 @@ export async function GET(req: Request) {
     ).toISOString()
     query = query.gte('start_time', start).lt('start_time', end)
   } else {
-    // Agenda: fetch 18 months back through all future events so users
-    // can browse past and upcoming events in the same view.
-    const eighteenMonthsAgo = new Date()
-    eighteenMonthsAgo.setMonth(eighteenMonthsAgo.getMonth() - 18)
-    query = query.gte('start_time', eighteenMonthsAgo.toISOString())
+    // Agenda: bound to a window around today so the view stays cheap while
+    // still covering recent past and upcoming events. Must always include
+    // today so the Agenda view's scroll-to-today anchor has something to
+    // scroll to (see app/(dashboard)/calendar/components/AgendaView.tsx).
+    const windowStart = new Date()
+    windowStart.setMonth(windowStart.getMonth() - 1)
+    const windowEnd = new Date()
+    windowEnd.setMonth(windowEnd.getMonth() + 6)
+    query = query.gte('start_time', windowStart.toISOString()).lt('start_time', windowEnd.toISOString())
   }
 
   const { data, error } = await query

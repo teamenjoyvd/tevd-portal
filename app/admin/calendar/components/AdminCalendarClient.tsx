@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useRef, useCallback } from 'react'
 import { RefreshCw } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { formatDateTime, toSofiaLocalInput } from '@/lib/format'
@@ -38,24 +38,38 @@ export default function AdminCalendarClient() {
   const [formError, setFormError] = useState<string | null>(null)
 
   // ── Filter state ────────────────────────────────────────────────────────────────────
-  const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('All')
   const [timeScope, setTimeScope] = useState<TimeScope>('upcoming')
   const [monthFilter, setMonthFilter] = useState<string>('')
 
-  // Debounce the search input so filtering/refetching doesn't run on every keystroke.
-  useEffect(() => {
-    const timeout = setTimeout(() => setSearch(searchInput), 250)
-    return () => clearTimeout(timeout)
-  }, [searchInput])
+  const handleSearchChange = useCallback((value: string) => {
+    setSearch(value)
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current)
+    searchDebounceRef.current = setTimeout(() => setDebouncedSearch(value), 300)
+  }, [])
+
+  const clearSearch = useCallback(() => {
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current)
+    setSearch('')
+    setDebouncedSearch('')
+  }, [])
 
   const { data: events = [], isLoading } = useQuery<CalEvent[]>({
-    queryKey: ['admin-calendar'],
-    queryFn: () => fetch('/api/admin/calendar').then(async r => { if (!r.ok) throw new Error('Failed to fetch events'); return r.json() }),
+    queryKey: ['admin-calendar', debouncedSearch, categoryFilter, timeScope],
+    queryFn: () => {
+      const params = new URLSearchParams()
+      if (debouncedSearch) params.set('search', debouncedSearch)
+      if (categoryFilter !== 'All') params.set('category', categoryFilter)
+      params.set('timeScope', timeScope)
+      return fetch(`/api/admin/calendar?${params.toString()}`).then(async r => { if (!r.ok) throw new Error('Failed to fetch events'); return r.json() })
+    },
   })
 
-  // ── Derived filter options ────────────────────────────────────────────────────────────
+  // ── Derived filter options (reflects search/category/time scope, not the month pick itself,
+  // so picking a month doesn't collapse the dropdown down to that one option) ─────────────
   const availableMonths = useMemo(() => {
     const seen = new Set<string>()
     const months: { value: string; label: string }[] = []
@@ -73,28 +87,18 @@ export default function AdminCalendarClient() {
     return months
   }, [events])
 
+  // Month filtering stays client-side: `events` is already bounded server-side by
+  // search/category/timeScope, so slicing it further by month here is cheap.
+  const displayEvents = useMemo(() => {
+    if (!monthFilter) return events
+    return events.filter(ev => toSofiaLocalInput(ev.start_time).slice(0, 7) === monthFilter)
+  }, [events, monthFilter])
+
   // Reset month filter when time scope changes
   const handleTimeScopeChange = (scope: TimeScope) => {
     setTimeScope(scope)
     setMonthFilter('')
   }
-
-  // ── Filtered events ───────────────────────────────────────────────────────────────
-  const now = new Date()
-  const filteredEvents = useMemo(() => {
-    return events.filter(ev => {
-      if (search && !ev.title.toLowerCase().includes(search.toLowerCase())) return false
-      if (categoryFilter !== 'All' && ev.category !== categoryFilter) return false
-      const start = new Date(ev.start_time)
-      if (timeScope === 'upcoming' && start < now) return false
-      if (timeScope === 'past' && start >= now) return false
-      if (monthFilter) {
-        const evMonth = toSofiaLocalInput(ev.start_time).slice(0, 7)
-        if (evMonth !== monthFilter) return false
-      }
-      return true
-    })
-  }, [events, search, categoryFilter, timeScope, monthFilter])
 
   const syncMutation = useMutation({
     mutationFn: async () => {
@@ -222,16 +226,16 @@ export default function AdminCalendarClient() {
         <div className="flex gap-2 flex-wrap">
           <div className="relative flex-1 min-w-[180px]">
             <input
-              value={searchInput}
-              onChange={e => setSearchInput(e.target.value)}
-              placeholder="Search events…"
+              value={search}
+              onChange={e => handleSearchChange(e.target.value)}
+              placeholder={t('admin.calendar.searchPlaceholder')}
               className="w-full border rounded-xl px-3 py-2 text-sm pr-8"
               style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
             />
-            {searchInput && (
+            {search && (
               <button
                 type="button"
-                onClick={() => { setSearchInput(''); setSearch('') }}
+                onClick={clearSearch}
                 className="absolute right-2.5 top-1/2 -translate-y-1/2 text-sm leading-none hover:opacity-70"
                 style={{ color: 'var(--text-secondary)' }}
               >
@@ -280,13 +284,13 @@ export default function AdminCalendarClient() {
             <div key={i} className="h-14 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--border-default)' }} />
           ))}
         </div>
-      ) : filteredEvents.length === 0 ? (
+      ) : displayEvents.length === 0 ? (
         <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-          {events.length === 0 ? t('admin.calendar.empty') : 'No events match the current filters.'}
+          {events.length === 0 ? t('admin.calendar.empty') : t('admin.calendar.noMatches')}
         </p>
       ) : (
         <div className="rounded-2xl border overflow-hidden" style={{ borderColor: 'var(--border-default)' }}>
-          {filteredEvents.map((ev, i) => (
+          {displayEvents.map((ev, i) => (
             <div key={ev.id} className="px-5 py-4 flex items-center gap-4"
               style={{ borderTop: i > 0 ? '1px solid var(--border-default)' : 'none', backgroundColor: i % 2 === 0 ? 'var(--bg-card)' : 'var(--bg-global)' }}>
               <div className="flex-1 min-w-0">

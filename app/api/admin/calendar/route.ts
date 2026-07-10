@@ -2,17 +2,43 @@ import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { requireAdmin, getCallerContext } from '@/lib/supabase/guards'
 
-export async function GET(): Promise<Response> {
+type CategoryFilter = 'N21' | 'Personal'
+
+function parseCategory(value: string | null): CategoryFilter | null {
+  return value === 'N21' || value === 'Personal' ? value : null
+}
+
+// Escape LIKE/ILIKE wildcards so a literal `%` or `_` in the search term
+// doesn't get treated as a SQL wildcard.
+function escapeLike(value: string): string {
+  return value.replace(/([%_\\])/g, '\\$1')
+}
+
+export async function GET(req: Request): Promise<Response> {
   const { userId } = await auth()
   if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
   const supabase = createServiceClient()
   const guard = await requireAdmin(userId, supabase)
   if (guard) return guard
 
-  const { data, error } = await supabase
+  const { searchParams } = new URL(req.url)
+  const search = searchParams.get('search')
+  const category = parseCategory(searchParams.get('category'))
+  const timeScope = searchParams.get('timeScope') ?? 'upcoming' // 'upcoming' | 'past' | 'all'
+
+  let query = supabase
     .from('calendar_events')
     .select('*')
     .order('start_time', { ascending: true })
+
+  if (search) query = query.ilike('title', `%${escapeLike(search)}%`)
+  if (category) query = query.eq('category', category)
+
+  const now = new Date().toISOString()
+  if (timeScope === 'upcoming') query = query.gte('start_time', now)
+  else if (timeScope === 'past') query = query.lt('start_time', now)
+
+  const { data, error } = await query
   if (error) return Response.json({ error: error.message }, { status: 500 })
   return Response.json(data)
 }
