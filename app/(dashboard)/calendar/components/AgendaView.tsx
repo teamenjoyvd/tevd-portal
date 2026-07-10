@@ -19,6 +19,7 @@ export function AgendaView({
   const { t } = useLanguage()
   const highlightRef = useRef<HTMLButtonElement | null>(null)
   const anchorRef = useRef<HTMLDivElement | null>(null)
+  const hasScrolledRef = useRef(false)
 
   const todaySofia = SOFIA_DATE_FMT.format(new Date())
 
@@ -42,14 +43,16 @@ export function AgendaView({
     return dates.find(d => d >= todaySofia) ?? dates[dates.length - 1]
   }, [grouped, todaySofia])
 
-  // Mount-only: scroll to today once on load.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // Scroll to today once real content (not the loading skeleton) has rendered.
+  // Guarded by hasScrolledRef so later re-renders (filter toggles, etc.) don't rescroll.
   useEffect(() => {
+    if (isLoading || hasScrolledRef.current) return
     const raf = requestAnimationFrame(() => {
       anchorRef.current?.scrollIntoView({ behavior: 'instant', block: 'start' })
+      hasScrolledRef.current = true
     })
     return () => cancelAnimationFrame(raf)
-  }, [])
+  }, [isLoading, anchorDateKey])
 
   // Deep-link scroll: fires only when highlightId changes.
   useEffect(() => {
