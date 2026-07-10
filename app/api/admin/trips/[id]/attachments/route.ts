@@ -17,7 +17,7 @@ export async function GET(
   const supabase = createServiceClient()
 
   const ctx = await getCallerContext(userId, supabase, 'admin')
-  if (ctx.guard) return ctx.guard
+  if (ctx.guard) return ctx.guard as NextResponse
 
   const { id: tripId } = await params
 

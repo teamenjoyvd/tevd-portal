@@ -12,7 +12,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
   const supabase = createServiceClient()
   const ctx = await getCallerContext(userId, supabase, 'admin')
-  if (ctx.guard) return ctx.guard
+  if (ctx.guard) return ctx.guard as NextResponse
 
   const filename = req.nextUrl.searchParams.get('filename') ?? 'upload'
   const parts = filename.split('.')
