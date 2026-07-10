@@ -168,6 +168,8 @@ export const adminContent = {
   'admin.calendar.pageDesc': { en: 'Create, edit, and delete calendar events. Google Calendar sync also populates this table.', bg: 'Създавайте, редактирайте и изтривайте календарни събития. Синхронизацията с Google Calendar също попълва тази таблица.' },
   'admin.calendar.btn.new': { en: '+ New event', bg: '+ Ново събитие' },
   'admin.calendar.empty': { en: 'No events yet.', bg: 'Все още няма събития.' },
+  'admin.calendar.noMatches': { en: 'No events match the current filters.', bg: 'Няма събития, отговарящи на текущите филтри.' },
+  'admin.calendar.searchPlaceholder': { en: 'Search events…', bg: 'Търсене на събития…' },
   'admin.calendar.badge.google': { en: 'Google', bg: 'Google' },
   'admin.calendar.badge.guestReg': { en: 'guest reg', bg: 'гост рег.' },
   'admin.calendar.btn.edit': { en: 'Edit', bg: 'Редактирай' },

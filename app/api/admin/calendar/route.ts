@@ -8,6 +8,12 @@ function parseCategory(value: string | null): CategoryFilter | null {
   return value === 'N21' || value === 'Personal' ? value : null
 }
 
+// Escape LIKE/ILIKE wildcards so a literal `%` or `_` in the search term
+// doesn't get treated as a SQL wildcard.
+function escapeLike(value: string): string {
+  return value.replace(/([%_\\])/g, '\\$1')
+}
+
 export async function GET(req: Request): Promise<Response> {
   const { userId } = await auth()
   if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
@@ -25,7 +31,7 @@ export async function GET(req: Request): Promise<Response> {
     .select('*')
     .order('start_time', { ascending: true })
 
-  if (search) query = query.ilike('title', `%${search}%`)
+  if (search) query = query.ilike('title', `%${escapeLike(search)}%`)
   if (category) query = query.eq('category', category)
 
   const now = new Date().toISOString()

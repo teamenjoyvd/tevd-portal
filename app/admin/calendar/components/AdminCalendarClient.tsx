@@ -228,7 +228,7 @@ export default function AdminCalendarClient() {
             <input
               value={search}
               onChange={e => handleSearchChange(e.target.value)}
-              placeholder="Search events…"
+              placeholder={t('admin.calendar.searchPlaceholder')}
               className="w-full border rounded-xl px-3 py-2 text-sm pr-8"
               style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
             />
@@ -286,7 +286,7 @@ export default function AdminCalendarClient() {
         </div>
       ) : displayEvents.length === 0 ? (
         <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-          {events.length === 0 ? t('admin.calendar.empty') : 'No events match the current filters.'}
+          {events.length === 0 ? t('admin.calendar.empty') : t('admin.calendar.noMatches')}
         </p>
       ) : (
         <div className="rounded-2xl border overflow-hidden" style={{ borderColor: 'var(--border-default)' }}>
