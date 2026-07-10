@@ -48,7 +48,7 @@ export type SendEmailPayload = {
   html: string
   /** Template key used for log + admin toggle check e.g. 'trip_registration_status' */
   template: string
-  /** Any serialisable metadata to store in email_log.payload (profile IDs, amounts...) */
+  /** Any serialisable metadata to store in notification_delivery_log.payload (profile IDs, amounts...) */
   meta?: Record<string, unknown>
 }
 
@@ -111,10 +111,10 @@ async function _dispatch(
 /**
  * Resilient notification email dispatcher.
  *
- * - Never throws -- all errors are caught and written to email_log.
+ * - Never throws -- all errors are caught and written to notification_delivery_log.
  * - Respects the system-wide `email_config.enabled` flag.
  * - Respects per-notification-type toggles in `email_config.notification_types`.
- * - Every attempt (success or failure) is written to email_log for auditability.
+ * - Every attempt (success or failure) is written to notification_delivery_log for auditability.
  *
  * Known callers (dynamic imports evade grep — verify manually after any rename):
  * - `app/api/admin/members/verify/[id]/route.ts`
@@ -144,7 +144,7 @@ export async function sendNotificationEmail(payload: SendEmailPayload): Promise<
  * - Bypasses per-type toggles.
  * - Returns a typed result -- caller decides how to handle failure.
  * - Does NOT swallow errors.
- * - Still writes to email_log for auditability.
+ * - Still writes to notification_delivery_log for auditability.
  */
 export async function sendTransactionalEmail(
   payload: SendEmailPayload,

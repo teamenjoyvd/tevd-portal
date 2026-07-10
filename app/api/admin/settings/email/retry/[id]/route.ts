@@ -81,7 +81,7 @@ export async function POST(
     const html = await renderEmailTemplate(element)
 
     // 3. Re-invoke sendNotificationEmail — bypasses no gates since this is an
-    //    admin-triggered retry; a new email_log row is written by the dispatcher.
+    //    admin-triggered retry; a new notification_delivery_log row is written by the dispatcher.
     await sendNotificationEmail({
       to: log.recipient,
       subject: `[RETRY] ${log.template.replace(/_/g, ' ')}`,
