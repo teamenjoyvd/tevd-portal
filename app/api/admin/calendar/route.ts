@@ -2,6 +2,12 @@ import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { requireAdmin, getCallerContext } from '@/lib/supabase/guards'
 
+type CategoryFilter = 'N21' | 'Personal'
+
+function parseCategory(value: string | null): CategoryFilter | null {
+  return value === 'N21' || value === 'Personal' ? value : null
+}
+
 export async function GET(req: Request): Promise<Response> {
   const { userId } = await auth()
   if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
@@ -11,7 +17,7 @@ export async function GET(req: Request): Promise<Response> {
 
   const { searchParams } = new URL(req.url)
   const search = searchParams.get('search')
-  const category = searchParams.get('category') // 'N21' | 'Personal' | null (= All)
+  const category = parseCategory(searchParams.get('category'))
   const timeScope = searchParams.get('timeScope') ?? 'upcoming' // 'upcoming' | 'past' | 'all'
   const month = searchParams.get('month') // 'YYYY-MM'
 
