@@ -5,8 +5,14 @@ import Link from 'next/link'
 import { createServiceClient } from '@/lib/supabase/service'
 import { translate } from '@/lib/i18n/translations'
 import type { Lang } from '@/lib/i18n/translations'
+import { generateHTML } from '@tiptap/html'
+import StarterKit from '@tiptap/starter-kit'
+import TiptapLink from '@tiptap/extension-link'
+import TiptapImage from '@tiptap/extension-image'
 import type { JSONContent } from '@tiptap/core'
 import GuideBody from './components/GuideBody'
+
+const TIPTAP_EXTENSIONS = [StarterKit, TiptapLink, TiptapImage]
 
 type Guide = {
   id: string
@@ -74,6 +80,7 @@ export default async function LibraryDetailPage({
   const g = guide as unknown as Guide
   const title = (g.title as Record<string, string>)[lang] ?? g.title.en ?? ''
   const body = lang === 'bg' ? (g.body_bg ?? g.body_en) : (g.body_en ?? g.body_bg)
+  const bodyHtml = body ? generateHTML(body, TIPTAP_EXTENSIONS) : ''
 
   return (
     <div className="max-w-[900px] mx-auto px-4 sm:px-6 xl:px-8 py-8 pb-16">
@@ -111,7 +118,7 @@ export default async function LibraryDetailPage({
       </h1>
 
       {/* Body + Downloads */}
-      <GuideBody body={body ?? null} lang={lang} attachments={attachments} guideId={guide.id} />
+      <GuideBody html={bodyHtml} lang={lang} attachments={attachments} guideId={guide.id} />
     </div>
   )
 }

@@ -1,24 +1,22 @@
 'use client'
 
-import { useRef, useEffect, useMemo } from 'react'
+import { useRef, useEffect } from 'react'
+import dynamic from 'next/dynamic'
 import Link from 'next/link'
-import { generateHTML } from '@tiptap/html'
-import StarterKit from '@tiptap/starter-kit'
-import TiptapLink from '@tiptap/extension-link'
-import Image from '@tiptap/extension-image'
 import type { JSONContent } from '@tiptap/core'
 import { formatDate, formatCurrency } from '@/lib/format'
 import { clampLuminance, hslToHex } from '@/lib/color'
 import type { Tables } from '@/types/supabase'
 import type { TripProfile } from '../page'
 import { useLanguage } from '@/lib/hooks/useLanguage'
-import { useTiptapCopyButtons } from '@/lib/hooks/useTiptapCopyButtons'
 
 type Trip = Tables<'trips'>
 
 export const FALLBACK_ACCENT = '#2d6a4f'
 
-const TIPTAP_EXTENSIONS = [StarterKit, TiptapLink, Image]
+// Dynamically imported (ssr:false) so @tiptap/* is not in the initial
+// bundle for every trip-detail view — see TripDescription.tsx.
+const TripDescription = dynamic(() => import('./TripDescription'), { ssr: false })
 
 // ---------------------------------------------------------------------------
 // BackButton
@@ -172,33 +170,6 @@ export function TripHeroImage({
         </div>
       </div>
     </div>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// TripDescription
-// Renders trip.description (JSONContent) as rich HTML via generateHTML.
-// Guards against null (trips created before the jsonb migration).
-// generateHTML is memoized to avoid re-running the tree traversal on
-// parent re-renders where description hasn't changed.
-// ---------------------------------------------------------------------------
-function TripDescription({ description }: { description: JSONContent | null }) {
-  const outputRef = useRef<HTMLDivElement>(null)
-  const html = useMemo(
-    () => (description ? generateHTML(description, TIPTAP_EXTENSIONS) : null),
-    [description],
-  )
-
-  useTiptapCopyButtons(outputRef, [html])
-
-  if (!html) return null
-  return (
-    <div
-      ref={outputRef}
-      className="tiptap-output mb-5"
-      // Content is generated from admin-controlled JSONContent — no user-submitted HTML.
-      dangerouslySetInnerHTML={{ __html: html }}
-    />
   )
 }
 
