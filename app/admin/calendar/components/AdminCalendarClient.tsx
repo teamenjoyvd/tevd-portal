@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { RefreshCw } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { formatDateTime, toSofiaLocalInput } from '@/lib/format'
@@ -37,18 +37,25 @@ export default function AdminCalendarClient() {
   const [form, setForm] = useState<EventFormState>(emptyForm())
   const [formError, setFormError] = useState<string | null>(null)
 
-  // ── Filter state ─────────────────────────────────────────────────────────────────────
+  // ── Filter state ────────────────────────────────────────────────────────────────────
+  const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('All')
   const [timeScope, setTimeScope] = useState<TimeScope>('upcoming')
   const [monthFilter, setMonthFilter] = useState<string>('')
+
+  // Debounce the search input so filtering/refetching doesn't run on every keystroke.
+  useEffect(() => {
+    const timeout = setTimeout(() => setSearch(searchInput), 250)
+    return () => clearTimeout(timeout)
+  }, [searchInput])
 
   const { data: events = [], isLoading } = useQuery<CalEvent[]>({
     queryKey: ['admin-calendar'],
     queryFn: () => fetch('/api/admin/calendar').then(async r => { if (!r.ok) throw new Error('Failed to fetch events'); return r.json() }),
   })
 
-  // ── Derived filter options ───────────────────────────────────────────────────────────
+  // ── Derived filter options ────────────────────────────────────────────────────────────
   const availableMonths = useMemo(() => {
     const seen = new Set<string>()
     const months: { value: string; label: string }[] = []
@@ -72,7 +79,7 @@ export default function AdminCalendarClient() {
     setMonthFilter('')
   }
 
-  // ── Filtered events ───────────────────────────────────────────────────────────────────
+  // ── Filtered events ───────────────────────────────────────────────────────────────
   const now = new Date()
   const filteredEvents = useMemo(() => {
     return events.filter(ev => {
@@ -215,16 +222,16 @@ export default function AdminCalendarClient() {
         <div className="flex gap-2 flex-wrap">
           <div className="relative flex-1 min-w-[180px]">
             <input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
+              value={searchInput}
+              onChange={e => setSearchInput(e.target.value)}
               placeholder="Search events…"
               className="w-full border rounded-xl px-3 py-2 text-sm pr-8"
               style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
             />
-            {search && (
+            {searchInput && (
               <button
                 type="button"
-                onClick={() => setSearch('')}
+                onClick={() => { setSearchInput(''); setSearch('') }}
                 className="absolute right-2.5 top-1/2 -translate-y-1/2 text-sm leading-none hover:opacity-70"
                 style={{ color: 'var(--text-secondary)' }}
               >

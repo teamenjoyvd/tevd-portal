@@ -60,25 +60,20 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       >
         <head>
           {/*
-            Blocking inline script: apply stored theme BEFORE first paint.
-            This prevents the flash-of-light-mode on refresh when dark is stored.
-            Must be inline (not deferred/async) so it runs synchronously during HTML parse.
+            Blocking inline script: apply stored theme + gate the bento-enter
+            animation BEFORE first paint. Merged into one script tag to avoid a
+            second parser-blocking round-trip; both must still run synchronously
+            during HTML parse (before first paint), so this stays inline/non-deferred.
+            - Theme: prevents flash-of-light-mode on refresh when dark is stored.
+            - Animation gate (SEQ298): sessionStorage persists across hard reloads
+              (Ctrl+F5) within a session but clears on new tab / browser restart —
+              matching 'first ever load' exactly. On subsequent loads
+              data-animated="done" is set before paint, suppressing the animation
+              via CSS before any tile mounts.
           */}
           <script
             dangerouslySetInnerHTML={{
-              __html: `(function(){try{var t=localStorage.getItem('tevd-theme');if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}})();`,
-            }}
-          />
-          {/*
-            SEQ298: Gate bento-enter animation on first-ever session load only.
-            sessionStorage persists across hard reloads (Ctrl+F5) within a session
-            but clears on new tab / browser restart — matching 'first ever load' exactly.
-            On subsequent loads data-animated="done" is set before paint, suppressing
-            the animation via CSS before any tile mounts.
-          */}
-          <script
-            dangerouslySetInnerHTML={{
-              __html: `(function(){try{if(sessionStorage.getItem('tevd-visited')){document.documentElement.setAttribute('data-animated','done');}else{sessionStorage.setItem('tevd-visited','1');}}catch(e){}})();`,
+              __html: `(function(){try{var t=localStorage.getItem('tevd-theme');if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}try{if(sessionStorage.getItem('tevd-visited')){document.documentElement.setAttribute('data-animated','done');}else{sessionStorage.setItem('tevd-visited','1');}}catch(e){}})();`,
             }}
           />
         </head>
