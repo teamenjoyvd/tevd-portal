@@ -14,7 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Exclude translation domain files themselves — they define the raw strings.
     "lib/i18n/**",
-    ".agents/**",
+    // Archived historical artifacts (formerly /.agents/**) — never lint.
+    "docs/archive/**",
   ]),
   {
     plugins: { i18next },
