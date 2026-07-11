@@ -1,9 +1,9 @@
 # supabase/config.toml
 # Supabase CLI project configuration.
-# CI "db push" targets the project specified by SUPABASE_PROJECT_ID_DEV / SUPABASE_PROJECT_ID_PROD secrets.
-# MCP session work continues to target projects directly via project_id param.
-# project_id is the dev project ref — not a secret (it's a project identifier, not a credential).
-# The --project-ref flag on `supabase link` overrides this for prod CI runs.
+# There is no CI database job: migrations are applied from agent/CLI sessions that
+# target a project ref directly (Supabase MCP `project_id` param, or `supabase link`).
+# project_id below is the DEV project ref — not a secret (identifier, not credential).
+# Never link/push to the production ref from a dev machine without an explicit ticket.
 project_id = "iymwxdewcpvpjgzewtzk"
 
 [api]

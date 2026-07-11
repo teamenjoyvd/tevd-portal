@@ -6,4 +6,5 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
-| _(none in flight)_ | | | |
+| #545 | `dev/2607-DEV-545` | root docs → docs/archive/, README.md (new), docs/DEV_WORKFLOW.md (new), .gitignore, supabase/config.toml (comments), supabase/.temp untrack, docs/STATE.md | 2026-07-11T13:00Z |
+| #546 | `dev/2607-DEV-546` | package.json (deps/scripts), package-lock.json, next.config.ts, playwright.config.ts + e2e/ (new), scripts/check-env.js + scripts/setup-worktree-env.js (new), .claude/settings.json (new), .github/workflows/ci.yml + preview-smoke.yml | 2026-07-11T13:00Z |
