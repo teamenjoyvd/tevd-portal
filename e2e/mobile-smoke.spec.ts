@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test'
 
+import { PUBLIC_SMOKE_ROUTES } from '../lib/public-routes'
+
 /**
  * Navigation-only smoke over the public routes (see lib/public-routes.ts).
  *
@@ -14,9 +16,7 @@ import { test, expect } from '@playwright/test'
  * in prod-like environments).
  */
 
-const PUBLIC_ROUTES = ['/', '/about', '/calendar', '/trips', '/library', '/sign-in']
-
-for (const route of PUBLIC_ROUTES) {
+for (const route of PUBLIC_SMOKE_ROUTES) {
   test(`renders ${route} without overflow or page errors`, async ({ page }, testInfo) => {
     const pageErrors: Error[] = []
     page.on('pageerror', (err) => pageErrors.push(err))
