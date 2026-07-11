@@ -1,4 +1,4 @@
-<!-- guardrails-kit: v1.0 | Editing this file? Read docs/guardrails/_FORMAT.md first. Never paraphrase kit text. -->
+<!-- guardrails-kit: v1.0.1 | Editing this file? Read docs/guardrails/_FORMAT.md first. Never paraphrase kit text. -->
 You are here because you return from compaction or /resume, the user pauses the work ("stop", "later", "tomorrow"), or a task with a TASK block has no docs/STATE.md.
 
 - S1. Returned from compaction or /resume? Do this FIRST, before any file-modifying tool call:
@@ -43,6 +43,7 @@ You are here because you return from compaction or /resume, the user pauses the 
 - S5. The moment you start ANY work not in the original request or approved plan, write: `DETOUR(depth n): <sub-problem> — RETURN-TO: <the step you left>` and mirror it in `## Now`; write `RETURNING: <step>` when it resolves. Max depth 2: a depth-2 detour needing another detour -> STOP and present the chain to the user.
 - S6. When a design decision is settled, append `DECISION: <what> — <why>` to `## Decisions` in the same turn. Before introducing any new dependency, pattern, or naming scheme: scan `## Decisions` and either conform or write `REVERSING DECISION '<text>' because <new evidence>` and get user confirmation. Silent deviation is forbidden.
 - S7. `CONSTRAINT CHECK:` — before the first edit of each file; exact format and procedure owned by docs/guardrails/CODE.md C4.
+- S8. Silent `ScheduleWakeup` re-poll budget: 3 consecutive wakeups with no genuine new user message and no goal-clear -> stop auto-rescheduling, end the loop, and require the user to explicitly re-invoke (a session that pages itself indefinitely for zero signal burns a cold-context read every cycle for no new information). If polling continues past 1 silent wakeup, back off the interval geometrically (e.g. 20 min -> 1 hr -> 3 hr cap) instead of a flat cadence.
 
 --- reference ---
 

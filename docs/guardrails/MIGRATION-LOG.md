@@ -264,3 +264,7 @@ Surface S-09 fate resolved: **DELETE** (user chose delete after being shown the 
 - **Historical references intentionally NOT edited** (records of past sessions; editing them rewrites history): `.agentic-upgrade-log` (2026-06-04 "ADDED docs/ai/RULES.md"), and the `.agents/**` audit/handoff/analysis/prompt files that cite RULES.md line numbers. These are inert historical logs — no runtime impact.
 - Post-deletion grep for `RULES.md` (excluding snapshots, historical logs, `.agents/`, and migration provenance): **NONE remaining**.
 
+## Post-migration kit edit — v1.0 -> v1.0.1 (2026-07-10, drag-factor review)
+
+F15 requires a kit-file edit to bump its version comment and log an entry under `README.md ## Upgrade notes`. No `docs/guardrails/README.md` existed when this edit was first made (2026-07-10); that gap is now fixed — `docs/guardrails/README.md` was created (2026-07-11) as the canonical location, and the full entry lives there. This log entry is kept as a session-context pointer only, per F7 (single source, no restatement): see `docs/guardrails/README.md#upgrade-notes` for the actual upgrade-notes content (`docs/guardrails/SESSION.md` v1.0 -> v1.0.1, adding S8's silent-wakeup budget).
+
