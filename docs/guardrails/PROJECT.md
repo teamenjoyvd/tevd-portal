@@ -73,6 +73,8 @@ If GitHub ❌ — stop.
 
 ## CLAIM-Complete Definition
 
+Before CLAIM completes: read `docs/CLAIMS.md` and check whether any in-flight row overlaps the files/areas this issue will touch. An overlap found -> surface it to the user before cutting the branch, do not silently proceed (this repo runs concurrent agent sessions with loosely-bounded scope; overlap has already caused a real merge collision — PR #538 vs. 2607-DEV-535, both independently adding a debounce to the same search input). No overlap -> add a row to `docs/CLAIMS.md` (issue #, branch, files/areas, timestamp) as part of completing CLAIM. Remove the row once BUILD's PR merges or the branch is abandoned.
+
 An issue is CLAIM-complete (ready for BUILD) when its body contains:
 1. A `## Design Checklist` section with all four items checked.
 2. A `## Branch` section with the feature branch name.

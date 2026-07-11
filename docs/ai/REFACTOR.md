@@ -233,6 +233,8 @@ runner first — that is a prerequisite.
 
 **Decision:** Blocked on test infrastructure. Will not promote until a test setup exists.
 
+**Update (2026-07-10, drag-factor review):** Blocker resolved — `vitest.config.ts` now exists, with active tests at `lib/public-routes.test.ts`, `lib/supabase/guards.test.ts`, `lib/format.test.ts`, `app/api/payments/route.test.ts`, `app/api/admin/members/[id]/route.test.ts`, `supabase/migrations/rpc-guards.test.ts` (confirmed via `Glob` this session, not re-derived from this note). This entry was found stale — a prior session had trusted the "no test runner" claim without re-checking. **Status: unblocked, ready to promote to a ticket.**
+
 ---
 
 ## Target 11 — `requireAdmin` / `requireAdminOrCore` deprecated callers still in production
@@ -262,6 +264,8 @@ inline role checks with `getCallerContext`. Delete the deprecated exports from `
 once callers are migrated.
 
 **Promoted ticket:** _pending_
+
+**Update (2026-07-10, drag-factor review):** This was already promoted — issue #432 ("REFACTOR: deprecated guard sweep — replace requireAdmin/requireAdminOrCore with getCallerContext") exists but is **closed, `state_reason: not_planned`** (closed 2026-07-07). No comment explaining the decision was found (`get_comments` returned empty). "Promoted ticket: pending" above was stale — do not file a duplicate; if this sweep is still wanted, #432 needs to be reopened or a fresh issue needs to explicitly supersede it, either way requiring a human decision on why it was marked not_planned before proceeding.
 
 ---
 
@@ -492,6 +496,22 @@ Page stubs carry no external integration risk — no standalone ticket.
 
 ---
 
+## Target 20 — `fetch(...).then(r => r.json())` without `.ok` check, 12 files
+
+**Status:** ✅ Ticket ready
+
+**Files read:** none this session (finding sourced from a prior session's PR #514 investigation, not re-read here — see caveat below).
+
+**Finding:** PR #514 fixed a real production bug in `lib/hooks/useNotifications.ts` — a failed `fetch` was parsed as JSON without checking `response.ok`, poisoning React Query's cache with a non-array error object. The fix added a module-private `fetchJson()` helper, deliberately scoped to that one file. The same pattern was found (by that session, not independently re-verified here) still unfixed in 12 files: `lib/hooks/useBentoConfig.ts`, `components/layout/UserDropdown.tsx`, and 10 admin-panel components (`EmailLogTable`, `LogPaymentDrawer`, `GuideAttachmentsPanel`, `SocialTab`, `NewsTab`, `LinksTab`, `GuidesTab`, `approval-hub/page.tsx`, `TripRegistrationsTab`, `EventRolesTab`).
+
+**Caveat (updated 2026-07-11):** re-grepped this session — the 12-file list is stale/wrong. A loose grep for `.json())` hit 24 files; spot-checking found both false positives (`app/admin/trips/[id]/components/TripHeroSection.tsx` already guards on `.ok`) and true positives (`components/layout/UserDropdown.tsx` has no `.ok` check) mixed in. The real affected-file list needs to be re-derived by reading each grep hit, not assumed from the original 12.
+
+**Fix:** Extract the shared `fetchJson()` helper, convert whichever call sites GATHER confirms actually lack the `.ok` check.
+
+**Promoted ticket:** [#541](https://github.com/teamenjoyvd/tevd-portal/issues/541) (updated with the same correction)
+
+---
+
 ## Session log
 
 ### Session 1 — 2026-05-18
@@ -537,3 +557,9 @@ contradiction in `critique_mode` rules (file path vs. decision anchor).
 8. Target 18 — notifications untyped update + CRLF (low severity)
 9. Targets 2, 6, 12, 15 — remaining
 10. Target 5 — after client call-site audit
+
+### Session 4 — 2026-07-10
+
+**Mode:** drag-factor review (cross-session log audit, not a normal PLAN pass)
+**Action:** Target 10 unblocked — `vitest.config.ts` + 6 test files now exist; the "no test infrastructure" blocker was stale (a prior session trusted the note without re-checking). Target 11 corrected — issue #432 already exists for this sweep but is closed `not_planned` with no recorded reason; "Promoted ticket: pending" was stale. New Target 20 added and promoted to issue #541 (shared `fetchJson()` extraction, 12 files, sourced from PR #514's findings).
+**Open question surfaced, not resolved:** why was #432 closed `not_planned`? Needs a human answer before the Target 11 sweep is either resumed or formally dropped.
