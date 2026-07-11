@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { useTheme } from '@/lib/hooks/useTheme'
 import { getRoleColors } from '@/lib/role-colors'
+import { fetchJson } from '@/lib/utils/fetchJson'
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -50,7 +51,7 @@ export default function UserDropdown() {
 
   const { data: profileData } = useQuery<ProfileData>({
     queryKey: ['profile'],
-    queryFn: () => fetch('/api/profile').then(r => r.json()),
+    queryFn: () => fetchJson<ProfileData>('/api/profile'),
     staleTime: 5 * 60 * 1000,
   })
 

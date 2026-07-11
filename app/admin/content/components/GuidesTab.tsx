@@ -21,6 +21,7 @@ import { makeDragHandlers } from './useDragSort'
 import { GuideForm } from './GuideForm'
 import { emptyGuide, type Guide } from './guide-types'
 import { useLanguage } from '@/lib/hooks/useLanguage'
+import { fetchJson } from '@/lib/utils/fetchJson'
 
 export function GuidesTab() {
   const qc = useQueryClient()
@@ -33,7 +34,7 @@ export function GuidesTab() {
 
   const { data: guidesRaw = [], isLoading: guidesLoading } = useQuery<Guide[]>({
     queryKey: ['admin-guides'],
-    queryFn: () => fetch('/api/admin/guides').then(r => r.json()),
+    queryFn: () => fetchJson<Guide[]>('/api/admin/guides'),
   })
   const [localGuides, setLocalGuides] = useState<Guide[]>(() => [...guidesRaw])
   const [prevGuidesRaw, setPrevGuidesRaw] = useState(guidesRaw)
@@ -44,10 +45,10 @@ export function GuidesTab() {
 
   const reorderGuides = useMutation({
     mutationFn: (items: { id: string; sort_order: number }[]) =>
-      fetch('/api/admin/guides', {
+      fetchJson('/api/admin/guides', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ items }),
-      }).then(r => r.json()),
+      }),
     onError: () => setLocalGuides([...guidesRaw]),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-guides'] }),
   })

@@ -17,6 +17,7 @@ import { AdminStatusBadge } from '@/app/admin/components/AdminStatusBadge'
 import { useAdminDrawer } from '@/app/admin/components/useAdminDrawer'
 import { makeDragHandlers } from './useDragSort'
 import { useLanguage } from '@/lib/hooks/useLanguage'
+import { fetchJson } from '@/lib/utils/fetchJson'
 import { LinkForm, ALL_ROLES } from './LinkForm'
 import { LinkEditDrawer } from './LinkEditDrawer'
 import type { LinkFormData } from './LinkForm'
@@ -47,7 +48,7 @@ export function LinksTab() {
 
   const { data: linksRaw = [] } = useQuery<SiteLink[]>({
     queryKey: ['admin-links'],
-    queryFn: () => fetch('/api/admin/links').then(r => r.json()),
+    queryFn: () => fetchJson<SiteLink[]>('/api/admin/links'),
   })
   const [localLinks, setLocalLinks] = useState<SiteLink[]>(() => [...linksRaw])
   const [prevLinksRaw, setPrevLinksRaw] = useState(linksRaw)
@@ -58,20 +59,20 @@ export function LinksTab() {
 
   const reorderLinks = useMutation({
     mutationFn: (items: { id: string; sort_order: number }[]) =>
-      fetch('/api/admin/links', {
+      fetchJson('/api/admin/links', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ items }),
-      }).then(r => r.json()),
+      }),
     onError: () => setLocalLinks([...linksRaw]),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-links'] }),
   })
 
   const createLink = useMutation({
     mutationFn: (data: LinkFormData) =>
-      fetch('/api/admin/links', {
+      fetchJson('/api/admin/links', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
-      }).then(r => r.json()),
+      }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-links'] })
       qc.invalidateQueries({ queryKey: ['links', 'list'] })
@@ -90,10 +91,10 @@ export function LinksTab() {
 
   const updateLink = useMutation({
     mutationFn: ({ id, ...data }: { id: string } & LinkFormData) =>
-      fetch(`/api/admin/links/${id}`, {
+      fetchJson(`/api/admin/links/${id}`, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
-      }).then(r => r.json()),
+      }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-links'] })
       qc.invalidateQueries({ queryKey: ['links', 'list'] })
@@ -103,10 +104,10 @@ export function LinksTab() {
 
   const toggleLinkActive = useMutation({
     mutationFn: ({ id, is_active }: { id: string; is_active: boolean }) =>
-      fetch(`/api/admin/links/${id}`, {
+      fetchJson(`/api/admin/links/${id}`, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_active }),
-      }).then(r => r.json()),
+      }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-links'] })
       qc.invalidateQueries({ queryKey: ['links', 'list'] })

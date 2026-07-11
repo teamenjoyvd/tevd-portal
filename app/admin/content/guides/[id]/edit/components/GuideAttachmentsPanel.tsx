@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { makeDragHandlers } from '@/app/admin/content/components/useDragSort'
 import { useLanguage } from '@/lib/hooks/useLanguage'
+import { fetchJson } from '@/lib/utils/fetchJson'
 
 type Attachment = {
   id: string
@@ -49,7 +50,7 @@ export function GuideAttachmentsPanel({ guideId }: { guideId: string }) {
   const { data: attachments = [], isLoading } = useQuery<Attachment[]>({
     queryKey,
     queryFn: () =>
-      fetch(`/api/admin/guides/${guideId}/attachments`).then(r => r.json()),
+      fetchJson<Attachment[]>(`/api/admin/guides/${guideId}/attachments`),
   })
 
   useEffect(() => {

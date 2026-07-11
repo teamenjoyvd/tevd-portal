@@ -18,6 +18,7 @@ import { AdminStatusBadge } from '@/app/admin/components/AdminStatusBadge'
 import { useAdminDrawer } from '@/app/admin/components/useAdminDrawer'
 import { makeDragHandlers } from './useDragSort'
 import { useLanguage } from '@/lib/hooks/useLanguage'
+import { fetchJson } from '@/lib/utils/fetchJson'
 import { SocialPostForm, InstagramIcon, FacebookIcon } from './SocialPostForm'
 import type { SocialPostFormData } from './SocialPostForm'
 
@@ -44,7 +45,7 @@ export function SocialTab() {
 
   const { data: socialPostsRaw = [] } = useQuery<SocialPost[]>({
     queryKey: ['admin-social-posts'],
-    queryFn: () => fetch('/api/admin/social-posts').then(r => r.json()),
+    queryFn: () => fetchJson<SocialPost[]>('/api/admin/social-posts'),
   })
   const [localSocials, setLocalSocials] = useState<SocialPost[]>(() => [...socialPostsRaw])
   const [prevSocialsRaw, setPrevSocialsRaw] = useState(socialPostsRaw)
@@ -55,10 +56,10 @@ export function SocialTab() {
 
   const reorderSocials = useMutation({
     mutationFn: (items: { id: string; sort_order: number }[]) =>
-      fetch('/api/admin/social-posts', {
+      fetchJson('/api/admin/social-posts', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ items }),
-      }).then(r => r.json()),
+      }),
     onError: () => setLocalSocials([...socialPostsRaw]),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-social-posts'] }); qc.invalidateQueries({ queryKey: ['socials'] }) },
   })
@@ -113,11 +114,11 @@ export function SocialTab() {
 
   const patchSocialPost = useMutation({
     mutationFn: ({ id, ...patch }: { id: string } & Partial<SocialPost>) =>
-      fetch(`/api/admin/social-posts/${id}`, {
+      fetchJson(`/api/admin/social-posts/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(patch),
-      }).then(r => r.json()),
+      }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-social-posts'] })
       qc.invalidateQueries({ queryKey: ['socials'] })

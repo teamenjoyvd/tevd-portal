@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from '@/lib/toast'
 import { useLanguage } from '@/lib/hooks/useLanguage'
+import { fetchJson } from '@/lib/utils/fetchJson'
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -64,7 +65,7 @@ export function TripRegistrationsTab() {
 
   const { data: registrations = [], isLoading } = useQuery<TripRegistration[]>({
     queryKey: ['registrations', 'all'],
-    queryFn: () => fetch('/api/admin/registrations').then(r => r.json()),
+    queryFn: () => fetchJson<TripRegistration[]>('/api/admin/registrations'),
   })
 
   const trips = Array.from(
