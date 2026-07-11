@@ -3,11 +3,11 @@ Dev-infrastructure refactor (2026-07-11, plan-mode approved): supersede PR #544 
 (PARKED, resume after: Milestone #2 "Security & Health Audit — 2026-07" — status snapshot preserved under Open items/Facts below.)
 
 ## Now
-PR A (#545) in progress on `dev/2607-DEV-545`: archive moves done (root README/PROJECT/ORIGINAL_REQUEST/TEST_INFRA/TEST_READY, docs/release-cycle-test.md, `.agents/` → `docs/archive/`), supabase/.temp untracked, .gitignore deduped, config.toml comments fixed, new README + docs/DEV_WORKFLOW.md written. BASELINE: vitest 7 files/82 tests pass.
+Both PRs built and verified locally, committed on their branches, NOT pushed (awaiting explicit user approval). PR A (#545, `dev/2607-DEV-545`): hygiene/docs/archive + eslint ignore retarget (.agents→docs/archive). PR B (#546, `dev/2607-DEV-546`, stacked on A): optionalDependencies fix for Windows EBADPLATFORM (from 4f27d7a) + ci.yml npm ci + verify/check:env/env:worktree scripts + Playwright mobile-390 smoke + preview-smoke.yml (advisory) + turbopack root + .claude/settings.json. Verified: `npm run verify` exit 0 (lint 0 errors / tsc / 82 tests / build 62 pages); `npm run test:mobile` 6/6 public routes green at 390px.
 
 ## Next
-- Commit PR A; then branch `dev/2607-DEV-546` for PR B: move `@tailwindcss/oxide-linux-x64-gnu` + `lightningcss-linux-x64-gnu` devDeps → optionalDependencies (they hard-fail `npm ci` on Windows, EBADPLATFORM; added by 4f27d7a as a CI workaround) + ci.yml `npm install`→`npm ci` (must land together), verify/check:env scripts, Playwright mobile-390 smoke (navigation-only fence), preview-smoke.yml (advisory), turbopack root, env:worktree, .claude/settings.json
-- Both branches stay local until the user explicitly approves a push
+- User to approve push of `dev/2607-DEV-545` and `dev/2607-DEV-546`; open PRs (B based on A, retarget to main after A merges); confirm CI green + Vercel preview READY + preview-smoke run
+- Findings logged during smoke (pre-existing, not fixed here): anonymous visitors get a 401 + "Query data cannot be undefined" console error from the `profile-ui-prefs-font-size` query; radix-id hydration mismatch on `/`
 - Then: #547 local Supabase (priority:high)
 - (Parked milestone queue) merge-pending PRs #502/#504/#505/#506/#507/#508; #485; Phase 4: #490/#492/#489/#487/#488; Phase 5: #469/#486/#491/#493/#494/#495/#496/#497; #510 pickup
 

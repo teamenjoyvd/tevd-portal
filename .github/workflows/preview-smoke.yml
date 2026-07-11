@@ -1,0 +1,48 @@
+name: Preview Smoke
+
+# Runs the navigation-only Playwright smoke against each Vercel PREVIEW
+# deployment once Vercel reports it ready.
+#
+# Advisory-only for now: deployment_status-triggered runs are not attached
+# to the PR as required checks by default. Once trusted, add the "smoke"
+# job as a required status check in branch protection.
+#
+# The suite is navigation-only because preview deployments hit the
+# production Supabase project (see docs/DEV_WORKFLOW.md and issue #547).
+
+on:
+  deployment_status:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: preview-smoke-${{ github.event.deployment.sha }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    name: 390px smoke vs preview
+    if: >
+      github.event.deployment_status.state == 'success' &&
+      startsWith(github.event.deployment.environment, 'Preview')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.deployment.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test --project=mobile-390
+        env:
+          BASE_URL: ${{ github.event.deployment_status.environment_url }}
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
