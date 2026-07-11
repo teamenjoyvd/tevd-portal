@@ -496,13 +496,13 @@ Page stubs carry no external integration risk — no standalone ticket.
 
 ---
 
-## Target 20 — `fetch(...).then(r => r.json())` without `.ok` check, 12 files
+## Target 20 — `fetch(...).then(r => r.json())` without `.ok` check, scope provisional
 
-**Status:** ✅ Ticket ready
+**Status:** 📝 Notes captured — scope not yet confirmed, do not treat as implementation-ready
 
-**Files read:** none this session (finding sourced from a prior session's PR #514 investigation, not re-read here — see caveat below).
+**Files read:** none this session (finding sourced from a prior session's PR #514 investigation, not re-read here — see Caveat).
 
-**Finding:** PR #514 fixed a real production bug in `lib/hooks/useNotifications.ts` — a failed `fetch` was parsed as JSON without checking `response.ok`, poisoning React Query's cache with a non-array error object. The fix added a module-private `fetchJson()` helper, deliberately scoped to that one file. The same pattern was found (by that session, not independently re-verified here) still unfixed in 12 files: `lib/hooks/useBentoConfig.ts`, `components/layout/UserDropdown.tsx`, and 10 admin-panel components (`EmailLogTable`, `LogPaymentDrawer`, `GuideAttachmentsPanel`, `SocialTab`, `NewsTab`, `LinksTab`, `GuidesTab`, `approval-hub/page.tsx`, `TripRegistrationsTab`, `EventRolesTab`).
+**Finding:** PR #514 fixed a real production bug in `lib/hooks/useNotifications.ts` — a failed `fetch` was parsed as JSON without checking `response.ok`, poisoning React Query's cache with a non-array error object. The fix added a module-private `fetchJson()` helper, deliberately scoped to that one file. That prior session additionally claimed 12 other files had the same unfixed pattern; **this session found that count wrong** (see Caveat) — the true affected-file list is unconfirmed and must be re-derived, not the 12 named here or in the original claim.
 
 **Caveat (updated 2026-07-11):** re-grepped this session — the 12-file list is stale/wrong. A loose grep for `.json())` hit 24 files; spot-checking found both false positives (`app/admin/trips/[id]/components/TripHeroSection.tsx` already guards on `.ok`) and true positives (`components/layout/UserDropdown.tsx` has no `.ok` check) mixed in. The real affected-file list needs to be re-derived by reading each grep hit, not assumed from the original 12.
 
@@ -561,5 +561,5 @@ contradiction in `critique_mode` rules (file path vs. decision anchor).
 ### Session 4 — 2026-07-10
 
 **Mode:** drag-factor review (cross-session log audit, not a normal PLAN pass)
-**Action:** Target 10 unblocked — `vitest.config.ts` + 6 test files now exist; the "no test infrastructure" blocker was stale (a prior session trusted the note without re-checking). Target 11 corrected — issue #432 already exists for this sweep but is closed `not_planned` with no recorded reason; "Promoted ticket: pending" was stale. New Target 20 added and promoted to issue #541 (shared `fetchJson()` extraction, 12 files, sourced from PR #514's findings).
+**Action:** Target 10 unblocked — `vitest.config.ts` + 6 test files now exist; the "no test infrastructure" blocker was stale (a prior session trusted the note without re-checking). Target 11 corrected — issue #432 already exists for this sweep but is closed `not_planned` with no recorded reason; "Promoted ticket: pending" was stale. New Target 20 added and promoted to issue #541 (shared `fetchJson()` extraction, sourced from PR #514's findings; the "12 files" scope from that source was found wrong this session and marked provisional pending re-derivation).
 **Open question surfaced, not resolved:** why was #432 closed `not_planned`? Needs a human answer before the Target 11 sweep is either resumed or formally dropped.

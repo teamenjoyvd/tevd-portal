@@ -266,10 +266,5 @@ Surface S-09 fate resolved: **DELETE** (user chose delete after being shown the 
 
 ## Post-migration kit edit — v1.0 -> v1.0.1 (2026-07-10, drag-factor review)
 
-F15 requires a kit-file edit to bump its version comment and log an entry under `README.md ## Upgrade notes`; no `docs/guardrails/README.md` exists in this repo (never created during the v1.0 migration), so this entry substitutes as the closest existing audit-trail artifact until/unless such a README is added.
-
-- **File changed:** `docs/guardrails/SESSION.md` — version comment bumped `v1.0` -> `v1.0.1`.
-- **What:** added S8 — a silent-`ScheduleWakeup`-re-poll budget (stop after 3 consecutive silent wakeups; geometric backoff past the first). New ID, no renumbering (F12).
-- **Why:** a live session ("Fable refactoring and UX improvements") was found looping `ScheduleWakeup` indefinitely at a flat cadence waiting on a deferred human decision, re-entering cold context each cycle with no new signal — pure overhead with no corresponding guardrail rule.
-- **Also added this pass (non-kit, no version bump needed):** `docs/CLAIMS.md` (new claim registry) + a `docs/guardrails/PROJECT.md#claim-complete-definition` addition wiring it into CLAIM (PROJECT.md is F15-exempt, project-authored).
+F15 requires a kit-file edit to bump its version comment and log an entry under `README.md ## Upgrade notes`. No `docs/guardrails/README.md` existed when this edit was first made (2026-07-10); that gap is now fixed — `docs/guardrails/README.md` was created (2026-07-11) as the canonical location, and the full entry lives there. This log entry is kept as a session-context pointer only, per F7 (single source, no restatement): see `docs/guardrails/README.md#upgrade-notes` for the actual upgrade-notes content (`docs/guardrails/SESSION.md` v1.0 -> v1.0.1, adding S8's silent-wakeup budget).
 
