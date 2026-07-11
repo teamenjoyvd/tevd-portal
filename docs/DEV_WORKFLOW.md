@@ -42,7 +42,7 @@ Until [#547](https://github.com/teamenjoyvd/tevd-portal/issues/547) (local Supab
 1. Every change starts from a GitHub issue. ID format `[YYMM]-DEV-[GH#]` — the issue number is canonical (see [docs/guardrails/PROJECT.md](guardrails/PROJECT.md#id-format)).
 2. Branch `dev/[YYMM]-DEV-[GH#]` off `main`. **Never push to `main` directly.**
 3. Register the work in [docs/CLAIMS.md](CLAIMS.md) (concurrent agents check it for scope overlap).
-4. Commit prefix and PR title: `[YYMM]-DEV-[GH#] description`. PRs by agents carry a `## Session State` block with an `Agent Type:` tag.
+4. Commit prefix and PR title: `[YYMM]-DEV-[GH#] description`. PRs by agents carry a `## Session State` block.
 5. Push (agents: only with an explicit user go-ahead) → PR opens → automatically:
    - **GitHub Actions**: typecheck, lint, test, build, audit ([ci.yml](../.github/workflows/ci.yml))
    - **Vercel**: preview deployment (~2 min), URL in the PR comment

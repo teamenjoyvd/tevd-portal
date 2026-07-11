@@ -16,11 +16,6 @@
     "check:env": "node scripts/check-env.js",
     "env:worktree": "node scripts/setup-worktree-env.js",
     "agentic:validate": "node scripts/validate-rules.js",
-    "agentic:handoff": "node scripts/handoff.js",
-    "agentic:bootstrap": "node scripts/bootstrap.js",
-    "agentic:smoke": "node scripts/smoke.js",
-    "agentic:check": "node scripts/check-infra.js",
-    "agentic:upgrade": "node scripts/upgrade-infra.js",
     "db:clean-fixes": "node -e \"const fs = require('fs'); if (fs.existsSync('apply_fixes.sql')) fs.unlinkSync('apply_fixes.sql')\""
   },
   "dependencies": {
