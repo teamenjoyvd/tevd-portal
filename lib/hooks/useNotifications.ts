@@ -1,17 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-
-// fetch() only rejects on network failure — a 4xx/5xx response still resolves
-// with a parseable JSON error body (e.g. { error: 'Unauthorized' }), which
-// would otherwise be treated as valid query/mutation data (an object, not an
-// array) and crash any `.filter`/`.map` caller downstream.
-async function fetchJson<T>(input: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(input, init)
-  if (!res.ok) {
-    const body = await res.json().catch(() => null)
-    throw new Error(body?.error ?? `Request failed: ${res.status}`)
-  }
-  return res.json()
-}
+import { fetchJson } from '@/lib/utils/fetchJson'
 
 export type Notification = {
   id: string

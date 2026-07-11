@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { t } from '@/lib/i18n'
+import { fetchJson } from '@/lib/utils/fetchJson'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -73,7 +74,7 @@ export function EmailLogTable() {
 
   const { data, isLoading } = useQuery<LogsResponse>({
     queryKey: ['email-log', statusFilter, templateFilter, page],
-    queryFn: () => fetch(`/api/admin/email-log?${params}`).then(r => r.json()),
+    queryFn: () => fetchJson<LogsResponse>(`/api/admin/email-log?${params}`),
     staleTime: 30_000,
   })
 

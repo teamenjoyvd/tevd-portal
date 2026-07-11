@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Drawer } from '@/components/ui/drawer'
 import { t } from '@/lib/i18n'
+import { fetchJson } from '@/lib/utils/fetchJson'
 import { LogPaymentForm } from './LogPaymentForm'
 import type { Trip } from '@/lib/types/trips'
 import type { PayableItem } from '@/lib/types/items'
@@ -25,21 +26,21 @@ export function LogPaymentDrawer({
   // Lazy fetch — only runs while drawer is open
   const { data: trips = [] } = useQuery<Trip[]>({
     queryKey: ['trips'],
-    queryFn: () => fetch('/api/trips').then(r => r.json()),
+    queryFn: () => fetchJson<Trip[]>('/api/trips'),
     enabled: open,
     staleTime: 60_000,
   })
 
   const { data: items = [] } = useQuery<PayableItem[]>({
     queryKey: ['payable-items'],
-    queryFn: () => fetch('/api/admin/payable-items').then(r => r.json()),
+    queryFn: () => fetchJson<PayableItem[]>('/api/admin/payable-items'),
     enabled: open,
     staleTime: 60_000,
   })
 
   const { data: membersData } = useQuery<MembersResponse>({
     queryKey: ['admin-members'],
-    queryFn: () => fetch('/api/admin/members').then(r => r.json()),
+    queryFn: () => fetchJson<MembersResponse>('/api/admin/members'),
     enabled: open,
     staleTime: 60_000,
   })

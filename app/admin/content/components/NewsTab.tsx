@@ -20,6 +20,7 @@ import { makeDragHandlers } from './useDragSort'
 import { NewsForm, emptyNewsItem, type NewsItem } from './NewsForm'
 import { formatDate } from '@/lib/format'
 import { useLanguage } from '@/lib/hooks/useLanguage'
+import { fetchJson } from '@/lib/utils/fetchJson'
 
 export function NewsTab() {
   const qc = useQueryClient()
@@ -30,7 +31,7 @@ export function NewsTab() {
 
   const { data: rawItems = [], isLoading } = useQuery<NewsItem[]>({
     queryKey: ['announcements'],
-    queryFn: () => fetch('/api/admin/announcements').then(r => r.json()),
+    queryFn: () => fetchJson<NewsItem[]>('/api/admin/announcements'),
   })
   const [localItems, setLocalItems] = useState<NewsItem[]>(() => [...rawItems])
   const [prevRaw, setPrevRaw] = useState(rawItems)
@@ -41,20 +42,20 @@ export function NewsTab() {
 
   const reorder = useMutation({
     mutationFn: (items: { id: string; sort_order: number }[]) =>
-      fetch('/api/admin/announcements', {
+      fetchJson('/api/admin/announcements', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ items }),
-      }).then(r => r.json()),
+      }),
     onError: () => setLocalItems([...rawItems]),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['announcements'] }),
   })
 
   const createItem = useMutation({
     mutationFn: (body: Omit<NewsItem, 'id' | 'created_at'>) =>
-      fetch('/api/admin/announcements', {
+      fetchJson('/api/admin/announcements', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
-      }).then(r => r.json()),
+      }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['announcements'] })
       newsDrawer.close()
@@ -63,10 +64,10 @@ export function NewsTab() {
 
   const toggleItem = useMutation({
     mutationFn: ({ id, is_active }: { id: string; is_active: boolean }) =>
-      fetch(`/api/admin/announcements/${id}`, {
+      fetchJson(`/api/admin/announcements/${id}`, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_active }),
-      }).then(r => r.json()),
+      }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['announcements'] }),
   })
 
@@ -78,10 +79,10 @@ export function NewsTab() {
 
   const updateItem = useMutation({
     mutationFn: ({ id, ...body }: { id: string } & Omit<NewsItem, 'id' | 'created_at'>) =>
-      fetch(`/api/admin/announcements/${id}`, {
+      fetchJson(`/api/admin/announcements/${id}`, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
-      }).then(r => r.json()),
+      }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['announcements'] })
       newsDrawer.close()

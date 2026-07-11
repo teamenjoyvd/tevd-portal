@@ -3,6 +3,7 @@
 import { Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
+import { fetchJson } from '@/lib/utils/fetchJson'
 import AdminTabs, { TabsContent } from '@/app/admin/components/AdminTabs'
 import { TripRegistrationsTab } from './components/TripRegistrationsTab'
 import { AboVerificationTab } from './components/VerificationsTab'
@@ -20,19 +21,19 @@ function ApprovalHubInner() {
 
   const { data: registrations = [] } = useQuery<TripRegistration[]>({
     queryKey: ['registrations', 'all'],
-    queryFn: () => fetch('/api/admin/registrations').then(r => r.json()),
+    queryFn: () => fetchJson<TripRegistration[]>('/api/admin/registrations'),
   })
 
   // Fetch role requests from the dedicated admin endpoint — same query key used by EventRolesTab
   // so this is a cache hit when the tab renders, not a second network request.
   const { data: roleRequests = [] } = useQuery<{ id: string; status: string }[]>({
     queryKey: ['role-requests', 'all'],
-    queryFn: () => fetch('/api/admin/event-role-requests').then(r => r.json()),
+    queryFn: () => fetchJson<{ id: string; status: string }[]>('/api/admin/event-role-requests'),
   })
 
   const { data: spouseRequests = [] } = useQuery<SpouseLinkRequest[]>({
     queryKey: ['spouse-link-requests'],
-    queryFn: () => fetch('/api/admin/spouse-link-requests').then(r => r.json()),
+    queryFn: () => fetchJson<SpouseLinkRequest[]>('/api/admin/spouse-link-requests'),
   })
 
   const pendingTrips  = registrations.filter(r => r.status === 'pending').length

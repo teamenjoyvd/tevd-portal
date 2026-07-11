@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from '@/lib/toast'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { formatDate, formatTime } from '@/lib/format'
+import { fetchJson } from '@/lib/utils/fetchJson'
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -84,7 +85,7 @@ export function EventRolesTab() {
 
   const { data: roleRequests = [], isLoading } = useQuery<RoleRequest[]>({
     queryKey: ['role-requests', 'all'],
-    queryFn: () => fetch('/api/admin/event-role-requests').then(r => r.json()),
+    queryFn: () => fetchJson<RoleRequest[]>('/api/admin/event-role-requests'),
   })
 
   const eventsWithRequests = Array.from(
@@ -97,11 +98,11 @@ export function EventRolesTab() {
 
   const updateMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: 'approved' | 'denied' }) =>
-      fetch(`/api/admin/event-role-requests/${id}`, {
+      fetchJson(`/api/admin/event-role-requests/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
-      }).then(r => r.json()),
+      }),
     onMutate: async ({ id, status }) => {
       await qc.cancelQueries({ queryKey: ['role-requests', 'all'] })
       const prev = qc.getQueryData<RoleRequest[]>(['role-requests', 'all'])
