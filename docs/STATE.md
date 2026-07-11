@@ -1,19 +1,19 @@
 ## Goal
-Execute GitHub Milestone #2 "Security & Health Audit — 2026-07" (https://github.com/teamenjoyvd/tevd-portal/milestone/2): work through 24 open issues from the 2026-07-07 security/schema/architecture audit, critical fixes first. Includes a completed sub-task: a Sonnet/max-effort code-review pass over all 11 PRs open as of 2026-07-08, run as an alternative to CodeRabbit's quota-limited free-tier reviews.
+Dev-infrastructure refactor (2026-07-11, plan-mode approved): supersede PR #544 (closed) with two PRs — #545 hygiene/knowledge-tracking (branch `dev/2607-DEV-545`) and #546 local verification tooling (branch `dev/2607-DEV-546`, stacked on 545) — plus #547 (local Supabase, priority:high, next ticket after these). Plan file: `~/.claude/plans/infrastructure-refactor-update-i-want-clever-sphinx.md`.
+(PARKED, resume after: Milestone #2 "Security & Health Audit — 2026-07" — status snapshot preserved under Open items/Facts below.)
 
 ## Now
-Phase 1 critical fixes: #498, #499, #500, #501 MERGED to main; #502 still open (review-clean, awaiting merge). Phase 2 (#504), Phase 3 (#505, #506), Phase 5 architecture/lint (#507, #508) all open — each review-clean or fixed per the 2026-07-08 code-review pass (see Done log). #503 (this file's prior tracker snapshot) MERGED. Remaining open, milestone-relevant: #502, #504, #505, #506, #507, #508. Also open but not milestone-tracked: #509 (design-sync chore), #512 (this file's current tracking PR). Next up when resumed: #485 (only remaining Phase 3 item without a PR), then Phase 4.
+PR A (#545) in progress on `dev/2607-DEV-545`: archive moves done (root README/PROJECT/ORIGINAL_REQUEST/TEST_INFRA/TEST_READY, docs/release-cycle-test.md, `.agents/` → `docs/archive/`), supabase/.temp untracked, .gitignore deduped, config.toml comments fixed, new README + docs/DEV_WORKFLOW.md written. BASELINE: vitest 7 files/82 tests pass.
 
 ## Next
-- Merge the 6 remaining reviewed PRs (#502, #504, #505, #506, #507, #508) — all review-clean or fixed, awaiting human/CI merge
-- #485 (Phase 3, not started): social-posts preview endpoint auth-only check + SSRF via caller-supplied URL
-- Phase 4 — Low/correctness bugs (not started): #490 (/api/home dead+broken), #492 (phantom endpoints), #489 (22 unindexed FKs), #487 (inconsistent authz patterns), #488 (CI npm audit soft-gated)
-- Phase 5 — Cleanup backlog remainder (not started): #469/#486/#491/#493/#494/#495 (dead code), #496 (file decomposition), #497 (tiptap bundle bloat)
-- Issue #510 (guest-tier storage-policy bypass, filed 2026-07-08 during the #504 review) needs its own pickup — not part of the original 24-issue milestone list
-- Each ticket runs its own SSU->PLAN->CLAIM->BUILD cycle on branch `dev/2607-DEV-[#]`
+- Commit PR A; then branch `dev/2607-DEV-546` for PR B: move `@tailwindcss/oxide-linux-x64-gnu` + `lightningcss-linux-x64-gnu` devDeps → optionalDependencies (they hard-fail `npm ci` on Windows, EBADPLATFORM; added by 4f27d7a as a CI workaround) + ci.yml `npm install`→`npm ci` (must land together), verify/check:env scripts, Playwright mobile-390 smoke (navigation-only fence), preview-smoke.yml (advisory), turbopack root, env:worktree, .claude/settings.json
+- Both branches stay local until the user explicitly approves a push
+- Then: #547 local Supabase (priority:high)
+- (Parked milestone queue) merge-pending PRs #502/#504/#505/#506/#507/#508; #485; Phase 4: #490/#492/#489/#487/#488; Phase 5: #469/#486/#491/#493/#494/#495/#496/#497; #510 pickup
 
 ## Constraints
-- User (this turn, re: #504 finding): "note + file follow-up, don't touch #504."
+- Infra refactor (2026-07-11, user decisions via plan questions): keep prod DB in `.env.local` for now; archive stale docs, don't delete ("Move all five into docs/archive/, update README and look for other stale files to move to that same location"); split into two PRs; navigation-only local/preview testing until #547 lands
+- User (prior task, re: #504 finding): "note + file follow-up, don't touch #504."
 - Milestone touches Supabase RLS/grants/security-definer functions — Pattern A helpers only, never raw auth.jwt() (CLAUDE.md hard constraint)
 - Never write data to Supabase from a Preview URL (preview hits prod DB)
 - Never push directly to main; dev/[YYMM]-DEV-[GH#] branches only
