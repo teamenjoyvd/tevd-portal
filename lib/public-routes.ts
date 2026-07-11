@@ -51,6 +51,8 @@ export const PUBLIC_SMOKE_ROUTES = [
   '/about',
   '/calendar',
   '/trips',
+  '/erc2026',
   '/library',
   '/sign-in',
+  '/sign-up',
 ] as const
