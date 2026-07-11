@@ -1,6 +1,12 @@
+import path from 'path'
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
+  // Pin the project root so dev servers started inside git worktrees
+  // (.claude/worktrees/*) don't resolve the main checkout as root.
+  turbopack: {
+    root: path.resolve(__dirname),
+  },
   experimental: {
     optimizePackageImports: ['lucide-react', '@tanstack/react-query'],
   },

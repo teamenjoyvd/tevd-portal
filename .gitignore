@@ -43,6 +43,12 @@ next-env.d.ts
 # supabase CLI artifacts
 supabase/.temp/
 
+# playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
 # design-sync
 .ds-sync/
 ds-bundle/

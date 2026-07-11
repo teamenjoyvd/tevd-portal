@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__github-tevd__pull_request_read",
+      "mcp__github-tevd__get_file_contents",
+      "mcp__github-tevd__issue_read"
+    ]
+  }
+}
