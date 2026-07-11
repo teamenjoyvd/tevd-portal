@@ -16,8 +16,14 @@ export default defineConfig({
   projects: [
     {
       // 390px is this repo's mobile-first hard constraint.
+      // browserName pinned: devices['iPhone 12'] defaults to webkit, but CI
+      // (preview-smoke.yml) installs chromium only — keep local & CI identical.
       name: 'mobile-390',
-      use: { ...devices['iPhone 12'], viewport: { width: 390, height: 844 } },
+      use: {
+        ...devices['iPhone 12'],
+        browserName: 'chromium',
+        viewport: { width: 390, height: 844 },
+      },
     },
     {
       name: 'desktop',
