@@ -39,3 +39,18 @@ export const PUBLIC_ROUTE_PATTERNS = [
 ] as const
 
 export const isPublicRoute = createRouteMatcher([...PUBLIC_ROUTE_PATTERNS])
+
+/**
+ * Static public PAGE routes — consumed by the Playwright smoke suite
+ * (e2e/mobile-smoke.spec.ts). Keep in sync with PUBLIC_ROUTE_PATTERNS
+ * above: every static page pattern belongs here; dynamic segments and
+ * API routes are deliberately excluded (the smoke navigates fixed URLs).
+ */
+export const PUBLIC_SMOKE_ROUTES = [
+  '/',
+  '/about',
+  '/calendar',
+  '/trips',
+  '/library',
+  '/sign-in',
+] as const
