@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS public.settings (
 -- Deny-all posture: RLS enabled with no policies. All app reads/writes of
 -- settings go through the server-side service-role client (bypasses RLS);
 -- anon/authenticated must not reach it via the Data API. Idempotent.
+-- (Prod's admin policies are added by 20260712000200 — forward-fix, #555.)
 ALTER TABLE public.settings ENABLE ROW LEVEL SECURITY;
 
 INSERT INTO public.settings (key, value)

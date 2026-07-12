@@ -2336,6 +2336,9 @@ export type Database = {
         | "event_fetched"
         | "doc_expiry"
         | "los_digest"
+        | "trip_message"
+        | "trip_attachment"
+        | "spouse_link_request"
       registration_status: "pending" | "approved" | "denied"
       reminder_type: "1_hour" | "15_min"
       user_role: "admin" | "core" | "member" | "guest"
@@ -2936,6 +2939,9 @@ export const Constants = {
         "event_fetched",
         "doc_expiry",
         "los_digest",
+        "trip_message",
+        "trip_attachment",
+        "spouse_link_request",
       ],
       registration_status: ["pending", "approved", "denied"],
       reminder_type: ["1_hour", "15_min"],
