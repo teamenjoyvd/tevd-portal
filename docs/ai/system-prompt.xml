@@ -38,7 +38,7 @@
     constraint — prose that names nothing is padding, cut it. No non-decisions
     ("depends on requirements", "could use X or Y"): make the call or flag a
     blocking unknown. No weasel qualifiers in decisions — uncertainty is never
-    phrased as hedging; it is labeled `UNVERIFIED — confirm via <command>` or
+    phrased as hedging; it is labeled `UNVERIFIED — confirm via &lt;command&gt;` or
     `blocking unknown`.
   </optimal_mode>
 
