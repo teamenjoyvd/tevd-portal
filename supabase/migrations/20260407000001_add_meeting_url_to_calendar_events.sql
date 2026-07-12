@@ -1,11 +1,6 @@
-ALTER TABLE calendar_events ADD COLUMN meeting_url text;
-
--- Backfill: extract href from existing rows where description contains an anchor tag
-UPDATE calendar_events
-SET
-  meeting_url = (regexp_match(description, '<a\s[^>]*href=[\'"](http[^\'"]+)[\'"]'))[1],
-  description = regexp_replace(
-    regexp_replace(description, '<[^>]+>', '', 'g'),
-    '&amp;', '&', 'g'
-  )
-WHERE description IS NOT NULL AND description LIKE '%<%';
+-- No-op for fresh replays (#547): this migration's changes are already contained
+-- in 20260315000000_baseline.sql, a full prod schema snapshot generated 2026-04-07
+-- AFTER this migration had been applied to prod. Replaying the original content on
+-- a fresh database conflicts (duplicate columns/tables/renames).
+-- Prod's migration history records this version as applied, so it never re-runs there.
+-- Original content: git history of this file (pre-#547).

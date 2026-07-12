@@ -1,20 +1,6 @@
--- ISS-0157: social_posts — partial unique index + atomic pin RPC
--- ISS-0171 incorporated: race condition prevention at DB level
--- Table, RLS, and policies exist from 20260320211037_create_social_posts
-
--- Enforce single pinned post at DB level
-CREATE UNIQUE INDEX social_posts_single_pinned
-  ON social_posts (is_pinned)
-  WHERE is_pinned = true;
-
--- Atomic pin-swap: unpin all others, pin target — called via supabase.rpc('pin_social_post', { p_id })
-CREATE OR REPLACE FUNCTION pin_social_post(p_id uuid)
-RETURNS void
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-BEGIN
-  UPDATE social_posts SET is_pinned = false WHERE is_pinned = true AND id != p_id;
-  UPDATE social_posts SET is_pinned = true WHERE id = p_id;
-END;
-$$;
+-- No-op for fresh replays (#547): this migration's changes are already contained
+-- in 20260315000000_baseline.sql, a full prod schema snapshot generated 2026-04-07
+-- AFTER this migration had been applied to prod. Replaying the original content on
+-- a fresh database conflicts (duplicate columns/tables/renames).
+-- Prod's migration history records this version as applied, so it never re-runs there.
+-- Original content: git history of this file (pre-#547).

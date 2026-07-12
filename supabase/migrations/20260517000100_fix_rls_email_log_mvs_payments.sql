@@ -6,12 +6,20 @@
 -- Was: roles:{public}, qual:true — any authenticated user could write
 -- Fix: scope to service_role only (service role bypasses RLS anyway; this
 --      closes the gap for anon/authenticated keys)
-DROP POLICY IF EXISTS "Service role write email_log" ON public.email_log;
-CREATE POLICY "Service role write email_log"
-  ON public.email_log FOR ALL
-  TO service_role
-  USING (true)
-  WITH CHECK (true);
+-- Guarded (#547): public.email_log exists in prod but is created by no
+-- migration (schema drift) — skip the policy fix when the table is absent.
+DO $do$
+BEGIN
+  IF to_regclass('public.email_log') IS NOT NULL THEN
+    DROP POLICY IF EXISTS "Service role write email_log" ON public.email_log;
+    CREATE POLICY "Service role write email_log"
+      ON public.email_log FOR ALL
+      TO service_role
+      USING (true)
+      WITH CHECK (true);
+  END IF;
+END
+$do$;
 
 -- ── 2. member_vital_signs ───────────────────────────────────────────────
 -- Was: raw auth.jwt() ->> 'user_role' = 'admin' (fragile against JWT template drift)

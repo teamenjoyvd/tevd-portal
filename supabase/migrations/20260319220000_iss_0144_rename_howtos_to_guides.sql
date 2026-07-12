@@ -1,5 +1,6 @@
--- ISS-0144: Rename howtos table to guides
-ALTER TABLE public.howtos RENAME TO guides;
-
--- Update bento_config tile_key reference
-UPDATE public.bento_config SET tile_key = 'guides' WHERE tile_key = 'howtos';
+-- No-op for fresh replays (#547): this migration's changes are already contained
+-- in 20260315000000_baseline.sql, a full prod schema snapshot generated 2026-04-07
+-- AFTER this migration had been applied to prod. Replaying the original content on
+-- a fresh database conflicts (duplicate columns/tables/renames).
+-- Prod's migration history records this version as applied, so it never re-runs there.
+-- Original content: git history of this file (pre-#547).

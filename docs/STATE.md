@@ -1,18 +1,16 @@
 ## Goal
-Agent-docs streamline (2026-07-12, plan-mode approved, worktree `infrastructure-inventory-4eb67c`): archive dead agent-doc surfaces (PROJECT-NOTES, MIGRATION-LOG, QA, GEMINI, CONTEXT → docs/archive/agent-docs-2026-07/), retire Antigravity multi-agent workflow + .cursor rules + agentic upstream sync (hash pinning removed, 5 kit scripts archived, agentic:validate kept), dedupe pointers (CLAUDE.md/AGENTS.md/README/DEV_WORKFLOW/DECISIONS), fix REF.md phantom route + add §12 CI, streamline system-prompt.xml preamble. BUILD/CLAIM/PLAN/GCR docs stay canonical (skills' doc-read behavior unverifiable). Plan: `~/.claude/plans/propose-a-plan-to-sharded-bear.md`. Status: all edits done, `npm run verify` running (after npm ci — worktree had no node_modules). NOT committed, NOT pushed. Needs a `dev/[YYMM]-DEV-[GH#]` branch + issue at PR time (currently on `claude/infrastructure-inventory-4eb67c`).
-QA.md backlog items (roles-page history view, user-dropdown profile link): dropped as non-relevant per user 2026-07-12 — "they've actually already been implemented". No issues filed. NOTED: system-prompt.xml kept its instructional mode comments (load-bearing), 146→~127 lines vs plan's ~90 estimate.
-
-(Previous goal, superseded 2026-07-12:)
-Dev-infrastructure refactor (2026-07-11, plan-mode approved): supersede PR #544 (closed) with two PRs — #545 hygiene/knowledge-tracking (branch `dev/2607-DEV-545`) and #546 local verification tooling (branch `dev/2607-DEV-546`, stacked on 545) — plus #547 (local Supabase, priority:high, next ticket after these). Plan file: `~/.claude/plans/infrastructure-refactor-update-i-want-clever-sphinx.md`.
-(PARKED, resume after: Milestone #2 "Security & Health Audit — 2026-07" — status snapshot preserved under Open items/Facts below.)
+#547 local Supabase dev environment (2026-07-12, worktree `issue-547-4055aa`, user-driven guided setup): Docker local stack, `.env.development.local` off prod, seed data, buckets, DEV_WORKFLOW fence replacement. DoD: `supabase start` + `db reset` succeed on full migration chain; `npm run dev` renders seeded data; no prod service-role creds for day-to-day dev.
+(PARKED: Milestone #2 "Security & Health Audit — 2026-07" — snapshot under Open items/Facts.)
 
 ## Now
-Both PRs built and verified locally, committed on their branches, NOT pushed (awaiting explicit user approval). PR A (#545, `dev/2607-DEV-545`): hygiene/docs/archive + eslint ignore retarget (.agents→docs/archive). PR B (#546, `dev/2607-DEV-546`, stacked on A): optionalDependencies fix for Windows EBADPLATFORM (from 4f27d7a) + ci.yml npm ci + verify/check:env/env:worktree scripts + Playwright mobile-390 smoke + preview-smoke.yml (advisory) + turbopack root + .claude/settings.json. Verified: `npm run verify` exit 0 (lint 0 errors / tsc / 82 tests / build 62 pages); `npm run test:mobile` 6/6 public routes green at 390px.
+Local stack UP and verified: all containers healthy; REST probe `GET /rest/v1/trips` → HTTP 200 with seeded trip (via real local demo keys from `supabase status`). Seed.sql has 4 profiles + 1 trip + 7 private buckets + role grants. `.env.development.local` written with real local keys. `npm ci` running in worktree, then dev-server render test.
 
 ## Next
-- User to approve push of `dev/2607-DEV-545` and `dev/2607-DEV-546`; open PRs (B based on A, retarget to main after A merges); confirm CI green + Vercel preview READY + preview-smoke run
-- Findings logged during smoke (pre-existing, not fixed here): anonymous visitors get a 401 + "Query data cannot be undefined" console error from the `profile-ui-prefs-font-size` query; radix-id hydration mismatch on `/`
-- Then: #547 local Supabase (priority:high)
+(user directive 2026-07-12: "Once done I want the prod DB mirrored so we can test with real data. Afterwards open a PR, GCR and merge when everything is green")
+- `supabase db reset` iteration 3 running (chain repair: 18 baseline-folded no-ops + guards in 20260409190500/20260514000200/20260517000100/20260707120400/20260710_002)
+- Mirror prod DATA into local stack (data-only dump of public schema; needs prod DB connection string from user — never `supabase link` to prod ref per #547 issue text; storage files won't transfer, only DB rows)
+- Dev-server re-test + `npm run verify`
+- PR on `dev/2607-DEV-547` (push authorized by the directive above), then GCR pass, merge when CI green + Vercel preview READY
 - (Parked milestone queue) merge-pending PRs #502/#504/#505/#506/#507/#508; #485; Phase 4: #490/#492/#489/#487/#488; Phase 5: #469/#486/#491/#493/#494/#495/#496/#497; #510 pickup
 
 ## Constraints
@@ -32,6 +30,10 @@ DECISION: 2026-07-08 review-pass push cadence = auto-push per PR for non-securit
 DECISION: reclassified #506 (search_path pinning) into that pass's security-sensitive/pause bucket — same class of issue as #499-502/#504.
 
 ## Facts
+- Local Supabase (issue #547): API http://127.0.0.1:54321, DB postgresql://postgres:postgres@127.0.0.1:54322/postgres, Studio :54323; keys = standard CLI demo JWTs from `supabase status`
+- Migration-chain replay findings (2026-07-12): baseline `20260315000000` is a full prod snapshot dated 2026-04-07 that ALREADY CONTAINS the changes of migrations 20260319–20260407000001 (request_type, upline_abo_number, guides rename, social_posts, meeting_url…) → fresh replay conflicts. Schema drift: `public.settings` (ref'd by 20260514000200) and `public.email_log` (ref'd by 20260517000100) exist in prod but in NO migration. Also: 20260409190500 unschedules a nonexistent cron job; 20260424000001 hits "cannot change return type of existing function". Running local DB = baseline + seed only.
+- psql not on host; use `docker exec supabase_db_iymwxdewcpvpjgzewtzk psql -U postgres -d postgres -c "..."`
+- Buckets app expects (7): trip-hero-images, guide-covers, guide-images, guide-attachments, trip-proofs, trip-attachments, social-thumbnails
 - Milestone #2 = "Security & Health Audit — 2026-07", 24 open issues originally
 - Supabase project: ynykjpnetfwqzdnsgkkg
 - Currently open, milestone-relevant PRs (`gh pr list`, 2026-07-08): #502 (issue #479), #504 (#480), #505 (#484), #506 (#481), #507 (#483), #508 (#482) — all CI-green/mergeable, all review-clean or fixed per the 2026-07-08 pass

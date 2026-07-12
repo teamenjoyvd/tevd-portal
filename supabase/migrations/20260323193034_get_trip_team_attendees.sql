@@ -1,39 +1,6 @@
-
-CREATE OR REPLACE FUNCTION get_trip_team_attendees(
-  p_trip_id        uuid,
-  p_viewer_profile uuid
-)
-RETURNS TABLE (
-  profile_id uuid,
-  first_name text,
-  last_name  text,
-  role       text,
-  abo_number text
-)
-LANGUAGE sql
-SECURITY DEFINER
-STABLE
-AS $$
-  SELECT
-    pr.id          AS profile_id,
-    pr.first_name,
-    pr.last_name,
-    pr.role::text,
-    pr.abo_number
-  FROM profiles pr
-  JOIN tree_nodes tn ON tn.profile_id = pr.id
-  WHERE
-    -- subtree of viewer (includes viewer themselves)
-    tn.path <@ (SELECT path FROM tree_nodes WHERE profile_id = p_viewer_profile LIMIT 1)
-    -- exclude the viewer themselves
-    AND pr.id != p_viewer_profile
-    -- must have an approved, non-cancelled registration for this trip
-    AND pr.id IN (
-      SELECT profile_id
-      FROM trip_registrations
-      WHERE trip_id     = p_trip_id
-        AND status      = 'approved'
-        AND cancelled_at IS NULL
-    )
-  ORDER BY pr.first_name, pr.last_name;
-$$;
+-- No-op for fresh replays (#547): this migration's changes are already contained
+-- in 20260315000000_baseline.sql, a full prod schema snapshot generated 2026-04-07
+-- AFTER this migration had been applied to prod. Replaying the original content on
+-- a fresh database conflicts (duplicate columns/tables/renames).
+-- Prod's migration history records this version as applied, so it never re-runs there.
+-- Original content: git history of this file (pre-#547).
