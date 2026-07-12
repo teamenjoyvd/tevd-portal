@@ -18,6 +18,11 @@ CREATE TABLE IF NOT EXISTS public.settings (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
+-- Deny-all posture: RLS enabled with no policies. All app reads/writes of
+-- settings go through the server-side service-role client (bypasses RLS);
+-- anon/authenticated must not reach it via the Data API. Idempotent.
+ALTER TABLE public.settings ENABLE ROW LEVEL SECURITY;
+
 INSERT INTO public.settings (key, value)
 VALUES
   ('reminders_1hr_enabled',  '"true"'),

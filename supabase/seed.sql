@@ -77,7 +77,8 @@ INSERT INTO public.trips (
   currency,
   total_cost,
   location
-) VALUES (
+)
+SELECT
   'Sample Team Trip',
   'Mountain Resort',
   -- description is jsonb (Tiptap doc) since 20260516000300
@@ -87,7 +88,11 @@ INSERT INTO public.trips (
   'EUR',
   5000,
   'Alpine Region'
-) ON CONFLICT DO NOTHING;
+-- trips has no natural unique key; guard on title so re-running the seed
+-- outside a full db reset stays idempotent
+WHERE NOT EXISTS (
+  SELECT 1 FROM public.trips WHERE title = 'Sample Team Trip'
+);
 
 -- The baseline snapshot is a schema-only dump without role grants;
 -- restore the standard Supabase grants so PostgREST can reach the tables.
