@@ -9,6 +9,10 @@ export default defineConfig({
   timeout: 60_000,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
+  // Only the 'authenticated' project needs this; it no-ops when Clerk env
+  // vars aren't configured (see e2e/global-setup.ts), so mobile-390/desktop
+  // runs everywhere else (including preview-smoke.yml) are unaffected.
+  globalSetup: './e2e/global-setup.ts',
   use: {
     baseURL,
     trace: 'retain-on-failure',
@@ -19,6 +23,7 @@ export default defineConfig({
       // browserName pinned: devices['iPhone 12'] defaults to webkit, but CI
       // (preview-smoke.yml) installs chromium only — keep local & CI identical.
       name: 'mobile-390',
+      testIgnore: /admin-auth\.spec\.ts/,
       use: {
         ...devices['iPhone 12'],
         browserName: 'chromium',
@@ -27,6 +32,14 @@ export default defineConfig({
     },
     {
       name: 'desktop',
+      testIgnore: /admin-auth\.spec\.ts/,
+      use: { viewport: { width: 1280, height: 800 } },
+    },
+    {
+      // Authenticated coverage (issue #560) — requires local Supabase +
+      // npm run e2e:seed-clerk. Never target a preview/prod-DB deployment.
+      name: 'authenticated',
+      testMatch: /admin-auth\.spec\.ts/,
       use: { viewport: { width: 1280, height: 800 } },
     },
   ],

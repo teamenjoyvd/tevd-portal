@@ -12,6 +12,8 @@
     "test:mock": "node scripts/run-e2e-tests.js --mock",
     "test:e2e": "playwright test",
     "test:mobile": "playwright test --project=mobile-390",
+    "test:e2e:auth": "playwright test --project=authenticated",
+    "e2e:seed-clerk": "node scripts/seed-clerk-test-users.js",
     "verify": "npm run lint && npm run check-types && npm run test && npm run build",
     "check:env": "node scripts/check-env.js",
     "env:worktree": "node scripts/setup-worktree-env.js",
@@ -63,6 +65,7 @@
     "lightningcss-linux-x64-gnu": "1.31.1"
   },
   "devDependencies": {
+    "@clerk/testing": "^2.2.7",
     "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "^4.2.1",
     "@types/node": "^20",

@@ -13,6 +13,8 @@ The single source for the dev process: local loop → verification → PR → pr
 | `npm run check:env` * | Validates `.env.local` against the required-var list from `.env.example` |
 | `npm run test:mobile` * | Playwright smoke at 390×844 against the local dev server |
 | `npm run test:e2e` * | Full Playwright smoke (all projects) |
+| `npm run e2e:seed-clerk` | Seeds two Clerk test-instance users (member, admin) + matching local `profiles` rows — see "Authenticated E2E (Clerk)" below |
+| `npm run test:e2e:auth` | Authenticated Playwright coverage of `/admin/*` role gates — requires `e2e:seed-clerk` first |
 | `npm run env:worktree` * | Copies the main checkout's `.env.local` into the current git worktree |
 | `npm run test` | Vitest unit tests |
 | `npm run lint` / `npm run check-types` | ESLint / `tsc --noEmit` |
@@ -45,6 +47,16 @@ Local dev runs against a local Supabase stack ([#547](https://github.com/teamenj
 - Auth is still real Clerk (`.env.local` dev-instance keys); server DB access is `createServiceClient()` per ADR-002/ADR-011, so Supabase-side auth config is inert locally.
 
 **Prod credentials** now serve only explicitly prod-targeted work (deploys, prod data checks). Vercel **preview URLs still hit prod** — the never-write-from-preview rule stands.
+
+## Authenticated E2E (Clerk)
+
+Covers the authenticated pass-through path (`proxy.ts` + role gates in `lib/supabase/guards.ts`) that the navigation-only `mobile-smoke.spec.ts` can't reach (see [#560](https://github.com/teamenjoyvd/tevd-portal/issues/560)). Runs against the local Supabase stack above, never Preview/prod — Preview hits prod Supabase, and this suite needs to write synthetic test-role `profiles` rows.
+
+1. `supabase start` + `supabase db reset` (see above).
+2. `npm run e2e:seed-clerk` — idempotently creates two Clerk test-instance users (`E2E_CLERK_MEMBER_EMAIL`/`E2E_CLERK_ADMIN_EMAIL`, default `e2e-{member,admin}-tevd-portal@example.com`) via `@clerk/backend` and upserts matching `profiles` rows locally. Refuses to run unless `NEXT_PUBLIC_SUPABASE_URL` is `127.0.0.1`/`localhost`.
+3. `npm run test:e2e:auth` — signs in as each user via `@clerk/testing`'s ticket-strategy `clerk.signIn({ emailAddress })` (no password ever generated or stored) and asserts the role-gate baseline: non-admin redirected off `/admin/*` + `403` from `/api/admin/*`; admin gets `200` on both.
+
+CI (`e2e-authenticated` job in `ci.yml`) does the same against a fresh local Supabase stack, gated on the `CLERK_SECRET_KEY` and `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` repo secrets (the existing local dev-instance keys) — the job skips (not fails) until those are added.
 
 ## The local loop
 
