@@ -18,22 +18,11 @@ CREATE TABLE IF NOT EXISTS public.settings (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
--- RLS with the same two Pattern-A policies prod has (verified 2026-07-12,
--- #555): admins may read/write via the Data API; anon/authenticated
--- non-admins get nothing. App server code uses the service-role client
--- (bypasses RLS) either way. Idempotent.
+-- Deny-all posture: RLS enabled with no policies. All app reads/writes of
+-- settings go through the server-side service-role client (bypasses RLS);
+-- anon/authenticated must not reach it via the Data API. Idempotent.
+-- (Prod's admin policies are added by 20260712000200 — forward-fix, #555.)
 ALTER TABLE public.settings ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Admin read settings" ON public.settings;
-CREATE POLICY "Admin read settings"
-  ON public.settings FOR SELECT
-  USING (is_admin());
-
-DROP POLICY IF EXISTS "Admin write settings" ON public.settings;
-CREATE POLICY "Admin write settings"
-  ON public.settings FOR ALL
-  USING (is_admin())
-  WITH CHECK (is_admin());
 
 INSERT INTO public.settings (key, value)
 VALUES
