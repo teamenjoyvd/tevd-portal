@@ -47,7 +47,7 @@ Until [#547](https://github.com/teamenjoyvd/tevd-portal/issues/547) (local Supab
    - **GitHub Actions**: typecheck, lint, test, build, audit ([ci.yml](../.github/workflows/ci.yml))
    - **Vercel**: preview deployment (~2 min), URL in the PR comment
    - **preview-smoke** *: Playwright 390px smoke against the preview URL once the deployment is READY — advisory (not a required check) for now
-   - **CodeRabbit** review; Gemini review fixes are applied via the `GCR` workflow command
+   - **CodeRabbit** review; review-bot fixes are applied via the `GCR` (General Code Review) workflow command
 6. Merge only when CI is green **and** the Vercel preview is READY (never mark work Done on static analysis alone).
 
 ## Git worktrees
