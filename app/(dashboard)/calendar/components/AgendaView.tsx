@@ -96,7 +96,7 @@ export function AgendaView({
           <div
             key={dateKey}
             ref={dateKey === anchorDateKey ? anchorRef : null}
-            className="mb-6"
+            className="mb-6 scroll-mt-20 md:scroll-mt-0"
             style={{ opacity: isPast ? 0.5 : 1 }}
           >
             <div className="flex items-center gap-3 mb-2 py-2">
@@ -122,7 +122,7 @@ export function AgendaView({
                     key={ev.id}
                     ref={isHighlighted ? highlightRef : null}
                     onClick={() => onEventClick(ev.id)}
-                    className="w-full text-left rounded-xl border overflow-hidden hover:shadow-sm transition-shadow flex"
+                    className="w-full text-left rounded-xl border overflow-hidden hover:shadow-sm transition-shadow flex scroll-mt-20 md:scroll-mt-0"
                     style={{
                       backgroundColor: 'var(--bg-card)',
                       borderColor: isHighlighted ? 'var(--brand-crimson)' : 'rgba(0,0,0,0.05)',
