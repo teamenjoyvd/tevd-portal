@@ -7,13 +7,19 @@
 
 const { spawnSync } = require('child_process')
 
-const nodeOptions = ['--max-old-space-size=4096', process.env.NODE_OPTIONS]
-  .filter(Boolean)
-  .join(' ')
+const existingNodeOptions = (process.env.NODE_OPTIONS || '')
+  .split(/\s+/)
+  .filter((opt) => opt && !opt.startsWith('--max-old-space-size'))
 
-const result = spawnSync(process.execPath, ['node_modules/next/dist/bin/next', 'build'], {
-  stdio: 'inherit',
-  env: { ...process.env, NODE_OPTIONS: nodeOptions },
-})
+const nodeOptions = [...existingNodeOptions, '--max-old-space-size=4096'].join(' ')
+
+const result = spawnSync(
+  process.execPath,
+  ['node_modules/next/dist/bin/next', 'build', ...process.argv.slice(2)],
+  {
+    stdio: 'inherit',
+    env: { ...process.env, NODE_OPTIONS: nodeOptions },
+  },
+)
 
 process.exit(result.status ?? 1)

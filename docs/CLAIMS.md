@@ -8,4 +8,4 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 |---|---|---|---|
 | #545 | `dev/2607-DEV-545` | root docs → docs/archive/, README.md (new), docs/DEV_WORKFLOW.md (new), .gitignore, supabase/config.toml (comments), supabase/.temp untrack, docs/STATE.md | 2026-07-11T13:00Z |
 | #552 | `dev/2607-DEV-552` | CLAUDE.md, AGENTS.md, README.md, docs/ai/* (BUILD/PLAN/GCR/REF/GOTCHAS/system-prompt), docs/guardrails/PROJECT.md, docs/archive/agent-docs-2026-07/ (new), .cursor/rules removal, scripts/ kit-sync removal, agentic.config.json, package.json (agentic:* scripts) | 2026-07-12T00:50Z |
-| #528 | `dev/2607-DEV-528` | package.json (next, eslint-config-next version bump + build script), package-lock.json | 2026-07-12T14:35Z |
+| #528 | `dev/2607-DEV-528` | package.json (next, eslint-config-next version bump + build script), package-lock.json, scripts/build.js | 2026-07-12T14:35Z |
