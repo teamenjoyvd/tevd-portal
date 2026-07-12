@@ -16,55 +16,48 @@
 -- lower-risk classification; left as-is to keep this diff scoped to the
 -- systemic default-grant fix.
 
-REVOKE EXECUTE ON FUNCTION public.fn_guard_abo_number_null() FROM PUBLIC, anon, authenticated;
-REVOKE EXECUTE ON FUNCTION public.fn_profiles_field_audit() FROM PUBLIC, anon, authenticated;
-REVOKE EXECUTE ON FUNCTION public.fn_reschedule_guest_reminders() FROM PUBLIC, anon, authenticated;
-REVOKE EXECUTE ON FUNCTION public.fn_schedule_guest_reminders() FROM PUBLIC, anon, authenticated;
-REVOKE EXECUTE ON FUNCTION public.fn_schedule_guest_reminders_record(uuid, timestamptz, text) FROM PUBLIC, anon, authenticated;
-REVOKE EXECUTE ON FUNCTION public.get_core_ancestors(uuid) FROM PUBLIC, anon, authenticated;
-REVOKE EXECUTE ON FUNCTION public.get_los_members_with_profiles() FROM PUBLIC, anon, authenticated;
-REVOKE EXECUTE ON FUNCTION public.get_trip_team_attendees(uuid, uuid) FROM PUBLIC, anon, authenticated;
-REVOKE EXECUTE ON FUNCTION public.import_los_members(jsonb) FROM PUBLIC, anon, authenticated;
-REVOKE EXECUTE ON FUNCTION public.import_los_members(jsonb, uuid) FROM PUBLIC, anon, authenticated;
-REVOKE EXECUTE ON FUNCTION public.increment_share_link_click(uuid) FROM PUBLIC, anon, authenticated;
-REVOKE EXECUTE ON FUNCTION public.notify_calendar_event_created() FROM PUBLIC, anon, authenticated;
-REVOKE EXECUTE ON FUNCTION public.notify_doc_expiry() FROM PUBLIC, anon, authenticated;
-REVOKE EXECUTE ON FUNCTION public.notify_registration_status_change() FROM PUBLIC, anon, authenticated;
-REVOKE EXECUTE ON FUNCTION public.notify_role_request() FROM PUBLIC, anon, authenticated;
-REVOKE EXECUTE ON FUNCTION public.notify_role_request_status_change() FROM PUBLIC, anon, authenticated;
-REVOKE EXECUTE ON FUNCTION public.notify_trip_attachment() FROM PUBLIC, anon, authenticated;
-REVOKE EXECUTE ON FUNCTION public.notify_trip_created() FROM PUBLIC, anon, authenticated;
-REVOKE EXECUTE ON FUNCTION public.notify_trip_message() FROM PUBLIC, anon, authenticated;
-REVOKE EXECUTE ON FUNCTION public.notify_trip_request() FROM PUBLIC, anon, authenticated;
-REVOKE EXECUTE ON FUNCTION public.notify_verification_request() FROM PUBLIC, anon, authenticated;
-REVOKE EXECUTE ON FUNCTION public.pin_social_post(uuid) FROM PUBLIC, anon, authenticated;
-REVOKE EXECUTE ON FUNCTION public.run_los_digest() FROM PUBLIC, anon, authenticated;
-REVOKE EXECUTE ON FUNCTION public.upsert_tree_node(uuid, text, text) FROM PUBLIC, anon, authenticated;
-
-GRANT EXECUTE ON FUNCTION public.fn_guard_abo_number_null() TO service_role;
-GRANT EXECUTE ON FUNCTION public.fn_profiles_field_audit() TO service_role;
-GRANT EXECUTE ON FUNCTION public.fn_reschedule_guest_reminders() TO service_role;
-GRANT EXECUTE ON FUNCTION public.fn_schedule_guest_reminders() TO service_role;
-GRANT EXECUTE ON FUNCTION public.fn_schedule_guest_reminders_record(uuid, timestamptz, text) TO service_role;
-GRANT EXECUTE ON FUNCTION public.get_core_ancestors(uuid) TO service_role;
-GRANT EXECUTE ON FUNCTION public.get_los_members_with_profiles() TO service_role;
-GRANT EXECUTE ON FUNCTION public.get_trip_team_attendees(uuid, uuid) TO service_role;
-GRANT EXECUTE ON FUNCTION public.import_los_members(jsonb) TO service_role;
-GRANT EXECUTE ON FUNCTION public.import_los_members(jsonb, uuid) TO service_role;
-GRANT EXECUTE ON FUNCTION public.increment_share_link_click(uuid) TO service_role;
-GRANT EXECUTE ON FUNCTION public.notify_calendar_event_created() TO service_role;
-GRANT EXECUTE ON FUNCTION public.notify_doc_expiry() TO service_role;
-GRANT EXECUTE ON FUNCTION public.notify_registration_status_change() TO service_role;
-GRANT EXECUTE ON FUNCTION public.notify_role_request() TO service_role;
-GRANT EXECUTE ON FUNCTION public.notify_role_request_status_change() TO service_role;
-GRANT EXECUTE ON FUNCTION public.notify_trip_attachment() TO service_role;
-GRANT EXECUTE ON FUNCTION public.notify_trip_created() TO service_role;
-GRANT EXECUTE ON FUNCTION public.notify_trip_message() TO service_role;
-GRANT EXECUTE ON FUNCTION public.notify_trip_request() TO service_role;
-GRANT EXECUTE ON FUNCTION public.notify_verification_request() TO service_role;
-GRANT EXECUTE ON FUNCTION public.pin_social_post(uuid) TO service_role;
-GRANT EXECUTE ON FUNCTION public.run_los_digest() TO service_role;
-GRANT EXECUTE ON FUNCTION public.upsert_tree_node(uuid, text, text) TO service_role;
+-- Guarded (#547): some of these functions exist in prod but not on a fresh
+-- local replay (created outside the migration chain, e.g.
+-- fn_guard_abo_number_null). Existence-checked loop — identical semantics
+-- to the original per-function REVOKE/GRANT pairs wherever the function exists.
+DO $do$
+DECLARE
+  fn text;
+BEGIN
+  FOREACH fn IN ARRAY ARRAY[
+    'public.fn_guard_abo_number_null()',
+    'public.fn_profiles_field_audit()',
+    'public.fn_reschedule_guest_reminders()',
+    'public.fn_schedule_guest_reminders()',
+    'public.fn_schedule_guest_reminders_record(uuid, timestamptz, text)',
+    'public.get_core_ancestors(uuid)',
+    'public.get_los_members_with_profiles()',
+    'public.get_trip_team_attendees(uuid, uuid)',
+    'public.import_los_members(jsonb)',
+    'public.import_los_members(jsonb, uuid)',
+    'public.increment_share_link_click(uuid)',
+    'public.notify_calendar_event_created()',
+    'public.notify_doc_expiry()',
+    'public.notify_registration_status_change()',
+    'public.notify_role_request()',
+    'public.notify_role_request_status_change()',
+    'public.notify_trip_attachment()',
+    'public.notify_trip_created()',
+    'public.notify_trip_message()',
+    'public.notify_trip_request()',
+    'public.notify_verification_request()',
+    'public.pin_social_post(uuid)',
+    'public.run_los_digest()',
+    'public.upsert_tree_node(uuid, text, text)'
+  ]
+  LOOP
+    IF to_regprocedure(fn) IS NOT NULL THEN
+      EXECUTE format('REVOKE EXECUTE ON FUNCTION %s FROM PUBLIC, anon, authenticated', fn);
+      EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO service_role', fn);
+    END IF;
+  END LOOP;
+END
+$do$;
 
 -- Systemic fix: default Postgres behavior grants EXECUTE on new functions to
 -- PUBLIC. Explicit FOR ROLE postgres (the owner of every function in this

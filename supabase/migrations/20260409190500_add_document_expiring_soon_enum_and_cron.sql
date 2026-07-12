@@ -1,5 +1,13 @@
--- Unschedule any existing cron for check-document-expiry to avoid conflicts
-SELECT cron.unschedule('check-document-expiry');
+-- Unschedule any existing cron for check-document-expiry to avoid conflicts.
+-- Guarded (#547): the job exists in prod but not on a fresh local replay,
+-- and cron.unschedule errors on a missing job.
+DO $do$
+BEGIN
+  PERFORM cron.unschedule('check-document-expiry');
+EXCEPTION WHEN OTHERS THEN
+  NULL; -- job not scheduled on this database
+END
+$do$;
 
 -- Schedule a daily check using pg_cron at 8 AM
 SELECT cron.schedule(

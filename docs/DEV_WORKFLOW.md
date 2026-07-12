@@ -17,16 +17,34 @@ The single source for the dev process: local loop → verification → PR → pr
 | `npm run test` | Vitest unit tests |
 | `npm run lint` / `npm run check-types` | ESLint / `tsc --noEmit` |
 
-## ⚠️ Production-database fence (read first)
+## Local Supabase stack (Docker)
 
-Until [#547](https://github.com/teamenjoyvd/tevd-portal/issues/547) (local Supabase) lands:
+Local dev runs against a local Supabase stack ([#547](https://github.com/teamenjoyvd/tevd-portal/issues/547)) — `npm run dev` no longer touches the production database.
 
-- **Local dev and Vercel preview URLs both hit the PRODUCTION Supabase project.** `.env.local` carries the prod URL and the prod service-role key.
-- All local and preview testing is **navigation-only**: browse, read, assert rendering. Never submit forms, never trigger mutations, never run destructive experiments against `localhost:3000` — it is production data behind a dev banner.
-- The Playwright smoke suite is written navigation-only for the same reason and must stay that way until #547.
-- `npm run env:worktree` copies prod credentials into the worktree (it warns about this on every run). Don't commit or share worktree env files; `.env*` is gitignored — keep it so.
+**One-time setup**
 
-**#547 is the blocker-removal ticket** (priority:high): Docker-based local Supabase, seeded, taking `.env.local` off prod entirely.
+1. Prereqs: [Docker Desktop](https://docs.docker.com/desktop/) running; Supabase CLI (`scoop install supabase` or `npm i -g supabase`).
+2. `supabase start` — pulls images on first run (~5 min), then starts API :54321, DB :54322, Studio :54323 (ports per `supabase/config.toml`).
+3. Create `.env.development.local` in the repo root (gitignored; loaded by `next dev` with **higher priority than `.env.local`**, so Clerk/Mapbox values stay inherited):
+
+   ```bash
+   NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=<ANON_KEY from `supabase status`>
+   SUPABASE_SERVICE_ROLE_KEY=<SERVICE_ROLE_KEY from `supabase status`>
+   ```
+
+   The local keys are the Supabase CLI's standard demo JWTs — identical on every machine, not secrets.
+4. `supabase db reset` — replays the full migration chain and `supabase/seed.sql` (test profiles for each role, a sample trip, the 7 storage buckets, role grants).
+
+**Day to day**
+
+- `supabase start` / `supabase stop` around dev sessions; `supabase db reset` for a clean slate.
+- Studio at <http://localhost:54323> to inspect data.
+- Mutations, form submits, and destructive experiments are all fine — it's a disposable local DB.
+- `supabase db reset` doubles as migration-replay validation: it must stay green on a fresh database. Migrations dated ≤ 2026-04-07 are no-ops (their changes are folded into the `20260315000000` baseline snapshot; prod's history has them stamped). Guards in later migrations cover objects that exist in prod but predate the chain (`settings`, `email_log`, some functions) — see the file comments tagged `#547`.
+- Auth is still real Clerk (`.env.local` dev-instance keys); server DB access is `createServiceClient()` per ADR-002/ADR-011, so Supabase-side auth config is inert locally.
+
+**Prod credentials** now serve only explicitly prod-targeted work (deploys, prod data checks). Vercel **preview URLs still hit prod** — the never-write-from-preview rule stands.
 
 ## The local loop
 

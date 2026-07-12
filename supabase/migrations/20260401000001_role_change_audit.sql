@@ -1,25 +1,6 @@
-CREATE TABLE public.role_change_audit (
-  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  profile_id  uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-  changed_by  text NOT NULL, -- admin clerk_id
-  old_role    public.user_role NOT NULL,
-  new_role    public.user_role NOT NULL,
-  changed_at  timestamptz NOT NULL DEFAULT now(),
-  note        text
-);
-
-ALTER TABLE public.role_change_audit ENABLE ROW LEVEL SECURITY;
-
--- Admins can insert audit rows (service role bypasses RLS, but explicit policy is correct form)
-CREATE POLICY "Admins can insert role_change_audit"
-  ON public.role_change_audit
-  FOR INSERT
-  TO authenticated
-  WITH CHECK (is_admin());
-
--- Admins can read all audit rows
-CREATE POLICY "Admins can select role_change_audit"
-  ON public.role_change_audit
-  FOR SELECT
-  TO authenticated
-  USING (is_admin());
+-- No-op for fresh replays (#547): this migration's changes are already contained
+-- in 20260315000000_baseline.sql, a full prod schema snapshot generated 2026-04-07
+-- AFTER this migration had been applied to prod. Replaying the original content on
+-- a fresh database conflicts (duplicate columns/tables/renames).
+-- Prod's migration history records this version as applied, so it never re-runs there.
+-- Original content: git history of this file (pre-#547).

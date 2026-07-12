@@ -8,7 +8,16 @@
 -- ---------------------------------------------------------------------------
 -- 1: Global reminder toggle settings
 --    Insert only if not already present (idempotent).
+--    Guarded (#547): public.settings exists in prod but is created by no
+--    migration (schema drift) — create it on fresh replays so this insert works.
 -- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.settings (
+  key        text        PRIMARY KEY,
+  value      jsonb       NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
 INSERT INTO public.settings (key, value)
 VALUES
   ('reminders_1hr_enabled',  '"true"'),

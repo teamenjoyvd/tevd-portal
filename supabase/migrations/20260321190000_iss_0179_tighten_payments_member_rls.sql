@@ -1,22 +1,6 @@
--- ISS-0179: Tighten RLS on payments — replace FOR ALL member policy with INSERT + SELECT only
--- Risk: payments_member_own (FOR ALL) allowed members to UPDATE their own rows,
--- including flipping status off 'pending' — a privilege escalation vector.
-
-DROP POLICY IF EXISTS "payments_member_own" ON payments;
-
--- Members can INSERT their own rows only, and only with status='pending'
-CREATE POLICY "payments_member_insert" ON payments
-  FOR INSERT
-  WITH CHECK (
-    profile_id = (SELECT id FROM profiles WHERE clerk_id = auth.jwt() ->> 'sub' LIMIT 1)
-    AND status = 'pending'
-  );
-
--- Members can SELECT their own rows
-CREATE POLICY "payments_member_select" ON payments
-  FOR SELECT
-  USING (
-    profile_id = (SELECT id FROM profiles WHERE clerk_id = auth.jwt() ->> 'sub' LIMIT 1)
-  );
-
--- No member UPDATE or DELETE policy. Only admin/core via payments_admin_core_all.
+-- No-op for fresh replays (#547): this migration's changes are already contained
+-- in 20260315000000_baseline.sql, a full prod schema snapshot generated 2026-04-07
+-- AFTER this migration had been applied to prod. Replaying the original content on
+-- a fresh database conflicts (duplicate columns/tables/renames).
+-- Prod's migration history records this version as applied, so it never re-runs there.
+-- Original content: git history of this file (pre-#547).

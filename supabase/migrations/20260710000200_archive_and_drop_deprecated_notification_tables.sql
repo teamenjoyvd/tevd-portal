@@ -17,8 +17,16 @@
 
 CREATE SCHEMA IF NOT EXISTS archive;
 
-CREATE TABLE archive.email_log AS SELECT * FROM public.email_log;
-COMMENT ON TABLE archive.email_log IS 'Archived 2026-07-10 from public.email_log before drop. See issue #469. Superseded by public.notification_delivery_log.';
+-- Guarded (#547): public.email_log exists in prod but was never created by any
+-- migration (schema drift), so on a fresh replay there is nothing to archive.
+DO $do$
+BEGIN
+  IF to_regclass('public.email_log') IS NOT NULL THEN
+    CREATE TABLE archive.email_log AS SELECT * FROM public.email_log;
+    COMMENT ON TABLE archive.email_log IS 'Archived 2026-07-10 from public.email_log before drop. See issue #469. Superseded by public.notification_delivery_log.';
+    DROP TABLE public.email_log;
+  END IF;
+END
+$do$;
 
-DROP TABLE public.email_log;
-DROP TABLE public.scheduled_reminders;
+DROP TABLE IF EXISTS public.scheduled_reminders;
