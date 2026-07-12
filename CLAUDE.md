@@ -55,11 +55,9 @@ Violation = immediate stop, no exceptions.
 - **NEVER introduce a Clerk JWT Supabase client on the server.** All server DB access uses `createServiceClient()` (service role); a JWT client requires a ticket explicitly scoping it (ADR-002/ADR-011).
 - **shadcn/ui for all interactive primitives** — dialog, popover, dropdown, sheet, tooltip, select, combobox, alert dialog.
 - **Component co-location** — new components scoped to one route go in `app/[route]/components/`. Promote to `/components` only when used by 2+ unrelated routes.
-- **Layout Decision Rules (Quantitative)** — Default is a single responsive layout file. Dual layout (separate files) is required only for: tables with 5+ columns, complex touch vs mouse drag-and-drop, persistent sidebar layouts, or interactive canvases/maps/rich-text editors. Refer to `.cursor/rules/frontend.mdc` for precise triggers.
+- **Layout Decision Rules (Quantitative)** — Default is a single responsive layout file. Dual layout (separate files) is required only for: tables with 5+ columns, complex touch vs mouse drag-and-drop, persistent sidebar layouts, or interactive canvases/maps/rich-text editors. These four triggers are the complete, precise list.
 - **NEVER call `create_or_update_file` or `push_files` before CLAIM is complete.** No file writes until the feature branch exists and is confirmed.
 - **SSU, PLAN, CLAIM, and BUILD are mutually exclusive within a session.** PLAN does no writes of any kind. CLAIM does no file writes. BUILD does no design work. Violation = immediate stop.
-
-**Multi-agent (Claude + Antigravity — identical 1:1 ruleset, shared session state):** PR descriptions carry an `Agent Type: Antigravity | Claude` tag in their session-state block; each agent detects the other's in-flight session before acting. Full rules -> Read docs/guardrails/PROJECT.md#multi-agent-coexistence
 
 **Project workflow & references** (full detail in docs/guardrails/PROJECT.md):
 - ID format & artifact naming -> Read docs/guardrails/PROJECT.md#id-format
@@ -69,7 +67,6 @@ Violation = immediate stop, no exceptions.
 - Gotchas (read at SHAPE + GATHER) -> Read docs/guardrails/PROJECT.md#gotchas
 - Carried technical notes (Supabase cookie type, payments FK join, Clerk auth snippet) -> Read docs/guardrails/PROJECT.md#carried-technical-notes
 > Reference: `docs/ai/REF.md` (read on demand at GATHER, sections only)
-> Context: `docs/ai/CONTEXT.md` (read on demand at GATHER, sections only)
 > Architecture: `docs/architecture/` (FLOWS.md, DECISIONS.md, C4.md)
 
 <!-- BEGIN KIT FOOTER v1.0 -->

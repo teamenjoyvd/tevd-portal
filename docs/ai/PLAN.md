@@ -17,7 +17,7 @@ Invoked explicitly with the `PLAN` prefix. Processes one or more tickets in a si
 5. State verdict: **READY** or **BLOCKED: [single specific blocking question]**.
 
 ## Output Format
-Output must be printed in the chat conversation. (Exception: If running as Antigravity, also write/update the `implementation_plan.md` artifact in the brain directory following this format).
+Output must be printed in the chat conversation.
 
 ```markdown
 ## PLAN: [topic or issue ref]

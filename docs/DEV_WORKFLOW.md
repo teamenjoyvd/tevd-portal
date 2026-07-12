@@ -42,12 +42,12 @@ Until [#547](https://github.com/teamenjoyvd/tevd-portal/issues/547) (local Supab
 1. Every change starts from a GitHub issue. ID format `[YYMM]-DEV-[GH#]` — the issue number is canonical (see [docs/guardrails/PROJECT.md](guardrails/PROJECT.md#id-format)).
 2. Branch `dev/[YYMM]-DEV-[GH#]` off `main`. **Never push to `main` directly.**
 3. Register the work in [docs/CLAIMS.md](CLAIMS.md) (concurrent agents check it for scope overlap).
-4. Commit prefix and PR title: `[YYMM]-DEV-[GH#] description`. PRs by agents carry a `## Session State` block with an `Agent Type:` tag.
+4. Commit prefix and PR title: `[YYMM]-DEV-[GH#] description`. PRs by agents carry a `## Session State` block.
 5. Push (agents: only with an explicit user go-ahead) → PR opens → automatically:
    - **GitHub Actions**: typecheck, lint, test, build, audit ([ci.yml](../.github/workflows/ci.yml))
    - **Vercel**: preview deployment (~2 min), URL in the PR comment
    - **preview-smoke** *: Playwright 390px smoke against the preview URL once the deployment is READY — advisory (not a required check) for now
-   - **CodeRabbit** review; Gemini review fixes are applied via the `GCR` workflow command
+   - **CodeRabbit** review; review-bot fixes are applied via the `GCR` (General Code Review) workflow command
 6. Merge only when CI is green **and** the Vercel preview is READY (never mark work Done on static analysis alone).
 
 ## Git worktrees

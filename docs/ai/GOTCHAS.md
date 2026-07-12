@@ -5,6 +5,7 @@ Read in full during SHAPE and GATHER. Add new entries here immediately when a sh
 | Topic | Rule |
 |---|---|
 | `middleware.ts` | NEVER. Use `proxy.ts`. |
+| Pattern A helpers | NEVER `auth.jwt() ->> 'sub'` in RLS or the helper functions — it resolves to a Supabase Auth UUID; Clerk users have no Supabase Auth row, so `'sub'` never matches. This exact mistake has been reintroduced at least 3× (ADR-011). Before "fixing" a helper, verify against `supabase/migrations/20260315000000_baseline.sql`, not an assumption. Clerk ID lives in `request.jwt.claims ->> 'user_id'`. |
 | Clerk auth | `await auth()` → `{ userId }`. No sync auth. No JWT template. |
 | Clerk shadow DOM | CSS vars unavailable in Clerk components. Use hardcoded hex (`#bc4749`). |
 | Role promotion | Every `profiles.role` update MUST also call `clerk.users.updateUserMetadata`. Routes: `/api/admin/verify`, `/api/admin/members/[id]` PATCH, `/api/admin/members/verify/[id]`. |

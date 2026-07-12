@@ -1,5 +1,5 @@
 # REF.md — teamenjoyVD Portal Reference
-> Last updated: 2026-06-20 — merged with `docs/ai/LOOKUP.md` (see note below).
+> Last updated: 2026-07-12 — absorbed the archived CONTEXT doc's CI section as §12; removed a phantom guest-event-registration route entry from §4/§6.
 > Read on demand at GATHER only. Never read at SSU.
 > Pull only the sections the ticket needs.
 
@@ -24,6 +24,7 @@
 | §9 Env Vars | New secrets, deployment config |
 | §10 Notification Engine | DB-trigger notifications, `notify_*` functions |
 | §11 Airtable Field IDs | Airtable issue sync, `Claude Notes`, `Commit Link` |
+| §12 CI | `ci.yml`, `types/supabase.ts` regeneration, preview smoke |
 
 ---
 
@@ -186,7 +187,6 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
     /calendar/route.ts
     /calendar/feed.ics/route.ts    # GET — iCal feed; JWT token auth; emits UTC DTSTART:...Z
     /calendar/feed-token/route.ts  # GET/POST — issue/regenerate iCal subscription token
-    /events/[id]/register/route.ts # POST — guest registration (public)
     /guides/route.ts
     /home/route.ts                 # GET — home_settings for homepage RSC
     /links/route.ts                # GET — active links for member view
@@ -437,7 +437,6 @@ Normalised UNION ALL over `profiles_audit` + `role_change_audit`. Columns: `prof
 | `/api/los/tree` | GET | Member LOS tree |
 | `/api/notifications` | GET, PATCH | Own notifications; PATCH marks read |
 | `/api/socials` | GET | |
-| `/api/events/[id]/register` | POST | Guest event registration (public) |
 | `/api/webhooks/clerk` | POST | User lifecycle |
 
 ### Admin routes
@@ -651,3 +650,13 @@ Eight DB-trigger functions write rows to `notifications` (in-app only — separa
 | Needs Design | `sel98265UTlgLcw5r` |
 | Blocked | `sellZeVnRByP94606` |
 | Archived | `selfMrAD2qCxrMoXg` |
+
+---
+
+## §12 CI
+
+On every PR to `main` and push to `main` (`.github/workflows/ci.yml`): typecheck (`tsc --noEmit`) → lint → test (vitest) → build → `npm audit --audit-level=high` (audit is non-blocking, `|| true`). Local mirror: `npm run verify`.
+
+Per PR additionally: Vercel preview deployment (~2 min, URL in PR comment) and `.github/workflows/preview-smoke.yml` — Playwright 390px navigation smoke against the preview URL once the deployment is READY (advisory, not a required check).
+
+Types are maintained exclusively via the `Supabase:generate_typescript_types` MCP tool after every migration — CLI not installed, no drift-diff step. Fix flow: `generate_typescript_types` → write `types/supabase.ts` → `tsc --noEmit` → commit.

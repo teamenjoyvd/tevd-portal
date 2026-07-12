@@ -288,7 +288,7 @@ next-intl and react-i18next both require: a provider wrapping the app, locale de
 ## ADR-009 — Dual-Layout Pattern (Two Complete Layouts, Not Responsive)
 
 **Date:** 2026-03
-**Status:** Amended 2026-07-06 — the quantitative Layout Decision Rules (CLAUDE.md `## Project` and `.cursor/rules/frontend.mdc`) now govern when a dual layout applies: default is a single responsive layout; use the canonical dual-layout pattern only when one of the four listed triggers applies.
+**Status:** Amended 2026-07-06 — the quantitative Layout Decision Rules (CLAUDE.md `## Project` Hard Constraints) now govern when a dual layout applies: default is a single responsive layout; use the canonical dual-layout pattern only when one of the four listed triggers applies.
 
 ### Context
 Pages need to render correctly on both desktop (1024px+) and mobile (390px+). Options: a single responsive layout using breakpoint utilities, or two separate complete layout trees with `hidden md:block` / `md:hidden`.
