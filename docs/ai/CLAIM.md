@@ -16,6 +16,9 @@ Materializes a PLAN verdict into GitHub. Requires a verdict from the current ses
 ## 3. Re-entry
 If an issue exists with a completed DoD but no branch, verify the DoD and perform Branch Scaffolding (Steps 3-4 under Section 1).
 
+## 4. Registry (last step, after Branch Scaffolding)
+Per `docs/guardrails/PROJECT.md` CLAIM-Complete Definition: check `docs/CLAIMS.md` for scope overlap before cutting the branch; `git pull` and re-check immediately before committing; then locally Edit + commit one new row (issue #, branch, files/areas, timestamp) to `docs/CLAIMS.md` on the feature branch just created. Prune any row whose PR has since merged/closed while you're there.
+
 ## Rules
-- **Permitted:** `create_issue`, `update_issue`, `create_branch`
-- **Forbidden:** Codebase writes (`create_or_update_file`, `push_files`)
+- **Permitted:** `create_issue`, `update_issue`, `create_branch`; local Edit + commit of `docs/CLAIMS.md` only (Section 4).
+- **Forbidden:** All other codebase writes (`create_or_update_file`, `push_files`, editing any file other than `docs/CLAIMS.md`)
