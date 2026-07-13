@@ -21,10 +21,14 @@ Production: <https://www.teamenjoyvd.com> (Vercel).
 ```bash
 npm ci
 cp .env.example .env.local   # then fill in values (ask a maintainer)
+supabase start               # local Supabase stack (Docker) — one-time image pull
+# create .env.development.local with the local keys — see docs/DEV_WORKFLOW.md "Local Supabase stack"
+supabase db reset            # replay migrations + seed data
 npm run dev                  # http://localhost:3000
+npm run check:env            # confirms vars + which Supabase project dev targets
 ```
 
-> **Warning — production database:** until [#547](https://github.com/teamenjoyvd/tevd-portal/issues/547) lands, `.env.local` points local dev at the **production** Supabase project, and Vercel preview URLs do too. Treat local/preview testing as navigation-only. Details: [docs/DEV_WORKFLOW.md](docs/DEV_WORKFLOW.md).
+> **Warning — production database:** without `.env.development.local` ([#547](https://github.com/teamenjoyvd/tevd-portal/issues/547)), `.env.local` points local dev at the **production** Supabase project — and Vercel preview URLs always do. `npm run check:env` tells you which one you're on; treat any prod-targeting session as navigation-only. Details: [docs/DEV_WORKFLOW.md](docs/DEV_WORKFLOW.md).
 
 ## Where things live
 

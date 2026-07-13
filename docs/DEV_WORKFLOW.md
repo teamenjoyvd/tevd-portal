@@ -1,19 +1,17 @@
 # Development Workflow
 
-The single source for the dev process: local loop → verification → PR → preview → merge. Replaces the four overlapping docs proposed in PR #544 (closed, superseded — see #545/#546/#547).
-
-> **Rollout note:** commands marked `*` land with [#546](https://github.com/teamenjoyvd/tevd-portal/issues/546). Everything else works today.
+The single source for the dev process: local loop → verification → PR → preview → merge. Replaces the four overlapping docs proposed in PR #544 (closed, superseded — see #545/#546/#547; all landed).
 
 ## Command reference
 
 | Command | What it does |
 |---|---|
 | `npm run dev` | Dev server with HMR at <http://localhost:3000> |
-| `npm run verify` * | Local mirror of CI: lint → check-types → test → build, visible output |
-| `npm run check:env` * | Validates `.env.local` against the required-var list from `.env.example` |
-| `npm run test:mobile` * | Playwright smoke at 390×844 against the local dev server |
-| `npm run test:e2e` * | Full Playwright smoke (all projects) |
-| `npm run env:worktree` * | Copies the main checkout's `.env.local` into the current git worktree |
+| `npm run verify` | Local mirror of CI: lint → check-types → test → build, visible output |
+| `npm run check:env` | Validates env vars against `.env.example` and reports which Supabase project (local stack vs remote) dev will hit |
+| `npm run test:mobile` | Playwright smoke at 390×844 against the local dev server |
+| `npm run test:e2e` | Full Playwright smoke (all projects) |
+| `npm run env:worktree` | Copies the main checkout's `.env.local` + `.env.development.local` into the current git worktree |
 | `npm run test` | Vitest unit tests |
 | `npm run lint` / `npm run check-types` | ESLint / `tsc --noEmit` |
 
@@ -64,7 +62,7 @@ Local dev runs against a local Supabase stack ([#547](https://github.com/teamenj
 5. Push (agents: only with an explicit user go-ahead) → PR opens → automatically:
    - **GitHub Actions**: typecheck, lint, test, build, audit ([ci.yml](../.github/workflows/ci.yml))
    - **Vercel**: preview deployment (~2 min), URL in the PR comment
-   - **preview-smoke** *: Playwright 390px smoke against the preview URL once the deployment is READY — advisory (not a required check) for now
+   - **preview-smoke**: Playwright 390px smoke against the preview URL once the deployment is READY — advisory (not a required check) for now
    - **CodeRabbit** review; review-bot fixes are applied via the `GCR` (General Code Review) workflow command
 6. Merge only when CI is green **and** the Vercel preview is READY (never mark work Done on static analysis alone).
 
@@ -72,21 +70,21 @@ Local dev runs against a local Supabase stack ([#547](https://github.com/teamenj
 
 Agent sessions run in worktrees under `.claude/worktrees/`. Two things make them work:
 
-- `next.config.ts` sets `turbopack.root` * so the dev server resolves the worktree as project root.
-- `.env.local` is not inherited by worktrees — run `npm run env:worktree` * once per worktree (mind the fence warning above).
+- `next.config.ts` sets `turbopack.root` so the dev server resolves the worktree as project root.
+- Env files are not inherited by worktrees — run `npm run env:worktree` once per worktree (copies `.env.local` and `.env.development.local` from the main checkout).
 
 ## Database
 
 - Migrations live in `supabase/migrations/` and are applied from agent/CLI sessions targeting a project ref directly (Supabase MCP or `supabase` CLI) — there is no CI database job.
 - Refs: dev `iymwxdewcpvpjgzewtzk` (`tevd-portal-dev`, the default link in `supabase/config.toml`), prod `ynykjpnetfwqzdnsgkkg`. Never link/push prod from a dev machine without an explicit ticket.
-- Local Supabase stack (Docker): tracked in #547.
+- Local Supabase stack (Docker): landed with #547 — see "Local Supabase stack" above.
 
 ## Troubleshooting
 
 | Symptom | Cause / fix |
 |---|---|
 | `npm ci` fails with `EBADPLATFORM` on Windows | Fixed by #546 (Linux native binaries moved to `optionalDependencies`). On an older checkout: `npm ci --force`. |
-| `supabaseUrl is required` on `npm run dev` | `.env.local` missing (fresh clone or worktree). `npm run check:env` * to diagnose; in a worktree, `npm run env:worktree` *. |
+| `supabaseUrl is required` on `npm run dev` | `.env.local` missing (fresh clone or worktree). `npm run check:env` to diagnose; in a worktree, `npm run env:worktree`. |
 | Build passes locally, fails on Vercel | Run `npm run build` locally (same command CI/Vercel run); check the Vercel build log linked in the PR. CI builds with placeholder env — code that requires real env at *build time* will differ. |
 | Type errors in IDE but `npm run test` passes | Vitest and `tsc` use different configs — run `npm run check-types`. |
-| Mobile layout broken | Devtools at 390px width; `npm run test:mobile` * catches horizontal overflow on smoke-covered routes. |
+| Mobile layout broken | Devtools at 390px width; `npm run test:mobile` catches horizontal overflow on smoke-covered routes. |

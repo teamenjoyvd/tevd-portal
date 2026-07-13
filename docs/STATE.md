@@ -1,20 +1,21 @@
 ## Goal
-#547 local Supabase dev environment (2026-07-12, worktree `issue-547-4055aa`, user-driven guided setup): Docker local stack, `.env.development.local` off prod, seed data, buckets, DEV_WORKFLOW fence replacement. DoD: `supabase start` + `db reset` succeed on full migration chain; `npm run dev` renders seeded data; no prod service-role creds for day-to-day dev.
+Local-dev full audit + repair (2026-07-12, worktree `dev-infrastructure-refactor-072890`, branch `claude/local-dev-audit-277243`): verify every dev command and the local Supabase stack, close the gap between docs and reality (#546/#547 both landed), and leave local dev 100% operational — dev targets the LOCAL stack, not prod.
 (PARKED: Milestone #2 "Security & Health Audit — 2026-07" — snapshot under Open items/Facts.)
 
 ## Now
-Local stack UP and verified: all containers healthy; REST probe `GET /rest/v1/trips` → HTTP 200 with seeded trip (via real local demo keys from `supabase status`). Seed.sql has 4 profiles + 1 trip + 7 private buckets + role grants. `.env.development.local` written with real local keys. `npm ci` running in worktree, then dev-server render test.
+Audit complete, all fixes verified 2026-07-12: `npm run verify` → exit 0 (82/82 tests); dev server on Next 16.2.10 renders seeded local data (`Environments: .env.development.local, .env.local`); check:env → "LOCAL stack (127.0.0.1:54321)". Main checkout recovered: was parked on stale `dev/2607-DEV-design-sync` (pre-#546, EBADPLATFORM on npm ci) → stashed .agents edits (`stash@{0}`), checked out latest main, `npm ci` clean (613 packages). Worktree node_modules synced to lockfile (16.1.6 → 16.2.10).
 
 ## Next
-(user directive 2026-07-12: "Once done I want the prod DB mirrored so we can test with real data. Afterwards open a PR, GCR and merge when everything is green")
-- `supabase db reset` iteration 3 running (chain repair: 18 baseline-folded no-ops + guards in 20260409190500/20260514000200/20260517000100/20260707120400/20260710_002)
-- Mirror prod DATA into local stack (data-only dump of public schema; needs prod DB connection string from user — never `supabase link` to prod ref per #547 issue text; storage files won't transfer, only DB rows)
-- Dev-server re-test + `npm run verify`
-- PR on `dev/2607-DEV-547` (push authorized by the directive above), then GCR pass, merge when CI green + Vercel preview READY
-- (Parked milestone queue) merge-pending PRs #502/#504/#505/#506/#507/#508; #485; Phase 4: #490/#492/#489/#487/#488; Phase 5: #469/#486/#491/#493/#494/#495/#496/#497; #510 pickup
+- Ticket #563 shaped and filed (migrate dev DB to hosted dev project `iymwxdewcpvpjgzewtzk`, drop local Docker stack; supersedes the #547 local-stack workflow, reuses its env-override layer) — CLAIM/BUILD in a future session
+- Streamlining wins implemented in this worktree: PROJECT.md SSU local fast path; validate-rules.js rollback warnings aggregated (114 → 3 total warnings)
+- Changes are local-only in worktree `dev-infrastructure-refactor-072890` (no push authorized this session); user decides on PR (needs an issue + `dev/`-branch per convention)
+- Clerk keys verified same-instance (loved-mole-75); "infinite redirect loop" log line is a stale-cookie heuristic, benign — clear browser cookies if sign-in ever misbehaves
+- (Parked milestone queue) #485; Phase 4: #490/#492/#489/#487/#488; Phase 5: #469/#486/#491/#493/#494/#495/#496/#497; #510 pickup
 
 ## Constraints
-- Infra refactor (2026-07-11, user decisions via plan questions): keep prod DB in `.env.local` for now; archive stale docs, don't delete ("Move all five into docs/archive/, update README and look for other stale files to move to that same location"); split into two PRs; navigation-only local/preview testing until #547 lands
+- Dev-DB migration (2026-07-13, verbatim): "we need to migrate to the dev instance on supabase.com"; "everything else but the DB remains local" — ticket #563
+- Local-dev audit (2026-07-12, verbatim): "where can we streamline to reduce token usage but preserve the functionality 100%"; "Final goal is to have a 100% fully operational local dev after this run"
+- Infra refactor (2026-07-11, user decisions via plan questions): keep prod DB in `.env.local` for now; archive stale docs, don't delete ("Move all five into docs/archive/, update README and look for other stale files to move to that same location"); split into two PRs; navigation-only local/preview testing until #547 lands (#547 landed 2026-07-12 — expired)
 - User (prior task, re: #504 finding): "note + file follow-up, don't touch #504."
 - Milestone touches Supabase RLS/grants/security-definer functions — Pattern A helpers only, never raw auth.jwt() (CLAUDE.md hard constraint)
 - Never write data to Supabase from a Preview URL (preview hits prod DB)
@@ -51,9 +52,10 @@ PR #502 Gemini-review follow-up — RESULT: a concurrent session independently a
 
 ## Open items
 - Issue #510 (guest-tier storage.objects RLS bypass on guide-attachments) — not yet fixed, needs its own PR
-- 6 PRs (#502, #504, #505, #506, #507, #508) need CI green + Vercel preview READY + human merge before considered fully done
+- The 2026-07-08 PR batch (#502, #504, #505, #506, #507, #508) no longer appears in `gh pr list --state open` (2026-07-12: zero open PRs) — resolved
 - Prior-task open item carried forward: REF.md phantom-route doc fix (`/api/events/[id]/register`) still not done, unrelated to this task
 - Milestone remainder genuinely not started: #485 (Phase 3), #490/#492/#489/#487/#488 (Phase 4), #469/#486/#491/#493/#494/#495/#496/#497 (Phase 5 cleanup backlog)
+- NOTED (not done): ~110 `agentic:validate` warnings — migrations missing `-- ROLLBACK:` comments (advisory); untracked June-orchestration leftovers in main checkout root (`.agents/` dirs, `convert.js`, `test_out.txt`) — user call whether to archive/delete; pre-existing April stash `stash@{1}` on main; guest-visitor console error `Query data cannot be undefined ["profile-ui-prefs-font-size"]` (pre-existing app behavior, app/…UI-prefs query returns undefined for signed-out users); Playwright `webServer.timeout` 120s < cold worktree compile ~5min (warm the cache first)
 
 ## Failed attempts
 (none)

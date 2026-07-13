@@ -5,8 +5,12 @@
  * reading .env.local directly (plain `node` does not auto-load env files —
  * the PR #544 version checked process.env only and always failed).
  *
- * Sources, in order: .env.local values, then process.env (CI/exported shells).
- * Empty values count as missing. Prints missing names only, never values.
+ * Sources, in order: .env.development.local (the local-Supabase override
+ * `next dev` loads with highest priority — see docs/DEV_WORKFLOW.md), then
+ * .env.local, then process.env (CI/exported shells).
+ * Empty values count as missing. Prints missing names only, never values —
+ * except the effective NEXT_PUBLIC_SUPABASE_URL host, reported so you always
+ * know whether dev targets the local stack or a remote (production) project.
  *
  * Vars listed below a `# --- optional ---` line in .env.example only warn.
  */
@@ -62,11 +66,26 @@ if (fs.existsSync(localPath)) {
   )
 }
 
-function isMissing(name) {
+// `next dev` loads .env.development.local with higher priority than .env.local,
+// so mirror that here (it holds the local-Supabase override when present).
+const devLocalPath = path.join(root, '.env.development.local')
+let devLocalVars = {}
+if (fs.existsSync(devLocalPath)) {
+  devLocalVars = parseEnvFile(devLocalPath)
+}
+
+function effectiveValue(name) {
+  const fromDev = devLocalVars[name]
+  if (fromDev !== undefined && fromDev.value !== '') return fromDev.value
   const fromFile = localVars[name]
-  if (fromFile !== undefined && fromFile.value !== '') return false
+  if (fromFile !== undefined && fromFile.value !== '') return fromFile.value
   const fromEnv = process.env[name]
-  return fromEnv === undefined || fromEnv === ''
+  if (fromEnv !== undefined && fromEnv !== '') return fromEnv
+  return null
+}
+
+function isMissing(name) {
+  return effectiveValue(name) === null
 }
 
 const missingRequired = required.filter(isMissing)
@@ -84,3 +103,23 @@ if (missingRequired.length > 0) {
 }
 
 console.log(`check:env: all ${required.length} required variables are set.`)
+
+// Report which Supabase project dev will actually hit (host only, never keys).
+const supabaseUrl = effectiveValue('NEXT_PUBLIC_SUPABASE_URL')
+if (supabaseUrl !== null) {
+  let host = supabaseUrl
+  try {
+    host = new URL(supabaseUrl).host
+  } catch {
+    // leave as-is if unparsable; check above already guarantees non-empty
+  }
+  const isLocal = /^(127\.0\.0\.1|localhost)(:|$)/.test(host)
+  if (isLocal) {
+    console.log(`check:env: Supabase target = LOCAL stack (${host}).`)
+  } else {
+    console.warn(
+      `check:env: Supabase target = REMOTE project (${host}) — local dev writes hit that database.\n` +
+        '  For the local Docker stack, create .env.development.local (docs/DEV_WORKFLOW.md "Local Supabase stack").',
+    )
+  }
+}
