@@ -1,18 +1,26 @@
 ## Goal
-Issue #563 (2026-07-13, worktree `issues-485-490-5c096d`, branch `dev/2607-DEV-563`) hosted Supabase dev project: replace the local Docker Supabase stack (#547) as the day-to-day local dev DB target with the hosted dev project `iymwxdewcpvpjgzewtzk`. App code needs zero changes — only env values, `check:env` classifier, worktree setup script, `seed-clerk-test-users.js` guard, and docs.
+PR #568 / issue #567 (2026-07-13, worktree `dev-infrastructure-refactor-072890`, branch `claude/local-dev-audit-277243`): land the local-dev audit fixes that survived the #563 merge — SSU local fast path, validate-rules aggregation, DEV_WORKFLOW `*`-marker truth-up, dev-only image pattern. Note: #563 (hosted DEV project as day-to-day dev DB) was independently implemented and merged as PR #564 by a concurrent session while #568 was in flight; its versions of check-env.js/setup-worktree-env.js/README superseded this branch's and were adopted in the conflict resolution.
 
 ## Now
-Implementation complete and verified (3 commits on `dev/2607-DEV-563`). Ready to push and open the PR.
+Merge conflicts with origin/main (post-#564/#566) resolved: scripts + README taken from main (superset of this branch's changes), DEV_WORKFLOW = main's hosted-DEV rewrite + this branch's `*`-marker cleanup, CLAIMS/STATE merged manually. Re-verification pending before push.
 
 ## Next
-- Push `dev/2607-DEV-563`, open PR (`Closes #563`), run GCR pass, merge when CI green + Vercel preview READY
-- User-run only (destructive, not scripted): `supabase stop` + `docker system prune -a --volumes` to reclaim local disk once the DEV-project workflow is confirmed working day-to-day
-- (Parked, unrelated milestone thread — last touched 2026-07-08, different worktree `issue-547-4055aa`, not part of this session): 6 PRs (#502/#504/#505/#506/#507/#508) awaiting CI green + Vercel preview + human merge; issue #510 (guest-tier storage.objects RLS bypass) not yet fixed; milestone remainder not started: #485, #490/#492/#489/#487/#488, #469/#486/#491/#493/#494/#495/#496/#497, #510 pickup. Whoever resumes that thread should re-verify current PR/issue state before acting — this line is a pointer, not current fact.
+- Re-run `npm run verify` + `check:env` after the merge commit, push, wait CI green + Vercel preview READY
+- Mark PR #568 ready for review when green (CodeRabbit skips drafts)
+- `.env.development.local` on this machine still points at the (running) LOCAL stack — switch it to the hosted DEV project per docs/DEV_WORKFLOW.md "Hosted dev database", then user-run only: `supabase stop` + `docker system prune -a --volumes` to reclaim disk
+- Clerk keys verified same-instance (loved-mole-75); "infinite redirect loop" log line is a stale-cookie heuristic, benign
+- (Parked milestone queue) #485; Phase 4: #490/#492/#489/#487/#488; Phase 5: #469/#486/#491/#493/#494/#495/#496/#497; #510 pickup
 
 ## Constraints
+- Dev-DB migration (2026-07-13, verbatim): "we need to migrate to the dev instance on supabase.com"; "everything else but the DB remains local" — shipped via #563/#564
+- Local-dev audit (2026-07-12, verbatim): "where can we streamline to reduce token usage but preserve the functionality 100%"; "Final goal is to have a 100% fully operational local dev after this run"
+- Infra refactor (2026-07-11, user decisions via plan questions): keep prod DB in `.env.local` for now; archive stale docs, don't delete; split into two PRs
+- User (prior task, re: #504 finding): "note + file follow-up, don't touch #504."
 - Never link/push the prod Supabase ref (`ynykjpnetfwqzdnsgkkg`) from a dev machine
-- `.env.development.local` never committed (gitignored, real DEV-project credentials)
+- `.env.development.local` never committed (gitignored, real DEV-project credentials after the #563 switch)
 - Docker teardown (`docker system prune`) is user-run only, never scripted/automated
+- Milestone touches Supabase RLS/grants/security-definer functions — Pattern A helpers only, never raw auth.jwt() (CLAUDE.md hard constraint)
+- Never write data to Supabase from a Preview URL (preview hits prod DB)
 - Never push directly to `main`; `dev/[YYMM]-DEV-[GH#]` branches only
 - Never mark Done on static analysis alone — Vercel PR preview must be READY and CI green
 - CLAUDE.md hard stop: no `git push` without the user explicitly asking for a push in-conversation (quote required)
@@ -35,7 +43,10 @@ Recovered a live incident — RESULT: `supabase db reset --linked` wiped the DEV
 `check:env`/`setup-worktree-env.js`/`seed-clerk-test-users.js`/docs updated and committed — RESULT: 3 commits (`d522537`, `5a9caa4`, plus `b1ff228` for the CLAIMS.md/procedure fix), `npm run verify` green, `npm run dev` confirmed rendering DEV-project seed data in-browser.
 
 ## Open items
-(none for #563 — implementation complete, PR not yet opened)
+- Issue #510 (guest-tier storage.objects RLS bypass on guide-attachments) — not yet fixed, needs its own PR
+- Prior-task open item carried forward: REF.md phantom-route doc fix (`/api/events/[id]/register`) still not done, unrelated to this task
+- Milestone remainder genuinely not started: #485 (Phase 3), #490/#492/#489/#487/#488 (Phase 4), #469/#486/#491/#493/#494/#495/#496/#497 (Phase 5 cleanup backlog)
+- NOTED (not done): untracked June-orchestration leftovers in main checkout root (`.agents/` dirs, `convert.js`, `test_out.txt`) — user call whether to archive/delete; pre-existing April stash `stash@{1}` on main; guest-visitor console error `Query data cannot be undefined ["profile-ui-prefs-font-size"]` (pre-existing app behavior, UI-prefs query returns undefined for signed-out users); Playwright `webServer.timeout` 120s < cold worktree compile ~5min (warm the cache first)
 
 ## Failed attempts
 (none — the `db reset --linked` incident above was diagnosed and recovered in the same session, not abandoned)

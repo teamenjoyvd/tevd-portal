@@ -162,6 +162,9 @@ function checkMigrationRollbacks() {
       return;
     }
 
+    // Aggregate into a single warning: with 100+ legacy migrations lacking
+    // the comment, one line per file drowns every other check's output.
+    const missing = [];
     for (const file of files) {
       try {
         const content = fs.readFileSync(
@@ -169,13 +172,21 @@ function checkMigrationRollbacks() {
           "utf8"
         );
         if (!/-- ROLLBACK:/i.test(content)) {
-          warn(`Migration ${file} is missing a -- ROLLBACK: comment.`);
+          missing.push(file);
           allGood = false;
         }
       } catch {
         warn(`Could not read migration file: ${file}`);
         allGood = false;
       }
+    }
+    if (missing.length > 0) {
+      const examples = missing.slice(0, 3).join(", ");
+      const more =
+        missing.length > 3 ? ` … and ${missing.length - 3} more` : "";
+      warn(
+        `${missing.length} migration(s) missing a -- ROLLBACK: comment (advisory): ${examples}${more}`
+      );
     }
   } catch {
     warn("Could not read supabase/migrations/ directory.");

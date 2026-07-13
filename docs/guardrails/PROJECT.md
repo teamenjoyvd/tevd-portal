@@ -40,7 +40,15 @@ READ order: `priority:high` first, then unlabelled, then `priority:low`. Never p
 
 ### SSU — System Startup
 
-Run at the start of every session. Warms up tools and establishes ground truth before any other action.
+Run at the start of every session. Establishes ground truth before any other action. Two variants — pick by session type; do not run both.
+
+**Local session (repo checkout on disk — the default).** CLAUDE.md is already auto-loaded; never re-fetch it over MCP.
+
+1. `git status` + `git log --oneline -3` — confirms checkout, branch, and freshness.
+2. `gh pr list --state open` — check for any open PRs (same triage as step 3 below).
+3. Read `docs/CLAIMS.md` (in-flight scope overlaps) and `docs/STATE.md` (session state).
+
+**Remote/MCP-only session (no local checkout):**
 
 1. **Tool warm-up (before anything else):**
    - `tool_search("get file contents github")`
@@ -63,7 +71,7 @@ Output format:
 ```
 If GitHub ❌ — stop.
 
-4. **Print the dev process** (verbatim, after the status table):
+**Finally — both variants — print the dev process** (verbatim, after the status table):
 ```
 Dev process (one phase per session):
  1. PLAN   — design only, no writes; scope + files + migration needs land in the issue
