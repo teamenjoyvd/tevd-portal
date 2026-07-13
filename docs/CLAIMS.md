@@ -6,7 +6,4 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
-| #545 | `dev/2607-DEV-545` | root docs → docs/archive/, README.md (new), docs/DEV_WORKFLOW.md (new), .gitignore, supabase/config.toml (comments), supabase/.temp untrack, docs/STATE.md | 2026-07-11T13:00Z |
-| #552 | `dev/2607-DEV-552` | CLAUDE.md, AGENTS.md, README.md, docs/ai/* (BUILD/PLAN/GCR/REF/GOTCHAS/system-prompt), docs/guardrails/PROJECT.md, docs/archive/agent-docs-2026-07/ (new), .cursor/rules removal, scripts/ kit-sync removal, agentic.config.json, package.json (agentic:* scripts) | 2026-07-12T00:50Z |
-| #528 | `dev/2607-DEV-528` | package.json (next, eslint-config-next version bump + build script), package-lock.json, scripts/build.js | 2026-07-12T14:35Z |
-| #560 | `dev/2607-DEV-560` | package.json, scripts/seed-clerk-test-users.js (new), e2e/global-setup.ts (new), e2e/admin-auth.spec.ts (new), playwright.config.ts, .github/workflows/ci.yml, docs/DEV_WORKFLOW.md | 2026-07-12T19:40Z |
+| #563 | `dev/2607-DEV-563` | .env.development.local (values only), scripts/check-env.js, scripts/setup-worktree-env.js, scripts/seed-clerk-test-users.js, docs/DEV_WORKFLOW.md, docs/STATE.md, docs/CLAIMS.md, docs/ai/CLAIM.md, docs/ai/GOTCHAS.md, CLAUDE.md, README.md, supabase/migrations/ (drift-repair only), next.config.ts (verify-only, no change) | 2026-07-13T09:46Z |

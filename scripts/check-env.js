@@ -2,13 +2,18 @@
 
 /**
  * Validates that every variable listed in .env.example is available,
- * reading .env.local directly (plain `node` does not auto-load env files —
+ * reading env files directly (plain `node` does not auto-load env files —
  * the PR #544 version checked process.env only and always failed).
  *
- * Sources, in order: .env.local values, then process.env (CI/exported shells).
- * Empty values count as missing. Prints missing names only, never values.
+ * Sources, in order: .env.development.local values (if present, mirrors
+ * Next.js precedence), then .env.local values, then process.env (CI/exported
+ * shells). Empty values count as missing. Prints missing names only, never
+ * values.
  *
  * Vars listed below a `# --- optional ---` line in .env.example only warn.
+ *
+ * Also classifies NEXT_PUBLIC_SUPABASE_URL as LOCAL / DEV / anything else
+ * (incl. PROD) so a stray prod URL in local dev gets a loud warning (#563).
  */
 
 const fs = require('fs')
@@ -62,11 +67,18 @@ if (fs.existsSync(localPath)) {
   )
 }
 
+const devLocalPath = path.join(root, '.env.development.local')
+const devLocalVars = fs.existsSync(devLocalPath) ? parseEnvFile(devLocalPath) : {}
+
+function resolveValue(name) {
+  if (devLocalVars[name] !== undefined && devLocalVars[name].value !== '') return devLocalVars[name].value
+  if (localVars[name] !== undefined && localVars[name].value !== '') return localVars[name].value
+  return process.env[name]
+}
+
 function isMissing(name) {
-  const fromFile = localVars[name]
-  if (fromFile !== undefined && fromFile.value !== '') return false
-  const fromEnv = process.env[name]
-  return fromEnv === undefined || fromEnv === ''
+  const value = resolveValue(name)
+  return value === undefined || value === ''
 }
 
 const missingRequired = required.filter(isMissing)
@@ -84,3 +96,30 @@ if (missingRequired.length > 0) {
 }
 
 console.log(`check:env: all ${required.length} required variables are set.`)
+
+const DEV_PROJECT_REF = 'iymwxdewcpvpjgzewtzk'
+const PROD_PROJECT_REF = 'ynykjpnetfwqzdnsgkkg'
+
+function classifySupabaseTarget(url) {
+  if (!url) return 'UNSET'
+  if (url.includes('127.0.0.1') || url.includes('localhost')) return 'LOCAL'
+  if (url.includes(DEV_PROJECT_REF)) return 'DEV'
+  if (url.includes(PROD_PROJECT_REF)) return 'PROD'
+  return 'UNKNOWN'
+}
+
+const supabaseUrl = resolveValue('NEXT_PUBLIC_SUPABASE_URL')
+const target = classifySupabaseTarget(supabaseUrl)
+
+if (target === 'LOCAL') {
+  console.log('check:env: Supabase target: LOCAL stack (127.0.0.1).')
+} else if (target === 'DEV') {
+  console.log(`check:env: Supabase target: DEV project (${DEV_PROJECT_REF}) — safe for local writes.`)
+} else if (target === 'PROD' || target === 'UNKNOWN') {
+  console.warn(
+    'check:env: WARNING — Supabase target is NOT the local stack or the dev project.\n' +
+      `  NEXT_PUBLIC_SUPABASE_URL: ${supabaseUrl}\n` +
+      '  Writes from here hit real, non-local data. Point .env.development.local at the\n' +
+      `  DEV project (${DEV_PROJECT_REF}) unless this is deliberate.`,
+  )
+}

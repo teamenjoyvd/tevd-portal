@@ -57,7 +57,7 @@ Violation = immediate stop, no exceptions.
 - **Component co-location** — new components scoped to one route go in `app/[route]/components/`. Promote to `/components` only when used by 2+ unrelated routes.
 - **Layout Decision Rules (Quantitative)** — Default is a single responsive layout file. Dual layout (separate files) is required only for: tables with 5+ columns, complex touch vs mouse drag-and-drop, persistent sidebar layouts, or interactive canvases/maps/rich-text editors. These four triggers are the complete, precise list.
 - **NEVER call `create_or_update_file` or `push_files` before CLAIM is complete.** No file writes until the feature branch exists and is confirmed.
-- **SSU, PLAN, CLAIM, and BUILD are mutually exclusive within a session.** PLAN does no writes of any kind. CLAIM does no file writes. BUILD does no design work. Violation = immediate stop.
+- **SSU, PLAN, CLAIM, and BUILD are mutually exclusive within a session.** PLAN does no writes of any kind. CLAIM writes only `docs/CLAIMS.md` (its own registry row, per docs/ai/CLAIM.md Rules); no other file writes. BUILD does no design work. Violation = immediate stop.
 
 **Project workflow & references** (full detail in docs/guardrails/PROJECT.md):
 - ID format & artifact naming -> Read docs/guardrails/PROJECT.md#id-format
