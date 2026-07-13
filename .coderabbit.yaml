@@ -1,0 +1,11 @@
+# CodeRabbit configuration — versioned so review behavior is explicit.
+# Draft PRs are NOT auto-reviewed: open PRs as drafts to get CI + Vercel
+# preview for free, mark "Ready for review" to spend the one review pass.
+reviews:
+  auto_review:
+    enabled: true
+    drafts: false
+  path_filters:
+    - "!docs/**"
+    - "!**/*.md"
+    - "!package-lock.json"
