@@ -1,13 +1,17 @@
 ## Goal
-Issue #563 (2026-07-13, worktree `issues-485-490-5c096d`, branch `dev/2607-DEV-563`) hosted Supabase dev project: replace the local Docker Supabase stack (#547) as the day-to-day local dev DB target with the hosted dev project `iymwxdewcpvpjgzewtzk`. App code needs zero changes — only env values, `check:env` classifier, worktree setup script, `seed-clerk-test-users.js` guard, and docs.
+LOS import redesign (2026-07-13, worktree `refactoring-infra-bottlenecks-ca1053`): let CORE members upload their part of the LOS from a new `/profile/los-upload` page. Uploads stage as `pending` submissions (new `los_submission_requests` table) for admin review — no direct `los_members` write. Admin reviews in approval-hub, merges pending parts (deepest-owner-wins per ABO), then runs the existing `import_los_members` RPC. Scope guard: submission tree root must equal caller's `profiles.abo_number` (enforced server-side). CORE cannot purge or roll back others. Plan: `~/.claude/plans/redesign-of-the-los-wondrous-rain.md`.
 
 ## Now
-Implementation complete and verified (3 commits on `dev/2607-DEV-563`). Ready to push and open the PR.
+ALL CODE COMPLETE + fully verified (static AND runtime). `npm run build` green; unit tests 96/96; eslint 0 errors.
+**Runtime E2E: 6/6 pass** against hosted DEV (`e2e/los-submission-auth.spec.ts`, authenticated Playwright): scope-mismatch→400, matching-root→pending, withdraw, admin approve→import writes `los_members` + `last_updated_by_abo` (NEW=CORE self, CHILD=CORE upline), senior-CORE import stamps CHILD=SENIOR (upline), reject. Fixtures throwaway (ABOs 99000xx + e2e-core/senior users) seeded + cleaned up (verified 0 leftover). Existing `admin-auth` spec still 4/4 (no regression).
+Migrations `20260713000000` + `20260713000100` applied to DEV + recorded via `migration repair --status applied`. Types spliced additively.
+Env: worktree `.env.development.local` points at hosted DEV (keys pulled from Management API); `.env.local` supplies Clerk test keys. playwright.config.ts now loads env + includes the new spec in the authenticated project.
 
 ## Next
-- Push `dev/2607-DEV-563`, open PR (`Closes #563`), run GCR pass, merge when CI green + Vercel preview READY
-- User-run only (destructive, not scripted): `supabase stop` + `docker system prune -a --volumes` to reclaim local disk once the DEV-project workflow is confirmed working day-to-day
-- (Parked, unrelated milestone thread — last touched 2026-07-08, different worktree `issue-547-4055aa`, not part of this session): 6 PRs (#502/#504/#505/#506/#507/#508) awaiting CI green + Vercel preview + human merge; issue #510 (guest-tier storage.objects RLS bypass) not yet fixed; milestone remainder not started: #485, #490/#492/#489/#487/#488, #469/#486/#491/#493/#494/#495/#496/#497, #510 pickup. Whoever resumes that thread should re-verify current PR/issue state before acting — this line is a pointer, not current fact.
+- Move to `dev/[YYMM]-DEV-[GH#]` branch; open PR; CI green + Vercel preview READY before Done
+- Pre-existing DEV history drift (phantom 20260707/09/10 from #563) left untouched — reconcile with `migration repair --status reverted 20260707 20260709 20260710` when convenient (not mine)
+- `.env*` are gitignored (do not commit); the worktree DEV keys live only locally
+- (Parked, unrelated — #563 done, PR not opened; older milestone thread pointer, re-verify before acting): #502/#504/#505/#506/#507/#508 PRs, #510 storage RLS, milestone remainder #485/#490.. — pointers, not current fact.
 
 ## Constraints
 - Never link/push the prod Supabase ref (`ynykjpnetfwqzdnsgkkg`) from a dev machine

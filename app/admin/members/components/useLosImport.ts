@@ -1,8 +1,9 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { apiClient } from '@/lib/apiClient'
-import { parseCSV, assembleFiles, type ImportResult, type AssemblyResult } from '@/lib/csv-import'
+import { type ImportResult } from '@/lib/csv-import'
+import { useAssembly, type FileEntry } from '@/components/los-import/useAssembly'
 
-export type FileEntry = { filename: string; rows: Record<string, string>[] }
+export type { FileEntry }
 
 export type LOSStatus = {
   row_count: number
@@ -15,26 +16,10 @@ export type PurgeResult = { removed: number; import_id: string }
 
 export type Phase = 'assembly' | 'diff' | 'result'
 
-function readCsvFiles(fileList: File[]): Promise<FileEntry[]> {
-  const readers = fileList.map(file => new Promise<FileEntry>((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = ev => {
-      const text = (ev.target?.result as string).replace(/^﻿/, '')
-      resolve({ filename: file.name, rows: parseCSV(text) })
-    }
-    reader.onerror = reject
-    reader.readAsText(file)
-  }))
-  return Promise.all(readers)
-}
-
 export function useLosImport() {
-  const fileRef = useRef<HTMLInputElement>(null)
+  const { fileRef, files, assembly, handleFileAdd, handleFileDrop, removeFile, reset: resetAssembly } = useAssembly()
 
   const [phase, setPhase] = useState<Phase>('assembly')
-
-  const [files, setFiles] = useState<FileEntry[]>([])
-  const [assembly, setAssembly] = useState<AssemblyResult | null>(null)
 
   const [losStatus, setLosStatus] = useState<LOSStatus | null>(null)
 
@@ -57,36 +42,6 @@ export function useLosImport() {
   useEffect(() => {
     refreshLosStatus()
   }, [])
-
-  useEffect(() => {
-    if (files.length === 0) { setAssembly(null); return }
-    setAssembly(assembleFiles(files))
-  }, [files])
-
-  function addFiles(newEntries: FileEntry[]) {
-    setFiles(prev => {
-      const existing = new Set(prev.map(f => f.filename))
-      return [...prev, ...newEntries.filter(e => !existing.has(e.filename))]
-    })
-  }
-
-  function handleFileAdd(e: React.ChangeEvent<HTMLInputElement>) {
-    const added = Array.from(e.target.files ?? [])
-    if (added.length === 0) return
-    if (fileRef.current) fileRef.current.value = ''
-    readCsvFiles(added).then(addFiles).catch(() => null)
-  }
-
-  function handleFileDrop(e: React.DragEvent<HTMLDivElement>) {
-    e.preventDefault()
-    const droppedFiles = Array.from(e.dataTransfer.files).filter(f => f.name.endsWith('.csv'))
-    if (droppedFiles.length === 0) return
-    readCsvFiles(droppedFiles).then(addFiles).catch(() => null)
-  }
-
-  function removeFile(filename: string) {
-    setFiles(prev => prev.filter(f => f.filename !== filename))
-  }
 
   async function handleImport() {
     if (!assembly) return
@@ -118,8 +73,7 @@ export function useLosImport() {
         body: JSON.stringify({ import_id: result.import_id }),
       })
       setResult(null)
-      setFiles([])
-      setAssembly(null)
+      resetAssembly()
       setPhase('assembly')
       refreshLosStatus()
     } catch (err: unknown) {
@@ -163,8 +117,7 @@ export function useLosImport() {
 
   function resetForNewImport() {
     setPhase('assembly')
-    setFiles([])
-    setAssembly(null)
+    resetAssembly()
     setResult(null)
     setPurgeResult(null)
   }

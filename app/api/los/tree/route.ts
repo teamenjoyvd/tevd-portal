@@ -16,6 +16,7 @@ type LOSRow = {
   annual_ppv: number | null
   renewal_date: string | null
   last_synced_at: string | null
+  last_updated_by_abo: string | null
   profile_id: string | null
   first_name: string | null
   last_name: string | null
@@ -44,6 +45,7 @@ type SyntheticNode = {
   annual_ppv: null
   renewal_date: null
   last_synced_at: null
+  last_updated_by_abo: null
   vital_signs: VitalSign[]
 }
 
@@ -120,7 +122,7 @@ export async function GET() {
       depth: null,
       country: null, gpv: null, ppv: null, bonus_percent: null,
       group_size: null, qualified_legs: null, annual_ppv: null,
-      renewal_date: null, last_synced_at: null,
+      renewal_date: null, last_synced_at: null, last_updated_by_abo: null,
       vital_signs: vitalsForProfile(caller!.id),
     }
   }

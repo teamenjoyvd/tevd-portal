@@ -9,6 +9,7 @@ import { TripRegistrationsTab } from './components/TripRegistrationsTab'
 import { AboVerificationTab } from './components/VerificationsTab'
 import { EventRolesTab } from './components/EventRolesTab'
 import { SpouseLinkRequestsTab } from './components/SpouseLinkRequestsTab'
+import { LosSubmissionsTab, type LosSubmission } from './components/LosSubmissionsTab'
 import type { TripRegistration } from './components/TripRegistrationsTab'
 import type { SpouseLinkRequest } from './components/SpouseLinkRequestsTab'
 
@@ -17,7 +18,7 @@ import type { SpouseLinkRequest } from './components/SpouseLinkRequestsTab'
 function ApprovalHubInner() {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const tab = (searchParams.get('tab') ?? 'trips') as 'trips' | 'roles' | 'abo' | 'spouse'
+  const tab = (searchParams.get('tab') ?? 'trips') as 'trips' | 'roles' | 'abo' | 'spouse' | 'los'
 
   const { data: registrations = [] } = useQuery<TripRegistration[]>({
     queryKey: ['registrations', 'all'],
@@ -36,15 +37,22 @@ function ApprovalHubInner() {
     queryFn: () => fetchJson<SpouseLinkRequest[]>('/api/admin/spouse-link-requests'),
   })
 
+  const { data: losSubmissions = [] } = useQuery<LosSubmission[]>({
+    queryKey: ['los-submissions'],
+    queryFn: async () => (await fetchJson<{ submissions: LosSubmission[] }>('/api/admin/los-submission')).submissions,
+  })
+
   const pendingTrips  = registrations.filter(r => r.status === 'pending').length
   const pendingRoles  = roleRequests.filter(r => r.status === 'pending').length
   const pendingSpouse = spouseRequests.filter(r => r.status === 'pending').length
+  const pendingLos    = losSubmissions.filter(r => r.status === 'pending').length
 
   const tabsWithBadges = [
     { key: 'trips',  label: 'Trip Registrations',   badge: pendingTrips  },
     { key: 'roles',  label: 'Event Roles',           badge: pendingRoles  },
     { key: 'abo',    label: 'ABO Verification',      badge: 0             },
     { key: 'spouse', label: 'Co-ownership Requests', badge: pendingSpouse },
+    { key: 'los',    label: 'LOS Submissions',       badge: pendingLos    },
   ]
 
   return (
@@ -65,6 +73,7 @@ function ApprovalHubInner() {
         <TabsContent value="roles"><EventRolesTab /></TabsContent>
         <TabsContent value="abo"><AboVerificationTab /></TabsContent>
         <TabsContent value="spouse"><SpouseLinkRequestsTab /></TabsContent>
+        <TabsContent value="los"><LosSubmissionsTab /></TabsContent>
       </AdminTabs>
     </div>
   )
