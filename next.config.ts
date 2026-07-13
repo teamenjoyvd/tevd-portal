@@ -17,18 +17,6 @@ const nextConfig: NextConfig = {
         hostname: '*.supabase.co',
         pathname: '/storage/v1/object/public/**',
       },
-      // Local Supabase stack storage (docs/DEV_WORKFLOW.md) — dev only,
-      // so the production image allowlist stays https-only.
-      ...(process.env.NODE_ENV === 'development'
-        ? [
-            {
-              protocol: 'http' as const,
-              hostname: '127.0.0.1',
-              port: '54321',
-              pathname: '/storage/v1/object/public/**',
-            },
-          ]
-        : []),
     ],
   },
   async redirects() {
