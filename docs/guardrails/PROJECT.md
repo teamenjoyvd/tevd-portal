@@ -63,6 +63,19 @@ Output format:
 ```
 If GitHub ❌ — stop.
 
+4. **Print the dev process** (verbatim, after the status table):
+```
+Dev process (one phase per session):
+ 1. PLAN   — design only, no writes; scope + files + migration needs land in the issue
+ 2. CLAIM  — overlap-check docs/CLAIMS.md, cut dev/[YYMM]-DEV-[GH#], register claim row
+ 3. BUILD  — build locally vs hosted DEV Supabase; migrations applied + verified on dev DB only
+ 4. Review — /code-review low on the diff, fix findings locally (before any push)
+ 5. Draft  — push branch, open PR as DRAFT (CodeRabbit skips drafts); wait CI green + preview READY
+ 6. Ready  — mark PR ready → one CodeRabbit pass; fix all findings in ONE batched push
+ 7. Merge  — CI green + preview READY + threads resolved; GCR: remove claim row, close issue
+ 8. Prod   — apply the dev-verified migration to prod, smoke-check production URL
+```
+
 ### PLAN — See `docs/ai/PLAN.md`
 
 ### CLAIM — See `docs/ai/CLAIM.md`

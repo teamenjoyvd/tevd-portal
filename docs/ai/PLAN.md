@@ -14,7 +14,10 @@ Invoked explicitly with the `PLAN` prefix. Processes one or more tickets in a si
    - [ ] `api/y/route.ts` returns 403 for non-admin Clerk userId
    ```
 4. List affected file paths and gotchas from `docs/ai/GOTCHAS.md`.
-5. State verdict: **READY** or **BLOCKED: [single specific blocking question]**.
+5. **Migration & test impact (mandatory):**
+   - Does the ticket touch `supabase/migrations/`? If yes: state the rollback path (every new migration ships a `-- ROLLBACK:` comment) and whether the change is backward-compatible with the running app (expand/contract: additive migration first, code using it second, destructive cleanup in a later ticket — app deploy and DB push happen at different moments).
+   - State which Playwright project covers the change: `authenticated`, `mobile-390`, or none — with a one-line reason.
+6. State verdict: **READY** or **BLOCKED: [single specific blocking question]**.
 
 ## Output Format
 Output must be printed in the chat conversation.
@@ -31,6 +34,10 @@ Output must be printed in the chat conversation.
 
 ### Gotchas Flagged
 - [gotcha name]: relevance to this ticket
+
+### Migration & Test Impact
+- Migration: yes (rollback: <path>; expand/contract: <ok | sequencing note>) | no
+- E2E coverage: authenticated | mobile-390 | none — <reason>
 
 ### Notes
 [design reasoning that shaped the above]
