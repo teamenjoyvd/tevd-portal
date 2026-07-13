@@ -24,20 +24,24 @@ Read the issue body. Verify `## Design Checklist` exists with all four items che
 Read only the specific `docs/ai/REF.md` sections required by the ticket (refer to the Section Map in `REF.md`).
 
 ### EXECUTE
-- Code only what is required by the DoD. All changes target the feature branch only. Push to trigger Vercel Preview.
+- Code only what is required by the DoD. All changes target the feature branch only. Build and verify entirely locally against the hosted DEV Supabase project; migrations are applied and behavior-verified on the dev DB only.
+- Every new migration file carries a `-- ROLLBACK:` comment — do not push without it.
+- Before the first push: run `/code-review low` on the branch diff and fix findings locally (auth/RLS/migration changes: escalate to `/security-review` or `/code-review medium`).
+- Push and open the PR **as a draft** to trigger CI and the Vercel Preview. CodeRabbit skips drafts (`.coderabbit.yaml`) — iterate freely while in draft.
 - For large tasks (>100 lines), commit a skeleton with `// TODO:` items before implementing, and update the PR Session State to `IN PROGRESS`.
 
 ### VERIFY
 - Verify DoD point-by-point.
-- Check Vercel Preview is READY and CI is green (`check-types` — runs `tsc --noEmit` on PRs targeting `main`).
+- Check Vercel Preview is READY and CI is green. Green-by-skip does not count: confirm gated jobs (e.g. Authenticated E2E) actually executed their steps rather than skipping on missing secrets — inspect the job's steps, not just its conclusion.
 - Ensure 390px mobile responsiveness.
 - Ensure no production side-effects. If ticket touched auth or routing: confirm `middleware.ts` does not exist.
 
 ### FINALIZE
-- Add `Closes #<issue_number>` to the PR body. Mark the PR as ready for review.
+- Add `Closes #<issue_number>` to the PR body. Mark the PR as **ready for review** — this triggers the single CodeRabbit pass.
+- Address all CodeRabbit findings locally and push them as ONE batched commit (each push triggers an incremental re-review; drip-fed fixes burn quota). Wrong findings: reply on the thread and resolve, don't churn code.
 - Update the PR description's `## Session State` block.
 - Update `docs/ai/REF.md` if schema, tables, routes, or env vars changed.
-- Confirm production Vercel deployment is READY after merge.
+- After merge: confirm production Vercel deployment is READY, apply the dev-verified migration to prod, smoke-check the production URL, remove the `docs/CLAIMS.md` row. "Merged" and "Done" are different states — the issue closes only after the prod tail completes.
 
 ---
 

@@ -14,3 +14,4 @@ Invoked via the `GCR` command in a BUILD session. Given a PR number:
    - Applied -> call `pull_request_review_write` (`method: resolve_thread`) with the thread's `threadId`.
    - Skipped -> call `add_reply_to_pull_request_comment` stating the reason, then leave the thread unresolved for human follow-up.
    Never resolve a thread before its fix is pushed.
+7. **Post-merge tail (Done ≠ Merged):** after the PR merges — remove the issue's row from `docs/CLAIMS.md`, apply the dev-verified migration to prod (once the prod-migration workflow lands, this becomes approving the `production` environment run), smoke-check `https://www.teamenjoyvd.com`, then close the issue.

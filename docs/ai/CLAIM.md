@@ -17,7 +17,7 @@ Materializes a PLAN verdict into GitHub. Requires a verdict from the current ses
 If an issue exists with a completed DoD but no branch, verify the DoD and perform Branch Scaffolding (Steps 3-4 under Section 1).
 
 ## 4. Registry (last step, after Branch Scaffolding)
-Per `docs/guardrails/PROJECT.md` CLAIM-Complete Definition: check `docs/CLAIMS.md` for scope overlap before cutting the branch; `git pull` and re-check immediately before committing; then locally Edit + commit one new row (issue #, branch, files/areas, timestamp) to `docs/CLAIMS.md` on the feature branch just created. Prune any row whose PR has since merged/closed while you're there.
+Per `docs/guardrails/PROJECT.md` CLAIM-Complete Definition: check `docs/CLAIMS.md` for scope overlap before cutting the branch; `git pull` and re-check immediately before committing; then locally Edit + commit one new row (issue #, branch, files/areas, **migration: yes/no**, timestamp) to `docs/CLAIMS.md` on the feature branch just created. Two in-flight rows both flagged `migration: yes` is a sequencing conflict even when their files/areas are disjoint (migration timestamps collide, chains diverge) — surface it to the user before cutting the branch. Prune any row whose PR has since merged/closed while you're there.
 
 ## Rules
 - **Permitted:** `create_issue`, `update_issue`, `create_branch`; local Edit + commit of `docs/CLAIMS.md` only (Section 4).
