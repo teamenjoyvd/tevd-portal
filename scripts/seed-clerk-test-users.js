@@ -11,9 +11,9 @@
  * strategy (@clerk/testing's `clerk.signIn({ emailAddress })`), never a
  * password, so none is generated or stored.
  *
- * SAFETY: refuses to run unless NEXT_PUBLIC_SUPABASE_URL points at
- * localhost/127.0.0.1 — this must never write to prod/preview Supabase
- * (see docs/DEV_WORKFLOW.md "PROD-DB FENCE").
+ * SAFETY: refuses to run unless NEXT_PUBLIC_SUPABASE_URL points at a local
+ * instance (127.0.0.1/localhost) or the hosted DEV project
+ * (iymwxdewcpvpjgzewtzk) — this must never write to prod/preview Supabase.
  */
 
 const { createClerkClient } = require('@clerk/backend')
@@ -27,6 +27,13 @@ const TEST_USERS = [
   { email: MEMBER_EMAIL, role: 'member', firstName: 'E2E', lastName: 'Member' },
   { email: ADMIN_EMAIL, role: 'admin', firstName: 'E2E', lastName: 'Admin' },
 ]
+
+const DEV_PROJECT_REF = 'iymwxdewcpvpjgzewtzk'
+
+function isSafeSupabaseTarget(url) {
+  if (/^https?:\/\/(127\.0\.0\.1|localhost)(:|\/|$)/.test(url)) return true
+  return url.includes(DEV_PROJECT_REF)
+}
 
 async function ensureClerkUser(clerk, { email, role, firstName, lastName }) {
   const existing = await clerk.users.getUserList({ emailAddress: [email] })
@@ -58,10 +65,10 @@ async function upsertProfile(supabase, clerkId, { role, firstName, lastName, ema
 
 async function main() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-  if (!/^https?:\/\/(127\.0\.0\.1|localhost)(:|\/|$)/.test(supabaseUrl)) {
+  if (!isSafeSupabaseTarget(supabaseUrl)) {
     console.error(
       `seed-clerk-test-users: refusing to run — NEXT_PUBLIC_SUPABASE_URL ("${supabaseUrl}") ` +
-        'is not a local Supabase instance. This script must never write to prod/preview Supabase.',
+        'is not a local instance or the hosted DEV project. This script must never write to prod/preview Supabase.',
     )
     process.exitCode = 1
     return
