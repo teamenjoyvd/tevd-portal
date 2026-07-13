@@ -6,4 +6,4 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
-| #563 | `dev/2607-DEV-563` | .env.development.local (values only), scripts/check-env.js, scripts/setup-worktree-env.js, docs/DEV_WORKFLOW.md, README.md, supabase/migrations/ (drift-repair only), next.config.ts | 2026-07-13T09:46Z |
+| #563 | `dev/2607-DEV-563` | .env.development.local (values only), scripts/check-env.js, scripts/setup-worktree-env.js, scripts/seed-clerk-test-users.js, docs/DEV_WORKFLOW.md, docs/STATE.md, docs/CLAIMS.md, docs/ai/CLAIM.md, docs/ai/GOTCHAS.md, CLAUDE.md, README.md, supabase/migrations/ (drift-repair only), next.config.ts (verify-only, no change) | 2026-07-13T09:46Z |

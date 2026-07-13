@@ -1,5 +1,5 @@
 ## Goal
-#563 hosted Supabase dev project (2026-07-13, worktree `issues-485-490-5c096d`, branch `dev/2607-DEV-563`): replace the local Docker Supabase stack (#547) as the day-to-day local dev DB target with the hosted dev project `iymwxdewcpvpjgzewtzk`. App code needs zero changes — only env values, `check:env` classifier, worktree setup script, `seed-clerk-test-users.js` guard, and docs.
+Issue #563 (2026-07-13, worktree `issues-485-490-5c096d`, branch `dev/2607-DEV-563`) hosted Supabase dev project: replace the local Docker Supabase stack (#547) as the day-to-day local dev DB target with the hosted dev project `iymwxdewcpvpjgzewtzk`. App code needs zero changes — only env values, `check:env` classifier, worktree setup script, `seed-clerk-test-users.js` guard, and docs.
 
 ## Now
 Implementation complete and verified (3 commits on `dev/2607-DEV-563`). Ready to push and open the PR.
