@@ -6,4 +6,4 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
-| #567 | `claude/local-dev-audit-277243` | scripts/check-env.js, scripts/setup-worktree-env.js, scripts/validate-rules.js, next.config.ts, README.md, docs/DEV_WORKFLOW.md, docs/guardrails/PROJECT.md (SSU), docs/STATE.md, docs/CLAIMS.md | 2026-07-13T12:40Z |
+| #567 | `claude/local-dev-audit-277243` | scripts/validate-rules.js, next.config.ts, docs/DEV_WORKFLOW.md (`*`-marker truth-up), docs/guardrails/PROJECT.md (SSU local variant), docs/STATE.md, docs/CLAIMS.md | 2026-07-13T12:40Z |

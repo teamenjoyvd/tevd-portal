@@ -8,41 +8,56 @@ The single source for the dev process: local loop → verification → PR → pr
 |---|---|
 | `npm run dev` | Dev server with HMR at <http://localhost:3000> |
 | `npm run verify` | Local mirror of CI: lint → check-types → test → build, visible output |
-| `npm run check:env` | Validates env vars against `.env.example` and reports which Supabase project (local stack vs remote) dev will hit |
+| `npm run check:env` | Validates env vars against `.env.example`'s required list; classifies the Supabase target as LOCAL/DEV/other |
 | `npm run test:mobile` | Playwright smoke at 390×844 against the local dev server |
 | `npm run test:e2e` | Full Playwright smoke (all projects) |
-| `npm run env:worktree` | Copies the main checkout's `.env.local` + `.env.development.local` into the current git worktree |
+| `npm run e2e:seed-clerk` | Seeds two Clerk test-instance users (member, admin) + matching local `profiles` rows — see "Authenticated E2E (Clerk)" below |
+| `npm run test:e2e:auth` | Authenticated Playwright coverage of `/admin/*` role gates — requires `e2e:seed-clerk` first |
+| `npm run env:worktree` | Copies the main checkout's `.env.local` and `.env.development.local` into the current git worktree |
 | `npm run test` | Vitest unit tests |
 | `npm run lint` / `npm run check-types` | ESLint / `tsc --noEmit` |
 
-## Local Supabase stack (Docker)
+## Hosted dev database
 
-Local dev runs against a local Supabase stack ([#547](https://github.com/teamenjoyvd/tevd-portal/issues/547)) — `npm run dev` no longer touches the production database.
+Local dev runs against the **hosted Supabase dev project** `iymwxdewcpvpjgzewtzk` (`tevd-portal-dev`, the default link in `supabase/config.toml`) — [#563](https://github.com/teamenjoyvd/tevd-portal/issues/563) replaced the local Docker stack ([#547](https://github.com/teamenjoyvd/tevd-portal/issues/547)) because it outgrew what a laptop-class dev box can comfortably run (several GB of container images, `npm ci` alone took 30-40 min with Docker Desktop competing for resources). Everything except the database stays local: the Next dev server, tests, tooling.
 
 **One-time setup**
 
-1. Prereqs: [Docker Desktop](https://docs.docker.com/desktop/) running; Supabase CLI (`scoop install supabase` or `npm i -g supabase`).
-2. `supabase start` — pulls images on first run (~5 min), then starts API :54321, DB :54322, Studio :54323 (ports per `supabase/config.toml`).
-3. Create `.env.development.local` in the repo root (gitignored; loaded by `next dev` with **higher priority than `.env.local`**, so Clerk/Mapbox values stay inherited):
+1. Supabase CLI (`scoop install supabase` or `npm i -g supabase`), logged in (`supabase login`) with access to the `tevd-portal-dev` project.
+2. Create `.env.development.local` in the repo root (gitignored; loaded by `next dev` with **higher priority than `.env.local`**, so Clerk/Mapbox values stay inherited):
 
    ```bash
-   NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=<ANON_KEY from `supabase status`>
-   SUPABASE_SERVICE_ROLE_KEY=<SERVICE_ROLE_KEY from `supabase status`>
+   NEXT_PUBLIC_SUPABASE_URL=https://iymwxdewcpvpjgzewtzk.supabase.co
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key from `supabase projects api-keys --project-ref iymwxdewcpvpjgzewtzk`>
+   SUPABASE_SERVICE_ROLE_KEY=<service_role key from the same command>
    ```
 
-   The local keys are the Supabase CLI's standard demo JWTs — identical on every machine, not secrets.
-4. `supabase db reset` — replays the full migration chain and `supabase/seed.sql` (test profiles for each role, a sample trip, the 7 storage buckets, role grants).
+   These are **real credentials** for a shared project — gitignored, never committed, never client-exposed. Unlike the old local demo JWTs, treat them like any other secret.
+3. Schema should already be current (any agent session keeps it in sync via `supabase link --project-ref iymwxdewcpvpjgzewtzk` + `supabase db push`). To verify: `supabase migration list` — every row's `local` and `remote` columns should match.
+4. Seed data (4 role profiles, a sample trip, the 7 storage buckets) should already be present — check via Studio or a quick `select count(*) from profiles;`. If genuinely empty, apply `supabase/seed.sql` by hand (it's idempotent, guarded with `ON CONFLICT`/`WHERE NOT EXISTS`).
 
 **Day to day**
 
-- `supabase start` / `supabase stop` around dev sessions; `supabase db reset` for a clean slate.
-- Studio at <http://localhost:54323> to inspect data.
-- Mutations, form submits, and destructive experiments are all fine — it's a disposable local DB.
-- `supabase db reset` doubles as migration-replay validation: it must stay green on a fresh database. Migrations dated ≤ 2026-04-07 are no-ops (their changes are folded into the `20260315000000` baseline snapshot; prod's history has them stamped). Guards in later migrations cover objects that exist in prod but predate the chain (`settings`, `email_log`, some functions) — see the file comments tagged `#547`.
-- Auth is still real Clerk (`.env.local` dev-instance keys); server DB access is `createServiceClient()` per ADR-002/ADR-011, so Supabase-side auth config is inert locally.
+- No `supabase start`/`stop` — the DEV project is always up.
+- Studio: <https://supabase.com/dashboard/project/iymwxdewcpvpjgzewtzk> to inspect data.
+- Mutations, form submits, and normal test data are fine — but this is a **shared, mutable DB**: every machine and every agent session hits the same rows, unlike the old per-machine disposable local stack. Don't assume a clean slate; don't rely on data another session added still being there.
+- `supabase db reset --linked` wipes and replays the whole dev project (schema + seed) — acceptable here, **never** for prod. Known gotcha applying migrations to a fresh Supabase Cloud project: see `docs/ai/GOTCHAS.md` (`supabase db push`/`reset --linked` row) — a `SET SESSION ROLE` mid-session doesn't pick up that role's configured `search_path`, so `uuid_generate_v4()` calls can fail until `ALTER DATABASE postgres SET search_path TO "$user", public, extensions;` is run once per project.
+- Auth is still real Clerk (`.env.local` dev-instance keys); server DB access is `createServiceClient()` per ADR-002/ADR-011, so Supabase-side auth config is inert.
+- `npm run e2e:seed-clerk` works against the DEV project (or a local instance) — its safety guard accepts both, see "Authenticated E2E (Clerk)" below.
 
-**Prod credentials** now serve only explicitly prod-targeted work (deploys, prod data checks). Vercel **preview URLs still hit prod** — the never-write-from-preview rule stands.
+**Local stack decommission** (optional, reclaims disk): `supabase stop` to tear down the Docker containers, then `docker system prune -a --volumes` to reclaim images/volumes — **destructive to all unused Docker data on the machine**, run it yourself, don't script it into anything automated.
+
+**Prod credentials** serve only explicitly prod-targeted work (deploys, prod data checks). Vercel **preview URLs still hit prod** — the never-write-from-preview rule stands.
+
+## Authenticated E2E (Clerk)
+
+Covers the authenticated pass-through path (`proxy.ts` + role gates in `lib/supabase/guards.ts`) that the navigation-only `mobile-smoke.spec.ts` can't reach (see [#560](https://github.com/teamenjoyvd/tevd-portal/issues/560)). Runs against the hosted **DEV** project by default (or a local instance) — never Preview/prod. `scripts/seed-clerk-test-users.js` only accepts `NEXT_PUBLIC_SUPABASE_URL` pointing at `127.0.0.1`/`localhost` or the DEV project ref (`iymwxdewcpvpjgzewtzk`); it refuses everything else, including prod.
+
+1. `.env.development.local` pointed at the hosted DEV project (the day-to-day default per this doc's "Hosted dev database" section above) — no separate setup needed.
+2. `npm run e2e:seed-clerk` — idempotently creates two Clerk test-instance users (`E2E_CLERK_MEMBER_EMAIL`/`E2E_CLERK_ADMIN_EMAIL`, default `e2e-{member,admin}-tevd-portal@example.com`) via `@clerk/backend` and upserts matching `profiles` rows. These land in the **shared** DEV database like any other write from this workflow — harmless synthetic rows (`clerk_id` prefixed `user_`, easy to spot), but not private to your session.
+3. `npm run test:e2e:auth` — signs in as each user via `@clerk/testing`'s ticket-strategy `clerk.signIn({ emailAddress })` (no password ever generated or stored) and asserts the role-gate baseline: non-admin redirected off `/admin/*` + `403` from `/api/admin/*`; admin gets `200` on both.
+
+CI (`e2e-authenticated` job in `ci.yml`) does the same against a fresh local Supabase stack, gated on the `CLERK_SECRET_KEY` and `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` repo secrets (the existing local dev-instance keys) — the job skips (not fails) until those are added.
 
 ## The local loop
 
@@ -71,20 +86,20 @@ Local dev runs against a local Supabase stack ([#547](https://github.com/teamenj
 Agent sessions run in worktrees under `.claude/worktrees/`. Two things make them work:
 
 - `next.config.ts` sets `turbopack.root` so the dev server resolves the worktree as project root.
-- Env files are not inherited by worktrees — run `npm run env:worktree` once per worktree (copies `.env.local` and `.env.development.local` from the main checkout).
+- `.env.local` and `.env.development.local` are not inherited by worktrees — run `npm run env:worktree` once per worktree to copy both from the main checkout.
 
 ## Database
 
 - Migrations live in `supabase/migrations/` and are applied from agent/CLI sessions targeting a project ref directly (Supabase MCP or `supabase` CLI) — there is no CI database job.
-- Refs: dev `iymwxdewcpvpjgzewtzk` (`tevd-portal-dev`, the default link in `supabase/config.toml`), prod `ynykjpnetfwqzdnsgkkg`. Never link/push prod from a dev machine without an explicit ticket.
-- Local Supabase stack (Docker): landed with #547 — see "Local Supabase stack" above.
+- Refs: dev `iymwxdewcpvpjgzewtzk` (`tevd-portal-dev`, the default link in `supabase/config.toml`, also the day-to-day local dev target per #563), prod `ynykjpnetfwqzdnsgkkg`. Never link/push prod from a dev machine without an explicit ticket.
+- Local Supabase stack (Docker, #547): superseded by the hosted DEV project (#563) for all local dev, including the authenticated E2E suite — see "Authenticated E2E (Clerk)" above. Keep the local stack option only if you specifically need per-machine data isolation.
 
 ## Troubleshooting
 
 | Symptom | Cause / fix |
 |---|---|
 | `npm ci` fails with `EBADPLATFORM` on Windows | Fixed by #546 (Linux native binaries moved to `optionalDependencies`). On an older checkout: `npm ci --force`. |
-| `supabaseUrl is required` on `npm run dev` | `.env.local` missing (fresh clone or worktree). `npm run check:env` to diagnose; in a worktree, `npm run env:worktree`. |
+| `supabaseUrl is required` on `npm run dev` | `.env.local` (and/or `.env.development.local`) missing (fresh clone or worktree). `npm run check:env` to diagnose; in a worktree, `npm run env:worktree`. |
 | Build passes locally, fails on Vercel | Run `npm run build` locally (same command CI/Vercel run); check the Vercel build log linked in the PR. CI builds with placeholder env — code that requires real env at *build time* will differ. |
 | Type errors in IDE but `npm run test` passes | Vitest and `tsc` use different configs — run `npm run check-types`. |
 | Mobile layout broken | Devtools at 390px width; `npm run test:mobile` catches horizontal overflow on smoke-covered routes. |

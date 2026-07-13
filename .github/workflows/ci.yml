@@ -84,3 +84,78 @@ jobs:
       # Soft-gate the audit with '|| true' so vulnerabilities are reported in the logs
       # but do not block pull request merges.
       - run: npm audit --audit-level=high --omit=dev || true
+
+  e2e-authenticated:
+    name: Authenticated E2E (Clerk)
+    runs-on: ubuntu-latest
+    # Skips (not fails) until CLERK_SECRET_KEY and NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+    # secrets are added — see #560. Never targets Preview/prod Supabase: this job
+    # boots a disposable local Supabase stack (Docker) and only writes there.
+    #
+    # The secrets check runs as a step (not a job-level `if:`) because the
+    # `secrets` context is not permitted in jobs.<job_id>.if — referencing it
+    # there makes GitHub Actions reject the entire workflow file at parse time.
+    steps:
+      - name: Check required secrets
+        id: check
+        run: |
+          if [ -n "$CLERK_SECRET_KEY" ] && [ -n "$CLERK_PUBLISHABLE_KEY" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+          CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+      - uses: actions/checkout@v4
+        if: steps.check.outputs.ready == 'true'
+      - uses: actions/setup-node@v4
+        if: steps.check.outputs.ready == 'true'
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm ci
+        if: steps.check.outputs.ready == 'true'
+      - uses: supabase/setup-cli@v3
+        if: steps.check.outputs.ready == 'true'
+        with:
+          version: latest
+      - name: Start local Supabase
+        if: steps.check.outputs.ready == 'true'
+        run: |
+          supabase start
+          supabase db reset
+      - name: Export local Supabase keys
+        if: steps.check.outputs.ready == 'true'
+        run: supabase status -o env >> "$GITHUB_ENV"
+      - name: Map local Supabase keys to app env names
+        if: steps.check.outputs.ready == 'true'
+        run: |
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+          } >> "$GITHUB_ENV"
+      - name: Seed Clerk test users + local profiles
+        if: steps.check.outputs.ready == 'true'
+        run: npm run e2e:seed-clerk
+        env:
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+      - name: Install Playwright chromium
+        if: steps.check.outputs.ready == 'true'
+        run: npx playwright install --with-deps chromium
+      - name: Run authenticated Playwright project
+        if: steps.check.outputs.ready == 'true'
+        run: npx playwright test --project=authenticated
+        env:
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+          NEXT_PUBLIC_MAPBOX_TOKEN: "pk.placeholder"
+          NEXT_PUBLIC_APP_URL: "http://localhost:3000"
+          ICAL_TOKEN_SECRET: "0000000000000000000000000000000000000000000000000000000000000000"
+      - uses: actions/upload-artifact@v4
+        if: failure() && steps.check.outputs.ready == 'true'
+        with:
+          name: playwright-report-authenticated
+          path: playwright-report/
+          retention-days: 7

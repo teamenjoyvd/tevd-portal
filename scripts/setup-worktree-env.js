@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 
 /**
- * Copies the main checkout's env files (.env.local and, when present,
- * .env.development.local) into the current git worktree
- * (worktrees under .claude/worktrees/ don't inherit untracked env files,
- * so `npm run dev` fails there with "supabaseUrl is required").
+ * Copies the main checkout's .env.local (and .env.development.local, if
+ * present) into the current git worktree (worktrees under
+ * .claude/worktrees/ don't inherit untracked env files, so `npm run dev`
+ * fails there with "supabaseUrl is required").
  *
- * Never overwrites a file that already exists in the worktree.
+ * Refuses to overwrite an existing file of either name in the worktree.
  */
 
 const fs = require('fs')
@@ -28,55 +28,48 @@ if (marker === -1) {
 }
 
 const mainRoot = segments.slice(0, marker).join(path.sep)
+const source = path.join(mainRoot, '.env.local')
+const dest = path.join(cwd, '.env.local')
 
-// .env.local is required; .env.development.local (local Supabase override,
-// see docs/DEV_WORKFLOW.md) is copied when the main checkout has one.
-const FILES = [
-  { name: '.env.local', required: true },
-  { name: '.env.development.local', required: false },
-]
-
-let copiedDevOverride = false
-
-for (const { name, required } of FILES) {
-  const source = path.join(mainRoot, name)
-  const dest = path.join(cwd, name)
-
-  if (!fs.existsSync(source)) {
-    if (required) {
-      console.error(`env:worktree: ${source} not found — the main checkout has no ${name} to copy.`)
-      process.exit(1)
-    }
-    console.warn(
-      `env:worktree: main checkout has no ${name} — skipped.\n` +
-        '  Without it, dev in this worktree targets the Supabase project from .env.local (PRODUCTION).\n' +
-        '  See docs/DEV_WORKFLOW.md "Local Supabase stack" to set it up.',
-    )
-    continue
-  }
-
-  if (fs.existsSync(dest)) {
-    console.log(`env:worktree: ${name} already exists in this worktree — leaving it untouched.`)
-    console.log('  Delete it first if you want a fresh copy.')
-    if (name === '.env.development.local') copiedDevOverride = true
-    continue
-  }
-
-  fs.copyFileSync(source, dest)
-  console.log(`env:worktree: copied ${source} -> ${dest}`)
-  if (name === '.env.development.local') copiedDevOverride = true
+if (!fs.existsSync(source)) {
+  console.error(
+    `env:worktree: ${source} not found — the main checkout has no .env.local to copy.`,
+  )
+  process.exit(1)
 }
 
-if (copiedDevOverride) {
+if (fs.existsSync(dest)) {
+  console.log('env:worktree: .env.local already exists in this worktree — leaving it untouched.')
+} else {
+  fs.copyFileSync(source, dest)
+  console.log(`env:worktree: copied ${source} -> ${dest}`)
+}
+
+const devLocalSource = path.join(mainRoot, '.env.development.local')
+const devLocalDest = path.join(cwd, '.env.development.local')
+const devLocalSourceExists = fs.existsSync(devLocalSource)
+
+if (devLocalSourceExists && fs.existsSync(devLocalDest)) {
   console.log(
-    '\nenv:worktree: .env.development.local present — `npm run dev` targets the LOCAL Supabase stack.\n' +
-      '  (Start it with `supabase start`; see docs/DEV_WORKFLOW.md.)',
+    'env:worktree: .env.development.local already exists in this worktree — leaving it untouched.',
+  )
+} else if (devLocalSourceExists) {
+  fs.copyFileSync(devLocalSource, devLocalDest)
+  console.log(`env:worktree: copied ${devLocalSource} -> ${devLocalDest}`)
+}
+
+if (devLocalSourceExists) {
+  console.log(
+    '\nenv:worktree: this worktree targets the hosted Supabase DEV project (#563) via\n' +
+      '  .env.development.local — safe for normal local writes. Shared, mutable DB: other\n' +
+      '  machines/sessions can see and change the same data.',
   )
 } else {
   console.warn(
-    '\n⚠  WARNING: .env.local contains PRODUCTION credentials (Supabase service-role key)\n' +
-      '   and no .env.development.local override was found: local dev writes hit live data.\n' +
-      '   Navigation-only testing — no form submits, no mutations, no destructive experiments.\n' +
-      '   Never commit or share these files (.env* is gitignored — keep it that way).',
+    '\n⚠  WARNING: no .env.development.local found — .env.local alone contains PRODUCTION\n' +
+      '   credentials (Supabase service-role key). Local dev writes hit live data.\n' +
+      '   Run: cp .env.example .env.development.local in the main checkout and point it at\n' +
+      '   the DEV project (iymwxdewcpvpjgzewtzk), or navigation-only testing until you do.',
   )
 }
+console.warn('   Never commit or share these files (.env* is gitignored — keep it that way).')
