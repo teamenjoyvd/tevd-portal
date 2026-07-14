@@ -2228,6 +2228,15 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      claim_los_submissions: {
+        Args: { p_ids: string[]; p_resolved_by?: string }
+        Returns: {
+          id: string
+          root_abo_number: string
+          created_at: string
+          rows: Json
+        }[]
+      }
       dissolve_partnership: {
         Args: { p_changed_by: string; p_profile_id: string }
         Returns: {
@@ -2379,6 +2388,10 @@ export type Database = {
       reject_los_submission: {
         Args: { p_id: string; p_note?: string; p_resolved_by?: string }
         Returns: undefined
+      }
+      release_los_submissions: {
+        Args: { p_ids: string[] }
+        Returns: number
       }
       rollback_los_import: { Args: { p_import_id: string }; Returns: Json }
       run_los_digest: { Args: never; Returns: undefined }

@@ -41,7 +41,7 @@ const ROOT_ERROR: Record<string, string> = {
 }
 
 function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
 }
 
 export function LosUploadClient({ aboNumber }: { aboNumber: string | null }) {
@@ -49,6 +49,7 @@ export function LosUploadClient({ aboNumber }: { aboNumber: string | null }) {
   const { fileRef, files, assembly, handleFileAdd, handleFileDrop, removeFile, reset } = useAssembly()
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [withdrawError, setWithdrawError] = useState<string | null>(null)
 
   const { data: submissionsData } = useQuery<{ submissions: Submission[]; abo_number: string | null }>({
     queryKey: ['my-los-submissions'],
@@ -115,10 +116,16 @@ export function LosUploadClient({ aboNumber }: { aboNumber: string | null }) {
   }
 
   async function handleWithdraw(id: string) {
+    setWithdrawError(null)
     try {
       await apiClient('/api/profile/los-submission', { method: 'PATCH', body: JSON.stringify({ id }) })
+    } catch (err: unknown) {
+      // A withdraw can lose a race (already approved/rejected) — say so, and still
+      // refresh so the list shows the status that actually won.
+      setWithdrawError(err instanceof Error ? err.message : 'Withdraw failed')
+    } finally {
       qc.invalidateQueries({ queryKey: ['my-los-submissions'] })
-    } catch { /* surfaced via list refresh */ }
+    }
   }
 
   const submissions = submissionsData?.submissions ?? []
@@ -213,6 +220,7 @@ export function LosUploadClient({ aboNumber }: { aboNumber: string | null }) {
       {/* My submissions */}
       <div className="space-y-2">
         <p className="text-xs font-semibold tracking-widest uppercase" style={{ color: 'var(--text-secondary)' }}>My submissions</p>
+        {withdrawError && <p className="text-sm" style={{ color: '#bc4749' }}>{withdrawError}</p>}
         {submissions.length === 0 ? (
           <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No submissions yet.</p>
         ) : (

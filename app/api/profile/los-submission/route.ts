@@ -72,12 +72,16 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // Supersede any prior still-pending submission from this owner.
-  await supabase
+  // Supersede any prior still-pending submission from this owner. If this fails we
+  // must not insert — two pending rows would break the one-pending-per-owner
+  // invariant the admin queue relies on.
+  const { error: supersedeError } = await supabase
     .from('los_submission_requests')
     .update({ status: 'withdrawn', resolved_at: new Date().toISOString() })
     .eq('profile_id', profile.id)
     .eq('status', 'pending')
+
+  if (supersedeError) return Response.json({ error: supersedeError.message }, { status: 500 })
 
   const { data, error } = await supabase
     .from('los_submission_requests')

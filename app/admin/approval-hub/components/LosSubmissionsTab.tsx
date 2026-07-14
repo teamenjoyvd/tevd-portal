@@ -28,7 +28,7 @@ const STATUS_STYLE: Record<LosSubmission['status'], { bg: string; color: string;
 }
 
 function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
 }
 function fullName(p: Submitter | null) {
   if (!p) return '—'

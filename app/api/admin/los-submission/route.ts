@@ -65,19 +65,30 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: 'No submissions selected' }, { status: 400 })
   }
 
-  const { data: subs, error: loadError } = await supabase
-    .from('los_submission_requests')
-    .select('id, root_abo_number, created_at, rows, status')
-    .in('id', ids)
+  // Atomically claim the still-pending submissions (pending -> approved, RETURNING
+  // the payload). Whatever comes back is provably still pending at claim time, so a
+  // concurrent withdraw either wins the race outright (the row is not returned and
+  // never gets imported) or loses it cleanly. Never merge off a pre-read snapshot:
+  // that let a withdrawal land after the data was already written.
+  const { data: claimed, error: claimError } = await supabase.rpc('claim_los_submissions', {
+    p_ids: ids,
+    p_resolved_by: profile.id,
+  })
+  if (claimError) return Response.json({ error: claimError.message }, { status: 500 })
 
-  if (loadError) return Response.json({ error: loadError.message }, { status: 500 })
-  const pending = (subs ?? []).filter(s => s.status === 'pending')
-  if (pending.length === 0) {
+  const claimedRows = claimed ?? []
+  if (claimedRows.length === 0) {
     return Response.json({ error: 'No pending submissions in selection' }, { status: 400 })
   }
+  const claimedIds = claimedRows.map(s => s.id)
 
-  // Merge the selected parts — deepest-owner-wins per ABO.
-  const inputs: SubmissionInput[] = pending.map(s => ({
+  // From here on the claim is held: any early return must release it.
+  const release = async () => {
+    await supabase.rpc('release_los_submissions', { p_ids: claimedIds })
+  }
+
+  // Merge the claimed parts — deepest-owner-wins per ABO.
+  const inputs: SubmissionInput[] = claimedRows.map(s => ({
     rootAbo: s.root_abo_number,
     createdAt: s.created_at,
     rows: (s.rows as unknown as Record<string, string>[]) ?? [],
@@ -85,6 +96,7 @@ export async function POST(req: NextRequest) {
   const merged = mergeSubmissions(inputs)
 
   if (merged.rows.length === 0) {
+    await release()
     return Response.json({ error: 'Merged submission is empty' }, { status: 400 })
   }
 
@@ -93,21 +105,17 @@ export async function POST(req: NextRequest) {
     p_rows: merged.rows as unknown as never,
     p_imported_by: profile.id,
   })
-  if (importError) return Response.json({ error: importError.message }, { status: 500 })
-
-  // Transition the approved submissions.
-  const approvedIds = pending.map(s => s.id)
-  const { error: approveError } = await supabase.rpc('approve_los_submissions', {
-    p_ids: approvedIds,
-    p_resolved_by: profile.id,
-  })
-  if (approveError) return Response.json({ error: approveError.message }, { status: 500 })
+  if (importError) {
+    await release()
+    return Response.json({ error: importError.message }, { status: 500 })
+  }
 
   const rpcResult = importData as { inserted: number; import_id: string; errors: unknown[] }
   return Response.json({
     inserted: rpcResult.inserted,
     import_id: rpcResult.import_id,
-    approved: approvedIds.length,
+    approved: claimedIds.length,
+    skipped: ids.length - claimedIds.length,
     junctions: merged.junctions,
     conflicts: merged.conflicts,
     row_count: merged.rows.length,

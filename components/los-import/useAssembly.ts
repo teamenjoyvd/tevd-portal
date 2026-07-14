@@ -20,7 +20,12 @@ export function readCsvFiles(fileList: File[]): Promise<FileEntry[]> {
     reader.onerror = reject
     reader.readAsText(file)
   }))
-  return Promise.all(readers)
+  // Per-file settlement — one unreadable file must not drop the whole batch.
+  return Promise.allSettled(readers).then(results =>
+    results
+      .filter((r): r is PromiseFulfilledResult<FileEntry> => r.status === 'fulfilled')
+      .map(r => r.value),
+  )
 }
 
 export function useAssembly() {
