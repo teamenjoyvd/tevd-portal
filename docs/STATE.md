@@ -6,10 +6,12 @@ ALL CODE COMPLETE + fully verified (static AND runtime). `npm run build` green; 
 **Runtime E2E: 6/6 pass** against hosted DEV (`e2e/los-submission-auth.spec.ts`, authenticated Playwright): scope-mismatch→400, matching-root→pending, withdraw, admin approve→import writes `los_members` + `last_updated_by_abo` (NEW=CORE self, CHILD=CORE upline), senior-CORE import stamps CHILD=SENIOR (upline), reject. Fixtures throwaway (ABOs 99000xx + e2e-core/senior users) seeded + cleaned up (verified 0 leftover). Existing `admin-auth` spec still 4/4 (no regression).
 Migrations `20260713000000` + `20260713000100` applied to DEV + recorded via `migration repair --status applied`. Types spliced additively.
 Merged `origin/main` (post-#568) into the branch: the only conflict was this file — PR #569's session content kept, main's Constraints/Open-items superset preserved.
+**CodeRabbit review addressed (commit `a91968b`)** — 6 findings, all fixed. Load-bearing one: the approve flow was read→merge→import→mark, so a withdraw landing mid-flight could not stop an already-executed import. New `claim_los_submissions()` RPC (migration `20260714000000`) does one `UPDATE ... WHERE status='pending' RETURNING` — the route now merges/imports only rows provably still pending at claim time; `release_los_submissions()` hands the claim back to pending if the import then fails. Re-verified: 96/96 unit, lint 0 errors, build green, `los-submission-auth` 6/6 + `admin-auth` 4/4 against DEV.
 
 ## Next
 - CI green + Vercel preview READY before Done (PR #569)
-- Pre-existing DEV history drift (phantom 20260707/09/10 from #563) left untouched — reconcile with `migration repair --status reverted 20260707 20260709 20260710` when convenient
+- CI's `Authenticated E2E (Clerk)` job is a 6-second SKIP (gated on secrets not set, see #560) — it does NOT actually run the specs. Authenticated E2E must be run locally against DEV until those secrets land; do not read a green tick there as coverage.
+- Migration CI/CD procedure ticket filed: **#570** (migrate-before-deploy, one ledger writer, gated prod run)
 - `.env*` are gitignored (do not commit); the worktree DEV keys live only locally
 - `.env.development.local` on the dev machine should point at the hosted DEV project per docs/DEV_WORKFLOW.md "Hosted dev database"; local Docker stack teardown (`supabase stop` + `docker system prune -a --volumes`) is user-run only
 - (Parked milestone queue) #510 storage RLS; #485; Phase 4: #490/#492/#489/#487/#488; Phase 5: #469/#486/#491/#493/#494/#495/#496/#497
@@ -40,6 +42,7 @@ DECISION: LOS authority model is deepest-owner-wins (closest upline owner of a c
 - Gotcha discovered + documented (`docs/ai/GOTCHAS.md`): `supabase db push`/`reset --linked` on a fresh Cloud project can fail on `uuid_generate_v4()` because `SET SESSION ROLE` mid-session doesn't inherit that role's configured `search_path`; fix is `ALTER DATABASE postgres SET search_path TO "$user", public, extensions;` once per project
 - Seed data on DEV project: 4 role profiles + 1 sample trip + 7 storage buckets + 2 E2E Clerk test profiles (`user_3GPgzTRoaVUqpOTUIHSIC3mHXWg` member, `user_3GPgzcSz55oxqpEY1FHQAYkg0vC` admin)
 - `npm run verify` (lint/check-types/test/build) green as of commit `5a9caa4`
+- The "phantom" DEV migrations `20260707/09/10` were NOT phantoms — the files exist locally (`20260707_001_add_function_search_path.sql` etc.); the remote ledger had them recorded under truncated versions. 2026-07-14: repaired the DEV ledger (`migration repair --status reverted`) + re-applied all three (all idempotent: `ALTER FUNCTION ... SET`, `COMMENT ON`, `DROP POLICY IF EXISTS`), then pushed `20260714000000`. DEV ledger is in sync; prod's is unaudited — that audit is the first task in #570.
 
 ## Done
 Migration chain synced to DEV project — RESULT: 18 pending migrations pushed via `supabase db push`, verified via `supabase migration list` (all rows match).
