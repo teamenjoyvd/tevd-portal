@@ -24,6 +24,8 @@ export type LOSNode = {
   qualified_legs: number | null
   annual_ppv: number | null
   renewal_date: string | null
+  last_synced_at?: string | null
+  last_updated_by_abo?: string | null
   vital_signs: VitalSign[]
   children?: LOSNode[]
 }

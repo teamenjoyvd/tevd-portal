@@ -1,4 +1,23 @@
 import { defineConfig, devices } from '@playwright/test'
+import fs from 'node:fs'
+import path from 'node:path'
+
+// Playwright's own process (globalSetup + tests) does not inherit Next's env
+// loading, so the authenticated project's Clerk/Supabase clients would see no
+// keys. Load env files in Next precedence (.env.development.local first, then
+// .env.local), never overwriting already-set vars. No-op when files are absent
+// (contributor machines / preview-smoke) — keeps other projects unaffected.
+for (const f of ['.env.development.local', '.env.local']) {
+  const p = path.join(process.cwd(), f)
+  if (!fs.existsSync(p)) continue
+  for (const line of fs.readFileSync(p, 'utf8').split(/\r?\n/)) {
+    const m = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/)
+    if (!m) continue
+    let v = m[2]
+    if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) v = v.slice(1, -1)
+    if (process.env[m[1]] === undefined) process.env[m[1]] = v
+  }
+}
 
 // BASE_URL set (e.g. the preview-smoke workflow pointing at a Vercel preview)
 // -> test that deployment and start no local server.
@@ -23,7 +42,7 @@ export default defineConfig({
       // browserName pinned: devices['iPhone 12'] defaults to webkit, but CI
       // (preview-smoke.yml) installs chromium only — keep local & CI identical.
       name: 'mobile-390',
-      testIgnore: /admin-auth\.spec\.ts/,
+      testIgnore: /(admin-auth|los-submission-auth)\.spec\.ts/,
       use: {
         ...devices['iPhone 12'],
         browserName: 'chromium',
@@ -32,14 +51,14 @@ export default defineConfig({
     },
     {
       name: 'desktop',
-      testIgnore: /admin-auth\.spec\.ts/,
+      testIgnore: /(admin-auth|los-submission-auth)\.spec\.ts/,
       use: { viewport: { width: 1280, height: 800 } },
     },
     {
       // Authenticated coverage (issue #560) — requires local Supabase +
       // npm run e2e:seed-clerk. Never target a preview/prod-DB deployment.
       name: 'authenticated',
-      testMatch: /admin-auth\.spec\.ts/,
+      testMatch: /(admin-auth|los-submission-auth)\.spec\.ts/,
       use: { viewport: { width: 1280, height: 800 } },
     },
   ],

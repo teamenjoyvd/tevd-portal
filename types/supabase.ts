@@ -736,6 +736,7 @@ export type Database = {
           group_orders_count: number | null
           group_size: number | null
           last_synced_at: string
+          last_updated_by_abo: string | null
           name: string | null
           personal_order_count: number | null
           phone: string | null
@@ -763,6 +764,7 @@ export type Database = {
           group_orders_count?: number | null
           group_size?: number | null
           last_synced_at?: string
+          last_updated_by_abo?: string | null
           name?: string | null
           personal_order_count?: number | null
           phone?: string | null
@@ -790,6 +792,7 @@ export type Database = {
           group_orders_count?: number | null
           group_size?: number | null
           last_synced_at?: string
+          last_updated_by_abo?: string | null
           name?: string | null
           personal_order_count?: number | null
           phone?: string | null
@@ -802,6 +805,74 @@ export type Database = {
           sponsoring?: number | null
         }
         Relationships: []
+      }
+      los_submission_requests: {
+        Row: {
+          admin_note: string | null
+          created_at: string
+          id: string
+          profile_id: string
+          resolved_at: string | null
+          resolved_by: string | null
+          root_abo_number: string
+          row_count: number
+          rows: Json
+          status: string
+        }
+        Insert: {
+          admin_note?: string | null
+          created_at?: string
+          id?: string
+          profile_id: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          root_abo_number: string
+          row_count?: number
+          rows: Json
+          status?: string
+        }
+        Update: {
+          admin_note?: string | null
+          created_at?: string
+          id?: string
+          profile_id?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          root_abo_number?: string
+          row_count?: number
+          rows?: Json
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "los_submission_requests_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "member_roles_history"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "los_submission_requests_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "los_submission_requests_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "member_roles_history"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "los_submission_requests_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       member_event_log: {
         Row: {
@@ -2111,6 +2182,10 @@ export type Database = {
         Args: { p_request_id: string }
         Returns: Json
       }
+      approve_los_submissions: {
+        Args: { p_ids: string[]; p_resolved_by?: string }
+        Returns: number
+      }
       approve_member_verification: {
         Args: { p_admin_note?: string; p_request_id: string }
         Returns: {
@@ -2152,6 +2227,15 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      claim_los_submissions: {
+        Args: { p_ids: string[]; p_resolved_by?: string }
+        Returns: {
+          id: string
+          root_abo_number: string
+          created_at: string
+          rows: Json
+        }[]
       }
       dissolve_partnership: {
         Args: { p_changed_by: string; p_profile_id: string }
@@ -2223,6 +2307,7 @@ export type Database = {
           group_size: number
           last_name: string
           last_synced_at: string
+          last_updated_by_abo: string
           name: string
           ppv: number
           profile_id: string
@@ -2300,6 +2385,14 @@ export type Database = {
         Returns: Json
       }
       rebuild_tree_paths: { Args: never; Returns: undefined }
+      reject_los_submission: {
+        Args: { p_id: string; p_note?: string; p_resolved_by?: string }
+        Returns: undefined
+      }
+      release_los_submissions: {
+        Args: { p_ids: string[] }
+        Returns: number
+      }
       rollback_los_import: { Args: { p_import_id: string }; Returns: Json }
       run_los_digest: { Args: never; Returns: undefined }
       text2ltree: { Args: { "": string }; Returns: unknown }

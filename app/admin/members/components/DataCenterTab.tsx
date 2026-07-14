@@ -2,10 +2,11 @@
 
 import { useState } from 'react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
-import { type JunctionNode } from '@/lib/csv-import'
 import { ReconciliationPanel } from './ReconciliationPanel'
 import { useLosImport, type LOSStatus, type PurgeResult } from './useLosImport'
 import type { AssemblyResult } from '@/lib/csv-import'
+import { DropZone } from '@/components/los-import/DropZone'
+import { AssemblySummary } from '@/components/los-import/AssemblySummary'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,39 +40,6 @@ function DiffSection({
         </svg>
       </button>
       {open && <div className="mt-2 space-y-1">{children}</div>}
-    </div>
-  )
-}
-
-// ── JunctionPanel ─────────────────────────────────────────────────────────────
-
-function JunctionPanel({ junctions }: { junctions: JunctionNode[] }) {
-  if (junctions.length === 0) return null
-  return (
-    <div className="p-4 rounded-xl border mt-4" style={{ borderColor: 'var(--border-default)', backgroundColor: 'var(--bg-card)' }}>
-      <p className="text-xs font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
-        Junction nodes ({junctions.length})
-      </p>
-      <div className="space-y-2">
-        {junctions.map(j => (
-          <div key={j.abo_number}
-            className="flex flex-wrap items-start gap-2 text-xs px-3 py-2 rounded-lg"
-            style={{ backgroundColor: j.has_conflict ? 'rgba(224,122,95,0.08)' : 'rgba(129,178,154,0.08)' }}>
-            <span className="font-mono font-medium" style={{ color: 'var(--text-primary)' }}>{j.abo_number}</span>
-            <span style={{ color: 'var(--text-secondary)' }}>{j.name}</span>
-            <span className="ml-auto text-xs px-1.5 py-0.5 rounded-full font-semibold"
-              style={{
-                backgroundColor: j.has_conflict ? 'rgba(224,122,95,0.2)' : 'rgba(129,178,154,0.2)',
-                color: j.has_conflict ? '#e07a5f' : '#2d6a4f',
-              }}>
-              {j.has_conflict ? `data discrepancy: ${j.conflict_fields.join(', ')} · first-seen wins` : 'clean'}
-            </span>
-            <span className="w-full text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-              in: {j.files.join(', ')}
-            </span>
-          </div>
-        ))}
-      </div>
     </div>
   )
 }
@@ -189,74 +157,15 @@ export function DataCenterTab() {
           </div>
         )}
 
-        {/* Drop zone */}
-        <div
-          className="border-2 border-dashed rounded-lg p-8 text-center"
-          style={{ borderColor: 'var(--border-default)', backgroundColor: 'var(--bg-card)' }}
-          onDragOver={e => e.preventDefault()}
-          onDrop={handleFileDrop}
-        >
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".csv"
-            multiple
-            onChange={handleFileAdd}
-            className="hidden"
-            id="csv-upload"
-          />
-          <label htmlFor="csv-upload" className="cursor-pointer">
-            <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-              {files.length === 0 ? 'Click or drag CSV files here' : 'Add more files'}
-            </p>
-            <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>.csv only · multiple files supported</p>
-          </label>
-        </div>
+        <DropZone
+          fileRef={fileRef}
+          files={files}
+          onFileAdd={handleFileAdd}
+          onFileDrop={handleFileDrop}
+          removeFile={removeFile}
+        />
 
-        {/* File chips */}
-        {files.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {files.map(f => (
-              <div
-                key={f.filename}
-                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border"
-                style={{ borderColor: 'var(--border-default)', backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)' }}
-              >
-                <span>{f.filename}</span>
-                <span style={{ color: 'var(--text-secondary)' }}>({f.rows.length} rows)</span>
-                <button
-                  onClick={() => removeFile(f.filename)}
-                  className="ml-1 rounded-full w-4 h-4 flex items-center justify-center hover:opacity-70"
-                  style={{ color: 'var(--text-secondary)' }}
-                >
-                  ×
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Assembly status */}
-        {assembly && (
-          <>
-            <div className="p-4 rounded-xl border" style={{ borderColor: 'var(--border-default)', backgroundColor: 'var(--bg-card)' }}>
-              <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                Assembly: {assembly.total_row_count} unique members from {files.length} file{files.length !== 1 ? 's' : ''}
-              </p>
-              {assembly.disconnected_files.length > 0 && (
-                <div className="mt-2 p-3 rounded-lg" style={{ backgroundColor: 'rgba(224,122,95,0.08)' }}>
-                  <p className="text-xs font-semibold" style={{ color: '#e07a5f' }}>
-                    ⚠ Potentially disconnected file{assembly.disconnected_files.length !== 1 ? 's' : ''}: {assembly.disconnected_files.join(', ')}
-                  </p>
-                  <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
-                    These files share no ABO numbers with any other loaded file. Verify they are part of the same tree.
-                  </p>
-                </div>
-              )}
-            </div>
-            <JunctionPanel junctions={assembly.junctions} />
-          </>
-        )}
+        {assembly && <AssemblySummary assembly={assembly} sourceCount={files.length} />}
 
         {canReview && (
           <div className="flex flex-wrap gap-3 items-start">

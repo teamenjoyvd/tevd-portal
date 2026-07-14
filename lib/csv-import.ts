@@ -296,3 +296,167 @@ export function assembleFiles(
     total_row_count: rows.length,
   }
 }
+
+// ── Tree-root detection & scope check ───────────────────────────────────────────
+
+/**
+ * Returns the ABO numbers that are roots of the assembled row set — i.e. rows
+ * whose sponsor_abo_number is empty or points to an ABO not present in the set.
+ * A clean single sub-tree has exactly one root.
+ */
+export function findTreeRoots(rows: Record<string, string>[]): string[] {
+  const abos = new Set(rows.map(r => r.abo_number).filter(Boolean))
+  const roots: string[] = []
+  const seen = new Set<string>()
+  for (const r of rows) {
+    const abo = r.abo_number
+    if (!abo || seen.has(abo)) continue
+    seen.add(abo)
+    const sponsor = r.sponsor_abo_number
+    if (!sponsor || !abos.has(sponsor)) roots.push(abo)
+  }
+  return roots
+}
+
+export type RootCheck =
+  | { ok: true; root: string }
+  | { ok: false; reason: 'no-root' | 'multi-root' | 'mismatch'; roots: string[] }
+
+/**
+ * Scope guard for a CORE submission (decision table from the plan):
+ * - exactly 1 root that equals expectedAbo → ok
+ * - 0 roots (cycle / self-referential export) → 'no-root'
+ * - >1 root (multiple legs / upline row included) → 'multi-root'
+ * - single root that is NOT expectedAbo → 'mismatch'
+ * Enforced server-side; the client uses the same fn for early UX feedback.
+ */
+export function checkSubmissionRoot(
+  rows: Record<string, string>[],
+  expectedAbo: string
+): RootCheck {
+  const roots = findTreeRoots(rows)
+  if (roots.length === 0) return { ok: false, reason: 'no-root', roots }
+  if (roots.length > 1) return { ok: false, reason: 'multi-root', roots }
+  if (roots[0] !== expectedAbo) return { ok: false, reason: 'mismatch', roots }
+  return { ok: true, root: roots[0] }
+}
+
+// ── Multi-submission merge (deepest-owner-wins authority) ───────────────────────
+
+export type SubmissionInput = {
+  // A stable label for the owner of this submission — its root ABO. Surfaced in
+  // junction metadata so the admin can see which owner won a contested node.
+  rootAbo: string
+  createdAt: string
+  rows: Record<string, string>[]
+}
+
+/**
+ * Merges multiple CORE submissions into one deduplicated row set.
+ *
+ * Authority rule (replaces assembleFiles' first-seen-wins): for any abo_number
+ * present in more than one submission, the winning row comes from the submission
+ * whose owner (rootAbo) sits DEEPEST in the combined sponsorship tree — i.e. the
+ * most specific / closest-upline owner of that member. Ties break by newest
+ * createdAt. The resolved single row set is what gets handed to import_los_members,
+ * so DB-write correctness is unchanged; only which row wins per abo differs, and
+ * it is surfaced via junction metadata rather than silent.
+ */
+export function mergeSubmissions(subs: SubmissionInput[]): AssemblyResult {
+  // Union sponsor map (first-seen sponsor per abo) — used only for depth structure.
+  const sponsorByAbo = new Map<string, string>()
+  for (const sub of subs) {
+    for (const row of sub.rows) {
+      const abo = row.abo_number
+      if (!abo || sponsorByAbo.has(abo)) continue
+      sponsorByAbo.set(abo, row.sponsor_abo_number ?? '')
+    }
+  }
+
+  // Depth of each abo from its top-most in-set ancestor (memoized, cycle-guarded).
+  const depthCache = new Map<string, number>()
+  function depthOf(abo: string, seen: Set<string>): number {
+    const cached = depthCache.get(abo)
+    if (cached !== undefined) return cached
+    const parent = sponsorByAbo.get(abo)
+    if (!parent || !sponsorByAbo.has(parent) || seen.has(abo)) {
+      depthCache.set(abo, 0)
+      return 0
+    }
+    seen.add(abo)
+    const val = depthOf(parent, seen) + 1
+    depthCache.set(abo, val)
+    return val
+  }
+
+  // Winner selection per abo.
+  type Cand = { row: Record<string, string>; rootDepth: number; createdAt: string; owner: string }
+  const winner = new Map<string, Cand>()
+  const ownersByAbo = new Map<string, string[]>()
+  const rowsByAboBySub: { rootAbo: string; row: Record<string, string> }[] = []
+
+  for (const sub of subs) {
+    const rootDepth = depthOf(sub.rootAbo, new Set())
+    for (const row of sub.rows) {
+      const abo = row.abo_number
+      if (!abo) continue
+
+      const owners = ownersByAbo.get(abo) ?? []
+      if (!owners.includes(sub.rootAbo)) owners.push(sub.rootAbo)
+      ownersByAbo.set(abo, owners)
+      rowsByAboBySub.push({ rootAbo: sub.rootAbo, row })
+
+      const cur = winner.get(abo)
+      if (
+        !cur ||
+        rootDepth > cur.rootDepth ||
+        (rootDepth === cur.rootDepth && sub.createdAt > cur.createdAt)
+      ) {
+        winner.set(abo, { row, rootDepth, createdAt: sub.createdAt, owner: sub.rootAbo })
+      }
+    }
+  }
+
+  // Annotate each winning row with the owner (submission root) that won it, so
+  // import_los_members can persist los_members.last_updated_by_abo.
+  const rows = Array.from(winner.values()).map(c => ({ ...c.row, updated_by_abo: c.owner }))
+
+  // Junctions: abo present in >1 submission. Conflict if name/sponsor differ.
+  const junctions: JunctionNode[] = []
+  const conflicts: JunctionNode[] = []
+  for (const [abo, owners] of ownersByAbo.entries()) {
+    if (owners.length <= 1) continue
+    const allRows = rowsByAboBySub.filter(e => e.row.abo_number === abo).map(e => e.row)
+    const ref = allRows[0]
+    const conflictFields: string[] = []
+    for (const field of CONFLICT_FIELDS) {
+      const refVal = ref[field] ?? ''
+      if (allRows.slice(1).some(r => (r[field] ?? '') !== refVal)) conflictFields.push(field)
+    }
+    const node: JunctionNode = {
+      abo_number: abo,
+      name: winner.get(abo)?.row.name ?? '',
+      files: owners,
+      has_conflict: conflictFields.length > 0,
+      conflict_fields: conflictFields,
+    }
+    junctions.push(node)
+    if (node.has_conflict) conflicts.push(node)
+  }
+
+  // Disconnected submission: shares zero abo_number with all others combined.
+  const disconnected_files: string[] = []
+  if (subs.length > 1) {
+    for (const sub of subs) {
+      const own = new Set(sub.rows.map(r => r.abo_number).filter(Boolean))
+      const others = new Set<string>()
+      for (const o of subs) {
+        if (o === sub) continue
+        for (const r of o.rows) if (r.abo_number) others.add(r.abo_number)
+      }
+      if (![...own].some(a => others.has(a))) disconnected_files.push(sub.rootAbo)
+    }
+  }
+
+  return { rows, junctions, conflicts, disconnected_files, total_row_count: rows.length }
+}
