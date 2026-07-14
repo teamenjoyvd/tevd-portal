@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/apiClient'
 import { checkSubmissionRoot } from '@/lib/csv-import'
@@ -8,6 +8,7 @@ import { useAssembly } from '@/components/los-import/useAssembly'
 import { DropZone } from '@/components/los-import/DropZone'
 import { AssemblySummary } from '@/components/los-import/AssemblySummary'
 import { SubtreePreview, type ChangeStatus, type NodeMeta } from '@/components/los-import/SubtreePreview'
+import { useLanguage } from '@/lib/hooks/useLanguage'
 
 type Submission = {
   id: string
@@ -44,12 +45,27 @@ function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
 }
 
+const HOWTO_OPEN_STORAGE_KEY = 'tevd-los-howto-open'
+
 export function LosUploadClient({ aboNumber }: { aboNumber: string | null }) {
+  const { t } = useLanguage()
   const qc = useQueryClient()
   const { fileRef, files, assembly, handleFileAdd, handleFileDrop, removeFile, reset } = useAssembly()
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [withdrawError, setWithdrawError] = useState<string | null>(null)
+  const [howToOpen, setHowToOpen] = useState(true)
+
+  useEffect(() => {
+    const stored = localStorage.getItem(HOWTO_OPEN_STORAGE_KEY)
+    if (stored === 'false') setHowToOpen(false)
+  }, [])
+
+  function handleHowToToggle(e: React.SyntheticEvent<HTMLDetailsElement>) {
+    const isOpen = e.currentTarget.open
+    setHowToOpen(isOpen)
+    localStorage.setItem(HOWTO_OPEN_STORAGE_KEY, String(isOpen))
+  }
 
   const { data: submissionsData } = useQuery<{ submissions: Submission[]; abo_number: string | null }>({
     queryKey: ['my-los-submissions'],
@@ -153,20 +169,26 @@ export function LosUploadClient({ aboNumber }: { aboNumber: string | null }) {
         </p>
       </div>
 
-      <details className="rounded-xl border" style={{ borderColor: 'var(--border-default)', backgroundColor: 'var(--bg-card)' }}>
+      <details className="rounded-xl border" style={{ borderColor: 'var(--border-default)', backgroundColor: 'var(--bg-card)' }} open={howToOpen} onToggle={handleHowToToggle}>
         <summary className="cursor-pointer px-4 py-3 text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-          How to export your LOS as a CSV
+          {t('los.upload.howToTitle')}
         </summary>
         <div className="px-4 pb-4 text-sm space-y-1.5" style={{ color: 'var(--text-secondary)' }}>
           <ol className="list-decimal ml-4 space-y-1.5">
-            <li>Sign in to your Amway business portal (the official back-office / business reports site).</li>
-            <li>Open your <strong>LOS / downline (genealogy) report</strong> for the period you want.</li>
-            <li>Choose <strong>Export</strong> and select <strong>CSV</strong> as the format (not PDF or XLSX).</li>
-            <li>Make sure the export includes the <strong>ABO Number</strong> and <strong>Sponsor ABO Number</strong> columns — they are required to build the tree. English or Bulgarian column headers are both supported.</li>
-            <li>Save the file, then drag it into the box below (you can add several files if your export is split).</li>
+            <li>
+              {t('los.upload.step1Pre')}
+              <a href="https://www.amway.bg/business-centre/los-map" target="_blank" rel="noopener noreferrer" className="underline">
+                amway.bg/business-centre/los-map
+              </a>
+              {t('los.upload.step1Post')}
+            </li>
+            <li>{t('los.upload.step2Pre')}<strong>{t('los.upload.step2Bold')}</strong>{t('los.upload.step2Post')}</li>
+            <li>{t('los.upload.step3Pre')}<strong>{t('los.upload.step3Bold')}</strong>{t('los.upload.step3Mid')}<strong>{t('los.upload.step3Bold2')}</strong>{t('los.upload.step3Post')}</li>
+            <li>{t('los.upload.step4Pre')}<strong>{t('los.upload.step4Bold')}</strong>{t('los.upload.step4Post')}</li>
+            <li>{t('los.upload.step5Pre')}<strong>{t('los.upload.step5Bold')}</strong>{t('los.upload.step5Post')}</li>
           </ol>
           <p className="text-xs pt-1">
-            The top of your file must be your own ABO (<span className="font-mono">{aboNumber}</span>) — you can only submit your own part of the tree.
+            {t('los.upload.rootNotePre')}<span className="font-mono">{aboNumber}</span>{t('los.upload.rootNotePost')}
           </p>
         </div>
       </details>
