@@ -1,21 +1,19 @@
 # Development Workflow
 
-The single source for the dev process: local loop → verification → PR → preview → merge. Replaces the four overlapping docs proposed in PR #544 (closed, superseded — see #545/#546/#547).
-
-> **Rollout note:** commands marked `*` land with [#546](https://github.com/teamenjoyvd/tevd-portal/issues/546). Everything else works today.
+The single source for the dev process: local loop → verification → PR → preview → merge. Replaces the four overlapping docs proposed in PR #544 (closed, superseded — see #545/#546/#547; all landed).
 
 ## Command reference
 
 | Command | What it does |
 |---|---|
 | `npm run dev` | Dev server with HMR at <http://localhost:3000> |
-| `npm run verify` * | Local mirror of CI: lint → check-types → test → build, visible output |
-| `npm run check:env` * | Validates env vars against `.env.example`'s required list; classifies the Supabase target as LOCAL/DEV/other |
-| `npm run test:mobile` * | Playwright smoke at 390×844 against the local dev server |
-| `npm run test:e2e` * | Full Playwright smoke (all projects) |
+| `npm run verify` | Local mirror of CI: lint → check-types → test → build, visible output |
+| `npm run check:env` | Validates env vars against `.env.example`'s required list; classifies the Supabase target as LOCAL/DEV/other |
+| `npm run test:mobile` | Playwright smoke at 390×844 against the local dev server |
+| `npm run test:e2e` | Full Playwright smoke (all projects) |
 | `npm run e2e:seed-clerk` | Seeds two Clerk test-instance users (member, admin) + matching local `profiles` rows — see "Authenticated E2E (Clerk)" below |
 | `npm run test:e2e:auth` | Authenticated Playwright coverage of `/admin/*` role gates — requires `e2e:seed-clerk` first |
-| `npm run env:worktree` * | Copies the main checkout's `.env.local` and `.env.development.local` into the current git worktree |
+| `npm run env:worktree` | Copies the main checkout's `.env.local` and `.env.development.local` into the current git worktree |
 | `npm run test` | Vitest unit tests |
 | `npm run lint` / `npm run check-types` | ESLint / `tsc --noEmit` |
 
@@ -79,7 +77,7 @@ CI (`e2e-authenticated` job in `ci.yml`) does the same against a fresh local Sup
 5. Push (agents: only with an explicit user go-ahead) → PR opens → automatically:
    - **GitHub Actions**: typecheck, lint, test, build, audit ([ci.yml](../.github/workflows/ci.yml))
    - **Vercel**: preview deployment (~2 min), URL in the PR comment
-   - **preview-smoke** *: Playwright 390px smoke against the preview URL once the deployment is READY — advisory (not a required check) for now
+   - **preview-smoke**: Playwright 390px smoke against the preview URL once the deployment is READY — advisory (not a required check) for now
    - **CodeRabbit** review; review-bot fixes are applied via the `GCR` (General Code Review) workflow command
 6. Merge only when CI is green **and** the Vercel preview is READY (never mark work Done on static analysis alone).
 
@@ -87,8 +85,8 @@ CI (`e2e-authenticated` job in `ci.yml`) does the same against a fresh local Sup
 
 Agent sessions run in worktrees under `.claude/worktrees/`. Two things make them work:
 
-- `next.config.ts` sets `turbopack.root` * so the dev server resolves the worktree as project root.
-- `.env.local` and `.env.development.local` are not inherited by worktrees — run `npm run env:worktree` * once per worktree to copy both from the main checkout.
+- `next.config.ts` sets `turbopack.root` so the dev server resolves the worktree as project root.
+- `.env.local` and `.env.development.local` are not inherited by worktrees — run `npm run env:worktree` once per worktree to copy both from the main checkout.
 
 ## Database
 
@@ -101,7 +99,7 @@ Agent sessions run in worktrees under `.claude/worktrees/`. Two things make them
 | Symptom | Cause / fix |
 |---|---|
 | `npm ci` fails with `EBADPLATFORM` on Windows | Fixed by #546 (Linux native binaries moved to `optionalDependencies`). On an older checkout: `npm ci --force`. |
-| `supabaseUrl is required` on `npm run dev` | `.env.local` (and/or `.env.development.local`) missing (fresh clone or worktree). `npm run check:env` * to diagnose; in a worktree, `npm run env:worktree` *. |
+| `supabaseUrl is required` on `npm run dev` | `.env.local` (and/or `.env.development.local`) missing (fresh clone or worktree). `npm run check:env` to diagnose; in a worktree, `npm run env:worktree`. |
 | Build passes locally, fails on Vercel | Run `npm run build` locally (same command CI/Vercel run); check the Vercel build log linked in the PR. CI builds with placeholder env — code that requires real env at *build time* will differ. |
 | Type errors in IDE but `npm run test` passes | Vitest and `tsc` use different configs — run `npm run check-types`. |
-| Mobile layout broken | Devtools at 390px width; `npm run test:mobile` * catches horizontal overflow on smoke-covered routes. |
+| Mobile layout broken | Devtools at 390px width; `npm run test:mobile` catches horizontal overflow on smoke-covered routes. |

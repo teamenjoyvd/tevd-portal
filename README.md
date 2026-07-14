@@ -23,6 +23,7 @@ npm ci
 cp .env.example .env.local               # Clerk/Mapbox/etc. values (ask a maintainer)
 cp .env.example .env.development.local   # Supabase values only — point at the DEV project
 npm run dev                              # http://localhost:3000
+npm run check:env                        # confirms vars + which Supabase project dev targets
 ```
 
 `.env.development.local` overrides `.env.local` for local dev and should point `NEXT_PUBLIC_SUPABASE_URL`/`NEXT_PUBLIC_SUPABASE_ANON_KEY`/`SUPABASE_SERVICE_ROLE_KEY` at the hosted **DEV** Supabase project (`iymwxdewcpvpjgzewtzk`), never prod. `npm run check:env` confirms the target. Vercel preview URLs still hit the **production** Supabase project — treat preview testing as navigation-only. Details: [docs/DEV_WORKFLOW.md](docs/DEV_WORKFLOW.md).
