@@ -9,7 +9,8 @@ export const los = {
   'los.noDownlines': { en: 'No downlines yet.', bg: 'Все още няма низходяща линия.'   },
 
   'los.upload.howToTitle':  { en: 'How to export your LOS as a CSV', bg: 'Как да експортирате своя LOS като CSV' },
-  'los.upload.step1':       { en: 'Go to amway.bg/business-centre/los-map.', bg: 'Отидете на amway.bg/business-centre/los-map.' },
+  'los.upload.step1Pre':    { en: 'Go to ', bg: 'Отидете на ' },
+  'los.upload.step1Post':   { en: '.', bg: '.' },
   'los.upload.step2Pre':    { en: 'Click ', bg: 'Кликнете върху ' },
   'los.upload.step2Bold':   { en: 'Export', bg: 'Експортиране' },
   'los.upload.step2Post':   { en: '.', bg: '.' },
