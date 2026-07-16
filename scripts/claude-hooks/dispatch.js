@@ -56,14 +56,18 @@ function commandSkeleton(command) {
 /** Blocking checks for a Bash command. */
 function bashViolation(command) {
   const cmd = commandSkeleton(command);
-  // Never push to main (covers "push origin main", "push -f", "HEAD:main").
-  if (/\bgit\s+push\b/.test(cmd) && /(\s|:)(main|master)\b/.test(cmd)) {
-    return "BLOCKED: pushing to main is forbidden. Use a dev/[YYMM]-DEV-[GH#] branch and open a PR (CLAUDE.md hard constraint).";
-  }
-  // Branch naming at creation time.
-  const m = cmd.match(/\bgit\s+(?:checkout\s+-b|switch\s+-c)\s+["']?([^\s"']+)/);
-  if (m && !rules.isValidBranchName(m[1])) {
-    return `BLOCKED: branch "${m[1]}" violates naming. Use dev/[YYMM]-DEV-[GH#] (e.g. dev/2607-DEV-572) or claude/*.`;
+  // Evaluate per shell clause so `git checkout main && git push origin dev/x`
+  // is not misread as a push to main.
+  for (const clause of cmd.split(/&&|\|\||[;|\n]/)) {
+    // Never push to main (covers "push origin main", "push -f", "HEAD:main").
+    if (/\bgit\s+push\b/.test(clause) && /(\s|:)(main|master)\b/.test(clause)) {
+      return "BLOCKED: pushing to main is forbidden. Use a dev/[YYMM]-DEV-[GH#] branch and open a PR (CLAUDE.md hard constraint).";
+    }
+    // Branch naming at creation time.
+    const m = clause.match(/\bgit\s+(?:checkout\s+-b|switch\s+-c)\s+["']?([^\s"']+)/);
+    if (m && !rules.isValidBranchName(m[1])) {
+      return `BLOCKED: branch "${m[1]}" violates naming. Use dev/[YYMM]-DEV-[GH#] (e.g. dev/2607-DEV-572) or claude/*.`;
+    }
   }
   return null;
 }

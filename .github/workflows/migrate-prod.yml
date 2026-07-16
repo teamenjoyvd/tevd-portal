@@ -13,6 +13,9 @@ name: Migrate Prod
 on:
   push:
     branches: [main]
+  # Manual re-run path: when a run fails after merge (or a fix PR without
+  # migrations needs to re-trigger the apply), dispatch it by hand.
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -34,6 +37,10 @@ jobs:
       - name: Check whether this push touched supabase/migrations
         id: diff
         run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "has_migrations=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           BEFORE="${{ github.event.before }}"
           # New branch or force push: fall back to running the gated job.
           if [ "$BEFORE" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$BEFORE" 2>/dev/null; then
@@ -53,18 +60,23 @@ jobs:
     runs-on: ubuntu-latest
     environment: Production
     env:
-      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD_PROD }}
     steps:
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v3
         with:
           version: latest
-      - name: Link production project
-        run: supabase link --project-ref ynykjpnetfwqzdnsgkkg
+      # GitHub-hosted runners have no IPv6 route and the direct DB host
+      # (db.<ref>.supabase.co) is IPv6-only, so `supabase link` cannot
+      # connect from CI. Connect explicitly through the IPv4 session pooler.
+      - name: Build pooler connection string
+        run: |
+          ENC_PW=$(jq -rn --arg p "$SUPABASE_DB_PASSWORD" '$p|@uri')
+          echo "::add-mask::$ENC_PW"
+          echo "DB_URL=postgresql://postgres.ynykjpnetfwqzdnsgkkg:${ENC_PW}@aws-1-eu-west-2.pooler.supabase.com:5432/postgres" >> "$GITHUB_ENV"
       - name: Log ledger state before push
-        run: supabase migration list --linked
+        run: supabase migration list --db-url "$DB_URL"
       - name: Apply pending migrations
-        run: supabase db push --linked
+        run: supabase db push --db-url "$DB_URL"
       - name: Log ledger state after push
-        run: supabase migration list --linked
+        run: supabase migration list --db-url "$DB_URL"

@@ -59,4 +59,5 @@ Recovered a live incident — RESULT: `supabase db reset --linked` wiped the DEV
 - NOTED (not done): untracked June-orchestration leftovers in main checkout root (`.agents/` dirs, `convert.js`, `test_out.txt`) — user call whether to archive/delete; pre-existing April stash `stash@{1}` on main; guest-visitor console error `Query data cannot be undefined ["profile-ui-prefs-font-size"]` (pre-existing app behavior, UI-prefs query returns undefined for signed-out users); Playwright `webServer.timeout` 120s < cold worktree compile ~5min (warm the cache first)
 
 ## Failed attempts
-(none — the `db reset --linked` incident above was diagnosed and recovered in the same session, not abandoned)
+ATTEMPT 1 [L1] (migrate-prod.yml, run 29491753945): `supabase link` + `migration list --linked` from a GitHub-hosted runner -> "failed to connect to postgres: effect/sql/SqlError: PgClient: Failed to connect" — direct DB host is IPv6-only, runners have no IPv6. Fix: explicit `--db-url` via the IPv4 session pooler (aws-1-eu-west-2), no link.
+(previous task: none — the `db reset --linked` incident was diagnosed and recovered in the same session, not abandoned)
