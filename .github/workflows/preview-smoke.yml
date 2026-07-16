@@ -7,8 +7,10 @@ name: Preview Smoke
 # to the PR as required checks by default. Once trusted, add the "smoke"
 # job as a required status check in branch protection.
 #
-# The suite is navigation-only because preview deployments hit the
-# production Supabase project (see docs/DEV_WORKFLOW.md and issue #547).
+# The suite is navigation-only for historical reasons: previews used to hit
+# the production Supabase project. Since 2026-07-16 previews use the DEV
+# project (Pre-Production-scoped Vercel env vars), so this can graduate to
+# real flows — see docs/DEV_WORKFLOW.md.
 
 on:
   deployment_status:

@@ -49,7 +49,7 @@ Violation = immediate stop, no exceptions.
 - **NEVER expose `SUPABASE_SERVICE_ROLE_KEY` to the client.**
 - **NEVER bypass Clerk auth on a protected route.**
 - **NEVER mark Done on static analysis alone.** Vercel PR preview must be READY and CI green.
-- **NEVER write data to Supabase from a Preview URL** — preview URLs hit production DB.
+- **Preview deployments use the DEV Supabase project** (Pre-Production-scoped Vercel env vars, verified 2026-07-16). Writes from a preview land in the shared DEV DB — same etiquette as local dev. Production-scoped vars still hold prod credentials; never copy them to other scopes.
 - **390px mobile-first.** Every new UI surface must render correctly at 390px.
 - **RLS policies use Pattern A helpers only** — `is_admin()`, `get_my_role()`, `get_my_profile_id()`, `get_my_clerk_id()`. Never raw `auth.jwt()`.
 - **NEVER introduce a Clerk JWT Supabase client on the server.** All server DB access uses `createServiceClient()` (service role); a JWT client requires a ticket explicitly scoping it (ADR-002/ADR-011).

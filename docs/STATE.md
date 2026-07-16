@@ -28,7 +28,7 @@ Merged `origin/main` (post-#568) into the branch: the only conflict was this fil
 - `.env.development.local` never committed (gitignored, real DEV-project credentials after the #563 switch)
 - Docker teardown (`docker system prune`) is user-run only, never scripted/automated
 - Milestone touches Supabase RLS/grants/security-definer functions — Pattern A helpers only, never raw auth.jwt() (CLAUDE.md hard constraint)
-- Never write data to Supabase from a Preview URL (preview hits prod DB)
+- Never write data to Supabase from a Preview URL (preview hits prod DB) — OBSOLETE 2026-07-16: previews now use the DEV project (Pre-Production-scoped Vercel env vars); constraint retired with the user's confirmation
 - Never push directly to `main`; `dev/[YYMM]-DEV-[GH#]` branches only
 - Never mark Done on static analysis alone — Vercel PR preview must be READY and CI green
 - CLAUDE.md hard stop: no `git push` without the user explicitly asking for a push in-conversation (quote required)

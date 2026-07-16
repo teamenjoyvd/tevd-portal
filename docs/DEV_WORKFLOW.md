@@ -47,7 +47,7 @@ Local dev runs against the **hosted Supabase dev project** `iymwxdewcpvpjgzewtzk
 
 **Local stack decommission** (optional, reclaims disk): `supabase stop` to tear down the Docker containers, then `docker system prune -a --volumes` to reclaim images/volumes — **destructive to all unused Docker data on the machine**, run it yourself, don't script it into anything automated.
 
-**Prod credentials** serve only explicitly prod-targeted work (deploys, prod data checks). Vercel **preview URLs still hit prod** — the never-write-from-preview rule stands.
+**Prod credentials** serve only explicitly prod-targeted work (deploys, prod data checks). Vercel **preview deployments hit the DEV project** since 2026-07-16 (Pre-Production-scoped env vars in the Vercel dashboard hold the `iymwxdewcpvpjgzewtzk` URL + keys); preview writes land in the shared DEV DB. Only the Production environment carries prod credentials.
 
 ## Authenticated E2E (Clerk)
 
