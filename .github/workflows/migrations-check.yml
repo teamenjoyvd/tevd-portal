@@ -1,0 +1,34 @@
+# PR-time migration validation (#570): replay every migration from scratch on a
+# disposable local Supabase stack. Catches ordering/SQL errors before merge.
+# Separate workflow (not a ci.yml job) so it only runs when supabase/** changes
+# without leaving an always-pending required check on other PRs.
+name: Migrations Check
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: migrations-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  replay:
+    name: Replay migrations from scratch
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v3
+        with:
+          version: latest
+      - name: Start local Supabase and replay all migrations
+        run: |
+          supabase start
+          supabase db reset
+      - name: Lint database schema
+        run: supabase db lint --level error

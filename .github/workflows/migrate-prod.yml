@@ -1,0 +1,70 @@
+# Gated prod migration (#570). On merge to main, applies pending migrations to
+# the production Supabase project via the CLI — the single schema_migrations
+# ledger writer. The `migrate` job waits at the GitHub `production` environment
+# gate (required reviewers); the ungated `detect` job skips the gate entirely
+# for merges that touch no migrations.
+#
+# Prerequisites (manual, one-time):
+#   - GitHub environment `production` with required reviewers
+#   - Secrets: SUPABASE_ACCESS_TOKEN, SUPABASE_DB_PASSWORD_PROD
+#   - Prod ledger audited/repaired per docs/runbooks/PROD_MIGRATION_LEDGER_REPAIR.md
+name: Migrate Prod
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: migrate-prod
+  cancel-in-progress: false
+
+jobs:
+  detect:
+    name: Detect migration changes
+    runs-on: ubuntu-latest
+    outputs:
+      has_migrations: ${{ steps.diff.outputs.has_migrations }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check whether this push touched supabase/migrations
+        id: diff
+        run: |
+          BEFORE="${{ github.event.before }}"
+          # New branch or force push: fall back to running the gated job.
+          if [ "$BEFORE" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$BEFORE" 2>/dev/null; then
+            echo "has_migrations=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if git diff --name-only "$BEFORE" "${{ github.sha }}" | grep -q '^supabase/migrations/.*\.sql$'; then
+            echo "has_migrations=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_migrations=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  migrate:
+    name: Apply migrations to production
+    needs: detect
+    if: needs.detect.outputs.has_migrations == 'true'
+    runs-on: ubuntu-latest
+    environment: Production
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD_PROD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v3
+        with:
+          version: latest
+      - name: Link production project
+        run: supabase link --project-ref ynykjpnetfwqzdnsgkkg
+      - name: Log ledger state before push
+        run: supabase migration list --linked
+      - name: Apply pending migrations
+        run: supabase db push --linked
+      - name: Log ledger state after push
+        run: supabase migration list --linked

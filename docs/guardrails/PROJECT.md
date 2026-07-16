@@ -81,7 +81,7 @@ Dev process (one phase per session):
  5. Draft  — push branch, open PR as DRAFT (CodeRabbit skips drafts); wait CI green + preview READY
  6. Ready  — mark PR ready → one CodeRabbit pass; fix all findings in ONE batched push
  7. Merge  — CI green + preview READY + threads resolved; GCR: remove claim row, close issue
- 8. Prod   — apply the dev-verified migration to prod, smoke-check production URL
+ 8. Prod   — approve the gated migrate-prod run (Actions `production` gate; auto-skips if no pending migrations), smoke-check production URL
 ```
 
 ### PLAN — See `docs/ai/PLAN.md`

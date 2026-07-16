@@ -4,6 +4,7 @@
 const { execSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
+const rules = require("./lib/rules");
 
 const ROOT = path.resolve(__dirname, "..");
 
@@ -74,27 +75,11 @@ function checkMiddleware() {
 
   try {
     const content = fs.readFileSync(mwPath, "utf8");
-    const forbidden = [
-      { pattern: /NextResponse\.rewrite/g, label: "NextResponse.rewrite" },
-      { pattern: /NextResponse\.redirect/g, label: "NextResponse.redirect" },
-      {
-        pattern: /\.headers\.set\s*\(/g,
-        label: "manual header manipulation (.headers.set)",
-      },
-      {
-        pattern: /\.headers\.append\s*\(/g,
-        label: "manual header manipulation (.headers.append)",
-      },
-    ];
-
-    let clean = true;
-    for (const { pattern, label } of forbidden) {
-      if (pattern.test(content)) {
-        fail(`middleware.ts contains ${label}. Only clerkMiddleware is allowed.`);
-        clean = false;
-      }
+    const violations = rules.middlewareViolations(content);
+    for (const label of violations) {
+      fail(`middleware.ts contains ${label}. Only clerkMiddleware is allowed.`);
     }
-    if (clean) {
+    if (violations.length === 0) {
       pass("middleware.ts contains only allowed Clerk patterns.");
     }
   } catch (err) {
@@ -121,17 +106,12 @@ function checkSecretLeaks() {
   for (const file of files) {
     try {
       const content = fs.readFileSync(file, "utf8");
-      if (
-        content.includes("'use client'") ||
-        content.includes('"use client"')
-      ) {
-        if (content.includes("SUPABASE_SERVICE_ROLE_KEY")) {
-          const rel = path.relative(ROOT, file);
-          fail(
-            `SUPABASE_SERVICE_ROLE_KEY referenced in client component: ${rel}`
-          );
-          found = true;
-        }
+      if (rules.serviceRoleLeak(content)) {
+        const rel = path.relative(ROOT, file);
+        fail(
+          `SUPABASE_SERVICE_ROLE_KEY referenced in client component: ${rel}`
+        );
+        found = true;
       }
     } catch {
       // unreadable file — skip
@@ -171,7 +151,7 @@ function checkMigrationRollbacks() {
           path.join(migrationsDir, file),
           "utf8"
         );
-        if (!/-- ROLLBACK:/i.test(content)) {
+        if (!rules.hasRollbackComment(content)) {
           missing.push(file);
           allGood = false;
         }
@@ -285,11 +265,11 @@ function checkBranchNaming(hasGit) {
       return;
     }
 
-    if (branch.startsWith("dev/")) {
-      pass(`Branch "${branch}" follows dev/ naming convention.`);
+    if (rules.isValidBranchName(branch)) {
+      pass(`Branch "${branch}" follows the dev/[YYMM]-DEV-[GH#] or claude/* naming convention.`);
     } else {
       warn(
-        `Branch "${branch}" does not follow the dev/ prefix naming convention.`
+        `Branch "${branch}" does not follow the dev/[YYMM]-DEV-[GH#] or claude/* naming convention.`
       );
     }
   } catch (err) {

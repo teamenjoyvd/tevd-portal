@@ -41,7 +41,7 @@ Read only the specific `docs/ai/REF.md` sections required by the ticket (refer t
 - Address all CodeRabbit findings locally and push them as ONE batched commit (each push triggers an incremental re-review; drip-fed fixes burn quota). Wrong findings: reply on the thread and resolve, don't churn code.
 - Update the PR description's `## Session State` block.
 - Update `docs/ai/REF.md` if schema, tables, routes, or env vars changed.
-- After merge: confirm production Vercel deployment is READY, apply the dev-verified migration to prod, smoke-check the production URL, remove the `docs/CLAIMS.md` row. "Merged" and "Done" are different states — the issue closes only after the prod tail completes.
+- After merge: confirm production Vercel deployment is READY; if the PR contained migrations, approve the pending `migrate-prod` run (GitHub Actions → `production` environment gate) and confirm it applied cleanly — never apply prod migrations by hand. Smoke-check the production URL, remove the `docs/CLAIMS.md` row. "Merged" and "Done" are different states — the issue closes only after the prod tail completes.
 
 ---
 

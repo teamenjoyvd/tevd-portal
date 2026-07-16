@@ -90,7 +90,8 @@ Agent sessions run in worktrees under `.claude/worktrees/`. Two things make them
 
 ## Database
 
-- Migrations live in `supabase/migrations/` and are applied from agent/CLI sessions targeting a project ref directly (Supabase MCP or `supabase` CLI) — there is no CI database job.
+- Migrations live in `supabase/migrations/`. **DEV**: applied from agent/CLI sessions via `supabase db push` (CLI is the single `schema_migrations` ledger writer — MCP `apply_migration` on DEV must be reconciled with `supabase migration repair --status applied` before the next push). **PR**: `migrations-check.yml` replays all migrations from scratch on a disposable local Supabase whenever `supabase/**` changes. **Prod**: on merge to `main`, `migrate-prod.yml` waits at the `production` environment gate — approve it in GitHub Actions to apply pending migrations via the CLI; it auto-passes when nothing is pending. Never apply prod DDL by hand or via MCP (#570; first gated run requires the ledger audit in `docs/runbooks/PROD_MIGRATION_LEDGER_REPAIR.md`).
+- **Expand/contract (hard constraint)**: migrations merged with code must be backward-compatible with the currently deployed code; destructive changes (drops/renames) ship in a later PR after no code references the old shape. Vercel deploys on merge while the migration awaits approval, so both orderings must be safe.
 - Refs: dev `iymwxdewcpvpjgzewtzk` (`tevd-portal-dev`, the default link in `supabase/config.toml`, also the day-to-day local dev target per #563), prod `ynykjpnetfwqzdnsgkkg`. Never link/push prod from a dev machine without an explicit ticket.
 - Local Supabase stack (Docker, #547): superseded by the hosted DEV project (#563) for all local dev, including the authenticated E2E suite — see "Authenticated E2E (Clerk)" above. Keep the local stack option only if you specifically need per-machine data isolation.
 
