@@ -67,12 +67,15 @@ describe('hard-constraint blocks (exit 2)', () => {
   })
 
   it('blocks badly named new migration files', () => {
-    const r = run(pre('Write', {
-      file_path: 'supabase/migrations/20260716123456_thing.sql',
-      content: 'select 1;',
-    }))
-    expect(r.code).toBe(2)
-    expect(r.stderr).toContain('YYYYMMDD_NNN')
+    // wall-clock HHMMSS and the old truncating YYYYMMDD_NNN form both blocked
+    for (const bad of ['20260716123456_thing.sql', '20260716_001_thing.sql']) {
+      const r = run(pre('Write', {
+        file_path: `supabase/migrations/${bad}`,
+        content: 'select 1;',
+      }))
+      expect(r.code).toBe(2)
+      expect(r.stderr).toContain('YYYYMMDD00NN00')
+    }
   })
 
   it('blocks MCP push_files to main and bad MCP branch names', () => {
@@ -88,7 +91,7 @@ describe('legitimate operations pass (exit 0)', () => {
   it('allows normal edits, pushes, and branch names', () => {
     const allowed = [
       pre('Write', { file_path: 'app/proxy-helper.ts', content: 'export const a = 1' }),
-      pre('Write', { file_path: 'supabase/migrations/20260716_001_add_thing.sql', content: '-- ROLLBACK: drop\nselect 1;' }),
+      pre('Write', { file_path: 'supabase/migrations/20260716000100_add_thing.sql', content: '-- ROLLBACK: drop\nselect 1;' }),
       pre('Bash', { command: 'git push origin dev/2607-DEV-572' }),
       pre('Bash', { command: 'git checkout -b dev/2607-DEV-572-hooks' }),
       pre('Bash', { command: 'git checkout -b claude/some-slug-1a2b' }),
@@ -115,7 +118,7 @@ describe('legitimate operations pass (exit 0)', () => {
 describe('non-blocking warnings (exit 0 + context)', () => {
   it('warns on migration without ROLLBACK comment', () => {
     const r = run(post('Write', {
-      file_path: 'supabase/migrations/20260716_001_add_thing.sql',
+      file_path: 'supabase/migrations/20260716000100_add_thing.sql',
       content: 'create table x(id int);',
     }))
     expect(r.code).toBe(0)
