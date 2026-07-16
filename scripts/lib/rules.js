@@ -57,10 +57,14 @@ function isValidBranchName(name) {
 }
 
 /**
- * Migration filename rule (docs/ai/GOTCHAS.md): YYYYMMDD_NNN_description.sql.
- * Applies to NEW files only — legacy 14-digit-timestamp files are grandfathered.
+ * Migration filename rule (docs/ai/GOTCHAS.md): YYYYMMDDNNNN00_description.sql
+ * — a 14-digit version where the last six digits are a zero-padded counter
+ * (000000, 000100, 000200 …), NOT wall-clock HHMMSS. The CLI takes the digits
+ * before the first underscore as the ledger version, so the older
+ * YYYYMMDD_NNN form truncates to just the date and collides across same-day
+ * files (the 2026-07-14 DEV ledger repair was cleaning up exactly that).
  */
-const MIGRATION_FILENAME_RE = /^\d{8}_\d{3}_[a-z0-9_]+\.sql$/;
+const MIGRATION_FILENAME_RE = /^\d{8}(?:00\d{2}00|000000)_[a-z0-9_]+\.sql$/;
 
 function isValidMigrationFilename(fileName) {
   return MIGRATION_FILENAME_RE.test(fileName);

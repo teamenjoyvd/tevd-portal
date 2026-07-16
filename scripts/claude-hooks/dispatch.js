@@ -35,7 +35,7 @@ function fileWriteViolation(filePath, content) {
   if (rules.isMigrationPath(p)) {
     const fileName = p.split("/").pop();
     if (!rules.isValidMigrationFilename(fileName)) {
-      return `BLOCKED: migration filename "${fileName}" violates the YYYYMMDD_NNN_description.sql rule (docs/ai/GOTCHAS.md). List supabase/migrations/, find today's highest NNN, increment.`;
+      return `BLOCKED: migration filename "${fileName}" violates the YYYYMMDD00NN00_description.sql rule (docs/ai/GOTCHAS.md): 14-digit version, last six digits a zero-padded counter (000000, 000100, ...), never HHMMSS and never YYYYMMDD_NNN (truncates to the date and collides).`;
     }
   }
   return null;
