@@ -25,8 +25,9 @@ const baseURL = process.env.BASE_URL ?? 'http://localhost:3000'
 
 // Vercel "Protection Bypass for Automation": deployment protection (SSO)
 // otherwise redirects CI to a vercel.com login page. When the secret is set
-// (preview-smoke.yml), send it on every request so protected previews serve
-// the real app. Absent locally -> no header, config unchanged.
+// (preview-smoke.yml), globalSetup bootstraps a _vercel_jwt bypass cookie
+// into this storage state, which tests then load. Cookie, not a header on
+// every request — see vercelBypassSetup() in e2e/global-setup.ts for why.
 const bypassSecret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET
 
 export default defineConfig({
@@ -41,8 +42,8 @@ export default defineConfig({
   use: {
     baseURL,
     trace: 'retain-on-failure',
-    ...(bypassSecret
-      ? { extraHTTPHeaders: { 'x-vercel-protection-bypass': bypassSecret } }
+    ...(bypassSecret && process.env.BASE_URL
+      ? { storageState: './e2e/.vercel-bypass-state.json' }
       : {}),
   },
   projects: [
