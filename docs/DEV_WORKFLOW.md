@@ -77,7 +77,7 @@ CI (`e2e-authenticated` job in `ci.yml`) does the same against a fresh local Sup
 5. Push (agents: only with an explicit user go-ahead) → PR opens → automatically:
    - **GitHub Actions**: typecheck, lint, test, build, audit ([ci.yml](../.github/workflows/ci.yml))
    - **Vercel**: preview deployment (~2 min), URL in the PR comment
-   - **preview-smoke**: Playwright 390px smoke against the preview URL once the deployment is READY — advisory (not a required check) for now. Covers navigation over the public routes plus one real guest flow (`e2e/library-guide.spec.ts`: open `/library` → click a guide card → detail page). That flow needs a stable guest-visible guide in DEV; the workflow re-seeds it every run via `npm run seed:smoke-guide` (guarded by the `DEV_SUPABASE_URL` / `DEV_SUPABASE_SERVICE_ROLE_KEY` Actions secrets), so a DEV re-mirror from prod can't leave it un-seeded. To seed manually against a DEV-configured env, run `npm run seed:smoke-guide`; the spec skips with a pointer when the guide is absent.
+   - **preview-smoke**: Playwright 390px smoke against the preview URL once the deployment is READY — advisory (not a required check) for now. Covers navigation over the public routes plus one real guest flow (`e2e/library-guide.spec.ts`: open `/library` → click a guide card → detail page). That flow needs a stable guest-visible guide in DEV (`npm run seed:smoke-guide`, seeded once — see the Database section); the spec skips with a pointer when the guide is absent, so an unseeded DB never fails the run.
    - **CodeRabbit** review; review-bot fixes are applied via the `GCR` (General Code Review) workflow command
 6. Merge only when CI is green **and** the Vercel preview is READY (never mark work Done on static analysis alone).
 
@@ -94,6 +94,7 @@ Agent sessions run in worktrees under `.claude/worktrees/`. Two things make them
 - **Expand/contract (hard constraint)**: migrations merged with code must be backward-compatible with the currently deployed code; destructive changes (drops/renames) ship in a later PR after no code references the old shape. Vercel deploys on merge while the migration awaits approval, so both orderings must be safe.
 - Refs: dev `iymwxdewcpvpjgzewtzk` (`tevd-portal-dev`, the default link in `supabase/config.toml`, also the day-to-day local dev target per #563), prod `ynykjpnetfwqzdnsgkkg`. Never link/push prod from a dev machine without an explicit ticket.
 - Local Supabase stack (Docker, #547): superseded by the hosted DEV project (#563) for all local dev, including the authenticated E2E suite — see "Authenticated E2E (Clerk)" above. Keep the local stack option only if you specifically need per-machine data isolation.
+- **preview-smoke fixture**: the guest flow needs one published, guest-visible guide (`slug=e2e-smoke-guide`) in DEV. Seed it with `npm run seed:smoke-guide` against a DEV-configured env (the script refuses any non-DEV/local target). It persists — the only thing that drops it is **reloading/re-mirroring DEV from prod**, so make re-seeding the final step of any such reset. If it's ever missing, the `library-guide` spec skips (with a pointer) rather than failing.
 
 ## Troubleshooting
 

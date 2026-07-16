@@ -26,12 +26,6 @@ jobs:
       github.event.deployment_status.state == 'success' &&
       startsWith(github.event.deployment.environment, 'Preview')
     runs-on: ubuntu-latest
-    # Surfaced as env so steps can guard on presence (the `secrets` context
-    # is not usable directly in a step `if:`). Absent -> seeding is skipped
-    # and the guest flow skips gracefully.
-    env:
-      DEV_SUPABASE_URL: ${{ secrets.DEV_SUPABASE_URL }}
-      DEV_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.DEV_SUPABASE_SERVICE_ROLE_KEY }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -42,17 +36,6 @@ jobs:
           node-version: '22'
           cache: 'npm'
       - run: npm ci
-      # Ensure the guest-visible fixture guide exists in DEV so the
-      # library-guide flow runs (not skips). Self-healing: re-seeds on every
-      # run, so a DEV re-mirror from prod can't leave the flow un-exercised.
-      # Requires DEV_SUPABASE_URL + DEV_SUPABASE_SERVICE_ROLE_KEY secrets;
-      # the seed script's own guard refuses any non-DEV/local target.
-      - name: Seed guest smoke guide into DEV
-        if: env.DEV_SUPABASE_URL != ''
-        run: npm run seed:smoke-guide
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ env.DEV_SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ env.DEV_SUPABASE_SERVICE_ROLE_KEY }}
       - run: npx playwright install --with-deps chromium
       # VERCEL_AUTOMATION_BYPASS_SECRET: Vercel project -> Settings ->
       # Deployment Protection -> Protection Bypass for Automation, mirrored
