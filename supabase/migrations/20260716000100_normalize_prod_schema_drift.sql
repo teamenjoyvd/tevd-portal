@@ -90,6 +90,17 @@ BEGIN
       AND conrelid = 'public.spouse_link_requests'::regclass
   ) THEN
     IF EXISTS (
+      -- prod: the invariant already exists as a CONSTRAINT under the
+      -- MCP-era name (its index is constraint-owned, so USING INDEX would
+      -- fail with SQLSTATE 55000) — rename it to the canonical name.
+      SELECT 1 FROM pg_constraint
+      WHERE conname = 'spouse_link_requests_requester_unique'
+        AND conrelid = 'public.spouse_link_requests'::regclass
+    ) THEN
+      ALTER TABLE public.spouse_link_requests
+        RENAME CONSTRAINT spouse_link_requests_requester_unique
+        TO uq_spouse_link_requester;
+    ELSIF EXISTS (
       SELECT 1 FROM pg_indexes
       WHERE schemaname = 'public'
         AND indexname = 'spouse_link_requests_requester_unique'
