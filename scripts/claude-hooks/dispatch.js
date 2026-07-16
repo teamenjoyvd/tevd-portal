@@ -41,9 +41,21 @@ function fileWriteViolation(filePath, content) {
   return null;
 }
 
+/**
+ * Strip heredoc bodies and quoted strings so that message/body TEXT that
+ * merely mentions a command (e.g. a PR body containing "git push to main")
+ * cannot trip command checks. Only the actual command skeleton remains.
+ */
+function commandSkeleton(command) {
+  return String(command || "")
+    .replace(/<<-?\s*['"]?(\w+)['"]?[\s\S]*?\n\1\b/g, " ")
+    .replace(/"(?:[^"\\]|\\.)*"/g, '""')
+    .replace(/'[^']*'/g, "''");
+}
+
 /** Blocking checks for a Bash command. */
 function bashViolation(command) {
-  const cmd = String(command || "");
+  const cmd = commandSkeleton(command);
   // Never push to main (covers "push origin main", "push -f", "HEAD:main").
   if (/\bgit\s+push\b/.test(cmd) && /(\s|:)(main|master)\b/.test(cmd)) {
     return "BLOCKED: pushing to main is forbidden. Use a dev/[YYMM]-DEV-[GH#] branch and open a PR (CLAUDE.md hard constraint).";
@@ -66,7 +78,7 @@ function postWriteWarning(filePath, content) {
 }
 
 function bashWarning(command) {
-  const cmd = String(command || "");
+  const cmd = commandSkeleton(command);
   if (cmd.includes(PROD_REF) || /\bsupabase\s+db\s+push\b/.test(cmd)) {
     return `WARNING: command may target a hosted Supabase project. Prod DDL (${PROD_REF}) goes exclusively through the gated migrate-prod workflow — never from a dev machine.`;
   }

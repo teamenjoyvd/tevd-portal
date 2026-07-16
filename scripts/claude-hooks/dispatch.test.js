@@ -93,6 +93,9 @@ describe('legitimate operations pass (exit 0)', () => {
       pre('Bash', { command: 'git checkout -b dev/2607-DEV-572-hooks' }),
       pre('Bash', { command: 'git checkout -b claude/some-slug-1a2b' }),
       pre('Bash', { command: 'git checkout main' }),
+      // Text inside quotes/heredocs that merely MENTIONS forbidden commands
+      pre('Bash', { command: 'gh pr create --title "t" --body "$(cat <<\'EOF\'\nBlocks `git push` to main and prod db push (ynykjpnetfwqzdnsgkkg).\nEOF\n)"' }),
+      pre('Bash', { command: 'git commit -m "docs: never git push origin main"' }),
       pre('mcp__github-tevd__create_branch', { branch: 'dev/2607-DEV-design-sync' }),
     ]
     for (const p of allowed) {
