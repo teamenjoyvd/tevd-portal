@@ -23,6 +23,12 @@ for (const f of ['.env.development.local', '.env.local']) {
 // -> test that deployment and start no local server.
 const baseURL = process.env.BASE_URL ?? 'http://localhost:3000'
 
+// Vercel "Protection Bypass for Automation": deployment protection (SSO)
+// otherwise redirects CI to a vercel.com login page. When the secret is set
+// (preview-smoke.yml), send it on every request so protected previews serve
+// the real app. Absent locally -> no header, config unchanged.
+const bypassSecret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET
+
 export default defineConfig({
   testDir: './e2e',
   timeout: 60_000,
@@ -35,6 +41,9 @@ export default defineConfig({
   use: {
     baseURL,
     trace: 'retain-on-failure',
+    ...(bypassSecret
+      ? { extraHTTPHeaders: { 'x-vercel-protection-bypass': bypassSecret } }
+      : {}),
   },
   projects: [
     {
