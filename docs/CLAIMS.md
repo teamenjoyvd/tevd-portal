@@ -6,4 +6,4 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
-| #567 | `claude/local-dev-audit-277243` | scripts/validate-rules.js, next.config.ts, docs/DEV_WORKFLOW.md (`*`-marker truth-up), docs/guardrails/PROJECT.md (SSU local variant), docs/STATE.md, docs/CLAIMS.md | 2026-07-13T12:40Z |
+| #585 | `dev/2607-DEV-585` | docs/CLAIMS.md, docs/STATE.md, .gitignore, .claude/settings.json, supabase/migrations/rpc-guards.test.ts (move), ~/.claude/ (external) | 2026-07-19T00:34Z |
