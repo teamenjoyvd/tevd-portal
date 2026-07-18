@@ -27,7 +27,7 @@ test(`guest opens /library and clicks through to the ${SMOKE_GUIDE_SLUG} guide`,
   const card = page.locator(`a[href="/library/${SMOKE_GUIDE_SLUG}"]`)
   const seeded = (await card.count()) > 0
   test.skip(
-    !seeded,
+    seeded === false,
     `smoke guide "${SMOKE_GUIDE_SLUG}" not present in this DB — run: npm run seed:smoke-guide (DEV/local)`,
   )
 

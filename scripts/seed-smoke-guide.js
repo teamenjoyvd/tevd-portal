@@ -22,7 +22,7 @@ const { createClient } = require('@supabase/supabase-js')
 // Loaded in Next.js precedence order: .env.development.local first (higher
 // priority — already-set vars are never overwritten), then .env.local.
 function loadEnvFile(filePath) {
-  if (!fs.existsSync(filePath)) return
+  if (fs.existsSync(filePath) === false) return
   const content = fs.readFileSync(filePath, 'utf8')
   for (const line of content.split(/\r?\n/)) {
     const match = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/)
@@ -71,8 +71,8 @@ function isSafeSupabaseTarget(url) {
 }
 
 async function main() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-  if (!isSafeSupabaseTarget(supabaseUrl)) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
+  if (isSafeSupabaseTarget(supabaseUrl) === false) {
     console.error(
       `seed-smoke-guide: refusing to run — NEXT_PUBLIC_SUPABASE_URL ("${supabaseUrl}") ` +
         'is not a local instance or the hosted DEV project. This script must never write to prod/preview Supabase.',
@@ -82,7 +82,7 @@ async function main() {
   }
 
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!serviceRoleKey) {
+  if (serviceRoleKey === undefined || serviceRoleKey === '') {
     console.error('seed-smoke-guide: SUPABASE_SERVICE_ROLE_KEY is not set.')
     process.exitCode = 1
     return
@@ -92,7 +92,7 @@ async function main() {
   const { error } = await supabase
     .from('guides')
     .upsert(SMOKE_GUIDE, { onConflict: 'slug' })
-  if (error) throw new Error(`guides upsert failed for ${SMOKE_GUIDE_SLUG}: ${error.message}`)
+  if (error !== null) throw new Error(`guides upsert failed for ${SMOKE_GUIDE_SLUG}: ${error.message}`)
   console.log(`seed-smoke-guide: ready — /library/${SMOKE_GUIDE_SLUG} (guest-visible, published)`)
 }
 
