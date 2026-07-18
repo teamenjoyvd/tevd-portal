@@ -88,6 +88,8 @@ Agent sessions run in worktrees under `.claude/worktrees/`. Two things make them
 - `next.config.ts` sets `turbopack.root` so the dev server resolves the worktree as project root.
 - `.env.local` and `.env.development.local` are not inherited by worktrees — run `npm run env:worktree` once per worktree to copy both from the main checkout.
 
+Worktrees, branches, and scratch files accumulate fast — run the weekly hygiene pass (`npm run clean:weekly`, see `docs/WEEKLY_CLEANUP.md`).
+
 ## Database
 
 - Migrations live in `supabase/migrations/`. **DEV**: applied from agent/CLI sessions via `supabase db push` (CLI is the single `schema_migrations` ledger writer — MCP `apply_migration` on DEV must be reconciled with `supabase migration repair --status applied` before the next push). **PR**: `migrations-check.yml` replays all migrations from scratch on a disposable local Supabase whenever `supabase/**` changes. **Prod**: on merge to `main`, `migrate-prod.yml` waits at the `production` environment gate — approve it in GitHub Actions to apply pending migrations via the CLI; it auto-passes when nothing is pending. Never apply prod DDL by hand or via MCP (#570; first gated run requires the ledger audit in `docs/runbooks/PROD_MIGRATION_LEDGER_REPAIR.md`).

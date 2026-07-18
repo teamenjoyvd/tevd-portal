@@ -19,7 +19,7 @@ import { describe, expect, it } from 'vitest'
  * instructions require.
  */
 
-const MIGRATIONS_DIR = path.join(__dirname)
+const MIGRATIONS_DIR = path.join(__dirname, '..', '..', 'supabase', 'migrations')
 
 // Matches the standard guard: `IF auth.role() <> 'service_role' AND NOT is_admin() THEN RAISE EXCEPTION`
 const GUARD_PATTERN =
