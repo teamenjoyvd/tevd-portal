@@ -56,10 +56,10 @@ const checkedOut = new Set(
 )
 const ancestryMerged = new Set(
   git('branch', '--merged', 'origin/main', '--format=%(refname:short)')
-    .split('\n').map((s) => s.trim()).filter(Boolean)
+    .split('\n').map((s) => s.trim()).filter((s) => s !== '')
 )
 const allBranches = git('branch', '--format=%(refname:short)\t%(upstream:track)')
-  .split('\n').map((s) => s.trim()).filter(Boolean)
+  .split('\n').map((s) => s.trim()).filter((s) => s !== '')
 
 const deletable = []
 for (const line of allBranches) {
@@ -72,7 +72,7 @@ for (const line of allBranches) {
   // Squash merges are invisible to --merged; upstream "[gone]" or no upstream
   // at all means the remote side is finished or never existed — ask gh.
   const prState = tryGh('pr', 'list', '--head', name, '--state', 'merged', '--json', 'number', '--jq', '.[0].number')
-  if (prState) {
+  if (prState !== null && prState !== '') {
     deletable.push({ name, reason: `PR #${prState} merged (squash)` })
   } else {
     console.log(`  keep:   ${name}${track ? ' ' + track : ''} — not merged (or gh unavailable to confirm)`)
@@ -153,13 +153,19 @@ for (const rel of ['.next', 'tsconfig.tsbuildinfo']) {
 function dirSizeMB(dir) {
   let bytes = 0
   const walk = (d) => {
-    for (const e of readdirSync(d, { withFileTypes: true })) {
+    let entries
+    try {
+      entries = readdirSync(d, { withFileTypes: true })
+    } catch { return } // dir vanished mid-walk; skip it, keep counting the rest
+    for (const e of entries) {
       const p = path.join(d, e.name)
-      if (e.isDirectory()) walk(p)
-      else if (e.isFile()) bytes += statSync(p).size
+      try {
+        if (e.isDirectory()) walk(p)
+        else if (e.isFile()) bytes += statSync(p).size
+      } catch { /* file vanished mid-walk; skip it, keep counting the rest */ }
     }
   }
-  try { walk(dir) } catch { /* files may vanish mid-walk; partial size is fine */ }
+  walk(dir)
   return (bytes / 1e6).toFixed(0)
 }
 
