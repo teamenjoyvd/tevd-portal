@@ -62,3 +62,6 @@ ds-bundle/
 
 # Playwright: Vercel bypass cookie (JWT) written by e2e/global-setup.ts
 e2e/.vercel-bypass-state.json
+
+# agent-orchestration scratch output (never committed; see docs/WEEKLY_CLEANUP.md)
+.agents/

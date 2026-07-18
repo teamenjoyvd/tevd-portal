@@ -1,4 +1,10 @@
 ## Goal
+Issue #585 (2026-07-19, branch `dev/2607-DEV-585`): consolidated infrastructure cleanup — delete accumulated branches/worktrees/stashes/junk files, relocate `rpc-guards.test.ts` out of `supabase/migrations/`, ship `scripts/clean-weekly.mjs` + `docs/WEEKLY_CLEANUP.md`, and set up a weekly scheduled maintenance run.
+
+## Now (issue #585)
+Repo-level cleanup DONE with user approval (13 local branches, 4 stashes, 5 worktrees incl. 4 orphans, `.agents/` 264 files, `convert.js`, `test_out.txt`, tracked junk `git rm`ed: `.pr-session-state.md`, `.branch-init`, `.vercel-rebuild`, `run-bootstrap-mock.js`, unicode-named `Read` file). Two empty worktree dir shells (`feature-infrastructure-steps-b1203d`, `refactoring-infra-bottlenecks-ca1053`) survive — Windows handle held by another live process; contents fully deleted; next `clean:weekly --apply` will sweep them. Deliverables staged on the branch. Pending: `git gc`, full verify, PR, then create the weekly scheduled task post-merge.
+
+### Previous task
 Infra layering for #570 + #572 (2026-07-16, branch `claude/infrastructure-hooks-integration-6d5a76`): Claude Code hook dispatcher enforcing hard constraints locally (7 curated hooks incl. GitHub-MCP write path), docs truth-up (CLI = single ledger writer, expand/contract rule), prod-ledger repair runbook, PR-time migration replay workflow, gated `migrate-prod.yml`. Vercel auto-deploy deliberately untouched (lighter variant chosen after critique). Plan: `~/.claude/plans/have-you-real-the-stateful-babbage.md`.
 
 ## Now
@@ -56,8 +62,11 @@ Recovered a live incident — RESULT: `supabase db reset --linked` wiped the DEV
 - Issue #510 (guest-tier storage.objects RLS bypass on guide-attachments) — not yet fixed, needs its own PR
 - Prior-task open item carried forward: REF.md phantom-route doc fix (`/api/events/[id]/register`) still not done, unrelated to this task
 - Milestone remainder genuinely not started: #485 (Phase 3), #490/#492/#489/#487/#488 (Phase 4), #469/#486/#491/#493/#494/#495/#496/#497 (Phase 5 cleanup backlog)
-- NOTED (not done): untracked June-orchestration leftovers in main checkout root (`.agents/` dirs, `convert.js`, `test_out.txt`) — user call whether to archive/delete; pre-existing April stash `stash@{1}` on main; guest-visitor console error `Query data cannot be undefined ["profile-ui-prefs-font-size"]` (pre-existing app behavior, UI-prefs query returns undefined for signed-out users); Playwright `webServer.timeout` 120s < cold worktree compile ~5min (warm the cache first)
+- RESOLVED 2026-07-19 (#585): `.agents/`/`convert.js`/`test_out.txt` deleted with user approval; all 4 stashes reviewed (all churn/bookkeeping) and dropped. Still NOTED: guest-visitor console error `Query data cannot be undefined ["profile-ui-prefs-font-size"]` (pre-existing app behavior, UI-prefs query returns undefined for signed-out users); Playwright `webServer.timeout` 120s < cold worktree compile ~5min (warm the cache first)
 
 ## Failed attempts
+ATTEMPT 1 [L1] (#585 worktree-dir delete): background `git worktree remove --force` + `rm -rf` -> "Permission denied" / "Device or resource busy" on 2 of 5 dirs.
+ATTEMPT 2 [L1] (#585): fresh foreground `rm -rf` -> same "Device or resource busy".
+ATTEMPT 3 [L2] (#585): inspected dirs — both EMPTY shells; `cmd rmdir /s /q` -> "being used by another process". New hypothesis confirmed: external process holds a directory handle (another live agent session's shell cwd); contents are gone, only the empty dir survives. Resolution: not a bug to fight — swept by a later `clean:weekly --apply` once the handle releases.
 ATTEMPT 1 [L1] (migrate-prod.yml, run 29491753945): `supabase link` + `migration list --linked` from a GitHub-hosted runner -> "failed to connect to postgres: effect/sql/SqlError: PgClient: Failed to connect" — direct DB host is IPv6-only, runners have no IPv6. Fix: explicit `--db-url` via the IPv4 session pooler (aws-1-eu-west-2), no link.
 (previous task: none — the `db reset --linked` incident was diagnosed and recovered in the same session, not abandoned)

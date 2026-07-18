@@ -16,6 +16,11 @@ const eslintConfig = defineConfig([
     "lib/i18n/**",
     // Archived historical artifacts (formerly /.agents/**) — never lint.
     "docs/archive/**",
+    // Sibling agent worktrees under the main checkout — each is a full repo
+    // copy (with its own .next output) that lints itself in its own session.
+    ".claude/worktrees/**",
+    // Generated design-sync bundle (gitignored vendored output).
+    "ds-bundle/**",
   ]),
   {
     plugins: { i18next },
