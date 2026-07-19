@@ -1,4 +1,35 @@
 @import 'tailwindcss';
+/* Overlay/enter-exit animation utilities (animate-in, fade-*, zoom-*, slide-*)
+   consumed by components/ui/{dialog,sheet,select,alert-dialog}.tsx. v4-native
+   successor to tailwindcss-animate; build-time CSS only, no runtime JS. */
+@import 'tw-animate-css';
+
+/* ── Tailwind v4 theme wiring ──
+   Tailwind v4 does not read tailwind.config.ts (deleted for #611). Design tokens
+   are registered here so utilities compile:
+     --font-*  → font-display / font-body / font-serif / font-sans utilities,
+                 chained to the next/font variables set on <html> in app/layout.tsx.
+     --color-brand-* → bg-brand-* / text-brand-* / border-brand-* utilities.
+   Brand hexes are the canonical values from styles/brand-tokens.css (the old
+   config carried a wrong, dead parchment/oyster pair). Extends the default v4
+   palette — it does not replace it. */
+@theme {
+  --font-sans: var(--font-montserrat), sans-serif;
+  --font-serif: var(--font-playfair), serif;
+  --font-display: var(--font-cormorant), serif;
+  --font-body: var(--font-dm-sans), sans-serif;
+  --font-mono: ui-monospace, 'SFMono-Regular', 'Menlo', monospace;
+
+  --color-brand-forest: #2d332a;
+  --color-brand-crimson: #bc4749;
+  --color-brand-teal: #3e7785;
+  --color-brand-sienna: #e07a5f;
+  --color-brand-parchment: #faf8f3;
+  --color-brand-void: #1a1f18;
+  --color-brand-oyster: #f0ede6;
+  --color-brand-moss: #252b23;
+  --color-brand-stone: #8a8577;
+}
 
 :root {
   --eggshell: #f4f1de;
