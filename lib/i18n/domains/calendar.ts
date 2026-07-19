@@ -16,6 +16,11 @@ export const calendar = {
   'cal.noRequests':         { en: 'No requests yet.',         bg: 'Все още няма заявки.'          },
   'cal.shareEvent':         { en: 'Share event',              bg: 'Сподели събитие'               },
   'cal.linkCopied':         { en: 'Link copied!',             bg: 'Линкът е копиран!'             },
+  'cal.shareError':         { en: 'Could not share this event. Please try again.', bg: 'Събитието не можа да бъде споделено. Опитайте отново.' },
+  'cal.qrShare':            { en: 'QR code',                  bg: 'QR код'                        },
+  'cal.qrTitle':            { en: 'Scan to register',         bg: 'Сканирайте, за да се регистрирате' },
+  'cal.qrDescription':      { en: 'Guests can scan this code to open the event registration page.', bg: 'Гостите могат да сканират този код, за да отворят страницата за регистрация.' },
+  'cal.qrDownload':         { en: 'Download PNG',             bg: 'Изтегли PNG'                   },
   'cal.roleRequestsClosed': { en: 'Role requests closed.',    bg: 'Заявките за роли са затворени.' },
   'cal.allDay':             { en: 'All day',                  bg: 'Целодневно'                    },
 } as const

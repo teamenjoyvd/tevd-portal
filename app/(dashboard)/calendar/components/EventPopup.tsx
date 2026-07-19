@@ -4,14 +4,23 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { formatTime, formatLongDate } from '@/lib/format'
-import { X, Check, Users, Info, Lock } from 'lucide-react'
+import { X, Check, Users, Info, Lock, QrCode, Download } from 'lucide-react'
 import { apiClient } from '@/lib/apiClient'
 import Link from 'next/link'
+import QRCode from 'qrcode'
+import { toast } from 'sonner'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 // ── Types ───────────────────────────────────────────────────────────────────────────
 
@@ -204,6 +213,8 @@ export default function EventPopup({
   const { t } = useLanguage()
   const [shareCopied, setShareCopied]   = useState(false)
   const [shareLoading, setShareLoading] = useState(false)
+  const [qrLoading, setQrLoading]       = useState(false)
+  const [qrDataUrl, setQrDataUrl]       = useState<string | null>(null)
   const [adminTab, setAdminTab]         = useState<'roles' | 'registrations'>('roles')
 
   const { data: event, isLoading } = useQuery<EventDetail>({
@@ -253,13 +264,40 @@ export default function EventPopup({
       setShareCopied(true)
       setTimeout(() => setShareCopied(false), 2000)
     } catch {
-      const fallbackUrl = `${window.location.origin}/events/${eventId}/register`
-      await navigator.clipboard.writeText(fallbackUrl).catch(() => {})
-      setShareCopied(true)
-      setTimeout(() => setShareCopied(false), 2000)
+      // Never fall back to a token-less URL or a fake "copied" state — surface
+      // the failure so the member knows the link was not shared.
+      toast.error(t('cal.shareError'))
     } finally {
       setShareLoading(false)
     }
+  }
+
+  async function handleQrShare() {
+    if (!event?.allow_guest_registration || qrLoading) return
+    setQrLoading(true)
+    try {
+      const { token } = await apiClient<{ token: string }>('/api/profile/event-shares', {
+        method: 'POST',
+        body: JSON.stringify({ event_id: eventId, share_method: 'qr' }),
+      })
+      const shareUrl = `${window.location.origin}/events/${eventId}/register?share=${token}`
+      const dataUrl  = await QRCode.toDataURL(shareUrl, { width: 512, margin: 2 })
+      setQrDataUrl(dataUrl)
+    } catch {
+      toast.error(t('cal.shareError'))
+    } finally {
+      setQrLoading(false)
+    }
+  }
+
+  function downloadQr() {
+    if (!qrDataUrl) return
+    const a = document.createElement('a')
+    a.href = qrDataUrl
+    a.download = `event-${eventId}-qr.png`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
   }
 
   const eventTypeStyle = event?.event_type ? EVENT_TYPE_STYLES[event.event_type] : null
@@ -512,22 +550,33 @@ export default function EventPopup({
                 </div>
               )}
               {event.allow_guest_registration && !isGuest && (
-                <button
-                  onClick={handleShare}
-                  disabled={shareLoading}
-                  className="mt-3 flex items-center gap-1.5 text-xs font-medium hover:opacity-70 transition-opacity disabled:opacity-40"
-                  style={{ color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="18" cy="5" r="3"/>
-                    <circle cx="6" cy="12" r="3"/>
-                    <circle cx="18" cy="19" r="3"/>
-                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
-                    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-                  </svg>
-                  {shareLoading ? '…' : shareCopied ? t('cal.linkCopied') : t('cal.shareEvent')}
-                </button>
+                <div className="mt-3 flex items-center gap-4">
+                  <button
+                    onClick={handleShare}
+                    disabled={shareLoading}
+                    className="flex items-center gap-1.5 text-xs font-medium hover:opacity-70 transition-opacity disabled:opacity-40"
+                    style={{ color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="18" cy="5" r="3"/>
+                      <circle cx="6" cy="12" r="3"/>
+                      <circle cx="18" cy="19" r="3"/>
+                      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+                      <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                    </svg>
+                    {shareLoading ? '…' : shareCopied ? t('cal.linkCopied') : t('cal.shareEvent')}
+                  </button>
+                  <button
+                    onClick={handleQrShare}
+                    disabled={qrLoading}
+                    className="flex items-center gap-1.5 text-xs font-medium hover:opacity-70 transition-opacity disabled:opacity-40"
+                    style={{ color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                  >
+                    <QrCode size={12} />
+                    {qrLoading ? '…' : t('cal.qrShare')}
+                  </button>
+                </div>
               )}
             </div>
             {event.description && event.description !== event.meeting_url && (
@@ -545,6 +594,35 @@ export default function EventPopup({
           pointerEvents: 'none',
         }} />
       </div>
+
+      <Dialog open={qrDataUrl !== null} onOpenChange={(open) => { if (!open) setQrDataUrl(null) }}>
+        <DialogContent className="max-w-xs">
+          <DialogHeader>
+            <DialogTitle>{t('cal.qrTitle')}</DialogTitle>
+            <DialogDescription>{t('cal.qrDescription')}</DialogDescription>
+          </DialogHeader>
+          {qrDataUrl && (
+            <div className="flex flex-col items-center gap-4">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={qrDataUrl}
+                alt={t('cal.qrTitle')}
+                width={256}
+                height={256}
+                className="h-auto w-full max-w-[256px] rounded-lg border border-black/5"
+              />
+              <button
+                onClick={downloadQr}
+                className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-white transition-opacity hover:opacity-80"
+                style={{ background: 'var(--brand-teal)' }}
+              >
+                <Download size={14} />
+                {t('cal.qrDownload')}
+              </button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   )
 }
