@@ -2,9 +2,7 @@
 // POST  — upsert share link for the authenticated member
 // GET   — return all share links with nested guest data, supports filtering
 
-import { auth } from '@clerk/nextjs/server'
-import { createServiceClient } from '@/lib/supabase/service'
-import { getCallerProfile } from '@/lib/supabase/guards'
+import { requireAuth, withProfile } from '@/lib/supabase/with-profile'
 import { randomBytes } from 'crypto'
 import { z } from 'zod'
 import { NextRequest } from 'next/server'
@@ -17,17 +15,18 @@ const postSchema = z.object({
 })
 
 export async function POST(req: NextRequest): Promise<Response> {
-  const { userId } = await auth()
-  if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  const authCtx = await requireAuth()
+  if (authCtx.response) return authCtx.response
 
   const body = await req.json().catch(() => null)
   const parsed = postSchema.safeParse(body)
   if (!parsed.success) return Response.json({ error: 'Invalid request' }, { status: 400 })
 
   const { event_id, share_method } = parsed.data
-  const supabase = createServiceClient()
 
-  const profile = await getCallerProfile(userId, supabase)
+  const ctx = await withProfile()
+  if (ctx.response) return ctx.response
+  const { supabase, profile } = ctx
 
   if (!profile) return Response.json({ error: 'Profile not found' }, { status: 404 })
   if (profile.role === 'guest') return Response.json({ error: 'Guests cannot share events' }, { status: 403 })
@@ -81,12 +80,9 @@ export async function POST(req: NextRequest): Promise<Response> {
 // ── GET ───────────────────────────────────────────────────────────────────
 
 export async function GET(req: NextRequest): Promise<Response> {
-  const { userId } = await auth()
-  if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const supabase = createServiceClient()
-
-  const profile = await getCallerProfile(userId, supabase)
+  const ctx = await withProfile()
+  if (ctx.response) return ctx.response
+  const { supabase, profile } = ctx
 
   if (!profile) return Response.json({ error: 'Profile not found' }, { status: 404 })
 

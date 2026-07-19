@@ -1,16 +1,11 @@
-import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { requireAuth, withProfile } from '@/lib/supabase/with-profile'
+import type { Tables } from '@/types/supabase'
 
 export async function GET() {
-  const { userId } = await auth()
-  if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const supabase = createServiceClient()
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('clerk_id', userId)
-    .single()
+  const ctx = await withProfile<Tables<'profiles'>>('*')
+  if (ctx.response) return ctx.response
+  const { supabase, error } = ctx
 
   if (error) {
     // PGRST116 = no rows returned — user has no profile yet (webhook not fired)
@@ -19,6 +14,7 @@ export async function GET() {
     }
     return Response.json({ error: error.message }, { status: 500 })
   }
+  const data = ctx.profile!
 
   // Extract scalars before Promise.all — TS cannot narrow property accesses
   // through IIFE closure boundaries, so we capture as typed consts here.
@@ -153,8 +149,9 @@ export async function GET() {
 }
 
 export async function PATCH(req: Request): Promise<Response> {
-  const { userId } = await auth()
-  if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  const authCtx = await requireAuth()
+  if (authCtx.response) return authCtx.response
+  const { userId } = authCtx
 
   const supabase = createServiceClient()
   const body = await req.json() as Record<string, unknown>

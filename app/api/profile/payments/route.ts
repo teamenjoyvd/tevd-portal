@@ -1,14 +1,9 @@
-import { auth } from '@clerk/nextjs/server'
-import { createServiceClient } from '@/lib/supabase/service'
-import { getCallerProfile } from '@/lib/supabase/guards'
+import { withProfile } from '@/lib/supabase/with-profile'
 
 export async function GET(): Promise<Response> {
-  const { userId } = await auth()
-  if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const supabase = createServiceClient()
-
-  const profile = await getCallerProfile(userId, supabase)
+  const ctx = await withProfile()
+  if (ctx.response) return ctx.response
+  const { supabase, profile } = ctx
   if (!profile) return Response.json({ error: 'Profile not found' }, { status: 404 })
 
   // Registrations with trip details — include cancelled_at so the UI can detect cancellation
@@ -50,13 +45,9 @@ export async function GET(): Promise<Response> {
 }
 
 export async function POST(req: Request): Promise<Response> {
-  const { userId } = await auth()
-  if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const supabase = createServiceClient()
-
-  const { data: profile } = await supabase
-    .from('profiles').select('id, role, first_name').eq('clerk_id', userId).single()
+  const ctx = await withProfile<{ id: string; role: string; first_name: string | null }>('id, role, first_name')
+  if (ctx.response) return ctx.response
+  const { supabase, profile } = ctx
   if (!profile?.id) return Response.json({ error: 'Profile not found' }, { status: 404 })
   if (profile.role === 'guest') return Response.json({ error: 'Forbidden' }, { status: 403 })
 

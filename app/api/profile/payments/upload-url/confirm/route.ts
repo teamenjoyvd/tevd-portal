@@ -1,19 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
-import { createServiceClient } from '@/lib/supabase/service'
+import { withProfile } from '@/lib/supabase/with-profile'
 
 export const dynamic = 'force-dynamic'
 
-export async function POST(req: NextRequest): Promise<NextResponse> {
-  const { userId } = await auth()
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const supabase = createServiceClient()
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('clerk_id', userId)
-    .single()
+export async function POST(req: NextRequest): Promise<Response> {
+  const ctx = await withProfile<{ id: string }>('id')
+  if (ctx.response) return ctx.response
+  const { profile } = ctx
 
   if (!profile) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
