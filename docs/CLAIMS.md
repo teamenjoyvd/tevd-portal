@@ -7,3 +7,4 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
 | #585 | `dev/2607-DEV-585` | docs/CLAIMS.md, docs/STATE.md, .gitignore, .claude/settings.json, supabase/migrations/rpc-guards.test.ts (move), ~/.claude/ (external) | 2026-07-19T00:34Z |
+| #611 | `dev/2607-DEV-611` | app/globals.css, tailwind.config.ts (delete), app/layout.tsx, app/(dashboard)/components/tiles/HeroTile.tsx, package.json, docs/design/DESIGN-SYSTEM.md (new); migration: no | 2026-07-19T00:00Z |
