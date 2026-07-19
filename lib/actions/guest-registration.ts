@@ -96,11 +96,12 @@ export async function registerGuest(
     token = randomBytes(32).toString('hex')
     const expiresAt = new Date(now + 72 * 60 * 60 * 1000).toISOString()
     // Upsert covers both the first registration (insert) and re-registration
-    // after expiry (update the existing row with a fresh token/expiry).
+    // after expiry (update the existing row with a fresh token/expiry). Keep
+    // first-touch attribution when this re-registration carries no share link.
     const { error: upsertError } = await supabase
       .from('guest_registrations')
       .upsert(
-        { event_id: eventId, email, name, token, expires_at: expiresAt, share_link_id: shareLinkId },
+        { event_id: eventId, email, name, token, expires_at: expiresAt, share_link_id: shareLinkId ?? existing?.share_link_id ?? null },
         { onConflict: 'event_id,email', ignoreDuplicates: false },
       )
     if (upsertError) return { success: false, error: 'Registration failed. Please try again.' }

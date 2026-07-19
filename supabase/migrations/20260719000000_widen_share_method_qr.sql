@@ -10,6 +10,11 @@
 ALTER TABLE event_share_links
   DROP CONSTRAINT IF EXISTS event_share_links_share_method_check;
 
+-- Add NOT VALID first so the ADD does not take an ACCESS EXCLUSIVE lock for a
+-- full table scan (blocking writes); validate in a separate, lighter step.
 ALTER TABLE event_share_links
   ADD CONSTRAINT event_share_links_share_method_check
-  CHECK (share_method IN ('native', 'clipboard', 'qr'));
+  CHECK (share_method IN ('native', 'clipboard', 'qr')) NOT VALID;
+
+ALTER TABLE event_share_links
+  VALIDATE CONSTRAINT event_share_links_share_method_check;

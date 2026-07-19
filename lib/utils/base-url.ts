@@ -11,7 +11,7 @@ import { headers } from 'next/headers'
  */
 export async function getBaseUrl(): Promise<string> {
   const configured = process.env.NEXT_PUBLIC_APP_URL?.trim()
-  if (configured) return configured.replace(/\/+$/, '')
+  if (configured !== undefined && configured !== '') return configured.replace(/\/+$/, '')
 
   const host = (await headers()).get('host') ?? 'tevd-portal.vercel.app'
   const isLocal = host.startsWith('localhost') || host.startsWith('127.0.0.1')
