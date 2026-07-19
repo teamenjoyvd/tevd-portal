@@ -14,7 +14,7 @@ export async function GET(req: NextRequest): Promise<Response> {
   const { supabase, profile } = ctx
 
   if (!profile) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
   }
 
   const filename = req.nextUrl.searchParams.get('filename') ?? 'upload'

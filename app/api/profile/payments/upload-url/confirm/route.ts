@@ -9,7 +9,7 @@ export async function POST(req: NextRequest): Promise<Response> {
   const { profile } = ctx
 
   if (!profile) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
   }
 
   const body = await req.json() as { path?: string }

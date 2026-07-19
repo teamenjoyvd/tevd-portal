@@ -2,8 +2,29 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { requireAuth, withProfile } from '@/lib/supabase/with-profile'
 import type { Tables } from '@/types/supabase'
 
+// Explicit column list — never '*'. Every field here is read by at least one
+// ['profile'] react-query consumer (audited 2607-DEV-604): UserDropdown,
+// TripsClient, ProfileTile (role/first_name/last_name/display_names/verRequest/upline),
+// TravelDocContent (document_active_type/id_number/passport_number/valid_through),
+// PersonalDetailsContent (first_name/last_name/display_names/phone/contact_email),
+// AboInfoContent (role/abo_number/upline/verRequest/spouse/pendingSpouseLinkCount/primary_profile_id),
+// CalendarSection + ProfileClient (ui_prefs), EmailPrefsSection (notification_prefs).
+// clerk_id and created_at are intentionally excluded — no consumer reads them.
+const PROFILE_SELECT =
+  'id, first_name, last_name, display_names, phone, contact_email, role, ' +
+  'abo_number, upline_abo_number, primary_profile_id, document_active_type, ' +
+  'id_number, passport_number, valid_through, ui_prefs, notification_prefs'
+
+type ProfileSelection = Pick<
+  Tables<'profiles'>,
+  | 'id' | 'first_name' | 'last_name' | 'display_names' | 'phone' | 'contact_email'
+  | 'role' | 'abo_number' | 'upline_abo_number' | 'primary_profile_id'
+  | 'document_active_type' | 'id_number' | 'passport_number' | 'valid_through'
+  | 'ui_prefs' | 'notification_prefs'
+>
+
 export async function GET() {
-  const ctx = await withProfile<Tables<'profiles'>>('*')
+  const ctx = await withProfile<ProfileSelection>(PROFILE_SELECT)
   if (ctx.response) return ctx.response
   const { supabase, error } = ctx
 
