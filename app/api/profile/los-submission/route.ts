@@ -1,6 +1,5 @@
-import { auth } from '@clerk/nextjs/server'
 import { NextRequest } from 'next/server'
-import { createServiceClient } from '@/lib/supabase/service'
+import { withProfile } from '@/lib/supabase/with-profile'
 import { checkSubmissionRoot } from '@/lib/csv-import'
 
 // CORE self-service LOS submissions. Uploads are staged as `pending` here for
@@ -12,23 +11,15 @@ const ROOT_ERROR: Record<string, string> = {
   'mismatch': 'The top of your uploaded tree does not match your ABO number.',
 }
 
-async function callerProfile(userId: string, supabase: ReturnType<typeof createServiceClient>) {
-  const { data } = await supabase
-    .from('profiles')
-    .select('id, role, abo_number')
-    .eq('clerk_id', userId)
-    .single()
-  return data
-}
+type CallerProfile = { id: string; role: string; abo_number: string | null }
+const CALLER_COLUMNS = 'id, role, abo_number'
 
 // ── GET — caller's own submissions ────────────────────────────────────────────
 
 export async function GET() {
-  const { userId } = await auth()
-  if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const supabase = createServiceClient()
-  const profile = await callerProfile(userId, supabase)
+  const ctx = await withProfile<CallerProfile>(CALLER_COLUMNS)
+  if (ctx.response) return ctx.response
+  const { supabase, profile } = ctx
   if (!profile) return Response.json({ error: 'Profile not found' }, { status: 404 })
 
   const { data, error } = await supabase
@@ -44,11 +35,9 @@ export async function GET() {
 // ── POST — stage a new submission (scope-guarded, server-enforced) ─────────────
 
 export async function POST(req: NextRequest) {
-  const { userId } = await auth()
-  if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const supabase = createServiceClient()
-  const profile = await callerProfile(userId, supabase)
+  const ctx = await withProfile<CallerProfile>(CALLER_COLUMNS)
+  if (ctx.response) return ctx.response
+  const { supabase, profile } = ctx
   if (!profile) return Response.json({ error: 'Profile not found' }, { status: 404 })
 
   if (profile.role !== 'core' && profile.role !== 'admin') {
@@ -102,11 +91,9 @@ export async function POST(req: NextRequest) {
 // ── PATCH — withdraw own pending submission ───────────────────────────────────
 
 export async function PATCH(req: NextRequest) {
-  const { userId } = await auth()
-  if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const supabase = createServiceClient()
-  const profile = await callerProfile(userId, supabase)
+  const ctx = await withProfile<CallerProfile>(CALLER_COLUMNS)
+  if (ctx.response) return ctx.response
+  const { supabase, profile } = ctx
   if (!profile) return Response.json({ error: 'Profile not found' }, { status: 404 })
 
   const { id } = await req.json().catch(() => ({ id: null }))

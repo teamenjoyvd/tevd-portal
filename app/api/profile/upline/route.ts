@@ -1,17 +1,11 @@
-import { auth } from '@clerk/nextjs/server'
-import { createServiceClient } from '@/lib/supabase/service'
+import { withProfile } from '@/lib/supabase/with-profile'
 
 export async function GET() {
-  const { userId } = await auth()
-  if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const supabase = createServiceClient()
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('abo_number, upline_abo_number, primary_profile_id')
-    .eq('clerk_id', userId)
-    .single()
+  const ctx = await withProfile<{ abo_number: string | null; upline_abo_number: string | null; primary_profile_id: string | null }>(
+    'abo_number, upline_abo_number, primary_profile_id'
+  )
+  if (ctx.response) return ctx.response
+  const { supabase, profile } = ctx
 
   // ADR-016: secondary profiles share ABO with their primary.
   // abo_number is written to both at approval time, so the standard

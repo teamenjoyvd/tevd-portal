@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { requireAuth } from '@/lib/supabase/with-profile'
 
 export const dynamic = 'force-dynamic'
 
@@ -8,8 +8,9 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
-  const { userId } = await auth()
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const authCtx = await requireAuth()
+  if (authCtx.response) return authCtx.response as NextResponse
+  const { userId } = authCtx
 
   const { id } = await params
   const supabase = createServiceClient()

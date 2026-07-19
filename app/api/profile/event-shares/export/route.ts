@@ -3,8 +3,7 @@
 // PDF generation is handled client-side via jspdf in InvitesSection
 // to avoid pdfkit/fontkit Turbopack ESM incompatibility.
 
-import { auth } from '@clerk/nextjs/server'
-import { createServiceClient } from '@/lib/supabase/service'
+import { withProfile } from '@/lib/supabase/with-profile'
 import { NextRequest } from 'next/server'
 
 function toISODate(d: string | null): string {
@@ -18,16 +17,9 @@ function toLocalDateTime(d: string | null): string {
 }
 
 export async function GET(req: NextRequest): Promise<Response> {
-  const { userId } = await auth()
-  if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const supabase = createServiceClient()
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, first_name, last_name')
-    .eq('clerk_id', userId)
-    .single()
+  const ctx = await withProfile<{ id: string; first_name: string; last_name: string }>('id, first_name, last_name')
+  if (ctx.response) return ctx.response
+  const { supabase, profile } = ctx
 
   if (!profile) return Response.json({ error: 'Profile not found' }, { status: 404 })
 

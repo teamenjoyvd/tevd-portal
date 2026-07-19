@@ -1,21 +1,25 @@
-import { auth } from '@clerk/nextjs/server'
-import { createServiceClient } from '@/lib/supabase/service'
+import { withProfile } from '@/lib/supabase/with-profile'
 import { verifyAndApproveAbo } from '@/lib/abo/verifyAbo'
+
+type VerifyAboProfile = {
+  id: string
+  role: string
+  abo_number: string | null
+  primary_profile_id: string | null
+  first_name: string | null
+  contact_email: string | null
+}
 
 // ---------------------------------------------------------------------------
 // POST — submit ABO verification
 // ---------------------------------------------------------------------------
 
 export async function POST(req: Request) {
-  const { userId } = await auth()
-  if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const supabase = createServiceClient()
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, role, abo_number, primary_profile_id, first_name, contact_email')
-    .eq('clerk_id', userId)
-    .single()
+  const ctx = await withProfile<VerifyAboProfile>(
+    'id, role, abo_number, primary_profile_id, first_name, contact_email'
+  )
+  if (ctx.response) return ctx.response
+  const { userId, supabase, profile } = ctx
 
   if (!profile) return Response.json({ error: 'Profile not found' }, { status: 404 })
 
@@ -61,15 +65,9 @@ export async function POST(req: Request) {
 // ---------------------------------------------------------------------------
 
 export async function DELETE() {
-  const { userId } = await auth()
-  if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const supabase = createServiceClient()
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('clerk_id', userId)
-    .single()
+  const ctx = await withProfile<{ id: string }>('id')
+  if (ctx.response) return ctx.response
+  const { supabase, profile } = ctx
   if (!profile) return Response.json({ error: 'Profile not found' }, { status: 404 })
 
   const { error } = await supabase
@@ -87,15 +85,9 @@ export async function DELETE() {
 // ---------------------------------------------------------------------------
 
 export async function GET() {
-  const { userId } = await auth()
-  if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const supabase = createServiceClient()
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('clerk_id', userId)
-    .single()
+  const ctx = await withProfile<{ id: string }>('id')
+  if (ctx.response) return ctx.response
+  const { supabase, profile } = ctx
   if (!profile) return Response.json({ error: 'Profile not found' }, { status: 404 })
 
   const { data, error } = await supabase

@@ -1,17 +1,11 @@
-import { auth } from '@clerk/nextjs/server'
-import { createServiceClient } from '@/lib/supabase/service'
+import { withProfile } from '@/lib/supabase/with-profile'
 
 export async function GET() {
-  const { userId } = await auth()
-  if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const supabase = createServiceClient()
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, abo_number, primary_profile_id')
-    .eq('clerk_id', userId)
-    .single()
+  const ctx = await withProfile<{ id: string; abo_number: string | null; primary_profile_id: string | null }>(
+    'id, abo_number, primary_profile_id'
+  )
+  if (ctx.response) return ctx.response
+  const { supabase, profile } = ctx
 
   if (!profile?.id || !profile.abo_number) {
     return Response.json({ depth: null, direct_downline_count: 0 })

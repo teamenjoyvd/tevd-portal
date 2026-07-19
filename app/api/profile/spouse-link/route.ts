@@ -1,17 +1,13 @@
-import { auth } from '@clerk/nextjs/server'
-import { createServiceClient } from '@/lib/supabase/service'
+import { withProfile } from '@/lib/supabase/with-profile'
 import { sendNotificationEmail } from '@/lib/email/send'
 import { renderEmailTemplate } from '@/lib/email/templates/render'
 import { SpouseLinkRequestEmail } from '@/lib/email/templates/SpouseLinkRequestEmail'
 
 // GET — return own pending/denied spouse_link_requests row, or null
 export async function GET() {
-  const { userId } = await auth()
-  if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const supabase = createServiceClient()
-  const { data: profile } = await supabase
-    .from('profiles').select('id').eq('clerk_id', userId).single()
+  const ctx = await withProfile<{ id: string }>('id')
+  if (ctx.response) return ctx.response
+  const { supabase, profile } = ctx
   if (!profile) return Response.json({ error: 'Profile not found' }, { status: 404 })
 
   const { data, error } = await supabase
@@ -27,19 +23,19 @@ export async function GET() {
 // POST — submit a spouse link request
 // Body: { claimed_primary_abo: string }
 export async function POST(req: Request) {
-  const { userId } = await auth()
-  if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const supabase = createServiceClient()
+  const ctx = await withProfile<{
+    id: string
+    role: string
+    primary_profile_id: string | null
+    first_name: string | null
+    last_name: string | null
+  }>('id, role, primary_profile_id, first_name, last_name')
+  if (ctx.response) return ctx.response
+  const { userId, supabase, profile } = ctx
   // member_event_log is not in generated types; notifications uses PromiseLike (no .catch)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = supabase as any
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, role, primary_profile_id, first_name, last_name')
-    .eq('clerk_id', userId)
-    .single()
   if (!profile) return Response.json({ error: 'Profile not found' }, { status: 404 })
 
   // Caller must be a guest with no existing primary link
@@ -169,12 +165,9 @@ export async function POST(req: Request) {
 
 // DELETE — cancel own pending request
 export async function DELETE() {
-  const { userId } = await auth()
-  if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const supabase = createServiceClient()
-  const { data: profile } = await supabase
-    .from('profiles').select('id').eq('clerk_id', userId).single()
+  const ctx = await withProfile<{ id: string }>('id')
+  if (ctx.response) return ctx.response
+  const { supabase, profile } = ctx
   if (!profile) return Response.json({ error: 'Profile not found' }, { status: 404 })
 
   const { error } = await supabase

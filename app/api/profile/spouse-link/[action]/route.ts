@@ -1,5 +1,5 @@
-import { auth, clerkClient } from '@clerk/nextjs/server'
-import { createServiceClient } from '@/lib/supabase/service'
+import { clerkClient } from '@clerk/nextjs/server'
+import { withProfile } from '@/lib/supabase/with-profile'
 import { sendNotificationEmail } from '@/lib/email/send'
 import { renderEmailTemplate } from '@/lib/email/templates/render'
 import { WelcomeEmail } from '@/lib/email/templates/WelcomeEmail'
@@ -17,20 +17,16 @@ export async function POST(
     return Response.json({ error: 'Invalid action' }, { status: 404 })
   }
 
-  const { userId } = await auth()
-  if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const supabase = createServiceClient()
+  // Resolve caller profile
+  const ctx = await withProfile<{ id: string; role: string; primary_profile_id: string | null }>(
+    'id, role, primary_profile_id'
+  )
+  if (ctx.response) return ctx.response
+  const { userId, supabase, profile: caller } = ctx
   // member_event_log and role_change_audit are not yet in generated Supabase types
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = supabase as any
 
-  // Resolve caller profile
-  const { data: caller } = await supabase
-    .from('profiles')
-    .select('id, role, primary_profile_id')
-    .eq('clerk_id', userId)
-    .single()
   if (!caller) return Response.json({ error: 'Profile not found' }, { status: 404 })
 
   // Caller must be a primary member (member, no primary_profile_id)
