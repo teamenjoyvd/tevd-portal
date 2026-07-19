@@ -1,4 +1,10 @@
 ## Goal
+Issue #611 (2026-07-19, branch `dev/2607-DEV-611`): repair the dead Tailwind v4 config. Register `@theme` tokens in `app/globals.css` (font-display/body/serif/sans → next/font vars; brand color scale, canonical hexes), restore shadcn overlay animations via `tw-animate-css` (v4-native successor to tailwindcss-animate), delete the ignored `tailwind.config.ts`, seed `docs/design/DESIGN-SYSTEM.md`. Kept all four fonts (font-sans is used in HeroTile) → `app/layout.tsx` untouched. Pipeline-repair only, no styling changes.
+
+## Now (issue #611)
+BUILD code complete + locally verified. `npm run build` green; `tsc --noEmit` clean; lint 0 errors (517 pre-existing warnings, all in supabase/functions). Runtime probe on hosted DEV: font-display→Cormorant, font-body/body→DM Sans, text-brand-parchment→rgb(250,248,243). Compiled CSS carries animate-in/out, @keyframes enter/exit, zoom/slide (incl. fractional slide-in-from-left-1/2), font-* and brand-* utilities. NOT pushed (user said "build", not "push"). Next: /code-review low, then user-approved push → draft PR → Vercel preview screenshot-diff (desktop+390px, light+dark) is the remaining DoD gate.
+
+### Prior task (#585)
 Issue #585 (2026-07-19, branch `dev/2607-DEV-585`): consolidated infrastructure cleanup — delete accumulated branches/worktrees/stashes/junk files, relocate `rpc-guards.test.ts` out of `supabase/migrations/`, ship `scripts/clean-weekly.mjs` + `docs/WEEKLY_CLEANUP.md`, and set up a weekly scheduled maintenance run.
 
 ## Now (issue #585)
