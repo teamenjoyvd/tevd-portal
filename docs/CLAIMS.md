@@ -7,3 +7,4 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
 | #587 | `dev/2607-DEV-587` | app/(dashboard)/calendar/components/EventPopup.tsx, lib/utils/base-url.ts (new), lib/actions/guest-registration.ts, lib/actions/guest-registration.test.ts, package.json (qrcode dep), supabase/migrations (share_method CHECK widen); migration: yes | 2026-07-19T00:00Z |
+| #603 | `dev/2607-DEV-603` | lib/supabase/with-profile.ts (new), app/api/profile/** (route.ts, event-shares/**, event-roles, los-submission, los-summary, payments/**, role, spouse-link/**, trips/[id]/cancel, upline, verify-abo, vital-signs); migration: no | 2026-07-19T00:10Z |
