@@ -1,9 +1,9 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { requireAuth, withProfile } from '@/lib/supabase/with-profile'
+import type { Tables } from '@/types/supabase'
 
 export async function GET() {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const ctx = await withProfile<any>('*')
+  const ctx = await withProfile<Tables<'profiles'>>('*')
   if (ctx.response) return ctx.response
   const { supabase, error } = ctx
 

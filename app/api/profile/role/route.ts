@@ -1,9 +1,9 @@
 import { withProfile } from '@/lib/supabase/with-profile'
 import { NextResponse } from 'next/server'
 
-export async function GET(): Promise<NextResponse> {
+export async function GET(): Promise<Response> {
   const ctx = await withProfile<{ role: string }>('role')
-  if (ctx.response) return ctx.response as NextResponse
+  if (ctx.response) return ctx.response
   const { profile, error } = ctx
 
   if (error || !profile) {

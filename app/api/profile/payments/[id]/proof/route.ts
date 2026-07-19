@@ -7,9 +7,9 @@ export const dynamic = 'force-dynamic'
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-): Promise<NextResponse> {
+): Promise<Response> {
   const authCtx = await requireAuth()
-  if (authCtx.response) return authCtx.response as NextResponse
+  if (authCtx.response) return authCtx.response
   const { userId } = authCtx
 
   const { id } = await params

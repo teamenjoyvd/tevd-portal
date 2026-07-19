@@ -4,13 +4,13 @@ import { randomUUID } from 'crypto'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET(req: NextRequest): Promise<NextResponse> {
+export async function GET(req: NextRequest): Promise<Response> {
   // Any authenticated member (not just admin) can upload their own proof.
   // getCallerContext with 'adminOrCore' would be too restrictive;
   // we just need a resolved profile id — so fetch manually with a role check
   // that excludes only guest (no profile) or unauthenticated.
   const ctx = await withProfile()
-  if (ctx.response) return ctx.response as NextResponse
+  if (ctx.response) return ctx.response
   const { supabase, profile } = ctx
 
   if (!profile) {

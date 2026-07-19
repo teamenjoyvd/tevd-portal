@@ -3,9 +3,9 @@ import { withProfile } from '@/lib/supabase/with-profile'
 
 export const dynamic = 'force-dynamic'
 
-export async function POST(req: NextRequest): Promise<NextResponse> {
+export async function POST(req: NextRequest): Promise<Response> {
   const ctx = await withProfile<{ id: string }>('id')
-  if (ctx.response) return ctx.response as NextResponse
+  if (ctx.response) return ctx.response
   const { profile } = ctx
 
   if (!profile) {
