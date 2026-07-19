@@ -13,7 +13,7 @@ import { NextRequest } from 'next/server'
 
 const postSchema = z.object({
   event_id:     z.string().uuid(),
-  share_method: z.enum(['native', 'clipboard']),
+  share_method: z.enum(['native', 'clipboard', 'qr']),
 })
 
 export async function POST(req: NextRequest): Promise<Response> {

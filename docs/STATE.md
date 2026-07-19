@@ -1,4 +1,10 @@
 ## Goal
+Issue #587 (2026-07-19, branch `dev/2607-DEV-587`): Guest-invite T1 — share UX correctness (real sonner error toast, no fake "copied"/token-less fallback), `lib/utils/base-url.ts` helper adopted in `guest-registration.ts`, token reuse in `registerGuest` (unexpired → resend same link; else mint new), and QR-code share (migration widening `event_share_links.share_method` CHECK to add `'qr'`, `qrcode` dep, shadcn QR dialog with PNG download). First ticket of the July Fable Refactor milestone head sequence.
+
+## Now (issue #587)
+BUILD in same session as SSU+CLAIM (user explicitly overrode one-phase-per-session, said "CLAIM AND BUILD"). Migration applied+verified on hosted DEV (constraint now native/clipboard/qr). Code complete: tsc clean, lint 0 errors (7 pre-existing warnings), full unit suite 112/112 incl. new `guest-registration.test.ts` (4/4: reuse-vs-fresh + base-url). `npm run build` running. NOT pushed (user has not asked). Remaining DoD gate: browser-preview QR dialog at 390px + Vercel preview READY. DECISION: QR "render smoke" covered by browser preview, not a brittle jsdom EventPopup mount. NOTED (not done): a 'qr' link mislabels as clipboard in InvitesSection filter/list + invites-pdf — out of #587 scope (invites UI owned by #606/#610).
+
+### Prior task (#611)
 Issue #611 (2026-07-19, branch `dev/2607-DEV-611`): repair the dead Tailwind v4 config. Register `@theme` tokens in `app/globals.css` (font-display/body/serif/sans → next/font vars; brand color scale, canonical hexes), restore shadcn overlay animations via `tw-animate-css` (v4-native successor to tailwindcss-animate), delete the ignored `tailwind.config.ts`, seed `docs/design/DESIGN-SYSTEM.md`. Kept all four fonts (font-sans is used in HeroTile) → `app/layout.tsx` untouched. Pipeline-repair only, no styling changes.
 
 ## Now (issue #611)

@@ -2,13 +2,13 @@
 
 import { z } from 'zod'
 import { randomBytes } from 'crypto'
-import { headers } from 'next/headers'
 import * as React from 'react'
 import { createServiceClient } from '@/lib/supabase/service'
 import { sendTransactionalEmail } from '@/lib/email/send'
 import { renderEmailTemplate } from '@/lib/email/templates/render'
 import { GuestEventMagicLinkEmail } from '@/lib/email/templates/GuestEventMagicLinkEmail'
 import { notifySharerOfRegistration } from '@/lib/notifications/share-events'
+import { getBaseUrl } from '@/lib/utils/base-url'
 
 // -- Types --------------------------------------------------------------------
 
@@ -65,31 +65,54 @@ export async function registerGuest(
     shareLinkId = shareLink?.id ?? null
   }
 
-  // Generate token and expiry
-  const token     = randomBytes(32).toString('hex')
-  const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString()
-
-  // Upsert on (event_id, email) — last-link-wins for attribution.
-  // If the guest already registered (e.g. lost their email), they get a fresh token.
-  const { error: upsertError } = await supabase
+  // Reuse an existing, still-valid magic link for this (event, email) so a guest
+  // who re-registers gets the SAME link resent rather than a fresh token that
+  // silently invalidates the one already sitting in their inbox. Only the
+  // attribution (share_link_id) and display name are refreshed. If there is no
+  // prior registration, or the previous link has expired, mint a new token.
+  const { data: existing } = await supabase
     .from('guest_registrations')
-    .upsert(
-      { event_id: eventId, email, name, token, expires_at: expiresAt, share_link_id: shareLinkId },
-      { onConflict: 'event_id,email', ignoreDuplicates: false },
-    )
+    .select('token, expires_at, share_link_id')
+    .eq('event_id', eventId)
+    .eq('email', email)
+    .maybeSingle()
 
-  if (upsertError) return { success: false, error: 'Registration failed. Please try again.' }
+  const now      = Date.now()
+  const reusable = existing != null && new Date(existing.expires_at).getTime() > now
+
+  let token: string
+  if (reusable) {
+    token = existing.token
+    // Preserve first-touch attribution: only overwrite share_link_id when this
+    // registration arrived through a share link. A direct re-registration
+    // (no token) must not null out a prior sharer's attribution.
+    const { error: updateError } = await supabase
+      .from('guest_registrations')
+      .update({ name, share_link_id: shareLinkId ?? existing.share_link_id })
+      .eq('event_id', eventId)
+      .eq('email', email)
+    if (updateError) return { success: false, error: 'Registration failed. Please try again.' }
+  } else {
+    token = randomBytes(32).toString('hex')
+    const expiresAt = new Date(now + 72 * 60 * 60 * 1000).toISOString()
+    // Upsert covers both the first registration (insert) and re-registration
+    // after expiry (update the existing row with a fresh token/expiry).
+    const { error: upsertError } = await supabase
+      .from('guest_registrations')
+      .upsert(
+        { event_id: eventId, email, name, token, expires_at: expiresAt, share_link_id: shareLinkId },
+        { onConflict: 'event_id,email', ignoreDuplicates: false },
+      )
+    if (upsertError) return { success: false, error: 'Registration failed. Please try again.' }
+  }
 
   // Atomically increment click_count on the share link
   if (shareLinkId) {
     await supabase.rpc('increment_share_link_click', { link_id: shareLinkId })
   }
 
-  // Build magic link from request host
-  const reqHeaders = await headers()
-  const host       = reqHeaders.get('host') ?? 'tevd-portal.vercel.app'
-  const protocol   = host.startsWith('localhost') ? 'http' : 'https'
-  const magicLink  = `${protocol}://${host}/events/${eventId}/join?token=${token}`
+  // Build magic link from the resolved app base URL
+  const magicLink = `${await getBaseUrl()}/events/${eventId}/join?token=${token}`
 
   const html = await renderEmailTemplate(
     React.createElement(GuestEventMagicLinkEmail, {
