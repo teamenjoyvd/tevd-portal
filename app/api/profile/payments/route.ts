@@ -6,22 +6,25 @@ export async function GET(): Promise<Response> {
   const { supabase, profile } = ctx
   if (!profile) return Response.json({ error: 'Profile not found' }, { status: 404 })
 
-  // Registrations with trip details — include cancelled_at so the UI can detect cancellation
-  const { data: registrations, error: regError } = await supabase
-    .from('trip_registrations')
-    .select('id, trip_id, status, created_at, cancelled_at, trips(id, title, destination, start_date, end_date, total_cost, currency)')
-    .eq('profile_id', profile.id)
-    .order('created_at', { ascending: false })
+  // Registrations with trip details — include cancelled_at so the UI can detect cancellation —
+  // and all payments for this profile (trips + items), fetched in parallel (independent queries).
+  const [
+    { data: registrations, error: regError },
+    { data: payments, error: payError },
+  ] = await Promise.all([
+    supabase
+      .from('trip_registrations')
+      .select('id, trip_id, status, created_at, cancelled_at, trips(id, title, destination, start_date, end_date, total_cost, currency)')
+      .eq('profile_id', profile.id)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('payments')
+      .select('id, trip_id, payable_item_id, amount, currency, transaction_date, admin_status, member_status, payment_method, proof_url, note, logged_by_admin, created_at, trips(title), payable_items(title, item_type)')
+      .eq('profile_id', profile.id)
+      .order('transaction_date', { ascending: false }),
+  ])
 
   if (regError) return Response.json({ error: regError.message }, { status: 500 })
-
-  // All payments for this profile (trips + items)
-  const { data: payments, error: payError } = await supabase
-    .from('payments')
-    .select('id, trip_id, payable_item_id, amount, currency, transaction_date, admin_status, member_status, payment_method, proof_url, note, logged_by_admin, created_at, trips(title), payable_items(title, item_type)')
-    .eq('profile_id', profile.id)
-    .order('transaction_date', { ascending: false })
-
   if (payError) return Response.json({ error: payError.message }, { status: 500 })
 
   // Group payments by trip_id for trip registrations view

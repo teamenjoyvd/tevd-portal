@@ -260,42 +260,6 @@ export type Database = {
           },
         ]
       }
-      email_log: {
-        Row: {
-          created_at: string
-          error: string | null
-          id: string
-          payload: Json
-          recipient: string
-          resend_id: string | null
-          sent_at: string | null
-          status: string
-          template: string
-        }
-        Insert: {
-          created_at?: string
-          error?: string | null
-          id?: string
-          payload?: Json
-          recipient: string
-          resend_id?: string | null
-          sent_at?: string | null
-          status?: string
-          template: string
-        }
-        Update: {
-          created_at?: string
-          error?: string | null
-          id?: string
-          payload?: Json
-          recipient?: string
-          resend_id?: string | null
-          sent_at?: string | null
-          status?: string
-          template?: string
-        }
-        Relationships: []
-      }
       event_role_requests: {
         Row: {
           created_at: string
@@ -305,6 +269,7 @@ export type Database = {
           profile_id: string
           role_label: string
           status: Database["public"]["Enums"]["registration_status"]
+          updated_at: string
         }
         Insert: {
           created_at?: string
@@ -314,6 +279,7 @@ export type Database = {
           profile_id: string
           role_label: string
           status?: Database["public"]["Enums"]["registration_status"]
+          updated_at?: string
         }
         Update: {
           created_at?: string
@@ -323,6 +289,7 @@ export type Database = {
           profile_id?: string
           role_label?: string
           status?: Database["public"]["Enums"]["registration_status"]
+          updated_at?: string
         }
         Relationships: [
           {
@@ -1431,6 +1398,7 @@ export type Database = {
           id: string
           id_number: string | null
           last_name: string
+          notification_prefs: Json
           passport_number: string | null
           phone: string | null
           primary_profile_id: string | null
@@ -1451,6 +1419,7 @@ export type Database = {
           id?: string
           id_number?: string | null
           last_name: string
+          notification_prefs?: Json
           passport_number?: string | null
           phone?: string | null
           primary_profile_id?: string | null
@@ -1471,6 +1440,7 @@ export type Database = {
           id?: string
           id_number?: string | null
           last_name?: string
+          notification_prefs?: Json
           passport_number?: string | null
           phone?: string | null
           primary_profile_id?: string | null
@@ -1601,66 +1571,23 @@ export type Database = {
           },
         ]
       }
-      scheduled_reminders: {
-        Row: {
-          event_id: string
-          id: string
-          registration_id: string
-          reminder_type: Database["public"]["Enums"]["reminder_type"]
-          send_at: string
-          sent_at: string | null
-        }
-        Insert: {
-          event_id: string
-          id?: string
-          registration_id: string
-          reminder_type: Database["public"]["Enums"]["reminder_type"]
-          send_at: string
-          sent_at?: string | null
-        }
-        Update: {
-          event_id?: string
-          id?: string
-          registration_id?: string
-          reminder_type?: Database["public"]["Enums"]["reminder_type"]
-          send_at?: string
-          sent_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "scheduled_reminders_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "calendar_events"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "scheduled_reminders_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "v_roles_history"
-            referencedColumns: ["event_id"]
-          },
-          {
-            foreignKeyName: "scheduled_reminders_registration_id_fkey"
-            columns: ["registration_id"]
-            isOneToOne: false
-            referencedRelation: "guest_registrations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       settings: {
         Row: {
+          created_at: string
           key: string
+          updated_at: string
           value: Json
         }
         Insert: {
+          created_at?: string
           key: string
-          value?: Json
+          updated_at?: string
+          value: Json
         }
         Update: {
+          created_at?: string
           key?: string
+          updated_at?: string
           value?: Json
         }
         Relationships: []
@@ -1674,6 +1601,7 @@ export type Database = {
           is_visible: boolean
           platform: string
           post_url: string
+          posted_at: string | null
           sort_order: number
           thumbnail_url: string | null
         }
@@ -1685,6 +1613,7 @@ export type Database = {
           is_visible?: boolean
           platform: string
           post_url: string
+          posted_at?: string | null
           sort_order?: number
           thumbnail_url?: string | null
         }
@@ -1696,6 +1625,7 @@ export type Database = {
           is_visible?: boolean
           platform?: string
           post_url?: string
+          posted_at?: string | null
           sort_order?: number
           thumbnail_url?: string | null
         }
@@ -1922,6 +1852,7 @@ export type Database = {
           profile_id: string
           status: Database["public"]["Enums"]["registration_status"]
           trip_id: string
+          updated_at: string
         }
         Insert: {
           cancelled_at?: string | null
@@ -1931,6 +1862,7 @@ export type Database = {
           profile_id: string
           status?: Database["public"]["Enums"]["registration_status"]
           trip_id: string
+          updated_at?: string
         }
         Update: {
           cancelled_at?: string | null
@@ -1940,6 +1872,7 @@ export type Database = {
           profile_id?: string
           status?: Database["public"]["Enums"]["registration_status"]
           trip_id?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -2231,9 +2164,9 @@ export type Database = {
       claim_los_submissions: {
         Args: { p_ids: string[]; p_resolved_by?: string }
         Returns: {
+          created_at: string
           id: string
           root_abo_number: string
-          created_at: string
           rows: Json
         }[]
       }
@@ -2360,6 +2293,7 @@ export type Database = {
           id: string
           id_number: string | null
           last_name: string
+          notification_prefs: Json
           passport_number: string | null
           phone: string | null
           primary_profile_id: string | null
@@ -2389,10 +2323,7 @@ export type Database = {
         Args: { p_id: string; p_note?: string; p_resolved_by?: string }
         Returns: undefined
       }
-      release_los_submissions: {
-        Args: { p_ids: string[] }
-        Returns: number
-      }
+      release_los_submissions: { Args: { p_ids: string[] }; Returns: number }
       rollback_los_import: { Args: { p_import_id: string }; Returns: Json }
       run_los_digest: { Args: never; Returns: undefined }
       text2ltree: { Args: { "": string }; Returns: unknown }
