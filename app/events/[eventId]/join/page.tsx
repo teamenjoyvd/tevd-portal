@@ -12,9 +12,11 @@ type Props = {
 
 // -- Sub-components (module-scoped -- never defined inside render fn) ----------
 
-function InvalidState({ eventId, reason, lang }: { eventId: string; reason: 'missing' | 'invalid' | 'expired'; lang: 'en' | 'bg' }) {
+function InvalidState({ eventId, reason, lang }: { eventId: string; reason: 'missing' | 'invalid' | 'expired' | 'revoked'; lang: 'en' | 'bg' }) {
   const message = reason === 'expired'
     ? t('event.join.linkExpired', lang)
+    : reason === 'revoked'
+    ? t('event.join.linkRevoked', lang)
     : t('event.join.linkInvalid', lang)
 
   return (
@@ -99,10 +101,10 @@ export default async function GuestJoinPage({ params, searchParams }: Props) {
   if (reg.event_id !== eventId)              return <InvalidState eventId={eventId} reason="invalid" lang={lang} />
   if (new Date(reg.expires_at) < new Date()) return <InvalidState eventId={eventId} reason="expired" lang={lang} />
 
-  // Stamp attendance — idempotent, only writes when not already set
+  // Stamp attendance + confirm status — idempotent, only writes when not already set
   await supabase
     .from('guest_registrations')
-    .update({ attended_at: new Date().toISOString() })
+    .update({ attended_at: new Date().toISOString(), status: 'confirmed' })
     .eq('id', reg.id)
     .is('attended_at', null)
 

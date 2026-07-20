@@ -45,7 +45,12 @@ function buildClient(existing: Row) {
   }))
   const upsertSpy = vi.fn(() => Promise.resolve({ error: null }))
 
-  const event = { id: 'e', title: 'Trip Kickoff', allow_guest_registration: true }
+  const event = {
+    id: 'e',
+    title: 'Trip Kickoff',
+    allow_guest_registration: true,
+    end_time: new Date(Date.now() + 24 * HOUR).toISOString(),
+  }
 
   const client = {
     from: (table: string) => {

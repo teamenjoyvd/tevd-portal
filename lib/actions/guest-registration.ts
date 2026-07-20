@@ -46,14 +46,17 @@ export async function registerGuest(
   // Verify event exists and has guest registration enabled
   const { data: event, error: eventError } = await supabase
     .from('calendar_events')
-    .select('id, title, allow_guest_registration')
+    .select('id, title, allow_guest_registration, end_time')
     .eq('id', eventId)
     .single()
 
   if (eventError || !event)            return { success: false, error: 'Event not found.' }
   if (!event.allow_guest_registration) return { success: false, error: 'Registration is not available for this event.' }
+  if (new Date(event.end_time).getTime() < Date.now())
+    return { success: false, error: 'This event has already ended.' }
 
-  // Resolve share token → share_link_id (null-safe)
+  // Resolve share token → share_link_id (null-safe). A revoked link must not
+  // attribute a new registration — treat it the same as no token.
   let shareLinkId: string | null = null
   if (shareToken) {
     const { data: shareLink } = await supabase
@@ -61,6 +64,7 @@ export async function registerGuest(
       .select('id')
       .eq('token', shareToken)
       .eq('event_id', eventId)
+      .is('revoked_at', null)
       .single()
     shareLinkId = shareLink?.id ?? null
   }
@@ -94,7 +98,7 @@ export async function registerGuest(
     if (updateError) return { success: false, error: 'Registration failed. Please try again.' }
   } else {
     token = randomBytes(32).toString('hex')
-    const expiresAt = new Date(now + 72 * 60 * 60 * 1000).toISOString()
+    const expiresAt = new Date(new Date(event.end_time).getTime() + 3 * 60 * 60 * 1000).toISOString()
     // Upsert covers both the first registration (insert) and re-registration
     // after expiry (update the existing row with a fresh token/expiry). Keep
     // first-touch attribution when this re-registration carries no share link.

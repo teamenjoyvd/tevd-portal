@@ -35,6 +35,7 @@ export const events = {
   'event.join.brandName':          { en: 'TeamEnjoyVD',                                              bg: 'TeamEnjoyVD'                                                    },
   'event.join.linkExpired':        { en: 'This link has expired.',                                   bg: 'Тази връзка е изтекла.'                                         },
   'event.join.linkInvalid':        { en: 'This link is invalid.',                                    bg: 'Тази връзка е невалидна.'                                       },
+  'event.join.linkRevoked':        { en: 'This link is no longer active.',                           bg: 'Тази връзка вече не е активна.'                                 },
   'event.join.registerAgainDesc':  { en: 'Please register again to receive a fresh access link.',    bg: 'Моля, регистрирайте се отново, за да получите нова връзка.'      },
   'event.join.registerAgain':      { en: 'Register again',                                           bg: 'Регистрирайте се отново'                                        },
   'event.join.youreJoining':       { en: "You're joining",                                          bg: 'Присъединявате се към'                                          },
@@ -52,10 +53,12 @@ export const events = {
 
   // register page
   'event.register.registerToGet':  { en: 'Register to get your access link',                         bg: 'Регистрирайте се за достъп'                                     },
+  'event.register.eventEnded':     { en: 'This event has already ended. Registration is closed.',   bg: 'Това събитие вече приключи. Регистрацията е затворена.'         },
+  'event.register.linkNoLongerActive': { en: 'This share link is no longer active.',                bg: 'Тази връзка за споделяне вече не е активна.'                     },
 
   // register/components/RegisterForm
   'event.register.checkInbox':     { en: 'Check your inbox',                                         bg: 'Проверете пощата си'                                            },
-  'event.register.sentLink':       { en: "We've sent your access link. The link expires in 72 hours.", bg: 'Изпратихме ви връзка за достъп. Тя е валидна 72 часа.'          },
+  'event.register.sentLink':       { en: "We've sent your access link. The link expires after the event ends.", bg: 'Изпратихме ви връзка за достъп. Тя изтича след края на събитието.' },
   'event.register.fullName':       { en: 'Full Name',                                                bg: 'Пълно име'                                                      },
   'event.register.yourName':       { en: 'Your name',                                                bg: 'Вашето име'                                                     },
   'event.register.emailAddress':   { en: 'Email Address',                                            bg: 'Имейл адрес'                                                    },

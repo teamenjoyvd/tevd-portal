@@ -19,15 +19,34 @@ export default async function GuestRegisterPage({ params, searchParams }: Props)
 
   const { data: event } = await supabase
     .from('calendar_events')
-    .select('id, title, start_time, allow_guest_registration')
+    .select('id, title, start_time, end_time, allow_guest_registration')
     .eq('id', eventId)
     .single()
 
   if (!event || !event.allow_guest_registration) notFound()
 
+  const eventEnded = new Date(event.end_time) < new Date()
+
+  let shareLinkRevoked = false
+  if (share) {
+    const { data: shareLink } = await supabase
+      .from('event_share_links')
+      .select('revoked_at')
+      .eq('token', share)
+      .eq('event_id', eventId)
+      .single()
+    shareLinkRevoked = !!shareLink?.revoked_at
+  }
+
   const dateLabel = new Date(event.start_time).toLocaleDateString('en-GB', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
   })
+
+  const blockedMessage = eventEnded
+    ? t('event.register.eventEnded', lang)
+    : shareLinkRevoked
+    ? t('event.register.linkNoLongerActive', lang)
+    : null
 
   return (
     <>
@@ -50,10 +69,16 @@ export default async function GuestRegisterPage({ params, searchParams }: Props)
             className="rounded-2xl border p-8"
             style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}
           >
-            <p className="text-sm font-semibold mb-5" style={{ color: 'var(--text-primary)' }}>
-              {t('event.register.registerToGet', lang)}
-            </p>
-            <RegisterForm eventId={event.id} eventTitle={event.title} shareToken={share} />
+            {blockedMessage ? (
+              <p className="text-sm text-center" style={{ color: 'var(--text-secondary)' }}>{blockedMessage}</p>
+            ) : (
+              <>
+                <p className="text-sm font-semibold mb-5" style={{ color: 'var(--text-primary)' }}>
+                  {t('event.register.registerToGet', lang)}
+                </p>
+                <RegisterForm eventId={event.id} eventTitle={event.title} shareToken={share} />
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -76,10 +101,16 @@ export default async function GuestRegisterPage({ params, searchParams }: Props)
           className="rounded-2xl border p-5"
           style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}
         >
-          <p className="text-sm font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
-            {t('event.register.registerToGet', lang)}
-          </p>
-          <RegisterForm eventId={event.id} eventTitle={event.title} shareToken={share} />
+          {blockedMessage ? (
+            <p className="text-sm text-center" style={{ color: 'var(--text-secondary)' }}>{blockedMessage}</p>
+          ) : (
+            <>
+              <p className="text-sm font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
+                {t('event.register.registerToGet', lang)}
+              </p>
+              <RegisterForm eventId={event.id} eventTitle={event.title} shareToken={share} />
+            </>
+          )}
         </div>
       </div>
     </>

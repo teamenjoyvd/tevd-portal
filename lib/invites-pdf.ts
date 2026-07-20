@@ -35,6 +35,7 @@ type ShareLink = {
   share_method: 'native' | 'clipboard'
   click_count: number
   created_at: string
+  revoked_at: string | null
   event: { id: string; title: string; start_time: string }
   guests: GuestRow[]
 }
@@ -100,7 +101,7 @@ export function generateInvitesPdf(links: ShareLink[], memberName: string): void
         body: guests.map(g => [
           g.name,
           g.email,
-          g.attended_at ? 'attended' : g.status,
+          g.attended_at ? 'attended' : g.status === 'confirmed' ? 'confirmed' : link.revoked_at ? 'cancelled' : 'pending',
           fmt(g.created_at),
           fmt(g.attended_at),
         ]),

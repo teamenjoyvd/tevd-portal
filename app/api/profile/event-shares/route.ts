@@ -48,12 +48,12 @@ export async function POST(req: NextRequest): Promise<Response> {
   // may have already distributed the previous link.
   const { data: existing } = await supabase
     .from('event_share_links')
-    .select('token')
+    .select('token, revoked_at')
     .eq('profile_id', profile.id)
     .eq('event_id', event_id)
     .single()
 
-  if (existing) {
+  if (existing && !existing.revoked_at) {
     // Update share_method (last-write-wins) without touching the token.
     await supabase
       .from('event_share_links')
@@ -64,12 +64,17 @@ export async function POST(req: NextRequest): Promise<Response> {
     return Response.json({ token: existing.token })
   }
 
-  // No existing link — generate a fresh url-safe token (16 bytes = 22 base64url chars)
+  // No existing link, or the prior one was revoked — mint a fresh url-safe
+  // token (16 bytes = 22 base64url chars). A revoked link's row is unique on
+  // (profile_id, event_id), so upsert rather than insert.
   const token = randomBytes(16).toString('base64url')
 
   const { data: link, error } = await supabase
     .from('event_share_links')
-    .insert({ profile_id: profile.id, event_id, token, share_method })
+    .upsert(
+      { profile_id: profile.id, event_id, token, share_method, revoked_at: null },
+      { onConflict: 'profile_id,event_id' },
+    )
     .select('token')
     .single()
 
