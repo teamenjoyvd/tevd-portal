@@ -3,6 +3,7 @@
 // GET   — return all share links with nested guest data, supports filtering
 
 import { requireAuth, withProfile } from '@/lib/supabase/with-profile'
+import { fetchEventShares } from '@/lib/server/event-shares'
 import { randomBytes } from 'crypto'
 import { z } from 'zod'
 import { NextRequest } from 'next/server'
@@ -94,51 +95,11 @@ export async function GET(req: NextRequest): Promise<Response> {
   const to       = searchParams.get('to')       // ISO date
   const q        = searchParams.get('q')        // guest name search
 
-  let query = supabase
-    .from('event_share_links')
-    .select(`
-      id,
-      token,
-      share_method,
-      click_count,
-      created_at,
-      event:calendar_events ( id, title, start_time ),
-      guests:guest_registrations (
-        id,
-        name,
-        email,
-        status,
-        attended_at,
-        created_at
-      )
-    `)
-    .eq('profile_id', profile.id)
-    .order('created_at', { ascending: false })
-
-  if (eventId) query = query.eq('event_id', eventId)
-  if (method)  query = query.eq('share_method', method)
-  if (from)    query = query.gte('created_at', from)
-  if (to)      query = query.lte('created_at', to)
-
-  const { data: links, error } = await query
+  const { data: result, error } = await fetchEventShares(supabase, profile.id, {
+    eventId, status, method, from, to, q,
+  })
 
   if (error) return Response.json({ error: error.message }, { status: 500 })
 
-  // Post-process: apply status and guest name filters in-memory
-  // (these filter on nested guest rows — not straightforward in PostgREST)
-  let result = links ?? []
-
-  if (status || q) {
-    result = result.map(link => ({
-      ...link,
-      guests: (link.guests as any[]).filter(g => {
-        const guestStatus = g.attended_at ? 'attended' : g.status
-        const matchStatus = status ? guestStatus === status : true
-        const matchQ      = q ? (g.name as string).toLowerCase().includes(q.toLowerCase()) : true
-        return matchStatus && matchQ
-      }),
-    }))
-  }
-
-  return Response.json({ links: result, total: result.length })
+  return Response.json({ links: result, total: (result ?? []).length })
 }
