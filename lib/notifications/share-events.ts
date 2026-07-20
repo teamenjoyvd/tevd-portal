@@ -11,11 +11,14 @@ import { ShareGuestAttendedEmail } from '@/lib/email/templates/ShareGuestAttende
 
 // ── Internal resolver ────────────────────────────────────────────────────
 
+type Lang = 'en' | 'bg'
+
 type ShareLinkContext = {
   sharerEmail:  string
   sharerName:   string
   eventTitle:   string
   guestName:    string
+  lang:         Lang
 }
 
 async function resolveShareLinkContext(
@@ -27,6 +30,7 @@ async function resolveShareLinkContext(
   const { data } = await supabase
     .from('event_share_links')
     .select(`
+      lang,
       profile:profiles ( first_name, last_name, email ),
       event:calendar_events ( title )
     `)
@@ -45,6 +49,7 @@ async function resolveShareLinkContext(
     sharerName:  `${profile.first_name} ${profile.last_name}`.trim(),
     eventTitle:  event.title,
     guestName,
+    lang:        data.lang === 'bg' ? 'bg' : 'en',
   }
 }
 
@@ -60,11 +65,15 @@ export function notifySharerOfRegistration(shareLinkId: string, guestName: strin
           sharerName: ctx.sharerName,
           guestName:  ctx.guestName,
           eventTitle: ctx.eventTitle,
+          lang:       ctx.lang,
         }),
       )
+      const subject = ctx.lang === 'bg'
+        ? `${ctx.guestName} се регистрира за ${ctx.eventTitle}`
+        : `${ctx.guestName} registered for ${ctx.eventTitle}`
       await sendTransactionalEmail({
         to:       ctx.sharerEmail,
-        subject:  `${ctx.guestName} registered for ${ctx.eventTitle}`,
+        subject,
         html,
         template: 'share_guest_registered',
         meta:     { shareLinkId, guestName },
@@ -83,11 +92,15 @@ export function notifySharerOfAttendance(shareLinkId: string, guestName: string)
           sharerName: ctx.sharerName,
           guestName:  ctx.guestName,
           eventTitle: ctx.eventTitle,
+          lang:       ctx.lang,
         }),
       )
+      const subject = ctx.lang === 'bg'
+        ? `${ctx.guestName} се присъедини към ${ctx.eventTitle}`
+        : `${ctx.guestName} joined ${ctx.eventTitle}`
       await sendTransactionalEmail({
         to:       ctx.sharerEmail,
-        subject:  `${ctx.guestName} joined ${ctx.eventTitle}`,
+        subject,
         html,
         template: 'share_guest_attended',
         meta:     { shareLinkId, guestName },

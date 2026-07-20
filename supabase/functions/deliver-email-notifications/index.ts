@@ -42,6 +42,8 @@ Deno.serve(async (req: Request) => {
     let errorMsg: string | null = null
     const recipient = item.payload.email || 'unknown'
 
+    let reminderLang: 'en' | 'bg' = 'en'
+
     try {
       let html = ''
 
@@ -58,8 +60,21 @@ Deno.serve(async (req: Request) => {
         if (eventErr || !event) throw new Error(eventErr ? eventErr.message : 'Event not found')
 
         const name = item.payload.name || 'Guest'
+
+        // Guest's stored language preference (2607-DEV-589). Reminders are keyed
+        // by recipient email + event, matching guest_registrations' unique pair.
+        if (recipient !== 'unknown') {
+          const { data: guestReg } = await sb
+            .from('guest_registrations')
+            .select('lang')
+            .eq('event_id', eventId)
+            .eq('email', recipient)
+            .maybeSingle()
+          if (guestReg?.lang === 'bg') reminderLang = 'bg'
+        }
+
         const minutesBefore = item.type === 'event_reminder_1h' ? 60 : 15
-        html = buildReminderEmail(name, event.title, minutesBefore, event.start_time, event.meeting_url)
+        html = buildReminderEmail(name, event.title, minutesBefore, event.start_time, event.meeting_url, reminderLang)
       } else if (item.type === 'doc_expiry') {
         const profileId = item.profile_id
         if (!profileId) throw new Error('Missing profile_id')
@@ -84,7 +99,7 @@ Deno.serve(async (req: Request) => {
 
       const subject = item.type === 'doc_expiry'
         ? 'Action Required: Your Travel Document expires soon'
-        : 'Reminder: Event starting soon'
+        : (reminderLang === 'bg' ? 'Напомняне: Събитието започва скоро' : 'Reminder: Event starting soon')
 
       const res = await fetch('https://api.resend.com/emails', {
         method: 'POST',

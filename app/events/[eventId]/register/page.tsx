@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import { cookies } from 'next/headers'
 import { createServiceClient } from '@/lib/supabase/service'
 import { RegisterForm } from './components/RegisterForm'
+import { ResendLinkForm } from '../components/ResendLinkForm'
 import { t } from '@/lib/i18n'
 
 type Props = {
@@ -70,7 +71,10 @@ export default async function GuestRegisterPage({ params, searchParams }: Props)
             style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}
           >
             {blockedMessage ? (
-              <p className="text-sm text-center" style={{ color: 'var(--text-secondary)' }}>{blockedMessage}</p>
+              <>
+                <p className="text-sm text-center" style={{ color: 'var(--text-secondary)' }}>{blockedMessage}</p>
+                <ResendLinkForm eventId={event.id} />
+              </>
             ) : (
               <>
                 <p className="text-sm font-semibold mb-5" style={{ color: 'var(--text-primary)' }}>

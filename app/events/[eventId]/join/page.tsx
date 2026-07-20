@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { cookies } from 'next/headers'
 import { createServiceClient } from '@/lib/supabase/service'
 import { JoinActions } from './components/JoinActions'
+import { ResendLinkForm } from '../components/ResendLinkForm'
 import { t } from '@/lib/i18n'
 import { notifySharerOfAttendance } from '@/lib/notifications/share-events'
 
@@ -45,6 +46,7 @@ function InvalidState({ eventId, reason, lang }: { eventId: string; reason: 'mis
             >
               {t('event.join.registerAgain', lang)}
             </Link>
+            {reason === 'expired' && <ResendLinkForm eventId={eventId} />}
           </div>
         </div>
       </div>
@@ -72,6 +74,7 @@ function InvalidState({ eventId, reason, lang }: { eventId: string; reason: 'mis
           >
             {t('event.join.registerAgain', lang)}
           </Link>
+          {reason === 'expired' && <ResendLinkForm eventId={eventId} />}
         </div>
       </div>
     </>

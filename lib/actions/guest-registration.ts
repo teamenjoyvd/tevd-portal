@@ -14,6 +14,8 @@ import { getBaseUrl } from '@/lib/utils/base-url'
 
 export type RegisterGuestState = { success: boolean; error?: string }
 
+type Lang = 'en' | 'bg'
+
 // -- Schema -------------------------------------------------------------------
 
 const schema = z.object({
@@ -21,6 +23,7 @@ const schema = z.object({
   email:      z.string().email(),
   eventId:    z.string().uuid(),
   shareToken: z.string().optional(),
+  lang:       z.enum(['en', 'bg']).default('en'),
 })
 
 // -- Action -------------------------------------------------------------------
@@ -34,13 +37,14 @@ export async function registerGuest(
     email:      formData.get('email'),
     eventId:    formData.get('eventId'),
     shareToken: formData.get('shareToken') ?? undefined,
+    lang:       formData.get('lang') ?? undefined,
   })
 
   if (!parsed.success) {
     return { success: false, error: 'Please enter a valid name and email address.' }
   }
 
-  const { name, email, eventId, shareToken } = parsed.data
+  const { name, email, eventId, shareToken, lang } = parsed.data
   const supabase = createServiceClient()
 
   // Verify event exists and has guest registration enabled
@@ -92,7 +96,7 @@ export async function registerGuest(
     // (no token) must not null out a prior sharer's attribution.
     const { error: updateError } = await supabase
       .from('guest_registrations')
-      .update({ name, share_link_id: shareLinkId ?? existing.share_link_id })
+      .update({ name, lang, share_link_id: shareLinkId ?? existing.share_link_id })
       .eq('event_id', eventId)
       .eq('email', email)
     if (updateError) return { success: false, error: 'Registration failed. Please try again.' }
@@ -105,7 +109,7 @@ export async function registerGuest(
     const { error: upsertError } = await supabase
       .from('guest_registrations')
       .upsert(
-        { event_id: eventId, email, name, token, expires_at: expiresAt, share_link_id: shareLinkId ?? existing?.share_link_id ?? null },
+        { event_id: eventId, email, name, lang, token, expires_at: expiresAt, share_link_id: shareLinkId ?? existing?.share_link_id ?? null },
         { onConflict: 'event_id,email', ignoreDuplicates: false },
       )
     if (upsertError) return { success: false, error: 'Registration failed. Please try again.' }
@@ -124,12 +128,17 @@ export async function registerGuest(
       name,
       eventTitle:   event.title,
       magicLinkUrl: magicLink,
+      lang,
     }),
   )
 
+  const subject = lang === 'bg'
+    ? `Вашата връзка за присъединяване: ${event.title}`
+    : `Your link to join: ${event.title}`
+
   const result = await sendTransactionalEmail({
     to:       email,
-    subject:  `Your link to join: ${event.title}`,
+    subject,
     html,
     template: 'guest_event_magic_link',
     meta:     { eventId, name },
@@ -143,4 +152,90 @@ export async function registerGuest(
   }
 
   return { success: true }
+}
+
+// -- Resend link --------------------------------------------------------------
+// Neutral by design: the response is IDENTICAL whether or not `email` has a
+// registration for `eventId`, so this cannot be used to enumerate registered
+// guests. Stopgap rate cap (moves into lib/rate-limit.ts in T5, 2607-DEV-589):
+// max 3 magic-link sends/hour/recipient, counted from notification_delivery_log.
+
+export type ResendGuestLinkState = { success: true }
+
+const RESEND_RATE_LIMIT = 3
+const RESEND_RATE_WINDOW_MS = 60 * 60 * 1000
+const MAGIC_LINK_TEMPLATE = 'guest_event_magic_link'
+
+const NEUTRAL_RESULT: ResendGuestLinkState = { success: true }
+
+export async function resendGuestLink(eventId: string, email: string): Promise<ResendGuestLinkState> {
+  const parsed = z.object({ eventId: z.string().uuid(), email: z.string().email() }).safeParse({ eventId, email })
+  if (!parsed.success) return NEUTRAL_RESULT
+
+  const supabase = createServiceClient()
+
+  const { data: event } = await supabase
+    .from('calendar_events')
+    .select('id, title, allow_guest_registration, end_time')
+    .eq('id', eventId)
+    .single()
+
+  if (!event || !event.allow_guest_registration) return NEUTRAL_RESULT
+  if (new Date(event.end_time).getTime() < Date.now()) return NEUTRAL_RESULT
+
+  const { data: reg } = await supabase
+    .from('guest_registrations')
+    .select('id, name, token, lang')
+    .eq('event_id', eventId)
+    .eq('email', email)
+    .maybeSingle()
+
+  if (!reg) return NEUTRAL_RESULT
+
+  // Rate cap — count sends to this recipient in the trailing hour, regardless
+  // of which event they were for (per-recipient, not per-event).
+  const windowStart = new Date(Date.now() - RESEND_RATE_WINDOW_MS).toISOString()
+  const { count } = await supabase
+    .from('notification_delivery_log')
+    .select('id', { count: 'exact', head: true })
+    .eq('channel', 'email')
+    .eq('template', MAGIC_LINK_TEMPLATE)
+    .eq('recipient', email)
+    .gte('created_at', windowStart)
+
+  if ((count ?? 0) >= RESEND_RATE_LIMIT) return NEUTRAL_RESULT
+
+  // Refresh expiry per the T2 rule (event.end_time + 3h); keep the existing
+  // token so any copy of the link already sent still resolves.
+  const expiresAt = new Date(new Date(event.end_time).getTime() + 3 * 60 * 60 * 1000).toISOString()
+  await supabase
+    .from('guest_registrations')
+    .update({ expires_at: expiresAt })
+    .eq('id', reg.id)
+
+  const lang: Lang = reg.lang === 'bg' ? 'bg' : 'en'
+  const magicLink = `${await getBaseUrl()}/events/${eventId}/join?token=${reg.token}`
+
+  const html = await renderEmailTemplate(
+    React.createElement(GuestEventMagicLinkEmail, {
+      name:         reg.name,
+      eventTitle:   event.title,
+      magicLinkUrl: magicLink,
+      lang,
+    }),
+  )
+
+  const subject = lang === 'bg'
+    ? `Вашата връзка за присъединяване: ${event.title}`
+    : `Your link to join: ${event.title}`
+
+  await sendTransactionalEmail({
+    to:       email,
+    subject,
+    html,
+    template: MAGIC_LINK_TEMPLATE,
+    meta:     { eventId, name: reg.name, resend: true },
+  })
+
+  return NEUTRAL_RESULT
 }

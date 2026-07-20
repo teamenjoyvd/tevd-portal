@@ -74,6 +74,16 @@ export const events = {
   'event.roles.history.col.name': { en: 'Name', bg: 'Име' },
   'event.roles.history.col.total': { en: 'Total', bg: 'Общо' },
   'event.roles.updating': { en: 'Updating view...', bg: 'Обновяване...' },
+
+  // register/join page — event-ended-closed state (T3, 2607-DEV-589)
+  'event.register.closed': { en: 'This event has ended and registration is closed.', bg: 'Това събитие приключи и регистрацията е затворена.' },
+
+  // resend link (T3, 2607-DEV-589)
+  'event.resend.title':     { en: "Didn't get the link?",                              bg: 'Не получихте връзката?' },
+  'event.resend.button':    { en: 'Resend access link',                                 bg: 'Изпрати отново връзката' },
+  'event.resend.sending':   { en: 'Sending…',                                           bg: 'Изпращане…' },
+  'event.resend.sent':      { en: "If that email is registered, we've sent a new link.", bg: 'Ако имейлът е регистриран, изпратихме нова връзка.' },
+  'event.resend.emailPlaceholder': { en: 'you@example.com',                             bg: 'you@example.com' },
 } as const
 
 
