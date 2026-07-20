@@ -256,6 +256,7 @@ export function InvitesSection() {
                 {/* Event header */}
                 <button
                   onClick={() => toggleExpanded(link.id)}
+                  aria-expanded={isOpen}
                   className="w-full text-left px-4 py-3 flex flex-wrap items-start justify-between gap-3 hover:bg-black/[0.02] transition-colors"
                   style={{ backgroundColor: 'var(--bg-card)' }}
                 >
