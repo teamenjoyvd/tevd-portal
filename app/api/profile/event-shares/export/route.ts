@@ -4,6 +4,7 @@
 // to avoid pdfkit/fontkit Turbopack ESM incompatibility.
 
 import { withProfile } from '@/lib/supabase/with-profile'
+import { fetchEventShares } from '@/lib/server/event-shares'
 import { NextRequest } from 'next/server'
 
 function toISODate(d: string | null): string {
@@ -31,40 +32,10 @@ export async function GET(req: NextRequest): Promise<Response> {
   const to      = searchParams.get('to')
   const q       = searchParams.get('q')
 
-  let query = supabase
-    .from('event_share_links')
-    .select(`
-      id,
-      token,
-      share_method,
-      click_count,
-      created_at,
-      event:calendar_events ( id, title, start_time ),
-      guests:guest_registrations (
-        id, name, email, status, attended_at, created_at
-      )
-    `)
-    .eq('profile_id', profile.id)
-    .order('created_at', { ascending: false })
-
-  if (eventId) query = query.eq('event_id', eventId)
-  if (method)  query = query.eq('share_method', method)
-  if (from)    query = query.gte('created_at', from)
-  if (to)      query = query.lte('created_at', to)
-
-  const { data: links, error } = await query
+  const { data: filtered, error } = await fetchEventShares(supabase, profile.id, {
+    eventId, status, method, from, to, q,
+  })
   if (error) return Response.json({ error: error.message }, { status: 500 })
-
-  // Apply guest-level filters
-  const filtered = (links ?? []).map(link => ({
-    ...link,
-    guests: (link.guests as any[]).filter(g => {
-      const guestStatus = g.attended_at ? 'attended' : g.status
-      const matchStatus = status ? guestStatus === status : true
-      const matchQ      = q ? (g.name as string).toLowerCase().includes(q.toLowerCase()) : true
-      return matchStatus && matchQ
-    }),
-  }))
 
   // ── CSV ────────────────────────────────────────────────────────────────────
   const rows: string[] = [
@@ -72,7 +43,7 @@ export async function GET(req: NextRequest): Promise<Response> {
      'Guest Name', 'Guest Email', 'Status', 'Attended'].join(','),
   ]
 
-  for (const link of filtered) {
+  for (const link of filtered ?? []) {
     const ev        = link.event as any
     const eventTitle = `"${(ev?.title ?? '').replace(/"/g, '""')}"`
     const eventDate  = toISODate(ev?.start_time ?? null)

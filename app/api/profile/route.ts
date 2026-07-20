@@ -1,5 +1,6 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { requireAuth, withProfile } from '@/lib/supabase/with-profile'
+import { resolveUpline } from '@/lib/server/upline'
 import type { Tables } from '@/types/supabase'
 
 // Explicit column list — never '*'. Every field here is read by at least one
@@ -76,46 +77,9 @@ export async function GET() {
   const [upline, verRequest, spouse, pendingSpouseLinkCount] = await Promise.all([
     // Resolve upline for any verified member (own account, or via the primary
     // profile's shared ABO when this is a spouse-linked secondary).
-    // Standard path: abo_number set — look up sponsor via los_members tree.
-    // Manual path: abo_number null but upline_abo_number set — resolve name directly.
-    effectiveAboNumber
-      ? (async () => {
-          const { data: losMember } = await supabase
-            .from('los_members')
-            .select('sponsor_abo_number')
-            .eq('abo_number', effectiveAboNumber)
-            .single()
-
-          if (!losMember?.sponsor_abo_number) {
-            return { upline_name: null, upline_abo_number: null }
-          }
-
-          const { data: uplineMember } = await supabase
-            .from('los_members')
-            .select('abo_number, name')
-            .eq('abo_number', losMember.sponsor_abo_number)
-            .single()
-
-          return {
-            upline_name: uplineMember?.name ?? null,
-            upline_abo_number: uplineMember?.abo_number ?? null,
-          }
-        })()
-      : effectiveUplineAboNumber
-        ? (async () => {
-            // Manual path: upline ABO already known, just resolve the name
-            const { data: uplineMember } = await supabase
-              .from('los_members')
-              .select('abo_number, name')
-              .eq('abo_number', effectiveUplineAboNumber)
-              .single()
-
-            return {
-              upline_name: uplineMember?.name ?? null,
-              upline_abo_number: uplineMember?.abo_number ?? effectiveUplineAboNumber,
-            }
-          })()
-        : Promise.resolve(null),
+    (effectiveAboNumber || effectiveUplineAboNumber)
+      ? resolveUpline(supabase, effectiveAboNumber, effectiveUplineAboNumber)
+      : Promise.resolve(null),
     role === 'guest'
       ? (async () => {
           const { data: req } = await supabase
