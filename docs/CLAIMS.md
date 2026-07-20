@@ -6,3 +6,4 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
+| #588 | dev/2607-DEV-588 | supabase/migrations (new), lib/actions/guest-registration.ts, app/events/[eventId]/join, app/api/profile/event-shares, lib/server/event-shares.ts, app/(dashboard)/profile/components/{InvitesSection,InvitesBento}.tsx, lib/invites-pdf.ts, app/api/admin/events/[id]/registrations, lib/i18n/domains/events.ts, types/supabase.ts — migration: yes | 2026-07-20T00:00:00Z |
