@@ -8,9 +8,12 @@ export default async function ProfilePage() {
   if (!userId) redirect('/sign-in')
 
   const supabase = createServiceClient()
+  // Single embedded-count query replaces the prior profile-row + separate
+  // event_share_links count round-trip: event_share_links has one FK to
+  // profiles (profile_id, unambiguous), so PostgREST's embedded count works.
   const { data } = await supabase
     .from('profiles')
-    .select('id, role, abo_number')
+    .select('id, role, abo_number, event_share_links(count)')
     .eq('clerk_id', userId)
     .single()
 
@@ -18,18 +21,14 @@ export default async function ProfilePage() {
   // Redirect rather than rendering a skeleton that never resolves.
   if (!data) redirect('/')
 
-  // Gate InvitesSection: cheap count query — avoids client-side fetch-then-hide.
-  const { count } = await supabase
-    .from('event_share_links')
-    .select('id', { count: 'exact', head: true })
-    .eq('profile_id', data.id)
+  const invitesCount = data.event_share_links?.[0]?.count ?? 0
 
   return (
     <ProfileClient
       profileId={data.id}
       role={data.role}
       aboNumber={data.abo_number ?? null}
-      hasInvites={(count ?? 0) > 0}
+      hasInvites={invitesCount > 0}
     />
   )
 }
