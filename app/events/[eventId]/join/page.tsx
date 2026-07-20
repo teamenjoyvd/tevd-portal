@@ -1,10 +1,10 @@
 import Link from 'next/link'
-import { cookies } from 'next/headers'
 import { createServiceClient } from '@/lib/supabase/service'
 import { JoinActions } from './components/JoinActions'
 import { ResendLinkForm } from '../components/ResendLinkForm'
 import { t } from '@/lib/i18n'
 import { notifySharerOfAttendance } from '@/lib/notifications/share-events'
+import { getLangFromCookies } from '@/lib/utils/lang-cookie'
 
 type Props = {
   params:       Promise<{ eventId: string }>
@@ -87,8 +87,7 @@ export default async function GuestJoinPage({ params, searchParams }: Props) {
   const { eventId } = await params
   const { token }   = await searchParams
 
-  const cookieStore = await cookies()
-  const lang = cookieStore.get('tevd_lang')?.value === 'bg' ? 'bg' : 'en'
+  const lang = await getLangFromCookies()
 
   if (!token) return <InvalidState eventId={eventId} reason="missing" lang={lang} />
 

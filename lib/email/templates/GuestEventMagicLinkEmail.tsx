@@ -43,7 +43,7 @@ const COPY: Record<Lang, {
 export function GuestEventMagicLinkEmail({ name, eventTitle, magicLinkUrl, lang = 'en' }: Props) {
   const c = COPY[lang]
   return (
-    <EmailShell preview={c.preview(eventTitle)} title={c.title}>
+    <EmailShell preview={c.preview(eventTitle)} title={c.title} lang={lang}>
       <Section style={bodyPadding}>
         <Text style={{ fontSize: 15, color: '#111827', margin: '0 0 16px' }}>
           {c.hi(name)}

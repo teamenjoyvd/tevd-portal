@@ -96,7 +96,7 @@ export function buildReminderEmail(
             <p class="badge-text">${safeEventTitle}</p>
             <p style="margin: 4px 0 0; font-size: 13px; color: #6b7280;">${safeFormattedTime}</p>
           </div>
-          ${safeMeetingUrl ? `<p class="text" style="text-align:center;"><a href="${safeMeetingUrl}" class="btn">${c.join}</a></p>` : ''}
+          ${safeMeetingUrl !== null ? `<p class="text" style="text-align:center;"><a href="${safeMeetingUrl}" class="btn">${c.join}</a></p>` : ''}
           <p class="text" style="font-size: 14px; color: #6b7280;">${c.seeYou}</p>
         </div>
         <div class="footer">&copy; ${new Date().getFullYear()} TeamEnjoyVD</div>

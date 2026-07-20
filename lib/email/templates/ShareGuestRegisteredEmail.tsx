@@ -50,7 +50,7 @@ const COPY: Record<Lang, {
 export function ShareGuestRegisteredEmail({ sharerName, guestName, eventTitle, lang = 'en' }: Props) {
   const c = COPY[lang]
   return (
-    <EmailShell preview={c.preview(guestName, eventTitle)} title={c.title}>
+    <EmailShell preview={c.preview(guestName, eventTitle)} title={c.title} lang={lang}>
       <Section style={bodyPadding}>
         <Text style={{ fontSize: 15, color: '#111827', margin: '0 0 16px' }}>
           {c.hi(sharerName)}

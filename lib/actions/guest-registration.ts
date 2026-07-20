@@ -16,6 +16,12 @@ export type RegisterGuestState = { success: boolean; error?: string }
 
 type Lang = 'en' | 'bg'
 
+function getMagicLinkSubject(lang: Lang, eventTitle: string): string {
+  return lang === 'bg'
+    ? `Вашата връзка за присъединяване: ${eventTitle}`
+    : `Your link to join: ${eventTitle}`
+}
+
 // -- Schema -------------------------------------------------------------------
 
 const schema = z.object({
@@ -132,9 +138,7 @@ export async function registerGuest(
     }),
   )
 
-  const subject = lang === 'bg'
-    ? `Вашата връзка за присъединяване: ${event.title}`
-    : `Your link to join: ${event.title}`
+  const subject = getMagicLinkSubject(lang, event.title)
 
   const result = await sendTransactionalEmail({
     to:       email,
@@ -225,9 +229,7 @@ export async function resendGuestLink(eventId: string, email: string): Promise<R
     }),
   )
 
-  const subject = lang === 'bg'
-    ? `Вашата връзка за присъединяване: ${event.title}`
-    : `Your link to join: ${event.title}`
+  const subject = getMagicLinkSubject(lang, event.title)
 
   await sendTransactionalEmail({
     to:       email,

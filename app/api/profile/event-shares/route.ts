@@ -7,7 +7,7 @@ import { fetchEventShares } from '@/lib/server/event-shares'
 import { randomBytes } from 'crypto'
 import { z } from 'zod'
 import { NextRequest } from 'next/server'
-import { cookies } from 'next/headers'
+import { getLangFromCookies } from '@/lib/utils/lang-cookie'
 
 // ── POST ─────────────────────────────────────────────────────────────────
 
@@ -35,8 +35,7 @@ export async function POST(req: NextRequest): Promise<Response> {
 
   // Sharer's language preference — profiles has no lang column, so capture the
   // tevd_lang cookie at write time and store it on the share link row.
-  const cookieStore = await cookies()
-  const lang = cookieStore.get('tevd_lang')?.value === 'bg' ? 'bg' : 'en'
+  const lang = await getLangFromCookies()
 
   // Verify event exists and has guest registration enabled
   const { data: event } = await supabase

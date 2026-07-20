@@ -41,9 +41,13 @@ export function ResendLinkForm({ eventId }: { eventId: string }) {
             {t('event.resend.title')}
           </p>
           <div className="flex flex-col gap-2">
+            <label htmlFor={`resend-email-${eventId}`} className="sr-only">
+              {t('event.resend.emailPlaceholder')}
+            </label>
             <input
               type="email"
               name="email"
+              id={`resend-email-${eventId}`}
               required
               placeholder={t('event.resend.emailPlaceholder')}
               className="w-full rounded-xl border px-4 py-3 text-sm outline-none transition-colors"
