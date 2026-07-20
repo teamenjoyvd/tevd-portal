@@ -18,7 +18,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const allowed = [
     'title', 'description', 'start_time', 'end_time', 'category',
     'event_type', 'meeting_url', 'access_roles', 'available_roles',
-    'allow_guest_registration', 'week_number',
+    'allow_guest_registration', 'guest_capacity', 'week_number',
   ]
   const update: Record<string, unknown> = {}
   for (const key of allowed) {

@@ -194,6 +194,7 @@ export type Database = {
           end_time: string
           event_type: Database["public"]["Enums"]["event_type"] | null
           google_event_id: string | null
+          guest_capacity: number | null
           id: string
           is_all_day: boolean
           location: string | null
@@ -214,6 +215,7 @@ export type Database = {
           end_time: string
           event_type?: Database["public"]["Enums"]["event_type"] | null
           google_event_id?: string | null
+          guest_capacity?: number | null
           id?: string
           is_all_day?: boolean
           location?: string | null
@@ -234,6 +236,7 @@ export type Database = {
           end_time?: string
           event_type?: Database["public"]["Enums"]["event_type"] | null
           google_event_id?: string | null
+          guest_capacity?: number | null
           id?: string
           is_all_day?: boolean
           location?: string | null
@@ -426,6 +429,7 @@ export type Database = {
       guest_registrations: {
         Row: {
           attended_at: string | null
+          cancelled_at: string | null
           created_at: string
           email: string
           event_id: string
@@ -439,6 +443,7 @@ export type Database = {
         }
         Insert: {
           attended_at?: string | null
+          cancelled_at?: string | null
           created_at?: string
           email: string
           event_id: string
@@ -452,6 +457,7 @@ export type Database = {
         }
         Update: {
           attended_at?: string | null
+          cancelled_at?: string | null
           created_at?: string
           email?: string
           event_id?: string

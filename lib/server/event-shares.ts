@@ -15,6 +15,7 @@ export interface EventShareGuest {
   email: string
   status: string
   attended_at: string | null
+  cancelled_at: string | null
   created_at: string
 }
 
@@ -56,6 +57,7 @@ export async function fetchEventShares(
         email,
         status,
         attended_at,
+        cancelled_at,
         created_at
       )
     `)
@@ -79,6 +81,8 @@ export async function fetchEventShares(
     guests: (link.guests as EventShareGuest[]).filter(g => {
       const guestStatus = g.attended_at !== null
         ? 'attended'
+        : g.cancelled_at !== null
+        ? 'cancelled'
         : g.status === 'confirmed'
         ? 'confirmed'
         : (link as unknown as { revoked_at: string | null }).revoked_at !== null

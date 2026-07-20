@@ -30,6 +30,7 @@ vi.mock('@/lib/email/templates/GuestEventMagicLinkEmail', () => ({
 }))
 vi.mock('@/lib/notifications/share-events', () => ({
   notifySharerOfRegistration: vi.fn(),
+  notifySharerOfCancellation: vi.fn(),
 }))
 vi.mock('next/headers', () => ({
   headers: () => Promise.resolve(new Map([['host', 'req-host.example']])),
@@ -291,5 +292,165 @@ describe('resendGuestLink — rate cap', () => {
     const res = await resendGuestLink('123e4567-e89b-12d3-a456-426614174000', 'jane@example.com')
     expect(sendModule.sendTransactionalEmail).not.toHaveBeenCalled()
     expect(res).toEqual({ success: true })
+  })
+})
+
+// -- registerGuest — capacity (2607-DEV-590) ----------------------------------
+
+function buildCapacityClient(opts: { guestCapacity: number | null; activeCount: number; existing?: Row }) {
+  const event = {
+    id: 'e',
+    title: 'Trip Kickoff',
+    allow_guest_registration: true,
+    end_time: new Date(Date.now() + 24 * HOUR).toISOString(),
+    guest_capacity: opts.guestCapacity,
+  }
+  const upsertSpy = vi.fn(() => Promise.resolve({ error: null }))
+  const updateSpy = vi.fn(() => ({ eq: () => ({ eq: () => Promise.resolve({ error: null }) }) }))
+
+  const client = {
+    from: (table: string) => {
+      if (table === 'calendar_events') {
+        return { select: () => ({ eq: () => ({ single: () => Promise.resolve({ data: event, error: null }) }) }) }
+      }
+      if (table === 'guest_registrations') {
+        return {
+          select: (_cols: string, sel?: { count?: string; head?: boolean }) => {
+            if (sel?.count) {
+              return { eq: () => ({ is: () => Promise.resolve({ count: opts.activeCount, error: null }) }) }
+            }
+            return { eq: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: opts.existing ?? null, error: null }) }) }) }
+          },
+          update: updateSpy,
+          upsert: upsertSpy,
+        }
+      }
+      throw new Error(`unexpected table ${table}`)
+    },
+    rpc: vi.fn(() => Promise.resolve({ error: null })),
+  }
+  return { client, upsertSpy, updateSpy }
+}
+
+describe('registerGuest — capacity boundary', () => {
+  it('rejects a new guest when active registrations already meet capacity', async () => {
+    const { client, upsertSpy } = buildCapacityClient({ guestCapacity: 2, activeCount: 2 })
+    mockCreateServiceClient.mockReturnValue(client)
+    const { registerGuest } = await import('@/lib/actions/guest-registration')
+
+    const res = await registerGuest({ success: false }, form())
+
+    expect(res.success).toBe(false)
+    expect(res.error).toMatch(/capacity/i)
+    expect(upsertSpy).not.toHaveBeenCalled()
+  })
+
+  it('allows a new guest when under capacity', async () => {
+    const { client, upsertSpy } = buildCapacityClient({ guestCapacity: 2, activeCount: 1 })
+    mockCreateServiceClient.mockReturnValue(client)
+    const { registerGuest } = await import('@/lib/actions/guest-registration')
+
+    const res = await registerGuest({ success: false }, form())
+
+    expect(res.success).toBe(true)
+    expect(upsertSpy).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not count an already-active guest resubmitting toward their own capacity check', async () => {
+    const { client, updateSpy } = buildCapacityClient({
+      guestCapacity: 1,
+      activeCount: 1, // this same guest is the 1 counted
+      existing: { token: 'existing-token-abc', expires_at: new Date(Date.now() + 24 * HOUR).toISOString(), cancelled_at: null },
+    })
+    mockCreateServiceClient.mockReturnValue(client)
+    const { registerGuest } = await import('@/lib/actions/guest-registration')
+
+    const res = await registerGuest({ success: false }, form())
+
+    expect(res.success).toBe(true)
+    expect(updateSpy).toHaveBeenCalledTimes(1)
+  })
+})
+
+// -- registerGuest — re-register after cancel (2607-DEV-590) ------------------
+
+describe('registerGuest — re-register after cancel', () => {
+  it('clears cancelled_at and mints a fresh token, never reusing the old one', async () => {
+    const { client, updateSpy, upsertSpy } = buildClient({
+      token: 'old-cancelled-token',
+      expires_at: new Date(Date.now() + 24 * HOUR).toISOString(),
+      cancelled_at: new Date().toISOString(),
+    })
+    mockCreateServiceClient.mockReturnValue(client)
+    const { registerGuest } = await import('@/lib/actions/guest-registration')
+
+    const res = await registerGuest({ success: false }, form())
+
+    expect(res.success).toBe(true)
+    expect(updateSpy).not.toHaveBeenCalled()
+    expect(upsertSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ cancelled_at: null }),
+      expect.anything(),
+    )
+    expect(capturedMagicLink).not.toContain('old-cancelled-token')
+  })
+})
+
+// -- cancelGuestRegistration (2607-DEV-590) -----------------------------------
+
+function buildCancelClient(reg: Row) {
+  const updateSpy = vi.fn(() => ({ eq: () => ({ is: () => Promise.resolve({ error: null }) }) }))
+  const client = {
+    from: (table: string) => {
+      if (table === 'guest_registrations') {
+        return {
+          select: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: reg, error: null }) }) }),
+          update: updateSpy,
+        }
+      }
+      throw new Error(`unexpected table ${table}`)
+    },
+  }
+  return { client, updateSpy }
+}
+
+function cancelForm(token: string): FormData {
+  const fd = new FormData()
+  fd.set('token', token)
+  return fd
+}
+
+describe('cancelGuestRegistration', () => {
+  it('marks an active registration as cancelled', async () => {
+    const { client, updateSpy } = buildCancelClient({ id: 'r1', name: 'Jane Guest', share_link_id: null, cancelled_at: null })
+    mockCreateServiceClient.mockReturnValue(client)
+    const { cancelGuestRegistration } = await import('@/lib/actions/guest-registration')
+
+    const res = await cancelGuestRegistration({ success: false }, cancelForm('tok-123'))
+
+    expect(res).toEqual({ success: true })
+    expect(updateSpy).toHaveBeenCalledTimes(1)
+  })
+
+  it('is idempotent — cancelling an already-cancelled registration is a no-op success', async () => {
+    const { client, updateSpy } = buildCancelClient({ id: 'r1', name: 'Jane Guest', share_link_id: null, cancelled_at: new Date().toISOString() })
+    mockCreateServiceClient.mockReturnValue(client)
+    const { cancelGuestRegistration } = await import('@/lib/actions/guest-registration')
+
+    const res = await cancelGuestRegistration({ success: false }, cancelForm('tok-123'))
+
+    expect(res).toEqual({ success: true })
+    expect(updateSpy).not.toHaveBeenCalled()
+  })
+
+  it('returns an error for an unknown token', async () => {
+    const { client, updateSpy } = buildCancelClient(null)
+    mockCreateServiceClient.mockReturnValue(client)
+    const { cancelGuestRegistration } = await import('@/lib/actions/guest-registration')
+
+    const res = await cancelGuestRegistration({ success: false }, cancelForm('nonexistent'))
+
+    expect(res.success).toBe(false)
+    expect(updateSpy).not.toHaveBeenCalled()
   })
 })

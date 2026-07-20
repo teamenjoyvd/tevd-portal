@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { createServiceClient } from '@/lib/supabase/service'
 import { JoinActions } from './components/JoinActions'
+import { CancelActions } from './components/CancelActions'
 import { ResendLinkForm } from '../components/ResendLinkForm'
 import { t } from '@/lib/i18n'
 import { notifySharerOfAttendance } from '@/lib/notifications/share-events'
@@ -13,11 +14,13 @@ type Props = {
 
 // -- Sub-components (module-scoped -- never defined inside render fn) ----------
 
-function InvalidState({ eventId, reason, lang }: { eventId: string; reason: 'missing' | 'invalid' | 'expired' | 'revoked'; lang: 'en' | 'bg' }) {
+function InvalidState({ eventId, reason, lang }: { eventId: string; reason: 'missing' | 'invalid' | 'expired' | 'revoked' | 'cancelled'; lang: 'en' | 'bg' }) {
   const message = reason === 'expired'
     ? t('event.join.linkExpired', lang)
     : reason === 'revoked'
     ? t('event.join.linkRevoked', lang)
+    : reason === 'cancelled'
+    ? t('event.join.linkCancelled', lang)
     : t('event.join.linkInvalid', lang)
 
   return (
@@ -95,12 +98,13 @@ export default async function GuestJoinPage({ params, searchParams }: Props) {
 
   const { data: reg } = await supabase
     .from('guest_registrations')
-    .select('id, name, event_id, expires_at, share_link_id, calendar_events(title, meeting_url, start_time, end_time)')
+    .select('id, name, event_id, expires_at, share_link_id, cancelled_at, calendar_events(title, meeting_url, start_time, end_time)')
     .eq('token', token)
     .single()
 
   if (!reg)                                  return <InvalidState eventId={eventId} reason="invalid" lang={lang} />
   if (reg.event_id !== eventId)              return <InvalidState eventId={eventId} reason="invalid" lang={lang} />
+  if (reg.cancelled_at !== null)             return <InvalidState eventId={eventId} reason="cancelled" lang={lang} />
   if (new Date(reg.expires_at) < new Date()) return <InvalidState eventId={eventId} reason="expired" lang={lang} />
 
   // Stamp attendance + confirm status — idempotent, only writes when not already set
@@ -169,6 +173,7 @@ export default async function GuestJoinPage({ params, searchParams }: Props) {
               </p>
             )}
             <JoinActions {...actionProps} />
+            <CancelActions token={token} />
           </div>
         </div>
       </div>
@@ -208,6 +213,7 @@ export default async function GuestJoinPage({ params, searchParams }: Props) {
             </p>
           )}
           <JoinActions {...actionProps} />
+          <CancelActions token={token} />
         </div>
       </div>
     </>
