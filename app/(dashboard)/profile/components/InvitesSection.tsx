@@ -1,7 +1,19 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { apiClient } from '@/lib/apiClient'
 
@@ -22,6 +34,7 @@ type ShareLink = {
   share_method: 'native' | 'clipboard'
   click_count:  number
   created_at:   string
+  revoked_at:   string | null
   event: { id: string; title: string; start_time: string }
   guests: GuestRow[]
 }
@@ -35,9 +48,13 @@ function fmt(d: string | null): string {
   return new Date(d).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-function guestStatus(g: GuestRow): 'pending' | 'confirmed' | 'attended' {
-  if (g.attended_at) return 'attended'
+// Precedence: an already-attended or confirmed guest keeps that status even
+// if the link is later revoked — revocation only blocks guests who never
+// used it (they show as 'cancelled').
+function guestStatus(g: GuestRow, linkRevoked: boolean): 'pending' | 'confirmed' | 'attended' | 'cancelled' {
+  if (g.attended_at !== null) return 'attended'
   if (g.status === 'confirmed') return 'confirmed'
+  if (linkRevoked) return 'cancelled'
   return 'pending'
 }
 
@@ -45,6 +62,7 @@ const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
   pending:   { bg: 'rgba(242,204,143,0.3)', color: '#7a5c00' },
   confirmed: { bg: 'rgba(61,64,91,0.08)',   color: '#3d405b' },
   attended:  { bg: 'rgba(129,178,154,0.2)', color: '#2d6a4f' },
+  cancelled: { bg: 'rgba(188,71,73,0.12)',  color: '#bc4749' },
 }
 
 export const INVITES_MIN_HEIGHT = 240
@@ -64,12 +82,28 @@ export function InvitesSection() {
   const [expanded,     setExpanded]     = useState<Record<string, boolean>>({})
   const [pdfLoading,   setPdfLoading]   = useState(false)
 
+  const queryClient = useQueryClient()
+  const [revokingId, setRevokingId] = useState<string | null>(null)
+
   const { data, isLoading } = useQuery<ApiResponse>({
     queryKey: ['invites'],
     queryFn:  () => apiClient('/api/profile/event-shares'),
   })
 
   const allLinks = data?.links ?? []
+
+  async function handleRevoke(linkId: string) {
+    setRevokingId(linkId)
+    try {
+      await apiClient(`/api/profile/event-shares/${linkId}`, { method: 'DELETE' })
+      await queryClient.invalidateQueries({ queryKey: ['invites'] })
+      toast.success(t('profile.invites.revokeSuccess'))
+    } catch {
+      toast.error(t('profile.invites.revokeError'))
+    } finally {
+      setRevokingId(null)
+    }
+  }
 
   // Unique events for the event filter dropdown
   const eventOptions = useMemo(() => {
@@ -91,7 +125,7 @@ export function InvitesSection() {
       .map(l => ({
         ...l,
         guests: l.guests.filter(g => {
-          if (filterStatus !== 'all' && guestStatus(g) !== filterStatus) return false
+          if (filterStatus !== 'all' && guestStatus(g, !!l.revoked_at) !== filterStatus) return false
           if (filterQ && !g.name.toLowerCase().includes(filterQ.toLowerCase())) return false
           return true
         }),
@@ -182,7 +216,7 @@ export function InvitesSection() {
         </select>
 
         {/* Status pills */}
-        {(['all', 'pending', 'confirmed', 'attended'] as const).map(s => (
+        {(['all', 'pending', 'confirmed', 'attended', 'cancelled'] as const).map(s => (
           <button
             key={s}
             onClick={() => setFilterStatus(s)}
@@ -247,22 +281,27 @@ export function InvitesSection() {
         <div className="space-y-4">
           {filtered.map(link => {
             const guests    = link.guests
-            const confirmed = guests.filter(g => guestStatus(g) !== 'pending').length
-            const attended  = guests.filter(g => g.attended_at).length
+            const revoked   = !!link.revoked_at
+            const confirmed = guests.filter(g => ['confirmed', 'attended'].includes(guestStatus(g, revoked))).length
+            const attended  = guests.filter(g => g.attended_at !== null).length
             const isOpen    = !!expanded[link.id]
 
             return (
               <div key={link.id} className="rounded-xl border overflow-hidden" style={{ borderColor: 'var(--border-default)' }}>
                 {/* Event header */}
-                <button
-                  onClick={() => toggleExpanded(link.id)}
-                  aria-expanded={isOpen}
-                  className="w-full text-left px-4 py-3 flex flex-wrap items-start justify-between gap-3 hover:bg-black/[0.02] transition-colors"
-                  style={{ backgroundColor: 'var(--bg-card)' }}
-                >
-                  <div className="flex-1 min-w-0">
+                <div className="w-full flex flex-wrap items-start justify-between gap-3 px-4 py-3" style={{ backgroundColor: 'var(--bg-card)' }}>
+                  <button
+                    onClick={() => toggleExpanded(link.id)}
+                    aria-expanded={isOpen}
+                    className="flex-1 min-w-0 text-left hover:opacity-70 transition-opacity"
+                  >
                     <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
                       {link.event.title}
+                      {revoked && (
+                        <span className="ml-2 px-2 py-0.5 rounded-full text-[10px] font-semibold align-middle" style={STATUS_STYLE.cancelled}>
+                          {t('profile.invites.revoked')}
+                        </span>
+                      )}
                     </p>
                     <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
                       {fmt(link.event.start_time)} · {t('profile.invites.sharedAt')} {fmt(link.created_at)}
@@ -271,9 +310,15 @@ export function InvitesSection() {
                         ? t('profile.invites.shareMethod.native')
                         : t('profile.invites.shareMethod.clipboard')}
                     </p>
-                  </div>
-                  {/* Funnel summary */}
-                  <div className="flex items-center flex-wrap gap-3 text-[10px] font-semibold" style={{ color: 'var(--text-secondary)' }}>
+                  </button>
+
+                  {/* Funnel summary + expand toggle */}
+                  <button
+                    onClick={() => toggleExpanded(link.id)}
+                    aria-expanded={isOpen}
+                    className="flex items-center flex-wrap gap-3 text-[10px] font-semibold hover:opacity-70 transition-opacity"
+                    style={{ color: 'var(--text-secondary)' }}
+                  >
                     <span>{link.click_count} {t('profile.invites.clicks')}</span>
                     <span>→</span>
                     <span>{guests.length} {t('profile.invites.registrations')}</span>
@@ -282,8 +327,34 @@ export function InvitesSection() {
                     <span>→</span>
                     <span style={{ color: attended > 0 ? '#2d6a4f' : undefined }}>{attended} {t('profile.invites.attended')}</span>
                     <span style={{ fontSize: 10 }}>{isOpen ? '▲' : '▼'}</span>
-                  </div>
-                </button>
+                  </button>
+
+                  {!revoked && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <button
+                          className="text-[10px] font-semibold px-2.5 py-1 rounded-lg border transition-colors hover:opacity-70 disabled:opacity-40"
+                          style={{ borderColor: 'var(--border-default)', color: '#bc4749' }}
+                          disabled={revokingId === link.id}
+                        >
+                          {t('profile.invites.revoke')}
+                        </button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>{t('profile.invites.revokeConfirmTitle')}</AlertDialogTitle>
+                          <AlertDialogDescription>{t('profile.invites.revokeConfirmDesc')}</AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>{t('event.cancel')}</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleRevoke(link.id)}>
+                            {t('profile.invites.revoke')}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
+                </div>
 
                 {/* Guest table — sm+, expandable */}
                 {isOpen && guests.length > 0 && (
@@ -306,7 +377,7 @@ export function InvitesSection() {
                         </thead>
                         <tbody>
                           {guests.map(g => {
-                            const s = guestStatus(g)
+                            const s = guestStatus(g, revoked)
                             return (
                               <tr key={g.id} style={{ borderTop: '1px solid var(--border-default)' }}>
                                 <td className="px-4 py-2 font-medium" style={{ color: 'var(--text-primary)' }}>{g.name}</td>
@@ -327,7 +398,7 @@ export function InvitesSection() {
                     {/* Guest cards — below sm */}
                     <div className="sm:hidden">
                       {guests.map(g => {
-                        const s = guestStatus(g)
+                        const s = guestStatus(g, revoked)
                         return (
                           <div key={g.id} className="px-4 py-3 space-y-1" style={{ borderTop: '1px solid var(--border-default)' }}>
                             <div className="flex items-center justify-between gap-2">

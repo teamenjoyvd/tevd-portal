@@ -168,6 +168,13 @@ export const profile = {
   'profile.invites.col.status':           { en: 'Status',                     bg: 'Статус'                               },
   'profile.invites.col.registered':       { en: 'Registered',                 bg: 'Регистриран'                          },
   'profile.invites.col.attended':         { en: 'Attended',                   bg: 'Присъствал'                           },
+  'profile.invites.cancelled':            { en: 'cancelled',                  bg: 'отказана'                             },
+  'profile.invites.revoke':               { en: 'Revoke',                     bg: 'Отмени'                               },
+  'profile.invites.revokeConfirmTitle':   { en: 'Revoke this link?',          bg: 'Отмяна на връзката?'                  },
+  'profile.invites.revokeConfirmDesc':    { en: 'Guests will no longer be able to register with this link. Any guest already registered keeps their access.', bg: 'Гостите вече няма да могат да се регистрират с тази връзка. Вече регистрираните гости запазват достъпа си.' },
+  'profile.invites.revokeSuccess':        { en: 'Link revoked.',              bg: 'Връзката е отменена.'                 },
+  'profile.invites.revokeError':          { en: 'Failed to revoke link.',     bg: 'Отмяната на връзката е неуспешна.'    },
+  'profile.invites.revoked':              { en: 'Revoked',                    bg: 'Отменена'                             },
   // InvitesBento
   'profile.invites.statLinks':            { en: 'invite links',               bg: 'покани'                               },
   'profile.invites.viewAll':              { en: 'View all invites',           bg: 'Виж всички покани'                    },

@@ -365,6 +365,7 @@ export type Database = {
           event_id: string
           id: string
           profile_id: string
+          revoked_at: string | null
           share_method: string
           token: string
         }
@@ -374,6 +375,7 @@ export type Database = {
           event_id: string
           id?: string
           profile_id: string
+          revoked_at?: string | null
           share_method: string
           token: string
         }
@@ -383,6 +385,7 @@ export type Database = {
           event_id?: string
           id?: string
           profile_id?: string
+          revoked_at?: string | null
           share_method?: string
           token?: string
         }
