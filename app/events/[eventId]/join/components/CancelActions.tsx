@@ -51,7 +51,7 @@ export function CancelActions({ token }: { token: string }) {
             <AlertDialogDescription>{t('event.join.cancelConfirmDesc')}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{t('event.cancel')}</AlertDialogCancel>
+            <AlertDialogCancel type="button">{t('event.cancel')}</AlertDialogCancel>
             <AlertDialogAction type="submit" formAction={formAction} disabled={isPending}>
               {t('event.join.cantAttend')}
             </AlertDialogAction>
