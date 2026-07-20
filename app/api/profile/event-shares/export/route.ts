@@ -44,25 +44,25 @@ export async function GET(req: NextRequest): Promise<Response> {
   ]
 
   for (const link of filtered ?? []) {
-    const ev        = link.event as any
+    const ev        = link.event
     const eventTitle = `"${(ev?.title ?? '').replace(/"/g, '""')}"`
     const eventDate  = toISODate(ev?.start_time ?? null)
     const sharedAt   = toLocalDateTime(link.created_at)
 
-    if ((link.guests as any[]).length === 0) {
+    if (link.guests.length === 0) {
       rows.push([
         eventTitle, eventDate, link.share_method, `"${sharedAt}"`,
         String(link.click_count), '', '', '', '',
       ].join(','))
     } else {
-      for (const g of link.guests as any[]) {
+      for (const g of link.guests) {
         const gStatus    = g.attended_at ? 'attended' : g.status
         const attendedAt = g.attended_at ? toLocalDateTime(g.attended_at) : ''
         rows.push([
           eventTitle, eventDate, link.share_method, `"${sharedAt}"`,
           String(link.click_count),
-          `"${(g.name as string).replace(/"/g, '""')}"`,
-          `"${(g.email as string).replace(/"/g, '""')}"`,
+          `"${g.name.replace(/"/g, '""')}"`,
+          `"${g.email.replace(/"/g, '""')}"`,
           gStatus,
           `"${attendedAt}"`,
         ].join(','))
