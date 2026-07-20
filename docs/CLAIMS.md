@@ -7,3 +7,4 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
 | #605 | `dev/2607-DEV-605` | lib/server/event-shares.ts (new), lib/server/upline.ts (new), app/api/profile/event-shares/route.ts (GET only), app/api/profile/event-shares/export/route.ts, app/api/profile/route.ts, app/api/profile/upline/route.ts, app/(dashboard)/profile/page.tsx; migration: no | 2026-07-20T00:00Z |
+| #606 | `dev/2607-DEV-606` | app/(dashboard)/profile/components/InvitesSection.tsx, app/(dashboard)/profile/invites/page.tsx, lib/i18n/domains/profile.ts; migration: no | 2026-07-20T00:00Z |

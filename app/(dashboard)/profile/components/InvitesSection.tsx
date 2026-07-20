@@ -256,7 +256,8 @@ export function InvitesSection() {
                 {/* Event header */}
                 <button
                   onClick={() => toggleExpanded(link.id)}
-                  className="w-full text-left px-4 py-3 flex items-start justify-between gap-3 hover:bg-black/[0.02] transition-colors"
+                  aria-expanded={isOpen}
+                  className="w-full text-left px-4 py-3 flex flex-wrap items-start justify-between gap-3 hover:bg-black/[0.02] transition-colors"
                   style={{ backgroundColor: 'var(--bg-card)' }}
                 >
                   <div className="flex-1 min-w-0">
@@ -272,7 +273,7 @@ export function InvitesSection() {
                     </p>
                   </div>
                   {/* Funnel summary */}
-                  <div className="flex items-center gap-3 flex-shrink-0 text-[10px] font-semibold" style={{ color: 'var(--text-secondary)' }}>
+                  <div className="flex items-center flex-wrap gap-3 text-[10px] font-semibold" style={{ color: 'var(--text-secondary)' }}>
                     <span>{link.click_count} {t('profile.invites.clicks')}</span>
                     <span>→</span>
                     <span>{guests.length} {t('profile.invites.registrations')}</span>
@@ -284,37 +285,67 @@ export function InvitesSection() {
                   </div>
                 </button>
 
-                {/* Guest table — expandable */}
+                {/* Guest table — sm+, expandable */}
                 {isOpen && guests.length > 0 && (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-xs" style={{ minWidth: 480 }}>
-                      <thead>
-                        <tr style={{ backgroundColor: 'rgba(0,0,0,0.03)', borderTop: '1px solid var(--border-default)' }}>
-                          {['Name', 'Email', 'Status', 'Registered', 'Attended'].map(h => (
-                            <th key={h} className="text-left px-4 py-2 font-semibold text-[10px] tracking-wider uppercase"
-                              style={{ color: 'var(--text-secondary)' }}>{h}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {guests.map(g => {
-                          const s = guestStatus(g)
-                          return (
-                            <tr key={g.id} style={{ borderTop: '1px solid var(--border-default)' }}>
-                              <td className="px-4 py-2 font-medium" style={{ color: 'var(--text-primary)' }}>{g.name}</td>
-                              <td className="px-4 py-2" style={{ color: 'var(--text-secondary)' }}>{g.email}</td>
-                              <td className="px-4 py-2">
-                                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold"
-                                  style={STATUS_STYLE[s]}>{s}</span>
-                              </td>
-                              <td className="px-4 py-2" style={{ color: 'var(--text-secondary)' }}>{fmt(g.created_at)}</td>
-                              <td className="px-4 py-2" style={{ color: 'var(--text-secondary)' }}>{fmt(g.attended_at)}</td>
-                            </tr>
-                          )
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
+                  <>
+                    <div className="hidden sm:block overflow-x-auto">
+                      <table className="w-full text-xs" style={{ minWidth: 480 }}>
+                        <thead>
+                          <tr style={{ backgroundColor: 'rgba(0,0,0,0.03)', borderTop: '1px solid var(--border-default)' }}>
+                            {[
+                              t('profile.invites.col.name'),
+                              t('profile.invites.col.email'),
+                              t('profile.invites.col.status'),
+                              t('profile.invites.col.registered'),
+                              t('profile.invites.col.attended'),
+                            ].map(h => (
+                              <th key={h} className="text-left px-4 py-2 font-semibold text-[10px] tracking-wider uppercase"
+                                style={{ color: 'var(--text-secondary)' }}>{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {guests.map(g => {
+                            const s = guestStatus(g)
+                            return (
+                              <tr key={g.id} style={{ borderTop: '1px solid var(--border-default)' }}>
+                                <td className="px-4 py-2 font-medium" style={{ color: 'var(--text-primary)' }}>{g.name}</td>
+                                <td className="px-4 py-2" style={{ color: 'var(--text-secondary)' }}>{g.email}</td>
+                                <td className="px-4 py-2">
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold"
+                                    style={STATUS_STYLE[s]}>{s}</span>
+                                </td>
+                                <td className="px-4 py-2" style={{ color: 'var(--text-secondary)' }}>{fmt(g.created_at)}</td>
+                                <td className="px-4 py-2" style={{ color: 'var(--text-secondary)' }}>{fmt(g.attended_at)}</td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Guest cards — below sm */}
+                    <div className="sm:hidden">
+                      {guests.map(g => {
+                        const s = guestStatus(g)
+                        return (
+                          <div key={g.id} className="px-4 py-3 space-y-1" style={{ borderTop: '1px solid var(--border-default)' }}>
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-xs font-medium truncate" style={{ color: 'var(--text-primary)' }}>{g.name}</p>
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold shrink-0"
+                                style={STATUS_STYLE[s]}>{s}</span>
+                            </div>
+                            <p className="text-[11px] truncate" style={{ color: 'var(--text-secondary)' }}>{g.email}</p>
+                            <p className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>
+                              {t('profile.invites.col.registered')} {fmt(g.created_at)}
+                              {' · '}
+                              {t('profile.invites.col.attended')} {fmt(g.attended_at)}
+                            </p>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </>
                 )}
                 {isOpen && guests.length === 0 && (
                   <p className="px-4 py-3 text-xs" style={{ color: 'var(--text-secondary)', borderTop: '1px solid var(--border-default)' }}>
