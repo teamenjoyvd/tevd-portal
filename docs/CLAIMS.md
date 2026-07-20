@@ -6,4 +6,4 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
-| #604 | `dev/2607-DEV-604` | app/api/profile/route.ts (GET column list), app/api/profile/payments/route.ts, app/api/profile/payments/upload-url/route.ts (+ any other 403-for-missing-profile spots from #603); migration: no | 2026-07-19T00:30Z |
+| #605 | `dev/2607-DEV-605` | lib/server/event-shares.ts (new), lib/server/upline.ts (new), app/api/profile/event-shares/route.ts (GET only), app/api/profile/event-shares/export/route.ts, app/api/profile/route.ts, app/api/profile/upline/route.ts, app/(dashboard)/profile/page.tsx; migration: no | 2026-07-20T00:00Z |
