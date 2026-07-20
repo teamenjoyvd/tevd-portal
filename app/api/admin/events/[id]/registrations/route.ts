@@ -48,7 +48,7 @@ export async function GET(
       id:           g.id,
       name:         g.name,
       email:        g.email,
-      status:       g.cancelled_at !== null ? 'cancelled' : g.status,
+      status:       g.attended_at !== null ? 'attended' : g.cancelled_at !== null ? 'cancelled' : g.status,
       attended_at:  g.attended_at,
       cancelled_at: g.cancelled_at,
       created_at:   g.created_at,
