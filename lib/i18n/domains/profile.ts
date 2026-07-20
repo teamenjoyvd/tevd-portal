@@ -163,6 +163,11 @@ export const profile = {
   'profile.invites.via':                  { en: 'via',                        bg: 'чрез'                                 },
   'profile.invites.direct':               { en: 'Direct',                     bg: 'Директно'                             },
   'profile.invites.registrations.tab':    { en: 'Registrations',              bg: 'Регистрации'                          },
+  'profile.invites.col.name':             { en: 'Name',                       bg: 'Име'                                  },
+  'profile.invites.col.email':            { en: 'Email',                      bg: 'Имейл'                                },
+  'profile.invites.col.status':           { en: 'Status',                     bg: 'Статус'                               },
+  'profile.invites.col.registered':       { en: 'Registered',                 bg: 'Регистриран'                          },
+  'profile.invites.col.attended':         { en: 'Attended',                   bg: 'Присъствал'                           },
   // InvitesBento
   'profile.invites.statLinks':            { en: 'invite links',               bg: 'покани'                               },
   'profile.invites.viewAll':              { en: 'View all invites',           bg: 'Виж всички покани'                    },

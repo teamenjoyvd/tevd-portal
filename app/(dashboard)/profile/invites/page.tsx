@@ -8,60 +8,26 @@ export default async function ProfileInvitesPage() {
   if (!userId) redirect('/sign-in')
 
   return (
-    <div className="py-8 pb-16">
+    <div className="py-8 pb-16 px-4 md:px-6 xl:px-8 md:max-w-[1280px] md:mx-auto">
+      {/* Back link */}
+      <Link
+        href="/profile"
+        className="inline-flex items-center gap-1 text-xs font-semibold mb-3 md:mb-5 hover:opacity-70 transition-opacity"
+        style={{ color: 'var(--text-secondary)' }}
+      >
+        ← Back to Profile
+      </Link>
 
-      {/* ════════════════════════════════════════════════════════════════════
-          DESKTOP layout (md+)
-          Single centred column, max-w-[1280px]
-          ════════════════════════════════════════════════════════════════════ */}
-      <div className="hidden md:block max-w-[1280px] mx-auto px-6 xl:px-8">
-        {/* Back link */}
-        <Link
-          href="/profile"
-          className="inline-flex items-center gap-1 text-xs font-semibold mb-5 hover:opacity-70 transition-opacity"
-          style={{ color: 'var(--text-secondary)' }}
-        >
-          ← Back to Profile
-        </Link>
-
-        {/* Full invites section — no bento wrapper */}
-        <div
-          className="rounded-2xl"
-          style={{
-            backgroundColor: 'var(--bg-card)',
-            border: '1px solid var(--border-default)',
-          }}
-        >
-          <InvitesSection />
-        </div>
+      {/* Full invites section */}
+      <div
+        className="rounded-2xl overflow-hidden"
+        style={{
+          backgroundColor: 'var(--bg-card)',
+          border: '1px solid var(--border-default)',
+        }}
+      >
+        <InvitesSection />
       </div>
-
-      {/* ════════════════════════════════════════════════════════════════════
-          MOBILE layout (< md)
-          Full-width, no horizontal padding on the card
-          ════════════════════════════════════════════════════════════════════ */}
-      <div className="md:hidden flex flex-col gap-3 px-4">
-        {/* Back link */}
-        <Link
-          href="/profile"
-          className="inline-flex items-center gap-1 text-xs font-semibold hover:opacity-70 transition-opacity"
-          style={{ color: 'var(--text-secondary)' }}
-        >
-          ← Back to Profile
-        </Link>
-
-        {/* Full invites section */}
-        <div
-          className="rounded-2xl overflow-hidden"
-          style={{
-            backgroundColor: 'var(--bg-card)',
-            border: '1px solid var(--border-default)',
-          }}
-        >
-          <InvitesSection />
-        </div>
-      </div>
-
     </div>
   )
 }
