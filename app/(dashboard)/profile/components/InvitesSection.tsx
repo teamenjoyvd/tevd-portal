@@ -324,11 +324,11 @@ export function InvitesSection() {
                     </div>
 
                     {/* Guest cards — below sm */}
-                    <div className="sm:hidden divide-y" style={{ borderTop: '1px solid var(--border-default)' }}>
+                    <div className="sm:hidden">
                       {guests.map(g => {
                         const s = guestStatus(g)
                         return (
-                          <div key={g.id} className="px-4 py-3 space-y-1" style={{ borderColor: 'var(--border-default)' }}>
+                          <div key={g.id} className="px-4 py-3 space-y-1" style={{ borderTop: '1px solid var(--border-default)' }}>
                             <div className="flex items-center justify-between gap-2">
                               <p className="text-xs font-medium truncate" style={{ color: 'var(--text-primary)' }}>{g.name}</p>
                               <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold shrink-0"
