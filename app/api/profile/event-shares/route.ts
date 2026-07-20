@@ -43,38 +43,40 @@ export async function POST(req: NextRequest): Promise<Response> {
     return Response.json({ error: 'Event does not allow guest registration' }, { status: 400 })
   }
 
-  // Check if a link already exists for this member+event pair.
-  // If it does, return the existing token — never regenerate it, as the member
-  // may have already distributed the previous link.
+  // Check if an ACTIVE (non-revoked) link already exists for this member+event
+  // pair. If it does, return the existing token — never regenerate it, as the
+  // member may have already distributed it. Revoked links are historical rows
+  // now (partial unique index scopes uniqueness to revoked_at IS NULL), so
+  // there can be at most one match here.
   const { data: existing } = await supabase
     .from('event_share_links')
-    .select('token, revoked_at')
+    .select('token')
     .eq('profile_id', profile.id)
     .eq('event_id', event_id)
-    .single()
+    .is('revoked_at', null)
+    .maybeSingle()
 
-  if (existing && !existing.revoked_at) {
+  if (existing) {
     // Update share_method (last-write-wins) without touching the token.
     await supabase
       .from('event_share_links')
       .update({ share_method })
       .eq('profile_id', profile.id)
       .eq('event_id', event_id)
+      .is('revoked_at', null)
 
     return Response.json({ token: existing.token })
   }
 
-  // No existing link, or the prior one was revoked — mint a fresh url-safe
-  // token (16 bytes = 22 base64url chars). A revoked link's row is unique on
-  // (profile_id, event_id), so upsert rather than insert.
+  // No active link — mint a fresh url-safe token (16 bytes = 22 base64url
+  // chars) as a NEW row. Any prior revoked link for this (profile, event)
+  // pair is left untouched so its token keeps resolving to "revoked" and its
+  // already-registered guests keep their 'cancelled' status.
   const token = randomBytes(16).toString('base64url')
 
   const { data: link, error } = await supabase
     .from('event_share_links')
-    .upsert(
-      { profile_id: profile.id, event_id, token, share_method, revoked_at: null },
-      { onConflict: 'profile_id,event_id' },
-    )
+    .insert({ profile_id: profile.id, event_id, token, share_method })
     .select('token')
     .single()
 

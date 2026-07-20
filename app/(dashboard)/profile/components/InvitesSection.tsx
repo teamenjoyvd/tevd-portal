@@ -52,7 +52,7 @@ function fmt(d: string | null): string {
 // if the link is later revoked — revocation only blocks guests who never
 // used it (they show as 'cancelled').
 function guestStatus(g: GuestRow, linkRevoked: boolean): 'pending' | 'confirmed' | 'attended' | 'cancelled' {
-  if (g.attended_at) return 'attended'
+  if (g.attended_at !== null) return 'attended'
   if (g.status === 'confirmed') return 'confirmed'
   if (linkRevoked) return 'cancelled'
   return 'pending'
@@ -282,8 +282,8 @@ export function InvitesSection() {
           {filtered.map(link => {
             const guests    = link.guests
             const revoked   = !!link.revoked_at
-            const confirmed = guests.filter(g => guestStatus(g, revoked) !== 'pending').length
-            const attended  = guests.filter(g => g.attended_at).length
+            const confirmed = guests.filter(g => ['confirmed', 'attended'].includes(guestStatus(g, revoked))).length
+            const attended  = guests.filter(g => g.attended_at !== null).length
             const isOpen    = !!expanded[link.id]
 
             return (

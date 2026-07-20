@@ -101,7 +101,7 @@ export function generateInvitesPdf(links: ShareLink[], memberName: string): void
         body: guests.map(g => [
           g.name,
           g.email,
-          g.attended_at ? 'attended' : g.status === 'confirmed' ? 'confirmed' : link.revoked_at ? 'cancelled' : 'pending',
+          g.attended_at !== null ? 'attended' : g.status === 'confirmed' ? 'confirmed' : link.revoked_at !== null ? 'cancelled' : 'pending',
           fmt(g.created_at),
           fmt(g.attended_at),
         ]),

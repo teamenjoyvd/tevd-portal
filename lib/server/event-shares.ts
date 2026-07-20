@@ -77,11 +77,11 @@ export async function fetchEventShares(
   const result = (links ?? []).map(link => ({
     ...link,
     guests: (link.guests as EventShareGuest[]).filter(g => {
-      const guestStatus = g.attended_at
+      const guestStatus = g.attended_at !== null
         ? 'attended'
         : g.status === 'confirmed'
         ? 'confirmed'
-        : (link as unknown as { revoked_at: string | null }).revoked_at
+        : (link as unknown as { revoked_at: string | null }).revoked_at !== null
         ? 'cancelled'
         : 'pending'
       const matchStatus = filters.status ? guestStatus === filters.status : true
