@@ -6,3 +6,4 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
+| #589 | `dev/2607-DEV-589` | `supabase/migrations/` (new), `lib/actions/guest-registration.ts`, `lib/notifications/share-events.ts`, `lib/email/templates/Guest*Email.tsx`, `lib/email/templates/ShareGuest*Email.tsx`, `supabase/functions/deliver-email-notifications/`, `lib/i18n/`, guest register/expired-join pages, `types/supabase.ts` — migration: yes | 2026-07-20 |
