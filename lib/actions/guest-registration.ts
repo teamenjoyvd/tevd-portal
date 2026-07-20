@@ -7,7 +7,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { sendTransactionalEmail } from '@/lib/email/send'
 import { renderEmailTemplate } from '@/lib/email/templates/render'
 import { GuestEventMagicLinkEmail } from '@/lib/email/templates/GuestEventMagicLinkEmail'
-import { notifySharerOfRegistration } from '@/lib/notifications/share-events'
+import { notifySharerOfRegistration, notifySharerOfCancellation } from '@/lib/notifications/share-events'
 import { getBaseUrl } from '@/lib/utils/base-url'
 
 // -- Types --------------------------------------------------------------------
@@ -20,6 +20,12 @@ function getMagicLinkSubject(lang: Lang, eventTitle: string): string {
   return lang === 'bg'
     ? `Вашата връзка за присъединяване: ${eventTitle}`
     : `Your link to join: ${eventTitle}`
+}
+
+function getEventFullMessage(lang: Lang): string {
+  return lang === 'bg'
+    ? 'Това събитие достигна максималния брой гости.'
+    : 'This event has reached its guest capacity.'
 }
 
 // -- Schema -------------------------------------------------------------------
@@ -56,7 +62,7 @@ export async function registerGuest(
   // Verify event exists and has guest registration enabled
   const { data: event, error: eventError } = await supabase
     .from('calendar_events')
-    .select('id, title, allow_guest_registration, end_time')
+    .select('id, title, allow_guest_registration, end_time, guest_capacity')
     .eq('id', eventId)
     .single()
 
@@ -86,13 +92,33 @@ export async function registerGuest(
   // prior registration, or the previous link has expired, mint a new token.
   const { data: existing } = await supabase
     .from('guest_registrations')
-    .select('token, expires_at, share_link_id')
+    .select('token, expires_at, share_link_id, cancelled_at')
     .eq('event_id', eventId)
     .eq('email', email)
     .maybeSingle()
 
-  const now      = Date.now()
-  const reusable = existing != null && new Date(existing.expires_at).getTime() > now
+  const now = Date.now()
+
+  // A cancelled registration re-registering is a reactivation, not a resend —
+  // never reuse the old token (DoD: re-register clears cancelled_at + refreshes
+  // token), so force the upsert branch below.
+  const reactivating = existing != null && existing.cancelled_at != null
+  const reusable = existing != null && !reactivating && new Date(existing.expires_at).getTime() > now
+
+  // Capacity applies only when this submission adds a new active registrant
+  // (brand-new guest, or a cancelled guest reactivating) — an already-active
+  // guest resubmitting the form is not growing the headcount.
+  const addsActiveGuest = existing == null || reactivating
+  if (addsActiveGuest && event.guest_capacity != null) {
+    const { count } = await supabase
+      .from('guest_registrations')
+      .select('id', { count: 'exact', head: true })
+      .eq('event_id', eventId)
+      .is('cancelled_at', null)
+    if ((count ?? 0) >= event.guest_capacity) {
+      return { success: false, error: getEventFullMessage(lang) }
+    }
+  }
 
   let token: string
   if (reusable) {
@@ -109,13 +135,14 @@ export async function registerGuest(
   } else {
     token = randomBytes(32).toString('hex')
     const expiresAt = new Date(new Date(event.end_time).getTime() + 3 * 60 * 60 * 1000).toISOString()
-    // Upsert covers both the first registration (insert) and re-registration
-    // after expiry (update the existing row with a fresh token/expiry). Keep
-    // first-touch attribution when this re-registration carries no share link.
+    // Upsert covers the first registration (insert), re-registration after
+    // expiry, and reactivation after cancel (all update the existing row with
+    // a fresh token/expiry and clear cancelled_at). Keep first-touch
+    // attribution when this re-registration carries no share link.
     const { error: upsertError } = await supabase
       .from('guest_registrations')
       .upsert(
-        { event_id: eventId, email, name, lang, token, expires_at: expiresAt, share_link_id: shareLinkId ?? existing?.share_link_id ?? null },
+        { event_id: eventId, email, name, lang, token, expires_at: expiresAt, cancelled_at: null, share_link_id: shareLinkId ?? existing?.share_link_id ?? null },
         { onConflict: 'event_id,email', ignoreDuplicates: false },
       )
     if (upsertError) return { success: false, error: 'Registration failed. Please try again.' }
@@ -240,4 +267,46 @@ export async function resendGuestLink(eventId: string, email: string): Promise<R
   })
 
   return NEUTRAL_RESULT
+}
+
+// -- Cancel (guest self-service "can't attend") --------------------------------
+// Soft-cancel only — the row is kept for stats. Idempotent: cancelling an
+// already-cancelled registration is a no-op success, not an error, since a
+// double-click or back-button resubmit must not surface a failure.
+
+export type CancelGuestRegistrationState = { success: boolean; error?: string }
+
+const cancelSchema = z.object({ token: z.string().min(1) })
+
+export async function cancelGuestRegistration(
+  _prev: CancelGuestRegistrationState,
+  formData: FormData,
+): Promise<CancelGuestRegistrationState> {
+  const parsed = cancelSchema.safeParse({ token: formData.get('token') })
+  if (!parsed.success) return { success: false, error: 'Invalid link.' }
+
+  const supabase = createServiceClient()
+
+  const { data: reg } = await supabase
+    .from('guest_registrations')
+    .select('id, name, share_link_id, cancelled_at')
+    .eq('token', parsed.data.token)
+    .maybeSingle()
+
+  if (!reg) return { success: false, error: 'Invalid link.' }
+  if (reg.cancelled_at != null) return { success: true }
+
+  const { error } = await supabase
+    .from('guest_registrations')
+    .update({ cancelled_at: new Date().toISOString() })
+    .eq('id', reg.id)
+    .is('cancelled_at', null)
+
+  if (error) return { success: false, error: 'Could not cancel. Please try again.' }
+
+  if (reg.share_link_id) {
+    notifySharerOfCancellation(reg.share_link_id, reg.name)
+  }
+
+  return { success: true }
 }

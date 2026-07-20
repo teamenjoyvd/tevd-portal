@@ -27,6 +27,7 @@ type GuestRow = {
   email: string
   status: string
   attended_at: string | null
+  cancelled_at: string | null
   created_at: string
 }
 
@@ -101,7 +102,7 @@ export function generateInvitesPdf(links: ShareLink[], memberName: string): void
         body: guests.map(g => [
           g.name,
           g.email,
-          g.attended_at !== null ? 'attended' : g.status === 'confirmed' ? 'confirmed' : link.revoked_at !== null ? 'cancelled' : 'pending',
+          g.attended_at !== null ? 'attended' : g.cancelled_at !== null ? 'cancelled' : g.status === 'confirmed' ? 'confirmed' : link.revoked_at !== null ? 'cancelled' : 'pending',
           fmt(g.created_at),
           fmt(g.attended_at),
         ]),

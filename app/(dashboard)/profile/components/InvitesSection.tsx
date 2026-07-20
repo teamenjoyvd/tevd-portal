@@ -23,9 +23,10 @@ type GuestRow = {
   id:          string
   name:        string
   email:       string
-  status:      string
-  attended_at: string | null
-  created_at:  string
+  status:       string
+  attended_at:  string | null
+  cancelled_at: string | null
+  created_at:   string
 }
 
 type ShareLink = {
@@ -53,6 +54,7 @@ function fmt(d: string | null): string {
 // used it (they show as 'cancelled').
 function guestStatus(g: GuestRow, linkRevoked: boolean): 'pending' | 'confirmed' | 'attended' | 'cancelled' {
   if (g.attended_at !== null) return 'attended'
+  if (g.cancelled_at !== null) return 'cancelled'
   if (g.status === 'confirmed') return 'confirmed'
   if (linkRevoked) return 'cancelled'
   return 'pending'

@@ -61,16 +61,27 @@ Deno.serve(async (req: Request) => {
 
         const name = item.payload.name || 'Guest'
 
-        // Guest's stored language preference (2607-DEV-589). Reminders are keyed
-        // by recipient email + event, matching guest_registrations' unique pair.
+        // Guest's stored language preference (2607-DEV-589) + cancellation guard
+        // (2607-DEV-590): a self-cancelled guest must not get a reminder — the
+        // schedule trigger only fires on INSERT/UPDATE OF status,email,name, so
+        // cancelling (which only touches cancelled_at) does not clear the
+        // already-queued rows. Skip here instead. Reminders are keyed by
+        // recipient email + event, matching guest_registrations' unique pair.
         if (recipient !== 'unknown') {
           const { data: guestReg } = await sb
             .from('guest_registrations')
-            .select('lang')
+            .select('lang, cancelled_at')
             .eq('event_id', eventId)
             .eq('email', recipient)
             .maybeSingle()
           if (guestReg?.lang === 'bg') reminderLang = 'bg'
+          if (guestReg?.cancelled_at != null) {
+            await sb
+              .from('notification_queue')
+              .update({ status: 'sent', sent_at: new Date().toISOString(), last_error: null })
+              .eq('id', item.id)
+            continue
+          }
         }
 
         const minutesBefore = item.type === 'event_reminder_1h' ? 60 : 15

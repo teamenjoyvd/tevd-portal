@@ -43,6 +43,14 @@ export const events = {
   'event.join.hiTap':              { en: 'Hi {name}, tap the button below to open the meeting.',     bg: 'Здравейте {name}, докоснете бутона, за да отворите срещата.'     },
   'event.join.joinMeeting':        { en: 'Join Meeting',                                             bg: 'Присъединете се'                                                },
   'event.join.noMeetingLink':      { en: 'Meeting link not yet available. Check back closer to the event.', bg: 'Връзката към срещата все още не е налична. Проверете по-близо до събитието.' },
+  'event.join.linkCancelled':      { en: 'You cancelled your registration for this event.',         bg: 'Отказахте регистрацията си за това събитие.'                    },
+
+  // join page — can't-attend / cancel (T4, 2607-DEV-590)
+  'event.join.cantAttend':         { en: "Can't attend?",                                            bg: 'Не можете да присъствате?'                                      },
+  'event.join.cancelConfirmTitle': { en: 'Cancel your registration?',                                bg: 'Отказ от регистрацията?'                                        },
+  'event.join.cancelConfirmDesc':  { en: "We'll let the person who invited you know you can't make it.", bg: 'Ще уведомим поканилия ви, че не можете да присъствате.'      },
+  'event.join.cancelSuccess':      { en: "You're marked as unable to attend. See you next time!",    bg: 'Отбелязани сте като неприсъстващ. До скоро!'                    },
+  'event.join.cancelError':        { en: 'Could not cancel. Please try again.',                       bg: 'Отказът не бе успешен. Моля, опитайте отново.'                 },
 
   // join/components/JoinActions
   'event.join.copyLinkHint':       { en: "If the button above doesn't open, copy this link directly:", bg: 'Ако бутонът не работи, копирайте тази връзка директно:'         },
@@ -55,6 +63,7 @@ export const events = {
   'event.register.registerToGet':  { en: 'Register to get your access link',                         bg: 'Регистрирайте се за достъп'                                     },
   'event.register.eventEnded':     { en: 'This event has already ended. Registration is closed.',   bg: 'Това събитие вече приключи. Регистрацията е затворена.'         },
   'event.register.linkNoLongerActive': { en: 'This share link is no longer active.',                bg: 'Тази връзка за споделяне вече не е активна.'                     },
+  'event.register.full':           { en: 'This event has reached its guest capacity.',               bg: 'Това събитие достигна максималния брой гости.'                   },
 
   // register/components/RegisterForm
   'event.register.checkInbox':     { en: 'Check your inbox',                                         bg: 'Проверете пощата си'                                            },

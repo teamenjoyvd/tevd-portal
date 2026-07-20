@@ -23,6 +23,7 @@ type CalEvent = {
   google_event_id: string | null
   meeting_url: string | null
   allow_guest_registration: boolean
+  guest_capacity: number | null
   available_roles: string[]
 }
 
@@ -169,6 +170,7 @@ export default function AdminCalendarClient() {
       access_roles: Array.isArray(ev.access_roles) ? ev.access_roles : [...ALL_ROLES],
       meeting_url: ev.meeting_url ?? '',
       allow_guest_registration: ev.allow_guest_registration,
+      guest_capacity: ev.guest_capacity,
       available_roles: Array.isArray(ev.available_roles)
         ? ev.available_roles
         : [...DEFAULT_AVAILABLE_ROLES],

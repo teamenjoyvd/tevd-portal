@@ -20,6 +20,7 @@ export type EventFormState = {
   access_roles: string[]
   meeting_url: string
   allow_guest_registration: boolean
+  guest_capacity: number | null
   available_roles: string[]
 }
 
@@ -35,6 +36,7 @@ export function emptyForm(): EventFormState {
     access_roles: [...ALL_ROLES],
     meeting_url: '',
     allow_guest_registration: true,
+    guest_capacity: null,
     available_roles: [...DEFAULT_AVAILABLE_ROLES],
   }
 }
@@ -177,6 +179,19 @@ export function EventForm({
           }}>
           {f.allow_guest_registration ? 'ON' : 'OFF'}
         </button>
+      </div>
+
+      {/* Guest capacity */}
+      <div>
+        <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.calendar.lbl.guestCapacity')}</label>
+        <input
+          type="number"
+          min={1}
+          value={f.guest_capacity ?? ''}
+          onChange={e => setF(p => ({ ...p, guest_capacity: e.target.value === '' ? null : Number(e.target.value) }))}
+          placeholder={t('admin.calendar.placeholder.guestCapacity')}
+          className="w-32 border rounded-xl px-3 py-2.5 text-sm"
+          style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
       </div>
 
       {/* Available roles tag manager */}

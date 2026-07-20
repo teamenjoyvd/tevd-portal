@@ -28,6 +28,7 @@ export async function GET(
       email,
       status,
       attended_at,
+      cancelled_at,
       created_at,
       share_link:event_share_links (
         profile:profiles ( first_name, last_name )
@@ -44,13 +45,14 @@ export async function GET(
       ? `${shareLink.profile.first_name} ${shareLink.profile.last_name}`.trim()
       : null
     return {
-      id:          g.id,
-      name:        g.name,
-      email:       g.email,
-      status:      g.status,
-      attended_at: g.attended_at,
-      created_at:  g.created_at,
-      sharer_name: sharerName,
+      id:           g.id,
+      name:         g.name,
+      email:        g.email,
+      status:       g.cancelled_at !== null ? 'cancelled' : g.status,
+      attended_at:  g.attended_at,
+      cancelled_at: g.cancelled_at,
+      created_at:   g.created_at,
+      sharer_name:  sharerName,
     }
   })
 

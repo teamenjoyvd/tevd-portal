@@ -19,13 +19,23 @@ export default async function GuestRegisterPage({ params, searchParams }: Props)
 
   const { data: event } = await supabase
     .from('calendar_events')
-    .select('id, title, start_time, end_time, allow_guest_registration')
+    .select('id, title, start_time, end_time, allow_guest_registration, guest_capacity')
     .eq('id', eventId)
     .single()
 
   if (!event || !event.allow_guest_registration) notFound()
 
   const eventEnded = new Date(event.end_time) < new Date()
+
+  let eventFull = false
+  if (event.guest_capacity != null) {
+    const { count } = await supabase
+      .from('guest_registrations')
+      .select('id', { count: 'exact', head: true })
+      .eq('event_id', eventId)
+      .is('cancelled_at', null)
+    eventFull = (count ?? 0) >= event.guest_capacity
+  }
 
   let shareLinkRevoked = false
   if (share) {
@@ -46,6 +56,8 @@ export default async function GuestRegisterPage({ params, searchParams }: Props)
     ? t('event.register.eventEnded', lang)
     : shareLinkRevoked
     ? t('event.register.linkNoLongerActive', lang)
+    : eventFull
+    ? t('event.register.full', lang)
     : null
 
   return (

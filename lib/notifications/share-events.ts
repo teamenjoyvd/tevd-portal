@@ -8,6 +8,7 @@ import { sendTransactionalEmail } from '@/lib/email/send'
 import { renderEmailTemplate } from '@/lib/email/templates/render'
 import { ShareGuestRegisteredEmail } from '@/lib/email/templates/ShareGuestRegisteredEmail'
 import { ShareGuestAttendedEmail } from '@/lib/email/templates/ShareGuestAttendedEmail'
+import { ShareGuestCancelledEmail } from '@/lib/email/templates/ShareGuestCancelledEmail'
 
 // ── Internal resolver ────────────────────────────────────────────────────
 
@@ -107,4 +108,31 @@ export function notifySharerOfAttendance(shareLinkId: string, guestName: string)
       })
     })
     .catch(err => { console.error('Failed to notify sharer of attendance:', err) })
+}
+
+/** Fire-and-forget: notify sharer that a guest cancelled their registration. */
+export function notifySharerOfCancellation(shareLinkId: string, guestName: string): void {
+  resolveShareLinkContext(shareLinkId, guestName)
+    .then(async ctx => {
+      if (!ctx) return
+      const html = await renderEmailTemplate(
+        React.createElement(ShareGuestCancelledEmail, {
+          sharerName: ctx.sharerName,
+          guestName:  ctx.guestName,
+          eventTitle: ctx.eventTitle,
+          lang:       ctx.lang,
+        }),
+      )
+      const subject = ctx.lang === 'bg'
+        ? `${ctx.guestName} се отказа от ${ctx.eventTitle}`
+        : `${ctx.guestName} cancelled for ${ctx.eventTitle}`
+      await sendTransactionalEmail({
+        to:       ctx.sharerEmail,
+        subject,
+        html,
+        template: 'share_guest_cancelled',
+        meta:     { shareLinkId, guestName },
+      })
+    })
+    .catch(err => { console.error('Failed to notify sharer of cancellation:', err) })
 }

@@ -184,6 +184,8 @@ export const adminContent = {
   'admin.calendar.lbl.visibleTo': { en: 'Visible to', bg: 'Видимо за' },
   'admin.calendar.lbl.meetingUrl': { en: 'Meeting URL', bg: 'URL за среща' },
   'admin.calendar.lbl.allowGuestReg': { en: 'Allow guest registration', bg: 'Разреши регистрация на гости' },
+  'admin.calendar.lbl.guestCapacity': { en: 'Guest capacity', bg: 'Капацитет за гости' },
+  'admin.calendar.placeholder.guestCapacity': { en: 'Unlimited', bg: 'Неограничен' },
   'admin.calendar.lbl.availableRoles': { en: 'Available roles', bg: 'Налични роли' },
   'admin.calendar.btn.saving': { en: 'Saving…', bg: 'Запазване…' },
   'admin.calendar.btn.saveChanges': { en: 'Save changes', bg: 'Запази промените' },
