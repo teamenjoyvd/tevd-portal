@@ -188,7 +188,10 @@ export function EventForm({
           type="number"
           min={1}
           value={f.guest_capacity ?? ''}
-          onChange={e => setF(p => ({ ...p, guest_capacity: e.target.value === '' ? null : Number(e.target.value) }))}
+          onChange={e => {
+            const n = e.target.value === '' ? null : Number(e.target.value)
+            setF(p => ({ ...p, guest_capacity: n === null || n < 1 ? null : n }))
+          }}
           placeholder={t('admin.calendar.placeholder.guestCapacity')}
           className="w-32 border rounded-xl px-3 py-2.5 text-sm"
           style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />

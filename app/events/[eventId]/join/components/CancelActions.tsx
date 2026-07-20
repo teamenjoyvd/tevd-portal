@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useRef } from 'react'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,6 +20,7 @@ const initialState: CancelGuestRegistrationState = { success: false }
 export function CancelActions({ token }: { token: string }) {
   const [state, formAction, isPending] = useActionState(cancelGuestRegistration, initialState)
   const { t } = useLanguage()
+  const formRef = useRef<HTMLFormElement>(null)
 
   if (state.success) {
     return (
@@ -30,7 +31,7 @@ export function CancelActions({ token }: { token: string }) {
   }
 
   return (
-    <form action={formAction} className="mt-6 text-center">
+    <form ref={formRef} action={formAction} className="mt-6 text-center">
       <input type="hidden" name="token" value={token} />
       {state.error && (
         <p className="text-sm mb-2" style={{ color: '#bc4749' }}>{t('event.join.cancelError')}</p>
@@ -52,7 +53,11 @@ export function CancelActions({ token }: { token: string }) {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel type="button">{t('event.cancel')}</AlertDialogCancel>
-            <AlertDialogAction type="submit" formAction={formAction} disabled={isPending}>
+            <AlertDialogAction
+              type="button"
+              disabled={isPending}
+              onClick={() => formRef.current?.requestSubmit()}
+            >
               {t('event.join.cantAttend')}
             </AlertDialogAction>
           </AlertDialogFooter>
