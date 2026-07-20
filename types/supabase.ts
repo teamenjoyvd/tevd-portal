@@ -364,6 +364,7 @@ export type Database = {
           created_at: string
           event_id: string
           id: string
+          lang: string
           profile_id: string
           revoked_at: string | null
           share_method: string
@@ -374,6 +375,7 @@ export type Database = {
           created_at?: string
           event_id: string
           id?: string
+          lang?: string
           profile_id: string
           revoked_at?: string | null
           share_method: string
@@ -384,6 +386,7 @@ export type Database = {
           created_at?: string
           event_id?: string
           id?: string
+          lang?: string
           profile_id?: string
           revoked_at?: string | null
           share_method?: string
@@ -428,6 +431,7 @@ export type Database = {
           event_id: string
           expires_at: string
           id: string
+          lang: string
           name: string
           share_link_id: string | null
           status: Database["public"]["Enums"]["guest_registration_status"]
@@ -440,6 +444,7 @@ export type Database = {
           event_id: string
           expires_at: string
           id?: string
+          lang?: string
           name: string
           share_link_id?: string | null
           status?: Database["public"]["Enums"]["guest_registration_status"]
@@ -452,6 +457,7 @@ export type Database = {
           event_id?: string
           expires_at?: string
           id?: string
+          lang?: string
           name?: string
           share_link_id?: string | null
           status?: Database["public"]["Enums"]["guest_registration_status"]

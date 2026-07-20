@@ -7,15 +7,48 @@ export function escapeHtml(str: string): string {
     .replace(/'/g, '&#039;');
 }
 
+type ReminderLang = 'en' | 'bg';
+
+const REMINDER_COPY: Record<ReminderLang, {
+  htmlLang: string
+  title: string
+  hi: (name: string) => string
+  intro: (label: string) => string
+  join: string
+  seeYou: string
+  label: (minutesBefore: number) => string
+}> = {
+  en: {
+    htmlLang: 'en',
+    title: 'Event Reminder',
+    hi: name => `Hi ${name},`,
+    intro: label => `This is a reminder that your event is starting in <strong>${label}</strong>.`,
+    join: 'Join Event',
+    seeYou: 'See you there!',
+    label: minutesBefore => (minutesBefore >= 60 ? '1 hour' : '15 minutes'),
+  },
+  bg: {
+    htmlLang: 'bg',
+    title: 'Напомняне за събитие',
+    hi: name => `Здравейте, ${name},`,
+    intro: label => `Това е напомняне, че вашето събитие започва след <strong>${label}</strong>.`,
+    join: 'Присъединяване',
+    seeYou: 'До скоро!',
+    label: minutesBefore => (minutesBefore >= 60 ? '1 час' : '15 минути'),
+  },
+};
+
 export function buildReminderEmail(
   name: string,
   eventTitle: string,
   minutesBefore: number,
   eventStart: string,
-  meetingUrl: string | null
+  meetingUrl: string | null,
+  lang: ReminderLang = 'en'
 ): string {
-  const label = minutesBefore >= 60 ? '1 hour' : '15 minutes';
-  const formattedTime = new Date(eventStart).toLocaleString('en-GB', {
+  const c = REMINDER_COPY[lang];
+  const label = c.label(minutesBefore);
+  const formattedTime = new Date(eventStart).toLocaleString(lang === 'bg' ? 'bg-BG' : 'en-GB', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
@@ -34,10 +67,10 @@ export function buildReminderEmail(
 
   return `
     <!DOCTYPE html>
-    <html lang="en">
+    <html lang="${c.htmlLang}">
     <head>
       <meta charset="UTF-8">
-      <title>Event Reminder</title>
+      <title>${c.title}</title>
       <style>
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f9fafb; margin: 0; padding: 40px 20px; }
         .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #e5e7eb; }
@@ -54,17 +87,17 @@ export function buildReminderEmail(
     <body>
       <div class="container">
         <div class="header">
-          <h1>Event Reminder</h1>
+          <h1>${c.title}</h1>
         </div>
         <div class="content">
-          <p class="text" style="color: #111827;">Hi ${safeName},</p>
-          <p class="text">This is a reminder that your event is starting in <strong>${label}</strong>.</p>
+          <p class="text" style="color: #111827;">${c.hi(safeName)}</p>
+          <p class="text">${c.intro(label)}</p>
           <div class="badge">
             <p class="badge-text">${safeEventTitle}</p>
             <p style="margin: 4px 0 0; font-size: 13px; color: #6b7280;">${safeFormattedTime}</p>
           </div>
-          ${safeMeetingUrl ? `<p class="text" style="text-align:center;"><a href="${safeMeetingUrl}" class="btn">Join Event</a></p>` : ''}
-          <p class="text" style="font-size: 14px; color: #6b7280;">See you there!</p>
+          ${safeMeetingUrl !== null ? `<p class="text" style="text-align:center;"><a href="${safeMeetingUrl}" class="btn">${c.join}</a></p>` : ''}
+          <p class="text" style="font-size: 14px; color: #6b7280;">${c.seeYou}</p>
         </div>
         <div class="footer">&copy; ${new Date().getFullYear()} TeamEnjoyVD</div>
       </div>

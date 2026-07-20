@@ -69,13 +69,15 @@ export function EmailShell({
   preview,
   title,
   children,
+  lang = 'en',
 }: {
   preview: string
   title: string
   children: React.ReactNode
+  lang?: 'en' | 'bg'
 }) {
   return (
-    <Html lang="en">
+    <Html lang={lang}>
       <Head />
       <Preview>{preview}</Preview>
       <Body style={baseStyles}>

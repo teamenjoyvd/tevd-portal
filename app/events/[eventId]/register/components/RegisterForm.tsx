@@ -17,7 +17,7 @@ export function RegisterForm({
   shareToken?: string
 }) {
   const [state, formAction, isPending] = useActionState(registerGuest, initialState)
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
 
   if (state.success) {
     return (
@@ -46,6 +46,7 @@ export function RegisterForm({
   return (
     <form action={formAction} className="space-y-4">
       <input type="hidden" name="eventId" value={eventId} />
+      <input type="hidden" name="lang" value={lang} />
       {shareToken && <input type="hidden" name="shareToken" value={shareToken} />}
 
       <div>

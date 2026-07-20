@@ -147,3 +147,149 @@ describe('registerGuest — base URL', () => {
     expect(capturedMagicLink).not.toContain('req-host.example')
   })
 })
+
+// -- Lang passthrough (2607-DEV-589) ------------------------------------------
+
+describe('registerGuest — lang passthrough', () => {
+  it('stores the submitted lang on a fresh registration (upsert)', async () => {
+    const { client, upsertSpy } = buildClient(null)
+    mockCreateServiceClient.mockReturnValue(client)
+    const { registerGuest } = await import('@/lib/actions/guest-registration')
+
+    const fd = form()
+    fd.set('lang', 'bg')
+    await registerGuest({ success: false }, fd)
+
+    expect(upsertSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ lang: 'bg' }),
+      expect.anything(),
+    )
+  })
+
+  it('defaults to en when no lang field is submitted', async () => {
+    const { client, upsertSpy } = buildClient(null)
+    mockCreateServiceClient.mockReturnValue(client)
+    const { registerGuest } = await import('@/lib/actions/guest-registration')
+
+    await registerGuest({ success: false }, form())
+
+    expect(upsertSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ lang: 'en' }),
+      expect.anything(),
+    )
+  })
+
+  it('stores the submitted lang when reusing an existing token (update)', async () => {
+    const { client, updateSpy } = buildClient({
+      token: 'existing-token-abc',
+      expires_at: new Date(Date.now() + 24 * HOUR).toISOString(),
+    })
+    mockCreateServiceClient.mockReturnValue(client)
+    const { registerGuest } = await import('@/lib/actions/guest-registration')
+
+    const fd = form()
+    fd.set('lang', 'bg')
+    await registerGuest({ success: false }, fd)
+
+    expect(updateSpy).toHaveBeenCalledWith(expect.objectContaining({ lang: 'bg' }))
+  })
+})
+
+// -- resendGuestLink — neutrality + rate cap (2607-DEV-589) -------------------
+
+function buildResendClient(opts: {
+  event?: Record<string, unknown> | null
+  reg?: Record<string, unknown> | null
+  deliveryCount?: number
+}) {
+  const event = opts.event === undefined
+    ? { id: 'e', title: 'Trip Kickoff', allow_guest_registration: true, end_time: new Date(Date.now() + 24 * HOUR).toISOString() }
+    : opts.event
+  const reg = opts.reg === undefined
+    ? { id: 'r1', name: 'Jane Guest', token: 'tok-123', lang: 'en' }
+    : opts.reg
+  const deliveryCount = opts.deliveryCount ?? 0
+
+  const updateSpy = vi.fn(() => ({ eq: () => Promise.resolve({ error: null }) }))
+
+  const client = {
+    from: (table: string) => {
+      if (table === 'calendar_events') {
+        return { select: () => ({ eq: () => ({ single: () => Promise.resolve({ data: event, error: null }) }) }) }
+      }
+      if (table === 'guest_registrations') {
+        return {
+          select: () => ({ eq: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: reg, error: null }) }) }) }),
+          update: updateSpy,
+        }
+      }
+      if (table === 'notification_delivery_log') {
+        return {
+          select: () => ({
+            eq: () => ({
+              eq: () => ({
+                eq: () => ({
+                  gte: () => Promise.resolve({ count: deliveryCount, error: null }),
+                }),
+              }),
+            }),
+          }),
+        }
+      }
+      throw new Error(`unexpected table ${table}`)
+    },
+  }
+  return { client, updateSpy }
+}
+
+describe('resendGuestLink — neutrality', () => {
+  it('returns the same neutral result when the registration exists', async () => {
+    const { client } = buildResendClient({})
+    mockCreateServiceClient.mockReturnValue(client)
+    const { resendGuestLink } = await import('@/lib/actions/guest-registration')
+
+    const res = await resendGuestLink('123e4567-e89b-12d3-a456-426614174000', 'jane@example.com')
+    expect(res).toEqual({ success: true })
+  })
+
+  it('returns the same neutral result when the registration does not exist', async () => {
+    const { client } = buildResendClient({ reg: null })
+    mockCreateServiceClient.mockReturnValue(client)
+    const { resendGuestLink } = await import('@/lib/actions/guest-registration')
+
+    const res = await resendGuestLink('123e4567-e89b-12d3-a456-426614174000', 'nobody@example.com')
+    expect(res).toEqual({ success: true })
+  })
+
+  it('returns the same neutral result when the event does not exist', async () => {
+    const { client } = buildResendClient({ event: null })
+    mockCreateServiceClient.mockReturnValue(client)
+    const { resendGuestLink } = await import('@/lib/actions/guest-registration')
+
+    const res = await resendGuestLink('123e4567-e89b-12d3-a456-426614174000', 'jane@example.com')
+    expect(res).toEqual({ success: true })
+  })
+})
+
+describe('resendGuestLink — rate cap', () => {
+  it('sends when under the hourly cap', async () => {
+    const { client } = buildResendClient({ deliveryCount: 2 })
+    mockCreateServiceClient.mockReturnValue(client)
+    const sendModule = await import('@/lib/email/send')
+    const { resendGuestLink } = await import('@/lib/actions/guest-registration')
+
+    await resendGuestLink('123e4567-e89b-12d3-a456-426614174000', 'jane@example.com')
+    expect(sendModule.sendTransactionalEmail).toHaveBeenCalledTimes(1)
+  })
+
+  it('no-ops (does not send a 4th email) once the hourly cap is reached', async () => {
+    const { client } = buildResendClient({ deliveryCount: 3 })
+    mockCreateServiceClient.mockReturnValue(client)
+    const sendModule = await import('@/lib/email/send')
+    const { resendGuestLink } = await import('@/lib/actions/guest-registration')
+
+    const res = await resendGuestLink('123e4567-e89b-12d3-a456-426614174000', 'jane@example.com')
+    expect(sendModule.sendTransactionalEmail).not.toHaveBeenCalled()
+    expect(res).toEqual({ success: true })
+  })
+})

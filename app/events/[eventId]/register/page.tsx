@@ -1,8 +1,9 @@
 import { notFound } from 'next/navigation'
-import { cookies } from 'next/headers'
 import { createServiceClient } from '@/lib/supabase/service'
 import { RegisterForm } from './components/RegisterForm'
+import { ResendLinkForm } from '../components/ResendLinkForm'
 import { t } from '@/lib/i18n'
+import { getLangFromCookies } from '@/lib/utils/lang-cookie'
 
 type Props = {
   params:       Promise<{ eventId: string }>
@@ -14,8 +15,7 @@ export default async function GuestRegisterPage({ params, searchParams }: Props)
   const { share }    = await searchParams
   const supabase     = createServiceClient()
 
-  const cookieStore = await cookies()
-  const lang = cookieStore.get('tevd_lang')?.value === 'bg' ? 'bg' : 'en'
+  const lang = await getLangFromCookies()
 
   const { data: event } = await supabase
     .from('calendar_events')
@@ -70,7 +70,10 @@ export default async function GuestRegisterPage({ params, searchParams }: Props)
             style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}
           >
             {blockedMessage ? (
-              <p className="text-sm text-center" style={{ color: 'var(--text-secondary)' }}>{blockedMessage}</p>
+              <>
+                <p className="text-sm text-center" style={{ color: 'var(--text-secondary)' }}>{blockedMessage}</p>
+                <ResendLinkForm eventId={event.id} />
+              </>
             ) : (
               <>
                 <p className="text-sm font-semibold mb-5" style={{ color: 'var(--text-primary)' }}>
@@ -102,7 +105,10 @@ export default async function GuestRegisterPage({ params, searchParams }: Props)
           style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}
         >
           {blockedMessage ? (
-            <p className="text-sm text-center" style={{ color: 'var(--text-secondary)' }}>{blockedMessage}</p>
+            <>
+              <p className="text-sm text-center" style={{ color: 'var(--text-secondary)' }}>{blockedMessage}</p>
+              <ResendLinkForm eventId={event.id} />
+            </>
           ) : (
             <>
               <p className="text-sm font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
