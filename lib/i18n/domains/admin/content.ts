@@ -182,8 +182,8 @@ export const adminContent = {
   },
   'admin.calendar.confirm.editTitle': { en: 'Save these changes?', bg: 'Запазване на промените?' },
   'admin.calendar.confirm.editDesc': {
-    en: 'The date, time, location, or meeting link changed.',
-    bg: 'Датата, часът, мястото или връзката за срещата са променени.',
+    en: 'The date, time, or meeting link changed.',
+    bg: 'Датата, часът или връзката за срещата са променени.',
   },
   'admin.calendar.drawer.newTitle': { en: 'New event', bg: 'Ново събитие' },
   'admin.calendar.drawer.editTitle': { en: 'Edit: {{title}}', bg: 'Редактиране: {{title}}' },

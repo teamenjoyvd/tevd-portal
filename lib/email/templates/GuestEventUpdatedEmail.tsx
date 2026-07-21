@@ -21,13 +21,11 @@ const FIELD_LABELS: Record<Lang, Record<string, string>> = {
   en: {
     start_time:  'Start time',
     end_time:    'End time',
-    location:    'Location',
     meeting_url: 'Meeting link',
   },
   bg: {
     start_time:  'Начален час',
     end_time:    'Краен час',
-    location:    'Място',
     meeting_url: 'Връзка за срещата',
   },
 }

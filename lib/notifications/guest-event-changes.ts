@@ -24,13 +24,12 @@ const GUEST_EMAIL_DAILY_WINDOW_MS = 24 * 60 * 60 * 1000
 // about. Kept in sync with the `allowed` PATCH fields in
 // app/api/admin/calendar/[id]/route.ts (only the subset relevant to a guest
 // actually attending).
-export const TRACKED_FIELDS = ['start_time', 'end_time', 'location', 'meeting_url'] as const
+export const TRACKED_FIELDS = ['start_time', 'end_time', 'meeting_url'] as const
 export type TrackedField = (typeof TRACKED_FIELDS)[number]
 
 export type DiffableEvent = {
   start_time:  string
   end_time:    string
-  location:    string | null
   meeting_url: string | null
 }
 

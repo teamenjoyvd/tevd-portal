@@ -39,8 +39,8 @@ type CalEvent = {
 }
 
 // Tracked fields (kept in sync with lib/notifications/guest-event-changes.ts
-// TRACKED_FIELDS, minus `location` which has no admin UI field yet) whose
-// change should surface the "N registered guests will be notified" confirm.
+// TRACKED_FIELDS) whose change should surface the "N registered guests will
+// be notified" confirm.
 function hasTrackedChange(ev: CalEvent, f: EventFormState): boolean {
   return (
     toSofiaLocalInput(ev.start_time) !== f.start_time ||

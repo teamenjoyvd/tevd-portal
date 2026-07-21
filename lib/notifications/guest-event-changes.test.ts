@@ -44,13 +44,13 @@ beforeEach(() => {
 describe('diffEventFields', () => {
   it('returns an empty array when nothing tracked changed', async () => {
     const { diffEventFields } = await import('@/lib/notifications/guest-event-changes')
-    const row = { start_time: '2026-08-01T10:00:00Z', end_time: '2026-08-01T12:00:00Z', location: null, meeting_url: 'https://meet.example/x' }
+    const row = { start_time: '2026-08-01T10:00:00Z', end_time: '2026-08-01T12:00:00Z', meeting_url: 'https://meet.example/x' }
     expect(diffEventFields(row, { ...row })).toEqual([])
   })
 
   it('reports a changed field with formatted old/new values', async () => {
     const { diffEventFields } = await import('@/lib/notifications/guest-event-changes')
-    const prev = { start_time: '2026-08-01T10:00:00Z', end_time: '2026-08-01T12:00:00Z', location: null, meeting_url: 'https://meet.example/old' }
+    const prev = { start_time: '2026-08-01T10:00:00Z', end_time: '2026-08-01T12:00:00Z', meeting_url: 'https://meet.example/old' }
     const next = { ...prev, meeting_url: 'https://meet.example/new' }
     const diff = diffEventFields(prev, next)
     expect(diff).toEqual([{ field: 'meeting_url', oldValue: 'https://meet.example/old', newValue: 'https://meet.example/new' }])
@@ -58,10 +58,10 @@ describe('diffEventFields', () => {
 
   it('reports multiple changed fields', async () => {
     const { diffEventFields } = await import('@/lib/notifications/guest-event-changes')
-    const prev = { start_time: '2026-08-01T10:00:00Z', end_time: '2026-08-01T12:00:00Z', location: 'Room A', meeting_url: null }
-    const next = { start_time: '2026-08-02T10:00:00Z', end_time: '2026-08-02T12:00:00Z', location: 'Room B', meeting_url: null }
+    const prev = { start_time: '2026-08-01T10:00:00Z', end_time: '2026-08-01T12:00:00Z', meeting_url: null }
+    const next = { start_time: '2026-08-02T10:00:00Z', end_time: '2026-08-02T12:00:00Z', meeting_url: null }
     const diff = diffEventFields(prev, next)
-    expect(diff.map(d => d.field).sort()).toEqual(['end_time', 'location', 'start_time'])
+    expect(diff.map(d => d.field).sort()).toEqual(['end_time', 'start_time'])
   })
 })
 
