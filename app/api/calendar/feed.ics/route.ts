@@ -1,6 +1,7 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { jwtVerify } from 'jose'
 import ical from 'ical-generator'
+import { listEventsForRole } from '@/lib/server/calendar'
 
 const secret = new TextEncoder().encode(
   process.env.ICAL_TOKEN_SECRET ?? 'dev-ical-secret-change-in-production'
@@ -39,11 +40,7 @@ export async function GET(req: Request) {
   }
 
   // Fetch events filtered by live profile role (not stale JWT role)
-  const { data: events } = await supabase
-    .from('calendar_events')
-    .select('id, title, description, start_time, end_time, category, location, meeting_url')
-    .contains('access_roles', [profile.role])
-    .order('start_time')
+  const events = await listEventsForRole({ role: profile.role })
 
   // Use member's custom display name if set; fall back to default.
   // Note: calendar apps only read this name on first import — changing it

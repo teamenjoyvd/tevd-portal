@@ -26,10 +26,12 @@ export async function GET(req: Request): Promise<Response> {
   const category = parseCategory(searchParams.get('category'))
   const timeScope = searchParams.get('timeScope') ?? 'upcoming' // 'upcoming' | 'past' | 'all'
 
+  const LIMIT = 500
   let query = supabase
     .from('calendar_events')
     .select('*')
     .order('start_time', { ascending: true })
+    .limit(LIMIT)
 
   if (search) query = query.ilike('title', `%${escapeLike(search)}%`)
   if (category) query = query.eq('category', category)
@@ -40,6 +42,9 @@ export async function GET(req: Request): Promise<Response> {
 
   const { data, error } = await query
   if (error) return Response.json({ error: error.message }, { status: 500 })
+  if (data && data.length === LIMIT) {
+    console.warn(`admin calendar list: hit limit (${LIMIT}) for timeScope "${timeScope}" — results may be truncated`)
+  }
   return Response.json(data)
 }
 

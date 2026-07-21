@@ -1,6 +1,7 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { auth } from '@clerk/nextjs/server'
 import CalendarClient from './components/CalendarClient'
+import { listEventsForRole } from '@/lib/server/calendar'
 
 export const dynamic = 'force-dynamic'
 
@@ -58,13 +59,7 @@ export default async function CalendarPage({
     // no profile found: resolvedRole stays 'guest', userRole stays null
   }
 
-  const { data: initialEvents } = await supabase
-    .from('calendar_events')
-    .select('*')
-    .gte('start_time', start)
-    .lt('start_time', end)
-    .contains('access_roles', [resolvedRole])
-    .order('start_time')
+  const initialEvents = await listEventsForRole({ role: resolvedRole, from: start, to: end })
 
   return (
     <CalendarClient
