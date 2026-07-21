@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getCallerContext } from '@/lib/supabase/guards'
+import { diffEventFields, notifyGuestsOfEventUpdate, notifyGuestsOfEventCancellation, type DiffableEvent } from '@/lib/notifications/guest-event-changes'
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -66,8 +67,30 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     }
   }
 
+  // Fetch the pre-update row for the diff-notify below — must happen before
+  // the update call so "prev" actually reflects the pre-change state.
+  const { data: prevRow, error: prevRowError } = await supabase
+    .from('calendar_events')
+    .select('start_time, end_time, meeting_url')
+    .eq('id', id)
+    .single()
+  if (prevRowError) console.error('Failed to fetch pre-update event row, skipping guest notify:', prevRowError)
+
   const { data, error } = await supabase.from('calendar_events').update(update).eq('id', id).select().single()
   if (error) return Response.json({ error: error.message }, { status: 500 })
+
+  // Notify active guest registrants of tracked-field changes — fire-and-forget,
+  // must not block this response.
+  if (prevRow) {
+    const nextRow: DiffableEvent = {
+      start_time:  data.start_time,
+      end_time:    data.end_time,
+      meeting_url: data.meeting_url ?? null,
+    }
+    const changedFields = diffEventFields(prevRow as DiffableEvent, nextRow)
+    notifyGuestsOfEventUpdate(id, changedFields)
+  }
+
   return Response.json(data)
 }
 
@@ -79,7 +102,33 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   const ctx = await getCallerContext(userId, supabase, 'admin')
   if (ctx.guard) return ctx.guard
 
+  // Fetch active registrants + event title BEFORE deleting — the FK is
+  // ON DELETE CASCADE, so guest_registrations rows vanish once the event
+  // row is gone.
+  const { data: eventRow, error: eventRowError } = await supabase
+    .from('calendar_events')
+    .select('title')
+    .eq('id', id)
+    .single()
+  if (eventRowError) console.error('Failed to fetch event title before delete, skipping guest cancel-notify:', eventRowError)
+
+  const { data: regs, error: regsError } = await supabase
+    .from('guest_registrations')
+    .select('email, name, lang')
+    .eq('event_id', id)
+    .is('cancelled_at', null)
+    .gt('expires_at', new Date().toISOString())
+  if (regsError) console.error('Failed to fetch active registrants before delete, skipping guest cancel-notify:', regsError)
+
   const { error } = await supabase.from('calendar_events').delete().eq('id', id)
   if (error) return Response.json({ error: error.message }, { status: 500 })
+
+  if (eventRow && regs && regs.length > 0) {
+    notifyGuestsOfEventCancellation(
+      eventRow.title,
+      regs.map(r => ({ email: r.email, name: r.name, lang: r.lang === 'bg' ? 'bg' : 'en' })),
+    )
+  }
+
   return Response.json({ deleted: true })
 }

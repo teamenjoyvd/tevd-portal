@@ -175,6 +175,16 @@ export const adminContent = {
   'admin.calendar.btn.edit': { en: 'Edit', bg: 'Редактирай' },
   'admin.calendar.btn.delete': { en: 'Delete', bg: 'Изтрий' },
   'admin.calendar.confirm.delete': { en: 'Delete "{{title}}"?', bg: 'Изтриване на "{{title}}"?' },
+  'admin.calendar.confirm.deleteDesc': { en: 'This action cannot be undone.', bg: 'Това действие не може да бъде отменено.' },
+  'admin.calendar.confirm.guestWarning': {
+    en: '{{count}} registered guest(s) will be notified.',
+    bg: '{{count}} регистриран(и) гост(и) ще бъдат уведомени.',
+  },
+  'admin.calendar.confirm.editTitle': { en: 'Save these changes?', bg: 'Запазване на промените?' },
+  'admin.calendar.confirm.editDesc': {
+    en: 'The date, time, or meeting link changed.',
+    bg: 'Датата, часът или връзката за срещата са променени.',
+  },
   'admin.calendar.drawer.newTitle': { en: 'New event', bg: 'Ново събитие' },
   'admin.calendar.drawer.editTitle': { en: 'Edit: {{title}}', bg: 'Редактиране: {{title}}' },
   'admin.calendar.lbl.start': { en: 'Start', bg: 'Начало' },
