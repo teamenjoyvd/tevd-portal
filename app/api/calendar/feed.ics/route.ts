@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { createServiceClient } from '@/lib/supabase/service'
 import { jwtVerify } from 'jose'
 import ical from 'ical-generator'
@@ -6,6 +7,19 @@ import { listEventsForRole } from '@/lib/server/calendar'
 const secret = new TextEncoder().encode(
   process.env.ICAL_TOKEN_SECRET ?? 'dev-ical-secret-change-in-production'
 )
+
+function toUtcDateOnly(isoString: string): Date {
+  const d = new Date(isoString)
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()))
+}
+
+// RFC 7232 §3.2: If-None-Match may carry a comma-separated list of ETags, or
+// `*`. A plain `===` against the raw header would never match either form.
+function matchesIfNoneMatch(header: string | null, etag: string): boolean {
+  if (!header) return false
+  if (header.trim() === '*') return true
+  return header.split(',').map((t) => t.trim()).includes(etag)
+}
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
@@ -56,6 +70,23 @@ export async function GET(req: Request) {
     (profile.ui_prefs as Record<string, unknown> | null)?.ical_display_name as string | undefined
     ?? 'teamenjoyVD'
 
+  // Weak ETag over the source event data, NOT calendar.toString() — ical-generator
+  // stamps every VEVENT with DTSTAMP:<render time>, so hashing the rendered body
+  // would change the ETag on every request even when the underlying data hasn't,
+  // permanently defeating If-None-Match. Computed before building/serializing the
+  // calendar so a conditional-GET hit short-circuits that work entirely.
+  const etag = `W/"${createHash('sha1').update(JSON.stringify(events ?? []) + calendarName).digest('hex')}"`
+
+  if (matchesIfNoneMatch(req.headers.get('if-none-match'), etag)) {
+    return new Response(null, {
+      status: 304,
+      headers: {
+        ETag: etag,
+        'Cache-Control': 'private, max-age=900',
+      },
+    })
+  }
+
   // Build iCal — no timezone set so dates are emitted as UTC (DTSTART:...Z)
   // start_time/end_time from Supabase are +00 UTC strings; new Date() preserves that.
   const calendar = ical({
@@ -64,15 +95,37 @@ export async function GET(req: Request) {
   })
 
   for (const event of events ?? []) {
+    // Google Calendar (Android) and iOS Calendar don't surface the structured
+    // LOCATION/URL/CATEGORIES properties in their event view — append
+    // human-readable lines to the description so the info is visible there too,
+    // while keeping the structured properties for clients that do read them.
+    const detailLines = [
+      event.location != null && event.location !== '' ? `Location: ${event.location}` : undefined,
+      event.meeting_url != null && event.meeting_url !== '' ? `Meeting link: ${event.meeting_url}` : undefined,
+      event.category != null ? `Category: ${event.category}` : undefined,
+    ].filter((line): line is string => line !== undefined)
+    const baseDescription = event.description != null && event.description !== '' ? event.description : undefined
+    const description = [baseDescription, detailLines.length > 0 ? detailLines.join('\n') : undefined]
+      .filter((part): part is string => part !== undefined)
+      .join('\n\n')
+
+    // For all-day events, ical-generator's VALUE=DATE truncates the Date to its
+    // UTC date component — normalize to the UTC midnight boundary here so a
+    // stored start_time/end_time that isn't exactly UTC midnight (e.g. legacy
+    // data) can't shift the displayed calendar day.
+    const start = event.is_all_day ? toUtcDateOnly(event.start_time) : new Date(event.start_time)
+    const end = event.is_all_day ? toUtcDateOnly(event.end_time) : new Date(event.end_time)
+
     calendar.createEvent({
       id: event.id,
       summary: event.title,
-      description: event.description ?? undefined,
-      start: new Date(event.start_time),
-      end: new Date(event.end_time),
-      location: event.location ?? undefined,
-      url: event.meeting_url ?? undefined,
-      categories: event.category ? [{ name: event.category }] : undefined,
+      description: description || undefined,
+      allDay: event.is_all_day,
+      start,
+      end,
+      location: event.location != null && event.location !== '' ? event.location : undefined,
+      url: event.meeting_url != null && event.meeting_url !== '' ? event.meeting_url : undefined,
+      categories: event.category != null ? [{ name: event.category }] : undefined,
     })
   }
 
@@ -81,7 +134,8 @@ export async function GET(req: Request) {
     headers: {
       'Content-Type': 'text/calendar; charset=utf-8',
       'Content-Disposition': 'attachment; filename="teamenjoyvd.ics"',
-      'Cache-Control': 'no-cache, no-store',
+      'Cache-Control': 'private, max-age=900',
+      ETag: etag,
     },
   })
 }
