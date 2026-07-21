@@ -1,6 +1,7 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { jwtVerify } from 'jose'
 import ical from 'ical-generator'
+import { listEventsForRole } from '@/lib/server/calendar'
 
 const secret = new TextEncoder().encode(
   process.env.ICAL_TOKEN_SECRET ?? 'dev-ical-secret-change-in-production'
@@ -38,12 +39,15 @@ export async function GET(req: Request) {
     return new Response('Token revoked', { status: 401 })
   }
 
-  // Fetch events filtered by live profile role (not stale JWT role)
-  const { data: events } = await supabase
-    .from('calendar_events')
-    .select('id, title, description, start_time, end_time, category, location, meeting_url')
-    .contains('access_roles', [profile.role])
-    .order('start_time')
+  // Fetch events filtered by live profile role (not stale JWT role).
+  // Falls back to an empty feed on a query error rather than surfacing a 500,
+  // matching the prior inline query's behavior (errors were not checked there either).
+  let events: Awaited<ReturnType<typeof listEventsForRole>> = []
+  try {
+    events = await listEventsForRole({ role: profile.role })
+  } catch (err) {
+    console.error('feed.ics: listEventsForRole failed', err)
+  }
 
   // Use member's custom display name if set; fall back to default.
   // Note: calendar apps only read this name on first import — changing it
