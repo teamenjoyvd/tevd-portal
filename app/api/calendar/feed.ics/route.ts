@@ -70,6 +70,23 @@ export async function GET(req: Request) {
     (profile.ui_prefs as Record<string, unknown> | null)?.ical_display_name as string | undefined
     ?? 'teamenjoyVD'
 
+  // Weak ETag over the source event data, NOT calendar.toString() — ical-generator
+  // stamps every VEVENT with DTSTAMP:<render time>, so hashing the rendered body
+  // would change the ETag on every request even when the underlying data hasn't,
+  // permanently defeating If-None-Match. Computed before building/serializing the
+  // calendar so a conditional-GET hit short-circuits that work entirely.
+  const etag = `W/"${createHash('sha1').update(JSON.stringify(events ?? []) + calendarName).digest('hex')}"`
+
+  if (matchesIfNoneMatch(req.headers.get('if-none-match'), etag)) {
+    return new Response(null, {
+      status: 304,
+      headers: {
+        ETag: etag,
+        'Cache-Control': 'private, max-age=900',
+      },
+    })
+  }
+
   // Build iCal — no timezone set so dates are emitted as UTC (DTSTART:...Z)
   // start_time/end_time from Supabase are +00 UTC strings; new Date() preserves that.
   const calendar = ical({
@@ -83,11 +100,12 @@ export async function GET(req: Request) {
     // human-readable lines to the description so the info is visible there too,
     // while keeping the structured properties for clients that do read them.
     const detailLines = [
-      event.location ? `Location: ${event.location}` : undefined,
-      event.meeting_url ? `Meeting link: ${event.meeting_url}` : undefined,
-      event.category ? `Category: ${event.category}` : undefined,
+      event.location != null && event.location !== '' ? `Location: ${event.location}` : undefined,
+      event.meeting_url != null && event.meeting_url !== '' ? `Meeting link: ${event.meeting_url}` : undefined,
+      event.category != null ? `Category: ${event.category}` : undefined,
     ].filter((line): line is string => line !== undefined)
-    const description = [event.description ?? undefined, detailLines.length > 0 ? detailLines.join('\n') : undefined]
+    const baseDescription = event.description != null && event.description !== '' ? event.description : undefined
+    const description = [baseDescription, detailLines.length > 0 ? detailLines.join('\n') : undefined]
       .filter((part): part is string => part !== undefined)
       .join('\n\n')
 
@@ -105,30 +123,13 @@ export async function GET(req: Request) {
       allDay: event.is_all_day,
       start,
       end,
-      location: event.location ?? undefined,
-      url: event.meeting_url ?? undefined,
-      categories: event.category ? [{ name: event.category }] : undefined,
+      location: event.location != null && event.location !== '' ? event.location : undefined,
+      url: event.meeting_url != null && event.meeting_url !== '' ? event.meeting_url : undefined,
+      categories: event.category != null ? [{ name: event.category }] : undefined,
     })
   }
 
-  const body = calendar.toString()
-  // Weak ETag over the source event data, NOT calendar.toString() — ical-generator
-  // stamps every VEVENT with DTSTAMP:<render time>, so hashing the rendered body
-  // would change the ETag on every request even when the underlying data hasn't,
-  // permanently defeating If-None-Match.
-  const etag = `W/"${createHash('sha1').update(JSON.stringify(events ?? []) + calendarName).digest('hex')}"`
-
-  if (matchesIfNoneMatch(req.headers.get('if-none-match'), etag)) {
-    return new Response(null, {
-      status: 304,
-      headers: {
-        ETag: etag,
-        'Cache-Control': 'private, max-age=900',
-      },
-    })
-  }
-
-  return new Response(body, {
+  return new Response(calendar.toString(), {
     status: 200,
     headers: {
       'Content-Type': 'text/calendar; charset=utf-8',
