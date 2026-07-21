@@ -218,7 +218,13 @@ export async function registerGuest(
       meta:     { eventId, name },
     })
 
-    if (!result.sent) return { success: false, error: 'Could not send access link. Please try again.' }
+    if (!result.sent) {
+      // Registration (upsert/update + click increment) already committed above —
+      // the sharer's notification must not be contingent on this guest's own
+      // send outcome.
+      if (shareLinkId) notifySharerOfRegistration(shareLinkId, name)
+      return { success: false, error: 'Could not send access link. Please try again.' }
+    }
   }
 
   // Notify sharer — fire-and-forget, must not block the response

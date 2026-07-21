@@ -27,7 +27,13 @@ export async function checkEmailCap({
 
   if (template) query = query.eq('template', template)
 
-  const { count } = await query
+  const { count, error } = await query
+  // Fail closed: a broken count query must not silently unblock the abuse
+  // guard it's meant to enforce.
+  if (error) {
+    console.error('checkEmailCap query failed, denying', { recipient, template, error })
+    return false
+  }
   return (count ?? 0) < max
 }
 
@@ -56,6 +62,12 @@ export async function checkRegistrationThrottle({
 
   query = shareLinkId ? query.eq('share_link_id', shareLinkId) : query.eq('event_id', eventId)
 
-  const { count } = await query
+  const { count, error } = await query
+  // Fail closed: a broken count query must not silently unblock the abuse
+  // guard it's meant to enforce.
+  if (error) {
+    console.error('checkRegistrationThrottle query failed, denying', { shareLinkId, eventId, error })
+    return false
+  }
   return (count ?? 0) < max
 }
