@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import type { PostgrestError, SupabaseClient } from '@supabase/supabase-js'
 import { createServiceClient } from '@/lib/supabase/service'
+import { ensureProfile } from '@/lib/server/ensure-profile'
 
 export type WithProfileResult<T> =
   | { response: Response; userId?: undefined; supabase?: undefined; profile?: undefined; error?: undefined }
@@ -8,15 +9,17 @@ export type WithProfileResult<T> =
 
 /**
  * Clerk auth (401 if missing) followed by a caller-profile lookup with a
- * per-route column selection. Does not itself 404 on a missing profile —
- * callers that need that behavior check `profile`/`error` themselves, since
- * a few routes (e.g. app/api/profile/route.ts) distinguish "no row" from a
- * genuine DB error rather than collapsing both to 404.
+ * per-route column selection. Self-heals a missing profile row: an
+ * authenticated user whose Clerk `user.created` webhook has not yet landed
+ * (sign-up → request race, or a missed/failed delivery) is given a row on the
+ * fly via `ensureProfile` rather than surfacing as `profile: null`. In
+ * practice this is a backstop — a new user's first touch is a page render,
+ * which self-heals before any client fetch reaches an API route.
  *
  * Usage:
  *   const ctx = await withProfile<{ id: string; role: string }>('id, role')
  *   if (ctx.response) return ctx.response
- *   if (!ctx.profile) return Response.json({ error: 'Profile not found' }, { status: 404 })
+ *   // ctx.profile is present unless a genuine DB error occurred (check ctx.error)
  */
 export async function withProfile<T = { id: string; role: string }>(
   select: string = 'id, role'
@@ -27,11 +30,21 @@ export async function withProfile<T = { id: string; role: string }>(
   }
 
   const supabase = createServiceClient()
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from('profiles')
     .select(select)
     .eq('clerk_id', userId)
     .single()
+
+  // No row and no genuine DB fault (PGRST116 = "no rows") — heal, then re-read.
+  if (!data && (!error || error.code === 'PGRST116')) {
+    await ensureProfile(userId)
+    ;({ data, error } = await supabase
+      .from('profiles')
+      .select(select)
+      .eq('clerk_id', userId)
+      .single())
+  }
 
   return { userId, supabase, profile: (data as T) ?? null, error }
 }

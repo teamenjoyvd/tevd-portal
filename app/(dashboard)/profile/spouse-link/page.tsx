@@ -1,21 +1,12 @@
-import { auth } from '@clerk/nextjs/server'
-import { redirect } from 'next/navigation'
-import { createServiceClient } from '@/lib/supabase/service'
+import { loadProfile } from '@/lib/server/ensure-profile'
 import SpouseLinkClient from './SpouseLinkClient'
 
 export default async function SpouseLinkPage() {
-  const { userId } = await auth()
-  if (!userId) redirect('/sign-in')
-
-  const supabase = createServiceClient()
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, role, primary_profile_id')
-    .eq('clerk_id', userId)
-    .single()
-
-  if (!profile) redirect('/profile')
+  const { supabase, profile } = await loadProfile<{
+    id: string
+    role: string
+    primary_profile_id: string | null
+  }>('id, role, primary_profile_id')
 
   // Guests: fetch their own outbound request
   let outboundRequest: {

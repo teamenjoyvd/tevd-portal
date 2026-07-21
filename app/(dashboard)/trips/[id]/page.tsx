@@ -1,6 +1,5 @@
 import { redirect } from 'next/navigation'
-import { auth } from '@clerk/nextjs/server'
-import { createServiceClient } from '@/lib/supabase/service'
+import { loadProfile } from '@/lib/server/ensure-profile'
 import { TripDetailClient } from './TripDetailClient'
 import type { Tables } from '@/types/supabase'
 
@@ -54,19 +53,13 @@ export default async function TripDetailPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const { userId } = await auth()
-  if (!userId) redirect('/sign-in')
 
-  const supabase = createServiceClient()
-
-  // Fetch profile first — we need the role for access filtering
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, role, valid_through, document_active_type')
-    .eq('clerk_id', userId)
-    .single()
-
-  if (!profile) redirect('/trips')
+  // Fetch profile first — we need the role for access filtering. loadProfile
+  // self-heals a missing row so a guest browsing a guest-accessible trip isn't
+  // bounced to /trips before it can render.
+  const { supabase, profile } = await loadProfile<TripProfile>(
+    'id, role, valid_through, document_active_type'
+  )
 
   // Enforce access_roles — only return trip if user's role is included
   const { data: trip } = await supabase
