@@ -92,9 +92,11 @@ export async function GET(req: Request) {
   }
 
   const body = calendar.toString()
-  // Weak ETag over the rendered feed — good enough for conditional GETs;
-  // this is not a content hash used for integrity, just change detection.
-  const etag = `W/"${createHash('sha1').update(body).digest('hex')}"`
+  // Weak ETag over the source event data, NOT calendar.toString() — ical-generator
+  // stamps every VEVENT with DTSTAMP:<render time>, so hashing the rendered body
+  // would change the ETag on every request even when the underlying data hasn't,
+  // permanently defeating If-None-Match.
+  const etag = `W/"${createHash('sha1').update(JSON.stringify(events ?? []) + calendarName).digest('hex')}"`
 
   if (req.headers.get('if-none-match') === etag) {
     return new Response(null, {
