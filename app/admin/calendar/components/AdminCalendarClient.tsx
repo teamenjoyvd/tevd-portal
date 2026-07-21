@@ -7,6 +7,16 @@ import { formatDateTime, toSofiaLocalInput } from '@/lib/format'
 import { Drawer } from '@/components/ui/drawer'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { ALL_ROLES } from '@/lib/roles'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { EventForm, emptyForm, normalizeFormTimes, DEFAULT_AVAILABLE_ROLES, type EventFormState } from './EventForm'
 import { Pill } from './Pill'
 
@@ -25,6 +35,18 @@ type CalEvent = {
   allow_guest_registration: boolean
   guest_capacity: number | null
   available_roles: string[]
+  guest_registration_count?: number
+}
+
+// Tracked fields (kept in sync with lib/notifications/guest-event-changes.ts
+// TRACKED_FIELDS, minus `location` which has no admin UI field yet) whose
+// change should surface the "N registered guests will be notified" confirm.
+function hasTrackedChange(ev: CalEvent, f: EventFormState): boolean {
+  return (
+    toSofiaLocalInput(ev.start_time) !== f.start_time ||
+    toSofiaLocalInput(ev.end_time) !== f.end_time ||
+    (ev.meeting_url ?? '') !== f.meeting_url
+  )
 }
 
 type TimeScope = 'upcoming' | 'past' | 'all'
@@ -37,6 +59,8 @@ export default function AdminCalendarClient() {
   const [editing, setEditing] = useState<CalEvent | null>(null)
   const [form, setForm] = useState<EventFormState>(emptyForm())
   const [formError, setFormError] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<CalEvent | null>(null)
+  const [editConfirmOpen, setEditConfirmOpen] = useState(false)
 
   // ── Filter state ────────────────────────────────────────────────────────────────────
   const [search, setSearch] = useState('')
@@ -185,6 +209,20 @@ export default function AdminCalendarClient() {
     setEditing(null)
     setForm(emptyForm())
     setFormError(null)
+    setEditConfirmOpen(false)
+  }
+
+  function performSave() {
+    if (editing) updateMutation.mutate({ id: editing.id, ...form })
+    else createMutation.mutate(form)
+  }
+
+  function handleSaveClick() {
+    if (editing && (editing.guest_registration_count ?? 0) > 0 && hasTrackedChange(editing, form)) {
+      setEditConfirmOpen(true)
+      return
+    }
+    performSave()
   }
 
   return (
@@ -344,7 +382,7 @@ export default function AdminCalendarClient() {
                   className="text-xs hover:opacity-70 transition-opacity" style={{ color: 'var(--text-secondary)' }}>
                   {t('admin.calendar.btn.edit')}
                 </button>
-                <button onClick={() => { if (confirm(t('admin.calendar.confirm.delete').replace('{{title}}', ev.title))) deleteMutation.mutate(ev.id) }}
+                <button onClick={() => setDeleteTarget(ev)}
                   disabled={deleteMutation.isPending}
                   className="text-xs hover:opacity-70 transition-opacity disabled:opacity-30" style={{ color: 'var(--brand-crimson)' }}>
                   {t('admin.calendar.btn.delete')}
@@ -366,13 +404,57 @@ export default function AdminCalendarClient() {
         <EventForm
           f={form}
           setF={setForm}
-          onSave={() => editing ? updateMutation.mutate({ id: editing.id, ...form }) : createMutation.mutate(form)}
+          onSave={handleSaveClick}
           onCancel={handleClose}
           isPending={createMutation.isPending || updateMutation.isPending}
           label={editing ? t('admin.calendar.btn.saveChanges') : t('admin.calendar.btn.createEvent')}
           formError={formError}
         />
       </Drawer>
+
+      {/* ── Edit confirm: tracked fields changed on an event with active guests ── */}
+      <AlertDialog open={editConfirmOpen} onOpenChange={setEditConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('admin.calendar.confirm.editTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('admin.calendar.confirm.editDesc')}{' '}
+              {editing && (editing.guest_registration_count ?? 0) > 0 &&
+                t('admin.calendar.confirm.guestWarning').replace('{{count}}', String(editing.guest_registration_count))}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('admin.calendar.btn.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setEditConfirmOpen(false); performSave() }}>
+              {t('admin.calendar.btn.saveChanges')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* ── Delete confirm ──────────────────────────────────────────────────── */}
+      <AlertDialog open={deleteTarget != null} onOpenChange={open => { if (!open) setDeleteTarget(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {deleteTarget && t('admin.calendar.confirm.delete').replace('{{title}}', deleteTarget.title)}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('admin.calendar.confirm.deleteDesc')}{' '}
+              {deleteTarget && (deleteTarget.guest_registration_count ?? 0) > 0 &&
+                t('admin.calendar.confirm.guestWarning').replace('{{count}}', String(deleteTarget.guest_registration_count))}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('admin.calendar.btn.cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => { if (deleteTarget) deleteMutation.mutate(deleteTarget.id); setDeleteTarget(null) }}
+            >
+              {t('admin.calendar.btn.delete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

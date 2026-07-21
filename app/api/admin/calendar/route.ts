@@ -40,7 +40,28 @@ export async function GET(req: Request): Promise<Response> {
 
   const { data, error } = await query
   if (error) return Response.json({ error: error.message }, { status: 500 })
-  return Response.json(data)
+
+  // Attach active guest_registration_count per event — cheap for an admin
+  // list (bounded page of events); drives the "N registered guests will be
+  // notified" confirm-dialog copy in AdminCalendarClient.
+  const eventIds = (data ?? []).map(ev => ev.id)
+  const countByEventId = new Map<string, number>()
+  if (eventIds.length > 0) {
+    const { data: regs } = await supabase
+      .from('guest_registrations')
+      .select('event_id')
+      .in('event_id', eventIds)
+      .is('cancelled_at', null)
+    for (const r of regs ?? []) {
+      countByEventId.set(r.event_id, (countByEventId.get(r.event_id) ?? 0) + 1)
+    }
+  }
+  const withCounts = (data ?? []).map(ev => ({
+    ...ev,
+    guest_registration_count: countByEventId.get(ev.id) ?? 0,
+  }))
+
+  return Response.json(withCounts)
 }
 
 export async function POST(req: Request): Promise<Response> {
