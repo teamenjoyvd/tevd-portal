@@ -76,8 +76,12 @@ describe('buildProfileRow', () => {
     })
   })
 
-  it('passes through an explicit role', () => {
+  it('passes through an explicit valid role', () => {
     expect(buildProfileRow({ clerkId: 'u1', role: 'member' }).role).toBe('member')
+  })
+
+  it('clamps an unrecognized role to guest', () => {
+    expect(buildProfileRow({ clerkId: 'u1', role: 'superadmin' }).role).toBe('guest')
   })
 })
 

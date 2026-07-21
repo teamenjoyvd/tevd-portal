@@ -8,6 +8,15 @@ import type { Database, Tables, TablesInsert } from '@/types/supabase'
 type ProfileRole = Database['public']['Enums']['user_role']
 type ServiceClient = SupabaseClient<Database>
 
+// Runtime whitelist of the `user_role` enum. An unrecognized value from Clerk
+// `public_metadata.role` (typo, stale custom value) would otherwise reach the
+// DB enum and fail the whole write — clamp it to the lowest role instead.
+const VALID_ROLES: readonly ProfileRole[] = ['admin', 'core', 'member', 'guest']
+
+function coerceRole(role: string | null | undefined): ProfileRole {
+  return VALID_ROLES.includes(role as ProfileRole) ? (role as ProfileRole) : 'guest'
+}
+
 /**
  * Single source of truth for the columns written when a `profiles` row is
  * first created, shared by the Clerk webhook (app/api/webhooks/clerk/route.ts)
@@ -30,7 +39,7 @@ export function buildProfileRow(input: {
     clerk_id: input.clerkId,
     first_name: first,
     last_name: last,
-    role: (input.role as ProfileRole) ?? 'guest',
+    role: coerceRole(input.role),
     abo_number: input.aboNumber ?? null,
     display_names: { en: `${first} ${last}`.trim() },
   }
@@ -121,18 +130,23 @@ export async function loadProfile<T = Tables<'profiles'>>(
   if (first.data) {
     return { userId, supabase, profile: first.data as T }
   }
-  if (first.error && first.error.code !== 'PGRST116') throw first.error
 
-  // No row yet — heal, then re-run the caller's projected select.
-  await ensureProfile(userId)
-  const second = await supabase
-    .from('profiles')
-    .select(select)
-    .eq('clerk_id', userId)
-    .single()
-
-  if (second.error || !second.data) {
-    throw second.error ?? new Error('loadProfile: profile missing after heal')
+  // No row (or a transient read error) — self-heal, then re-run the caller's
+  // projected select. If the heal itself fails (e.g. a Clerk API outage during
+  // currentUser(), or a rejected write), degrade to home rather than crashing
+  // the render: home tolerates a missing profile (defaults to 'guest').
+  try {
+    await ensureProfile(userId)
+    const second = await supabase
+      .from('profiles')
+      .select(select)
+      .eq('clerk_id', userId)
+      .single()
+    if (second.data) {
+      return { userId, supabase, profile: second.data as T }
+    }
+  } catch {
+    // fall through to the home redirect below
   }
-  return { userId, supabase, profile: second.data as T }
+  redirect('/')
 }
