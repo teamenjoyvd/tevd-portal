@@ -147,7 +147,7 @@ export default function Header() {
         {/* Mobile/tablet drawer — visible below lg */}
         {mobileNavOpen && (
           <div
-            className="lg:hidden mt-2 rounded-2xl py-2 px-3"
+            className="lg:hidden mt-2 rounded-2xl py-2 px-3 flex flex-col gap-1"
             style={{
               backgroundColor: 'rgba(var(--bg-global-rgb), 0.97)',
               border: '1px solid var(--nav-border)',
@@ -160,7 +160,7 @@ export default function Header() {
                 key={href}
                 href={href}
                 onClick={() => setMobileNavOpen(false)}
-                className="interactive flex items-center pill-link-crimson text-xs font-semibold tracking-widest uppercase"
+                className="interactive flex items-center pill-link-crimson text-xs font-semibold tracking-widest uppercase w-full min-h-[44px] py-3"
                 style={isActive(href) ? { backgroundColor: 'rgba(188,71,73,0.12)' } : undefined}
               >
                 {labels[lang]}
