@@ -76,12 +76,23 @@ describe('buildProfileRow', () => {
     })
   })
 
-  it('passes through an explicit valid role', () => {
-    expect(buildProfileRow({ clerkId: 'u1', role: 'member' }).role).toBe('member')
-  })
-
   it('clamps an unrecognized role to guest', () => {
     expect(buildProfileRow({ clerkId: 'u1', role: 'superadmin' }).role).toBe('guest')
+  })
+
+  // DB guard fn_guard_abo_number_null: a primary member/core needs an ABO.
+  it('downgrades member/core to guest when no abo_number', () => {
+    expect(buildProfileRow({ clerkId: 'u1', role: 'member' }).role).toBe('guest')
+    expect(buildProfileRow({ clerkId: 'u1', role: 'core' }).role).toBe('guest')
+  })
+
+  it('keeps member/core when an abo_number is present', () => {
+    expect(buildProfileRow({ clerkId: 'u1', role: 'member', aboNumber: 'A1' }).role).toBe('member')
+    expect(buildProfileRow({ clerkId: 'u1', role: 'core', aboNumber: 'A1' }).role).toBe('core')
+  })
+
+  it('keeps admin even without an abo_number (trigger-exempt)', () => {
+    expect(buildProfileRow({ clerkId: 'u1', role: 'admin' }).role).toBe('admin')
   })
 })
 
