@@ -157,7 +157,7 @@ test('joining via the magic-link token confirms attendance and shows the meeting
 
   await page.goto(`/events/${eventId}/join?token=${reg!.token}`)
 
-  await expect(page.getByText("You're joining", { exact: false })).toBeVisible().catch(() => {})
+  await expect.soft(page.getByText("You're joining", { exact: false })).toBeVisible()
 
   if (meetingUrl) {
     await expect(page.locator(`a[href="${meetingUrl}"]`)).toBeVisible()

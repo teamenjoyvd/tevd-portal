@@ -63,6 +63,13 @@ describe('diffEventFields', () => {
     const diff = diffEventFields(prev, next)
     expect(diff.map(d => d.field).sort()).toEqual(['end_time', 'start_time'])
   })
+
+  it('treats null and empty-string meeting_url as unchanged', async () => {
+    const { diffEventFields } = await import('@/lib/notifications/guest-event-changes')
+    const prev = { start_time: '2026-08-01T10:00:00Z', end_time: '2026-08-01T12:00:00Z', meeting_url: null }
+    const next = { ...prev, meeting_url: '' }
+    expect(diffEventFields(prev, next)).toEqual([])
+  })
 })
 
 // -- notifyGuestsOfEventUpdate --------------------------------------------------

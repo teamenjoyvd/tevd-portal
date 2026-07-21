@@ -47,11 +47,13 @@ export async function GET(req: Request): Promise<Response> {
   const eventIds = (data ?? []).map(ev => ev.id)
   const countByEventId = new Map<string, number>()
   if (eventIds.length > 0) {
-    const { data: regs } = await supabase
+    const { data: regs, error: regsError } = await supabase
       .from('guest_registrations')
       .select('event_id')
       .in('event_id', eventIds)
       .is('cancelled_at', null)
+      .gt('expires_at', new Date().toISOString())
+    if (regsError) console.error('Failed to fetch guest_registration_count, defaulting to 0:', regsError)
     for (const r of regs ?? []) {
       countByEventId.set(r.event_id, (countByEventId.get(r.event_id) ?? 0) + 1)
     }

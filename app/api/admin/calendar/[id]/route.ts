@@ -117,6 +117,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     .select('email, name, lang')
     .eq('event_id', id)
     .is('cancelled_at', null)
+    .gt('expires_at', new Date().toISOString())
   if (regsError) console.error('Failed to fetch active registrants before delete, skipping guest cancel-notify:', regsError)
 
   const { error } = await supabase.from('calendar_events').delete().eq('id', id)

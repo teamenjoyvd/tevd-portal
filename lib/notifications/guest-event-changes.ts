@@ -43,8 +43,11 @@ function formatFieldValue(field: TrackedField, value: string | null): string {
 export function diffEventFields(prev: DiffableEvent, next: DiffableEvent): ChangedField[] {
   const changed: ChangedField[] = []
   for (const field of TRACKED_FIELDS) {
-    const oldRaw = prev[field]
-    const newRaw = next[field]
+    // '' and null both format to '—' and mean "unset" — treat them as equal
+    // so a null<->'' round-trip doesn't produce a spurious "— → —" email
+    // (matches the `?? ''` equality AdminCalendarClient.hasTrackedChange uses).
+    const oldRaw = prev[field] === '' ? null : prev[field]
+    const newRaw = next[field] === '' ? null : next[field]
     if (oldRaw === newRaw) continue
     changed.push({
       field,

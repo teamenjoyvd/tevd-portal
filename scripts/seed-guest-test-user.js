@@ -42,14 +42,12 @@ loadEnvFile(path.join(root, '.env.local'))
 const GUEST_EMAIL = process.env.E2E_GUEST_EMAIL || 'e2e-guest-tevd-portal@example.com'
 const GUEST_NAME = 'E2E Guest'
 
-// Supabase project IDs (prod and DEV/preview)
-const PROD_PROJECT_REF = 'ynykjpnetfwqzdnsgkkg'
+// Supabase project ID for DEV/preview — this script must never write to prod.
 const DEV_PROJECT_REF = 'iymwxdewcpvpjgzewtzk'
 
 function isSafeSupabaseTarget(url) {
   if (/^https?:\/\/(127\.0\.0\.1|localhost)(:|\/|$)/.test(url)) return true
-  // Allow both DEV projects
-  return url.includes(DEV_PROJECT_REF) || url.includes(PROD_PROJECT_REF)
+  return url.includes(DEV_PROJECT_REF)
 }
 
 async function main() {
