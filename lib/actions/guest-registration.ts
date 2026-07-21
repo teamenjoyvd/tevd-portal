@@ -185,38 +185,41 @@ export async function registerGuest(
     await supabase.rpc('increment_share_link_click', { link_id: shareLinkId })
   }
 
-  // Overall guest-email cap (all templates) — over cap: pretend success, skip
-  // the send, same neutral shape as a real send so probing reveals nothing.
+  // Overall guest-email cap (all templates) — over cap: skip only the send
+  // (neutral, same shape as a real send so probing reveals nothing). The
+  // registration itself already succeeded above, so the sharer still gets
+  // notified below regardless of this guest's own cap.
   const withinDailyCap = await checkEmailCap({
     recipient: email,
     windowMs:  GUEST_EMAIL_DAILY_WINDOW_MS,
     max:       GUEST_EMAIL_DAILY_CAP,
   })
-  if (!withinDailyCap) return { success: true }
 
-  // Build magic link from the resolved app base URL
-  const magicLink = `${await getBaseUrl()}/events/${eventId}/join?token=${token}`
+  if (withinDailyCap) {
+    // Build magic link from the resolved app base URL
+    const magicLink = `${await getBaseUrl()}/events/${eventId}/join?token=${token}`
 
-  const html = await renderEmailTemplate(
-    React.createElement(GuestEventMagicLinkEmail, {
-      name,
-      eventTitle:   event.title,
-      magicLinkUrl: magicLink,
-      lang,
-    }),
-  )
+    const html = await renderEmailTemplate(
+      React.createElement(GuestEventMagicLinkEmail, {
+        name,
+        eventTitle:   event.title,
+        magicLinkUrl: magicLink,
+        lang,
+      }),
+    )
 
-  const subject = getMagicLinkSubject(lang, event.title)
+    const subject = getMagicLinkSubject(lang, event.title)
 
-  const result = await sendTransactionalEmail({
-    to:       email,
-    subject,
-    html,
-    template: 'guest_event_magic_link',
-    meta:     { eventId, name },
-  })
+    const result = await sendTransactionalEmail({
+      to:       email,
+      subject,
+      html,
+      template: 'guest_event_magic_link',
+      meta:     { eventId, name },
+    })
 
-  if (!result.sent) return { success: false, error: 'Could not send access link. Please try again.' }
+    if (!result.sent) return { success: false, error: 'Could not send access link. Please try again.' }
+  }
 
   // Notify sharer — fire-and-forget, must not block the response
   if (shareLinkId) {
