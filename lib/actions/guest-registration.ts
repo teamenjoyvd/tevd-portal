@@ -9,6 +9,7 @@ import { renderEmailTemplate } from '@/lib/email/templates/render'
 import { GuestEventMagicLinkEmail } from '@/lib/email/templates/GuestEventMagicLinkEmail'
 import { notifySharerOfRegistration, notifySharerOfCancellation } from '@/lib/notifications/share-events'
 import { getBaseUrl } from '@/lib/utils/base-url'
+import { checkEmailCap, checkRegistrationThrottle } from '@/lib/rate-limit'
 
 // -- Types --------------------------------------------------------------------
 
@@ -32,11 +33,24 @@ function getEventFullMessage(lang: Lang): string {
 
 const schema = z.object({
   name:       z.string().min(2).max(100).trim(),
-  email:      z.string().email(),
+  email:      z.string().email().max(254),
   eventId:    z.string().uuid(),
   shareToken: z.string().optional(),
   lang:       z.enum(['en', 'bg']).default('en'),
 })
+
+// -- Abuse protection -----------------------------------------------------------
+
+const REGISTRATION_THROTTLE_LIMIT = 30
+const REGISTRATION_THROTTLE_WINDOW_MS = 60 * 60 * 1000
+const GUEST_EMAIL_DAILY_CAP = 10
+const GUEST_EMAIL_DAILY_WINDOW_MS = 24 * 60 * 60 * 1000
+
+function getThrottledMessage(lang: Lang): string {
+  return lang === 'bg'
+    ? 'Твърде много опити. Моля, опитайте отново по-късно.'
+    : 'Too many attempts. Please try again later.'
+}
 
 // -- Action -------------------------------------------------------------------
 
@@ -44,6 +58,14 @@ export async function registerGuest(
   _prev: RegisterGuestState,
   formData: FormData,
 ): Promise<RegisterGuestState> {
+  // Honeypot: hidden field a human never fills. Non-empty -> bot. Generic
+  // success, no DB write, no send — matches the real success screen so a bot
+  // learns nothing from the response.
+  const website = formData.get('website')
+  if (typeof website === 'string' && website.trim() !== '') {
+    return { success: true }
+  }
+
   const parsed = schema.safeParse({
     name:       formData.get('name'),
     email:      formData.get('email'),
@@ -84,6 +106,16 @@ export async function registerGuest(
       .single()
     shareLinkId = shareLink?.id ?? null
   }
+
+  // Per-link (or per-event for token-less loads) registration throttle —
+  // guards against a script hammering one share link / event with submissions.
+  const withinThrottle = await checkRegistrationThrottle({
+    shareLinkId,
+    eventId,
+    windowMs: REGISTRATION_THROTTLE_WINDOW_MS,
+    max: REGISTRATION_THROTTLE_LIMIT,
+  })
+  if (!withinThrottle) return { success: false, error: getThrottledMessage(lang) }
 
   // Reuse an existing, still-valid magic link for this (event, email) so a guest
   // who re-registers gets the SAME link resent rather than a fresh token that
@@ -153,29 +185,47 @@ export async function registerGuest(
     await supabase.rpc('increment_share_link_click', { link_id: shareLinkId })
   }
 
-  // Build magic link from the resolved app base URL
-  const magicLink = `${await getBaseUrl()}/events/${eventId}/join?token=${token}`
-
-  const html = await renderEmailTemplate(
-    React.createElement(GuestEventMagicLinkEmail, {
-      name,
-      eventTitle:   event.title,
-      magicLinkUrl: magicLink,
-      lang,
-    }),
-  )
-
-  const subject = getMagicLinkSubject(lang, event.title)
-
-  const result = await sendTransactionalEmail({
-    to:       email,
-    subject,
-    html,
-    template: 'guest_event_magic_link',
-    meta:     { eventId, name },
+  // Overall guest-email cap (all templates) — over cap: skip only the send
+  // (neutral, same shape as a real send so probing reveals nothing). The
+  // registration itself already succeeded above, so the sharer still gets
+  // notified below regardless of this guest's own cap.
+  const withinDailyCap = await checkEmailCap({
+    recipient: email,
+    windowMs:  GUEST_EMAIL_DAILY_WINDOW_MS,
+    max:       GUEST_EMAIL_DAILY_CAP,
   })
 
-  if (!result.sent) return { success: false, error: 'Could not send access link. Please try again.' }
+  if (withinDailyCap) {
+    // Build magic link from the resolved app base URL
+    const magicLink = `${await getBaseUrl()}/events/${eventId}/join?token=${token}`
+
+    const html = await renderEmailTemplate(
+      React.createElement(GuestEventMagicLinkEmail, {
+        name,
+        eventTitle:   event.title,
+        magicLinkUrl: magicLink,
+        lang,
+      }),
+    )
+
+    const subject = getMagicLinkSubject(lang, event.title)
+
+    const result = await sendTransactionalEmail({
+      to:       email,
+      subject,
+      html,
+      template: 'guest_event_magic_link',
+      meta:     { eventId, name },
+    })
+
+    if (!result.sent) {
+      // Registration (upsert/update + click increment) already committed above —
+      // the sharer's notification must not be contingent on this guest's own
+      // send outcome.
+      if (shareLinkId) notifySharerOfRegistration(shareLinkId, name)
+      return { success: false, error: 'Could not send access link. Please try again.' }
+    }
+  }
 
   // Notify sharer — fire-and-forget, must not block the response
   if (shareLinkId) {
@@ -188,8 +238,8 @@ export async function registerGuest(
 // -- Resend link --------------------------------------------------------------
 // Neutral by design: the response is IDENTICAL whether or not `email` has a
 // registration for `eventId`, so this cannot be used to enumerate registered
-// guests. Stopgap rate cap (moves into lib/rate-limit.ts in T5, 2607-DEV-589):
-// max 3 magic-link sends/hour/recipient, counted from notification_delivery_log.
+// guests. Rate caps via lib/rate-limit.ts: max 3 magic-link sends/hour/recipient,
+// plus the shared 10/day overall guest-email cap.
 
 export type ResendGuestLinkState = { success: true }
 
@@ -225,16 +275,21 @@ export async function resendGuestLink(eventId: string, email: string): Promise<R
 
   // Rate cap — count sends to this recipient in the trailing hour, regardless
   // of which event they were for (per-recipient, not per-event).
-  const windowStart = new Date(Date.now() - RESEND_RATE_WINDOW_MS).toISOString()
-  const { count } = await supabase
-    .from('notification_delivery_log')
-    .select('id', { count: 'exact', head: true })
-    .eq('channel', 'email')
-    .eq('template', MAGIC_LINK_TEMPLATE)
-    .eq('recipient', email)
-    .gte('created_at', windowStart)
+  const withinResendCap = await checkEmailCap({
+    recipient: email,
+    template:  MAGIC_LINK_TEMPLATE,
+    windowMs:  RESEND_RATE_WINDOW_MS,
+    max:       RESEND_RATE_LIMIT,
+  })
+  if (!withinResendCap) return NEUTRAL_RESULT
 
-  if ((count ?? 0) >= RESEND_RATE_LIMIT) return NEUTRAL_RESULT
+  // Overall guest-email cap (all templates), shared with registerGuest.
+  const withinDailyCap = await checkEmailCap({
+    recipient: email,
+    windowMs:  GUEST_EMAIL_DAILY_WINDOW_MS,
+    max:       GUEST_EMAIL_DAILY_CAP,
+  })
+  if (!withinDailyCap) return NEUTRAL_RESULT
 
   // Refresh expiry per the T2 rule (event.end_time + 3h); keep the existing
   // token so any copy of the link already sent still resolves.

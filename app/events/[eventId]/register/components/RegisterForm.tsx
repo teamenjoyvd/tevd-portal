@@ -49,6 +49,15 @@ export function RegisterForm({
       <input type="hidden" name="lang" value={lang} />
       {shareToken && <input type="hidden" name="shareToken" value={shareToken} />}
 
+      {/* Honeypot: real users never see or fill this. Absolutely positioned
+          off-screen (not display:none) so it stays focusable/fillable to a
+          naive form-filling bot, unlike a field hidden from the accessibility
+          tree entirely. */}
+      <div aria-hidden="true" style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, overflow: 'hidden' }}>
+        <label htmlFor="website">Website</label>
+        <input id="website" name="website" type="text" tabIndex={-1} autoComplete="off" />
+      </div>
+
       <div>
         <label
           htmlFor="name"

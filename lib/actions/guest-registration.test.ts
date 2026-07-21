@@ -61,11 +61,24 @@ function buildClient(existing: Row) {
         }
       }
       if (table === 'guest_registrations') {
-        const selectChain: Record<string, unknown> = {
-          eq: () => selectChain,
-          maybeSingle: () => Promise.resolve({ data: existing, error: null }),
+        return {
+          select: (_cols: string, sel?: { count?: string; head?: boolean }) => {
+            // Abuse-protection throttle count (2607-DEV-591) — always under
+            // the limit here; these fixtures exercise other behavior.
+            if (sel?.count) return countChain(0)
+            const selectChain: Record<string, unknown> = {
+              eq: () => selectChain,
+              maybeSingle: () => Promise.resolve({ data: existing, error: null }),
+            }
+            return selectChain
+          },
+          update: updateSpy,
+          upsert: upsertSpy,
         }
-        return { select: () => selectChain, update: updateSpy, upsert: upsertSpy }
+      }
+      // Overall daily email cap (2607-DEV-591) — always under the limit here.
+      if (table === 'notification_delivery_log') {
+        return { select: () => countChain(0) }
       }
       throw new Error(`unexpected table ${table}`)
     },
@@ -198,10 +211,26 @@ describe('registerGuest — lang passthrough', () => {
 
 // -- resendGuestLink — neutrality + rate cap (2607-DEV-589) -------------------
 
+// Flexible thenable chain: supports any sequence of .eq()/.gte() calls (real
+// call shape differs between the template-filtered hourly check and the
+// unfiltered daily check), then resolves to { count } on await.
+function countChain(count: number) {
+  const chain: { eq: () => typeof chain; gte: () => typeof chain; is: () => typeof chain; then: (resolve: (v: { count: number; error: null }) => void) => void } = {
+    eq: () => chain,
+    gte: () => chain,
+    is: () => chain,
+    then: (resolve) => resolve({ count, error: null }),
+  }
+  return chain
+}
+
 function buildResendClient(opts: {
   event?: Record<string, unknown> | null
   reg?: Record<string, unknown> | null
   deliveryCount?: number
+  // [hourly-cap call count, daily-cap call count] — call order matches
+  // checkEmailCap invocation order in resendGuestLink.
+  deliveryCounts?: [number, number]
 }) {
   const event = opts.event === undefined
     ? { id: 'e', title: 'Trip Kickoff', allow_guest_registration: true, end_time: new Date(Date.now() + 24 * HOUR).toISOString() }
@@ -209,7 +238,8 @@ function buildResendClient(opts: {
   const reg = opts.reg === undefined
     ? { id: 'r1', name: 'Jane Guest', token: 'tok-123', lang: 'en' }
     : opts.reg
-  const deliveryCount = opts.deliveryCount ?? 0
+  const counts = opts.deliveryCounts ?? [opts.deliveryCount ?? 0, opts.deliveryCount ?? 0]
+  let callIndex = 0
 
   const updateSpy = vi.fn(() => ({ eq: () => Promise.resolve({ error: null }) }))
 
@@ -226,15 +256,11 @@ function buildResendClient(opts: {
       }
       if (table === 'notification_delivery_log') {
         return {
-          select: () => ({
-            eq: () => ({
-              eq: () => ({
-                eq: () => ({
-                  gte: () => Promise.resolve({ count: deliveryCount, error: null }),
-                }),
-              }),
-            }),
-          }),
+          select: () => {
+            const count = counts[callIndex] ?? counts[counts.length - 1]
+            callIndex++
+            return countChain(count)
+          },
         }
       }
       throw new Error(`unexpected table ${table}`)
@@ -293,6 +319,17 @@ describe('resendGuestLink — rate cap', () => {
     expect(sendModule.sendTransactionalEmail).not.toHaveBeenCalled()
     expect(res).toEqual({ success: true })
   })
+
+  it('no-ops once the overall daily cap is reached, even under the hourly cap (2607-DEV-591)', async () => {
+    const { client } = buildResendClient({ deliveryCounts: [0, 10] })
+    mockCreateServiceClient.mockReturnValue(client)
+    const sendModule = await import('@/lib/email/send')
+    const { resendGuestLink } = await import('@/lib/actions/guest-registration')
+
+    const res = await resendGuestLink('123e4567-e89b-12d3-a456-426614174000', 'jane@example.com')
+    expect(sendModule.sendTransactionalEmail).not.toHaveBeenCalled()
+    expect(res).toEqual({ success: true })
+  })
 })
 
 // -- registerGuest — capacity (2607-DEV-590) ----------------------------------
@@ -307,6 +344,10 @@ function buildCapacityClient(opts: { guestCapacity: number | null; activeCount: 
   }
   const upsertSpy = vi.fn(() => Promise.resolve({ error: null }))
   const updateSpy = vi.fn(() => ({ eq: () => ({ eq: () => Promise.resolve({ error: null }) }) }))
+  // The throttle check (2607-DEV-591) runs a count query before the capacity
+  // count query — first count-style select is the throttle (always under
+  // limit here), the next is the real capacity count.
+  let countCallIndex = 0
 
   const client = {
     from: (table: string) => {
@@ -317,13 +358,18 @@ function buildCapacityClient(opts: { guestCapacity: number | null; activeCount: 
         return {
           select: (_cols: string, sel?: { count?: string; head?: boolean }) => {
             if (sel?.count) {
-              return { eq: () => ({ is: () => Promise.resolve({ count: opts.activeCount, error: null }) }) }
+              const count = countCallIndex === 0 ? 0 : opts.activeCount
+              countCallIndex++
+              return countChain(count)
             }
             return { eq: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: opts.existing ?? null, error: null }) }) }) }
           },
           update: updateSpy,
           upsert: upsertSpy,
         }
+      }
+      if (table === 'notification_delivery_log') {
+        return { select: () => countChain(0) }
       }
       throw new Error(`unexpected table ${table}`)
     },
@@ -452,5 +498,103 @@ describe('cancelGuestRegistration', () => {
 
     expect(res.success).toBe(false)
     expect(updateSpy).not.toHaveBeenCalled()
+  })
+})
+
+// -- registerGuest — abuse protection (2607-DEV-591) --------------------------
+
+function buildAbuseClient(opts: { throttleCount?: number; dailyCount?: number; existing?: Row }) {
+  const throttleCount = opts.throttleCount ?? 0
+  const dailyCount = opts.dailyCount ?? 0
+  const existing = opts.existing ?? null
+
+  const event = {
+    id: 'e',
+    title: 'Trip Kickoff',
+    allow_guest_registration: true,
+    end_time: new Date(Date.now() + 24 * HOUR).toISOString(),
+    guest_capacity: null,
+  }
+  const upsertSpy = vi.fn(() => Promise.resolve({ error: null }))
+  const updateSpy = vi.fn(() => ({ eq: () => ({ eq: () => Promise.resolve({ error: null }) }) }))
+
+  const client = {
+    from: (table: string) => {
+      if (table === 'calendar_events') {
+        return { select: () => ({ eq: () => ({ single: () => Promise.resolve({ data: event, error: null }) }) }) }
+      }
+      if (table === 'guest_registrations') {
+        return {
+          select: (_cols: string, sel?: { count?: string; head?: boolean }) => {
+            if (sel?.count) return countChain(throttleCount)
+            return { eq: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: existing, error: null }) }) }) }
+          },
+          update: updateSpy,
+          upsert: upsertSpy,
+        }
+      }
+      if (table === 'notification_delivery_log') {
+        return { select: () => countChain(dailyCount) }
+      }
+      throw new Error(`unexpected table ${table}`)
+    },
+    rpc: vi.fn(() => Promise.resolve({ error: null })),
+  }
+  return { client, upsertSpy, updateSpy }
+}
+
+describe('registerGuest — honeypot', () => {
+  it('short-circuits to a generic success, no DB client and no send, when the honeypot field is filled', async () => {
+    mockCreateServiceClient.mockClear()
+    const sendModule = await import('@/lib/email/send')
+    const { registerGuest } = await import('@/lib/actions/guest-registration')
+
+    const fd = form()
+    fd.set('website', 'https://spam.example')
+    const res = await registerGuest({ success: false }, fd)
+
+    expect(res).toEqual({ success: true })
+    expect(mockCreateServiceClient).not.toHaveBeenCalled()
+    expect(sendModule.sendTransactionalEmail).not.toHaveBeenCalled()
+  })
+})
+
+describe('registerGuest — registration throttle', () => {
+  it('rejects with a bilingual message once the per-link/event throttle is reached', async () => {
+    const { client, upsertSpy } = buildAbuseClient({ throttleCount: 30 })
+    mockCreateServiceClient.mockReturnValue(client)
+    const { registerGuest } = await import('@/lib/actions/guest-registration')
+
+    const res = await registerGuest({ success: false }, form())
+
+    expect(res.success).toBe(false)
+    expect(res.error).toBeTruthy()
+    expect(upsertSpy).not.toHaveBeenCalled()
+  })
+
+  it('allows registration when under the throttle', async () => {
+    const { client, upsertSpy } = buildAbuseClient({ throttleCount: 5 })
+    mockCreateServiceClient.mockReturnValue(client)
+    const { registerGuest } = await import('@/lib/actions/guest-registration')
+
+    const res = await registerGuest({ success: false }, form())
+
+    expect(res.success).toBe(true)
+    expect(upsertSpy).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('registerGuest — overall email cap', () => {
+  it('registers but skips the send once the daily email cap is reached', async () => {
+    const { client, upsertSpy } = buildAbuseClient({ dailyCount: 10 })
+    mockCreateServiceClient.mockReturnValue(client)
+    const sendModule = await import('@/lib/email/send')
+    const { registerGuest } = await import('@/lib/actions/guest-registration')
+
+    const res = await registerGuest({ success: false }, form())
+
+    expect(res).toEqual({ success: true })
+    expect(upsertSpy).toHaveBeenCalledTimes(1)
+    expect(sendModule.sendTransactionalEmail).not.toHaveBeenCalled()
   })
 })
