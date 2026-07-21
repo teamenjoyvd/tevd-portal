@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { createServiceClient } from '@/lib/supabase/service'
 import { jwtVerify } from 'jose'
 import ical from 'ical-generator'
@@ -64,10 +65,24 @@ export async function GET(req: Request) {
   })
 
   for (const event of events ?? []) {
+    // Google Calendar (Android) and iOS Calendar don't surface the structured
+    // LOCATION/URL/CATEGORIES properties in their event view — append
+    // human-readable lines to the description so the info is visible there too,
+    // while keeping the structured properties for clients that do read them.
+    const detailLines = [
+      event.location ? `Location: ${event.location}` : undefined,
+      event.meeting_url ? `Meeting link: ${event.meeting_url}` : undefined,
+      event.category ? `Category: ${event.category}` : undefined,
+    ].filter((line): line is string => line !== undefined)
+    const description = [event.description ?? undefined, detailLines.length > 0 ? detailLines.join('\n') : undefined]
+      .filter((part): part is string => part !== undefined)
+      .join('\n\n')
+
     calendar.createEvent({
       id: event.id,
       summary: event.title,
-      description: event.description ?? undefined,
+      description: description || undefined,
+      allDay: event.is_all_day,
       start: new Date(event.start_time),
       end: new Date(event.end_time),
       location: event.location ?? undefined,
@@ -76,12 +91,28 @@ export async function GET(req: Request) {
     })
   }
 
-  return new Response(calendar.toString(), {
+  const body = calendar.toString()
+  // Weak ETag over the rendered feed — good enough for conditional GETs;
+  // this is not a content hash used for integrity, just change detection.
+  const etag = `W/"${createHash('sha1').update(body).digest('hex')}"`
+
+  if (req.headers.get('if-none-match') === etag) {
+    return new Response(null, {
+      status: 304,
+      headers: {
+        ETag: etag,
+        'Cache-Control': 'private, max-age=900',
+      },
+    })
+  }
+
+  return new Response(body, {
     status: 200,
     headers: {
       'Content-Type': 'text/calendar; charset=utf-8',
       'Content-Disposition': 'attachment; filename="teamenjoyvd.ics"',
-      'Cache-Control': 'no-cache, no-store',
+      'Cache-Control': 'private, max-age=900',
+      ETag: etag,
     },
   })
 }
