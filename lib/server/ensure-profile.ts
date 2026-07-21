@@ -69,6 +69,7 @@ export const ensureProfile = cache(
       .single()
 
     if (existing) return existing
+    console.error('[SELFHEAL] no row, healing', { userId, readError })
     // PGRST116 = "no rows"; any other error is a real DB fault, not a missing row.
     if (readError && readError.code !== 'PGRST116') throw readError
 
@@ -82,7 +83,9 @@ export const ensureProfile = cache(
     let user: Awaited<ReturnType<typeof currentUser>> = null
     try {
       user = await currentUser()
-    } catch {
+      console.error('[SELFHEAL] currentUser ok', { hasUser: !!user })
+    } catch (e) {
+      console.error('[SELFHEAL] currentUser threw', e instanceof Error ? e.message : e)
       user = null
     }
     const meta = user?.publicMetadata as
@@ -103,6 +106,7 @@ export const ensureProfile = cache(
       .select('*')
       .single()
 
+    console.error('[SELFHEAL] upsert done', { writeError, created: !!created, row })
     if (writeError || !created) {
       throw writeError ?? new Error('ensureProfile: upsert returned no row')
     }
@@ -139,6 +143,7 @@ export async function loadProfile<T = Tables<'profiles'>>(
     .eq('clerk_id', userId)
     .single()
 
+  console.error('[SELFHEAL] loadProfile first read', { userId, select, hasData: !!first.data, err: first.error })
   if (first.data) {
     return { userId, supabase, profile: first.data as T }
   }
@@ -154,11 +159,12 @@ export async function loadProfile<T = Tables<'profiles'>>(
       .select(select)
       .eq('clerk_id', userId)
       .single()
+    console.error('[SELFHEAL] loadProfile second read', { hasData: !!second.data, err: second.error })
     if (second.data) {
       return { userId, supabase, profile: second.data as T }
     }
-  } catch {
-    // fall through to the home redirect below
+  } catch (e) {
+    console.error('[SELFHEAL] loadProfile heal threw', e instanceof Error ? e.message : e)
   }
   redirect('/')
 }
