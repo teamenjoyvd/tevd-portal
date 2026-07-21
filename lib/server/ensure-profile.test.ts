@@ -134,6 +134,23 @@ describe('ensureProfile', () => {
     })
   })
 
+  it('still creates a guest row when currentUser() throws', async () => {
+    // Clerk Backend API outage / config gap — the heal must not fail (this was
+    // the live repro: the throw fell through to loadProfile's redirect('/')).
+    mockCurrentUser.mockRejectedValue(new Error('Clerk backend unavailable'))
+    const { client, upsertSpy } = buildClient(NO_ROW)
+    mockCreateServiceClient.mockReturnValue(client)
+
+    const result = await ensureProfile('user_clerk_down')
+
+    expect(upsertSpy).toHaveBeenCalledTimes(1)
+    expect(upsertSpy.mock.calls[0][0]).toMatchObject({
+      clerk_id: 'user_clerk_down',
+      role: 'guest',
+    })
+    expect(result).toMatchObject({ role: 'guest' })
+  })
+
   it('propagates a real read error instead of healing', async () => {
     const { client, upsertSpy } = buildClient({
       data: null,

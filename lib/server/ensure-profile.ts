@@ -72,7 +72,19 @@ export const ensureProfile = cache(
     // PGRST116 = "no rows"; any other error is a real DB fault, not a missing row.
     if (readError && readError.code !== 'PGRST116') throw readError
 
-    const user = await currentUser()
+    // Best-effort enrichment from Clerk. currentUser() hits the Clerk Backend
+    // API (used nowhere else in this app) and can throw on a transient outage
+    // or a config gap. The row MUST still be created, so treat this as
+    // optional: on failure fall back to a minimal guest row — names/role fill
+    // in later via the webhook (user.updated) or when the user edits their
+    // profile. (A throw here previously fell through to loadProfile's
+    // redirect('/'), reproducing the original bug.)
+    let user: Awaited<ReturnType<typeof currentUser>> = null
+    try {
+      user = await currentUser()
+    } catch {
+      user = null
+    }
     const meta = user?.publicMetadata as
       | { role?: string; abo_number?: string }
       | undefined
