@@ -7,4 +7,3 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
 | #591 | `dev/2607-DEV-591` | `lib/rate-limit.ts` (new), `lib/actions/guest-registration.ts`, `lib/actions/guest-registration.test.ts`, `app/events/[eventId]/register/components/RegisterForm.tsx`, `lib/i18n/domains/events.ts` — migration: no | 2026-07-21 |
-| #597 | `dev/2607-DEV-597` | `app/api/calendar/feed.ics/route.ts` — migration: no | 2026-07-21 |
