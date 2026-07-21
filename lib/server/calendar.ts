@@ -10,13 +10,18 @@ const LIST_COLUMNS =
 
 /**
  * Role-scoped calendar events, ordered by start_time.
- * `from`/`to` bound the window when provided; omit either for an unbounded query (e.g. feed.ics).
+ * `from`/`to` bound the window when provided.
+ * `limit` is only applied when explicitly passed — with ascending start_time
+ * order, an implicit default here would silently keep the OLDEST rows and
+ * drop future events once a role's total row count exceeds it. Callers with
+ * no natural window (e.g. feed.ics) must stay unbounded; callers with a
+ * from/to window (agenda, admin) are already bounded by that window.
  */
 export async function listEventsForRole({
   role,
   from,
   to,
-  limit = 500,
+  limit,
 }: {
   role: string
   from?: string
@@ -29,14 +34,14 @@ export async function listEventsForRole({
     .select(LIST_COLUMNS)
     .contains('access_roles', [role])
     .order('start_time')
-    .limit(limit)
 
   if (from) query = query.gte('start_time', from)
   if (to) query = query.lt('start_time', to)
+  if (limit) query = query.limit(limit)
 
   const { data, error } = await query
   if (error) throw new Error(error.message)
-  if (data && data.length === limit) {
+  if (limit && data && data.length === limit) {
     console.warn(`listEventsForRole: hit limit (${limit}) for role "${role}" — results may be truncated`)
   }
   return (data ?? []) as CalendarListEvent[]

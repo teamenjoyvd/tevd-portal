@@ -39,8 +39,15 @@ export async function GET(req: Request) {
     return new Response('Token revoked', { status: 401 })
   }
 
-  // Fetch events filtered by live profile role (not stale JWT role)
-  const events = await listEventsForRole({ role: profile.role })
+  // Fetch events filtered by live profile role (not stale JWT role).
+  // Falls back to an empty feed on a query error rather than surfacing a 500,
+  // matching the prior inline query's behavior (errors were not checked there either).
+  let events: Awaited<ReturnType<typeof listEventsForRole>> = []
+  try {
+    events = await listEventsForRole({ role: profile.role })
+  } catch (err) {
+    console.error('feed.ics: listEventsForRole failed', err)
+  }
 
   // Use member's custom display name if set; fall back to default.
   // Note: calendar apps only read this name on first import — changing it
