@@ -13,7 +13,11 @@ import { randomUUID } from 'crypto'
  * admin profile to attribute a share link to. When neither exists — an
  * unseeded local DB, or DEV freshly re-mirrored from prod — the whole suite
  * skips gracefully with a pointer to the seed command, rather than failing
- * on missing fixture data (mirrors e2e/library-guide.spec.ts).
+ * on missing fixture data (mirrors e2e/library-guide.spec.ts). Also skips
+ * gracefully when SUPABASE_SERVICE_ROLE_KEY isn't present in the environment
+ * at all — the advisory "390px smoke vs preview" CI job (preview-smoke.yml)
+ * runs mobile-390 against a live preview URL without DB credentials, since
+ * it only smoke-tests public pages.
  *
  * Test data is namespaced under a unique run id and cleaned up in afterAll.
  */
@@ -22,8 +26,11 @@ const TEST_RUN_ID = randomUUID().slice(0, 8)
 const GUEST_EMAIL = `e2e-guest-invite-${TEST_RUN_ID}@example.com`
 const GUEST_NAME = 'E2E Guest Invite'
 
-function svc(): SupabaseClient {
-  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+function svc(): SupabaseClient | null {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !key) return null
+  return createClient(url, key)
 }
 
 type Fixture = {
@@ -34,13 +41,17 @@ type Fixture = {
   shareLinkIds: string[]
 }
 
-let sb: SupabaseClient
+let sb: SupabaseClient | null = null
 let fx: Fixture | null = null
 
 test.describe.configure({ mode: 'serial' })
 
 test.beforeAll(async () => {
   sb = svc()
+  if (!sb) {
+    fx = null
+    return
+  }
 
   const { data: event } = await sb
     .from('calendar_events')
@@ -118,7 +129,7 @@ test('register with a share link succeeds and sends the magic-link email', async
   await expect
     .poll(
       async () => {
-        const { count } = await sb
+        const { count } = await sb!
           .from('notification_delivery_log')
           .select('id', { count: 'exact', head: true })
           .eq('template', 'guest_event_magic_link')
@@ -136,7 +147,7 @@ test('joining via the magic-link token confirms attendance and shows the meeting
   skipIfUnseeded()
   const { eventId, meetingUrl } = fx!
 
-  const { data: reg } = await sb
+  const { data: reg } = await sb!
     .from('guest_registrations')
     .select('token')
     .eq('event_id', eventId)
@@ -152,7 +163,7 @@ test('joining via the magic-link token confirms attendance and shows the meeting
     await expect(page.locator(`a[href="${meetingUrl}"]`)).toBeVisible()
   }
 
-  const { data: confirmedReg } = await sb
+  const { data: confirmedReg } = await sb!
     .from('guest_registrations')
     .select('status, attended_at')
     .eq('event_id', eventId)
