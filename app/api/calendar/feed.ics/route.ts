@@ -8,6 +8,19 @@ const secret = new TextEncoder().encode(
   process.env.ICAL_TOKEN_SECRET ?? 'dev-ical-secret-change-in-production'
 )
 
+function toUtcDateOnly(isoString: string): Date {
+  const d = new Date(isoString)
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()))
+}
+
+// RFC 7232 §3.2: If-None-Match may carry a comma-separated list of ETags, or
+// `*`. A plain `===` against the raw header would never match either form.
+function matchesIfNoneMatch(header: string | null, etag: string): boolean {
+  if (!header) return false
+  if (header.trim() === '*') return true
+  return header.split(',').map((t) => t.trim()).includes(etag)
+}
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
   const token = searchParams.get('token')
@@ -78,13 +91,20 @@ export async function GET(req: Request) {
       .filter((part): part is string => part !== undefined)
       .join('\n\n')
 
+    // For all-day events, ical-generator's VALUE=DATE truncates the Date to its
+    // UTC date component — normalize to the UTC midnight boundary here so a
+    // stored start_time/end_time that isn't exactly UTC midnight (e.g. legacy
+    // data) can't shift the displayed calendar day.
+    const start = event.is_all_day ? toUtcDateOnly(event.start_time) : new Date(event.start_time)
+    const end = event.is_all_day ? toUtcDateOnly(event.end_time) : new Date(event.end_time)
+
     calendar.createEvent({
       id: event.id,
       summary: event.title,
       description: description || undefined,
       allDay: event.is_all_day,
-      start: new Date(event.start_time),
-      end: new Date(event.end_time),
+      start,
+      end,
       location: event.location ?? undefined,
       url: event.meeting_url ?? undefined,
       categories: event.category ? [{ name: event.category }] : undefined,
@@ -98,7 +118,7 @@ export async function GET(req: Request) {
   // permanently defeating If-None-Match.
   const etag = `W/"${createHash('sha1').update(JSON.stringify(events ?? []) + calendarName).digest('hex')}"`
 
-  if (req.headers.get('if-none-match') === etag) {
+  if (matchesIfNoneMatch(req.headers.get('if-none-match'), etag)) {
     return new Response(null, {
       status: 304,
       headers: {
