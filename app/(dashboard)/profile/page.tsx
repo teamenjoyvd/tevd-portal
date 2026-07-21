@@ -1,33 +1,25 @@
-import { auth } from '@clerk/nextjs/server'
-import { redirect } from 'next/navigation'
-import { createServiceClient } from '@/lib/supabase/service'
+import { loadProfile } from '@/lib/server/ensure-profile'
 import { ProfileClient } from './components/ProfileClient'
 
 export default async function ProfilePage() {
-  const { userId } = await auth()
-  if (!userId) redirect('/sign-in')
+  // loadProfile self-heals a missing row (Clerk webhook race / miss) rather
+  // than bouncing a freshly-registered guest to home — this page is the guest's
+  // "confirm your profile" onboarding step. Single embedded-count query:
+  // event_share_links has one FK to profiles (profile_id), so the embed works.
+  const { profile } = await loadProfile<{
+    id: string
+    role: string
+    abo_number: string | null
+    event_share_links: { count: number }[]
+  }>('id, role, abo_number, event_share_links(count)')
 
-  const supabase = createServiceClient()
-  // Single embedded-count query replaces the prior profile-row + separate
-  // event_share_links count round-trip: event_share_links has one FK to
-  // profiles (profile_id, unambiguous), so PostgREST's embedded count works.
-  const { data } = await supabase
-    .from('profiles')
-    .select('id, role, abo_number, event_share_links(count)')
-    .eq('clerk_id', userId)
-    .single()
-
-  // No profile row — Clerk webhook missed or first-sign-up race.
-  // Redirect rather than rendering a skeleton that never resolves.
-  if (!data) redirect('/')
-
-  const invitesCount = data.event_share_links?.[0]?.count ?? 0
+  const invitesCount = profile.event_share_links?.[0]?.count ?? 0
 
   return (
     <ProfileClient
-      profileId={data.id}
-      role={data.role}
-      aboNumber={data.abo_number ?? null}
+      profileId={profile.id}
+      role={profile.role}
+      aboNumber={profile.abo_number ?? null}
       hasInvites={invitesCount > 0}
     />
   )

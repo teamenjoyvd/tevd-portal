@@ -65,3 +65,5 @@ e2e/.vercel-bypass-state.json
 
 # agent-orchestration scratch output (never committed; see docs/WEEKLY_CLEANUP.md)
 .agents/
+
+.vercel

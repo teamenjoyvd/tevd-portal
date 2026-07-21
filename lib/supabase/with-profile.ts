@@ -13,6 +13,11 @@ export type WithProfileResult<T> =
  * a few routes (e.g. app/api/profile/route.ts) distinguish "no row" from a
  * genuine DB error rather than collapsing both to 404.
  *
+ * Missing-row self-heal deliberately lives in the page path (loadProfile),
+ * not here: a new user's first touch is a page render, which creates the row
+ * before any client fetch reaches an API route, so healing here would only
+ * change these routes' long-standing 404-on-missing contract for no gain.
+ *
  * Usage:
  *   const ctx = await withProfile<{ id: string; role: string }>('id, role')
  *   if (ctx.response) return ctx.response

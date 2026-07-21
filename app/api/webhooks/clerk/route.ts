@@ -2,6 +2,7 @@ import { headers } from 'next/headers'
 import { WebhookEvent } from '@clerk/nextjs/server'
 import { Webhook } from 'svix'
 import { createServiceClient } from '@/lib/supabase/service'
+import { buildProfileRow } from '@/lib/server/ensure-profile'
 
 export async function POST(req: Request) {
   const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET
@@ -37,26 +38,22 @@ export async function POST(req: Request) {
   const supabase = createServiceClient()
 
   if (evt.type === 'user.created' || evt.type === 'user.updated') {
-    const { id, first_name, last_name, email_addresses, public_metadata } = evt.data
+    const { id, first_name, last_name, public_metadata } = evt.data
 
-    // New registrations start as 'guest' — promoted to 'member' after ABO verification
-    const role = (public_metadata?.role as string) ?? 'guest'
-    const abo_number = (public_metadata?.abo_number as string) ?? null
-    const email = email_addresses?.[0]?.email_address ?? ''
+    // Column mapping is shared with the on-read self-heal (buildProfileRow) so
+    // the two `profiles` writers can never drift. New registrations default to
+    // 'guest' — promoted to 'member' after ABO verification.
+    const row = buildProfileRow({
+      clerkId: id,
+      firstName: first_name,
+      lastName: last_name,
+      role: (public_metadata?.role as string) ?? null,
+      aboNumber: (public_metadata?.abo_number as string) ?? null,
+    })
 
     const { error } = await supabase
       .from('profiles')
-      .upsert(
-        {
-          clerk_id: id,
-          first_name: first_name ?? '',
-          last_name: last_name ?? '',
-          role: role as 'admin' | 'core' | 'member' | 'guest',
-          abo_number,
-          display_names: { en: `${first_name ?? ''} ${last_name ?? ''}`.trim() },
-        },
-        { onConflict: 'clerk_id' }
-      )
+      .upsert(row, { onConflict: 'clerk_id' })
 
     if (error) {
       return Response.json({ error: error.message }, { status: 500 })
