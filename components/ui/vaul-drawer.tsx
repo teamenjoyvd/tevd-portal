@@ -7,9 +7,17 @@
  *
  * Usage:
  *   import { VaulDrawer } from '@/components/ui/vaul-drawer'
- *   <VaulDrawer open={open} onClose={onClose} snapPoints={[0.5, 0.92]}>
+ *   <VaulDrawer open={open} onClose={onClose}>
  *     {children}
  *   </VaulDrawer>
+ *
+ * No `snapPoints`: Vaul's fractional snap points measure against the
+ * drawer's rendered content height, and for content shorter than the
+ * snap fraction it leaves a stray translateY offset equal to the snap
+ * height, parking the whole drawer below the viewport permanently
+ * (data-state stays "open" but nothing is visible or clickable).
+ * Content-sized (Vaul's default with no snapPoints) doesn't hit this;
+ * `maxHeight` + EventPopup's own internal scroll area handle overflow.
  */
 
 import { Drawer } from 'vaul'
@@ -18,23 +26,17 @@ export type VaulDrawerProps = {
   open: boolean
   onClose: () => void
   children: React.ReactNode
-  snapPoints?: (number | string)[]
-  fadeFromIndex?: number
 }
 
 export function VaulDrawer({
   open,
   onClose,
   children,
-  snapPoints = [0.5, 0.92],
-  fadeFromIndex = 1,
 }: VaulDrawerProps) {
   return (
     <Drawer.Root
       open={open}
       onOpenChange={isOpen => { if (!isOpen) onClose() }}
-      snapPoints={snapPoints}
-      fadeFromIndex={fadeFromIndex}
     >
       <Drawer.Portal>
         <Drawer.Overlay
@@ -58,7 +60,6 @@ export function VaulDrawer({
             backgroundColor: 'var(--bg-global)',
             boxShadow: '0 -4px 32px rgba(0,0,0,0.18)',
             outline: 'none',
-            // Height is controlled by Vaul via snapPoints
             maxHeight: '92dvh',
           }}
         >

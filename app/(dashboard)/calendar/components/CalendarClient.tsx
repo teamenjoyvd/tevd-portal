@@ -204,7 +204,7 @@ export default function CalendarClient({
 
         {/* Mobile event sheet */}
         {selectedEventId && (
-          <VaulDrawer open onClose={handleClose} snapPoints={[0.5, 0.92]} fadeFromIndex={1}>
+          <VaulDrawer open onClose={handleClose}>
             <EventPopup
               eventId={selectedEventId}
               onClose={handleClose}
