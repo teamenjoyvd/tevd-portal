@@ -1,19 +1,13 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
-import { UseMutationResult } from '@tanstack/react-query'
+import { useQuery, UseMutationResult } from '@tanstack/react-query'
 import { Users } from 'lucide-react'
 import { apiClient } from '@/lib/apiClient'
 import type { TranslationKey } from '@/lib/i18n'
 import { PendingPopover } from './PendingPopover'
 import MemberActions from './MemberActions'
+import { SLOT_STATUS_STYLES } from './styles'
 import type { EventDetail, GuestRegistration, RoleSlot } from './types'
-
-const SLOT_STATUS_STYLES = {
-  open:      { bg: 'rgba(0,0,0,0.05)',          color: 'var(--text-primary)'   },
-  contested: { bg: 'rgba(242,204,143,0.22)',    color: '#7a5c00'               },
-  filled:    { bg: 'rgba(129,178,154,0.22)',    color: '#2d6a4f'               },
-}
 
 function AdminRegistrationsTab({ eventId }: { eventId: string }) {
   const { data, isLoading } = useQuery<{ registrations: GuestRegistration[] }>({
