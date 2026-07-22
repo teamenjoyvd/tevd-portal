@@ -1,12 +1,12 @@
 import { createHash } from 'node:crypto'
 import { createServiceClient } from '@/lib/supabase/service'
-import { jwtVerify } from 'jose'
 import ical from 'ical-generator'
 import { listEventsForRole } from '@/lib/server/calendar'
+import { verifyIcalToken, IcalTokenConfigError } from '@/lib/server/icalToken'
 
-const secret = new TextEncoder().encode(
-  process.env.ICAL_TOKEN_SECRET ?? 'dev-ical-secret-change-in-production'
-)
+const FEED_WINDOW_PAST_DAYS = 90
+const FEED_WINDOW_FUTURE_DAYS = 365
+const FEED_LIMIT = 500
 
 function toUtcDateOnly(isoString: string): Date {
   const d = new Date(isoString)
@@ -33,9 +33,11 @@ export async function GET(req: Request) {
   // live from the DB below to avoid stale-token promotion issues
   let payload: { profile_id: string }
   try {
-    const { payload: p } = await jwtVerify(token, secret)
-    payload = p as { profile_id: string }
-  } catch {
+    payload = await verifyIcalToken(token)
+  } catch (err) {
+    if (err instanceof IcalTokenConfigError) {
+      return new Response('Calendar service unavailable', { status: 503 })
+    }
     return new Response('Invalid or expired token', { status: 401 })
   }
 
@@ -58,7 +60,10 @@ export async function GET(req: Request) {
   // matching the prior inline query's behavior (errors were not checked there either).
   let events: Awaited<ReturnType<typeof listEventsForRole>> = []
   try {
-    events = await listEventsForRole({ role: profile.role })
+    const now = Date.now()
+    const from = new Date(now - FEED_WINDOW_PAST_DAYS * 86400000).toISOString()
+    const to = new Date(now + FEED_WINDOW_FUTURE_DAYS * 86400000).toISOString()
+    events = await listEventsForRole({ role: profile.role, from, to, limit: FEED_LIMIT })
   } catch (err) {
     console.error('feed.ics: listEventsForRole failed', err)
   }

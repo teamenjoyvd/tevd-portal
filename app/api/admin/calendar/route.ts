@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { requireAdmin, getCallerContext } from '@/lib/supabase/guards'
+import type { Database } from '@/types/supabase'
 
 type CategoryFilter = 'N21' | 'Personal'
 
@@ -74,16 +75,50 @@ export async function POST(req: Request): Promise<Response> {
   if (ctx.guard) return ctx.guard
   const caller = ctx.profile
 
-  const body = await req.json()
-  // Auto-compute week_number from start_time if not provided
-  if (!body.week_number && body.start_time) {
-    const d = new Date(body.start_time)
-    const startOfYear = new Date(d.getFullYear(), 0, 1)
-    body.week_number = Math.ceil(((d.getTime() - startOfYear.getTime()) / 86400000 + startOfYear.getDay() + 1) / 7)
+  const body = await req.json().catch(() => null)
+  if (body === null || body === undefined || typeof body !== 'object' || Array.isArray(body)) {
+    return Response.json({ error: 'Invalid or empty request body' }, { status: 400 })
   }
-  body.created_by = caller.id
 
-  const { data, error } = await supabase.from('calendar_events').insert(body).select().single()
+  const allowed = [
+    'title', 'description', 'start_time', 'end_time', 'category',
+    'event_type', 'meeting_url', 'access_roles', 'available_roles',
+    'allow_guest_registration', 'guest_capacity', 'week_number',
+  ] as const
+  const picked: Record<string, unknown> = {}
+  for (const key of allowed) {
+    if (key in body) picked[key] = (body as Record<string, unknown>)[key]
+  }
+
+  if (typeof picked.title !== 'string' || typeof picked.start_time !== 'string' || typeof picked.end_time !== 'string') {
+    return Response.json({ error: 'title, start_time, and end_time are required' }, { status: 400 })
+  }
+
+  const startDate = new Date(picked.start_time)
+  const endDate = new Date(picked.end_time)
+  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+    return Response.json({ error: 'start_time and end_time must be valid dates' }, { status: 400 })
+  }
+
+  // Auto-compute week_number only when the field is genuinely absent (not merely falsy — 0 is a valid value)
+  if (picked.week_number === null || picked.week_number === undefined) {
+    const startOfYear = new Date(startDate.getFullYear(), 0, 1)
+    picked.week_number = Math.ceil(((startDate.getTime() - startOfYear.getTime()) / 86400000 + startOfYear.getDay() + 1) / 7)
+  }
+  if (typeof picked.week_number !== 'number' || !Number.isInteger(picked.week_number)) {
+    return Response.json({ error: 'week_number must be an integer' }, { status: 400 })
+  }
+
+  const insertData: Database['public']['Tables']['calendar_events']['Insert'] = {
+    ...picked,
+    title: picked.title,
+    start_time: picked.start_time,
+    end_time: picked.end_time,
+    week_number: picked.week_number,
+    created_by: caller.id,
+  }
+
+  const { data, error } = await supabase.from('calendar_events').insert(insertData).select().single()
   if (error) return Response.json({ error: error.message }, { status: 500 })
 
   // Seed role slots for the new event

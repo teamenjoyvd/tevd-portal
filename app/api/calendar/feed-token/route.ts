@@ -1,10 +1,6 @@
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { SignJWT } from 'jose'
-
-const secret = new TextEncoder().encode(
-  process.env.ICAL_TOKEN_SECRET ?? 'dev-ical-secret-change-in-production'
-)
+import { signIcalToken, IcalTokenConfigError } from '@/lib/server/icalToken'
 
 export async function GET() {
   const { userId } = await auth()
@@ -29,9 +25,15 @@ export async function GET() {
   }
 
   // Generate new signed JWT — no expiry, permanent subscription URL
-  const token = await new SignJWT({ profile_id: profile.id, role: profile.role })
-    .setProtectedHeader({ alg: 'HS256' })
-    .sign(secret)
+  let token: string
+  try {
+    token = await signIcalToken({ profile_id: profile.id, role: profile.role })
+  } catch (err) {
+    if (err instanceof IcalTokenConfigError) {
+      return Response.json({ error: 'Calendar service unavailable' }, { status: 503 })
+    }
+    throw err
+  }
 
   // Store token in profile
   await supabase
@@ -60,9 +62,15 @@ export async function POST() {
 
   if (error || !profile) return Response.json({ error: 'Profile not found' }, { status: 404 })
 
-  const token = await new SignJWT({ profile_id: profile.id, role: profile.role })
-    .setProtectedHeader({ alg: 'HS256' })
-    .sign(secret)
+  let token: string
+  try {
+    token = await signIcalToken({ profile_id: profile.id, role: profile.role })
+  } catch (err) {
+    if (err instanceof IcalTokenConfigError) {
+      return Response.json({ error: 'Calendar service unavailable' }, { status: 503 })
+    }
+    throw err
+  }
 
   await supabase
     .from('profiles')
