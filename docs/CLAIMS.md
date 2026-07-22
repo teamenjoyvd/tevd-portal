@@ -7,3 +7,4 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
 | #596 | `dev/2607-DEV-596` | `supabase/functions/sync-google-calendar/index.ts`, `app/api/admin/calendar-sync/route.ts`, `app/admin/calendar/components/AdminCalendarClient.tsx` (status display only) — migration: no | 2026-07-22 |
+| #600 | `dev/2607-DEV-600` | `app/(dashboard)/calendar/components/EventPopup.tsx`, `app/(dashboard)/calendar/components/popup/*` (new), `app/(dashboard)/calendar/components/CalendarClient.tsx` (import line only) — migration: no | 2026-07-22 |
