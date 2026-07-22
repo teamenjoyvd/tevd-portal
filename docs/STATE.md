@@ -1,10 +1,9 @@
-## Goal (issue #594)
-Issue #594 (2026-07-22, branch `dev/2607-DEV-594`): follow-up to #587 — adopt the shared `lib/utils/base-url.ts` (`getBaseUrl()`) in `app/api/calendar/feed-token/route.ts` (3 call sites) and `app/api/profile/spouse-link/route.ts` (1 call site), replacing duplicated inline `process.env.NEXT_PUBLIC_APP_URL ?? '<literal>'` fallbacks (the two routes previously had two different hardcoded fallback hosts).
+### Prior task (#594)
+Issue #594 (2026-07-22, branch `dev/2607-DEV-594`): follow-up to #587 — adopted shared `lib/utils/base-url.ts` (`getBaseUrl()`) in `feed-token/route.ts` (3 sites) and `spouse-link/route.ts` (1 site), replacing two different duplicated hardcoded fallback hosts.
 
 ## Now (issue #594)
-PLAN → CLAIM → BUILD in one session (user: "CLAIM ISSUE 594", then "BUILD #594"). PLAN: no gotchas found, no migration, no E2E needed (pure internal refactor, env var always set in deployed environments). CLAIM: no overlap in `docs/CLAIMS.md`, issue got Design Checklist + `## Branch`, cut `dev/2607-DEV-594`, registered claim row. BUILD: swapped all 4 call sites for `await getBaseUrl()` — 3 in feed-token (both GET branches + POST), 1 in spouse-link's best-effort email notification (hoisted `const baseUrl = await getBaseUrl()` before the template call since it was previously inlined synchronously inside `renderEmailTemplate(...)`).
-Verified: `npx tsc --noEmit` clean, `npm run build` green, `npx eslint` on both changed files 0 issues, `npx vitest run` 151/151 (no regressions). Committed `9a3fc16`. Not pushed (user hasn't asked).
-Next: user-approved push → draft PR → CI green + Vercel preview READY before Done.
+PLAN → CLAIM → BUILD → self-review → draft PR → ready-for-review all done in one session (user: "CLAIM ISSUE 594", "BUILD #594", "/code-review low", "once done open a PR and mark it ready for review"). Verified: `tsc --noEmit` clean, `npm run build` green, `eslint` 0 issues, `vitest run` 151/151. Manual self-review (`/code-review low` not invocable programmatically) — no findings. Pushed, opened PR [#638](https://github.com/teamenjoyvd/tevd-portal/pull/638), all CI green (Build/Lint/Test/TypeCheck/SecurityAudit/migrations-replay/390px-smoke) + Vercel preview READY. PR was already flipped out of draft (by `teamenjoyvd` directly, same pattern as prior PRs) by the time `gh pr ready` ran.
+Next: waiting on CodeRabbit's pass (rate-limited when last checked) — GCR once it posts, then merge + post-merge tail (prod migration gate auto-skip since no migration, smoke-check prod, remove `docs/CLAIMS.md` #594 row, close issue).
 
 ## Goal (issue #596)
 Issue #596 (2026-07-22, branch `dev/2607-DEV-596`): Calendar refactor 1b/8 — `supabase/functions/sync-google-calendar/index.ts` overhaul (fail-closed 401, pagination, N+1→upsert, deletions/reconciliation, observability). Phase 1b, lands before #587-592, isolated from 1a (security hardening, already merged #635) so a revert doesn't take that back out.
