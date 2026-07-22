@@ -2,6 +2,7 @@ import { withProfile } from '@/lib/supabase/with-profile'
 import { sendNotificationEmail } from '@/lib/email/send'
 import { renderEmailTemplate } from '@/lib/email/templates/render'
 import { SpouseLinkRequestEmail } from '@/lib/email/templates/SpouseLinkRequestEmail'
+import { getBaseUrl } from '@/lib/utils/base-url'
 
 // GET — return own pending/denied spouse_link_requests row, or null
 export async function GET() {
@@ -134,12 +135,13 @@ export async function POST(req: Request) {
 
   // Email notification for primary — best-effort
   if (primary.contact_email) {
+    const baseUrl = await getBaseUrl()
     renderEmailTemplate(
       SpouseLinkRequestEmail({
         primaryFirstName: primary.first_name ?? 'Member',
         requesterFirstName: profile.first_name ?? '',
         requesterLastName: profile.last_name ?? '',
-        actionUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://portal.teamenjoyvd.com'}/profile/spouse-link`,
+        actionUrl: `${baseUrl}/profile/spouse-link`,
       })
     ).then(html =>
       sendNotificationEmail({

@@ -1,3 +1,10 @@
+### Prior task (#594)
+Issue #594 (2026-07-22, branch `dev/2607-DEV-594`): follow-up to #587 — adopted shared `lib/utils/base-url.ts` (`getBaseUrl()`) in `feed-token/route.ts` (3 sites) and `spouse-link/route.ts` (1 site), replacing two different duplicated hardcoded fallback hosts.
+
+## Now (issue #594)
+PLAN → CLAIM → BUILD → self-review → draft PR → ready-for-review all done in one session (user: "CLAIM ISSUE 594", "BUILD #594", "/code-review low", "once done open a PR and mark it ready for review"). Verified: `tsc --noEmit` clean, `npm run build` green, `eslint` 0 issues, `vitest run` 151/151. Manual self-review (`/code-review low` not invocable programmatically) — no findings. Pushed, opened PR [#638](https://github.com/teamenjoyvd/tevd-portal/pull/638), all CI green (Build/Lint/Test/TypeCheck/SecurityAudit/migrations-replay/390px-smoke) + Vercel preview READY. PR was already flipped out of draft (by `teamenjoyvd` directly, same pattern as prior PRs) by the time `gh pr ready` ran.
+Next: waiting on CodeRabbit's pass (rate-limited when last checked) — GCR once it posts, then merge + post-merge tail (prod migration gate auto-skip since no migration, smoke-check prod, remove `docs/CLAIMS.md` #594 row, close issue).
+
 ## Goal (issue #596)
 Issue #596 (2026-07-22, branch `dev/2607-DEV-596`): Calendar refactor 1b/8 — `supabase/functions/sync-google-calendar/index.ts` overhaul (fail-closed 401, pagination, N+1→upsert, deletions/reconciliation, observability). Phase 1b, lands before #587-592, isolated from 1a (security hardening, already merged #635) so a revert doesn't take that back out.
 
