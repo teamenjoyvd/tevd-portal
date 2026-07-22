@@ -41,12 +41,16 @@ export default async function HomePage() {
   // subtract 3h from UTC midnight — covers both EET (+02:00) and EEST (+03:00) offsets.
   const calendarFrom = new Date(new Date().setUTCHours(0, 0, 0, 0) - 3 * 3600 * 1000).toISOString()
 
+  // Only surface current/future trips on the homepage, so the "next trip" tile skips
+  // trips that have already started. `start_date` is a DATE column → compare as YYYY-MM-DD.
+  const tripsFrom = new Date().toISOString().slice(0, 10)
+
   const [announcementsRes, linksRes, tripsRes, guidesRes, eventsRes] = await Promise.all([
     supabase.from('announcements').select('id, titles, contents, is_active, slug').eq('is_active', true)
       .contains('access_roles', [role]).order('created_at', { ascending: false }).limit(5),
     supabase.from('links').select('id, label, url').eq('is_active', true).contains('access_roles', [role]).order('sort_order').limit(6),
     supabase.from('trips').select('id, title, destination, start_date, image_url')
-      .contains('access_roles', [role]).order('start_date').limit(3),
+      .contains('access_roles', [role]).gte('start_date', tripsFrom).order('start_date').limit(3),
     supabase.from('guides').select('id, slug, title, emoji')
       .eq('is_published', true).contains('access_roles', [role])
       .order('created_at', { ascending: false }).limit(6),
