@@ -84,9 +84,10 @@ export function TripImage({
 }
 
 export function TripBadges({ destination, tripType, completedLabel }: { destination: string; tripType: string | null | undefined; completedLabel?: string | null }) {
+  const hasCompletedLabel = completedLabel !== null && completedLabel !== undefined && completedLabel.length > 0
   return (
     <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
-      {completedLabel && (
+      {hasCompletedLabel && (
         <span
           className="text-xs font-semibold px-2 py-0.5 rounded-full"
           style={{ backgroundColor: 'var(--brand-stone)', color: 'rgba(255,255,255,0.95)' }}

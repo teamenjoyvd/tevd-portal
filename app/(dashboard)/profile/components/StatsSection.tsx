@@ -19,7 +19,7 @@ export function StatsSection({ role, aboNumber }: { role: string; aboNumber: str
     staleTime: 5 * 60 * 1000,
   })
 
-  if (isLoading && !!aboNumber) {
+  if (isLoading) {
     return <div className="rounded-2xl animate-pulse h-full" style={{ backgroundColor: 'var(--border-default)' }} />
   }
 
@@ -45,17 +45,17 @@ export function StatsSection({ role, aboNumber }: { role: string; aboNumber: str
             <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('profile.statsDirectDownlines')}</p>
             <p className="text-sm font-semibold mt-0.5" style={{ color: 'var(--text-primary)' }}>{losSummary.direct_downline_count}</p>
           </div>
-          <a href="/los"
+          <Link href="/los"
             className="ml-auto px-4 py-2 rounded-xl text-xs font-semibold hover:opacity-80 transition-opacity flex-shrink-0"
-            style={{ backgroundColor: 'var(--brand-forest)', color: 'var(--brand-parchment)' }}>{t('profile.viewLos')}</a>
+            style={{ backgroundColor: 'var(--brand-forest)', color: 'var(--brand-parchment)' }}>{t('profile.viewLos')}</Link>
         </div>
       )}
       {isCore && (
         <Link href="/profile/los-upload"
           style={{ backgroundColor: 'var(--brand-forest)', color: 'var(--brand-parchment)' }}
           className={`rounded-xl px-4 py-3 inline-flex flex-col gap-1 hover:opacity-80 transition-opacity${losSummary ? ' mt-4' : ''}`}>
-          <span className="text-xs font-bold tracking-widest uppercase" style={{ color: 'var(--brand-parchment)' }}>Upload my LOS</span>
-          <span className="text-[10px] opacity-60" style={{ color: 'var(--brand-parchment)' }}>Submit your downline for review</span>
+          <span className="text-xs font-bold tracking-widest uppercase" style={{ color: 'var(--brand-parchment)' }}>{t('profile.uploadLos')}</span>
+          <span className="text-[10px] opacity-60" style={{ color: 'var(--brand-parchment)' }}>{t('profile.uploadLosSubtitle')}</span>
         </Link>
       )}
     </div>

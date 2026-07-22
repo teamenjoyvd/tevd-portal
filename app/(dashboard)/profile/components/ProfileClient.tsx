@@ -221,7 +221,7 @@ export function ProfileClient({ profileId, role, aboNumber, hasInvites }: Props)
       colSpan: 6, minHeight: CALENDAR_MIN_HEIGHT,
       node: <CalendarSection profileId={profileId} />,
     },
-    [BENTO_IDS.STATS]: (aboNumber || isCore) ? {
+    [BENTO_IDS.STATS]: (aboNumber !== null || isCore) ? {
       colSpan: 6, minHeight: STATS_MIN_HEIGHT,
       node: <StatsSection role={role} aboNumber={aboNumber} />,
     } : null,

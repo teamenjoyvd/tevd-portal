@@ -117,6 +117,8 @@ export const profile = {
   'profile.statsLevel':               { en: 'Level',                                            bg: 'Ниво'                                            },
   'profile.statsDirectDownlines':     { en: 'Direct downlines',                                 bg: 'Директни даунлайни'                              },
   'profile.viewLos':                  { en: 'VIEW LOS',                                         bg: 'ВИЖДАМ LOS'                                      },
+  'profile.uploadLos':                { en: 'Upload my LOS',                                    bg: 'Качете моя LOS'                                  },
+  'profile.uploadLosSubtitle':        { en: 'Submit your downline for review',                  bg: 'Изпратете вашия даунлайн за преглед'              },
   // ParticipationSection
   'profile.participation':            { en: 'Participation',                                    bg: 'Участие'                                         },
   'profile.allParticipation':         { en: 'All Participation',                                bg: 'Всички участия'                                  },

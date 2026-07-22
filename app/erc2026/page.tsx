@@ -66,7 +66,7 @@ const Timeline = () => {
                 {s.label}
               </div>
               <div style={{
-                fontFamily: "var(--font-dm-sans)",
+                fontFamily: "var(--font-body)",
                 fontSize: "12px",
                 color: "var(--text-tertiary)",
                 marginTop: "1px",
@@ -105,13 +105,13 @@ const InfoRow = ({ label, value }: { label: string; value: string }) => (
     borderBottom: "1px solid var(--border-default)",
   }}>
     <div style={{
-      fontFamily: "var(--font-dm-sans)",
+      fontFamily: "var(--font-body)",
       fontSize: "12px",
       color: "var(--text-tertiary)",
       flexShrink: 0,
     }}>{label}</div>
     <div style={{
-      fontFamily: "var(--font-dm-sans)",
+      fontFamily: "var(--font-body)",
       fontSize: "13px",
       color: "var(--text-primary)",
       textAlign: "right",
@@ -133,7 +133,7 @@ const MapsButton = ({ url, label }: { url: string; label: string }) => (
       border: `1px solid ${TEAL}`,
       borderRadius: "6px",
       color: TEAL,
-      fontFamily: "var(--font-dm-sans)",
+      fontFamily: "var(--font-body)",
       fontSize: "12px",
       fontWeight: 600,
       textDecoration: "none",
@@ -182,7 +182,7 @@ const BusBlock = ({
     </div>
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
       <div>
-        <div style={{ fontFamily: "var(--font-dm-sans)", fontSize: "11px", color: "var(--text-tertiary)", letterSpacing: "0.04em" }}>
+        <div style={{ fontFamily: "var(--font-body)", fontSize: "11px", color: "var(--text-tertiary)", letterSpacing: "0.04em" }}>
           {toLabel}
         </div>
         <div style={{ fontFamily: "var(--font-sora)", fontSize: "18px", fontWeight: 700, color: toVenue ? "var(--text-primary)" : "var(--text-tertiary)", marginTop: "2px" }}>
@@ -190,7 +190,7 @@ const BusBlock = ({
         </div>
       </div>
       <div style={{ textAlign: "right" }}>
-        <div style={{ fontFamily: "var(--font-dm-sans)", fontSize: "11px", color: "var(--text-tertiary)", letterSpacing: "0.04em" }}>
+        <div style={{ fontFamily: "var(--font-body)", fontSize: "11px", color: "var(--text-tertiary)", letterSpacing: "0.04em" }}>
           {fromLabel}
         </div>
         <div style={{ fontFamily: "var(--font-sora)", fontSize: "18px", fontWeight: 700, color: fromVenue ? "var(--text-primary)" : "var(--text-tertiary)", marginTop: "2px" }}>
@@ -207,7 +207,7 @@ const Note = ({ children }: { children: ReactNode }) => (
     borderLeft: `3px solid ${TEAL}`,
     borderRadius: "0 8px 8px 0",
     padding: "9px 12px",
-    fontFamily: "var(--font-dm-sans)",
+    fontFamily: "var(--font-body)",
     fontSize: "13px",
     color: "var(--text-secondary)",
     lineHeight: "1.5",
@@ -305,7 +305,7 @@ const LocationCard = ({
     gap: "8px",
   }}>
     <div style={{
-      fontFamily: "var(--font-dm-sans)",
+      fontFamily: "var(--font-body)",
       fontSize: "10px",
       fontWeight: 700,
       color: TEAL,
@@ -327,7 +327,7 @@ const LocationCard = ({
         {name}
       </div>
       <div style={{
-        fontFamily: "var(--font-dm-sans)",
+        fontFamily: "var(--font-body)",
         fontSize: "12px",
         color: "var(--text-secondary)",
         marginTop: "3px",
@@ -364,8 +364,8 @@ const DistanceRow = ({ label, value }: { label: string; value: string }) => (
     padding: "4px 0",
     borderBottom: `1px solid ${TEAL_BORDER}`,
   }}>
-    <div style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: "var(--text-tertiary)" }}>{label}</div>
-    <div style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: "var(--text-secondary)", fontWeight: 500 }}>{value}</div>
+    <div style={{ fontFamily: "var(--font-body)", fontSize: "12px", color: "var(--text-tertiary)" }}>{label}</div>
+    <div style={{ fontFamily: "var(--font-body)", fontSize: "12px", color: "var(--text-secondary)", fontWeight: 500 }}>{value}</div>
   </div>
 );
 
@@ -393,7 +393,7 @@ const QuickFacts = () => (
             border: "1px solid rgba(230,92,0,0.25)",
             borderRadius: "20px",
             padding: "4px 10px",
-            fontFamily: "var(--font-dm-sans)",
+            fontFamily: "var(--font-body)",
             fontSize: "12px",
             fontWeight: 600,
             color: "#c94400",
@@ -416,7 +416,7 @@ const QuickFacts = () => (
           <DistanceRow label="До зала" value="~30 мин. пеша" />
           <DistanceRow label="До център" value="~30 мин. пеша" />
           <DistanceRow label="Лидл / Кауфланд" value="~10–15 мин. пеша" />
-          <div style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: "var(--text-tertiary)", paddingTop: "6px" }}>
+          <div style={{ fontFamily: "var(--font-body)", fontSize: "12px", color: "var(--text-tertiary)", paddingTop: "6px" }}>
             Закуската е включена · 07:30 - 10:00.
           </div>
         </>
@@ -441,8 +441,8 @@ const QuickFacts = () => (
             padding: "4px 0",
             borderBottom: `1px solid ${TEAL_BORDER}`,
           }}>
-            <div style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: "var(--text-tertiary)" }}>WiFi</div>
-            <div style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: "var(--text-secondary)", fontWeight: 600 }}>ERC 2026</div>
+            <div style={{ fontFamily: "var(--font-body)", fontSize: "12px", color: "var(--text-tertiary)" }}>WiFi</div>
+            <div style={{ fontFamily: "var(--font-body)", fontSize: "12px", color: "var(--text-secondary)", fontWeight: 600 }}>ERC 2026</div>
           </div>
           <div style={{
             display: "flex",
@@ -450,8 +450,8 @@ const QuickFacts = () => (
             alignItems: "baseline",
             padding: "4px 0",
           }}>
-            <div style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: "var(--text-tertiary)" }}>Парола</div>
-            <div style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: "var(--text-secondary)", fontWeight: 600, userSelect: "all" }}>Oradea2026!</div>
+            <div style={{ fontFamily: "var(--font-body)", fontSize: "12px", color: "var(--text-tertiary)" }}>Парола</div>
+            <div style={{ fontFamily: "var(--font-body)", fontSize: "12px", color: "var(--text-secondary)", fontWeight: 600, userSelect: "all" }}>Oradea2026!</div>
           </div>
         </div>
       }
@@ -468,7 +468,7 @@ export default function ERC2026() {
       style={{
         minHeight: "100vh",
         background: "var(--bg-global)",
-        fontFamily: "var(--font-dm-sans)",
+        fontFamily: "var(--font-body)",
         maxWidth: "480px",
         margin: "0 auto",
       }}
@@ -536,7 +536,7 @@ export default function ERC2026() {
           href="https://www.teamenjoyvd.com"
           target="_blank"
           rel="noopener noreferrer"
-          style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: "var(--text-tertiary)", textDecoration: "none" }}
+          style={{ fontFamily: "var(--font-body)", fontSize: "12px", color: "var(--text-tertiary)", textDecoration: "none" }}
         >
           teamenjoyvd.com
         </a>
