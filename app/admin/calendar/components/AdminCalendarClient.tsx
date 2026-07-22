@@ -148,7 +148,11 @@ export default function AdminCalendarClient() {
   })
 
   const [now, setNow] = useState<number | null>(null)
-  useEffect(() => { setNow(Date.now()) }, [syncStatus])
+  useEffect(() => {
+    setNow(Date.now())
+    const id = setInterval(() => setNow(Date.now()), 30_000)
+    return () => clearInterval(id)
+  }, [])
 
   const syncStatusLabel = useMemo(() => {
     if (!syncStatus) return null

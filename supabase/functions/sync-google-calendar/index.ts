@@ -239,17 +239,20 @@ Deno.serve(async (req: Request) => {
   // existing diff for the notification fan-out, (b) the stale-row set for
   // reconciliation (rows Google no longer returns at all, bounded to this
   // window).
+  // Overlap check (mirrors Google's timeMin/timeMax semantics: an event
+  // matches the window if it hasn't ended before tMin and hasn't started
+  // after tMax) — a start_time-only bound would miss already-started,
+  // still-ongoing events and misclassify them as new on every sync.
   const {data:existingRows} = await sb
     .from('calendar_events')
     .select('google_event_id')
-    .gte('start_time', tMin)
+    .gte('end_time', tMin)
     .lte('start_time', tMax)
     .not('google_event_id', 'is', null)
   const existingIds = new Set((existingRows ?? []).map(r => r.google_event_id as string))
 
   const newRows: Record<string,unknown>[] = []
   const updateRows: Record<string,unknown>[] = []
-  let newEvents = 0
   const errors: string[] = []
 
   for (const item of activeItems) {
@@ -284,7 +287,6 @@ Deno.serve(async (req: Request) => {
         category:     personal ? 'Personal' : 'N21',
         access_roles: personal ? ['member','core','admin'] : ['admin','core','member','guest'],
       })
-      newEvents++
     } else {
       // Existing event: category and access_roles intentionally omitted —
       // a batch upsert only touches columns present across the whole batch,
@@ -294,11 +296,15 @@ Deno.serve(async (req: Request) => {
     }
   }
 
+  // newEvents drives the member notification fan-out below — only count
+  // events actually written, never events merely attempted (a failed batch
+  // upsert must not still tell members "N new events added").
   let upserted = 0
+  let newEvents = 0
   if (newRows.length) {
     const {error} = await sb.from('calendar_events').upsert(newRows, { onConflict: 'google_event_id' })
     if (error) errors.push('new_events upsert: ' + error.message)
-    else upserted += newRows.length
+    else { upserted += newRows.length; newEvents = newRows.length }
   }
   if (updateRows.length) {
     const {error} = await sb.from('calendar_events').upsert(updateRows, { onConflict: 'google_event_id' })
