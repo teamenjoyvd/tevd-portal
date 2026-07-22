@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { signIcalToken, IcalTokenConfigError } from '@/lib/server/icalToken'
+import { getBaseUrl } from '@/lib/utils/base-url'
 
 export async function GET() {
   const { userId } = await auth()
@@ -17,7 +18,7 @@ export async function GET() {
 
   // Return existing token if already generated
   if (profile.ical_token) {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://tevd-portal.vercel.app'
+    const baseUrl = await getBaseUrl()
     return Response.json({
       token: profile.ical_token,
       url: `${baseUrl}/api/calendar/feed.ics?token=${profile.ical_token}`,
@@ -41,7 +42,7 @@ export async function GET() {
     .update({ ical_token: token })
     .eq('id', profile.id)
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://tevd-portal.vercel.app'
+  const baseUrl = await getBaseUrl()
   return Response.json({
     token,
     url: `${baseUrl}/api/calendar/feed.ics?token=${token}`,
@@ -77,7 +78,7 @@ export async function POST() {
     .update({ ical_token: token })
     .eq('id', profile.id)
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://tevd-portal.vercel.app'
+  const baseUrl = await getBaseUrl()
   return Response.json({
     token,
     url: `${baseUrl}/api/calendar/feed.ics?token=${token}`,
