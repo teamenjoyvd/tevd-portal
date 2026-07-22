@@ -27,6 +27,7 @@ export async function getQuarterEvents(
     title: row.title ?? '',
     start_time: row.start_time ?? '',
     end_time: row.end_time ?? '',
+    description: row.description ?? null,
     slots: {
       HOST: row.host_name || null,
       SPEAKER: row.speaker_name || null,

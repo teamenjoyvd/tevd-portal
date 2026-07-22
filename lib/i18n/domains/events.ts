@@ -25,6 +25,7 @@ export const events = {
   'event.roles.col.event':    { en: 'Event',    bg: 'Събитие'  },
   'event.roles.col.date':     { en: 'Date',     bg: 'Дата'     },
   'event.roles.col.time':     { en: 'Time',     bg: 'Час'      },
+  'event.roles.col.details':  { en: 'Details',  bg: 'Описание' },
 
   // roles page — slot role labels
   'event.roles.label.host':     { en: 'Host',     bg: 'Домакин'   },
