@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Playfair_Display, Montserrat, Cormorant_Garamond, DM_Sans } from 'next/font/google'
+import { Playfair_Display, Montserrat, Cormorant_Garamond } from 'next/font/google'
 import { ClerkProvider } from '@clerk/nextjs'
 import { cookies } from 'next/headers'
 import type { Lang } from '@/lib/i18n/translations'
@@ -21,15 +21,9 @@ const montserrat = Montserrat({
 })
 
 const cormorant = Cormorant_Garamond({
-  subsets: ['latin'],
+  subsets: ['latin', 'cyrillic'],
   weight: ['300', '600'],
   variable: '--font-cormorant',
-  display: 'swap',
-})
-
-const dmSans = DM_Sans({
-  subsets: ['latin'],
-  variable: '--font-dm-sans',
   display: 'swap',
 })
 
@@ -56,7 +50,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <html
         lang={lang}
         data-font-size={fontSizeCookie}
-        className={`${playfair.variable} ${montserrat.variable} ${cormorant.variable} ${dmSans.variable}`}
+        className={`${playfair.variable} ${montserrat.variable} ${cormorant.variable}`}
       >
         <head>
           {/*

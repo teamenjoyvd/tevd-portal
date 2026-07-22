@@ -22,7 +22,7 @@ type Announcement = {
 }
 type SiteLink = { id: string; label: { en: string; bg: string }; url: string }
 type Guide = { id: string; slug: string; title: { en: string; bg: string }; emoji: string | null }
-type Trip = { id: string; title: string; destination: string; start_date: string; image_url: string | null }
+type Trip = { id: string; title: string; destination: string; start_date: string; end_date: string; image_url: string | null }
 type CalendarEvent = { id: string; title: string; start_time: string; end_time: string | null; event_type: string | null; is_all_day: boolean }
 
 export default async function HomePage() {
@@ -41,12 +41,15 @@ export default async function HomePage() {
   // subtract 3h from UTC midnight — covers both EET (+02:00) and EEST (+03:00) offsets.
   const calendarFrom = new Date(new Date().setUTCHours(0, 0, 0, 0) - 3 * 3600 * 1000).toISOString()
 
+  // Hero "Next Trip": only trips still sign-up-able (not yet ended). Date-only compare.
+  const todayDate = new Date().toISOString().slice(0, 10)
+
   const [announcementsRes, linksRes, tripsRes, guidesRes, eventsRes] = await Promise.all([
     supabase.from('announcements').select('id, titles, contents, is_active, slug').eq('is_active', true)
       .contains('access_roles', [role]).order('created_at', { ascending: false }).limit(5),
     supabase.from('links').select('id, label, url').eq('is_active', true).contains('access_roles', [role]).order('sort_order').limit(6),
-    supabase.from('trips').select('id, title, destination, start_date, image_url')
-      .contains('access_roles', [role]).order('start_date').limit(3),
+    supabase.from('trips').select('id, title, destination, start_date, end_date, image_url')
+      .contains('access_roles', [role]).gte('end_date', todayDate).order('start_date').limit(3),
     supabase.from('guides').select('id, slug, title, emoji')
       .eq('is_published', true).contains('access_roles', [role])
       .order('created_at', { ascending: false }).limit(6),

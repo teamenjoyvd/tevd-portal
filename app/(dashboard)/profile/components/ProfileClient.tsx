@@ -29,7 +29,6 @@ import { ParticipationSection, PARTICIPATION_MIN_HEIGHT } from './ParticipationS
 import { CalendarSection, CALENDAR_MIN_HEIGHT } from './CalendarSection'
 import { StatsSection, STATS_MIN_HEIGHT } from './StatsSection'
 import { AdminSection } from './AdminSection'
-import { LosUploadSection } from './LosUploadSection'
 import { EmailPrefsSection, EMAIL_PREFS_MIN_HEIGHT } from './EmailPrefsSection'
 import { InvitesBento } from './InvitesBento'
 import { type Profile } from '../types'
@@ -62,7 +61,6 @@ const BENTO_IDS = {
   STATS:            'stats',
   ADMIN:            'admin',
   INVITES:          'invites',
-  LOS_UPLOAD:       'los-upload',
 }
 
 const DEFAULT_ORDER: string[] = [
@@ -78,7 +76,6 @@ const DEFAULT_ORDER: string[] = [
   BENTO_IDS.EMAIL_PREFS,
   BENTO_IDS.STATS,
   BENTO_IDS.INVITES,
-  BENTO_IDS.LOS_UPLOAD,
   BENTO_IDS.ADMIN,
 ]
 
@@ -224,7 +221,7 @@ export function ProfileClient({ profileId, role, aboNumber, hasInvites }: Props)
       colSpan: 6, minHeight: CALENDAR_MIN_HEIGHT,
       node: <CalendarSection profileId={profileId} />,
     },
-    [BENTO_IDS.STATS]: aboNumber ? {
+    [BENTO_IDS.STATS]: (aboNumber || isCore) ? {
       colSpan: 6, minHeight: STATS_MIN_HEIGHT,
       node: <StatsSection role={role} aboNumber={aboNumber} />,
     } : null,
@@ -235,10 +232,6 @@ export function ProfileClient({ profileId, role, aboNumber, hasInvites }: Props)
     [BENTO_IDS.ADMIN]: isAdmin ? {
       colSpan: 6, minHeight: BENTO_HEIGHT.S,
       node: <AdminSection />,
-    } : null,
-    [BENTO_IDS.LOS_UPLOAD]: isCore ? {
-      colSpan: 6, minHeight: BENTO_HEIGHT.S,
-      node: <LosUploadSection />,
     } : null,
   }
 

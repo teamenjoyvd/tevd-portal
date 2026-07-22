@@ -3,7 +3,7 @@ import { excerptFromJSONContent } from '@/lib/format'
 import type { CardProps } from '../TripsClient'
 
 export default function TripCard(props: CardProps) {
-  const { trip, ctaNode } = props
+  const { trip, ctaNode, isCompleted } = props
   const isGuest = props.userRole === 'guest'
   const descriptionText = excerptFromJSONContent(trip.description)
   return (
@@ -11,9 +11,9 @@ export default function TripCard(props: CardProps) {
       className="rounded-2xl overflow-hidden flex flex-col md:h-full md:min-h-[300px]"
       style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}
     >
-      <TripImage src={trip.image_url} heightClassName="h-[180px] md:h-[220px]" overlay>
+      <TripImage src={trip.image_url} heightClassName="h-[180px] md:h-[220px]" overlay muted={isCompleted}>
         <div className="px-4 pb-3 md:px-5 md:pb-4">
-          <TripBadges destination={trip.destination} tripType={trip.trip_type} />
+          <TripBadges destination={trip.destination} tripType={trip.trip_type} completedLabel={isCompleted ? props.t('trips.status.completed') : null} />
           <h3 className="font-display text-xl md:text-2xl font-semibold leading-snug text-white">
             {trip.title}
           </h3>

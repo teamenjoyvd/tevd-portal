@@ -203,7 +203,13 @@ export default function UserDropdown() {
           {/* Sign out */}
           <DropdownMenuItem asChild>
             <button
-              onClick={() => signOut({ redirectUrl: '/' })}
+              onClick={async () => {
+                // Hard navigation (not Clerk's soft redirect) so the client RSC cache is
+                // discarded and the server access guard re-runs — otherwise a restricted
+                // guide already rendered on /library/[slug] lingers after sign-out.
+                await signOut()
+                window.location.href = '/'
+              }}
               className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors cursor-pointer"
               style={{ color: 'var(--brand-crimson)', borderTop: '1px solid var(--border-default)', backgroundColor: 'transparent' }}
               onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--bg-global)')}

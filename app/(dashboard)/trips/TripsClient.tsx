@@ -7,7 +7,7 @@ import { useLanguage } from '@/lib/hooks/useLanguage'
 import RegisterButton from '@/components/trips/RegisterButton'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
-import { PinIcon } from './components/TripShared'
+import { PinIcon, isTripCompleted } from './components/TripShared'
 import TripCard from './components/TripCard'
 import type { Trip } from './page'
 import { apiClient } from '@/lib/apiClient'
@@ -27,6 +27,8 @@ export type CardProps = {
   trip: Trip
   registrationStatus: 'pending' | 'approved' | 'denied' | undefined
   isCancelled: boolean
+  // True once the trip's end_date has passed — shows a Completed badge + disabled CTA.
+  isCompleted: boolean
   // authLoading: true while Clerk, profile, or profile-payments is still in
   // flight for a signed-in user. Skeleton is shown until all three settle.
   authLoading: boolean
@@ -69,11 +71,23 @@ type CtaResult = { node: React.ReactNode; showRegister: boolean }
 type CtaProps = Omit<CardProps, 'ctaNode'>
 
 // Pure function — no hooks. router.push is received as onViewDetails prop.
-function Cta({ trip, registrationStatus, isCancelled, authLoading, profileId, onCancel, onViewDetails, isCancelling, t, userRole }: CtaProps): CtaResult {
+function Cta({ trip, registrationStatus, isCancelled, isCompleted, authLoading, profileId, onCancel, onViewDetails, isCancelling, t, userRole }: CtaProps): CtaResult {
   const isRegistered = !!registrationStatus && registrationStatus !== 'denied' && !isCancelled
 
   if (authLoading) {
     return { node: <Skeleton className="rounded-xl" style={{ height: 44 }} />, showRegister: false }
+  }
+
+  // Past trips: a disabled "Trip Completed" state takes precedence over registration/register CTAs.
+  if (isCompleted) {
+    return {
+      node: (
+        <div className="px-4 py-3 rounded-xl text-center" style={{ backgroundColor: 'var(--border-default)' }}>
+          <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>{t('trips.status.tripCompleted')}</p>
+        </div>
+      ),
+      showRegister: false,
+    }
   }
 
   if (isRegistered && registrationStatus) {
@@ -202,6 +216,7 @@ export default function TripsClient({ initialTrips }: { initialTrips: Trip[] }) 
       trip,
       registrationStatus: regByTripId[trip.id]?.registration_status,
       isCancelled: !!regByTripId[trip.id]?.cancelled_at,
+      isCompleted: isTripCompleted(trip.end_date),
       authLoading,
       profileId: profile?.id ?? null,
       onCancel: (id: string) => cancelMutation.mutate(id),
