@@ -13,6 +13,7 @@ import HeroTile from '@/app/(dashboard)/components/tiles/HeroTile'
 import AboutTile from '@/app/(dashboard)/components/tiles/AboutTile'
 import AnnouncementTile from '@/app/(dashboard)/components/tiles/AnnouncementTile'
 import TripHeroTile from '@/app/(dashboard)/components/tiles/TripHeroTile'
+import { todayInSofia } from '@/lib/format'
 
 export const dynamic = 'force-dynamic'
 
@@ -42,8 +43,10 @@ export default async function HomePage() {
   const calendarFrom = new Date(new Date().setUTCHours(0, 0, 0, 0) - 3 * 3600 * 1000).toISOString()
 
   // Only surface current/future trips on the homepage, so the "next trip" tile skips
-  // trips that have already started. `start_date` is a DATE column → compare as YYYY-MM-DD.
-  const tripsFrom = new Date().toISOString().slice(0, 10)
+  // trips that have already started. `start_date` is a DATE column → compare as
+  // YYYY-MM-DD in Europe/Sofia local time (UTC would still show yesterday just after
+  // Sofia midnight).
+  const tripsFrom = todayInSofia()
 
   const [announcementsRes, linksRes, tripsRes, guidesRes, eventsRes] = await Promise.all([
     supabase.from('announcements').select('id, titles, contents, is_active, slug').eq('is_active', true)
