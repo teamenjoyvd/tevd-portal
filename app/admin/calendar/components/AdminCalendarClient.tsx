@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useRef, useCallback } from 'react'
+import { useState, useMemo, useRef, useCallback, useEffect } from 'react'
 import { RefreshCw } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { formatDateTime, toSofiaLocalInput } from '@/lib/format'
@@ -125,6 +125,12 @@ export default function AdminCalendarClient() {
     setMonthFilter('')
   }
 
+  const { data: syncStatus } = useQuery<{ last_synced_at: string; ok: boolean; error: string | null } | null>({
+    queryKey: ['admin-calendar-sync-status'],
+    queryFn: () => fetch('/api/admin/calendar-sync').then(async r => { if (!r.ok) throw new Error('Failed to fetch sync status'); return r.json() }),
+    refetchInterval: 60_000,
+  })
+
   const syncMutation = useMutation({
     mutationFn: async () => {
       const res = await fetch('/api/admin/calendar-sync', { method: 'POST' })
@@ -133,12 +139,24 @@ export default function AdminCalendarClient() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-calendar'] })
+      qc.invalidateQueries({ queryKey: ['admin-calendar-sync-status'] })
       setTimeout(() => syncMutation.reset(), 2000)
     },
     onError: () => {
       setTimeout(() => syncMutation.reset(), 2000)
     },
   })
+
+  const [now, setNow] = useState<number | null>(null)
+  useEffect(() => { setNow(Date.now()) }, [syncStatus])
+
+  const syncStatusLabel = useMemo(() => {
+    if (!syncStatus) return null
+    if (!syncStatus.ok) return `FAILED: ${syncStatus.error ?? 'unknown error'}`
+    if (now === null) return null
+    const minsAgo = Math.max(0, Math.round((now - new Date(syncStatus.last_synced_at).getTime()) / 60_000))
+    return `Last sync: ${minsAgo < 1 ? 'just now' : `${minsAgo} min ago`}`
+  }, [syncStatus, now])
 
   const createMutation = useMutation({
     mutationFn: (body: EventFormState) =>
@@ -237,6 +255,14 @@ export default function AdminCalendarClient() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {syncStatusLabel && (
+            <span
+              className="text-xs hidden sm:inline"
+              style={{ color: syncStatus?.ok === false ? 'var(--brand-crimson)' : 'var(--text-secondary)' }}
+            >
+              {syncStatusLabel}
+            </span>
+          )}
           <button
             onClick={() => syncMutation.mutate()}
             disabled={syncMutation.status !== 'idle'}

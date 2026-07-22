@@ -156,9 +156,31 @@ function resolveTimes(item: Record<string, unknown>): {
   return { startIso: '', endIso: '', isAllDay: false }
 }
 
+/**
+ * Record the outcome of a sync attempt for admin-facing observability.
+ * Stored in the existing `notification_config` kv table rather than a new
+ * table — reuses the pattern already used for email/in-app delivery config.
+ */
+async function recordSyncStatus(
+  sb: ReturnType<typeof createClient>,
+  ok: boolean,
+  error: string | null,
+): Promise<void> {
+  await sb.from('notification_config').upsert(
+    {
+      key:   'calendar_sync_status',
+      value: { last_synced_at: new Date().toISOString(), ok, error },
+    },
+    { onConflict: 'key' },
+  )
+}
+
 Deno.serve(async (req: Request) => {
   const secret = Deno.env.get('SYNC_SECRET')
-  if (secret && req.headers.get('x-sync-secret') !== secret) {
+  if (!secret) {
+    return new Response(JSON.stringify({error:'Unauthorized'}), {status:401})
+  }
+  if (req.headers.get('x-sync-secret') !== secret) {
     return new Response(JSON.stringify({error:'Unauthorized'}), {status:401})
   }
 
@@ -168,32 +190,69 @@ Deno.serve(async (req: Request) => {
     return new Response(JSON.stringify({error:'Missing env secrets'}), {status:500})
   }
 
+  const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+
   let token: string
   try { token = await getGoogleAccessToken(JSON.parse(sa)) }
-  catch(e) { return new Response(JSON.stringify({error:'auth_failed',detail:String(e)}),{status:500}) }
+  catch(e) {
+    const detail = String(e)
+    await recordSyncStatus(sb, false, detail)
+    return new Response(JSON.stringify({error:'auth_failed',detail}),{status:500})
+  }
 
-  const sb   = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
   const tMin = new Date().toISOString()
   const tMax = new Date(Date.now()+180*864e5).toISOString()
-  const url  = new URL('https://www.googleapis.com/calendar/v3/calendars/' + encodeURIComponent(calId) + '/events')
-  url.searchParams.set('timeMin', tMin)
-  url.searchParams.set('timeMax', tMax)
-  url.searchParams.set('singleEvents', 'true')
-  url.searchParams.set('orderBy', 'startTime')
-  url.searchParams.set('maxResults', '100')
-  // Required to receive conferenceData (Google Meet links) in the response
-  url.searchParams.set('conferenceDataVersion', '1')
 
-  const calRes = await fetch(url.toString(), {headers: {Authorization: 'Bearer ' + token}})
-  if (!calRes.ok) return new Response(JSON.stringify({error:'calendar_api_failed',detail:await calRes.text()}),{status:500})
+  // Paginate: a single 180-day window can exceed one page (Google caps
+  // maxResults at 2500; using 250 keeps individual responses light).
+  const items: Record<string,unknown>[] = []
+  let pageToken: string | undefined
+  do {
+    const url = new URL('https://www.googleapis.com/calendar/v3/calendars/' + encodeURIComponent(calId) + '/events')
+    url.searchParams.set('timeMin', tMin)
+    url.searchParams.set('timeMax', tMax)
+    url.searchParams.set('singleEvents', 'true')
+    url.searchParams.set('orderBy', 'startTime')
+    url.searchParams.set('maxResults', '250')
+    url.searchParams.set('showDeleted', 'true')
+    // Required to receive conferenceData (Google Meet links) in the response
+    url.searchParams.set('conferenceDataVersion', '1')
+    if (pageToken) url.searchParams.set('pageToken', pageToken)
 
-  const items: Record<string,unknown>[] = (await calRes.json()).items ?? []
-  let upserted = 0, newEvents = 0
+    const calRes = await fetch(url.toString(), {headers: {Authorization: 'Bearer ' + token}})
+    if (!calRes.ok) {
+      const detail = await calRes.text()
+      await recordSyncStatus(sb, false, detail)
+      return new Response(JSON.stringify({error:'calendar_api_failed',detail}),{status:500})
+    }
+    const page = await calRes.json()
+    items.push(...((page.items ?? []) as Record<string,unknown>[]))
+    pageToken = page.nextPageToken
+  } while (pageToken)
+
+  const fetchedIds     = new Set(items.map(i => String(i.id)))
+  const cancelledIds   = items.filter(i => i.status === 'cancelled').map(i => String(i.id))
+  const activeItems    = items.filter(i => i.status !== 'cancelled')
+
+  // Bulk-fetch existing rows in the sync window once, instead of a
+  // select-then-write round trip per event. Doubles as: (a) the new-vs-
+  // existing diff for the notification fan-out, (b) the stale-row set for
+  // reconciliation (rows Google no longer returns at all, bounded to this
+  // window).
+  const {data:existingRows} = await sb
+    .from('calendar_events')
+    .select('google_event_id')
+    .gte('start_time', tMin)
+    .lte('start_time', tMax)
+    .not('google_event_id', 'is', null)
+  const existingIds = new Set((existingRows ?? []).map(r => r.google_event_id as string))
+
+  const newRows: Record<string,unknown>[] = []
+  const updateRows: Record<string,unknown>[] = []
+  let newEvents = 0
   const errors: string[] = []
 
-  for (const item of items) {
-    if (item.status === 'cancelled') continue
-
+  for (const item of activeItems) {
     const { startIso, endIso, isAllDay } = resolveTimes(item)
     if (!startIso || !endIso) continue
 
@@ -204,10 +263,10 @@ Deno.serve(async (req: Request) => {
     const meetingUrl = extractMeetingUrl(item, rawDesc)
     const cleanDesc  = rawDesc ? (stripHtml(rawDesc) || null) : null
     const location   = typeof item.location === 'string' && item.location ? item.location : null
+    const itemId     = String(item.id)
 
-    const {data:ex} = await sb.from('calendar_events').select('id').eq('google_event_id', item.id).maybeSingle()
-
-    const eventPayload = {
+    const eventPayload: Record<string,unknown> = {
+      google_event_id: itemId,
       title:       String(item.summary ?? 'Untitled'),
       description: cleanDesc,
       meeting_url: meetingUrl,
@@ -218,26 +277,45 @@ Deno.serve(async (req: Request) => {
       is_all_day:  isAllDay,
     }
 
-    if (!ex) {
-      // New event: full insert including category and access_roles
-      const {error:ie} = await sb.from('calendar_events').insert({
+    if (!existingIds.has(itemId)) {
+      // New event: full row including category and access_roles.
+      newRows.push({
         ...eventPayload,
-        google_event_id: item.id,
-        category:        personal ? 'Personal' : 'N21',
-        access_roles:    personal ? ['member','core','admin'] : ['admin','core','member','guest'],
+        category:     personal ? 'Personal' : 'N21',
+        access_roles: personal ? ['member','core','admin'] : ['admin','core','member','guest'],
       })
-      if (ie) errors.push(String(item.id) + ': ' + ie.message)
-      else { upserted++; newEvents++ }
+      newEvents++
     } else {
-      // Existing event: update scheduling, content, and is_all_day.
-      // category and access_roles are intentionally not touched here
-      // (admins may have customised them after the initial sync).
-      const {error:ue} = await sb.from('calendar_events')
-        .update(eventPayload)
-        .eq('google_event_id', item.id)
-      if (ue) errors.push(String(item.id) + ': ' + ue.message)
-      else upserted++
+      // Existing event: category and access_roles intentionally omitted —
+      // a batch upsert only touches columns present across the whole batch,
+      // so keeping this row's keys distinct from `newRows` (no category key
+      // at all) preserves any admin customisation post-initial-sync.
+      updateRows.push(eventPayload)
     }
+  }
+
+  let upserted = 0
+  if (newRows.length) {
+    const {error} = await sb.from('calendar_events').upsert(newRows, { onConflict: 'google_event_id' })
+    if (error) errors.push('new_events upsert: ' + error.message)
+    else upserted += newRows.length
+  }
+  if (updateRows.length) {
+    const {error} = await sb.from('calendar_events').upsert(updateRows, { onConflict: 'google_event_id' })
+    if (error) errors.push('existing_events upsert: ' + error.message)
+    else upserted += updateRows.length
+  }
+
+  // Deletions: explicit Google cancellations, plus reconciliation — rows
+  // inside the fetched window that Google no longer returns at all (bounded
+  // to this window; never a global sweep).
+  const toDelete = new Set<string>(cancelledIds)
+  for (const id of existingIds) {
+    if (!fetchedIds.has(id)) toDelete.add(id)
+  }
+  if (toDelete.size) {
+    const {error} = await sb.from('calendar_events').delete().in('google_event_id', [...toDelete])
+    if (error) errors.push('delete: ' + error.message)
   }
 
   if (newEvents > 0) {
@@ -255,7 +333,9 @@ Deno.serve(async (req: Request) => {
     }
   }
 
-  return new Response(JSON.stringify({upserted, new_events: newEvents, errors}), {
+  await recordSyncStatus(sb, errors.length === 0, errors.length ? errors.join('; ') : null)
+
+  return new Response(JSON.stringify({upserted, new_events: newEvents, deleted: toDelete.size, errors}), {
     headers: {'Content-Type': 'application/json'},
   })
 })
