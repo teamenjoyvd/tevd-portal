@@ -597,14 +597,8 @@ export default function EventPopup({
 
       <Dialog open={qrDataUrl !== null} onOpenChange={(open) => { if (!open) setQrDataUrl(null) }}>
         <DialogContent
-          style={{
-            position: 'fixed',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: 320,
-            maxWidth: '90vw',
-          }}
+          className="left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+          style={{ width: 320, maxWidth: '90vw' }}
         >
           <DialogHeader>
             <DialogTitle>{t('cal.qrTitle')}</DialogTitle>
