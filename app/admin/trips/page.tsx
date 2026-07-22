@@ -31,9 +31,14 @@ export default async function TripsListPage() {
     <div className="space-y-6 pb-16">
       {/* ── Header ── */}
       <div className="flex items-center justify-between">
-        <h1 className="font-display text-2xl font-semibold" style={{ color: 'var(--text-primary)' }}>
-          Trips
-        </h1>
+        <div>
+          <h1 className="font-display text-2xl font-semibold" style={{ color: 'var(--text-primary)' }}>
+            Trips
+          </h1>
+          <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
+            The homepage displays the next due trip.
+          </p>
+        </div>
         <Link
           href="/admin/trips/new"
           className="px-4 py-2 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-opacity"

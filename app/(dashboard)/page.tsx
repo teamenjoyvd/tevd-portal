@@ -13,6 +13,7 @@ import HeroTile from '@/app/(dashboard)/components/tiles/HeroTile'
 import AboutTile from '@/app/(dashboard)/components/tiles/AboutTile'
 import AnnouncementTile from '@/app/(dashboard)/components/tiles/AnnouncementTile'
 import TripHeroTile from '@/app/(dashboard)/components/tiles/TripHeroTile'
+import { todayInSofia } from '@/lib/format'
 
 export const dynamic = 'force-dynamic'
 
@@ -41,8 +42,10 @@ export default async function HomePage() {
   // subtract 3h from UTC midnight — covers both EET (+02:00) and EEST (+03:00) offsets.
   const calendarFrom = new Date(new Date().setUTCHours(0, 0, 0, 0) - 3 * 3600 * 1000).toISOString()
 
-  // Hero "Next Trip": only trips still sign-up-able (not yet ended). Date-only compare.
-  const todayDate = new Date().toISOString().slice(0, 10)
+  // Hero "Next Trip": only trips still sign-up-able (not yet ended). `end_date` is a
+  // DATE column → compare as YYYY-MM-DD in Europe/Sofia local time (UTC would still
+  // show yesterday just after Sofia midnight).
+  const todayDate = todayInSofia()
 
   const [announcementsRes, linksRes, tripsRes, guidesRes, eventsRes] = await Promise.all([
     supabase.from('announcements').select('id, titles, contents, is_active, slug').eq('is_active', true)
