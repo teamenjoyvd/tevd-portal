@@ -206,6 +206,12 @@ export const adminContent = {
   'admin.calendar.placeholder.description': { en: 'Description (optional)', bg: 'Описание (незадължително)' },
   'admin.calendar.placeholder.meetingUrl': { en: 'https://zoom.us/j/…', bg: 'https://zoom.us/j/…' },
   'admin.calendar.placeholder.roleTag': { en: 'Add role…', bg: 'Добави роля…' },
+  'admin.calendar.sync.lastSync': { en: 'Last sync: {{time}}', bg: 'Последна синхронизация: {{time}}' },
+  'admin.calendar.sync.justNow': { en: 'just now', bg: 'току-що' },
+  'admin.calendar.sync.minAgo': { en: '{{n}} min ago', bg: 'преди {{n}} мин' },
+  'admin.calendar.sync.failed': { en: 'FAILED: {{error}}', bg: 'НЕУСПЕШНО: {{error}}' },
+  'admin.calendar.sync.unknownError': { en: 'unknown error', bg: 'неизвестна грешка' },
+  'admin.calendar.sync.unavailable': { en: 'Sync status unavailable', bg: 'Статусът на синхронизацията не е наличен' },
 
   // -- Event Reminders page --
   'admin.eventReminders.pageTitle': { en: 'Event Reminders', bg: 'Напомняния за събития' },
