@@ -9,7 +9,9 @@ export class IcalTokenConfigError extends Error {}
 
 function getSecret(): Uint8Array {
   const raw = process.env.ICAL_TOKEN_SECRET
-  if (!raw) throw new IcalTokenConfigError('ICAL_TOKEN_SECRET is not set')
+  if (raw === undefined || raw === '') {
+    throw new IcalTokenConfigError('ICAL_TOKEN_SECRET is not set')
+  }
   return new TextEncoder().encode(raw)
 }
 

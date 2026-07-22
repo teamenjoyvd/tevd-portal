@@ -76,7 +76,7 @@ export async function POST(req: Request): Promise<Response> {
   const caller = ctx.profile
 
   const body = await req.json().catch(() => null)
-  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+  if (body === null || body === undefined || typeof body !== 'object' || Array.isArray(body)) {
     return Response.json({ error: 'Invalid or empty request body' }, { status: 400 })
   }
 
@@ -94,11 +94,19 @@ export async function POST(req: Request): Promise<Response> {
     return Response.json({ error: 'title, start_time, and end_time are required' }, { status: 400 })
   }
 
-  // Auto-compute week_number from start_time if not provided
-  if (!picked.week_number) {
-    const d = new Date(picked.start_time)
-    const startOfYear = new Date(d.getFullYear(), 0, 1)
-    picked.week_number = Math.ceil(((d.getTime() - startOfYear.getTime()) / 86400000 + startOfYear.getDay() + 1) / 7)
+  const startDate = new Date(picked.start_time)
+  const endDate = new Date(picked.end_time)
+  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+    return Response.json({ error: 'start_time and end_time must be valid dates' }, { status: 400 })
+  }
+
+  // Auto-compute week_number only when the field is genuinely absent (not merely falsy — 0 is a valid value)
+  if (picked.week_number === null || picked.week_number === undefined) {
+    const startOfYear = new Date(startDate.getFullYear(), 0, 1)
+    picked.week_number = Math.ceil(((startDate.getTime() - startOfYear.getTime()) / 86400000 + startOfYear.getDay() + 1) / 7)
+  }
+  if (typeof picked.week_number !== 'number' || !Number.isInteger(picked.week_number)) {
+    return Response.json({ error: 'week_number must be an integer' }, { status: 400 })
   }
 
   const insertData: Database['public']['Tables']['calendar_events']['Insert'] = {
@@ -106,7 +114,7 @@ export async function POST(req: Request): Promise<Response> {
     title: picked.title,
     start_time: picked.start_time,
     end_time: picked.end_time,
-    week_number: picked.week_number as number,
+    week_number: picked.week_number,
     created_by: caller.id,
   }
 
