@@ -12,7 +12,7 @@ const BUTTON_STYLE: CSSProperties = {
   border: `1px solid ${TEAL}`,
   borderRadius: "6px",
   color: TEAL,
-  fontFamily: "var(--font-dm-sans)",
+  fontFamily: "var(--font-body)",
   fontSize: "12px",
   fontWeight: 600,
   textDecoration: "none",
@@ -31,7 +31,7 @@ export const TranslationCard = () => (
     gap: "8px",
   }}>
     <div style={{
-      fontFamily: "var(--font-dm-sans)",
+      fontFamily: "var(--font-body)",
       fontSize: "10px",
       fontWeight: 700,
       color: TEAL,
@@ -53,7 +53,7 @@ export const TranslationCard = () => (
         LiveVoice
       </div>
       <div style={{
-        fontFamily: "var(--font-dm-sans)",
+        fontFamily: "var(--font-body)",
         fontSize: "12px",
         color: "var(--text-secondary)",
         marginTop: "3px",
@@ -69,7 +69,7 @@ export const TranslationCard = () => (
         borderRadius: "6px",
         padding: "6px 10px",
         marginTop: "8px",
-        fontFamily: "var(--font-dm-sans)",
+        fontFamily: "var(--font-body)",
         fontSize: "12px",
       }}>
         <span style={{ color: "var(--text-tertiary)" }}>Код за достъп:</span>
@@ -114,7 +114,7 @@ export const TranslationCard = () => (
         target="_blank"
         rel="noopener noreferrer"
         style={{
-          fontFamily: "var(--font-dm-sans)",
+          fontFamily: "var(--font-body)",
           fontSize: "12px",
           color: TEAL,
           textDecoration: "none",

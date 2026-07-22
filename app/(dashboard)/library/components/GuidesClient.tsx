@@ -14,6 +14,8 @@ export type Props = {
   initialLinks: SiteLink[]
   initialNews: NewsItem[]
   guideHrefPrefix: string
+  /** Last-selected category from the tevd_library_tab cookie; used when ?type= is absent. */
+  initialTab?: string
 }
 
 /** Ensure URL has a protocol prefix so browsers don't treat it as a relative path. */
@@ -84,11 +86,12 @@ type TabValue = typeof TAB_VALUES[number]
 
 // ── Inner client — reads searchParams ─────────────────────────────────────────────────
 
-function GuidesInner({ initialGuides: guides, initialLinks: links, initialNews: news, guideHrefPrefix }: Props) {
+function GuidesInner({ initialGuides: guides, initialLinks: links, initialNews: news, guideHrefPrefix, initialTab = 'all' }: Props) {
   const { lang, t } = useLanguage()
   const searchParams = useSearchParams()
   const router = useRouter()
-  const rawTab = searchParams.get('type') ?? 'all'
+  // No ?type= in the URL → fall back to the remembered category (from the SSR cookie).
+  const rawTab = searchParams.get('type') ?? initialTab
   const tab: TabValue = (TAB_VALUES as readonly string[]).includes(rawTab) ? rawTab as TabValue : 'all'
 
   // Data is always present from SSR — no client fetching, no loading state.
@@ -237,6 +240,8 @@ function GuidesInner({ initialGuides: guides, initialLinks: links, initialNews: 
         <Tabs
           value={tab}
           onValueChange={(val) => {
+            // Remember the choice for next visit (read server-side for zero-flash SSR).
+            document.cookie = `tevd_library_tab=${val}; path=/; max-age=31536000; samesite=lax`
             const params = new URLSearchParams(searchParams.toString())
             params.set('type', val)
             router.replace(`?${params.toString()}`, { scroll: false })

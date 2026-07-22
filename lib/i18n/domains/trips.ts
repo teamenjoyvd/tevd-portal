@@ -18,6 +18,8 @@ export const trips = {
   },
   'trips.status.approved':      { en: 'Approved',                bg: 'Одобрено'                           },
   'trips.status.denied':        { en: 'Declined',                bg: 'Отказано'                           },
+  'trips.status.completed':     { en: 'Completed',               bg: 'Завършило'                          },
+  'trips.status.tripCompleted': { en: 'Trip Completed',          bg: 'Завършило пътуване'                 },
   'trips.pageTitle':            { en: 'Team Trips',              bg: 'Пътувания на отбора'                },
   'trips.pageSubtitle':         { en: 'Register and track your payments', bg: 'Регистрирайте се и следете плащанията' },
   'trips.memberOnly':           { en: 'Members only',            bg: 'Само за членове'                    },

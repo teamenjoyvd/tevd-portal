@@ -52,9 +52,9 @@ utilities:
 | Utility | `@theme` token | Font | next/font var |
 |---|---|---|---|
 | `font-display` | `--font-display` | Cormorant Garamond | `--font-cormorant` |
-| `font-body` | `--font-body` | DM Sans | `--font-dm-sans` |
+| `font-body` | `--font-body` | Montserrat | `--font-montserrat` |
 | `font-serif` | `--font-serif` | Playfair Display | `--font-playfair` |
 | `font-sans` | `--font-sans` | Montserrat | `--font-montserrat` |
 
-`<body>` defaults to `font-body` (DM Sans). All four fonts have real usage in the
-app, so none were trimmed.
+`<body>` defaults to `font-body` (Montserrat). DM Sans was removed; the remaining
+fonts have real usage in the app.

@@ -16,6 +16,9 @@
   --sienna: var(--brand-sienna);
   --forest: var(--brand-forest);
 
+  /* Logo wordmark: forest on light, remapped to parchment in dark mode below */
+  --logo-text: var(--brand-forest);
+
   /* ── Semantic ── */
   --bg-global-rgb:     250, 248, 243;
   --bg-global:         var(--brand-parchment);
@@ -58,6 +61,7 @@ html { font-size: calc(var(--font-scale) * 16px); }
   --text-secondary: #B5B0A8;
   --text-nav:       var(--brand-parchment); /* full parchment on dark backdrop */
   --nav-border:     rgba(250, 248, 243, 0.10); /* parchment-tinted, subtle outline on dark bg */
+  --logo-text:      var(--brand-parchment); /* wordmark visible on dark backdrop */
 }
 
 /* ── Utility classes ── */

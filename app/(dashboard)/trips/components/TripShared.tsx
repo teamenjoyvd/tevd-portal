@@ -1,6 +1,17 @@
 import { formatDate, formatCurrency } from '@/lib/format'
 import type { Trip } from '../page'
 
+/**
+ * A trip is "completed" once its end date is strictly before today.
+ * Compared as date-only strings (local today) to avoid UTC/local boundary skew —
+ * a trip ending today is NOT yet completed.
+ */
+export function isTripCompleted(endDate: string): boolean {
+  const now = new Date()
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  return endDate.slice(0, 10) < todayStr
+}
+
 export function CalendarIcon({ size }: { size: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -27,12 +38,15 @@ export function TripImage({
   src,
   heightClassName,
   overlay = false,
+  muted = false,
   children,
 }: {
   src: string | null | undefined
   /** Tailwind height classes, e.g. `"h-[180px] md:h-[220px]"` — responsive since desktop/mobile use different fixed heights. */
   heightClassName: string
   overlay?: boolean
+  /** Desaturate the image (e.g. for completed trips). */
+  muted?: boolean
   children?: React.ReactNode
 }) {
   return (
@@ -47,6 +61,7 @@ export function TripImage({
           alt=""
           aria-hidden="true"
           className="w-full h-full object-cover"
+          style={muted ? { filter: 'grayscale(0.7)' } : undefined}
           onError={e => {
             const el = e.currentTarget
             el.style.display = 'none'
@@ -68,9 +83,18 @@ export function TripImage({
   )
 }
 
-export function TripBadges({ destination, tripType }: { destination: string; tripType: string | null | undefined }) {
+export function TripBadges({ destination, tripType, completedLabel }: { destination: string; tripType: string | null | undefined; completedLabel?: string | null }) {
+  const hasCompletedLabel = completedLabel !== null && completedLabel !== undefined && completedLabel.length > 0
   return (
     <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
+      {hasCompletedLabel && (
+        <span
+          className="text-xs font-semibold px-2 py-0.5 rounded-full"
+          style={{ backgroundColor: 'var(--brand-stone)', color: 'rgba(255,255,255,0.95)' }}
+        >
+          {completedLabel}
+        </span>
+      )}
       <span
         className="text-xs font-semibold px-2 py-0.5 rounded-full"
         style={{ backgroundColor: 'var(--brand-forest)', color: 'rgba(255,255,255,0.85)' }}

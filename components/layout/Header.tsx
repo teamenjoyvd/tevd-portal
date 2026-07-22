@@ -65,7 +65,7 @@ export default function Header() {
             </div>
             <span
               className="font-display text-base font-bold tracking-tight hidden sm:block"
-              style={{ color: 'var(--brand-forest)' }}
+              style={{ color: 'var(--logo-text)' }}
             >
               TEAMENJOY<span style={{ color: 'var(--brand-crimson)' }}>VD</span>
             </span>
