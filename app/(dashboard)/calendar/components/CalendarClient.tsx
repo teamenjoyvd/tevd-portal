@@ -1,9 +1,8 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { MONTHS_I18N } from '@/lib/i18n/translations'
-import { VaulDrawer } from '@/components/ui/vaul-drawer'
 import { Dialog, DialogContent, DialogOverlay, DialogPortal } from '@/components/ui/dialog'
 import EventPopup from '@/app/(dashboard)/calendar/components/EventPopup'
 import { useCalendar } from '@/app/(dashboard)/calendar/components/useCalendar'
@@ -64,19 +63,6 @@ export default function CalendarClient({
     userRole,
     isAuthenticated,
   })
-
-  // Radix's Dialog portals its content straight to document.body, bypassing
-  // the "hidden md:block" wrapper it's nested in — so without this guard the
-  // desktop modal (and its own EventPopup instance) mounts on mobile too,
-  // alongside the VaulDrawer, both sharing selectedEventId.
-  const [isDesktop, setIsDesktop] = useState(false)
-  useEffect(() => {
-    const mql = window.matchMedia('(min-width: 768px)')
-    const update = () => setIsDesktop(mql.matches)
-    update()
-    mql.addEventListener('change', update)
-    return () => mql.removeEventListener('change', update)
-  }, [])
 
   const periodLabel = useMemo(
     () => `${MONTHS[current.getMonth()]} ${current.getFullYear()}`,
@@ -201,18 +187,6 @@ export default function CalendarClient({
             <AgendaView events={events} onEventClick={handleEventClick} isLoading={agendaPending} highlightId={deepLinkId} />
           )}
         </div>
-
-        {/* Mobile event sheet */}
-        {selectedEventId && (
-          <VaulDrawer open onClose={handleClose}>
-            <EventPopup
-              eventId={selectedEventId}
-              onClose={handleClose}
-              userRole={userRole}
-              profileNameMissing={profileNameMissing}
-            />
-          </VaulDrawer>
-        )}
       </div>
 
       {/* ── DESKTOP ──────────────────────────────────────────────────────────────── */}
@@ -351,7 +325,7 @@ export default function CalendarClient({
         </div>
 
         {/* Desktop event modal */}
-        <Dialog open={isDesktop && !!selectedEventId} onOpenChange={open => { if (!open) handleClose() }}>
+        <Dialog open={!!selectedEventId} onOpenChange={open => { if (!open) handleClose() }}>
           <DialogPortal>
             <DialogOverlay
               style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}
