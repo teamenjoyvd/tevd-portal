@@ -205,9 +205,20 @@ Deno.serve(async (req: Request) => {
 
   // Paginate: a single 180-day window can exceed one page (Google caps
   // maxResults at 2500; using 250 keeps individual responses light).
+  // Bounded by MAX_PAGES as a defensive backstop against a misbehaving API
+  // returning nextPageToken indefinitely; each request has its own timeout
+  // so a hung response can't block the function forever.
+  const MAX_PAGES = 50
   const items: Record<string,unknown>[] = []
   let pageToken: string | undefined
+  let pageCount = 0
   do {
+    if (++pageCount > MAX_PAGES) {
+      const detail = `exceeded ${MAX_PAGES} pages`
+      await recordSyncStatus(sb, false, detail)
+      return new Response(JSON.stringify({error:'calendar_api_failed',detail}),{status:500})
+    }
+
     const url = new URL('https://www.googleapis.com/calendar/v3/calendars/' + encodeURIComponent(calId) + '/events')
     url.searchParams.set('timeMin', tMin)
     url.searchParams.set('timeMax', tMax)
@@ -219,7 +230,18 @@ Deno.serve(async (req: Request) => {
     url.searchParams.set('conferenceDataVersion', '1')
     if (pageToken) url.searchParams.set('pageToken', pageToken)
 
-    const calRes = await fetch(url.toString(), {headers: {Authorization: 'Bearer ' + token}})
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 15_000)
+    let calRes: Response
+    try {
+      calRes = await fetch(url.toString(), {headers: {Authorization: 'Bearer ' + token}, signal: controller.signal})
+    } catch(e) {
+      const detail = String(e)
+      await recordSyncStatus(sb, false, detail)
+      return new Response(JSON.stringify({error:'calendar_api_failed',detail}),{status:500})
+    } finally {
+      clearTimeout(timeout)
+    }
     if (!calRes.ok) {
       const detail = await calRes.text()
       await recordSyncStatus(sb, false, detail)
@@ -243,12 +265,21 @@ Deno.serve(async (req: Request) => {
   // matches the window if it hasn't ended before tMin and hasn't started
   // after tMax) — a start_time-only bound would miss already-started,
   // still-ongoing events and misclassify them as new on every sync.
-  const {data:existingRows} = await sb
+  // Not paginated beyond Supabase's 1000-row default: this table holds one
+  // team calendar's events, and a 180-day window realistically never
+  // approaches that row count — adding keyset pagination here would be
+  // disproportionate complexity for this scope.
+  const {data:existingRows, error:existingRowsError} = await sb
     .from('calendar_events')
     .select('google_event_id')
     .gte('end_time', tMin)
     .lte('start_time', tMax)
     .not('google_event_id', 'is', null)
+  if (existingRowsError) {
+    const detail = existingRowsError.message
+    await recordSyncStatus(sb, false, detail)
+    return new Response(JSON.stringify({error:'existing_rows_lookup_failed',detail}),{status:500})
+  }
   const existingIds = new Set((existingRows ?? []).map(r => r.google_event_id as string))
 
   const newRows: Record<string,unknown>[] = []
@@ -319,9 +350,11 @@ Deno.serve(async (req: Request) => {
   for (const id of existingIds) {
     if (!fetchedIds.has(id)) toDelete.add(id)
   }
+  let deletedCount = 0
   if (toDelete.size) {
     const {error} = await sb.from('calendar_events').delete().in('google_event_id', [...toDelete])
     if (error) errors.push('delete: ' + error.message)
+    else deletedCount = toDelete.size
   }
 
   if (newEvents > 0) {
@@ -341,7 +374,7 @@ Deno.serve(async (req: Request) => {
 
   await recordSyncStatus(sb, errors.length === 0, errors.length ? errors.join('; ') : null)
 
-  return new Response(JSON.stringify({upserted, new_events: newEvents, deleted: toDelete.size, errors}), {
+  return new Response(JSON.stringify({upserted, new_events: newEvents, deleted: deletedCount, errors}), {
     headers: {'Content-Type': 'application/json'},
   })
 })
