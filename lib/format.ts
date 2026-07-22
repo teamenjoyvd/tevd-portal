@@ -146,6 +146,17 @@ export function fromSofiaLocalInput(local: string): string {
 }
 
 /**
+ * Today's date in Europe/Sofia local time, as "YYYY-MM-DD".
+ *
+ * `new Date().toISOString().slice(0, 10)` uses UTC, which lags Sofia by up
+ * to 3h (EEST) — at Sofia 00:30 that still returns yesterday's UTC date.
+ * Use this wherever a DATE-column filter needs the Sofia calendar day.
+ */
+export function todayInSofia(): string {
+  return SOFIA_INPUT_FMT.format(new Date()).slice(0, 10)
+}
+
+/**
  * Canonical relative-time formatter. Accepts an elapsed-ms diff and a typed
  * translation function. Handles clock skew (negative diff) and sub-minute
  * resolution via the 'home.time.justNow' key.
