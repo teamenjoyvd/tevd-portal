@@ -1,14 +1,16 @@
 'use client'
 
 import { useMemo } from 'react'
+import dynamic from 'next/dynamic'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { MONTHS_I18N } from '@/lib/i18n/translations'
 import { Dialog, DialogContent, DialogOverlay, DialogPortal } from '@/components/ui/dialog'
-import EventPopup from '@/app/(dashboard)/calendar/components/EventPopup'
 import { useCalendar } from '@/app/(dashboard)/calendar/components/useCalendar'
 import { MonthView } from '@/app/(dashboard)/calendar/components/MonthView'
 import { AgendaView } from '@/app/(dashboard)/calendar/components/AgendaView'
 import { type CalendarEvent, type View } from '@/app/(dashboard)/calendar/types'
+
+const EventPopup = dynamic(() => import('@/app/(dashboard)/calendar/components/EventPopup'), { ssr: false })
 
 // ── Props ───────────────────────────────────────────────────────────────────────────
 
