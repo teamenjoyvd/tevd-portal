@@ -3,7 +3,6 @@
 import { useMemo } from 'react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { MONTHS_I18N } from '@/lib/i18n/translations'
-import { VaulDrawer } from '@/components/ui/vaul-drawer'
 import { Dialog, DialogContent, DialogOverlay, DialogPortal } from '@/components/ui/dialog'
 import EventPopup from '@/app/(dashboard)/calendar/components/EventPopup'
 import { useCalendar } from '@/app/(dashboard)/calendar/components/useCalendar'
@@ -188,18 +187,6 @@ export default function CalendarClient({
             <AgendaView events={events} onEventClick={handleEventClick} isLoading={agendaPending} highlightId={deepLinkId} />
           )}
         </div>
-
-        {/* Mobile event sheet */}
-        {selectedEventId && (
-          <VaulDrawer open onClose={handleClose} snapPoints={[0.5, 0.92]} fadeFromIndex={1}>
-            <EventPopup
-              eventId={selectedEventId}
-              onClose={handleClose}
-              userRole={userRole}
-              profileNameMissing={profileNameMissing}
-            />
-          </VaulDrawer>
-        )}
       </div>
 
       {/* ── DESKTOP ──────────────────────────────────────────────────────────────── */}
