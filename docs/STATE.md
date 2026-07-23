@@ -2,12 +2,12 @@
 Issue #653 (2607-DEV-653, branch `dev/2607-DEV-653`): Calendar multi-day rendering — Month view spanning bars, Agenda per-day rows, popup date range for all-day events. Depends on #652 (merged, PR #654).
 
 ## Now
-PR [#655](https://github.com/teamenjoyvd/tevd-portal/pull/655) open as DRAFT (`dev/2607-DEV-653` → `main`), body has `Closes #653`. `/code-review low` ran, found one real bug (Month view `gridStart` derived from `current` instead of the Sofia month key — `current` isn't always day-1 since `handleDayClick` sets it to whatever day was clicked) — fixed and re-verified. Waiting on CI + Vercel Preview.
+PR [#655](https://github.com/teamenjoyvd/tevd-portal/pull/655) open, marked ready for review by the user (no longer draft) at 2026-07-23T22:23:17Z. `/code-review low` found one real bug (Month view `gridStart` derived from `current` instead of the Sofia month key) — fixed. `390px smoke vs preview` initially failed twice post-push: first on a stale e2e selector (`[role="gridcell"] button` — fixed, spanning bars are now row-level siblings of gridcells, not children), then intermittently on `e2e/library-guide.spec.ts` timing out against `/library?type=guides` — confirmed as a pre-existing preview-infra flake unrelated to this PR (this branch touches zero files under `app/library`/`lib/server`/`scripts`; same commit passed on one re-run and failed on another). All CI checks green as of the latest re-run except CodeRabbit, which just started its real (non-draft) pass.
 
 ## Next
-- Wait for CI green + Vercel Preview READY on PR #655
+- Wait for CodeRabbit's pass on PR #655, fix all findings in one batched push (GCR step)
 - Manually verify against the issue's DoD checklist against the preview: Month view continuous bar across a real multi-day event (Oct 2026 `WES` event, or June 2026), week-boundary split segments, `+N` overflow correctness, arrow-key traversal + click-empty-space-still-fires-onDayClick, 390px no horizontal overflow, Agenda `Day N/M` markers (en + bg), popup date range (no `01:00–01:00`)
-- Mark PR ready → one CodeRabbit pass → fix findings in one batched push → Merge → GCR (remove #653's `docs/CLAIMS.md` row, close issue)
+- Merge → GCR (remove #653's `docs/CLAIMS.md` row, close issue)
 
 ## Constraints
 - Never push directly to `main`; `dev/[YYMM]-DEV-[GH#]` branches only
