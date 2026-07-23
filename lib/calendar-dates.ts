@@ -86,6 +86,16 @@ export function prevMonthKey(monthKey: string): string {
 }
 
 /**
+ * Noon UTC on the 1st of a 'YYYY-MM' month key — keeps the same calendar day
+ * for Sofia and for any runtime timezone within the realistic range of
+ * users/servers this app runs in, so local getters (getFullYear/getMonth)
+ * agree with the Sofia month without needing a Sofia-aware read everywhere.
+ */
+export function monthKeyToDate(monthKey: string): Date {
+  return new Date(`${monthKey}-01T12:00:00Z`)
+}
+
+/**
  * ICS all-day VEVENT date range: start = a Date whose UTC Y/M/D equal the
  * Sofia start day; end = a Date whose UTC Y/M/D equal the Sofia end day + 1
  * (VALUE=DATE DTEND is exclusive per RFC 5545 §3.8.2.2, while the DB stores

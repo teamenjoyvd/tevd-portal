@@ -5,15 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { apiClient } from '@/lib/apiClient'
 import { type CalendarEvent, type View } from '@/app/(dashboard)/calendar/types'
 import { toMonthParam } from '@/app/(dashboard)/calendar/utils'
-import { SOFIA_DATE_FMT, nextMonthKey, prevMonthKey } from '@/lib/calendar-dates'
-
-/** Noon UTC on the 1st of a 'YYYY-MM' month key — keeps the same calendar
- *  day for Sofia and for any runtime timezone within the realistic range of
- *  users/servers this app runs in, so local getters (getFullYear/getMonth)
- *  agree with the Sofia month without needing a Sofia-aware read everywhere. */
-function monthKeyToDate(monthKey: string): Date {
-  return new Date(`${monthKey}-01T12:00:00Z`)
-}
+import { SOFIA_DATE_FMT, nextMonthKey, prevMonthKey, monthKeyToDate } from '@/lib/calendar-dates'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 

@@ -17,13 +17,20 @@ import type { EventDetail } from './types'
 const RANGE_DAY_MONTH_FMT = new Intl.DateTimeFormat('bg-BG', { day: '2-digit', month: '2-digit', timeZone: TZ })
 const RANGE_FULL_FMT = new Intl.DateTimeFormat('bg-BG', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: TZ })
 
-/** '23.10 – 25.10.2026' for a multi-day all-day event; a single full date otherwise. */
+/**
+ * '23.10 – 25.10.2026' for a multi-day all-day event within one year,
+ * '30.12.2026 – 02.01.2027' when the span crosses a year boundary (the
+ * short day/month start format would otherwise leave the start year
+ * ambiguous), or a single full date for a same-day event.
+ */
 function formatAllDayRange(startIso: string, endIso: string): string {
   const keys = sofiaDateKeysBetween(startIso, endIso)
   if (keys.length === 1) return formatLongDate(startIso)
   const start = new Date(`${keys[0]}T12:00:00Z`)
   const end = new Date(`${keys[keys.length - 1]}T12:00:00Z`)
-  return `${RANGE_DAY_MONTH_FMT.format(start)} – ${RANGE_FULL_FMT.format(end)}`
+  const sameYear = keys[0].slice(0, 4) === keys[keys.length - 1].slice(0, 4)
+  const startFmt = sameYear ? RANGE_DAY_MONTH_FMT : RANGE_FULL_FMT
+  return `${startFmt.format(start)} – ${RANGE_FULL_FMT.format(end)}`
 }
 
 const EVENT_TYPE_STYLES: Record<string, { bg: string; color: string; label: string }> = {

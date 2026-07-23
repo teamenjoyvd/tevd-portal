@@ -11,7 +11,7 @@ import {
   addDays,
   sameDaySofia,
 } from '@/app/(dashboard)/calendar/utils'
-import { sofiaDateKeysBetween } from '@/lib/calendar-dates'
+import { sofiaDateKeysBetween, monthKeyToDate } from '@/lib/calendar-dates'
 import { packWeek, MAX_LANES } from '@/lib/calendar-layout'
 import { EventPill } from '@/app/(dashboard)/calendar/components/EventPill'
 
@@ -39,7 +39,7 @@ export function MonthView({
   // Sofia month key, not from `current` directly (noon-UTC anchor keeps this
   // Sofia-safe rather than reading current.getFullYear()/getMonth() locally).
   const currentMonthKey = SOFIA_DATE_FMT.format(current).slice(0, 7)
-  const firstOfMonth = new Date(`${currentMonthKey}-01T12:00:00Z`)
+  const firstOfMonth = monthKeyToDate(currentMonthKey)
   const gridStart = startOfWeek(firstOfMonth)
   const cells = Array.from({ length: 42 }, (_, i) => addDays(gridStart, i))
   const cellDateKeys = useMemo(() => cells.map(d => SOFIA_DATE_FMT.format(d)), [cells])
