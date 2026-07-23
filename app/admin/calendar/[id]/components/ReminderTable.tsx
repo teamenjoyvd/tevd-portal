@@ -28,7 +28,7 @@ type Reminder = {
 }
 
 import { StatusPill } from '@/components/admin/StatusPill'
-import { REMINDER_LABEL_LONG as REMINDER_LABEL } from '@/components/admin/reminder-shared'
+import { reminderLabelLong } from '@/components/admin/reminder-shared'
 
 // ---------------------------------------------------------------------------
 // EventRemindersToggle — hoisted to module scope
@@ -183,7 +183,7 @@ function RowActions({ reminder, eventId }: { reminder: Reminder; eventId: string
               <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                 {t('admin.calendar.reminders.reschedule.desc')
                   .replace('{{guest}}', guestName)
-                  .replace('{{type}}', REMINDER_LABEL[reminder.type] ?? reminder.type)}
+                  .replace('{{type}}', reminderLabelLong(t, reminder.type))}
               </p>
               <div className="space-y-1">
                 <label className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
@@ -269,7 +269,7 @@ export default function ReminderTable({
                   <tr key={r.id} style={{ backgroundColor: 'var(--bg-card)' }}>
                     <td className="px-4 py-3" style={{ color: 'var(--text-primary)' }}>{r.guest_registrations?.name ?? '—'}</td>
                     <td className="px-4 py-3" style={{ color: 'var(--text-muted)' }}>{r.guest_registrations?.email ?? '—'}</td>
-                    <td className="px-4 py-3" style={{ color: 'var(--text-secondary)' }}>{REMINDER_LABEL[r.type] ?? r.type}</td>
+                    <td className="px-4 py-3" style={{ color: 'var(--text-secondary)' }}>{reminderLabelLong(t, r.type)}</td>
                     <td className="px-4 py-3 tabular-nums" style={{ color: 'var(--text-muted)' }}>
                       {new Date(r.send_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                     </td>
@@ -291,7 +291,7 @@ export default function ReminderTable({
                 </div>
                 <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{r.guest_registrations?.email ?? '—'}</p>
                 <div className="flex items-center justify-between text-xs" style={{ color: 'var(--text-secondary)' }}>
-                  <span>{REMINDER_LABEL[r.type] ?? r.type}</span>
+                  <span>{reminderLabelLong(t, r.type)}</span>
                   <span className="tabular-nums">{new Date(r.send_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
                 </div>
                 <RowActions reminder={r} eventId={eventId} />
