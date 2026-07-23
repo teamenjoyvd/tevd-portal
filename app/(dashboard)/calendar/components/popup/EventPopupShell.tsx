@@ -1,7 +1,8 @@
 'use client'
 
 import { ReactNode } from 'react'
-import { formatTime, formatLongDate } from '@/lib/format'
+import { formatTime, formatLongDate, TZ } from '@/lib/format'
+import { sofiaDateKeysBetween } from '@/lib/calendar-dates'
 import { X, QrCode, Download } from 'lucide-react'
 import {
   Dialog,
@@ -12,6 +13,25 @@ import {
 } from '@/components/ui/dialog'
 import type { TranslationKey } from '@/lib/i18n'
 import type { EventDetail } from './types'
+
+const RANGE_DAY_MONTH_FMT = new Intl.DateTimeFormat('bg-BG', { day: '2-digit', month: '2-digit', timeZone: TZ })
+const RANGE_FULL_FMT = new Intl.DateTimeFormat('bg-BG', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: TZ })
+
+/**
+ * '23.10 – 25.10.2026' for a multi-day all-day event within one year,
+ * '30.12.2026 – 02.01.2027' when the span crosses a year boundary (the
+ * short day/month start format would otherwise leave the start year
+ * ambiguous), or a single full date for a same-day event.
+ */
+function formatAllDayRange(startIso: string, endIso: string): string {
+  const keys = sofiaDateKeysBetween(startIso, endIso)
+  if (keys.length === 1) return formatLongDate(startIso)
+  const start = new Date(`${keys[0]}T12:00:00Z`)
+  const end = new Date(`${keys[keys.length - 1]}T12:00:00Z`)
+  const sameYear = keys[0].slice(0, 4) === keys[keys.length - 1].slice(0, 4)
+  const startFmt = sameYear ? RANGE_DAY_MONTH_FMT : RANGE_FULL_FMT
+  return `${startFmt.format(start)} – ${RANGE_FULL_FMT.format(end)}`
+}
 
 const EVENT_TYPE_STYLES: Record<string, { bg: string; color: string; label: string }> = {
   'in-person': { bg: 'rgba(129,178,154,0.18)', color: '#2d6a4f',  label: 'In-Person' },
@@ -99,16 +119,20 @@ export default function EventPopupShell({
                   <line x1="8" x2="8" y1="2" y2="6"/>
                   <line x1="3" x2="21" y1="10" y2="10"/>
                 </svg>
-                <span className="font-medium">{formatLongDate(event.start_time)}</span>
+                <span className="font-medium">
+                  {event.is_all_day ? formatAllDayRange(event.start_time, event.end_time) : formatLongDate(event.start_time)}
+                </span>
               </div>
-              <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-                  stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10"/>
-                  <polyline points="12 6 12 12 16 14"/>
-                </svg>
-                <span>{formatTime(event.start_time)} – {formatTime(event.end_time)}</span>
-              </div>
+              {!event.is_all_day && (
+                <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                    stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12 6 12 12 16 14"/>
+                  </svg>
+                  <span>{formatTime(event.start_time)} – {formatTime(event.end_time)}</span>
+                </div>
+              )}
               {!isGuest && event.meeting_url && (
                 <div className="flex items-center gap-2 text-xs mt-1">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none"

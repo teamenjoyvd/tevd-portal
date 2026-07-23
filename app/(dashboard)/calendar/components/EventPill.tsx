@@ -5,10 +5,14 @@ export function EventPill({
   event,
   onClick,
   compact = false,
+  continuesLeft = false,
+  continuesRight = false,
 }: {
   event: CalendarEvent
   onClick: () => void
   compact?: boolean
+  continuesLeft?: boolean
+  continuesRight?: boolean
 }) {
   const c = CATEGORY_COLOR[event.category]
   return (
@@ -17,7 +21,11 @@ export function EventPill({
         e.stopPropagation()
         onClick()
       }}
-      className="w-full text-left rounded-md px-1.5 transition-opacity hover:opacity-80 active:opacity-60"
+      // compact pills are the Month-view spanning bars, rendered inside an
+      // aria-hidden wrapper — a <button> is tabbable regardless of an
+      // ancestor's tabIndex, so it must be excluded from the tab order here too.
+      tabIndex={compact ? -1 : 0}
+      className="w-full text-left px-1.5 transition-opacity hover:opacity-80 active:opacity-60"
       style={{
         backgroundColor: c.bg,
         color: c.text,
@@ -30,6 +38,10 @@ export function EventPill({
         textOverflow: 'ellipsis',
         display: 'block',
         maxWidth: '100%',
+        borderTopLeftRadius: continuesLeft ? 0 : 6,
+        borderBottomLeftRadius: continuesLeft ? 0 : 6,
+        borderTopRightRadius: continuesRight ? 0 : 6,
+        borderBottomRightRadius: continuesRight ? 0 : 6,
       }}
     >
       {compact ? event.title : `${formatTime(event.start_time)} ${event.title}`}
