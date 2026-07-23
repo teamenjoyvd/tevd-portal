@@ -35,14 +35,16 @@ test.describe('calendar', () => {
     await visible(page, page.getByRole('button', { name: 'Previous month' })).click()
     await expect(periodLabel).toHaveText(initialLabel ?? '')
 
+    // Fails loudly rather than silently skipping popup coverage — this repo's
+    // public calendar always has upcoming club events in the current month,
+    // so 0 here is itself a bug, not an empty fixture to route around.
     const firstEvent = visible(page, page.locator('[role="gridcell"] button')).first()
-    if (await firstEvent.count() > 0) {
-      await firstEvent.click()
-      const dialog = page.getByRole('dialog')
-      await expect(dialog).toBeVisible()
-      await page.keyboard.press('Escape')
-      await expect(dialog).toBeHidden()
-    }
+    await expect(firstEvent, 'no calendar events found in the current month view').toBeVisible()
+    await firstEvent.click()
+    const dialog = page.getByRole('dialog')
+    await expect(dialog).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(dialog).toBeHidden()
 
     await visible(page, page.getByRole('button', { name: 'Agenda' })).click()
     await expect(grid).not.toBeVisible()

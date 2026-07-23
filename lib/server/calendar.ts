@@ -26,7 +26,7 @@ export function buildEventDescription(event: {
   const detailLines = [
     event.location != null && event.location !== '' ? `Location: ${event.location}` : undefined,
     event.meeting_url != null && event.meeting_url !== '' ? `Meeting link: ${event.meeting_url}` : undefined,
-    event.category != null ? `Category: ${event.category}` : undefined,
+    event.category != null && event.category !== '' ? `Category: ${event.category}` : undefined,
   ].filter((line): line is string => line !== undefined)
   const baseDescription = event.description != null && event.description !== '' ? event.description : undefined
   const description = [baseDescription, detailLines.length > 0 ? detailLines.join('\n') : undefined]

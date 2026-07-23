@@ -54,11 +54,11 @@ describe('addDays', () => {
 })
 
 describe('sameDaySofia', () => {
-  // 2026-03-28T23:30:00Z is 2026-03-29 01:30 Sofia (EET +2, before spring-forward);
-  // 2026-03-29T00:30:00Z is 2026-03-29 02:30 Sofia (still the same Sofia calendar day).
+  // 00:30Z is 02:30 EET (before the transition); 01:30Z is 04:30 EEST
+  // (after the skipped hour) — opposite sides of the spring-forward instant.
   it('treats two UTC instants as the same Sofia day across the DST spring-forward boundary', () => {
-    const a = new Date('2026-03-28T23:30:00.000Z')
-    const b = new Date('2026-03-29T00:30:00.000Z')
+    const a = new Date('2026-03-29T00:30:00.000Z')
+    const b = new Date('2026-03-29T01:30:00.000Z')
     expect(sameDaySofia(a, b)).toBe(true)
   })
 

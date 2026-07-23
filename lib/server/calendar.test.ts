@@ -65,4 +65,15 @@ describe('buildEventDescription', () => {
       Meeting link: https://meet.example.com/abc"
     `)
   })
+
+  it('omits the category line when category is an empty string', () => {
+    expect(
+      buildEventDescription({
+        description: 'Monthly N21 meetup',
+        location: null,
+        meeting_url: null,
+        category: '',
+      }),
+    ).toMatchInlineSnapshot(`"Monthly N21 meetup"`)
+  })
 })
