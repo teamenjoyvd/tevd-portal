@@ -56,7 +56,7 @@ function OccupantCell({ name }: { name: string | null }) {
 }
 
 function DetailsCell({ description }: { description: string | null }) {
-  if (!description || description === '') {
+  if (description === null || description === '') {
     return (
       <span style={{ color: 'var(--text-secondary)' }}>—</span>
     )
@@ -64,7 +64,7 @@ function DetailsCell({ description }: { description: string | null }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span className="block truncate cursor-default" style={{ color: 'var(--text-secondary)' }}>
+        <span tabIndex={0} className="block truncate cursor-default" style={{ color: 'var(--text-secondary)' }}>
           {description}
         </span>
       </TooltipTrigger>
@@ -197,7 +197,7 @@ function RolesCards({
                   </span>
                 </div>
               ))}
-              {event.description && (
+              {event.description !== null && event.description !== '' && (
                 <div className="flex items-start justify-between gap-2">
                   <span
                     className="text-[10px] font-semibold tracking-widest uppercase"
