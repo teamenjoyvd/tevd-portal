@@ -7,3 +7,4 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
 | #601 | `dev/2607-DEV-601` | `app/admin/calendar/components/AdminCalendarClient.tsx`, `app/admin/calendar/components/useAdminCalendarMutations.ts` (new), `app/admin/calendar/components/EventForm.tsx`, `app/admin/calendar/[id]/components/ReminderTable.tsx` — migration: no | 2026-07-23 |
+| #602 | `dev/2607-DEV-602` | `app/(dashboard)/calendar/utils.test.ts` (new), `lib/format.test.ts`, `lib/server/calendar.ts`, `lib/server/calendar.test.ts` (new), `app/api/calendar/feed.ics/route.ts`, `e2e/calendar.spec.ts` (new) — migration: no | 2026-07-23 |
