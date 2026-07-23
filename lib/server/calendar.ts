@@ -65,7 +65,7 @@ export function toVEventInput(event: {
   return {
     id: event.id,
     summary: event.title,
-    description: description || undefined,
+    description,
     allDay: event.is_all_day,
     start,
     end,
@@ -105,13 +105,13 @@ export async function listEventsForRole({
   // Overlap semantics, not start-only: an event starting before `from` but
   // still running (end_time >= from) must still match, or a multi-day span
   // straddling a window boundary silently disappears from that window.
-  if (to) query = query.lt('start_time', to)
-  if (from) query = query.gte('end_time', from)
-  if (limit) query = query.limit(limit)
+  if (to !== undefined) query = query.lt('start_time', to)
+  if (from !== undefined) query = query.gte('end_time', from)
+  if (limit !== undefined) query = query.limit(limit)
 
   const { data, error } = await query
   if (error) throw new Error(error.message)
-  if (limit && data && data.length === limit) {
+  if (limit !== undefined && data && data.length === limit) {
     console.warn(`listEventsForRole: hit limit (${limit}) for role "${role}" — results may be truncated`)
   }
   return (data ?? []) as CalendarListEvent[]

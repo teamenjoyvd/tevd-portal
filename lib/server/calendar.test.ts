@@ -6,7 +6,6 @@ vi.mock('@/lib/supabase/service', () => ({
 }))
 
 import { buildEventDescription, toVEventInput, listEventsForRole } from '@/lib/server/calendar'
-import { sofiaDateKey } from '@/lib/calendar-dates'
 
 describe('buildEventDescription', () => {
   it('returns undefined when no description or detail fields are set', () => {
@@ -98,9 +97,33 @@ describe('toVEventInput', () => {
       start_time: '2026-10-22T22:00:00Z',
       end_time: '2026-10-24T22:00:00Z',
     })
-    expect(sofiaDateKey((input.start as Date).toISOString())).toBe('2026-10-23')
-    expect(sofiaDateKey((input.end as Date).toISOString())).toBe('2026-10-26')
+    // ical-generator serializes allDay dates via UTC getters (no calendar
+    // timezone set) — assert the UTC date directly, matching what actually
+    // lands in DTSTART;VALUE=DATE / DTEND;VALUE=DATE.
+    expect((input.start as Date).toISOString().slice(0, 10)).toBe('2026-10-23')
+    expect((input.end as Date).toISOString().slice(0, 10)).toBe('2026-10-26')
     expect(input.allDay).toBe(true)
+  })
+
+  it('serializes to the exact expected VEVENT date-only lines (regression: ical-generator uses UTC getters for allDay)', async () => {
+    const ical = (await import('ical-generator')).default
+    const calendar = ical({ name: 'test' })
+    calendar.createEvent(
+      toVEventInput({
+        id: '5o3mircbst1a1v1mc4j1hrnirq',
+        title: 'WES event',
+        description: null,
+        location: null,
+        meeting_url: null,
+        category: null,
+        is_all_day: true,
+        start_time: '2026-10-22T22:00:00Z',
+        end_time: '2026-10-24T22:00:00Z',
+      }),
+    )
+    const output = calendar.toString()
+    expect(output).toContain('DTSTART;VALUE=DATE:20261023')
+    expect(output).toContain('DTEND;VALUE=DATE:20261026')
   })
 
   it('passes timed event start/end straight through as UTC instants', () => {

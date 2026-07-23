@@ -78,22 +78,23 @@ export function nextMonthKey(monthKey: string): string {
 }
 
 /**
- * ICS all-day VEVENT date range: start = UTC-midnight Date of the Sofia
- * start day; end = UTC-midnight Date of the Sofia end day + 1 (VALUE=DATE
- * DTEND is exclusive per RFC 5545 §3.8.2.2, while the DB stores the
- * inclusive last day). Derived from date keys, so the stored Sofia-01:00
- * hour (drift from the sync function's historical +02:00 hardcode) is
- * irrelevant to the output.
+ * ICS all-day VEVENT date range: start = a Date whose UTC Y/M/D equal the
+ * Sofia start day; end = a Date whose UTC Y/M/D equal the Sofia end day + 1
+ * (VALUE=DATE DTEND is exclusive per RFC 5545 §3.8.2.2, while the DB stores
+ * the inclusive last day).
+ *
+ * Deliberately NOT sofiaMidnightUtc: ical-generator serializes an allDay
+ * event's Date via its UTC getters when the calendar has no timezone set
+ * (our feed.ics case) — verified against ical-generator's source (the `l()`
+ * date formatter falls back to getUTCFullYear/getUTCMonth/getUTCDate). A
+ * real Sofia-midnight instant like sofiaMidnightUtc('2026-10-23') is
+ * 2026-10-22T21:00:00Z, whose UTC date is Oct 22 — one day early. The value
+ * ical-generator needs is a Date whose UTC fields literally spell out the
+ * target Sofia date, not a real instant at all.
  */
 export function icsAllDayRange(startIso: string, endIso: string): { start: Date; end: Date } {
-  const start = sofiaMidnightUtc(sofiaDateKey(startIso))
-  const endKey = sofiaDateKey(endIso)
-  // +1 calendar day via UTC date-string arithmetic, then re-resolve through
-  // sofiaMidnightUtc — NOT +86400000ms on the instant, which under-shoots
-  // on a DST fall-back day (25h long) and would leave `end` on the same
-  // Sofia day as `endKey` instead of the next one.
-  const nextDay = new Date(`${endKey}T00:00:00Z`)
-  nextDay.setUTCDate(nextDay.getUTCDate() + 1)
-  const end = sofiaMidnightUtc(nextDay.toISOString().slice(0, 10))
+  const start = new Date(`${sofiaDateKey(startIso)}T00:00:00Z`)
+  const end = new Date(`${sofiaDateKey(endIso)}T00:00:00Z`)
+  end.setUTCDate(end.getUTCDate() + 1)
   return { start, end }
 }

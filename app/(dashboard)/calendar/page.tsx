@@ -2,7 +2,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { auth } from '@clerk/nextjs/server'
 import CalendarClient from './components/CalendarClient'
 import { listEventsForRole } from '@/lib/server/calendar'
-import { sofiaMidnightUtc, nextMonthKey } from '@/lib/calendar-dates'
+import { sofiaDateKey, sofiaMidnightUtc, nextMonthKey } from '@/lib/calendar-dates'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,7 +14,10 @@ export default async function CalendarPage({
   const { event: initialEventId = null } = await searchParams
 
   const now = new Date()
-  const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  // Derive the month from the Sofia calendar day, not the server runtime's
+  // local time (Vercel runs UTC) — around Sofia midnight the two disagree,
+  // which would load the wrong month.
+  const month = sofiaDateKey(now.toISOString()).slice(0, 7)
   const start = sofiaMidnightUtc(`${month}-01`).toISOString()
   const end = sofiaMidnightUtc(`${nextMonthKey(month)}-01`).toISOString()
 

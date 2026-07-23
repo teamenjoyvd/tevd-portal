@@ -74,9 +74,16 @@ describe('nextMonthKey', () => {
 describe('icsAllDayRange', () => {
   it('produces the correct exclusive DTEND for the real prod October row', () => {
     const { start, end } = icsAllDayRange('2026-10-22T22:00:00Z', '2026-10-24T22:00:00Z')
-    // Compare via the Sofia date key, not the raw UTC ISO date: a UTC-midnight
-    // Date representing Sofia midnight can fall on the previous UTC day.
-    expect(sofiaDateKey(start.toISOString())).toBe('2026-10-23')
-    expect(sofiaDateKey(end.toISOString())).toBe('2026-10-26')
+    // ical-generator serializes allDay dates via UTC getters (no calendar
+    // timezone set) — assert the UTC date components directly, matching
+    // what actually lands in DTSTART;VALUE=DATE / DTEND;VALUE=DATE.
+    expect(start.toISOString().slice(0, 10)).toBe('2026-10-23')
+    expect(end.toISOString().slice(0, 10)).toBe('2026-10-26')
+  })
+
+  it('rolls the exclusive end over a DST fall-back boundary without off-by-one', () => {
+    // Sofia day is 2026-10-25 (fall-back day, 25h long).
+    const { end } = icsAllDayRange('2026-10-24T21:00:00Z', '2026-10-24T21:00:00Z')
+    expect(end.toISOString().slice(0, 10)).toBe('2026-10-26')
   })
 })
