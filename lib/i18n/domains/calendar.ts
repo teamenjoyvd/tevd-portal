@@ -1,5 +1,7 @@
 export const calendar = {
   'cal.today':              { en: 'Today',                    bg: 'Днес'                          },
+  'cal.prevMonth':          { en: 'Previous month',           bg: 'Предходен месец'               },
+  'cal.nextMonth':          { en: 'Next month',               bg: 'Следващ месец'                 },
   'cal.month':              { en: 'Month',                    bg: 'Месец'                         },
   'cal.week':               { en: 'Week',                     bg: 'Седмица'                       },
   'cal.day':                { en: 'Day',                      bg: 'Ден'                           },

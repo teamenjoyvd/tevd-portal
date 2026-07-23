@@ -31,7 +31,6 @@ export default async function CalendarPage({
   // Unauthenticated and authenticated-but-no-profile both resolve to 'guest'.
   let resolvedRole: 'admin' | 'core' | 'member' | 'guest' = 'guest'
   let userRole: 'admin' | 'core' | 'member' | 'guest' | null = null
-  let userProfileId: string | null = null
   let profileNameMissing = false
 
   if (userId) {
@@ -44,7 +43,6 @@ export default async function CalendarPage({
     if (profile) {
       resolvedRole  = profile.role
       userRole      = profile.role
-      userProfileId = profile.id
 
       // display_names is JSONB — cast to known shape.
       // BG name fields are stored as bg_first / bg_last (see PersonalDetailsContent).
@@ -67,7 +65,6 @@ export default async function CalendarPage({
       initialMonth={month}
       initialEventId={initialEventId}
       userRole={userRole}
-      userProfileId={userProfileId}
       isAuthenticated={!!userId}
       profileNameMissing={profileNameMissing}
     />
