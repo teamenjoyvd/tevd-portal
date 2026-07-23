@@ -2,12 +2,12 @@
 Issue #653 (2607-DEV-653, branch `dev/2607-DEV-653`): Calendar multi-day rendering — Month view spanning bars, Agenda per-day rows, popup date range for all-day events. Depends on #652 (merged, PR #654).
 
 ## Now
-BUILD complete locally: `tsc --noEmit` clean, `npm run lint` 0 errors (no new warnings), `npx vitest run` 207/207 passed (incl. 8 new `lib/calendar-layout.test.ts` lane-packer tests). Committed on `dev/2607-DEV-653` (not pushed — no push requested yet). Browser/390px/preview verification from the issue's Verification section has NOT been run (no dev server / preview check performed this session).
+PR [#655](https://github.com/teamenjoyvd/tevd-portal/pull/655) open as DRAFT (`dev/2607-DEV-653` → `main`), body has `Closes #653`. `/code-review low` ran, found one real bug (Month view `gridStart` derived from `current` instead of the Sofia month key — `current` isn't always day-1 since `handleDayClick` sets it to whatever day was clicked) — fixed and re-verified. Waiting on CI + Vercel Preview.
 
 ## Next
-- Run `/code-review low` on the diff and fix findings locally before any push
-- Manually verify against the issue's DoD checklist: Month view continuous bar across a real multi-day event (Oct 2026 `WES` event, or June 2026), week-boundary split segments, `+N` overflow correctness, arrow-key traversal + click-empty-space-still-fires-onDayClick, 390px no horizontal overflow, Agenda `Day N/M` markers (en + bg), popup date range (no `01:00–01:00`)
-- Push branch, open PR as DRAFT, wait CI green + preview READY, then Ready → CodeRabbit pass → Merge → GCR (remove #653's `docs/CLAIMS.md` row, close issue)
+- Wait for CI green + Vercel Preview READY on PR #655
+- Manually verify against the issue's DoD checklist against the preview: Month view continuous bar across a real multi-day event (Oct 2026 `WES` event, or June 2026), week-boundary split segments, `+N` overflow correctness, arrow-key traversal + click-empty-space-still-fires-onDayClick, 390px no horizontal overflow, Agenda `Day N/M` markers (en + bg), popup date range (no `01:00–01:00`)
+- Mark PR ready → one CodeRabbit pass → fix findings in one batched push → Merge → GCR (remove #653's `docs/CLAIMS.md` row, close issue)
 
 ## Constraints
 - Never push directly to `main`; `dev/[YYMM]-DEV-[GH#]` branches only
