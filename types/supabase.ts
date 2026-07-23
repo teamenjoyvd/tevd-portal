@@ -2095,6 +2095,7 @@ export type Database = {
       }
       v_roles_history: {
         Row: {
+          description: string | null
           end_time: string | null
           event_id: string | null
           host_name: string | null
@@ -2104,6 +2105,7 @@ export type Database = {
           title: string | null
         }
         Insert: {
+          description?: string | null
           end_time?: string | null
           event_id?: string | null
           host_name?: never
@@ -2113,6 +2115,7 @@ export type Database = {
           title?: string | null
         }
         Update: {
+          description?: string | null
           end_time?: string | null
           event_id?: string | null
           host_name?: never

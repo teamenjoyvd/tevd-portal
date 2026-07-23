@@ -7,3 +7,4 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
 | #596 | `dev/2607-DEV-596` | `supabase/functions/sync-google-calendar/index.ts`, `app/api/admin/calendar-sync/route.ts`, `app/admin/calendar/components/AdminCalendarClient.tsx` (status display only) — migration: no | 2026-07-22 |
+| #646 | `dev/2607-DEV-646` | `app/(dashboard)/roles/components/RolesClient.tsx`, `lib/roles/types.ts`, `lib/roles/queries.ts`, `lib/i18n/domains/events.ts`, `components/ui/tooltip.tsx` (new) — migration: yes, `supabase/migrations/20260723000000_add_description_to_v_roles_history.sql` | 2026-07-23 |

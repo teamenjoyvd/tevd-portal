@@ -12,6 +12,12 @@ import {
   SelectContent,
   SelectItem,
 } from '@/components/ui/select'
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
+} from '@/components/ui/tooltip'
 import type { RoleEvent } from '@/lib/roles/types'
 import { Database } from '@/types/supabase'
 import { cn } from '@/lib/utils'
@@ -49,6 +55,26 @@ function OccupantCell({ name }: { name: string | null }) {
   )
 }
 
+function DetailsCell({ description }: { description: string | null }) {
+  if (description === null || description === '') {
+    return (
+      <span style={{ color: 'var(--text-secondary)' }}>—</span>
+    )
+  }
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span tabIndex={0} className="block truncate cursor-default" style={{ color: 'var(--text-secondary)' }}>
+          {description}
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>
+        <p className="text-xs whitespace-pre-line" style={{ color: 'var(--text-primary)' }}>{description}</p>
+      </TooltipContent>
+    </Tooltip>
+  )
+}
+
 // ── Desktop table ────────────────────────────────────────────────────────────
 function RolesTable({
   events,
@@ -70,7 +96,7 @@ function RolesTable({
       <div
         className="grid text-[10px] font-semibold tracking-widest uppercase px-4 py-2.5"
         style={{
-          gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr',
+          gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr 1.5fr',
           borderBottom: '1px solid rgba(0,0,0,0.06)',
           color: 'var(--text-secondary)',
           backgroundColor: 'rgba(0,0,0,0.02)',
@@ -87,7 +113,7 @@ function RolesTable({
             key={event.id}
             className="grid items-center px-4 py-3 text-sm transition-all"
             style={{
-              gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr',
+              gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr 1.5fr',
               borderTop: i === 0 ? undefined : '1px solid rgba(0,0,0,0.04)',
               opacity: isPast ? 0.6 : undefined,
               filter: isPast ? 'grayscale(0.5)' : undefined,
@@ -108,6 +134,7 @@ function RolesTable({
             <span className="text-xs"><OccupantCell name={event.slots.HOST} /></span>
             <span className="text-xs"><OccupantCell name={event.slots.SPEAKER} /></span>
             <span className="text-xs"><OccupantCell name={event.slots.PRODUCTS} /></span>
+            <span className="text-xs pr-2"><DetailsCell description={event.description} /></span>
           </div>
         )
       })}
@@ -119,11 +146,13 @@ function RolesTable({
 function RolesCards({
   events,
   slotLabels,
+  detailsLabel,
   currentTime,
   isCurrentQuarter,
 }: {
   events: RoleEvent[]
   slotLabels: Record<SlotLabel, string>
+  detailsLabel: string
   currentTime: string
   isCurrentQuarter: boolean
 }) {
@@ -168,6 +197,19 @@ function RolesCards({
                   </span>
                 </div>
               ))}
+              {event.description !== null && event.description !== '' && (
+                <div className="flex items-start justify-between gap-2">
+                  <span
+                    className="text-[10px] font-semibold tracking-widest uppercase"
+                    style={{ color: 'var(--text-secondary)', minWidth: 72 }}
+                  >
+                    {detailsLabel}
+                  </span>
+                  <span className="text-xs text-right whitespace-pre-line" style={{ color: 'var(--text-secondary)' }}>
+                    {event.description}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         )
@@ -202,6 +244,7 @@ export default function RolesClient({
     t('event.roles.label.host'),
     t('event.roles.label.speaker'),
     t('event.roles.label.products'),
+    t('event.roles.col.details'),
   ]
 
   const slotLabels: Record<SlotLabel, string> = {
@@ -307,18 +350,21 @@ export default function RolesClient({
           <>
             {/* Desktop view */}
             <div className="hidden lg:block">
-              <RolesTable
-                events={quarterEvents}
-                headers={headers}
-                currentTime={currentTime}
-                isCurrentQuarter={isCurrentQuarter}
-              />
+              <TooltipProvider delayDuration={150}>
+                <RolesTable
+                  events={quarterEvents}
+                  headers={headers}
+                  currentTime={currentTime}
+                  isCurrentQuarter={isCurrentQuarter}
+                />
+              </TooltipProvider>
             </div>
             {/* Mobile view */}
             <div className="lg:hidden">
               <RolesCards
                 events={quarterEvents}
                 slotLabels={slotLabels}
+                detailsLabel={t('event.roles.col.details')}
                 currentTime={currentTime}
                 isCurrentQuarter={isCurrentQuarter}
               />
