@@ -25,4 +25,5 @@ export const calendar = {
   'cal.qrDownload':         { en: 'Download PNG',             bg: 'Изтегли PNG'                   },
   'cal.roleRequestsClosed': { en: 'Role requests closed.',    bg: 'Заявките за роли са затворени.' },
   'cal.allDay':             { en: 'All day',                  bg: 'Целодневно'                    },
+  'cal.dayOf':              { en: 'Day {n}/{m}',              bg: 'Ден {n}/{m}'                   },
 } as const

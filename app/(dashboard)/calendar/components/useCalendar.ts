@@ -5,6 +5,15 @@ import { useQuery } from '@tanstack/react-query'
 import { apiClient } from '@/lib/apiClient'
 import { type CalendarEvent, type View } from '@/app/(dashboard)/calendar/types'
 import { toMonthParam } from '@/app/(dashboard)/calendar/utils'
+import { SOFIA_DATE_FMT, nextMonthKey, prevMonthKey } from '@/lib/calendar-dates'
+
+/** Noon UTC on the 1st of a 'YYYY-MM' month key — keeps the same calendar
+ *  day for Sofia and for any runtime timezone within the realistic range of
+ *  users/servers this app runs in, so local getters (getFullYear/getMonth)
+ *  agree with the Sofia month without needing a Sofia-aware read everywhere. */
+function monthKeyToDate(monthKey: string): Date {
+  return new Date(`${monthKey}-01T12:00:00Z`)
+}
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -26,10 +35,7 @@ export function useCalendar({
   isAuthenticated,
 }: UseCalendarOptions) {
   const [view, setView]             = useState<View>(initialEventId ? 'agenda' : 'month')
-  const [current, setCurrent]       = useState<Date>(() => {
-    const [y, m] = initialMonth.split('-').map(Number)
-    return new Date(y, m - 1, 1)
-  })
+  const [current, setCurrent]       = useState<Date>(() => monthKeyToDate(initialMonth))
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null)
   const [showN21, setShowN21]                 = useState(true)
   const [showPersonal, setShowPersonal]       = useState(true)
@@ -69,13 +75,12 @@ export function useCalendar({
 
   const navigate = useCallback((dir: 1 | -1) => {
     setCurrent(prev => {
-      const d = new Date(prev)
-      d.setMonth(d.getMonth() + dir)
-      return d
+      const monthKey = SOFIA_DATE_FMT.format(prev).slice(0, 7)
+      return monthKeyToDate(dir === 1 ? nextMonthKey(monthKey) : prevMonthKey(monthKey))
     })
   }, [])
 
-  const goToday = useCallback(() => setCurrent(new Date()), [])
+  const goToday = useCallback(() => setCurrent(monthKeyToDate(SOFIA_DATE_FMT.format(new Date()).slice(0, 7))), [])
 
   const handleEventClick = useCallback((id: string) => {
     setSelectedEventId(id)

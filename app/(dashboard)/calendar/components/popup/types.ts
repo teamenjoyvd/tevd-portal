@@ -37,6 +37,7 @@ export type EventDetail = {
   available_roles: string[]
   start_time: string
   end_time: string
+  is_all_day: boolean
   category: 'N21' | 'Personal'
   event_type: 'in-person' | 'online' | 'hybrid' | null
   week_number: number

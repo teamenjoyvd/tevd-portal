@@ -4,6 +4,9 @@ import { useMemo, useRef, useEffect } from 'react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { type CalendarEvent } from '@/app/(dashboard)/calendar/types'
 import { CATEGORY_COLOR, SOFIA_DATE_FMT, isoWeek, formatTime, formatShortDate } from '@/app/(dashboard)/calendar/utils'
+import { sofiaDateKeysBetween } from '@/lib/calendar-dates'
+
+type AgendaRow = { event: CalendarEvent; dayNum: number; totalDays: number }
 
 export function AgendaView({
   events,
@@ -24,14 +27,16 @@ export function AgendaView({
   const todaySofia = SOFIA_DATE_FMT.format(new Date())
 
   const grouped = useMemo(() => {
-    const map: Record<string, CalendarEvent[]> = {}
+    const map: Record<string, AgendaRow[]> = {}
     events
       .slice()
       .sort((a, b) => a.start_time.localeCompare(b.start_time))
       .forEach(e => {
-        const key = SOFIA_DATE_FMT.format(new Date(e.start_time))
-        if (!map[key]) map[key] = []
-        map[key].push(e)
+        const keys = sofiaDateKeysBetween(e.start_time, e.end_time)
+        keys.forEach((key, i) => {
+          if (!map[key]) map[key] = []
+          map[key].push({ event: e, dayNum: i + 1, totalDays: keys.length })
+        })
       })
     return map
   }, [events])
@@ -114,12 +119,12 @@ export function AgendaView({
               </span>
             </div>
             <div className="space-y-2">
-              {grouped[dateKey].map(ev => {
+              {grouped[dateKey].map(({ event: ev, dayNum, totalDays }) => {
                 const c = CATEGORY_COLOR[ev.category]
                 const isHighlighted = ev.id === highlightId
                 return (
                   <button
-                    key={ev.id}
+                    key={`${ev.id}-${dateKey}`}
                     ref={isHighlighted ? highlightRef : null}
                     onClick={() => onEventClick(ev.id)}
                     className="w-full text-left rounded-xl border overflow-hidden hover:shadow-sm transition-shadow flex scroll-mt-20 md:scroll-mt-0"
@@ -134,6 +139,11 @@ export function AgendaView({
                       <div className="flex items-start justify-between gap-2">
                         <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
                           {ev.title}
+                          {totalDays > 1 && (
+                            <span className="ml-1.5 text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>
+                              {t('cal.dayOf').replace('{n}', String(dayNum)).replace('{m}', String(totalDays))}
+                            </span>
+                          )}
                         </p>
                         <span className="text-xs flex-shrink-0 font-medium"
                           style={{ color: 'var(--text-secondary)' }}>

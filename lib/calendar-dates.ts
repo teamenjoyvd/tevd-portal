@@ -77,6 +77,14 @@ export function nextMonthKey(monthKey: string): string {
   return `${nextYear}-${String(nextMonth).padStart(2, '0')}`
 }
 
+/** 'YYYY-MM' of the month preceding a 'YYYY-MM' month key, rolling the year back at January. */
+export function prevMonthKey(monthKey: string): string {
+  const [year, month] = monthKey.split('-').map(Number)
+  const prevMonth = month === 1 ? 12 : month - 1
+  const prevYear = month === 1 ? year - 1 : year
+  return `${prevYear}-${String(prevMonth).padStart(2, '0')}`
+}
+
 /**
  * ICS all-day VEVENT date range: start = a Date whose UTC Y/M/D equal the
  * Sofia start day; end = a Date whose UTC Y/M/D equal the Sofia end day + 1
