@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { DAYS_I18N } from '@/lib/i18n/translations'
 import { type CalendarEvent } from '@/app/(dashboard)/calendar/types'
@@ -48,10 +48,36 @@ export function MonthView({
     return eventsBySofiaDate[dateKey] ?? []
   }
 
+  const todayIndex = useMemo(() => {
+    const i = cells.findIndex(d => sameDaySofia(d, today))
+    return i === -1 ? 0 : i
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current])
+
+  const [focusIndex, setFocusIndex] = useState(todayIndex)
+  const cellRefs = useRef<(HTMLDivElement | null)[]>([])
+
+  const focusCell = (index: number) => {
+    const clamped = Math.max(0, Math.min(41, index))
+    setFocusIndex(clamped)
+    cellRefs.current[clamped]?.focus()
+  }
+
+  const handleGridKeyDown = (e: KeyboardEvent<HTMLDivElement>, index: number, date: Date) => {
+    switch (e.key) {
+      case 'ArrowRight': e.preventDefault(); focusCell(index + 1); break
+      case 'ArrowLeft':  e.preventDefault(); focusCell(index - 1); break
+      case 'ArrowDown':  e.preventDefault(); focusCell(index + 7); break
+      case 'ArrowUp':    e.preventDefault(); focusCell(index - 7); break
+      case 'Enter':
+      case ' ':          e.preventDefault(); onDayClick(date); break
+    }
+  }
+
   return (
     <div className="flex flex-col flex-1 min-h-0">
-      <div className="grid grid-cols-[40px_repeat(7,1fr)] border-b border-black/5 flex-shrink-0">
-        <div />
+      <div className="grid grid-cols-7 md:grid-cols-[40px_repeat(7,1fr)] border-b border-black/5 flex-shrink-0">
+        <div className="hidden md:block" />
         {DAYS.map(d => (
           <div key={d} className="py-2 text-center text-xs font-semibold tracking-wide"
             style={{ color: 'var(--text-secondary)' }}>
@@ -59,28 +85,35 @@ export function MonthView({
           </div>
         ))}
       </div>
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto" role="grid" aria-label={t('cal.month')}>
         {Array.from({ length: 6 }, (_, week) => {
           const weekDays = cells.slice(week * 7, week * 7 + 7)
           return (
-            <div key={week}
-              className="grid grid-cols-[40px_repeat(7,1fr)] border-b border-black/5"
+            <div key={week} role="row"
+              className="grid grid-cols-7 md:grid-cols-[40px_repeat(7,1fr)] border-b border-black/5"
               style={{ minHeight: 90 }}>
-              <div className="flex items-start justify-center pt-2 flex-shrink-0">
+              <div className="hidden md:flex items-start justify-center pt-2 flex-shrink-0">
                 <span className="text-[10px] font-semibold" style={{ color: 'var(--text-secondary)' }}>
                   W{isoWeek(weekDays[0])}
                 </span>
               </div>
               {weekDays.map((date, di) => {
+                const index = week * 7 + di
                 const isToday = sameDaySofia(date, today)
                 const isCurrentMonth = date.getMonth() === current.getMonth()
                 const dayEvents = eventsOnDay(date)
                 return (
                   <div
                     key={di}
-                    onClick={() => onDayClick(date)}
-                    className="border-l border-black/5 p-1 cursor-pointer hover:bg-black/[0.02] transition-colors overflow-hidden"
-                    style={{ minHeight: 90 }}
+                    ref={el => { cellRefs.current[index] = el }}
+                    role="gridcell"
+                    aria-current={isToday ? 'date' : undefined}
+                    tabIndex={index === focusIndex ? 0 : -1}
+                    onClick={() => { setFocusIndex(index); onDayClick(date) }}
+                    onKeyDown={e => handleGridKeyDown(e, index, date)}
+                    onFocus={() => setFocusIndex(index)}
+                    className="border-l border-black/5 p-1 cursor-pointer hover:bg-black/[0.02] transition-colors overflow-hidden focus:outline-none focus:ring-2 focus:ring-inset"
+                    style={{ minHeight: 90, ['--tw-ring-color' as string]: 'var(--brand-teal)' }}
                   >
                     <div className="flex justify-center mb-1">
                       <span

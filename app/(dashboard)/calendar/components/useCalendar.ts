@@ -50,7 +50,7 @@ export function useCalendar({
   const { data: agendaEvents = [], isPending: agendaPending } = useQuery<CalendarEvent[]>({
     queryKey: ['events-agenda'],
     queryFn: () => apiClient<CalendarEvent[]>('/api/calendar'),
-    staleTime: 0,
+    staleTime: 60_000,
     enabled: view === 'agenda',
   })
 
