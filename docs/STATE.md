@@ -1,45 +1,44 @@
 ## Goal
-Issue #602 (2607-DEV-602, branch `dev/2607-DEV-602`): Calendar refactor 6/8 — test coverage (Sofia-TZ date utils + `lib/format.ts` DST boundaries, ICS description snapshot, unauthenticated calendar e2e smoke).
+Issue #653 (2607-DEV-653, branch `dev/2607-DEV-653`): Calendar multi-day rendering — Month view spanning bars, Agenda per-day rows, popup date range for all-day events. Depends on #652 (merged, PR #654).
 
 ## Now
-PR [#651](https://github.com/teamenjoyvd/tevd-portal/pull/651) open (ready for review, not draft). CI green (Build/Lint/Test/TypeCheck/SecurityAudit/migrations-replay/`390px smoke vs preview`/Vercel) as of the GCR fix commit `a2ba772`. CodeRabbit's re-review after that commit came back "rate limited" (not re-run) rather than clean — not yet a second genuine CodeRabbit pass.
+BUILD complete locally: `tsc --noEmit` clean, `npm run lint` 0 errors (no new warnings), `npx vitest run` 207/207 passed (incl. 8 new `lib/calendar-layout.test.ts` lane-packer tests). Committed on `dev/2607-DEV-653` (not pushed — no push requested yet). Browser/390px/preview verification from the issue's Verification section has NOT been run (no dev server / preview check performed this session).
 
 ## Next
-- Get a real CodeRabbit re-review on commit `a2ba772` (current one was rate-limited) or confirm no new findings another way before merging
-- Merge PR #651 (squash, matches repo convention)
-- Post-merge tail: `migrate-prod` should auto-skip (no migrations in this PR); smoke-check `https://www.teamenjoyvd.com`; issue #602 auto-closes via the PR's `Closes #602`. `#602`'s `docs/CLAIMS.md` row was removed ahead of merge per explicit user instruction (CI green, PR waiting on the cleanup merge) — not the normal post-merge-only rule
-- Separately outstanding: issue #601's post-merge tail was never finished last session (prod smoke-check / `migrate-prod` confirmation not verified) — worth a quick check next time prod state comes up, though its `docs/CLAIMS.md` row has now been pruned (issue closed, PR #649 merged 2026-07-23T11:27:39Z)
+- Run `/code-review low` on the diff and fix findings locally before any push
+- Manually verify against the issue's DoD checklist: Month view continuous bar across a real multi-day event (Oct 2026 `WES` event, or June 2026), week-boundary split segments, `+N` overflow correctness, arrow-key traversal + click-empty-space-still-fires-onDayClick, 390px no horizontal overflow, Agenda `Day N/M` markers (en + bg), popup date range (no `01:00–01:00`)
+- Push branch, open PR as DRAFT, wait CI green + preview READY, then Ready → CodeRabbit pass → Merge → GCR (remove #653's `docs/CLAIMS.md` row, close issue)
 
 ## Constraints
 - Never push directly to `main`; `dev/[YYMM]-DEV-[GH#]` branches only
 - Never mark Done on static analysis alone — Vercel PR preview must be READY and CI green
 - No `git push` without the user explicitly asking for a push in-conversation (quote required)
 - No failing check gets weakened/skipped to pass
-- Never spin a solo cleanup-only PR just to prune a `docs/CLAIMS.md` row — fold it into the merging feature PR (repeat past mistake, see `feedback_no_standalone_claims_cleanup_pr` memory)
-- A `blocked` GitHub label is not authoritative — verify the actual named blocking issues before treating a ticket as blocked (2607-DEV-602's label was stale; #587-592 had all closed 2026-07-23)
+- Never spin a solo cleanup-only PR just to prune a `docs/CLAIMS.md` row — fold it into the merging feature PR
 
 ## Decisions
-DECISION: #602's ICS-description logic (`feed.ics/route.ts`) extracted verbatim into `lib/server/calendar.ts`'s `buildEventDescription()` — additive, behavior-preserving — so the Phase 1c format is snapshot-testable without mocking Clerk/Supabase auth.
-DECISION: CodeRabbit's "seed deterministic event data" suggestion for the e2e popup-coverage gap was not implemented (heavy lift, no existing calendar-seed script, out of proportion for a test-coverage ticket); instead the silent `if (count > 0)` skip was converted to a hard `expect(...).toBeVisible()` so an empty month fails loudly instead of silently passing.
-DECISION: CodeRabbit's "use the `Personal` locator" finding was rejected as a false positive — `cal.inPerson`/"In-person" and `cal.personal`/"Personal" are two distinct real buttons; the PR's own live-Preview CI run had already passed using the original `'In-person'` locator. Replied on the thread, left unresolved (not applied).
+DECISION: Segment/lane packing for Month-view spanning bars extracted into a pure, DOM-free `lib/calendar-layout.ts` (`packWeek`) rather than inlined in `MonthView.tsx`, so the packing algorithm (ordering, lane assignment, overflow) is directly unit-testable without React/DOM — matches the issue's explicit ask ("pure function, unit-tested directly — not through the DOM").
+DECISION: Day-cell/bar layout uses one shared CSS Grid per week row (day cells `gridRow: '1 / -1'`, bars as later DOM siblings with explicit `gridColumn`/`gridRow`) rather than absolute positioning — bars naturally paint above day cells and clicks on empty cell area fall through to the cell's own `onClick`, satisfying the "click interception" DoD item with no `pointer-events` hack.
+DECISION: `useCalendar`'s `current` month state and `MonthView`'s day-number/`isCurrentMonth` test now derive from Sofia date keys (`SOFIA_DATE_FMT`) instead of runtime-local `Date` getters, per issue item 2.4 — `current` is anchored to noon UTC on the 1st of the month so local getters agree with the Sofia month across realistic runtime timezones.
+DECISION: All-day popup date range formatted via a small local `formatAllDayRange` helper (bg-BG locale, matching `formatLongDate`'s existing locale) rather than adding new translated strings — the range is numeric dates only, no fixed English/Bulgarian words to translate beyond the em dash.
 
 ## Facts
 - Hosted DEV Supabase project: `iymwxdewcpvpjgzewtzk`, prod: `ynykjpnetfwqzdnsgkkg`
-- CI's `Authenticated E2E (Clerk)` job is a ~5s gated skip (missing secrets) — does not run specs; not real coverage. `mobile-390`'s `390px smoke vs preview` job is real, runs against the live Vercel Preview, and did execute `e2e/calendar.spec.ts` (confirmed via job log: "1 [mobile-390] › e2e/calendar.spec.ts:21:7 ... (3.4s)").
-- This repo's local sandbox has a reproducible pre-existing Node-fetch flake reaching Supabase from the Next dev server under browser-driven (Playwright) load — confirmed present on a clean `main` checkout too (same failure line, same error), so it's environment-specific, not caused by any #602 change. Plain `curl` against the same route never reproduces it. Do not re-litigate this as a real bug without new evidence; the actual gate is CI/Preview, which passed.
-- PR #651: `dev/2607-DEV-602` → `main`, title `[2607-DEV-602] Calendar refactor 6: test coverage (date utils, ICS snapshot, calendar e2e)`, body has `Closes #602`.
-- No new routes, no schema/migration changes this ticket.
+- #652 merged as PR #654 (`a6aad9b`) before this session started; #653's `blocked` label removed, confirmed no other blockers.
+- New file `lib/calendar-layout.ts` (+ `lib/calendar-layout.test.ts`, 8 tests): `packWeek()` pure segment/lane packer, `MAX_LANES = 3`.
+- `lib/calendar-dates.ts` gained `prevMonthKey` (symmetric to existing `nextMonthKey`), needed for Sofia-month-key-based navigation in `useCalendar.ts`.
+- Files touched this session: `MonthView.tsx`, `EventPill.tsx`, `AgendaView.tsx`, `useCalendar.ts`, `popup/EventPopupShell.tsx`, `popup/types.ts`, `lib/i18n/domains/calendar.ts`, `lib/calendar-dates.ts`, `lib/calendar-layout.ts` (new), `lib/calendar-layout.test.ts` (new). No schema/migration changes.
+- Accessibility trade (flagged in the issue as worth a second opinion): bars are `aria-hidden`/`tabIndex={-1}`; each `role="gridcell"` gets an `aria-label` enumerating covering events with `Day N/M` context instead.
 
 ## Done
-#602 PLAN — RESULT: verdict READY; found the `blocked` label stale (dependencies #587-592 all closed).
-#602 CLAIM — RESULT: re-entry on existing issue #602 (label removed, Design Checklist completed in the issue body); branch `dev/2607-DEV-602` cut from `main`; `docs/CLAIMS.md` row added (no overlap with #601's then-in-flight row).
-#602 BUILD — RESULT: `app/(dashboard)/calendar/utils.test.ts` (new, 15 tests), `lib/format.test.ts` extended (`calMonth`/`calDay`/`formatDateMediumEn`/`formatDateLongEn`), `buildEventDescription()` extracted into `lib/server/calendar.ts` with `lib/server/calendar.test.ts` snapshot coverage, `e2e/calendar.spec.ts` (new, unauthenticated smoke). 51 unit tests / `tsc --noEmit` clean. PR #651 opened ready-for-review; CI green including the real `390px smoke vs preview` job.
-#602 GCR — RESULT: CodeRabbit posted 4 findings on commit `0639913`. 3 applied (DST test instants corrected; e2e popup-skip converted to a hard assertion; empty-string `category` handling made consistent with location/meeting_url, +1 new test) in commit `a2ba772`, threads resolved via GraphQL. 1 rejected as a false positive (filter-locator label mix-up), replied on-thread with reasoning, left unresolved.
+#653 PLAN — RESULT: issue #653 already carried a complete Design Checklist (DoD, affected files, gotchas) from its author; verified premises against current code (`MonthView.tsx:39`, `AgendaView.tsx:32` start-date-only bucketing; `EventPopupShell.tsx:110` unconditional start–end render; `lib/calendar-dates.ts`/`is_all_day` plumbing already present from #652) before proceeding — no redesign needed.
+#653 CLAIM — RESULT: branch `dev/2607-DEV-653` cut from `main` (`a6aad9b`); `docs/CLAIMS.md` #652 row (merged) replaced with a #653 row; issue body updated with `## Branch`; `blocked` label removed.
+#653 BUILD — RESULT: `lib/calendar-layout.ts` (new, `packWeek` segment/lane packer) + 8 unit tests; `MonthView.tsx` rewritten to a shared week-grid layout with spanning bars, Sofia-keyed day numbers/`isCurrentMonth`, per-cell `aria-label`; `EventPill.tsx` gained `continuesLeft`/`continuesRight`; `AgendaView.tsx` fans multi-day events across covered days with a `Day N/M` marker (new `cal.dayOf` i18n key, en+bg); `EventPopupShell.tsx`/`popup/types.ts` show a date range for all-day events instead of `01:00–01:00`; `useCalendar.ts` + `lib/calendar-dates.ts` (`prevMonthKey`, new) made month navigation Sofia-month-key based. `tsc --noEmit` clean, `npm run lint` 0 errors, `npx vitest run` 207/207 passed. Committed locally, not pushed. Browser/preview/390px verification not yet done.
 
 ## Open items
-- Get a genuine CodeRabbit re-review on `a2ba772` (last one was rate-limited) before merging PR #651
-- #601's post-merge tail (prod smoke-check, `migrate-prod` confirmation) was left unverified in a prior session — flag if prod state comes up again
-- Issue #603+ (calendar refactor phases 7-8, if any) — not investigated this session
+- Full DoD verification (browser, 390px, arrow-key/click-through, real multi-day events) — see `## Next`
+- `/code-review low` on the diff before pushing
+- Issue #601's post-merge tail (prod smoke-check, `migrate-prod` confirmation) — carried over from a prior session, unrelated to #653, flag if prod state comes up again
 
 ## Failed attempts
 (none this session)
