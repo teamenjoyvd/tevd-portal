@@ -23,3 +23,6 @@ export type CalendarListEvent = Pick<
 
 /** Full row shape for single-event detail consumers. */
 export type CalendarEventDetail = CalendarEventRow
+
+/** Admin list row: full row plus the computed active-guest count attached by /api/admin/calendar. */
+export type AdminCalendarEvent = CalendarEventRow & { guest_registration_count?: number }

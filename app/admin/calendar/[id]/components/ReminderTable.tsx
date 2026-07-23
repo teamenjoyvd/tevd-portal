@@ -1,14 +1,9 @@
 'use client'
 
-import { useState, useTransition } from 'react'
-import { useRouter } from 'next/navigation'
-import { Database } from '@/types/supabase'
-import {
-  toggleEventReminders,
-  cancelReminder,
-  resendReminder,
-  rescheduleReminder,
-} from '@/app/admin/actions/reminders'
+import { useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { apiClient } from '@/lib/apiClient'
+import { useLanguage } from '@/lib/hooks/useLanguage'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,24 +34,33 @@ import { REMINDER_LABEL_LONG as REMINDER_LABEL } from '@/components/admin/remind
 // EventRemindersToggle — hoisted to module scope
 // ---------------------------------------------------------------------------
 function EventRemindersToggle({ eventId, initialEnabled }: { eventId: string; initialEnabled: boolean }) {
+  const { t } = useLanguage()
   const [enabled, setEnabled] = useState(initialEnabled)
-  const [pending, startTransition] = useTransition()
+
+  const toggleMutation = useMutation({
+    mutationFn: (next: boolean) =>
+      apiClient(`/api/admin/calendar/${eventId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ reminders_enabled: next }),
+      }),
+    onError: (_e, next) => setEnabled(!next),
+  })
 
   function handleToggle() {
     const next = !enabled
     setEnabled(next)
-    startTransition(() => {
-      toggleEventReminders(eventId, next)
-    })
+    toggleMutation.mutate(next)
   }
 
   return (
     <div className="flex items-center gap-3">
-      <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Reminders {enabled ? 'enabled' : 'disabled'}</span>
+      <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+        {enabled ? t('admin.calendar.reminders.enabled') : t('admin.calendar.reminders.disabled')}
+      </span>
       <button
         onClick={handleToggle}
-        disabled={pending}
-        aria-label={enabled ? 'Disable reminders' : 'Enable reminders'}
+        disabled={toggleMutation.isPending}
+        aria-label={enabled ? t('admin.calendar.reminders.disableAria') : t('admin.calendar.reminders.enableAria')}
         className={[
           'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none disabled:opacity-50',
           enabled ? 'bg-[#bc4749]' : 'bg-gray-300 dark:bg-gray-600',
@@ -74,35 +78,36 @@ function EventRemindersToggle({ eventId, initialEnabled }: { eventId: string; in
 // ---------------------------------------------------------------------------
 // RowActions — hoisted to module scope
 // ---------------------------------------------------------------------------
-function RowActions({ reminder }: { reminder: Reminder }) {
-  const router = useRouter()
+function RowActions({ reminder, eventId }: { reminder: Reminder; eventId: string }) {
+  const { t } = useLanguage()
+  const qc = useQueryClient()
   const [rescheduleOpen, setRescheduleOpen] = useState(false)
   const [newSendAt, setNewSendAt] = useState('')
-  const [pending, startTransition] = useTransition()
   const canCancelOrReschedule = reminder.status === 'pending' || reminder.status === 'failed'
   const canResend = reminder.status === 'sent' || reminder.status === 'permanently_failed'
+  const guestName = reminder.guest_registrations?.name ?? t('admin.calendar.reminders.unnamedGuest')
 
-  function handleCancel() {
-    startTransition(async () => {
-      await cancelReminder(reminder.id)
-      router.refresh()
-    })
-  }
+  const invalidate = () => qc.invalidateQueries({ queryKey: ['admin-calendar-reminders', eventId] })
 
-  function handleResend() {
-    startTransition(async () => {
-      await resendReminder(reminder.id)
-      router.refresh()
-    })
-  }
+  const cancelMutation = useMutation({
+    mutationFn: () => apiClient(`/api/admin/reminders/${reminder.id}`, { method: 'DELETE' }),
+    onSuccess: invalidate,
+  })
+  const resendMutation = useMutation({
+    mutationFn: () => apiClient(`/api/admin/reminders/${reminder.id}`, { method: 'PATCH', body: JSON.stringify({ action: 'resend' }) }),
+    onSuccess: invalidate,
+  })
+  const rescheduleMutation = useMutation({
+    mutationFn: (sendAt: string) =>
+      apiClient(`/api/admin/reminders/${reminder.id}`, { method: 'PATCH', body: JSON.stringify({ action: 'reschedule', send_at: sendAt }) }),
+    onSuccess: () => { setRescheduleOpen(false); invalidate() },
+  })
+
+  const pending = cancelMutation.isPending || resendMutation.isPending || rescheduleMutation.isPending
 
   function handleReschedule() {
     if (!newSendAt) return
-    startTransition(async () => {
-      await rescheduleReminder(reminder.id, new Date(newSendAt).toISOString())
-      setRescheduleOpen(false)
-      router.refresh()
-    })
+    rescheduleMutation.mutate(new Date(newSendAt).toISOString())
   }
 
   return (
@@ -115,20 +120,21 @@ function RowActions({ reminder }: { reminder: Reminder }) {
               className="text-xs px-2 py-1 rounded border transition-colors hover:bg-black/5 disabled:opacity-50"
               style={{ borderColor: 'var(--border-default)', color: 'var(--brand-crimson)' }}
             >
-              Cancel
+              {t('admin.calendar.reminders.btn.cancel')}
             </button>
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Cancel reminder?</AlertDialogTitle>
+              <AlertDialogTitle>{t('admin.calendar.reminders.confirm.cancelTitle')}</AlertDialogTitle>
               <AlertDialogDescription>
-                This will permanently delete the pending reminder for{' '}
-                <strong>{reminder.guest_registrations?.name ?? 'this guest'}</strong>.
+                {t('admin.calendar.reminders.confirm.cancelDesc').replace('{{guest}}', guestName)}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Keep it</AlertDialogCancel>
-              <AlertDialogAction onClick={handleCancel}>Yes, cancel</AlertDialogAction>
+              <AlertDialogCancel>{t('admin.calendar.reminders.confirm.keepIt')}</AlertDialogCancel>
+              <AlertDialogAction onClick={() => cancelMutation.mutate()}>
+                {t('admin.calendar.reminders.confirm.yesCancel')}
+              </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
@@ -142,19 +148,21 @@ function RowActions({ reminder }: { reminder: Reminder }) {
               className="text-xs px-2 py-1 rounded border transition-colors hover:bg-black/5 disabled:opacity-50"
               style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
             >
-              Resend
+              {t('admin.calendar.reminders.btn.resend')}
             </button>
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Resend reminder?</AlertDialogTitle>
+              <AlertDialogTitle>{t('admin.calendar.reminders.confirm.resendTitle')}</AlertDialogTitle>
               <AlertDialogDescription>
-                The reminder will be queued to send immediately on the next cron run.
+                {t('admin.calendar.reminders.confirm.resendDesc')}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleResend}>Yes, resend</AlertDialogAction>
+              <AlertDialogCancel>{t('admin.calendar.btn.cancel')}</AlertDialogCancel>
+              <AlertDialogAction onClick={() => resendMutation.mutate()}>
+                {t('admin.calendar.reminders.confirm.yesResend')}
+              </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
@@ -168,16 +176,19 @@ function RowActions({ reminder }: { reminder: Reminder }) {
             className="text-xs px-2 py-1 rounded border transition-colors hover:bg-black/5 disabled:opacity-50"
             style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
           >
-            Reschedule
+            {t('admin.calendar.reminders.btn.reschedule')}
           </button>
-          <Drawer open={rescheduleOpen} onClose={() => setRescheduleOpen(false)} title="Reschedule reminder">
+          <Drawer open={rescheduleOpen} onClose={() => setRescheduleOpen(false)} title={t('admin.calendar.reminders.reschedule.title')}>
             <div className="space-y-4">
               <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                New send time for <strong>{reminder.guest_registrations?.name ?? 'this guest'}</strong>&apos;s{' '}
-                {REMINDER_LABEL[reminder.type]} reminder.
+                {t('admin.calendar.reminders.reschedule.desc')
+                  .replace('{{guest}}', guestName)
+                  .replace('{{type}}', REMINDER_LABEL[reminder.type] ?? reminder.type)}
               </p>
               <div className="space-y-1">
-                <label className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>New send time</label>
+                <label className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
+                  {t('admin.calendar.reminders.reschedule.lbl')}
+                </label>
                 <input
                   type="datetime-local"
                   value={newSendAt}
@@ -192,7 +203,7 @@ function RowActions({ reminder }: { reminder: Reminder }) {
                   className="flex-1 rounded-lg border px-4 py-2 text-sm font-medium transition-colors hover:bg-black/5"
                   style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                 >
-                  Cancel
+                  {t('admin.calendar.btn.cancel')}
                 </button>
                 <button
                   onClick={handleReschedule}
@@ -200,7 +211,7 @@ function RowActions({ reminder }: { reminder: Reminder }) {
                   className="flex-1 rounded-lg px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
                   style={{ backgroundColor: '#bc4749' }}
                 >
-                  {pending ? 'Saving…' : 'Save'}
+                  {rescheduleMutation.isPending ? t('admin.calendar.reminders.reschedule.saving') : t('admin.calendar.reminders.reschedule.save')}
                 </button>
               </div>
             </div>
@@ -215,7 +226,7 @@ function RowActions({ reminder }: { reminder: Reminder }) {
 // ReminderTable — main export
 // ---------------------------------------------------------------------------
 export default function ReminderTable({
-  reminders,
+  reminders: initialReminders,
   eventId,
   remindersEnabled,
 }: {
@@ -223,13 +234,20 @@ export default function ReminderTable({
   eventId: string
   remindersEnabled: boolean
 }) {
+  const { t } = useLanguage()
+  const { data: reminders = [] } = useQuery<Reminder[]>({
+    queryKey: ['admin-calendar-reminders', eventId],
+    queryFn: () => apiClient(`/api/admin/calendar/${eventId}/reminders`),
+    initialData: initialReminders,
+  })
+
   return (
     <div className="space-y-4">
       <EventRemindersToggle eventId={eventId} initialEnabled={remindersEnabled} />
 
       {reminders.length === 0 ? (
         <p className="text-sm py-6 text-center" style={{ color: 'var(--text-muted)' }}>
-          No reminders scheduled for this event.
+          {t('admin.calendar.reminders.empty')}
         </p>
       ) : (
         <>
@@ -238,11 +256,11 @@ export default function ReminderTable({
             <table className="w-full text-sm">
               <thead style={{ backgroundColor: 'var(--bg-card)' }}>
                 <tr className="text-left text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
-                  <th className="px-4 py-3">Guest</th>
-                  <th className="px-4 py-3">Email</th>
-                  <th className="px-4 py-3">Type</th>
-                  <th className="px-4 py-3">Send at</th>
-                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">{t('admin.calendar.reminders.col.guest')}</th>
+                  <th className="px-4 py-3">{t('admin.calendar.reminders.col.email')}</th>
+                  <th className="px-4 py-3">{t('admin.calendar.reminders.col.type')}</th>
+                  <th className="px-4 py-3">{t('admin.calendar.reminders.col.sendAt')}</th>
+                  <th className="px-4 py-3">{t('admin.calendar.reminders.col.status')}</th>
                   <th className="px-4 py-3" />
                 </tr>
               </thead>
@@ -256,7 +274,7 @@ export default function ReminderTable({
                       {new Date(r.send_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                     </td>
                     <td className="px-4 py-3"><StatusPill status={r.status} /></td>
-                    <td className="px-4 py-3"><RowActions reminder={r} /></td>
+                    <td className="px-4 py-3"><RowActions reminder={r} eventId={eventId} /></td>
                   </tr>
                 ))}
               </tbody>
@@ -276,7 +294,7 @@ export default function ReminderTable({
                   <span>{REMINDER_LABEL[r.type] ?? r.type}</span>
                   <span className="tabular-nums">{new Date(r.send_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
                 </div>
-                <RowActions reminder={r} />
+                <RowActions reminder={r} eventId={eventId} />
               </div>
             ))}
           </div>
