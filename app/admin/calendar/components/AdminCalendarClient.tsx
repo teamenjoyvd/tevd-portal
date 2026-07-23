@@ -46,6 +46,7 @@ export default function AdminCalendarClient() {
   const [form, setForm] = useState<EventFormState>(emptyForm())
   const [formError, setFormError] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<AdminCalendarEvent | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
   const [editConfirmOpen, setEditConfirmOpen] = useState(false)
 
   // ── Filter state ────────────────────────────────────────────────────────────────────
@@ -407,7 +408,7 @@ export default function AdminCalendarClient() {
       </AlertDialog>
 
       {/* ── Delete confirm ──────────────────────────────────────────────────── */}
-      <AlertDialog open={deleteTarget != null} onOpenChange={open => { if (!open) setDeleteTarget(null) }}>
+      <AlertDialog open={deleteTarget != null} onOpenChange={open => { if (!open) { setDeleteTarget(null); setDeleteError(null) } }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
@@ -419,10 +420,19 @@ export default function AdminCalendarClient() {
                 t('admin.calendar.confirm.guestWarning').replace('{{count}}', String(deleteTarget.guest_registration_count))}
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {deleteError && <p className="text-sm" style={{ color: 'var(--brand-crimson)' }}>{deleteError}</p>}
           <AlertDialogFooter>
             <AlertDialogCancel>{t('admin.calendar.btn.cancel')}</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => { if (deleteTarget) deleteMutation.mutate(deleteTarget.id); setDeleteTarget(null) }}
+              disabled={deleteMutation.isPending}
+              onClick={() => {
+                if (!deleteTarget) return
+                setDeleteError(null)
+                deleteMutation.mutate(deleteTarget.id, {
+                  onSuccess: () => setDeleteTarget(null),
+                  onError: (e: Error) => setDeleteError(e.message),
+                })
+              }}
             >
               {t('admin.calendar.btn.delete')}
             </AlertDialogAction>

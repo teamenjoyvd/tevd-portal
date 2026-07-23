@@ -83,24 +83,29 @@ function RowActions({ reminder, eventId }: { reminder: Reminder; eventId: string
   const qc = useQueryClient()
   const [rescheduleOpen, setRescheduleOpen] = useState(false)
   const [newSendAt, setNewSendAt] = useState('')
+  const [actionError, setActionError] = useState<string | null>(null)
   const canCancelOrReschedule = reminder.status === 'pending' || reminder.status === 'failed'
   const canResend = reminder.status === 'sent' || reminder.status === 'permanently_failed'
   const guestName = reminder.guest_registrations?.name ?? t('admin.calendar.reminders.unnamedGuest')
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ['admin-calendar-reminders', eventId] })
+  const onActionError = (e: Error) => setActionError(e.message)
 
   const cancelMutation = useMutation({
     mutationFn: () => apiClient(`/api/admin/reminders/${reminder.id}`, { method: 'DELETE' }),
-    onSuccess: invalidate,
+    onSuccess: () => { setActionError(null); invalidate() },
+    onError: onActionError,
   })
   const resendMutation = useMutation({
     mutationFn: () => apiClient(`/api/admin/reminders/${reminder.id}`, { method: 'PATCH', body: JSON.stringify({ action: 'resend' }) }),
-    onSuccess: invalidate,
+    onSuccess: () => { setActionError(null); invalidate() },
+    onError: onActionError,
   })
   const rescheduleMutation = useMutation({
     mutationFn: (sendAt: string) =>
       apiClient(`/api/admin/reminders/${reminder.id}`, { method: 'PATCH', body: JSON.stringify({ action: 'reschedule', send_at: sendAt }) }),
-    onSuccess: () => { setRescheduleOpen(false); invalidate() },
+    onSuccess: () => { setActionError(null); setRescheduleOpen(false); invalidate() },
+    onError: onActionError,
   })
 
   const pending = cancelMutation.isPending || resendMutation.isPending || rescheduleMutation.isPending
@@ -218,6 +223,7 @@ function RowActions({ reminder, eventId }: { reminder: Reminder; eventId: string
           </Drawer>
         </>
       )}
+      {actionError && <p className="text-xs" style={{ color: 'var(--brand-crimson)' }}>{actionError}</p>}
     </div>
   )
 }

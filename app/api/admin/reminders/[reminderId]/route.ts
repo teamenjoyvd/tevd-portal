@@ -26,7 +26,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ remind
   }
 
   // reschedule
-  if (!body.send_at || new Date(body.send_at) <= new Date()) {
+  const rescheduledAt = new Date(body.send_at)
+  if (!body.send_at || Number.isNaN(rescheduledAt.getTime()) || rescheduledAt <= new Date()) {
     return Response.json({ error: 'Rescheduled time must be in the future' }, { status: 400 })
   }
   const { error } = await supabase
