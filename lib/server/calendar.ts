@@ -4,6 +4,8 @@
 // Server-only — never import from client components.
 import { createServiceClient } from '@/lib/supabase/service'
 import type { CalendarListEvent } from '@/types/calendar'
+import { icsAllDayRange } from '@/lib/calendar-dates'
+import type { ICalEventData } from 'ical-generator'
 
 const LIST_COLUMNS =
   'id, title, description, start_time, end_time, category, event_type, week_number, access_roles, is_all_day, location, meeting_url'
@@ -36,6 +38,44 @@ export function buildEventDescription(event: {
 }
 
 /**
+ * Builds the ical-generator input for a single VEVENT. Pure function —
+ * extracted from feed.ics/route.ts so ICS date output can be snapshot-tested
+ * without mocking auth/DB (the route itself needs Clerk + Supabase).
+ *
+ * All-day events use icsAllDayRange (Sofia date-key derived, DTEND exclusive
+ * per RFC 5545 §3.8.2.2); timed events pass start_time/end_time straight
+ * through — they're already +00 UTC strings from Supabase.
+ */
+export function toVEventInput(event: {
+  id: string
+  title: string
+  description: string | null
+  location: string | null
+  meeting_url: string | null
+  category: string | null
+  is_all_day: boolean
+  start_time: string
+  end_time: string
+}): ICalEventData {
+  const description = buildEventDescription(event)
+  const { start, end } = event.is_all_day
+    ? icsAllDayRange(event.start_time, event.end_time)
+    : { start: new Date(event.start_time), end: new Date(event.end_time) }
+
+  return {
+    id: event.id,
+    summary: event.title,
+    description: description || undefined,
+    allDay: event.is_all_day,
+    start,
+    end,
+    location: event.location != null && event.location !== '' ? event.location : undefined,
+    url: event.meeting_url != null && event.meeting_url !== '' ? event.meeting_url : undefined,
+    categories: event.category != null ? [{ name: event.category }] : undefined,
+  }
+}
+
+/**
  * Role-scoped calendar events, ordered by start_time.
  * `from`/`to` bound the window when provided.
  * `limit` is only applied when explicitly passed — with ascending start_time
@@ -62,8 +102,11 @@ export async function listEventsForRole({
     .contains('access_roles', [role])
     .order('start_time')
 
-  if (from) query = query.gte('start_time', from)
+  // Overlap semantics, not start-only: an event starting before `from` but
+  // still running (end_time >= from) must still match, or a multi-day span
+  // straddling a window boundary silently disappears from that window.
   if (to) query = query.lt('start_time', to)
+  if (from) query = query.gte('end_time', from)
   if (limit) query = query.limit(limit)
 
   const { data, error } = await query

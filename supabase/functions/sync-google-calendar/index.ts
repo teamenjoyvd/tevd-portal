@@ -96,6 +96,31 @@ function stripHtml(html: string): string {
 }
 
 /**
+ * DST-correct UTC instant of Sofia 00:00 for a 'YYYY-MM-DD' date string.
+ * Mirrors lib/calendar-dates.ts sofiaMidnightUtc — Deno Edge Functions
+ * cannot import from the repo, so the round-trip is duplicated here.
+ */
+function sofiaMidnightUtcFor(dateKey: string): Date {
+  const naiveDate = new Date(`${dateKey}T00:00:00Z`)
+  const sofiaWall = new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Europe/Sofia',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false,
+  }).format(naiveDate).replace(' ', 'T')
+  const sofiaAsUtc = new Date(`${sofiaWall}Z`)
+  const offsetMs = naiveDate.getTime() - sofiaAsUtc.getTime()
+  return new Date(naiveDate.getTime() + offsetMs)
+}
+
+/** Subtract one calendar day from a 'YYYY-MM-DD' string, returning a 'YYYY-MM-DD' string. */
+function previousDateKey(dateKey: string): string {
+  const d = new Date(`${dateKey}T00:00:00Z`)
+  d.setUTCDate(d.getUTCDate() - 1)
+  return d.toISOString().slice(0, 10)
+}
+
+/**
  * Resolve start/end times for a GCal event item.
  *
  * Google returns two distinct shapes:
@@ -103,17 +128,20 @@ function stripHtml(html: string): string {
  *   - All-day events: { start: { date: '2026-06-15' }, end: { date: '2026-06-16' } }
  *
  * The `date` form is a bare YYYY-MM-DD string. Passing it directly to
- * new Date(...) parses it as UTC midnight, which in Sofia (UTC+2) shifts
- * the event to the previous day at 22:00.
+ * new Date(...) parses it as UTC midnight, which in Sofia (UTC+2/+3) shifts
+ * the event to the previous day.
  *
- * Fix: detect all-day by absence of dateTime, then build an explicit
- * Sofia-midnight ISO string using the +02:00 offset. This produces the
- * correct UTC instant (e.g. 2026-06-14T22:00:00.000Z) while preserving
- * the correct calendar date when rendered in the Sofia timezone.
+ * Fix: detect all-day by absence of dateTime, then resolve the true,
+ * DST-correct Sofia-midnight UTC instant via sofiaMidnightUtcFor. This is
+ * correct year-round, unlike a hardcoded +02:00 offset which drifts 1h
+ * during EEST (May–Oct).
  *
  * Google's end.date is EXCLUSIVE (the day after the last day of the event).
- * We subtract one day so a single-day event stores start=Jun 15, end=Jun 15
- * and a two-day event stores start=Jun 15, end=Jun 16.
+ * We subtract one day on the YYYY-MM-DD string (not via runtime-local Date
+ * arithmetic, which on Deno Edge runs in UTC — safe here, but the string
+ * form keeps the operation explicit and TZ-independent) so a single-day
+ * event stores start=Jun 15, end=Jun 15 and a two-day event stores
+ * start=Jun 15, end=Jun 16.
  */
 function resolveTimes(item: Record<string, unknown>): {
   startIso: string
@@ -133,22 +161,8 @@ function resolveTimes(item: Record<string, unknown>): {
   }
 
   if (start?.date && end?.date) {
-    // All-day event — construct explicit Sofia midnight strings.
-    // +02:00 is Sofia standard time (EET). EEST (+03:00) applies May–Oct;
-    // using +02:00 year-round is a deliberate simplification: the stored
-    // UTC instant may be off by 1h during summer but the rendered Sofia
-    // calendar date will always be correct because the display layer reads
-    // back through the Europe/Sofia TZ (which applies DST automatically).
-    const startIso = new Date(`${start.date}T00:00:00+02:00`).toISOString()
-
-    // Subtract one day from Google's exclusive end date.
-    // exclusiveEnd is initialised as Sofia midnight (22:00 UTC); setDate adjusts
-    // the UTC date by -1, yielding the correct Sofia midnight for the inclusive
-    // end day. toISOString() on the resulting Date is the correct UTC instant.
-    const exclusiveEnd = new Date(`${end.date}T00:00:00+02:00`)
-    exclusiveEnd.setDate(exclusiveEnd.getDate() - 1)
-    const endIso = exclusiveEnd.toISOString()
-
+    const startIso = sofiaMidnightUtcFor(start.date).toISOString()
+    const endIso = sofiaMidnightUtcFor(previousDateKey(end.date)).toISOString()
     return { startIso, endIso, isAllDay: true }
   }
 

@@ -2,6 +2,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { auth } from '@clerk/nextjs/server'
 import CalendarClient from './components/CalendarClient'
 import { listEventsForRole } from '@/lib/server/calendar'
+import { sofiaMidnightUtc } from '@/lib/calendar-dates'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,8 +15,10 @@ export default async function CalendarPage({
 
   const now = new Date()
   const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-  const start = new Date(`${month}-01`).toISOString()
-  const end = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString()
+  const nextMonth = now.getMonth() === 11 ? 1 : now.getMonth() + 2
+  const nextYear = now.getMonth() === 11 ? now.getFullYear() + 1 : now.getFullYear()
+  const start = sofiaMidnightUtc(`${month}-01`).toISOString()
+  const end = sofiaMidnightUtc(`${nextYear}-${String(nextMonth).padStart(2, '0')}-01`).toISOString()
 
   let userId: string | null = null
   try {

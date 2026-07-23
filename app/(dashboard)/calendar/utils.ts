@@ -15,17 +15,10 @@ export const CATEGORY_COLOR: Record<string, { bg: string; text: string }> = {
   Personal: { bg: 'var(--brand-sienna)', text: 'rgba(255,255,255,0.95)' },
 }
 
-// ── Module-level cached formatters ────────────────────────────────────────
-// Instantiating Intl.DateTimeFormat inside render functions or tight loops
-// is expensive. Cache at module scope — formatters are stateless and reusable.
-
-/** Sofia date formatter (YYYY-MM-DD via sv-SE). Used for day-key comparisons. */
-export const SOFIA_DATE_FMT = new Intl.DateTimeFormat('sv-SE', {
-  timeZone: 'Europe/Sofia',
-  year: 'numeric',
-  month: '2-digit',
-  day: '2-digit',
-})
+// Moved to lib/calendar-dates.ts (shared with app/api/calendar/feed.ics) —
+// re-exported here so existing importers are untouched.
+export { SOFIA_DATE_FMT } from '@/lib/calendar-dates'
+import { SOFIA_DATE_FMT } from '@/lib/calendar-dates'
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
