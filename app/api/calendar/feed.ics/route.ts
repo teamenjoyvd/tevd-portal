@@ -1,17 +1,12 @@
 import { createHash } from 'node:crypto'
 import { createServiceClient } from '@/lib/supabase/service'
 import ical from 'ical-generator'
-import { listEventsForRole, buildEventDescription } from '@/lib/server/calendar'
+import { listEventsForRole, toVEventInput } from '@/lib/server/calendar'
 import { verifyIcalToken, IcalTokenConfigError } from '@/lib/server/icalToken'
 
 const FEED_WINDOW_PAST_DAYS = 90
 const FEED_WINDOW_FUTURE_DAYS = 365
 const FEED_LIMIT = 500
-
-function toUtcDateOnly(isoString: string): Date {
-  const d = new Date(isoString)
-  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()))
-}
 
 // RFC 7232 §3.2: If-None-Match may carry a comma-separated list of ETags, or
 // `*`. A plain `===` against the raw header would never match either form.
@@ -100,26 +95,7 @@ export async function GET(req: Request) {
   })
 
   for (const event of events ?? []) {
-    const description = buildEventDescription(event)
-
-    // For all-day events, ical-generator's VALUE=DATE truncates the Date to its
-    // UTC date component — normalize to the UTC midnight boundary here so a
-    // stored start_time/end_time that isn't exactly UTC midnight (e.g. legacy
-    // data) can't shift the displayed calendar day.
-    const start = event.is_all_day ? toUtcDateOnly(event.start_time) : new Date(event.start_time)
-    const end = event.is_all_day ? toUtcDateOnly(event.end_time) : new Date(event.end_time)
-
-    calendar.createEvent({
-      id: event.id,
-      summary: event.title,
-      description: description || undefined,
-      allDay: event.is_all_day,
-      start,
-      end,
-      location: event.location != null && event.location !== '' ? event.location : undefined,
-      url: event.meeting_url != null && event.meeting_url !== '' ? event.meeting_url : undefined,
-      categories: event.category != null ? [{ name: event.category }] : undefined,
-    })
+    calendar.createEvent(toVEventInput(event))
   }
 
   return new Response(calendar.toString(), {

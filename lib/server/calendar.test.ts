@@ -1,5 +1,11 @@
-import { describe, expect, it } from 'vitest'
-import { buildEventDescription } from '@/lib/server/calendar'
+import { describe, expect, it, vi } from 'vitest'
+
+const mockCreateServiceClient = vi.fn()
+vi.mock('@/lib/supabase/service', () => ({
+  createServiceClient: () => mockCreateServiceClient(),
+}))
+
+import { buildEventDescription, toVEventInput, listEventsForRole } from '@/lib/server/calendar'
 
 describe('buildEventDescription', () => {
   it('returns undefined when no description or detail fields are set', () => {
@@ -75,5 +81,92 @@ describe('buildEventDescription', () => {
         category: '',
       }),
     ).toMatchInlineSnapshot(`"Monthly N21 meetup"`)
+  })
+})
+
+describe('toVEventInput', () => {
+  it('emits the correct all-day date range for the real prod October event', () => {
+    const input = toVEventInput({
+      id: '5o3mircbst1a1v1mc4j1hrnirq',
+      title: 'WES event',
+      description: null,
+      location: null,
+      meeting_url: null,
+      category: null,
+      is_all_day: true,
+      start_time: '2026-10-22T22:00:00Z',
+      end_time: '2026-10-24T22:00:00Z',
+    })
+    // ical-generator serializes allDay dates via UTC getters (no calendar
+    // timezone set) — assert the UTC date directly, matching what actually
+    // lands in DTSTART;VALUE=DATE / DTEND;VALUE=DATE.
+    expect((input.start as Date).toISOString().slice(0, 10)).toBe('2026-10-23')
+    expect((input.end as Date).toISOString().slice(0, 10)).toBe('2026-10-26')
+    expect(input.allDay).toBe(true)
+  })
+
+  it('serializes to the exact expected VEVENT date-only lines (regression: ical-generator uses UTC getters for allDay)', async () => {
+    const ical = (await import('ical-generator')).default
+    const calendar = ical({ name: 'test' })
+    calendar.createEvent(
+      toVEventInput({
+        id: '5o3mircbst1a1v1mc4j1hrnirq',
+        title: 'WES event',
+        description: null,
+        location: null,
+        meeting_url: null,
+        category: null,
+        is_all_day: true,
+        start_time: '2026-10-22T22:00:00Z',
+        end_time: '2026-10-24T22:00:00Z',
+      }),
+    )
+    const output = calendar.toString()
+    expect(output).toContain('DTSTART;VALUE=DATE:20261023')
+    expect(output).toContain('DTEND;VALUE=DATE:20261026')
+  })
+
+  it('passes timed event start/end straight through as UTC instants', () => {
+    const input = toVEventInput({
+      id: 'timed-1',
+      title: 'Meeting',
+      description: null,
+      location: null,
+      meeting_url: null,
+      category: null,
+      is_all_day: false,
+      start_time: '2026-06-15T10:00:00Z',
+      end_time: '2026-06-15T11:00:00Z',
+    })
+    expect((input.start as Date).toISOString()).toBe('2026-06-15T10:00:00.000Z')
+    expect(input.allDay).toBe(false)
+  })
+})
+
+describe('listEventsForRole overlap semantics', () => {
+  it('includes an event that starts before the window but is still ongoing', async () => {
+    const gte = vi.fn().mockReturnThis()
+    const lt = vi.fn().mockReturnThis()
+    const chain: Record<string, unknown> = {}
+    const overlappingEvent = { id: 'e1', start_time: '2026-09-28T00:00:00Z', end_time: '2026-10-02T00:00:00Z' }
+    Object.assign(chain, {
+      contains: vi.fn().mockReturnValue(chain),
+      order: vi.fn().mockReturnValue(chain),
+      gte,
+      lt,
+      limit: vi.fn().mockReturnValue(chain),
+      then: (resolve: (v: unknown) => void) => resolve({ data: [overlappingEvent], error: null }),
+    })
+    gte.mockReturnValue(chain)
+    lt.mockReturnValue(chain)
+
+    mockCreateServiceClient.mockReturnValue({
+      from: () => ({ select: () => chain }),
+    })
+
+    const result = await listEventsForRole({ role: 'member', from: '2026-10-01T00:00:00Z', to: '2026-11-01T00:00:00Z' })
+    expect(result).toEqual([overlappingEvent])
+    expect(lt).toHaveBeenCalledWith('start_time', '2026-11-01T00:00:00Z')
+    expect(gte).toHaveBeenCalledWith('end_time', '2026-10-01T00:00:00Z')
   })
 })

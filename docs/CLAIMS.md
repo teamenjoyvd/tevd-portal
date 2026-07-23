@@ -6,3 +6,4 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
+| #652 | dev/2607-DEV-652 | lib/calendar-dates.ts (new), lib/server/calendar.ts, app/api/calendar/feed.ics/route.ts, app/api/calendar/route.ts, app/(dashboard)/calendar/{page.tsx,utils.ts}, supabase/functions/sync-google-calendar; migration: no | 2026-07-23 |
