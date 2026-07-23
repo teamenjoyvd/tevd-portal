@@ -26,8 +26,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ remind
   }
 
   // reschedule
+  if (typeof body.send_at !== 'string') {
+    return Response.json({ error: 'Rescheduled time must be in the future' }, { status: 400 })
+  }
   const rescheduledAt = new Date(body.send_at)
-  if (!body.send_at || Number.isNaN(rescheduledAt.getTime()) || rescheduledAt <= new Date()) {
+  if (Number.isNaN(rescheduledAt.getTime()) || rescheduledAt <= new Date()) {
     return Response.json({ error: 'Rescheduled time must be in the future' }, { status: 400 })
   }
   const { error } = await supabase
