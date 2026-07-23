@@ -2,12 +2,11 @@
 Issue #653 (2607-DEV-653, branch `dev/2607-DEV-653`): Calendar multi-day rendering — Month view spanning bars, Agenda per-day rows, popup date range for all-day events. Depends on #652 (merged, PR #654).
 
 ## Now
-PR [#655](https://github.com/teamenjoyvd/tevd-portal/pull/655) open, marked ready for review by the user (no longer draft) at 2026-07-23T22:23:17Z. `/code-review low` found one real bug (Month view `gridStart` derived from `current` instead of the Sofia month key) — fixed. `390px smoke vs preview` initially failed twice post-push: first on a stale e2e selector (`[role="gridcell"] button` — fixed, spanning bars are now row-level siblings of gridcells, not children), then intermittently on `e2e/library-guide.spec.ts` timing out against `/library?type=guides` — confirmed as a pre-existing preview-infra flake unrelated to this PR (this branch touches zero files under `app/library`/`lib/server`/`scripts`; same commit passed on one re-run and failed on another). All CI checks green as of the latest re-run except CodeRabbit, which just started its real (non-draft) pass.
+PR [#655](https://github.com/teamenjoyvd/tevd-portal/pull/655) ready for review, CI green (390px smoke flake investigated and confirmed pre-existing/unrelated — see Decisions). CodeRabbit's real pass found 2 actionable comments + 1 nitpick, all applied in commit fixing PR655 review comments, both threads resolved via GraphQL.
 
 ## Next
-- Wait for CodeRabbit's pass on PR #655, fix all findings in one batched push (GCR step)
-- Manually verify against the issue's DoD checklist against the preview: Month view continuous bar across a real multi-day event (Oct 2026 `WES` event, or June 2026), week-boundary split segments, `+N` overflow correctness, arrow-key traversal + click-empty-space-still-fires-onDayClick, 390px no horizontal overflow, Agenda `Day N/M` markers (en + bg), popup date range (no `01:00–01:00`)
-- Merge → GCR (remove #653's `docs/CLAIMS.md` row, close issue)
+- Manually verify against the issue's DoD checklist against the preview: Month view continuous bar across a real multi-day event (Oct 2026 `WES` event, or June 2026), week-boundary split segments, `+N` overflow correctness, arrow-key traversal + click-empty-space-still-fires-onDayClick, 390px no horizontal overflow, Agenda `Day N/M` markers (en + bg), popup date range (no `01:00–01:00`), and the new cross-year range formatting
+- Wait for CI to go green on the GCR-fix commit, then Merge → GCR post-merge tail (remove #653's `docs/CLAIMS.md` row, close issue, no migrations to gate)
 
 ## Constraints
 - Never push directly to `main`; `dev/[YYMM]-DEV-[GH#]` branches only
@@ -21,6 +20,8 @@ DECISION: Segment/lane packing for Month-view spanning bars extracted into a pur
 DECISION: Day-cell/bar layout uses one shared CSS Grid per week row (day cells `gridRow: '1 / -1'`, bars as later DOM siblings with explicit `gridColumn`/`gridRow`) rather than absolute positioning — bars naturally paint above day cells and clicks on empty cell area fall through to the cell's own `onClick`, satisfying the "click interception" DoD item with no `pointer-events` hack.
 DECISION: `useCalendar`'s `current` month state and `MonthView`'s day-number/`isCurrentMonth` test now derive from Sofia date keys (`SOFIA_DATE_FMT`) instead of runtime-local `Date` getters, per issue item 2.4 — `current` is anchored to noon UTC on the 1st of the month so local getters agree with the Sofia month across realistic runtime timezones.
 DECISION: All-day popup date range formatted via a small local `formatAllDayRange` helper (bg-BG locale, matching `formatLongDate`'s existing locale) rather than adding new translated strings — the range is numeric dates only, no fixed English/Bulgarian words to translate beyond the em dash.
+
+DECISION: `390px smoke vs preview` failures on this PR were investigated at the user's request rather than assumed away. Root cause split in two: (1) a stale e2e selector — fixed, not a flake; (2) `e2e/library-guide.spec.ts` timing out against `/library?type=guides` on the Vercel preview, confirmed pre-existing/environmental because the identical commit passed on one CI run and failed on the immediate re-run, and this branch touches zero files under `app/library`/`lib/server`/`scripts` (verified via `git diff main --stat`). Matches the existing `project_preview_smoke_guest_flow` memory's history of this spec being fragile against preview. Re-ran the job; it passed clean.
 
 ## Facts
 - Hosted DEV Supabase project: `iymwxdewcpvpjgzewtzk`, prod: `ynykjpnetfwqzdnsgkkg`
