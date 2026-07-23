@@ -3,25 +3,22 @@
 import { useState } from 'react'
 import { fromSofiaLocalInput } from '@/lib/format'
 import { useLanguage } from '@/lib/hooks/useLanguage'
-import { ALL_ROLES } from '@/lib/roles'
+import { ALL_ROLES, type MemberRole } from '@/lib/roles'
+import type { CalendarEventRow } from '@/types/calendar'
 
-export const CATEGORIES = ['N21', 'Personal'] as const
-export const EVENT_TYPES = ['in-person', 'online', 'hybrid'] as const
+export const CATEGORIES = ['N21', 'Personal'] as const satisfies readonly CalendarEventRow['category'][]
+export const EVENT_TYPES = ['in-person', 'online', 'hybrid'] as const satisfies readonly NonNullable<CalendarEventRow['event_type']>[]
 export const DEFAULT_AVAILABLE_ROLES = ['HOST', 'SPEAKER', 'PRODUCTS']
 
-export type EventFormState = {
+/** Editable subset of CalendarEventRow, plus form-only string encodings of the
+ * datetime-local time fields (converted to/from UTC ISO at submit time). */
+export type EventFormState = Pick<CalendarEventRow, 'week_number' | 'category' | 'event_type' | 'guest_capacity' | 'allow_guest_registration' | 'available_roles'> & {
   title: string
   description: string
   start_time: string
   end_time: string
-  week_number: number
-  category: 'N21' | 'Personal'
-  event_type: 'in-person' | 'online' | 'hybrid' | null
-  access_roles: string[]
+  access_roles: MemberRole[]
   meeting_url: string
-  allow_guest_registration: boolean
-  guest_capacity: number | null
-  available_roles: string[]
 }
 
 export function emptyForm(): EventFormState {

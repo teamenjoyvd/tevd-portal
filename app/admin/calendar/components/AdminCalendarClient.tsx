@@ -2,11 +2,14 @@
 
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react'
 import { RefreshCw } from 'lucide-react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
+import { apiClient } from '@/lib/apiClient'
 import { formatDateTime, toSofiaLocalInput } from '@/lib/format'
 import { Drawer } from '@/components/ui/drawer'
 import { useLanguage } from '@/lib/hooks/useLanguage'
+import type { TranslationKey } from '@/lib/i18n/translations'
 import { ALL_ROLES } from '@/lib/roles'
+import type { AdminCalendarEvent } from '@/types/calendar'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,31 +20,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { EventForm, emptyForm, normalizeFormTimes, DEFAULT_AVAILABLE_ROLES, type EventFormState } from './EventForm'
+import { EventForm, emptyForm, DEFAULT_AVAILABLE_ROLES, type EventFormState } from './EventForm'
+import { useAdminCalendarMutations } from './useAdminCalendarMutations'
 import { Pill } from './Pill'
-
-type CalEvent = {
-  id: string
-  title: string
-  description: string | null
-  start_time: string
-  end_time: string
-  week_number: number
-  category: 'N21' | 'Personal'
-  event_type: 'in-person' | 'online' | 'hybrid' | null
-  access_roles: string[]
-  google_event_id: string | null
-  meeting_url: string | null
-  allow_guest_registration: boolean
-  guest_capacity: number | null
-  available_roles: string[]
-  guest_registration_count?: number
-}
 
 // Tracked fields (kept in sync with lib/notifications/guest-event-changes.ts
 // TRACKED_FIELDS) whose change should surface the "N registered guests will
 // be notified" confirm.
-function hasTrackedChange(ev: CalEvent, f: EventFormState): boolean {
+function hasTrackedChange(ev: AdminCalendarEvent, f: EventFormState): boolean {
   return (
     toSofiaLocalInput(ev.start_time) !== f.start_time ||
     toSofiaLocalInput(ev.end_time) !== f.end_time ||
@@ -53,13 +39,14 @@ type TimeScope = 'upcoming' | 'past' | 'all'
 type CategoryFilter = 'All' | 'N21' | 'Personal'
 
 export default function AdminCalendarClient() {
-  const qc = useQueryClient()
   const { t } = useLanguage()
+  const { syncMutation, createMutation, updateMutation, deleteMutation } = useAdminCalendarMutations()
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const [editing, setEditing] = useState<CalEvent | null>(null)
+  const [editing, setEditing] = useState<AdminCalendarEvent | null>(null)
   const [form, setForm] = useState<EventFormState>(emptyForm())
   const [formError, setFormError] = useState<string | null>(null)
-  const [deleteTarget, setDeleteTarget] = useState<CalEvent | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<AdminCalendarEvent | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
   const [editConfirmOpen, setEditConfirmOpen] = useState(false)
 
   // ── Filter state ────────────────────────────────────────────────────────────────────
@@ -82,14 +69,14 @@ export default function AdminCalendarClient() {
     setDebouncedSearch('')
   }, [])
 
-  const { data: events = [], isLoading } = useQuery<CalEvent[]>({
+  const { data: events = [], isLoading } = useQuery<AdminCalendarEvent[]>({
     queryKey: ['admin-calendar', debouncedSearch, categoryFilter, timeScope],
     queryFn: () => {
       const params = new URLSearchParams()
       if (debouncedSearch) params.set('search', debouncedSearch)
       if (categoryFilter !== 'All') params.set('category', categoryFilter)
       params.set('timeScope', timeScope)
-      return fetch(`/api/admin/calendar?${params.toString()}`).then(async r => { if (!r.ok) throw new Error('Failed to fetch events'); return r.json() })
+      return apiClient<AdminCalendarEvent[]>(`/api/admin/calendar?${params.toString()}`)
     },
   })
 
@@ -127,25 +114,8 @@ export default function AdminCalendarClient() {
 
   const { data: syncStatus, isError: syncStatusIsError } = useQuery<{ last_synced_at: string; ok: boolean; error: string | null } | null>({
     queryKey: ['admin-calendar-sync-status'],
-    queryFn: () => fetch('/api/admin/calendar-sync').then(async r => { if (!r.ok) throw new Error('Failed to fetch sync status'); return r.json() }),
+    queryFn: () => apiClient('/api/admin/calendar-sync'),
     refetchInterval: 60_000,
-  })
-
-  const syncMutation = useMutation({
-    mutationFn: async () => {
-      const res = await fetch('/api/admin/calendar-sync', { method: 'POST' })
-      if (!res.ok) throw new Error('Failed to sync calendar')
-      return res.json()
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['admin-calendar'] })
-      qc.invalidateQueries({ queryKey: ['admin-calendar-sync-status'] })
-      setTimeout(() => syncMutation.reset(), 2000)
-    },
-    onError: () => {
-      qc.invalidateQueries({ queryKey: ['admin-calendar-sync-status'] })
-      setTimeout(() => syncMutation.reset(), 2000)
-    },
   })
 
   const [now, setNow] = useState<number | null>(null)
@@ -165,41 +135,6 @@ export default function AdminCalendarClient() {
     return t('admin.calendar.sync.lastSync').replace('{{time}}', time)
   }, [syncStatus, syncStatusIsError, now, t])
 
-  const createMutation = useMutation({
-    mutationFn: (body: EventFormState) =>
-      fetch('/api/admin/calendar', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(normalizeFormTimes(body)),
-      }).then(async r => { if (!r.ok) throw new Error((await r.json()).error); return r.json() }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['admin-calendar'] })
-      setDrawerOpen(false)
-      setForm(emptyForm())
-      setFormError(null)
-    },
-    onError: (e: Error) => setFormError(e.message),
-  })
-
-  const updateMutation = useMutation({
-    mutationFn: ({ id, ...body }: { id: string } & EventFormState) =>
-      fetch(`/api/admin/calendar/${id}`, {
-        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(normalizeFormTimes(body)),
-      }).then(async r => { if (!r.ok) throw new Error((await r.json()).error); return r.json() }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['admin-calendar'] })
-      setDrawerOpen(false)
-      setEditing(null)
-      setFormError(null)
-    },
-    onError: (e: Error) => setFormError(e.message),
-  })
-
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => fetch(`/api/admin/calendar/${id}`, { method: 'DELETE' }).then(async r => { if (!r.ok) throw new Error('Failed to delete event'); return r.json() }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-calendar'] }),
-  })
-
   function openCreate() {
     setEditing(null)
     setForm(emptyForm())
@@ -207,7 +142,7 @@ export default function AdminCalendarClient() {
     setDrawerOpen(true)
   }
 
-  function openEdit(ev: CalEvent) {
+  function openEdit(ev: AdminCalendarEvent) {
     setForm({
       title: ev.title,
       description: ev.description ?? '',
@@ -238,8 +173,15 @@ export default function AdminCalendarClient() {
   }
 
   function performSave() {
-    if (editing) updateMutation.mutate({ id: editing.id, ...form })
-    else createMutation.mutate(form)
+    const onSuccess = () => {
+      setDrawerOpen(false)
+      setEditing(null)
+      setForm(emptyForm())
+      setFormError(null)
+    }
+    const onError = (e: Error) => setFormError(e.message)
+    if (editing) updateMutation.mutate({ id: editing.id, ...form }, { onSuccess, onError })
+    else createMutation.mutate(form, { onSuccess, onError })
   }
 
   function handleSaveClick() {
@@ -338,12 +280,12 @@ export default function AdminCalendarClient() {
           <div className="w-px h-4 flex-shrink-0" style={{ backgroundColor: 'var(--border-default)' }} />
           <div className="flex gap-1.5">
             {([
-              { value: 'upcoming', label: 'Upcoming' },
-              { value: 'past',     label: 'Past'     },
-              { value: 'all',      label: 'All'      },
-            ] as { value: TimeScope; label: string }[]).map(s => (
+              { value: 'upcoming', key: 'admin.calendar.timeScope.upcoming' },
+              { value: 'past',     key: 'admin.calendar.timeScope.past'     },
+              { value: 'all',      key: 'admin.calendar.timeScope.all'      },
+            ] as { value: TimeScope; key: TranslationKey }[]).map(s => (
               <Pill key={s.value} active={timeScope === s.value} onClick={() => handleTimeScopeChange(s.value)}>
-                {s.label}
+                {t(s.key)}
               </Pill>
             ))}
           </div>
@@ -466,7 +408,7 @@ export default function AdminCalendarClient() {
       </AlertDialog>
 
       {/* ── Delete confirm ──────────────────────────────────────────────────── */}
-      <AlertDialog open={deleteTarget != null} onOpenChange={open => { if (!open) setDeleteTarget(null) }}>
+      <AlertDialog open={deleteTarget != null} onOpenChange={open => { if (!open) { setDeleteTarget(null); setDeleteError(null) } }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
@@ -478,10 +420,19 @@ export default function AdminCalendarClient() {
                 t('admin.calendar.confirm.guestWarning').replace('{{count}}', String(deleteTarget.guest_registration_count))}
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {deleteError && <p className="text-sm" style={{ color: 'var(--brand-crimson)' }}>{deleteError}</p>}
           <AlertDialogFooter>
             <AlertDialogCancel>{t('admin.calendar.btn.cancel')}</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => { if (deleteTarget) deleteMutation.mutate(deleteTarget.id); setDeleteTarget(null) }}
+              disabled={deleteMutation.isPending}
+              onClick={() => {
+                if (!deleteTarget) return
+                setDeleteError(null)
+                deleteMutation.mutate(deleteTarget.id, {
+                  onSuccess: () => setDeleteTarget(null),
+                  onError: (e: Error) => setDeleteError(e.message),
+                })
+              }}
             >
               {t('admin.calendar.btn.delete')}
             </AlertDialogAction>
