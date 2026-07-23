@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import { createServiceClient } from '@/lib/supabase/service'
 import ical from 'ical-generator'
-import { listEventsForRole } from '@/lib/server/calendar'
+import { listEventsForRole, buildEventDescription } from '@/lib/server/calendar'
 import { verifyIcalToken, IcalTokenConfigError } from '@/lib/server/icalToken'
 
 const FEED_WINDOW_PAST_DAYS = 90
@@ -100,19 +100,7 @@ export async function GET(req: Request) {
   })
 
   for (const event of events ?? []) {
-    // Google Calendar (Android) and iOS Calendar don't surface the structured
-    // LOCATION/URL/CATEGORIES properties in their event view — append
-    // human-readable lines to the description so the info is visible there too,
-    // while keeping the structured properties for clients that do read them.
-    const detailLines = [
-      event.location != null && event.location !== '' ? `Location: ${event.location}` : undefined,
-      event.meeting_url != null && event.meeting_url !== '' ? `Meeting link: ${event.meeting_url}` : undefined,
-      event.category != null ? `Category: ${event.category}` : undefined,
-    ].filter((line): line is string => line !== undefined)
-    const baseDescription = event.description != null && event.description !== '' ? event.description : undefined
-    const description = [baseDescription, detailLines.length > 0 ? detailLines.join('\n') : undefined]
-      .filter((part): part is string => part !== undefined)
-      .join('\n\n')
+    const description = buildEventDescription(event)
 
     // For all-day events, ical-generator's VALUE=DATE truncates the Date to its
     // UTC date component — normalize to the UTC midnight boundary here so a

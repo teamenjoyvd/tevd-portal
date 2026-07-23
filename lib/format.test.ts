@@ -6,6 +6,10 @@ import {
   formatTime,
   formatDateTime,
   formatCurrency,
+  calMonth,
+  calDay,
+  formatDateMediumEn,
+  formatDateLongEn,
   toSofiaLocalInput,
   fromSofiaLocalInput,
   timeAgoMs,
@@ -41,6 +45,35 @@ describe('formatCurrency', () => {
 
   it('formats zero correctly', () => {
     expect(formatCurrency(0)).toBe('0,00\u00A0€')
+  })
+})
+
+describe('calMonth', () => {
+  it('formats as a 3-char uppercase month in Europe/Sofia', () => {
+    expect(calMonth(FIXED_ISO)).toBe('MAR')
+  })
+})
+
+describe('calDay', () => {
+  it('formats the day number with no leading zero in Europe/Sofia', () => {
+    expect(calDay(FIXED_ISO)).toBe('18')
+  })
+
+  it('has no leading zero for single-digit days', () => {
+    // 2026-03-05T22:00:00Z -> 2026-03-06 00:00 Sofia (EET+2)
+    expect(calDay('2026-03-05T22:00:00.000Z')).toBe('6')
+  })
+})
+
+describe('formatDateMediumEn', () => {
+  it('formats as "D MMM YYYY" in Europe/Sofia', () => {
+    expect(formatDateMediumEn(FIXED_ISO)).toBe('18 Mar 2026')
+  })
+})
+
+describe('formatDateLongEn', () => {
+  it('formats as "D Month YYYY" in Europe/Sofia', () => {
+    expect(formatDateLongEn(FIXED_ISO)).toBe('18 March 2026')
   })
 })
 
