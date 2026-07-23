@@ -34,10 +34,15 @@ export function MonthView({
   const { lang, t } = useLanguage()
   const DAYS = DAYS_I18N[lang]
   const today = new Date()
-  const gridStart = startOfWeek(current)
+  // `current` is not guaranteed to be the 1st — handleDayClick sets it to
+  // whatever day was clicked — so the grid start must be re-derived from the
+  // Sofia month key, not from `current` directly (noon-UTC anchor keeps this
+  // Sofia-safe rather than reading current.getFullYear()/getMonth() locally).
+  const currentMonthKey = SOFIA_DATE_FMT.format(current).slice(0, 7)
+  const firstOfMonth = new Date(`${currentMonthKey}-01T12:00:00Z`)
+  const gridStart = startOfWeek(firstOfMonth)
   const cells = Array.from({ length: 42 }, (_, i) => addDays(gridStart, i))
   const cellDateKeys = useMemo(() => cells.map(d => SOFIA_DATE_FMT.format(d)), [cells])
-  const currentMonthKey = SOFIA_DATE_FMT.format(current).slice(0, 7)
 
   // Events covering a given Sofia date key — used for aria-labels and the
   // overflow count, independent of the week-level bar packing.
