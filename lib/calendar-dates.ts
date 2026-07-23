@@ -69,6 +69,14 @@ export function sofiaDateKeysBetween(startIso: string, endIso: string): string[]
   return keys
 }
 
+/** 'YYYY-MM' of the month following a 'YYYY-MM' month key, rolling the year over at December. */
+export function nextMonthKey(monthKey: string): string {
+  const [year, month] = monthKey.split('-').map(Number)
+  const nextMonth = month === 12 ? 1 : month + 1
+  const nextYear = month === 12 ? year + 1 : year
+  return `${nextYear}-${String(nextMonth).padStart(2, '0')}`
+}
+
 /**
  * ICS all-day VEVENT date range: start = UTC-midnight Date of the Sofia
  * start day; end = UTC-midnight Date of the Sofia end day + 1 (VALUE=DATE

@@ -1,6 +1,6 @@
 import { getRoleForAccess } from '@/lib/server/guides'
 import { listEventsForRole } from '@/lib/server/calendar'
-import { sofiaMidnightUtc } from '@/lib/calendar-dates'
+import { sofiaMidnightUtc, nextMonthKey } from '@/lib/calendar-dates'
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
@@ -14,11 +14,8 @@ export async function GET(req: Request) {
   let to: string
 
   if (month) {
-    const [year, monthNum] = month.split('-').map(Number)
-    const nextMonth = monthNum === 12 ? 1 : monthNum + 1
-    const nextYear = monthNum === 12 ? year + 1 : year
     from = sofiaMidnightUtc(`${month}-01`).toISOString()
-    to = sofiaMidnightUtc(`${nextYear}-${String(nextMonth).padStart(2, '0')}-01`).toISOString()
+    to = sofiaMidnightUtc(`${nextMonthKey(month)}-01`).toISOString()
   } else {
     // Agenda: bound to a window around today so the view stays cheap while
     // still covering recent past and upcoming events. Must always include

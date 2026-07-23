@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { sofiaDateKey, sofiaDateKeysBetween, sofiaMidnightUtc, icsAllDayRange } from '@/lib/calendar-dates'
+import { sofiaDateKey, sofiaDateKeysBetween, sofiaMidnightUtc, icsAllDayRange, nextMonthKey } from '@/lib/calendar-dates'
 
 describe('sofiaDateKeysBetween', () => {
   it('yields the correct 3-day span for the real prod October row', () => {
@@ -58,6 +58,16 @@ describe('sofiaMidnightUtc', () => {
 describe('sofiaDateKey', () => {
   it('reads the Sofia calendar day, not the UTC day', () => {
     expect(sofiaDateKey('2026-10-22T22:00:00Z')).toBe('2026-10-23')
+  })
+})
+
+describe('nextMonthKey', () => {
+  it('rolls over within a year', () => {
+    expect(nextMonthKey('2026-06')).toBe('2026-07')
+  })
+
+  it('rolls over the year at December', () => {
+    expect(nextMonthKey('2026-12')).toBe('2027-01')
   })
 })
 
