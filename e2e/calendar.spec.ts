@@ -38,7 +38,12 @@ test.describe('calendar', () => {
     // Fails loudly rather than silently skipping popup coverage — this repo's
     // public calendar always has upcoming club events in the current month,
     // so 0 here is itself a bug, not an empty fixture to route around.
-    const firstEvent = visible(page, page.locator('[role="gridcell"] button')).first()
+    // Event pill/bar buttons are row-level siblings of the gridcells, not
+    // their DOM children — spanning bars must share the week's CSS Grid to
+    // lay out across multiple day columns (2607-DEV-653) — so the selector
+    // is scoped to the row rather than the cell. Gridcells themselves are
+    // plain divs (never <button>), so this still matches only event pills.
+    const firstEvent = visible(page, page.locator('[role="row"] button')).first()
     await expect(firstEvent, 'no calendar events found in the current month view').toBeVisible()
     await firstEvent.click()
     const dialog = page.getByRole('dialog')
