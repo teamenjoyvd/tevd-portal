@@ -149,7 +149,7 @@ export function MonthView({
                     onKeyDown={e => handleGridKeyDown(e, index, date)}
                     onFocus={() => setFocusIndex(index)}
                     className="border-l border-black/5 p-1 cursor-pointer hover:bg-black/[0.02] transition-colors overflow-hidden focus:outline-none focus:ring-2 focus:ring-inset"
-                    style={{ gridRow: '1 / -1', minWidth: 0, ['--tw-ring-color' as string]: 'var(--brand-teal)' }}
+                    style={{ gridRow: '1 / -1', ['--tw-ring-color' as string]: 'var(--brand-teal)' }}
                   >
                     <div className="flex justify-center">
                       <span
