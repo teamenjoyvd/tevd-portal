@@ -49,6 +49,10 @@ html {
   -webkit-tap-highlight-color: transparent;
   scroll-behavior: smooth;
   overflow-x: hidden;
+  /* Reserves the scrollbar's width permanently so Radix's dialog/sheet
+     scroll-lock (which hides the scrollbar while open) doesn't widen the
+     viewport and shift fixed-position elements (e.g. the header). */
+  scrollbar-gutter: stable;
 }
 
 body {

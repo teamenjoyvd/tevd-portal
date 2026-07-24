@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
+import { Home, Info, Calendar, Plane, BookOpen, Shield, User, type LucideIcon } from 'lucide-react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { useRole } from '@/lib/hooks/useRole'
 import UserDropdown from '@/components/layout/UserDropdown'
@@ -12,6 +13,18 @@ import UserPopup from '@/components/layout/UserPopup'
 import BellButton from '@/components/layout/BellButton'
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet'
 import { PUBLIC_NAV, FOOTER_MEMBER_NAV, filterNav } from '@/lib/nav'
+
+// Minimalist outline icons for the mobile drawer only — deliberately
+// monochrome (inherit currentColor from .pill-link-crimson), not brand-colored.
+const NAV_ICONS: Record<string, LucideIcon> = {
+  '/': Home,
+  '/about': Info,
+  '/calendar': Calendar,
+  '/trips': Plane,
+  '/library': BookOpen,
+  '/roles': Shield,
+  '/profile': User,
+}
 
 export default function Header() {
   const { isSignedIn } = useUser()
@@ -145,17 +158,21 @@ export default function Header() {
         }}
       >
         <SheetTitle className="sr-only">Navigation menu</SheetTitle>
-        {NAV_LINKS.map(({ href, labels }) => (
-          <Link
-            key={href}
-            href={href}
-            onClick={() => setMobileNavOpen(false)}
-            className="interactive flex items-center pill-link-crimson text-xs font-semibold tracking-widest uppercase w-full min-h-[44px] py-3"
-            style={isActive(href) ? { backgroundColor: 'rgba(188,71,73,0.12)' } : undefined}
-          >
-            {labels[lang]}
-          </Link>
-        ))}
+        {NAV_LINKS.map(({ href, labels }) => {
+          const Icon = NAV_ICONS[href]
+          return (
+            <Link
+              key={href}
+              href={href}
+              onClick={() => setMobileNavOpen(false)}
+              className="interactive flex items-center gap-3 pill-link-crimson text-xs font-semibold tracking-widest uppercase w-full min-h-[44px] py-3"
+              style={isActive(href) ? { backgroundColor: 'rgba(188,71,73,0.12)' } : undefined}
+            >
+              {Icon && <Icon size={18} strokeWidth={1.75} className="flex-shrink-0" />}
+              {labels[lang]}
+            </Link>
+          )
+        })}
       </SheetContent>
     </Sheet>
   )
