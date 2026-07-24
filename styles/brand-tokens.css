@@ -161,7 +161,7 @@ html { font-size: calc(var(--font-scale) * 16px); }
 /* Light surface: crimson pill on hover */
 .pill-link-crimson {
   color: var(--text-nav);
-  border-radius: 9999px;
+  border-radius: 0.5rem;
   padding: 0.25rem 0.625rem;
   transition: background-color 150ms ease, color 150ms ease;
 }
@@ -173,7 +173,7 @@ html { font-size: calc(var(--font-scale) * 16px); }
 /* Dark surface: parchment pill on hover (teal/forest/crimson card bg) */
 .pill-link-parchment {
   color: var(--brand-parchment);
-  border-radius: 9999px;
+  border-radius: 0.5rem;
   padding: 0.25rem 0.625rem;
   transition: background-color 150ms ease, color 150ms ease;
 }

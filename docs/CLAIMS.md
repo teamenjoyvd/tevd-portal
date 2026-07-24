@@ -6,4 +6,3 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
-| #653 | dev/2607-DEV-653 | app/(dashboard)/calendar/components/{MonthView.tsx,EventPill.tsx,AgendaView.tsx,useCalendar.ts,popup/EventPopupShell.tsx,popup/types.ts}, lib/i18n/domains/calendar.ts, new segment/lane packer test file; migration: no | 2026-07-24 |
