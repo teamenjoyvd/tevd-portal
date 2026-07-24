@@ -6,4 +6,3 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
-| #631 | dev/2607-DEV-631 | components/layout/Header.tsx; migration: no | 2026-07-24 |

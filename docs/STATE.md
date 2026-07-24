@@ -2,12 +2,12 @@
 Issue #631 (2607-DEV-631, branch `dev/2607-DEV-631`): migrate the mobile hamburger nav drawer in `components/layout/Header.tsx` from a hand-rolled `<div>` to the shadcn `Sheet` component (focus trap, ESC-close, `role="dialog"`/`aria-modal` via Radix).
 
 ## Now
-User said "ready to draft PR" — pushing branch and opening the draft PR now.
+PR [#658](https://github.com/teamenjoyvd/tevd-portal/pull/658) open against `main`, all CI checks green (Type Check, Lint, Test, Build, Security Audit, Authenticated E2E, Migrations Check, 390px smoke vs preview) and Vercel Preview build SUCCESS; CodeRabbit status also SUCCESS. PR was pushed as draft then marked ready outside this conversation (checked `gh pr view 658`: `isDraft: false` already). **Not merged** (`mergedAt: null`) — user explicitly chose not to merge via this session ("Don't merge — just clean up docs now"); they'll merge it themselves later. `docs/CLAIMS.md` `#631` row pruned early (before merge) per that explicit instruction — normally this waits for merge per the CLAIM-Complete Definition's race-window note, so if another session picks up `components/layout/Header.tsx` before #658 actually merges, there is no claims-registry guard against it anymore.
 
 ## Next
-- `git push -u origin dev/2607-DEV-631`, open PR as **draft** (`Closes #631` in body), verify CI green + Vercel Preview READY. Icon/pill/scrollbar tweaks were only sanity-checked via a temporary in-browser CSS override forcing `.lg\:hidden` visible at desktop width, NOT a real 390px viewport — ask the user to re-check the live Vercel preview at 390px before marking Ready.
-- Mark ready for review to trigger CodeRabbit, address findings in one batched push, FINALIZE per `docs/ai/BUILD.md`.
-- After merge: remove the `#631` row from `docs/CLAIMS.md`, close the issue. No migration, so no `migrate-prod` gate to approve.
+- User will merge PR #658 themselves when ready — no action needed from a future session unless asked.
+- After merge (whenever that happens): confirm production Vercel deployment READY, close issue #631 (`Closes #631` already in the PR body will auto-close it on merge — verify), no `migrate-prod` gate to approve (no migration in this PR).
+- 390px was checked via the CI "390px smoke vs preview" job (green) and the user's own live-preview check, plus my in-browser CSS-override sanity check (not a real viewport) — no further verification action needed unless a future session is asked to double-check.
 
 ## Constraints
 - Never push directly to `main`; `dev/[YYMM]-DEV-[GH#]` branches only
@@ -26,21 +26,21 @@ DECISION (user-directed, round 2): added minimalist lucide-react outline icons (
 
 ## Facts
 - Files touched this session: `components/layout/Header.tsx`, `components/ui/sheet.tsx`, `styles/brand-tokens.css`, `app/globals.css`. No new files, no migration.
-- Three local commits on `dev/2607-DEV-631`, not pushed: `c1508cd` (CLAIMS.md registry row), `1a18b65` (the Sheet migration + animation speed-up + `.pill-link-crimson` radius change), `4e43109` (`.pill-link-parchment` radius alignment + `scrollbar-gutter: stable` + mobile drawer icons).
-- `tsc --noEmit` clean, `npm run lint` 0 errors / 492 warnings (baseline unchanged except one new expected `i18next/no-literal-string` warning on the new `sr-only` `SheetTitle`).
-- Dev server: browser automation's `resize_window` could not shrink the viewport below ~1680px in this session (tried multiple tabs, tab-group recreation, `window.resizeTo`) — 390px verification was done by the user directly against their own browser/preview, not by me via screenshot.
-- `docs/CLAIMS.md` row: `#631 | dev/2607-DEV-631 | components/layout/Header.tsx; migration: no`. The prior `#653` row was pruned (that PR already merged as #656/#657 before this session started).
+- 7 commits on `dev/2607-DEV-631`, pushed, PR #658 open: `c1508cd` (CLAIMS.md row), `1a18b65` (Sheet migration + animation speed-up + `.pill-link-crimson` radius), `4e43109` (`.pill-link-parchment` radius + `scrollbar-gutter: stable` + drawer icons v1), `4de55a2` (About/Trips icon swap v2), `28fc9b8` (final icon assignments: about=Info, trips=PlaneTakeoff, roles=Users, profile=UserRound), `cdd4baa` (STATE.md pre-push update), plus this cleanup commit (CLAIMS.md row pruned, STATE.md marked ready-for-merge).
+- `tsc --noEmit` clean, `npm run lint` 0 errors / 492 warnings throughout, at every commit.
+- Dev server: browser automation's `resize_window` could not shrink the viewport below ~1680px all session — 390px verification came from the CI `390px smoke vs preview` job (green) and the user's own live-preview checks, not from a real local screenshot on my end.
+- `docs/CLAIMS.md` `#631` row removed (pruned early, before merge — see `## Now`). The prior `#653` row was pruned earlier in the session (that PR already merged as #656/#657 before this session started).
 
 ## Done
-#631 PLAN — RESULT: READY verdict, DoD scoped to `components/layout/Header.tsx` only (Sheet already vended, unused). Output printed in chat.
-#631 CLAIM — RESULT: issue body updated with `## Design Checklist` (all 4 checked) + `## Branch`; branch `dev/2607-DEV-631` cut from `main` (`d0bd4eb`); `docs/CLAIMS.md` updated (added #631 row, pruned stale merged #653 row).
-#631 BUILD (in progress) — RESULT: `Header.tsx` rewritten (qualified for the CLAUDE.md rewrite exception: file already fully read, >half the lines changed, behaviors enumerated before rewrite) to use `Sheet`/`SheetTrigger`/`SheetContent`/`SheetTitle`; manual keydown-ESC `useEffect` and manual backdrop `<div>` removed (superseded by Radix Dialog's native handling). Self-review done (tool-invoked `/code-review` unavailable to me directly; did the equivalent pass manually against `git diff main..dev/2607-DEV-631`) — no correctness/security issues, 3 NOTED items (hardcoded `top-20` offset, `.pill-link-crimson`/`.pill-link-parchment` shape inconsistency, no `SheetDescription`). User did their own live visual check and confirmed the drawer works, then requested two follow-up tweaks (animation speed, hover pill shape) — both implemented and verified (tsc/lint clean) in the second commit.
+#631 PLAN — RESULT: READY verdict, DoD scoped to `components/layout/Header.tsx` only (Sheet already vended, unused).
+#631 CLAIM — RESULT: issue body updated with `## Design Checklist` (all 4 checked) + `## Branch`; branch `dev/2607-DEV-631` cut from `main` (`d0bd4eb`).
+#631 BUILD — RESULT: `Header.tsx` migrated to shadcn `Sheet` (focus trap, ESC-close, `role="dialog"` via Radix, replacing manual keydown/backdrop code); `.pill-link-crimson`/`.pill-link-parchment` aligned to `0.5rem` radius site-wide; `scrollbar-gutter: stable` added to fix a dialog-scroll-lock viewport shift; minimalist monochrome `lucide-react` icons added to each drawer link (final picks: Home, Info, Calendar, PlaneTakeoff, BookOpen, Users, UserRound); Sheet transition sped up (700/300ms -> 200/150ms). Self-reviewed manually (tool-invoked `/code-review` unavailable directly). tsc/lint clean throughout.
+#631 finalize (partial) — RESULT: PR #658 pushed, all CI green, Vercel Preview SUCCESS, CodeRabbit SUCCESS. User explicitly chose NOT to merge in this session; `docs/CLAIMS.md` row pruned anyway per their explicit instruction (see `## Now` for the resulting guard gap). PR left open for the user to merge themselves.
 
 ## Open items
-- Push branch + open draft PR — blocked on user's explicit go-ahead (asked once, got "Not yet"; not re-asked since round 2)
-- CI green + Vercel Preview READY check (can't happen until pushed)
-- CodeRabbit pass after marking ready for review
-- Round-2 changes (icons, scrollbar-gutter, parchment radius) were only sanity-checked via a temporary in-browser CSS override (forced `.lg\:hidden` visible at 1680px, forced `.hidden.lg\:flex` hidden) since real 390px viewport testing is still blocked in this environment — ask the user to re-verify against the actual mobile breakpoint/live preview before Ready
+- PR #658 still needs an actual merge (by the user, not this session) before the work is truly done — issue #631 stays open until then.
+- Post-merge tail not yet run: confirm prod Vercel deployment READY, verify issue #631 auto-closed via `Closes #631`.
+- No CLAIMS.md row currently guards `components/layout/Header.tsx` even though PR #658 is unmerged — flag this if a future session is asked to touch that file before #658 merges.
 
 ## Failed attempts
 ATTEMPT: get a real 390px screenshot via `mcp__claude-in-chrome__resize_window` — tried on 2 different tabs, recreated the tab group, tried `window.resizeTo()` from page JS, and toggling `win+down` to un-maximize first. Every time, `resize_window` reported success but `window.innerWidth` stayed at 1680px. Root cause not identified (likely an environment/window-manager constraint on the Chrome window itself, not an extension logic bug). Not retried further per browser-tool guidance (stop after 2-3 failures); asked the user instead, who verified 390px themselves.
