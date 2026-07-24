@@ -5,7 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
-import { Home, Users, Calendar, Compass, BookOpen, Shield, User, type LucideIcon } from 'lucide-react'
+import { Home, Info, Calendar, PlaneTakeoff, BookOpen, Users, UserRound, type LucideIcon } from 'lucide-react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { useRole } from '@/lib/hooks/useRole'
 import UserDropdown from '@/components/layout/UserDropdown'
@@ -18,12 +18,12 @@ import { PUBLIC_NAV, FOOTER_MEMBER_NAV, filterNav } from '@/lib/nav'
 // monochrome (inherit currentColor from .pill-link-crimson), not brand-colored.
 const NAV_ICONS: Record<string, LucideIcon> = {
   '/': Home,
-  '/about': Users,
+  '/about': Info,
   '/calendar': Calendar,
-  '/trips': Compass,
+  '/trips': PlaneTakeoff,
   '/library': BookOpen,
-  '/roles': Shield,
-  '/profile': User,
+  '/roles': Users,
+  '/profile': UserRound,
 }
 
 export default function Header() {
