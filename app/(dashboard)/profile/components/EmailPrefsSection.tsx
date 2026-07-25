@@ -91,9 +91,10 @@ export function EmailPrefsSection() {
               {t(row.labelKey as Parameters<typeof t>[0])}
             </span>
             <Switch
+              aria-label={t(row.labelKey as Parameters<typeof t>[0])}
               checked={local[row.key]}
               onCheckedChange={() => handleToggle(row.key)}
-              className="flex-shrink-0"
+              className="shrink-0"
             />
           </div>
         ))}
