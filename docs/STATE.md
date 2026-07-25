@@ -2,12 +2,12 @@
 Issue #608 (2607-DEV-608, branch `dev/2607-DEV-608`): collapse `ProfileClient.tsx`'s duplicate desktop/mobile bento render into one mounted tree, and code-split `@dnd-kit/*` off the mobile bundle via `next/dynamic`.
 
 ## Now
-BUILD code committed locally (`fd54eb7`) on `dev/2607-DEV-608`. Not pushed — no `git push` yet in this conversation (constraint below). Waiting on user go-ahead to push + open draft PR.
+PR [#660](https://github.com/teamenjoyvd/tevd-portal/pull/660) open as **draft** against `main` (`Closes #608`), branch `dev/2607-DEV-608` pushed (commits `fd54eb7` code, `278929c` state). CI and Vercel Preview not yet checked this turn — draft was just opened.
 
 ## Next
-- Get user confirmation to push and open the draft PR (`Closes #608`).
-- After draft PR is open: wait CI green + Vercel Preview READY, then mark ready for review to trigger the single CodeRabbit pass (per docs/ai/BUILD.md FINALIZE).
-- Still open: no local authenticated visual check at 390px/1280px was possible this session (no stored Clerk DEV credentials) — same gap as #607; flag to user, don't silently skip.
+- Check CI status and Vercel Preview READY on PR #660.
+- Still open: no local authenticated visual check at 390px/1280px was possible this session (no stored Clerk DEV credentials) — same gap as #607; needs a human check on the live Preview before marking ready for review.
+- When ready: mark PR ready for review to trigger the single CodeRabbit pass (per docs/ai/BUILD.md FINALIZE), address findings in one batched push.
 - After merge: run the post-merge tail (prod Vercel deploy check, confirm issue #608 auto-closed, remove `docs/CLAIMS.md` `#608` row).
 
 ## Constraints
@@ -36,7 +36,7 @@ DECISION: `/code-review low` skill isn't invokable directly in this session (`di
 #608 BUILD (code) — RESULT: `SortableBento.tsx` split into presentational-only; new `BentoGrid.tsx` holds all dnd-kit code; `ProfileClient.tsx` gated on `next/dynamic` + `isDesktop`. Committed `fd54eb7` (175 insertions, 87 deletions, 3 files). `tsc`/`lint`/`build`/`vitest` all green; bundle split confirmed at the built-chunk level.
 
 ## Open items
-- Draft PR not yet opened — waiting on user's explicit push confirmation.
+- PR #660 not yet merged — CI/Preview status not yet checked post-open.
 - No local authenticated visual/click-through check at 390px/1280px was performed this session (credentials unavailable) — CI's 390px smoke is the only automated signal once CI runs; a human check on the live Preview is the real gate.
 - Session used `npm install` in the worktree (not junctioned) — worktree now has its own `node_modules` copy, harmless but worth knowing if disk space matters.
 
