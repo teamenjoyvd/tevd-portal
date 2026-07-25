@@ -5,6 +5,7 @@ import {
   DndContext,
   PointerSensor,
   TouchSensor,
+  KeyboardSensor,
   useSensor,
   useSensors,
   closestCenter,
@@ -13,6 +14,7 @@ import {
 import {
   SortableContext,
   rectSortingStrategy,
+  sortableKeyboardCoordinates,
   arrayMove,
   useSortable,
 } from '@dnd-kit/sortable'
@@ -82,6 +84,7 @@ export default function BentoGrid({
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
@@ -89,6 +92,7 @@ export default function BentoGrid({
     if (!over || active.id === over.id) return
     const oldIndex = bentoOrder.indexOf(active.id as string)
     const newIndex = bentoOrder.indexOf(over.id as string)
+    if (oldIndex === -1 || newIndex === -1) return
     onReorder(arrayMove(bentoOrder, oldIndex, newIndex))
   }, [bentoOrder, onReorder])
 

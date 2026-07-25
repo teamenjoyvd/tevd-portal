@@ -55,11 +55,16 @@ export function ProfileClient({ profileId, role, aboNumber, hasInvites }: Props)
   const [bentoCollapsed, setBentoCollapsed] = useState<Record<string, boolean>>({})
   const [layoutRestored, setLayoutRestored] = useState(false)
   const [isDesktop, setIsDesktop]           = useState(false)
+  // Gates rendering of the bento tree until the viewport is known, so the
+  // mobile stack never mounts (and fires its sections' data fetches) only to
+  // be immediately torn down and remounted into BentoGrid on desktop.
+  const [viewportResolved, setViewportResolved] = useState(false)
   const persistDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     const mql = window.matchMedia(DESKTOP_QUERY)
     setIsDesktop(mql.matches)
+    setViewportResolved(true)
     const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches)
     mql.addEventListener('change', handler)
     return () => mql.removeEventListener('change', handler)
@@ -227,34 +232,40 @@ export function ProfileClient({ profileId, role, aboNumber, hasInvites }: Props)
         </div>
 
         {/* Single mounted tree: desktop drag grid (dnd-kit, dynamically
-            loaded) or the static mobile stack — never both at once. Server
-            render and first client paint always take the static branch
-            (isDesktop starts false), so hydration matches; the drag grid
-            swaps in post-hydration once matchMedia resolves to desktop. */}
-        {isDesktop ? (
-          <BentoGrid
-            orderedBentos={orderedBentos}
-            bentoOrder={bentoOrder}
-            bentoCollapsed={bentoCollapsed}
-            onToggleCollapse={toggleCollapse}
-            onReorder={handleReorder}
-          />
-        ) : (
-          <div className="flex flex-col gap-3">
-            {orderedBentos.map(({ id, entry }) => (
-              <SortableBento
-                key={id}
-                id={id}
-                collapsed={!!bentoCollapsed[id]}
-                onToggleCollapse={() => toggleCollapse(id)}
-                colSpan={entry.colSpan}
-                minHeight={entry.minHeight}
-                disableDrag
-              >
-                {entry.node}
-              </SortableBento>
-            ))}
-          </div>
+            loaded) or the static mobile stack — never both, and never the
+            wrong one first. Nothing renders until the viewport is known
+            (viewportResolved), so section components mount exactly once —
+            switching branches after a mount would tear down and remount
+            every bento's content (re-firing their data fetches). Server
+            render and first client paint show nothing (viewportResolved
+            starts false), so hydration matches; the correct branch appears
+            once the effect resolves the viewport, one tick after mount. */}
+        {viewportResolved && (
+          isDesktop ? (
+            <BentoGrid
+              orderedBentos={orderedBentos}
+              bentoOrder={bentoOrder}
+              bentoCollapsed={bentoCollapsed}
+              onToggleCollapse={toggleCollapse}
+              onReorder={handleReorder}
+            />
+          ) : (
+            <div className="flex flex-col gap-3">
+              {orderedBentos.map(({ id, entry }) => (
+                <SortableBento
+                  key={id}
+                  id={id}
+                  collapsed={!!bentoCollapsed[id]}
+                  onToggleCollapse={() => toggleCollapse(id)}
+                  colSpan={entry.colSpan}
+                  minHeight={entry.minHeight}
+                  disableDrag
+                >
+                  {entry.node}
+                </SortableBento>
+              ))}
+            </div>
+          )
         )}
 
       </div>
