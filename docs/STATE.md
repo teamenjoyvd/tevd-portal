@@ -2,12 +2,12 @@
 Issue #608 (2607-DEV-608, branch `dev/2607-DEV-608`): collapse `ProfileClient.tsx`'s duplicate desktop/mobile bento render into one mounted tree, and code-split `@dnd-kit/*` off the mobile bundle via `next/dynamic`.
 
 ## Now
-PR [#660](https://github.com/teamenjoyvd/tevd-portal/pull/660) open as **draft** against `main` (`Closes #608`), branch `dev/2607-DEV-608` pushed (commits `fd54eb7` code, `278929c` state). CI and Vercel Preview not yet checked this turn — draft was just opened.
+PR [#660](https://github.com/teamenjoyvd/tevd-portal/pull/660) open against `main` (`Closes #608`), marked ready for review by user (no longer draft) — triggered one CodeRabbit pass (3 actionable comments). GCR applied: commit `b0ca968` fixes all 3 (KeyboardSensor added, `-1` index guard added, `viewportResolved` gate added to prevent bento-section remount/refetch on desktop). Not yet pushed this turn.
 
 ## Next
-- Check CI status and Vercel Preview READY on PR #660.
-- Still open: no local authenticated visual check at 390px/1280px was possible this session (no stored Clerk DEV credentials) — same gap as #607; needs a human check on the live Preview before marking ready for review.
-- When ready: mark PR ready for review to trigger the single CodeRabbit pass (per docs/ai/BUILD.md FINALIZE), address findings in one batched push.
+- Push `b0ca968` (+ this STATE.md commit), then resolve the 3 CodeRabbit review threads via GraphQL (per docs/ai/GCR.md step 6) — confirm the fix commit is live in CI first.
+- Check CI status and Vercel Preview READY on PR #660 after push.
+- Still open: no local authenticated visual check at 390px/1280px was possible this session (no stored Clerk DEV credentials) — same gap as #607; needs a human check on the live Preview.
 - After merge: run the post-merge tail (prod Vercel deploy check, confirm issue #608 auto-closed, remove `docs/CLAIMS.md` `#608` row).
 
 ## Constraints
