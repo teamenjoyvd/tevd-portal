@@ -103,6 +103,7 @@ export function ProfileClient({ profileId, role, aboNumber, hasInvites }: Props)
   }, [bentoCollapsed])
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
+    if (!layoutRestored) return
     const { active, over } = event
     if (!over || active.id === over.id) return
     const oldIndex = bentoOrder.indexOf(active.id as string)
@@ -110,19 +111,21 @@ export function ProfileClient({ profileId, role, aboNumber, hasInvites }: Props)
     const next = arrayMove(bentoOrder, oldIndex, newIndex)
     setBentoOrder(next)
     persistPrefs(next, bentoCollapsedRef.current)
-  }, [bentoOrder, persistPrefs])
+  }, [bentoOrder, persistPrefs, layoutRestored])
 
   const toggleCollapse = useCallback((id: string) => {
+    if (!layoutRestored) return
     setBentoCollapsed(prev => {
       const next = { ...prev, [id]: !prev[id] }
       setBentoOrder(order => { persistPrefs(order, next); return order })
       return next
     })
-  }, [persistPrefs])
+  }, [persistPrefs, layoutRestored])
 
   const orderedBentosRef = useRef<{ id: string; entry: { colSpan: number; minHeight: number; node: React.ReactNode } }[]>([])
 
   const toggleAll = useCallback(() => {
+    if (!layoutRestored) return
     const ids = orderedBentosRef.current.map(b => b.id)
     if (ids.length === 0) return
     const allCollapsed = ids.every(id => !!bentoCollapsedRef.current[id])
@@ -130,7 +133,7 @@ export function ProfileClient({ profileId, role, aboNumber, hasInvites }: Props)
     ids.forEach(id => { next[id] = !allCollapsed })
     setBentoCollapsed(next)
     setBentoOrder(order => { persistPrefs(order, next); return order })
-  }, [persistPrefs])
+  }, [persistPrefs, layoutRestored])
 
   const resetLayout = useCallback(() => {
     setBentoOrder(DEFAULT_ORDER)

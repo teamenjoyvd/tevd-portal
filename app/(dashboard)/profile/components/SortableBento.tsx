@@ -113,6 +113,7 @@ export function SortableBento({
             size="icon"
             onClick={onToggleCollapse}
             title={t('profile.bento.expand')}
+            aria-label={t('profile.bento.expand')}
             style={{ fontSize: 12, lineHeight: 1, opacity: 0.5, flexShrink: 0 }}
           >
             ▸
@@ -130,6 +131,7 @@ export function SortableBento({
               size="icon"
               onClick={onToggleCollapse}
               title={t('profile.bento.collapse')}
+              aria-label={t('profile.bento.collapse')}
               style={{ fontSize: 12, lineHeight: 1, opacity: 0.5, flexShrink: 0 }}
             >
               ▾
