@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Copy, Check, RefreshCw, Save } from 'lucide-react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { apiClient } from '@/lib/apiClient'
-import { type Profile } from '../types'
+import { useProfile } from '../useProfile'
 
 export const CALENDAR_MIN_HEIGHT = 160
 
@@ -19,16 +19,16 @@ export function CalendarSection({ profileId }: { profileId: string }) {
   const [nameSaved, setNameSaved] = useState(false)
 
   // Read existing ical_display_name from the profile query cache (populated by ProfileClient)
-  const { data: fullProfile } = useQuery<Profile>({
-    queryKey: ['profile'],
-    enabled: false,
-  })
+  const { data: fullProfile } = useProfile()
+  const savedDisplayName = fullProfile
+    ? ((fullProfile.ui_prefs ?? {}) as Record<string, unknown>).ical_display_name as string | undefined
+    : undefined
 
   useEffect(() => {
     if (!fullProfile) return
-    const prefs = (fullProfile.ui_prefs ?? {}) as Record<string, unknown>
-    setDisplayName((prefs.ical_display_name as string | undefined) ?? '')
-  }, [fullProfile?.id])
+    setDisplayName(savedDisplayName ?? '')
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fullProfile?.id, savedDisplayName])
 
   const { data: calData, refetch: refetchCal } = useQuery<{ url: string }>({
     queryKey: ['cal-feed-token'],

@@ -78,7 +78,7 @@ export function VitalsSection({ profileId, role }: { profileId: string; role: st
   return (
     <>
       <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-        <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-1 pr-16" style={{ color: 'var(--brand-crimson)' }}>
+        <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-1 pr-24" style={{ color: 'var(--brand-crimson)' }}>
           {t('profile.vitalSigns')}
         </p>
         <p className="text-xs mb-4" style={{ color: 'var(--text-secondary)' }}>

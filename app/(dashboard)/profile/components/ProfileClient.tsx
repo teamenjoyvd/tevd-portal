@@ -1,6 +1,5 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import {
@@ -31,8 +30,9 @@ import { StatsSection, STATS_MIN_HEIGHT } from './StatsSection'
 import { AdminSection } from './AdminSection'
 import { EmailPrefsSection, EMAIL_PREFS_MIN_HEIGHT } from './EmailPrefsSection'
 import { InvitesBento } from './InvitesBento'
-import { type Profile } from '../types'
+import { BENTO_IDS, DEFAULT_ORDER } from './bento-registry'
 import { apiClient } from '@/lib/apiClient'
+import { useProfile } from '../useProfile'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -47,47 +47,12 @@ type Props = {
 
 const BENTO_HEIGHT = { S: 160, M: 280 } as const
 
-const BENTO_IDS = {
-  PERSONAL_DETAILS: 'personal-details',
-  ABO_INFO:         'abo-info',
-  TRAVEL_DOC:       'travel-doc',
-  SETTINGS:         'settings',
-  TRIPS:            'trips',
-  PAYMENTS:         'payments',
-  EMAIL_PREFS:      'email_prefs',
-  VITALS:           'vitals',
-  PARTICIPATION:    'participation',
-  CALENDAR:         'calendar',
-  STATS:            'stats',
-  ADMIN:            'admin',
-  INVITES:          'invites',
-}
-
-const DEFAULT_ORDER: string[] = [
-  BENTO_IDS.PERSONAL_DETAILS,
-  BENTO_IDS.ABO_INFO,
-  BENTO_IDS.TRAVEL_DOC,
-  BENTO_IDS.CALENDAR,
-  BENTO_IDS.PARTICIPATION,
-  BENTO_IDS.VITALS,
-  BENTO_IDS.TRIPS,
-  BENTO_IDS.PAYMENTS,
-  BENTO_IDS.SETTINGS,
-  BENTO_IDS.EMAIL_PREFS,
-  BENTO_IDS.STATS,
-  BENTO_IDS.INVITES,
-  BENTO_IDS.ADMIN,
-]
-
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function ProfileClient({ profileId, role, aboNumber, hasInvites }: Props) {
   const { t } = useLanguage()
 
-  const { data: fullProfile } = useQuery<Profile>({
-    queryKey: ['profile'],
-    enabled: false,
-  })
+  const { data: fullProfile } = useProfile()
 
   const isGuest = role === 'guest' && !aboNumber
   const isAdmin = role === 'admin'
@@ -138,6 +103,7 @@ export function ProfileClient({ profileId, role, aboNumber, hasInvites }: Props)
   }, [bentoCollapsed])
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
+    if (!layoutRestored) return
     const { active, over } = event
     if (!over || active.id === over.id) return
     const oldIndex = bentoOrder.indexOf(active.id as string)
@@ -145,19 +111,21 @@ export function ProfileClient({ profileId, role, aboNumber, hasInvites }: Props)
     const next = arrayMove(bentoOrder, oldIndex, newIndex)
     setBentoOrder(next)
     persistPrefs(next, bentoCollapsedRef.current)
-  }, [bentoOrder, persistPrefs])
+  }, [bentoOrder, persistPrefs, layoutRestored])
 
   const toggleCollapse = useCallback((id: string) => {
+    if (!layoutRestored) return
     setBentoCollapsed(prev => {
       const next = { ...prev, [id]: !prev[id] }
       setBentoOrder(order => { persistPrefs(order, next); return order })
       return next
     })
-  }, [persistPrefs])
+  }, [persistPrefs, layoutRestored])
 
   const orderedBentosRef = useRef<{ id: string; entry: { colSpan: number; minHeight: number; node: React.ReactNode } }[]>([])
 
   const toggleAll = useCallback(() => {
+    if (!layoutRestored) return
     const ids = orderedBentosRef.current.map(b => b.id)
     if (ids.length === 0) return
     const allCollapsed = ids.every(id => !!bentoCollapsedRef.current[id])
@@ -165,7 +133,7 @@ export function ProfileClient({ profileId, role, aboNumber, hasInvites }: Props)
     ids.forEach(id => { next[id] = !allCollapsed })
     setBentoCollapsed(next)
     setBentoOrder(order => { persistPrefs(order, next); return order })
-  }, [persistPrefs])
+  }, [persistPrefs, layoutRestored])
 
   const resetLayout = useCallback(() => {
     setBentoOrder(DEFAULT_ORDER)

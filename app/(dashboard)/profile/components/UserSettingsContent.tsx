@@ -18,7 +18,7 @@ export const UserSettingsContent = memo(function UserSettingsContent() {
 
   return (
     <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-      <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-5 pr-16" style={{ color: 'var(--brand-crimson)' }}>
+      <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-5 pr-24" style={{ color: 'var(--brand-crimson)' }}>
         {t('profile.settings')}
       </p>
 

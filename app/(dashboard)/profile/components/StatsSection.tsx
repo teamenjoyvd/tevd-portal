@@ -28,7 +28,7 @@ export function StatsSection({ role, aboNumber }: { role: string; aboNumber: str
 
   return (
     <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-      <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-4 pr-16" style={{ color: 'var(--brand-crimson)' }}>{t('profile.stats')}</p>
+      <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-4 pr-24" style={{ color: 'var(--brand-crimson)' }}>{t('profile.stats')}</p>
       {losSummary && (
         <div className="flex flex-wrap items-center gap-4">
           <div>

@@ -1,12 +1,13 @@
 'use client'
 
 import { memo, useState, useEffect } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { Drawer } from '@/components/ui/drawer'
 import { TravelDocDrawerForm } from './TravelDocDrawerForm'
 import { type Profile } from '../types'
 import { apiClient } from '@/lib/apiClient'
+import { useProfile } from '../useProfile'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -59,10 +60,7 @@ export const TravelDocContent = memo(function TravelDocContent() {
   const qc = useQueryClient()
   const { t } = useLanguage()
 
-  const { data: profile, isLoading } = useQuery<Profile>({
-    queryKey: ['profile'],
-    queryFn: () => apiClient('/api/profile'),
-  })
+  const { data: profile, isLoading } = useProfile()
 
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [saved, setSaved]           = useState(false)
@@ -167,7 +165,7 @@ export const TravelDocContent = memo(function TravelDocContent() {
   return (
     <>
       <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-        <div className="flex items-center justify-between mb-5 pr-16">
+        <div className="flex items-center justify-between mb-5 pr-24">
           <p className="text-xs font-semibold tracking-[0.25em] uppercase" style={{ color: 'var(--brand-crimson)' }}>
             {t('profile.tile.travelDoc')}
           </p>
