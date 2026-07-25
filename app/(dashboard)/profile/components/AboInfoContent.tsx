@@ -5,8 +5,9 @@ import Link from 'next/link'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { getRoleColors } from '@/lib/role-colors'
-import { type Profile, type SpouseLinkRequest } from '../types'
+import { type SpouseLinkRequest } from '../types'
 import { apiClient } from '@/lib/apiClient'
+import { useProfile } from '../useProfile'
 
 type AboInfoMode = 'form' | 'pending' | 'confirmed' | 'member_manual'
 
@@ -57,10 +58,7 @@ export const AboInfoContent = memo(function AboInfoContent() {
   const qc = useQueryClient()
   const { t } = useLanguage()
 
-  const { data: profile, isPending: profileIsPending } = useQuery<Profile>({
-    queryKey: ['profile'],
-    queryFn: () => apiClient('/api/profile'),
-  })
+  const { data: profile, isPending: profileIsPending } = useProfile()
 
   const role = profile?.role ?? 'guest'
   const aboNumber = profile?.abo_number ?? null
@@ -141,7 +139,7 @@ export const AboInfoContent = memo(function AboInfoContent() {
   if (role === 'guest' && profileIsPending) {
     return (
       <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-        <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-5 pr-16" style={{ color: 'var(--brand-crimson)' }}>
+        <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-5 pr-24" style={{ color: 'var(--brand-crimson)' }}>
           {t('profile.tile.aboInfo')}
         </p>
         <div className="space-y-3 animate-pulse">
@@ -180,7 +178,7 @@ export const AboInfoContent = memo(function AboInfoContent() {
 
   return (
     <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-      <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-5 pr-16" style={{ color: 'var(--brand-crimson)' }}>
+      <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-5 pr-24" style={{ color: 'var(--brand-crimson)' }}>
         {t('profile.tile.aboInfo')}
       </p>
 

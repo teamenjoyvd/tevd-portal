@@ -1,10 +1,11 @@
 'use client'
 
 import { useState, useCallback, useEffect } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useLanguage } from '@/lib/hooks/useLanguage'
-import { type Profile, type NotificationPrefs, DEFAULT_NOTIFICATION_PREFS } from '../types'
+import { type NotificationPrefs, DEFAULT_NOTIFICATION_PREFS } from '../types'
 import { apiClient } from '@/lib/apiClient'
+import { useProfile } from '../useProfile'
 
 export const EMAIL_PREFS_MIN_HEIGHT = 280
 
@@ -61,7 +62,7 @@ export function EmailPrefsSection() {
   const { t } = useLanguage()
   const qc = useQueryClient()
 
-  const { data: profile } = useQuery<Profile>({ queryKey: ['profile'] })
+  const { data: profile } = useProfile()
   const prefs = profile?.notification_prefs ?? DEFAULT_NOTIFICATION_PREFS
 
   const [local, setLocal] = useState<NotificationPrefs>(prefs)

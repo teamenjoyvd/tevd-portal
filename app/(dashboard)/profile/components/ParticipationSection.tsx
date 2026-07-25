@@ -53,7 +53,7 @@ export function ParticipationSection({ profileId, role }: { profileId: string; r
   return (
     <>
       <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-        <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-6 pr-16" style={{ color: 'var(--brand-crimson)' }}>{t('profile.participation')}</p>
+        <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-6 pr-24" style={{ color: 'var(--brand-crimson)' }}>{t('profile.participation')}</p>
         {roles.length === 0 ? (
           <div className="space-y-1">
             <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('profile.participation.empty')}</p>

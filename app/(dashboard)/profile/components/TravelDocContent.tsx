@@ -167,7 +167,7 @@ export const TravelDocContent = memo(function TravelDocContent() {
   return (
     <>
       <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-        <div className="flex items-center justify-between mb-5 pr-16">
+        <div className="flex items-center justify-between mb-5 pr-24">
           <p className="text-xs font-semibold tracking-[0.25em] uppercase" style={{ color: 'var(--brand-crimson)' }}>
             {t('profile.tile.travelDoc')}
           </p>

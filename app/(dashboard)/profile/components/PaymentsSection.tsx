@@ -98,7 +98,7 @@ export function PaymentsSection({ profileId, role }: { profileId: string; role: 
   return (
     <>
       <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-        <div className="flex items-center justify-between mb-4 pr-16">
+        <div className="flex items-center justify-between mb-4 pr-24">
           <p className="text-xs font-semibold tracking-[0.25em] uppercase" style={{ color: 'var(--brand-crimson)' }}>{t('payment.title')}</p>
           <button onClick={handleOpenSubmit}
             className="px-3 py-1.5 rounded-xl text-xs font-semibold text-white hover:opacity-90 transition-opacity flex-shrink-0"

@@ -4,7 +4,8 @@ import { forwardRef, type ReactNode } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useLanguage } from '@/lib/hooks/useLanguage'
-import { type TranslationKey } from '@/lib/i18n/translations'
+import { Button } from '@/components/ui/button'
+import { BENTO_KEY_MAP } from './bento-registry'
 
 // ── Drag handle ───────────────────────────────────────────────────────────────
 
@@ -42,23 +43,6 @@ const DragHandle = forwardRef<HTMLSpanElement, React.HTMLAttributes<HTMLSpanElem
     )
   }
 )
-
-// ── Bento id → i18n key map ───────────────────────────────────────────────────
-
-const BENTO_KEY_MAP: Record<string, TranslationKey> = {
-  'personal-details': 'profile.bento.personalDetails',
-  'abo-info':         'profile.bento.aboInfo',
-  'travel-doc':       'profile.bento.travelDoc',
-  'settings':         'profile.bento.settings',
-  'trips':            'profile.bento.trips',
-  'payments':         'profile.bento.payments',
-  'email_prefs':      'profile.bento.emailPrefs',
-  'vitals':           'profile.bento.vitals',
-  'participation':    'profile.bento.participation',
-  'calendar':         'profile.bento.calendar',
-  'stats':            'profile.bento.stats',
-  'admin':            'profile.bento.admin',
-}
 
 // ── SortableBento ─────────────────────────────────────────────────────────────
 
@@ -123,14 +107,16 @@ export function SortableBento({
               {label}
             </span>
           </div>
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="icon"
             onClick={onToggleCollapse}
             title={t('profile.bento.expand')}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 12, lineHeight: 1, color: 'var(--text-secondary)', opacity: 0.5, flexShrink: 0 }}
+            style={{ fontSize: 12, lineHeight: 1, opacity: 0.5, flexShrink: 0 }}
           >
             ▸
-          </button>
+          </Button>
         </div>
       ) : (
         <>
@@ -138,14 +124,16 @@ export function SortableBento({
             {!disableDrag && (
               <DragHandle ref={setActivatorNodeRef} {...attributes} {...listeners} />
             )}
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon"
               onClick={onToggleCollapse}
               title={t('profile.bento.collapse')}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 12, lineHeight: 1, color: 'var(--text-secondary)', opacity: 0.5, flexShrink: 0 }}
+              style={{ fontSize: 12, lineHeight: 1, opacity: 0.5, flexShrink: 0 }}
             >
               ▾
-            </button>
+            </Button>
           </div>
           {/*
             Desktop: height 100% fills the grid cell (minHeight set on parent).
