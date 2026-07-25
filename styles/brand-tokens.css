@@ -34,13 +34,21 @@
   --accent-left-alert: var(--brand-crimson);
   --accent-left-brand: var(--brand-forest);
 
+  /* ── Elevation shadows — light mode ── */
+  --shadow-rest: 0 1px 2px rgba(45, 51, 42, 0.04), 0 2px 8px rgba(45, 51, 42, 0.04);
+  --shadow-hover: 0 2px 4px rgba(45, 51, 42, 0.05), 0 12px 24px -8px rgba(45, 51, 42, 0.10);
+  --shadow-modal: 0 4px 12px rgba(26, 31, 24, 0.08), 0 24px 48px -12px rgba(26, 31, 24, 0.18);
+
   /* ── Bento tokens ── */
   --bento-gap:          12px;
   --bento-radius:       12px;
   --bento-border:       rgba(45, 51, 42, 0.08);
-  --bento-border-hover: rgba(188, 71, 73, 0.30);
+  --bento-border-hover: rgba(45, 51, 42, 0.16);
   --bento-accent-edge:  4px;
   --bento-padding:      20px;
+
+  /* ── Skeleton shimmer base ── */
+  --skeleton-base:      rgba(45, 51, 42, 0.07);
 
   /* ── Font scale ── */
   --font-scale: 1;
@@ -54,14 +62,16 @@
 html { font-size: calc(var(--font-scale) * 16px); }
 
 [data-theme="dark"] {
-  --bg-global-rgb:  26, 31, 24;   /* #1A1F18 — required for rgba() header backdrop */
-  --bg-global:      var(--brand-void);
-  --bg-card:        var(--brand-moss);
-  --text-primary:   var(--brand-parchment);
-  --text-secondary: #B5B0A8;
-  --text-nav:       var(--brand-parchment); /* full parchment on dark backdrop */
-  --nav-border:     rgba(250, 248, 243, 0.10); /* parchment-tinted, subtle outline on dark bg */
-  --logo-text:      var(--brand-parchment); /* wordmark visible on dark backdrop */
+  --bg-global-rgb:      26, 31, 24;   /* #1A1F18 — required for rgba() header backdrop */
+  --bg-global:          var(--brand-void);
+  --bg-card:            var(--brand-moss);
+  --bg-card-raised:     #2B3229;      /* raised surface for dark cards */
+  --text-primary:       var(--brand-parchment);
+  --text-secondary:     #B5B0A8;
+  --text-nav:           var(--brand-parchment); /* full parchment on dark backdrop */
+  --nav-border:         rgba(250, 248, 243, 0.10); /* parchment-tinted, subtle outline on dark bg */
+  --logo-text:          var(--brand-parchment); /* wordmark visible on dark backdrop */
+  --skeleton-base:      rgba(250, 248, 243, 0.06);
 }
 
 /* ── Utility classes ── */
@@ -79,7 +89,8 @@ html { font-size: calc(var(--font-scale) * 16px); }
   padding: var(--bento-padding);
   border: 1px solid var(--bento-border);
   background-color: var(--bg-card);
-  transition: border-color 200ms;
+  box-shadow: var(--shadow-rest);
+  transition: box-shadow 200ms, border-color 200ms;
   overflow-wrap: break-word;
   word-break: break-word;
 }
@@ -92,6 +103,12 @@ html { font-size: calc(var(--font-scale) * 16px); }
   background-color: var(--brand-forest);
   border-color: transparent;
   color: var(--brand-parchment);
+  box-shadow: var(--shadow-rest);
+}
+
+[data-theme="dark"] .card--forest {
+  background-color: var(--bg-card-raised);
+  border-top: 1px solid rgba(250, 248, 243, 0.10);
 }
 
 .card--crimson {
@@ -146,14 +163,19 @@ html { font-size: calc(var(--font-scale) * 16px); }
 
 /* Lift on hover: for clickable cards and prominent actions. */
 .interactive-lift {
-  will-change: transform;
-  transition: transform 200ms ease, box-shadow 200ms ease;
+  will-change: transform, box-shadow;
+  transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
+  box-shadow: var(--shadow-rest);
+  border-color: var(--bento-border);
 }
 .interactive-lift:hover {
-  transform: translateY(-1px) scale(1.01);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-hover);
+  border-color: var(--bento-border-hover);
 }
 .interactive-lift:active {
   transform: translateY(0) scale(0.98);
+  box-shadow: var(--shadow-rest);
 }
 
 /* ── Pill link hover — action links in nav, bento tiles ── */

@@ -10,8 +10,8 @@ export function Skeleton({
 }) {
   return (
     <div
-      className={cn('animate-pulse rounded-md', className)}
-      style={{ backgroundColor: 'var(--border-default)', ...style }}
+      className={cn('skeleton-shimmer rounded-md', className)}
+      style={{ backgroundColor: 'var(--skeleton-base)', ...style }}
     />
   )
 }

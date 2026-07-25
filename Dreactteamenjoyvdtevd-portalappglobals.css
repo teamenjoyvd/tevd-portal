@@ -1,25 +1,10 @@
 @import 'tailwindcss';
-/* Overlay/enter-exit animation utilities (animate-in, fade-*, zoom-*, slide-*)
-   consumed by components/ui/{dialog,sheet,select,alert-dialog}.tsx. v4-native
-   successor to tailwindcss-animate; build-time CSS only, no runtime JS. */
 @import 'tw-animate-css';
 
-/* ── Tailwind v4 theme wiring ──
-   Tailwind v4 does not read tailwind.config.ts (deleted for #611). Design tokens
-   are registered here so utilities compile:
-     --font-*  → font-display / font-body / font-serif / font-sans utilities,
-                 chained to the next/font variables set on <html> in app/layout.tsx.
-     --color-brand-* → bg-brand-* / text-brand-* / border-brand-* utilities.
-   Brand hexes are the canonical values from styles/brand-tokens.css (the old
-   config carried a wrong, dead parchment/oyster pair). Extends the default v4
-   palette — it does not replace it. */
 @theme {
   --font-sans: var(--font-montserrat), sans-serif;
   --font-serif: var(--font-playfair), serif;
   --font-display: var(--font-cormorant), serif;
-  /* Body uses Montserrat: it ships a Cyrillic subset (DM Sans does not in this
-     next/font version), so Bulgarian body text no longer falls back to a
-     larger-metric system font. */
   --font-body: var(--font-montserrat), sans-serif;
   --font-mono: ui-monospace, 'SFMono-Regular', 'Menlo', monospace;
 
@@ -49,9 +34,6 @@ html {
   -webkit-tap-highlight-color: transparent;
   scroll-behavior: smooth;
   overflow-x: hidden;
-  /* Reserves the scrollbar's width permanently so Radix's dialog/sheet
-     scroll-lock (which hides the scrollbar while open) doesn't widen the
-     viewport and shift fixed-position elements (e.g. the header). */
   scrollbar-gutter: stable;
 }
 
@@ -71,45 +53,15 @@ body {
 }
 
 :root {
-  /* mobile: pt-20 (80) + PageHeading (64) + toolbar two-rows (~100) */
   --cal-height: calc(100dvh - 244px);
 }
 
 @media (min-width: 768px) {
   :root {
-    /* desktop: pt-20 (80) + PageHeading (64) + toolbar single-row (~52) */
     --cal-height: calc(100dvh - 196px);
   }
 }
 
-/* ── Skeleton shimmer animation ── */
-@keyframes skeleton-shimmer {
-  0% {
-    background-color: var(--skeleton-base);
-  }
-  50% {
-    background-color: var(--skeleton-base);
-    opacity: 0.5;
-  }
-  100% {
-    background-color: var(--skeleton-base);
-  }
-}
-
-.skeleton-shimmer {
-  animation: skeleton-shimmer 2s ease-in-out infinite;
-}
-
-/* ── Respect prefers-reduced-motion for all animations ── */
-@media (prefers-reduced-motion: reduce) {
-  .skeleton-shimmer,
-  .bento-tile,
-  .interactive-lift {
-    animation: none !important;
-  }
-}
-
-/* ── Bento staggered entrance animation ── */
 @keyframes bento-enter {
   from {
     opacity: 0;
@@ -125,19 +77,43 @@ body {
   animation: bento-enter 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-/* SEQ298: Suppress bento entrance animation after first session load.
-   data-animated="done" is set by the inline script in layout.tsx
-   before any paint on all reloads after the first within a session. */
 [data-animated="done"] .bento-tile {
   animation: none;
 }
 
-/* ── Mapbox UI suppression ── */
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.skeleton-shimmer {
+  background-image: linear-gradient(
+    90deg,
+    var(--skeleton-base) 0%,
+    var(--skeleton-base) 20%,
+    rgba(255, 255, 255, 0.12) 50%,
+    var(--skeleton-base) 80%,
+    var(--skeleton-base) 100%
+  );
+  background-size: 1000px 100%;
+  animation: skeleton-shimmer 2s infinite;
+  background-clip: padding-box;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-shimmer {
+    animation: none;
+    background-image: none;
+  }
+}
+
 .mapboxgl-ctrl-logo { display: none !important; }
 .mapboxgl-ctrl-attrib { display: none !important; }
 
-/* ── Page transitions — View Transitions API — SEQ283 ── */
-/* Root: scale-fade — old page scales out, new page scales in */
 @keyframes vt-scale-out {
   to {
     opacity: 0;
@@ -160,19 +136,36 @@ body {
   animation: vt-scale-in 250ms ease-out both;
 }
 
-/* ── Radix portal layering ── */
-/* backdrop-filter on the header creates a stacking context (z-50).
-   Radix portals render into <body> with z-index:auto, which resolves
-   below that stacking context and makes the dropdown appear to show
-   the blurred page content behind it instead of its own background.
-   Forcing z-index:100 on the wrapper puts it above the header (z-50). */
+@media (prefers-reduced-motion: reduce) {
+  .bento-tile {
+    animation: none;
+  }
+
+  ::view-transition-old(root) {
+    animation: none;
+  }
+
+  ::view-transition-new(root) {
+    animation: none;
+  }
+
+  .interactive-lift {
+    transition: border-color 200ms ease;
+  }
+
+  .interactive-lift:hover {
+    transform: none;
+  }
+
+  .interactive-lift:active {
+    transform: none;
+  }
+}
+
 [data-radix-popper-content-wrapper] {
   z-index: 100 !important;
 }
 
-/* ── Guide body — list and paragraph styling ── */
-/* Tailwind preflight strips browser default list styles and margins globally.
-   .guide-body scopes the restore to guide content only. */
 .guide-body p,
 .guide-body ul,
 .guide-body ol {
@@ -199,8 +192,6 @@ body {
   margin-bottom: 0;
 }
 
-/* ── Tiptap rendered output (.tiptap-output) ── */
-/* Used by GuideBody and TripDescription to render JSONContent via generateHTML. */
 .tiptap-output h2 {
   font-size: 1.25rem;
   font-weight: 600;
@@ -273,8 +264,6 @@ body {
   margin-bottom: 0.75rem;
 }
 
-/* ── Tiptap code block — rendered output ── */
-/* position:relative on pre is required for the absolute copy button. */
 .tiptap-output pre {
   position: relative;
   background-color: #1e1e1e;
@@ -317,8 +306,6 @@ body {
   color: rgba(255, 255, 255, 0.9);
 }
 
-/* ── Tiptap editor chrome (.tiptap-editor) ── */
-/* Applied to EditorContent wrapper in TiptapEditor.tsx */
 .tiptap-editor .ProseMirror {
   outline: none;
   min-height: 200px;
@@ -372,7 +359,6 @@ body {
   margin: 0.5rem 0;
 }
 
-/* ── Tiptap code block — editor chrome ── */
 .tiptap-editor .ProseMirror pre {
   background-color: #1e1e1e;
   border-radius: 0.4rem;
