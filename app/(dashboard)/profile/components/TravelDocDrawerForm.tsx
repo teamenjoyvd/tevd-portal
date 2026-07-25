@@ -84,7 +84,7 @@ export function TravelDocDrawerForm({
         ))}
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
             {activeDocType === 'passport' ? t('profile.passportNumber') : t('profile.idNumber')}

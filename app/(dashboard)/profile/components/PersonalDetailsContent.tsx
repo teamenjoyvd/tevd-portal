@@ -183,7 +183,7 @@ export const PersonalDetailsContent = memo(function PersonalDetailsContent() {
         </div>
 
         <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <p className="text-[10px] font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>
                 {t('profile.firstName')}
@@ -202,7 +202,7 @@ export const PersonalDetailsContent = memo(function PersonalDetailsContent() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <p className="text-[10px] font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>
                 {t('profile.firstName')} (БГ)
@@ -222,7 +222,7 @@ export const PersonalDetailsContent = memo(function PersonalDetailsContent() {
           </div>
 
           <div style={{ borderTop: '1px solid var(--border-default)', paddingTop: 12 }}>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <p className="text-[10px] font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>{t('profile.phone')}</p>
                 <p className="text-sm" style={{ color: profile.phone ? 'var(--text-primary)' : 'var(--text-secondary)' }}>

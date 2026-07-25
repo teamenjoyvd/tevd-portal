@@ -4,6 +4,16 @@ import { useState, useCallback, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Copy, Check, RefreshCw, Save } from 'lucide-react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from '@/components/ui/alert-dialog'
 import { apiClient } from '@/lib/apiClient'
 import { useProfile } from '../useProfile'
 
@@ -17,6 +27,7 @@ export function CalendarSection({ profileId }: { profileId: string }) {
   const [calCopied, setCalCopied] = useState(false)
   const [displayName, setDisplayName] = useState('')
   const [nameSaved, setNameSaved] = useState(false)
+  const [regenerateOpen, setRegenerateOpen] = useState(false)
 
   // Read existing ical_display_name from the profile query cache (populated by ProfileClient)
   const { data: fullProfile } = useProfile()
@@ -64,8 +75,9 @@ export function CalendarSection({ profileId }: { profileId: string }) {
     }
   }, [calData])
 
-  const handleRegenerate = useCallback(() => {
-    if (confirm('Regenerate your calendar link? Your old link will stop working.')) regenerateCal.mutate()
+  const handleRegenerateConfirm = useCallback(() => {
+    regenerateCal.mutate()
+    setRegenerateOpen(false)
   }, [regenerateCal])
 
   const handleSaveName = useCallback(() => {
@@ -93,7 +105,7 @@ export function CalendarSection({ profileId }: { profileId: string }) {
           {calCopied ? <Check size={14} /> : <Copy size={14} />}
         </button>
         <button
-          onClick={handleRegenerate}
+          onClick={() => setRegenerateOpen(true)}
           disabled={regenerateCal.isPending}
           aria-label={t('profile.calSubRegenerate')}
           aria-busy={regenerateCal.isPending}
@@ -130,6 +142,19 @@ export function CalendarSection({ profileId }: { profileId: string }) {
           </button>
         </div>
       </div>
+
+      <AlertDialog open={regenerateOpen} onOpenChange={setRegenerateOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('profile.calSubRegenerateConfirmTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('profile.calSubRegenerateConfirmDesc')}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('profile.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleRegenerateConfirm}>{t('profile.calSubRegenerate')}</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
