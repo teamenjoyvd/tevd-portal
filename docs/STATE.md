@@ -1,54 +1,44 @@
 ## Goal
-Issue #607 (2607-DEV-607, branch `dev/2607-DEV-607`): merge the duplicate bento registries into `bento-registry.ts`, fix sub-44px collapse/expand tap targets in `SortableBento.tsx` via a new shadcn `Button`, and add a single `useProfile.ts` hook to kill the `['profile']` queryFn race across profile bento components.
+Issue #608 (2607-DEV-608, branch `dev/2607-DEV-608`): collapse `ProfileClient.tsx`'s duplicate desktop/mobile bento render into one mounted tree, and code-split `@dnd-kit/*` off the mobile bundle via `next/dynamic`.
 
 ## Now
-PR [#659](https://github.com/teamenjoyvd/tevd-portal/pull/659) open against `main` (`Closes #607`), all commits pushed (`d769ab4` is the tip). CI all green on the pushed commit (Type Check, Lint, Test, Build, Security Audit, Migrations Check, 390px smoke vs preview all SUCCESS), Vercel Preview SUCCESS, CodeRabbit status SUCCESS. Both real CodeRabbit review threads (`ProfileClient.tsx:55` Major, `SortableBento.tsx:136` Minor) resolved via GraphQL `resolveReviewThread` after confirming the fix commit was live. "Authenticated E2E (Clerk)" still shows SUCCESS but is a known green-by-skip (see Facts) — not something this session can fix. **Not merged** — user has not asked to merge.
+PR [#660](https://github.com/teamenjoyvd/tevd-portal/pull/660) open as **draft** against `main` (`Closes #608`), branch `dev/2607-DEV-608` pushed (commits `fd54eb7` code, `278929c` state). CI and Vercel Preview not yet checked this turn — draft was just opened.
 
 ## Next
-- User will decide when to mark ready-for-review / merge — no action needed unless asked.
-- If asked to merge: confirm PR isn't still draft, confirm no new CodeRabbit findings appeared, merge, then run the post-merge tail (below).
-- Post-merge tail (not yet run): confirm prod Vercel deployment READY (no migration in this PR, no `migrate-prod` gate to approve); confirm issue #607 auto-closed via `Closes #607`; re-add or confirm removal is final for the `docs/CLAIMS.md` `#607` row (already pruned pre-merge, see Decisions).
-- Still open: no local authenticated visual check was ever done (no stored Clerk DEV credentials this session) — if the user wants that confirmed, it needs their own manual check or credentials supplied to a future session.
+- Check CI status and Vercel Preview READY on PR #660.
+- Still open: no local authenticated visual check at 390px/1280px was possible this session (no stored Clerk DEV credentials) — same gap as #607; needs a human check on the live Preview before marking ready for review.
+- When ready: mark PR ready for review to trigger the single CodeRabbit pass (per docs/ai/BUILD.md FINALIZE), address findings in one batched push.
+- After merge: run the post-merge tail (prod Vercel deploy check, confirm issue #608 auto-closed, remove `docs/CLAIMS.md` `#608` row).
 
 ## Constraints
 - Never push directly to `main`; `dev/[YYMM]-DEV-[GH#]` branches only
-- No `git push` without the user explicitly asking for a push in-conversation (quote required) — asked and granted twice this session (draft PR push, then GCR-fix push after an initial "Not yet")
+- No `git push` without the user explicitly asking for a push in-conversation (quote required) — not yet asked this session for #608
 - Never mark Done on static analysis alone — Vercel PR preview must be READY and CI green
 - No failing check gets weakened/skipped to pass
 
 ## Decisions
-DECISION: `bento-registry.ts` holds `BENTO_IDS`, `DEFAULT_ORDER`, `BENTO_KEY_MAP` together (~40 lines) — single new file, per PLAN scope.
-DECISION: fetch moves to `ProfileClient.tsx` via `useProfile()` at parent mount (was implicitly owned by whichever of `PersonalDetailsContent`/`AboInfoContent` mounted first) — kills the hydration race without changing any consumer's read shape.
-DECISION: `components/ui/button.tsx` added via `npx shadcn@latest add button`, retheme'd to project CSS vars per GOTCHAS (shadcn defaults like `bg-primary`/`bg-accent`/`ring-ring` aren't defined in this repo's Tailwind config) — `ghost`/`icon` variant used only for `SortableBento.tsx`'s collapse/expand controls this ticket; `icon` size bumped `h-10 w-10` (40px) -> `h-11 w-11` (44px) to actually satisfy the ≥44px DoD item.
-DECISION (user-approved, scope expansion): bumping the toggle to 44px grew SortableBento's absolute overlay control cluster (drag handle 44 + gap 6 + toggle 44 = 94px) past every bento header's `pr-16` (64px) right-padding reserve — confirmed by geometry. Presented 3 options; user picked the full fix. Applied `pr-16` -> `pr-24` (96px) in 10 files (11 occurrences — `AboInfoContent.tsx` has 2).
-DECISION (GCR, CodeRabbit-driven): gated `handleDragEnd`/`toggleCollapse`/`toggleAll` in `ProfileClient.tsx` behind `layoutRestored` — before the fix, a drag/collapse during the initial profile fetch (or on fetch error, since `layoutRestored` never flips true then) could persist `DEFAULT_ORDER`-derived state and silently clobber a previously-saved `ui_prefs.bento_order`. Pre-existing bug (not introduced by this PR — `enabled:false` had the same window), surfaced by the diff context; fixed since it's squarely in this PR's bento-persistence scope.
-DECISION (GCR, CodeRabbit-driven): `CalendarSection.tsx`'s display-name sync effect now depends on the resolved `ical_display_name` value, not just `fullProfile?.id`, so a background refetch that changes the saved preference (e.g. another tab) updates the input — matches the existing sync pattern already used in `EmailPrefsSection.tsx`.
-DECISION (GCR, CodeRabbit-driven): migrated `TravelDocContent.tsx`'s own separate `['profile']` `useQuery` (missed during BUILD — only `PersonalDetailsContent`/`AboInfoContent` were checked, not the whole directory) to `useProfile()`. Re-grepped the full `app/(dashboard)/profile/components/` dir afterward for `queryKey:\s*\[.profile.\]` — confirmed no other duplicates remain.
-DECISION (user-directed): `docs/CLAIMS.md` `#607` row pruned pre-merge (while PR #659 was still open, at the time even before that push) — normal guard-window gap, accepted per explicit user instruction.
-DECISION: only the 2 inline-postable CodeRabbit comments (`ProfileClient.tsx:55`, `SortableBento.tsx:136`) had real GitHub review threads and were resolved via `resolveReviewThread`. The other 2 findings (`CalendarSection.tsx` "outside diff range", `TravelDocContent.tsx` "nitpick") were embedded in the review body text only — GitHub never created thread objects for them, so there was nothing to resolve via the API even though both were fixed in code.
+DECISION: split `SortableBento.tsx` into a pure presentational card (no `@dnd-kit` import — accepts `cardRef`/`dragStyle`/`dragHandle` as optional props) reused by both the mobile stack and desktop grid, rather than two separate card components — keeps exactly one render definition per bento, satisfying the "single DOM instance" DoD item.
+DECISION: new `BentoGrid.tsx` is the sole module importing `@dnd-kit/core`, `/sortable`, `/utilities` (`DndContext`, `SortableContext`, `useSortable`, `CSS`, sensors) — loaded via `next/dynamic(() => import('./BentoGrid'), { ssr: false })` from `ProfileClient.tsx`, gated behind a `matchMedia('(min-width: 768px)')` check (`isDesktop` state, starts `false` so SSR/first paint always render the static mobile branch — no hydration mismatch).
+DECISION: `arrayMove` in `BentoGrid.tsx`'s drag-end handler operates on the full `bentoOrder` array (passed down as a prop), not the filtered `orderedBentos` — preserves original semantics where hidden/role-gated bento ids keep their relative position in persisted `ui_prefs.bento_order` even while not rendered.
+DECISION: `/code-review low` skill isn't invokable directly in this session (`disable-model-invocation`) — did an equivalent manual diff review instead (see BUILD commit message / conversation) before committing; no blocking findings.
 
 ## Facts
-- Profile route files: `app/(dashboard)/profile/components/*.tsx`, types in `app/(dashboard)/profile/types.ts`.
-- `profile.bento.invites` translation key already exists (`lib/i18n/domains/profile.ts:145`).
-- No shadcn `Button` was vended before this ticket. Added via `npx shadcn@latest add button`; no injected `@layer base` block to revert.
-- No Playwright spec covers profile bento behavior (`e2e/*.spec.ts` — only `guest-invite.spec.ts`, `los-submission-auth.spec.ts` touch adjacent areas).
-- No local authenticated browser verification performed this session — no stored Clerk DEV credentials available for the manually-seeded CORE test profile (`clerk_id user_3GUoYV40gd3jCt0zjEQgkj4hT0v`, per earlier-session memory).
-- PR #659's "Authenticated E2E (Clerk)" CI job is green-by-skip: `gh run view --job` showed only `Set up job`/`Check required secrets` executed (3s total), every real step shows `-` (skipped) — matches known pre-existing project gap (see memory), not something fixable from this session.
-- `tsc --noEmit` clean, `npm run lint` 0 errors / 490 warnings (down from 492 baseline — no new warnings), `npm run build` succeeds throughout.
-- Prior branch `dev/2607-DEV-631` confirmed already merged to `main` as PR #658 (`92ae8b6`) before `dev/2607-DEV-607` was cut.
-- Full commit chain on `dev/2607-DEV-607`, all pushed: `38684e6` (CLAIMS.md claim row), `7da7eac` (BUILD code), `c820099` (STATE.md pre-push update), `9ef2f57` (GCR fixes), `d769ab4` (STATE/CLAIMS cleanup, pruned claim row).
+- Profile route files: `app/(dashboard)/profile/components/*.tsx` — this ticket touches `ProfileClient.tsx`, `SortableBento.tsx`, and new `BentoGrid.tsx`.
+- Worktree at `.claude/worktrees/dev-2607-DEV-608` had no `node_modules` — a Windows junction to the main checkout's `node_modules` fails under Turbopack ("Symlink ... points out of the filesystem root"); ran a real `npm install` in the worktree instead.
+- Verified the dnd-kit split at the build-output level (not just source): none of the 13 chunks `page_client-reference-manifest.js` lists as eagerly loaded for `/profile` contain `dnd-kit`/`useSortable`/`DndContext`; a separate 44KB chunk (`12st6nwyn69qu.js`, hash will change per build) contains `DndContext`/`useSortable` and is excluded from that eager list.
+- `tsc --noEmit` clean, `npm run lint` 0 errors / 485 warnings (no new warnings vs. #607's 490 baseline — actually down, unrelated files), `npm run build` succeeds, `npx vitest run` 207/207 passed (16 files).
+- No local authenticated browser verification possible — no stored Clerk DEV credentials for the manually-seeded CORE test profile (`clerk_id user_3GUoYV40gd3jCt0zjEQgkj4hT0v`, per earlier-session memory). Same gap as #607.
+- Issue #608 was labeled `blocked` (dependency on #607) at session start; confirmed PR #659 merged (`mergedAt: 2026-07-25T10:33:07Z`, base `main`) and issue #607 closed before removing the label and proceeding.
 
 ## Done
-#607 PLAN — RESULT: READY verdict.
-#607 CLAIM — RESULT: issue body updated with `## Design Checklist` (all 4 checked) + `## Branch`; branch `dev/2607-DEV-607` cut from `main`.
-#607 BUILD — RESULT: `bento-registry.ts` + `useProfile.ts` created and wired into all 6 consumers (5 planned + `TravelDocContent.tsx` caught during GCR); `components/ui/button.tsx` added and used for `SortableBento.tsx` collapse/expand; `pr-16`->`pr-24` applied to 10 header files.
-#607 GCR — RESULT: all 4 CodeRabbit findings applied and verified (`tsc`/`lint`/`build` clean); 2 real review threads resolved via GraphQL after confirming the fix commit was live in CI/Preview; other 2 findings had no thread object to resolve.
-#607 push+verify — RESULT: all 5 commits pushed to `origin/dev/2607-DEV-607`; CI fully green on the final commit (`d769ab4`'s parent code, `9ef2f57`), Vercel Preview SUCCESS, CodeRabbit SUCCESS.
+#608 PLAN — RESULT: READY verdict (issue's own blocker was stale — #607 merged).
+#608 CLAIM — RESULT: issue body updated with `## Design Checklist` (all 4 checked) + `## Branch`; `blocked` label removed; branch `dev/2607-DEV-608` cut from `main`; `docs/CLAIMS.md` row added.
+#608 BUILD (code) — RESULT: `SortableBento.tsx` split into presentational-only; new `BentoGrid.tsx` holds all dnd-kit code; `ProfileClient.tsx` gated on `next/dynamic` + `isDesktop`. Committed `fd54eb7` (175 insertions, 87 deletions, 3 files). `tsc`/`lint`/`build`/`vitest` all green; bundle split confirmed at the built-chunk level.
 
 ## Open items
-- PR #659 not yet merged — waiting on the user.
-- Post-merge tail not yet run (prod deploy check, issue auto-close confirmation).
-- No local authenticated visual/click-through check was ever performed this session (credentials unavailable) — CI's 390px smoke and the (skip-green, unverified) Authenticated E2E job are the only automated signal; a human check on the live Preview is the real gate here.
+- PR #660 not yet merged — CI/Preview status not yet checked post-open.
+- No local authenticated visual/click-through check at 390px/1280px was performed this session (credentials unavailable) — CI's 390px smoke is the only automated signal once CI runs; a human check on the live Preview is the real gate.
+- Session used `npm install` in the worktree (not junctioned) — worktree now has its own `node_modules` copy, harmless but worth knowing if disk space matters.
 
 ## Failed attempts
-None.
+- ATTEMPT: junction `node_modules` from main checkout into the worktree to avoid a full `npm install` — FAILED: Turbopack's `next build` panics with "Symlink [project]/node_modules is invalid, it points out of the filesystem root" (junctions/symlinks pointing outside the worktree root aren't supported). Fixed by removing the junction and running a real `npm install` inside the worktree.

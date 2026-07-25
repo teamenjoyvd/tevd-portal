@@ -1,21 +1,8 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import dynamic from 'next/dynamic'
 import { useLanguage } from '@/lib/hooks/useLanguage'
-import {
-  DndContext,
-  PointerSensor,
-  TouchSensor,
-  useSensor,
-  useSensors,
-  closestCenter,
-  type DragEndEvent,
-} from '@dnd-kit/core'
-import {
-  SortableContext,
-  rectSortingStrategy,
-  arrayMove,
-} from '@dnd-kit/sortable'
 import { PersonalDetailsContent } from './PersonalDetailsContent'
 import { AboInfoContent } from './AboInfoContent'
 import { TravelDocContent } from './TravelDocContent'
@@ -34,6 +21,11 @@ import { BENTO_IDS, DEFAULT_ORDER } from './bento-registry'
 import { apiClient } from '@/lib/apiClient'
 import { useProfile } from '../useProfile'
 
+// dnd-kit (@dnd-kit/core, /sortable, /utilities) lives entirely inside
+// BentoGrid.tsx. Loading it via next/dynamic + an isDesktop gate keeps it
+// out of the code path mobile actually executes.
+const BentoGrid = dynamic(() => import('./BentoGrid'), { ssr: false })
+
 // ── Types ────────────────────────────────────────────────────────────────────
 
 type Props = {
@@ -46,6 +38,7 @@ type Props = {
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const BENTO_HEIGHT = { S: 160, M: 280 } as const
+const DESKTOP_QUERY = '(min-width: 768px)' // matches Tailwind `md` breakpoint used below
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -61,7 +54,16 @@ export function ProfileClient({ profileId, role, aboNumber, hasInvites }: Props)
   const [bentoOrder, setBentoOrder]         = useState<string[]>(DEFAULT_ORDER)
   const [bentoCollapsed, setBentoCollapsed] = useState<Record<string, boolean>>({})
   const [layoutRestored, setLayoutRestored] = useState(false)
+  const [isDesktop, setIsDesktop]           = useState(false)
   const persistDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    const mql = window.matchMedia(DESKTOP_QUERY)
+    setIsDesktop(mql.matches)
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches)
+    mql.addEventListener('change', handler)
+    return () => mql.removeEventListener('change', handler)
+  }, [])
 
   useEffect(() => {
     return () => {
@@ -102,16 +104,11 @@ export function ProfileClient({ profileId, role, aboNumber, hasInvites }: Props)
     bentoCollapsedRef.current = bentoCollapsed
   }, [bentoCollapsed])
 
-  const handleDragEnd = useCallback((event: DragEndEvent) => {
+  const handleReorder = useCallback((next: string[]) => {
     if (!layoutRestored) return
-    const { active, over } = event
-    if (!over || active.id === over.id) return
-    const oldIndex = bentoOrder.indexOf(active.id as string)
-    const newIndex = bentoOrder.indexOf(over.id as string)
-    const next = arrayMove(bentoOrder, oldIndex, newIndex)
     setBentoOrder(next)
     persistPrefs(next, bentoCollapsedRef.current)
-  }, [bentoOrder, persistPrefs, layoutRestored])
+  }, [persistPrefs, layoutRestored])
 
   const toggleCollapse = useCallback((id: string) => {
     if (!layoutRestored) return
@@ -140,11 +137,6 @@ export function ProfileClient({ profileId, role, aboNumber, hasInvites }: Props)
     setBentoCollapsed({})
     persistPrefs(DEFAULT_ORDER, {})
   }, [persistPrefs])
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
-  )
 
   type BentoEntry = { colSpan: number; minHeight: number; node: React.ReactNode }
 
@@ -234,44 +226,36 @@ export function ProfileClient({ profileId, role, aboNumber, hasInvites }: Props)
           </button>
         </div>
 
-        {/* ── DESKTOP (md+) ─ DnD grid */}
-        <div className="hidden md:block">
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext items={orderedBentos.map(b => b.id)} strategy={rectSortingStrategy}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: '12px' }}>
-                {orderedBentos.map(({ id, entry }) => (
-                  <SortableBento
-                    key={id}
-                    id={id}
-                    collapsed={!!bentoCollapsed[id]}
-                    onToggleCollapse={() => toggleCollapse(id)}
-                    colSpan={entry.colSpan}
-                    minHeight={entry.minHeight}
-                  >
-                    {entry.node}
-                  </SortableBento>
-                ))}
-              </div>
-            </SortableContext>
-          </DndContext>
-        </div>
-
-        {/* ── MOBILE (< md) ─ stacked flex, no DnD */}
-        <div className="md:hidden flex flex-col gap-3">
-          {orderedBentos.map(({ id, entry }) => (
-            <SortableBento
-              key={id}
-              id={id}
-              collapsed={!!bentoCollapsed[id]}
-              onToggleCollapse={() => toggleCollapse(id)}
-              colSpan={entry.colSpan}
-              minHeight={entry.minHeight}
-              disableDrag
-            >
-              {entry.node}
-            </SortableBento>
-          ))}
-        </div>
+        {/* Single mounted tree: desktop drag grid (dnd-kit, dynamically
+            loaded) or the static mobile stack — never both at once. Server
+            render and first client paint always take the static branch
+            (isDesktop starts false), so hydration matches; the drag grid
+            swaps in post-hydration once matchMedia resolves to desktop. */}
+        {isDesktop ? (
+          <BentoGrid
+            orderedBentos={orderedBentos}
+            bentoOrder={bentoOrder}
+            bentoCollapsed={bentoCollapsed}
+            onToggleCollapse={toggleCollapse}
+            onReorder={handleReorder}
+          />
+        ) : (
+          <div className="flex flex-col gap-3">
+            {orderedBentos.map(({ id, entry }) => (
+              <SortableBento
+                key={id}
+                id={id}
+                collapsed={!!bentoCollapsed[id]}
+                onToggleCollapse={() => toggleCollapse(id)}
+                colSpan={entry.colSpan}
+                minHeight={entry.minHeight}
+                disableDrag
+              >
+                {entry.node}
+              </SortableBento>
+            ))}
+          </div>
+        )}
 
       </div>
     </div>

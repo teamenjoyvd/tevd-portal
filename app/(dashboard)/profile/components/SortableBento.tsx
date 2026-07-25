@@ -1,13 +1,14 @@
 'use client'
 
 import { forwardRef, type ReactNode } from 'react'
-import { useSortable } from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { Button } from '@/components/ui/button'
 import { BENTO_KEY_MAP } from './bento-registry'
 
 // ── Drag handle ───────────────────────────────────────────────────────────────
+// No @dnd-kit import here — this file is the mobile-path render, and the drag
+// wiring (ref/attributes/listeners) is supplied by BentoGrid.tsx's dnd-kit
+// wrapper so @dnd-kit/* stays out of this module's chunk.
 
 function GripIcon() {
   return (
@@ -29,7 +30,7 @@ function GripIcon() {
   )
 }
 
-const DragHandle = forwardRef<HTMLSpanElement, React.HTMLAttributes<HTMLSpanElement>>(
+export const DragHandle = forwardRef<HTMLSpanElement, React.HTMLAttributes<HTMLSpanElement>>(
   function DragHandle(props, ref) {
     return (
       <span
@@ -54,6 +55,9 @@ export function SortableBento({
   minHeight,
   disableDrag,
   children,
+  cardRef,
+  dragStyle,
+  dragHandle,
 }: {
   id: string
   collapsed: boolean
@@ -62,27 +66,19 @@ export function SortableBento({
   minHeight: number
   disableDrag?: boolean
   children: ReactNode
+  // Drag wiring — supplied only by BentoGrid.tsx's dnd-kit wrapper (desktop path).
+  cardRef?: (node: HTMLDivElement | null) => void
+  dragStyle?: React.CSSProperties
+  dragHandle?: ReactNode
 }) {
   const { t } = useLanguage()
 
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    setActivatorNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id, disabled: disableDrag })
-
   const style: React.CSSProperties = {
     ...(disableDrag ? {} : { gridColumn: `span ${colSpan}` }),
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
     position: 'relative',
     // Mobile stack (disableDrag): no minHeight — cards size to their content
     minHeight: disableDrag || collapsed ? undefined : minHeight,
+    ...dragStyle,
   }
 
   const bentoKey = BENTO_KEY_MAP[id]
@@ -90,7 +86,7 @@ export function SortableBento({
 
   return (
     <div
-      ref={setNodeRef}
+      ref={cardRef}
       className={!disableDrag && colSpan === 6 ? 'bento-mobile-full' : ''}
       style={style}
     >
@@ -100,9 +96,7 @@ export function SortableBento({
           style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}
         >
           <div className="flex items-center gap-3">
-            {!disableDrag && (
-              <DragHandle ref={setActivatorNodeRef} {...attributes} {...listeners} />
-            )}
+            {!disableDrag && dragHandle}
             <span className="text-xs font-semibold tracking-[0.2em] uppercase" style={{ color: 'var(--text-secondary)' }}>
               {label}
             </span>
@@ -122,9 +116,7 @@ export function SortableBento({
       ) : (
         <>
           <div style={{ position: 'absolute', top: 18, right: 16, display: 'flex', alignItems: 'center', gap: 6, zIndex: 10 }}>
-            {!disableDrag && (
-              <DragHandle ref={setActivatorNodeRef} {...attributes} {...listeners} />
-            )}
+            {!disableDrag && dragHandle}
             <Button
               type="button"
               variant="ghost"
