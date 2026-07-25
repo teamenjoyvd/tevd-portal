@@ -17,7 +17,7 @@ type BentoCardProps = {
 
 // ── Interactive class constant ─────────────────────────────────────────────────
 
-export const BENTO_INTERACTIVE_CLASSES = 'hover:brightness-95 active:scale-[0.98] transition-all'
+export const BENTO_INTERACTIVE_CLASSES = 'interactive-lift active:scale-[0.98] transition-all'
 
 // ── Eyebrow sub-component ────────────────────────────────────────────────────
 

@@ -82,6 +82,37 @@ body {
   }
 }
 
+/* ── Skeleton shimmer animation ── */
+@keyframes skeleton-shimmer {
+  0% {
+    background-color: var(--skeleton-base);
+  }
+  50% {
+    background-color: var(--skeleton-base);
+    opacity: 0.5;
+  }
+  100% {
+    background-color: var(--skeleton-base);
+  }
+}
+
+.skeleton-shimmer {
+  animation: skeleton-shimmer 2s ease-in-out infinite;
+}
+
+/* ── Respect prefers-reduced-motion for all animations and transitions ── */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-shimmer,
+  .bento-tile {
+    animation: none !important;
+  }
+
+  .interactive-lift {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
 /* ── Bento staggered entrance animation ── */
 @keyframes bento-enter {
   from {
