@@ -6,3 +6,4 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
+| #607 | dev/2607-DEV-607 | migration: no; app/(dashboard)/profile/components/{bento-registry.ts,ProfileClient.tsx,SortableBento.tsx,PersonalDetailsContent.tsx,AboInfoContent.tsx,EmailPrefsSection.tsx,CalendarSection.tsx}, app/(dashboard)/profile/useProfile.ts, components/ui/button.tsx | 2026-07-25T09:07:07Z |
