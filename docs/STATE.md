@@ -2,14 +2,13 @@
 Issue #607 (2607-DEV-607, branch `dev/2607-DEV-607`): merge the duplicate bento registries into `bento-registry.ts`, fix sub-44px collapse/expand tap targets in `SortableBento.tsx` via a new shadcn `Button`, and add a single `useProfile.ts` hook to kill the `['profile']` queryFn race across profile bento components.
 
 ## Now
-EXECUTE steps 1-3 done, code changes complete and typecheck/lint/build all green. About to update issue #607's body (Affected files + DoD) to reflect the pr-16->pr-24 scope expansion, then commit and push a draft PR.
+PR [#659](https://github.com/teamenjoyvd/tevd-portal/pull/659) pushed as **draft** against `main` (`Closes #607` in body). Waiting on CI + Vercel Preview to build. User explicitly approved the push via AskUserQuestion before this happened.
 
 ## Next
-1. Update issue #607 body: add 8 newly-touched files to Affected Files, add a DoD line for "no header/overlay overlap at 390px".
-2. Commit all working changes on `dev/2607-DEV-607` (one or a few commits).
-3. Push, open PR as **draft** (`Closes #607` in body), wait CI green + Vercel Preview READY — no local authenticated browser check was possible (see Facts), so Preview + CI's "390px smoke vs preview" + "Authenticated E2E" jobs are the real verification gate here, not local click-through.
-4. Mark ready for review -> one CodeRabbit pass -> fix all findings in one batched push.
-5. Merge; confirm prod Vercel deployment READY (no migration in this PR, no migrate-prod gate); remove `docs/CLAIMS.md` `#607` row; confirm issue #607 auto-closed.
+1. Once CI/Preview finish: check all CI jobs green (confirm gated jobs like Authenticated E2E actually ran, not skip-green) and Vercel Preview + CodeRabbit both READY/SUCCESS.
+2. Verify live on preview: single `/api/profile` fetch (Network tab), drag reorder, collapse/expand, `ui_prefs.bento_order` restore, no header/overlay overlap at 390px (the pr-16->pr-24 fix).
+3. Mark ready for review -> one CodeRabbit pass -> fix all findings in one batched push.
+4. Merge (only if/when user asks, or confirm before merging); confirm prod Vercel deployment READY (no migration in this PR, no migrate-prod gate); remove `docs/CLAIMS.md` `#607` row; confirm issue #607 auto-closed.
 
 ## Constraints
 - Never push directly to `main`; `dev/[YYMM]-DEV-[GH#]` branches only
