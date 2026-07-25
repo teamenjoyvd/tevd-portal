@@ -14,19 +14,21 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { apiClient } from '@/lib/apiClient'
+import { formatDate } from '@/lib/format'
+import { guestStatus, computeFunnel, type GuestRow as InviteGuestRow } from '@/lib/invites'
+import { REG_STATUS_STYLES } from '../types'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-type GuestRow = {
-  id:          string
-  name:        string
-  email:       string
-  status:       string
-  attended_at:  string | null
-  cancelled_at: string | null
-  created_at:   string
+type GuestRow = InviteGuestRow & {
+  id:         string
+  name:       string
+  email:      string
+  created_at: string
 }
 
 type ShareLink = {
@@ -45,26 +47,7 @@ type ApiResponse = { links: ShareLink[]; total: number }
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 function fmt(d: string | null): string {
-  if (!d) return '—'
-  return new Date(d).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
-}
-
-// Precedence: an already-attended or confirmed guest keeps that status even
-// if the link is later revoked — revocation only blocks guests who never
-// used it (they show as 'cancelled').
-function guestStatus(g: GuestRow, linkRevoked: boolean): 'pending' | 'confirmed' | 'attended' | 'cancelled' {
-  if (g.attended_at !== null) return 'attended'
-  if (g.cancelled_at !== null) return 'cancelled'
-  if (g.status === 'confirmed') return 'confirmed'
-  if (linkRevoked) return 'cancelled'
-  return 'pending'
-}
-
-const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
-  pending:   { bg: 'rgba(242,204,143,0.3)', color: '#7a5c00' },
-  confirmed: { bg: 'rgba(61,64,91,0.08)',   color: '#3d405b' },
-  attended:  { bg: 'rgba(129,178,154,0.2)', color: '#2d6a4f' },
-  cancelled: { bg: 'rgba(188,71,73,0.12)',  color: '#bc4749' },
+  return d ? formatDate(d) : '—'
 }
 
 export const INVITES_MIN_HEIGHT = 240
@@ -205,47 +188,49 @@ export function InvitesSection() {
       {/* Filter bar */}
       <div className="flex flex-wrap gap-2">
         {/* Event filter */}
-        <select
-          value={filterEvent}
-          onChange={e => setFilterEvent(e.target.value)}
-          className="text-xs rounded-lg border px-2 py-1 outline-none"
-          style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
-        >
-          <option value="all">{t('profile.invites.filterByEvent')}</option>
-          {eventOptions.map(([id, title]) => (
-            <option key={id} value={id}>{title}</option>
-          ))}
-        </select>
+        <Select value={filterEvent} onValueChange={setFilterEvent}>
+          <SelectTrigger className="w-auto h-7 py-1 text-xs">
+            <SelectValue placeholder={t('profile.invites.filterByEvent')} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t('profile.invites.filterByEvent')}</SelectItem>
+            {eventOptions.map(([id, title]) => (
+              <SelectItem key={id} value={id}>{title}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
         {/* Status pills */}
-        {(['all', 'pending', 'confirmed', 'attended', 'cancelled'] as const).map(s => (
-          <button
-            key={s}
-            onClick={() => setFilterStatus(s)}
-            className="text-[11px] font-semibold px-2.5 py-1 rounded-full transition-all"
-            style={{
-              backgroundColor: filterStatus === s ? 'var(--brand-teal)' : 'rgba(0,0,0,0.05)',
-              color: filterStatus === s ? 'white' : 'var(--text-secondary)',
-            }}
-          >
-            {s === 'all' ? t('profile.invites.filterByStatus') : s}
-          </button>
-        ))}
+        <ToggleGroup
+          type="single"
+          size="sm"
+          value={filterStatus}
+          onValueChange={v => v && setFilterStatus(v)}
+        >
+          {(['all', 'pending', 'confirmed', 'attended', 'cancelled'] as const).map(s => (
+            <ToggleGroupItem key={s} value={s}>
+              {s === 'all' ? t('profile.invites.filterByStatus') : s}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
 
         {/* Method pills */}
-        {(['all', 'native', 'clipboard'] as const).map(m => (
-          <button
-            key={m}
-            onClick={() => setFilterMethod(m)}
-            className="text-[11px] font-semibold px-2.5 py-1 rounded-full transition-all"
-            style={{
-              backgroundColor: filterMethod === m ? 'var(--brand-forest)' : 'rgba(0,0,0,0.05)',
-              color: filterMethod === m ? 'white' : 'var(--text-secondary)',
-            }}
-          >
-            {m === 'all' ? t('profile.invites.filterByMethod') : t(`profile.invites.shareMethod.${m}` as any)}
-          </button>
-        ))}
+        <ToggleGroup
+          type="single"
+          size="sm"
+          value={filterMethod}
+          onValueChange={v => v && setFilterMethod(v)}
+        >
+          {(['all', 'native', 'clipboard'] as const).map(m => (
+            <ToggleGroupItem
+              key={m}
+              value={m}
+              className="data-[state=on]:bg-[var(--brand-forest)]"
+            >
+              {m === 'all' ? t('profile.invites.filterByMethod') : t(`profile.invites.shareMethod.${m}`)}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
 
         {/* Date range */}
         <input
@@ -284,8 +269,7 @@ export function InvitesSection() {
           {filtered.map(link => {
             const guests    = link.guests
             const revoked   = !!link.revoked_at
-            const confirmed = guests.filter(g => ['confirmed', 'attended'].includes(guestStatus(g, revoked))).length
-            const attended  = guests.filter(g => g.attended_at !== null).length
+            const { confirmed, attended } = computeFunnel(guests, revoked)
             const isOpen    = !!expanded[link.id]
 
             return (
@@ -300,7 +284,7 @@ export function InvitesSection() {
                     <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
                       {link.event.title}
                       {revoked && (
-                        <span className="ml-2 px-2 py-0.5 rounded-full text-[10px] font-semibold align-middle" style={STATUS_STYLE.cancelled}>
+                        <span className="ml-2 px-2 py-0.5 rounded-full text-[10px] font-semibold align-middle" style={REG_STATUS_STYLES.cancelled}>
                           {t('profile.invites.revoked')}
                         </span>
                       )}
@@ -386,7 +370,7 @@ export function InvitesSection() {
                                 <td className="px-4 py-2" style={{ color: 'var(--text-secondary)' }}>{g.email}</td>
                                 <td className="px-4 py-2">
                                   <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold"
-                                    style={STATUS_STYLE[s]}>{s}</span>
+                                    style={REG_STATUS_STYLES[s]}>{s}</span>
                                 </td>
                                 <td className="px-4 py-2" style={{ color: 'var(--text-secondary)' }}>{fmt(g.created_at)}</td>
                                 <td className="px-4 py-2" style={{ color: 'var(--text-secondary)' }}>{fmt(g.attended_at)}</td>
@@ -406,7 +390,7 @@ export function InvitesSection() {
                             <div className="flex items-center justify-between gap-2">
                               <p className="text-xs font-medium truncate" style={{ color: 'var(--text-primary)' }}>{g.name}</p>
                               <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold shrink-0"
-                                style={STATUS_STYLE[s]}>{s}</span>
+                                style={REG_STATUS_STYLES[s]}>{s}</span>
                             </div>
                             <p className="text-[11px] truncate" style={{ color: 'var(--text-secondary)' }}>{g.email}</p>
                             <p className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>
