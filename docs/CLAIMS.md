@@ -6,4 +6,4 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
-| #609 | `dev/2607-DEV-609` | `components/ui/switch.tsx` (new), `lib/roles.ts` (new), `lib/i18n/domains/profile.ts`, `app/(dashboard)/profile/components/EmailPrefsSection.tsx`, `AboInfoContent.tsx`, `PersonalDetailsContent.tsx`, `TravelDocContent.tsx`, `TravelDocDrawerForm.tsx`, `PersonalDrawerForm.tsx`, `AdminSection.tsx`, `CalendarSection.tsx`; migration: no | 2026-07-25T14:00:00Z |
+| #610 | `dev/2607-DEV-610` | `lib/invites.ts` (new), `components/ui/toggle-group.tsx` (new), `app/(dashboard)/profile/components/InvitesSection.tsx`, `InvitesBento.tsx`, `app/(dashboard)/profile/types.ts`; migration: no | 2026-07-25T00:00:00Z |

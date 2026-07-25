@@ -183,4 +183,8 @@ export const REG_STATUS_STYLES: Record<string, { bg: string; color: string }> = 
   approved:  { bg: 'rgba(129,178,154,0.15)', color: '#2d6a4f' },
   denied:    { bg: 'rgba(188,71,73,0.10)', color: '#bc4749' },
   cancelled: { bg: 'rgba(138,133,119,0.15)', color: '#5c5950' },
+  // Guest-invite specific states (InvitesSection/InvitesBento) — reuse the
+  // shared `cancelled` entry above for revoked/self-cancelled guests.
+  confirmed: { bg: 'rgba(61,64,91,0.08)',   color: '#3d405b' },
+  attended:  { bg: 'rgba(129,178,154,0.2)', color: '#2d6a4f' },
 }

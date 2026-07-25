@@ -4,18 +4,14 @@ import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { apiClient } from '@/lib/apiClient'
+import { computeFunnel, type GuestRow } from '@/lib/invites'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type GuestRow = {
-  id:          string
-  attended_at: string | null
-  status:      string
-}
-
 type ShareLink = {
-  id:     string
-  guests: GuestRow[]
+  id:         string
+  revoked_at: string | null
+  guests:     GuestRow[]
 }
 
 type ApiResponse = { links: ShareLink[]; total: number }
@@ -33,12 +29,10 @@ export function InvitesBento() {
   const totalLinks = data?.links?.length ?? 0
   const { totalGuests, confirmed, attended } = (data?.links ?? []).reduce(
     (acc, link) => {
-      acc.totalGuests += link.guests.length
-      link.guests.forEach((g) => {
-        const isAttended = !!g.attended_at
-        if (isAttended) acc.attended++
-        if (isAttended || g.status === 'confirmed') acc.confirmed++
-      })
+      const funnel = computeFunnel(link.guests, link.revoked_at !== null)
+      acc.totalGuests += funnel.registrations
+      acc.confirmed   += funnel.confirmed
+      acc.attended    += funnel.attended
       return acc
     },
     { totalGuests: 0, confirmed: 0, attended: 0 },
