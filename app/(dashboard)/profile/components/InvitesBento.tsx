@@ -29,7 +29,7 @@ export function InvitesBento() {
   const totalLinks = data?.links?.length ?? 0
   const { totalGuests, confirmed, attended } = (data?.links ?? []).reduce(
     (acc, link) => {
-      const funnel = computeFunnel(link.guests, !!link.revoked_at)
+      const funnel = computeFunnel(link.guests, link.revoked_at !== null)
       acc.totalGuests += funnel.registrations
       acc.confirmed   += funnel.confirmed
       acc.attended    += funnel.attended

@@ -10,9 +10,10 @@ export type GuestRow = {
 
 export type GuestStatus = 'pending' | 'confirmed' | 'attended' | 'cancelled'
 
-// Precedence: an already-attended or confirmed guest keeps that status even
-// if the link is later revoked, or the guest self-cancels after confirming —
-// only a guest with no terminal state yet is affected by link revocation.
+// Precedence: attended is terminal and unaffected by cancellation or link
+// revocation. Below that, self-cancellation (cancelled_at) always overrides
+// a confirmed status. Link revocation only affects guests with no terminal
+// state yet (never confirmed, cancelled, or attended).
 export function guestStatus(g: GuestRow, linkRevoked: boolean): GuestStatus {
   if (g.attended_at !== null) return 'attended'
   if (g.cancelled_at !== null) return 'cancelled'

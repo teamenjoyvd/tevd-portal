@@ -47,7 +47,7 @@ type ApiResponse = { links: ShareLink[]; total: number }
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 function fmt(d: string | null): string {
-  return d ? formatDate(d) : '—'
+  return d !== null ? formatDate(d) : '—'
 }
 
 export const INVITES_MIN_HEIGHT = 240
@@ -205,7 +205,7 @@ export function InvitesSection() {
           type="single"
           size="sm"
           value={filterStatus}
-          onValueChange={v => v && setFilterStatus(v)}
+          onValueChange={v => { if (v !== '') setFilterStatus(v) }}
         >
           {(['all', 'pending', 'confirmed', 'attended', 'cancelled'] as const).map(s => (
             <ToggleGroupItem key={s} value={s}>
@@ -219,7 +219,7 @@ export function InvitesSection() {
           type="single"
           size="sm"
           value={filterMethod}
-          onValueChange={v => v && setFilterMethod(v)}
+          onValueChange={v => { if (v !== '') setFilterMethod(v) }}
         >
           {(['all', 'native', 'clipboard'] as const).map(m => (
             <ToggleGroupItem
