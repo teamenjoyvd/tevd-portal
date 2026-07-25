@@ -2,12 +2,13 @@
 Issue #613 (2607-DEV-613, branch `dev/2607-DEV-613`): purge dead legacy CSS palette tokens, add semantic `--status-*` tokens for `StatusPill`, fix Mapbox dark styling, update DESIGN-SYSTEM.md.
 
 ## Now
-Executing trimmed scope after discovering two of the issue's four premises were false in the live codebase (see Decisions). About to edit `app/globals.css`.
+PR [#664](https://github.com/teamenjoyvd/tevd-portal/pull/664) open as **draft** against `main` (`Closes #613`), branch `dev/2607-DEV-613` pushed (commits `561fb4d` code+docs). CI and Vercel Preview not yet checked this turn — draft was just opened.
 
 ## Next
-1. `app/globals.css`: delete `--eggshell`/`--deep`/`--sage`/`--sandy`, change `body`'s `background-color` from `var(--eggshell)` to `var(--bg-global)`.
-2. `styles/brand-tokens.css`: add `--status-success/-info/-alert/-pending` (+ `[data-theme="dark"]` overrides).
-3. `components/admin/StatusPill.tsx`: rebuild on the new tokens (inline style, not Tailwind `dark:` classes).
+- Check CI status and Vercel Preview READY on PR #664.
+- No authenticated Clerk DEV credentials available locally — needs a human visual check of `StatusPill` light/dark on the live Preview (admin > reminders) before marking ready for review.
+- When ready: mark PR ready for review to trigger the single CodeRabbit pass (per docs/ai/BUILD.md FINALIZE), address findings in one batched push.
+- After merge: run the post-merge tail (prod Vercel deploy check, confirm issue #613 auto-closed, remove `docs/CLAIMS.md` `#613` row).
 4. `docs/design/DESIGN-SYSTEM.md`: Component states + Usage rules sections, reflecting actual scope (note Mapbox/calendar chips already correct).
 5. `npm run build` + `npm run lint`, then `/code-review low` before pushing draft PR.
 
