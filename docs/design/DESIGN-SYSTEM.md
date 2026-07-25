@@ -73,6 +73,25 @@ Hierarchical shadow system for layering UI surfaces. All shadows are defined in
 
 Dark mode uses the same token names with parchment-tinted values for consistency.
 
+## Component States
+
+### Status pills
+
+Semantic status tokens in `styles/brand-tokens.css`, each a `bg`/`fg` pair with
+real `[data-theme="dark"]` overrides — consumed via inline `style` in
+`components/admin/StatusPill.tsx`, not Tailwind `dark:` classes (see Usage
+rules below for why):
+
+| Token | Light `bg` / `fg` | Dark `bg` / `fg` | Used for |
+|---|---|---|---|
+| `--status-success` | `rgba(63,107,74,.12)` / `#2f5138` | `rgba(127,184,143,.18)` / `#9fd6ae` | `sent` |
+| `--status-info` | `rgba(62,119,133,.12)` / `#2c5964` | `rgba(94,168,184,.18)` / `#8fd0dd` | `claimed` |
+| `--status-alert` | `rgba(188,71,73,.12)` / `#96393b` | `rgba(224,110,112,.18)` / `#f19a9b` | `failed`, `permanently_failed` |
+| `--status-pending` | `rgba(224,122,95,.14)` / `#a3502e` | `rgba(232,150,120,.20)` / `#f0b08d` | `pending` (default) |
+
+Only 4 semantic tokens cover 5 status values — `failed` and
+`permanently_failed` share `--status-alert`, distinguished by label text only.
+
 ## Animation
 
 ### Skeleton Shimmer
@@ -95,3 +114,21 @@ All animations (bento entrance, skeleton shimmer, interactive lifts) are disable
 when `prefers-reduced-motion: reduce` is set in the user's OS accessibility
 settings. Applied via `@media (prefers-reduced-motion: reduce)` guard in
 `app/globals.css`.
+
+## Usage Rules
+
+- **Never use Tailwind's `dark:` variant for theme-conditional styling.** This
+  project toggles a `data-theme="dark"|"light"` attribute on `<html>`
+  (`lib/hooks/useTheme.ts`), not `prefers-color-scheme` or a `.dark` class —
+  and no `@custom-variant dark` remaps it. `dark:*` utility classes silently
+  never fire. Use CSS custom properties with a `[data-theme="dark"] { ... }`
+  override block instead (see `styles/brand-tokens.css` for the pattern), or
+  read `data-theme` at runtime for JS-driven values (see `LocationTile.tsx`'s
+  `useTheme()` / `AboutMapTile.tsx`'s `MutationObserver`, both of which already
+  do this correctly for Mapbox dark-style switching).
+- **Legacy bare token names** (`--forest`, `--crimson`, `--sienna`, `--stone`,
+  defined in `app/globals.css`) are a deliberate back-compat layer for older
+  calendar components (`FilterControls.tsx`, `MonthView.tsx`, `AgendaView.tsx`,
+  `AdminCalendarClient.tsx`) — their hex values are kept in sync with the
+  `--brand-*` tokens by convention, not by CSS reference. New code should use
+  `--brand-*` / `--color-brand-*` directly; do not add new bare-name aliases.

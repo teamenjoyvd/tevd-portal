@@ -35,14 +35,10 @@
 }
 
 :root {
-  --eggshell: #f4f1de;
   --forest:   #2d332a;
-  --deep:     #3d405b;
   --crimson:  #bc4749;
   --sienna:   #e07a5f;
   --stone:    #8e8b82;
-  --sage:     #81b29a;
-  --sandy:    #f2cc8f;
 }
 
 html {
@@ -56,7 +52,7 @@ html {
 }
 
 body {
-  background-color: var(--eggshell);
+  background-color: var(--bg-global);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

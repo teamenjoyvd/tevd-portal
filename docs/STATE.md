@@ -1,44 +1,43 @@
 ## Goal
-Issue #608 (2607-DEV-608, branch `dev/2607-DEV-608`): collapse `ProfileClient.tsx`'s duplicate desktop/mobile bento render into one mounted tree, and code-split `@dnd-kit/*` off the mobile bundle via `next/dynamic`.
+Issue #613 (2607-DEV-613, branch `dev/2607-DEV-613`): purge dead legacy CSS palette tokens, add semantic `--status-*` tokens for `StatusPill`, fix Mapbox dark styling, update DESIGN-SYSTEM.md.
 
 ## Now
-PR [#660](https://github.com/teamenjoyvd/tevd-portal/pull/660) open as **draft** against `main` (`Closes #608`), branch `dev/2607-DEV-608` pushed (commits `fd54eb7` code, `278929c` state). CI and Vercel Preview not yet checked this turn — draft was just opened.
+Executing trimmed scope after discovering two of the issue's four premises were false in the live codebase (see Decisions). About to edit `app/globals.css`.
 
 ## Next
-- Check CI status and Vercel Preview READY on PR #660.
-- Still open: no local authenticated visual check at 390px/1280px was possible this session (no stored Clerk DEV credentials) — same gap as #607; needs a human check on the live Preview before marking ready for review.
-- When ready: mark PR ready for review to trigger the single CodeRabbit pass (per docs/ai/BUILD.md FINALIZE), address findings in one batched push.
-- After merge: run the post-merge tail (prod Vercel deploy check, confirm issue #608 auto-closed, remove `docs/CLAIMS.md` `#608` row).
+1. `app/globals.css`: delete `--eggshell`/`--deep`/`--sage`/`--sandy`, change `body`'s `background-color` from `var(--eggshell)` to `var(--bg-global)`.
+2. `styles/brand-tokens.css`: add `--status-success/-info/-alert/-pending` (+ `[data-theme="dark"]` overrides).
+3. `components/admin/StatusPill.tsx`: rebuild on the new tokens (inline style, not Tailwind `dark:` classes).
+4. `docs/design/DESIGN-SYSTEM.md`: Component states + Usage rules sections, reflecting actual scope (note Mapbox/calendar chips already correct).
+5. `npm run build` + `npm run lint`, then `/code-review low` before pushing draft PR.
 
 ## Constraints
 - Never push directly to `main`; `dev/[YYMM]-DEV-[GH#]` branches only
-- No `git push` without the user explicitly asking for a push in-conversation (quote required) — not yet asked this session for #608
+- No `git push` without the user explicitly asking for a push in-conversation (quote required) — not asked yet this session
 - Never mark Done on static analysis alone — Vercel PR preview must be READY and CI green
 - No failing check gets weakened/skipped to pass
+- Change only lines the task requires — do not touch `--forest`/`--crimson`/`--sienna`/`--stone` (still live, used by calendar files) or the 3 other files also using non-firing `dark:` classes (`ReminderTable.tsx`, `RemindersTab.tsx`, `LinksGuidesTile.tsx` — out of scope, noted only)
 
 ## Decisions
-DECISION: split `SortableBento.tsx` into a pure presentational card (no `@dnd-kit` import — accepts `cardRef`/`dragStyle`/`dragHandle` as optional props) reused by both the mobile stack and desktop grid, rather than two separate card components — keeps exactly one render definition per bento, satisfying the "single DOM instance" DoD item.
-DECISION: new `BentoGrid.tsx` is the sole module importing `@dnd-kit/core`, `/sortable`, `/utilities` (`DndContext`, `SortableContext`, `useSortable`, `CSS`, sensors) — loaded via `next/dynamic(() => import('./BentoGrid'), { ssr: false })` from `ProfileClient.tsx`, gated behind a `matchMedia('(min-width: 768px)')` check (`isDesktop` state, starts `false` so SSR/first paint always render the static mobile branch — no hydration mismatch).
-DECISION: `arrayMove` in `BentoGrid.tsx`'s drag-end handler operates on the full `bentoOrder` array (passed down as a prop), not the filtered `orderedBentos` — preserves original semantics where hidden/role-gated bento ids keep their relative position in persisted `ui_prefs.bento_order` even while not rendered.
-DECISION: `/code-review low` skill isn't invokable directly in this session (`disable-model-invocation`) — did an equivalent manual diff review instead (see BUILD commit message / conversation) before committing; no blocking findings.
+DECISION: skip the Mapbox dark-style item entirely — `LocationTile.tsx` and `AboutMapTile.tsx` already implement the exact prescribed pattern (`setStyle()` + `styledata` + `MutationObserver`/`useTheme` watching `data-theme`). Verified by reading both files in full; issue's "confirmed live" claim does not match current code.
+DECISION: skip the "calendar chip restyle" — repo-wide grep for `--eggshell|--deep|--sage|--sandy` returns zero hits outside `globals.css`'s own definitions. The calendar files (`FilterControls.tsx`, `MonthView.tsx`, `AgendaView.tsx`, `AdminCalendarClient.tsx`) use `--forest`/`--crimson`/`--sienna`, which `styles/brand-tokens.css:16-17` documents as intentional legacy aliases for brand tokens — not part of this purge, not touching them.
+DECISION: only delete the 4 named-dead tokens from `globals.css`'s legacy `:root` block; keep `--forest`/`--crimson`/`--sienna`/`--stone` since they're actively referenced elsewhere and out of the issue's literal scope.
+DECISION: `StatusPill` status->token mapping: `sent`->success, `claimed`->info, `failed`+`permanently_failed`->alert (both, distinguished only by label text — only 4 semantic tokens exist for 5 states), `pending`/default->pending.
 
 ## Facts
-- Profile route files: `app/(dashboard)/profile/components/*.tsx` — this ticket touches `ProfileClient.tsx`, `SortableBento.tsx`, and new `BentoGrid.tsx`.
-- Worktree at `.claude/worktrees/dev-2607-DEV-608` had no `node_modules` — a Windows junction to the main checkout's `node_modules` fails under Turbopack ("Symlink ... points out of the filesystem root"); ran a real `npm install` in the worktree instead.
-- Verified the dnd-kit split at the build-output level (not just source): none of the 13 chunks `page_client-reference-manifest.js` lists as eagerly loaded for `/profile` contain `dnd-kit`/`useSortable`/`DndContext`; a separate 44KB chunk (`12st6nwyn69qu.js`, hash will change per build) contains `DndContext`/`useSortable` and is excluded from that eager list.
-- `tsc --noEmit` clean, `npm run lint` 0 errors / 485 warnings (no new warnings vs. #607's 490 baseline — actually down, unrelated files), `npm run build` succeeds, `npx vitest run` 207/207 passed (16 files).
-- No local authenticated browser verification possible — no stored Clerk DEV credentials for the manually-seeded CORE test profile (`clerk_id user_3GUoYV40gd3jCt0zjEQgkj4hT0v`, per earlier-session memory). Same gap as #607.
-- Issue #608 was labeled `blocked` (dependency on #607) at session start; confirmed PR #659 merged (`mergedAt: 2026-07-25T10:33:07Z`, base `main`) and issue #607 closed before removing the label and proceeding.
+- Theming mechanism: `data-theme="dark"|"light"` attribute on `<html>`, set by `lib/hooks/useTheme.ts` and read via `document.documentElement.getAttribute('data-theme')` — NOT Tailwind's default `dark:` variant (media or `.dark` class), which is why `StatusPill.tsx`'s `dark:bg-*` classes never fire. No `@custom-variant dark` defined anywhere in the repo (confirmed by grep).
+- `styles/brand-tokens.css` pattern for dark overrides: single `[data-theme="dark"] { --token: value; }` block redefining light-mode custom properties — new `--status-*` tokens should follow this same shape.
+- Other files with the same non-firing `dark:` bug (NOT in scope for #613): `app/admin/calendar/[id]/components/ReminderTable.tsx`, `app/admin/settings/components/RemindersTab.tsx`, `app/(dashboard)/components/tiles/LinksGuidesTile.tsx`.
+- `StatusPill` consumers: `ReminderTable.tsx`, `RemindersTab.tsx` — both just render `<StatusPill status={...} />`, no external color coupling.
 
 ## Done
-#608 PLAN — RESULT: READY verdict (issue's own blocker was stale — #607 merged).
-#608 CLAIM — RESULT: issue body updated with `## Design Checklist` (all 4 checked) + `## Branch`; `blocked` label removed; branch `dev/2607-DEV-608` cut from `main`; `docs/CLAIMS.md` row added.
-#608 BUILD (code) — RESULT: `SortableBento.tsx` split into presentational-only; new `BentoGrid.tsx` holds all dnd-kit code; `ProfileClient.tsx` gated on `next/dynamic` + `isDesktop`. Committed `fd54eb7` (175 insertions, 87 deletions, 3 files). `tsc`/`lint`/`build`/`vitest` all green; bundle split confirmed at the built-chunk level.
+#613 CLAIM — RESULT: `blocked` label removed (deps #611/#612 both merged), branch `dev/2607-DEV-613` cut from up-to-date `main`, issue `## Branch` section added, `docs/CLAIMS.md` row registered (pruned stale `#612` row, its PR #663 already merged).
+#613 BUILD (code) — RESULT: trimmed scope executed — `app/globals.css` (4 dead tokens removed, `body` bg fixed to `var(--bg-global)`), `styles/brand-tokens.css` (8 new `--status-*` tokens, light+dark), `components/admin/StatusPill.tsx` (rebuilt on tokens via inline style), `docs/design/DESIGN-SYSTEM.md` (Component States + Usage Rules sections). `npm run build` exit 0 (full route manifest generated, TypeScript clean), `npm run lint` 0 errors/485 warnings (none in changed files, pre-existing baseline). Manual diff review done (no `/code-review` skill invokable this session). `npm install` was also run mid-session — 29 packages (`@radix-ui/react-toggle`, `-toggle-group`, `-switch` etc.) were declared in `package.json` but missing from `node_modules`, unrelated pre-existing gap from the merged #610 PR; `package-lock.json` unchanged, so this was a local sync only, not a dependency change.
 
 ## Open items
-- PR #660 not yet merged — CI/Preview status not yet checked post-open.
-- No local authenticated visual/click-through check at 390px/1280px was performed this session (credentials unavailable) — CI's 390px smoke is the only automated signal once CI runs; a human check on the live Preview is the real gate.
-- Session used `npm install` in the worktree (not junctioned) — worktree now has its own `node_modules` copy, harmless but worth knowing if disk space matters.
+- No local authenticated visual check of `StatusPill` in light/dark was possible (no stored admin Clerk DEV credentials, same gap as #608/#607) — needs a human check on the Vercel Preview before marking ready for review.
+- PR body should note the trimmed scope (Mapbox/calendar-chip items already satisfied, not touched) so reviewers aren't surprised by the smaller diff.
+- Not yet committed/pushed — no push requested in-conversation yet.
 
 ## Failed attempts
-- ATTEMPT: junction `node_modules` from main checkout into the worktree to avoid a full `npm install` — FAILED: Turbopack's `next build` panics with "Symlink [project]/node_modules is invalid, it points out of the filesystem root" (junctions/symlinks pointing outside the worktree root aren't supported). Fixed by removing the junction and running a real `npm install` inside the worktree.
+- ATTEMPT: ran `npm run build` concurrently with `npm install` (mid-flight dependency sync) — the build process appeared to hang at "Creating an optimized production build..." for several minutes with no forward log output. FIXED by not killing it: confirmed via `Get-CimInstance Win32_Process` that it was still spawning live Turbopack worker processes, so it was slow (3.4min compile), not stuck — waited it out instead of killing. Avoid running `npm install` concurrently with a build in future sessions; it's likely what caused the slowdown/confusion.
