@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useLanguage } from '@/lib/hooks/useLanguage'
+import { Switch } from '@/components/ui/switch'
 import { type NotificationPrefs, DEFAULT_NOTIFICATION_PREFS } from '../types'
 import { apiClient } from '@/lib/apiClient'
 import { useProfile } from '../useProfile'
@@ -23,40 +24,6 @@ const PREF_ROWS: PrefRow[] = [
   { key: 'event_role_request_result', labelKey: 'profile.pref.eventRole'     },
   { key: 'document_expiring_soon',    labelKey: 'profile.pref.docExpiry'     },
 ]
-
-function Toggle({ enabled, onToggle }: { enabled: boolean; onToggle: () => void }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={enabled}
-      onClick={onToggle}
-      className="relative flex-shrink-0 transition-colors"
-      style={{
-        width: 40,
-        height: 22,
-        borderRadius: 11,
-        backgroundColor: enabled ? 'var(--brand-forest)' : 'var(--border-default)',
-        border: 'none',
-        cursor: 'pointer',
-        padding: 0,
-      }}
-    >
-      <span
-        style={{
-          position: 'absolute',
-          top: 3,
-          left: enabled ? 21 : 3,
-          width: 16,
-          height: 16,
-          borderRadius: '50%',
-          backgroundColor: '#fff',
-          transition: 'left 150ms ease',
-        }}
-      />
-    </button>
-  )
-}
 
 export function EmailPrefsSection() {
   const { t } = useLanguage()
@@ -123,7 +90,12 @@ export function EmailPrefsSection() {
             <span className="text-sm leading-snug" style={{ color: 'var(--text-primary)' }}>
               {t(row.labelKey as Parameters<typeof t>[0])}
             </span>
-            <Toggle enabled={local[row.key]} onToggle={() => handleToggle(row.key)} />
+            <Switch
+              aria-label={t(row.labelKey as Parameters<typeof t>[0])}
+              checked={local[row.key]}
+              onCheckedChange={() => handleToggle(row.key)}
+              className="shrink-0"
+            />
           </div>
         ))}
       </div>

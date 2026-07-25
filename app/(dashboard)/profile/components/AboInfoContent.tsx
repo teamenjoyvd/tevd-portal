@@ -11,10 +11,6 @@ import { useProfile } from '../useProfile'
 
 type AboInfoMode = 'form' | 'pending' | 'confirmed' | 'member_manual'
 
-const ROLE_LABELS: Record<string, string> = {
-  admin: 'Admin', core: 'Core', member: 'Member', guest: 'Guest',
-}
-
 /** Maps structured error_code values from /api/profile/verify-abo to i18n keys. */
 function resolveErrorMessage(
   error: string | null,
@@ -36,7 +32,15 @@ function resolveErrorMessage(
 // Shown to primary members (confirmed or member_manual) when inbound requests
 // are pending. Extracted to avoid duplication across aboMode branches.
 
-function SpouseLinkBanner({ count, mt = 1 }: { count: number; mt?: number }) {
+function SpouseLinkBanner({
+  count,
+  mt = 1,
+  t,
+}: {
+  count: number
+  mt?: number
+  t: (key: import('@/lib/i18n/translations').TranslationKey) => string
+}) {
   if (count === 0) return null
   return (
     <Link
@@ -46,10 +50,10 @@ function SpouseLinkBanner({ count, mt = 1 }: { count: number; mt?: number }) {
     >
       <span className="text-sm font-medium" style={{ color: '#7a5c00' }}>
         {count === 1
-          ? 'Someone has requested to link as your spouse account'
-          : `${count} spouse link requests pending`}
+          ? t('profile.spouseLinkBanner.single')
+          : t('profile.spouseLinkBanner.multiple').replace('{{count}}', String(count))}
       </span>
-      <span className="ml-auto text-xs font-semibold" style={{ color: '#7a5c00' }}>Review →</span>
+      <span className="ml-auto text-xs font-semibold" style={{ color: '#7a5c00' }}>{t('profile.spouseLinkBanner.review')}</span>
     </Link>
   )
 }
@@ -184,36 +188,36 @@ export const AboInfoContent = memo(function AboInfoContent() {
 
       {aboMode === 'confirmed' && (
         <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <p className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>{t('profile.access')}</p>
             <span
               className="text-[10px] font-bold px-2 py-0.5 rounded-full self-start w-fit"
               style={{ backgroundColor: rc.bg, color: rc.font }}
             >
-              {ROLE_LABELS[role]}
+              {t(`profile.role.label.${role}` as Parameters<typeof t>[0])}
             </span>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <p className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>{t('profile.aboHash')}</p>
             <p className="text-sm font-medium font-mono" style={{ color: 'var(--text-primary)' }}>
               {aboNumber} <span style={{ color: '#2d6a4f' }}>✓</span>
             </p>
           </div>
           <div style={{ borderTop: '1px solid var(--border-default)', paddingTop: 10 }}>
-            <div className="grid grid-cols-2 gap-3 mb-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-2">
               <p className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>{t('profile.upline')}</p>
               <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
                 {uplineData?.upline_name ?? '—'}
               </p>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <p className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>{t('profile.uplineHash')}</p>
               <p className="text-sm font-mono" style={{ color: 'var(--text-secondary)' }}>
                 {uplineData?.upline_abo_number ?? '—'}
               </p>
             </div>
             {spouse && (
-              <div className="grid grid-cols-2 gap-3 mt-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
                 <p className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>{t('profile.coOwner')}</p>
                 <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
                   {spouse.first_name} {spouse.last_name}
@@ -221,40 +225,40 @@ export const AboInfoContent = memo(function AboInfoContent() {
               </div>
             )}
           </div>
-          <SpouseLinkBanner count={pendingSpouseLinkCount} mt={1} />
+          <SpouseLinkBanner count={pendingSpouseLinkCount} mt={1} t={t} />
         </div>
       )}
 
       {aboMode === 'member_manual' && (
         <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <p className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>{t('profile.access')}</p>
             <span
               className="text-[10px] font-bold px-2 py-0.5 rounded-full self-start w-fit"
               style={{ backgroundColor: rc.bg, color: rc.font }}
             >
-              {ROLE_LABELS[role]}
+              {t(`profile.role.label.${role}` as Parameters<typeof t>[0])}
             </span>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <p className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>{t('profile.aboHash')}</p>
             <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>—</p>
           </div>
           <div style={{ borderTop: '1px solid var(--border-default)', paddingTop: 10 }}>
-            <div className="grid grid-cols-2 gap-3 mb-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-2">
               <p className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>{t('profile.upline')}</p>
               <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
                 {uplineData?.upline_name ?? '—'}
               </p>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <p className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>{t('profile.uplineHash')}</p>
               <p className="text-sm font-mono" style={{ color: 'var(--text-secondary)' }}>
                 {uplineData?.upline_abo_number ?? '—'}
               </p>
             </div>
           </div>
-          <SpouseLinkBanner count={pendingSpouseLinkCount} mt={0} />
+          <SpouseLinkBanner count={pendingSpouseLinkCount} mt={0} t={t} />
         </div>
       )}
 
