@@ -6,4 +6,4 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
-| #612 | `dev/2607-DEV-612` | `styles/brand-tokens.css`, `app/globals.css`, `components/bento/BentoCard.tsx`, `components/ui/{dialog,popover,dropdown-menu,sheet}.tsx`, `components/ui/skeleton.tsx`, `components/layout/Header.tsx`, `components/layout/Footer.tsx`, `docs/design/DESIGN-SYSTEM.md`; migration: no | 2026-07-25T18:45:00Z |
+| #613 | `dev/2607-DEV-613` | `app/globals.css`, `app/(dashboard)/calendar/components/CalendarClient.tsx`, `app/admin/calendar/components/AdminCalendarClient.tsx`, `styles/brand-tokens.css`, `components/admin/StatusPill.tsx`, Mapbox tile components (`LocationTile`/`AboutMapTile`), `docs/design/DESIGN-SYSTEM.md`; migration: no | 2026-07-25T19:00:00Z |
