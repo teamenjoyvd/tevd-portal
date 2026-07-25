@@ -100,12 +100,16 @@ body {
   animation: skeleton-shimmer 2s ease-in-out infinite;
 }
 
-/* ── Respect prefers-reduced-motion for all animations ── */
+/* ── Respect prefers-reduced-motion for all animations and transitions ── */
 @media (prefers-reduced-motion: reduce) {
   .skeleton-shimmer,
-  .bento-tile,
+  .bento-tile {
+    animation: none !important;
+  }
+
   .interactive-lift {
     animation: none !important;
+    transition: none !important;
   }
 }
 
