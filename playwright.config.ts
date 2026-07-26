@@ -52,9 +52,12 @@ export default defineConfig({
       // browserName pinned: devices['iPhone 12'] defaults to webkit, but CI
       // (preview-smoke.yml) installs chromium only — keep local & CI identical.
       name: 'mobile-390',
-      // profile-bento-auth.spec.ts is intentionally NOT ignored here — its
-      // mobile-390-only describe block asserts the static-stack path.
-      testIgnore: /(admin-auth|los-submission-auth)\.spec\.ts/,
+      // profile-bento-auth.spec.ts excluded here too, same reason as
+      // admin-auth/los-submission-auth: preview-smoke.yml runs this project
+      // against a live Vercel Preview with no Clerk secrets configured, so
+      // clerk.signIn() fails outright. Its 390px static-stack coverage runs
+      // under 'authenticated' instead, with an explicit viewport override.
+      testIgnore: /(admin-auth|los-submission-auth|profile-bento-auth)\.spec\.ts/,
       use: {
         ...devices['iPhone 12'],
         browserName: 'chromium',

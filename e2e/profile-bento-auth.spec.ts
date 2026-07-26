@@ -9,12 +9,13 @@ import { BENTO_IDS } from '../app/(dashboard)/profile/components/bento-registry'
  * shell — this spec is the checkpoint for that atomic change (issue
  * "Step 2"), written first so it fails loudly on a half-migrated tree.
  *
- * Two projects exercise it (see playwright.config.ts): 'authenticated'
- * (1280px, dnd-kit desktop grid path — drag/collapse/persistence) and
- * 'mobile-390' (the static-stack path — no drag handle, no horizontal
- * overflow). Each test guards its own project via testInfo.project.name
- * so running the whole file under either project is a no-op for the
- * tests that don't apply there, rather than a hard skip at the file level.
+ * Runs entirely under the 'authenticated' project (see playwright.config.ts)
+ * at 1280px for the dnd-kit drag/collapse/persistence path; the static-stack
+ * describe block overrides the viewport to 390px via test.use() instead of
+ * relying on the 'mobile-390' project, because that project runs in
+ * preview-smoke.yml against a live Vercel Preview with no Clerk secrets
+ * configured — clerk.signIn() would fail outright there, the same reason
+ * admin-auth.spec.ts/los-submission-auth.spec.ts are excluded from it too.
  *
  * Requires local Supabase + a seeded Clerk test-instance member (see
  * scripts/seed-clerk-test-users.js). Never target a preview/prod-DB
@@ -137,8 +138,13 @@ test.describe('desktop bento grid — drag, collapse, layout persistence', () =>
 })
 
 test.describe('mobile static stack (390px)', () => {
+  // Runs inside the 'authenticated' project (Clerk sign-in required) with an
+  // explicit viewport override, rather than under the 'mobile-390' project —
+  // see the file-level comment above for why.
+  test.use({ viewport: { width: 390, height: 844 } })
+
   test.beforeEach(async ({}, testInfo) => {
-    test.skip(testInfo.project.name !== 'mobile-390', 'static-stack path only asserted in the mobile-390 project')
+    test.skip(testInfo.project.name !== 'authenticated', 'runs under authenticated with a 390px viewport override')
   })
 
   test('renders the static stack with no drag handle and no horizontal overflow', async ({ page }) => {
