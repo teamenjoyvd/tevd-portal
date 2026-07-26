@@ -109,8 +109,8 @@ export function PaymentsSection({ profileId, role }: { profileId: string; role: 
           title={t('payment.title')}
           action={
             <button onClick={handleOpenSubmit}
-              className="px-3 py-1.5 rounded-xl text-xs font-semibold text-white hover:opacity-90 transition-opacity flex-shrink-0"
-              style={{ backgroundColor: 'var(--brand-forest)' }}>{t('payment.submitShort')}</button>
+              className="px-3 py-1.5 rounded-xl text-xs font-semibold hover:opacity-90 transition-opacity flex-shrink-0"
+              style={{ backgroundColor: 'var(--brand-forest)', color: 'var(--brand-parchment)' }}>{t('payment.submitShort')}</button>
           }
         />
         {Object.keys(visibleByItem).length === 0 ? (
@@ -137,8 +137,8 @@ export function PaymentsSection({ profileId, role }: { profileId: string; role: 
         <div className="border-t pt-4" style={{ borderColor: 'var(--border-default)' }}>
           <button
             onClick={() => { setListDrawerOpen(false); setSubmitDrawerOpen(true) }}
-            className="w-full py-2.5 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-opacity"
-            style={{ backgroundColor: 'var(--brand-forest)' }}
+            className="w-full py-2.5 rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity"
+            style={{ backgroundColor: 'var(--brand-forest)', color: 'var(--brand-parchment)' }}
           >
             {t('payment.submitShort')}
           </button>

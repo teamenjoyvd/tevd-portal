@@ -20,7 +20,7 @@ import { useLanguage } from '@/lib/hooks/useLanguage'
 import { apiClient } from '@/lib/apiClient'
 import { formatDate } from '@/lib/format'
 import { guestStatus, computeFunnel, type GuestRow as InviteGuestRow } from '@/lib/invites'
-import { REG_STATUS_STYLES } from '../types'
+import { StatusBadge } from './StatusBadge'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -148,7 +148,7 @@ export function InvitesSection() {
     return (
       <div className="p-4 space-y-3">
         {[...Array(2)].map((_, i) => (
-          <div key={i} className="h-20 rounded-xl animate-pulse" style={{ backgroundColor: 'rgba(0,0,0,0.06)' }} />
+          <div key={i} className="h-20 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--skeleton-base)' }} />
         ))}
       </div>
     )
@@ -282,9 +282,9 @@ export function InvitesSection() {
                     <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
                       {link.event.title}
                       {revoked && (
-                        <span className="ml-2 px-2 py-0.5 rounded-full text-[10px] font-semibold align-middle" style={REG_STATUS_STYLES.cancelled}>
+                        <StatusBadge status="cancelled" className="ml-2 px-2 py-0.5 rounded-full text-[10px] font-semibold align-middle">
                           {t('profile.invites.revoked')}
-                        </span>
+                        </StatusBadge>
                       )}
                     </p>
                     <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
@@ -307,9 +307,9 @@ export function InvitesSection() {
                     <span>→</span>
                     <span>{guests.length} {t('profile.invites.registrations')}</span>
                     <span>→</span>
-                    <span style={{ color: confirmed > 0 ? '#3d405b' : undefined }}>{confirmed} {t('profile.invites.confirmed')}</span>
+                    <span style={{ color: confirmed > 0 ? 'var(--status-success-fg)' : undefined }}>{confirmed} {t('profile.invites.confirmed')}</span>
                     <span>→</span>
-                    <span style={{ color: attended > 0 ? '#2d6a4f' : undefined }}>{attended} {t('profile.invites.attended')}</span>
+                    <span style={{ color: attended > 0 ? 'var(--status-success-fg)' : undefined }}>{attended} {t('profile.invites.attended')}</span>
                     <span style={{ fontSize: 10 }}>{isOpen ? '▲' : '▼'}</span>
                   </button>
 
@@ -318,7 +318,7 @@ export function InvitesSection() {
                       <AlertDialogTrigger asChild>
                         <button
                           className="text-[10px] font-semibold px-2.5 py-1 rounded-lg border transition-colors hover:opacity-70 disabled:opacity-40"
-                          style={{ borderColor: 'var(--border-default)', color: '#bc4749' }}
+                          style={{ borderColor: 'var(--border-default)', color: 'var(--brand-crimson)' }}
                           disabled={revokingId === link.id}
                         >
                           {t('profile.invites.revoke')}
@@ -346,7 +346,7 @@ export function InvitesSection() {
                     <div className="hidden sm:block overflow-x-auto">
                       <table className="w-full text-xs" style={{ minWidth: 480 }}>
                         <thead>
-                          <tr style={{ backgroundColor: 'rgba(0,0,0,0.03)', borderTop: '1px solid var(--border-default)' }}>
+                          <tr style={{ backgroundColor: 'var(--bg-card-raised)', borderTop: '1px solid var(--border-default)' }}>
                             {[
                               t('profile.invites.col.name'),
                               t('profile.invites.col.email'),
@@ -367,8 +367,7 @@ export function InvitesSection() {
                                 <td className="px-4 py-2 font-medium" style={{ color: 'var(--text-primary)' }}>{g.name}</td>
                                 <td className="px-4 py-2" style={{ color: 'var(--text-secondary)' }}>{g.email}</td>
                                 <td className="px-4 py-2">
-                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold"
-                                    style={REG_STATUS_STYLES[s]}>{s}</span>
+                                  <StatusBadge status={s} className="px-2 py-0.5 rounded-full text-[10px] font-semibold">{s}</StatusBadge>
                                 </td>
                                 <td className="px-4 py-2" style={{ color: 'var(--text-secondary)' }}>{fmt(g.created_at)}</td>
                                 <td className="px-4 py-2" style={{ color: 'var(--text-secondary)' }}>{fmt(g.attended_at)}</td>
@@ -387,8 +386,7 @@ export function InvitesSection() {
                           <div key={g.id} className="px-4 py-3 space-y-1" style={{ borderTop: '1px solid var(--border-default)' }}>
                             <div className="flex items-center justify-between gap-2">
                               <p className="text-xs font-medium truncate" style={{ color: 'var(--text-primary)' }}>{g.name}</p>
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold shrink-0"
-                                style={REG_STATUS_STYLES[s]}>{s}</span>
+                              <StatusBadge status={s} className="px-2 py-0.5 rounded-full text-[10px] font-semibold shrink-0">{s}</StatusBadge>
                             </div>
                             <p className="text-[11px] truncate" style={{ color: 'var(--text-secondary)' }}>{g.email}</p>
                             <p className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>

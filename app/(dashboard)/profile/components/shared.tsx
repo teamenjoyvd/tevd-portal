@@ -3,9 +3,21 @@
 // ── Shared JSX sub-components used across profile section files ──────────────
 // Kept separate from types.ts because .ts files cannot contain JSX.
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { formatDate, formatCurrency } from '@/lib/format'
-import { type TripEntry, type GenericPayment, PAYMENT_STATUS_STYLES, REG_STATUS_STYLES } from '../types'
+import { type TripEntry, type GenericPayment } from '../types'
+import { StatusBadge } from './StatusBadge'
 
 export function ShowMoreButton({ count, onClick }: { count: number; onClick: () => void }) {
   const { t } = useLanguage()
@@ -32,9 +44,7 @@ export function TripRow({
   const { t } = useLanguage()
   if (!entry.trip) return null
   const isCancelled = !!entry.cancelled_at
-  const regStyle = isCancelled
-    ? REG_STATUS_STYLES.cancelled
-    : (REG_STATUS_STYLES[entry.registration_status] ?? REG_STATUS_STYLES.pending)
+  const regStatus = isCancelled ? 'cancelled' : entry.registration_status
   return (
     <div
       className="rounded-xl p-3"
@@ -48,22 +58,34 @@ export function TripRow({
             {formatDate(entry.trip.start_date)} – {formatDate(entry.trip.end_date)}
           </p>
         </div>
-        <span
-          className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
-          style={{ backgroundColor: regStyle.bg, color: regStyle.color }}
-        >
+        <StatusBadge status={regStatus} className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0">
           {isCancelled ? t('home.shared.cancelled') : entry.registration_status}
-        </span>
+        </StatusBadge>
       </div>
       {!isCancelled && (
-        <button
-          onClick={() => { if (confirm(t('home.shared.cancelConfirm'))) onCancel(entry.trip!.id) }}
-          disabled={cancelPending}
-          className="mt-2 text-[11px] font-medium hover:opacity-70 transition-opacity disabled:opacity-40"
-          style={{ color: 'var(--brand-crimson)' }}
-        >
-          {t('home.shared.cancelPart')}
-        </button>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <button
+              disabled={cancelPending}
+              className="mt-2 text-[11px] font-medium hover:opacity-70 transition-opacity disabled:opacity-40"
+              style={{ color: 'var(--brand-crimson)' }}
+            >
+              {t('home.shared.cancelPart')}
+            </button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t('home.shared.cancelPart')}</AlertDialogTitle>
+              <AlertDialogDescription>{t('home.shared.cancelConfirm')}</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{t('profile.cancel')}</AlertDialogCancel>
+              <AlertDialogAction onClick={() => onCancel(entry.trip!.id)}>
+                {t('home.shared.cancelPart')}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       )}
     </div>
   )
@@ -77,7 +99,6 @@ export function PaymentRow({
   cancelledTripIds: Set<string>
 }) {
   const { t } = useLanguage()
-  const ps = PAYMENT_STATUS_STYLES[pay.status] ?? PAYMENT_STATUS_STYLES.pending
   const linkedTripCancelled = pay.payable_items?.item_type === 'trip' && cancelledTripIds.size > 0
   return (
     <div
@@ -89,15 +110,12 @@ export function PaymentRow({
       </span>
       <span style={{ color: 'var(--text-secondary)' }}>{formatDate(pay.transaction_date)}</span>
       {pay.payment_method && <span style={{ color: 'var(--text-secondary)' }}>{pay.payment_method}</span>}
-      <span
-        className="ml-auto font-semibold px-2 py-0.5 rounded-full flex-shrink-0 flex items-center gap-1"
-        style={{ backgroundColor: ps.bg, color: ps.color }}
-      >
+      <StatusBadge status={pay.status} className="ml-auto font-semibold px-2 py-0.5 rounded-full flex-shrink-0 flex items-center gap-1">
         {pay.status}
         {(pay.admin_note || linkedTripCancelled) && (
           <span title={linkedTripCancelled ? t('home.shared.tripCancelled') : (pay.admin_note ?? '')} style={{ cursor: 'help', fontSize: 10, lineHeight: 1 }}>ⓘ</span>
         )}
-      </span>
+      </StatusBadge>
       {pay.proof_url && (
         <a href={pay.proof_url} target="_blank" rel="noopener noreferrer"
           className="flex-shrink-0 hover:underline" style={{ color: 'var(--brand-teal)' }}>{t('home.shared.proofLink')}</a>

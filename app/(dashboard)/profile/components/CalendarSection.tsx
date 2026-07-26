@@ -116,7 +116,7 @@ export function CalendarSection({ profileId }: { profileId: string }) {
           disabled={regenerateCal.isPending}
           aria-label={t('profile.calSubRegenerate')}
           aria-busy={regenerateCal.isPending}
-          className="p-2 rounded-xl border transition-colors hover:bg-black/5 disabled:opacity-40 flex-shrink-0"
+          className="p-2 rounded-xl border transition-opacity hover:opacity-80 disabled:opacity-40 flex-shrink-0"
           style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
         >
           <RefreshCw size={14} className={regenerateCal.isPending ? 'motion-safe:animate-spin' : ''} />

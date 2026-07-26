@@ -79,8 +79,8 @@ Dark mode redefines the same token names with the same blur/offset geometry, tin
 
 Semantic status tokens in `styles/brand-tokens.css`, each a `bg`/`fg` pair with
 real `[data-theme="dark"]` overrides — consumed via inline `style` in
-`components/admin/StatusPill.tsx`, not Tailwind `dark:` classes (see Usage
-rules below for why):
+`components/admin/StatusPill.tsx` and `app/(dashboard)/profile/components/StatusBadge.tsx`,
+not Tailwind `dark:` classes (see Usage rules below for why):
 
 | Token | Light `bg` / `fg` | Dark `bg` / `fg` | Used for |
 |---|---|---|---|
@@ -88,9 +88,11 @@ rules below for why):
 | `--status-info` | `rgba(62,119,133,.12)` / `#2c5964` | `rgba(94,168,184,.18)` / `#8fd0dd` | `claimed` |
 | `--status-alert` | `rgba(188,71,73,.12)` / `#96393b` | `rgba(224,110,112,.18)` / `#f19a9b` | `failed`, `permanently_failed` |
 | `--status-pending` | `rgba(224,122,95,.14)` / `#a3502e` | `rgba(232,150,120,.20)` / `#f0b08d` | `pending` (default) |
+| `--status-neutral` | `rgba(138,133,119,.15)` / `#5c5950` | `rgba(181,176,168,.20)` / `#B5B0A8` | `cancelled`, `revoked` |
 
-Only 4 semantic tokens cover 5 status values — `failed` and
-`permanently_failed` share `--status-alert`, distinguished by label text only.
+5 semantic tokens cover 7 status values — `failed` and
+`permanently_failed` share `--status-alert`, `cancelled` and `revoked` share
+`--status-neutral`, distinguished by label text only.
 
 ## Animation
 

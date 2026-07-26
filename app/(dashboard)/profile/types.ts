@@ -170,21 +170,12 @@ export type LosSummaryData = {
 // Raised to 6 to support the 2×3 vitals card grid.
 export const VARIABLE_CAP = 6
 
-export const PAYMENT_STATUS_STYLES: Record<string, { bg: string; color: string }> = {
-  pending:   { bg: '#f2cc8f33', color: '#7a5c00' },
-  completed: { bg: 'rgba(129,178,154,0.15)', color: '#2d6a4f' },
-  approved:  { bg: 'rgba(129,178,154,0.15)', color: '#2d6a4f' },
-  failed:    { bg: 'rgba(188,71,73,0.10)', color: '#bc4749' },
-  denied:    { bg: 'rgba(188,71,73,0.10)', color: '#bc4749' },
-}
+// Travel-document expiry banner tokens — maps to the same semantic status
+// tokens StatusBadge resolves (see StatusBadge.tsx's identity entries).
+export type ExpiryState = 'ok' | 'warning' | 'critical'
 
-export const REG_STATUS_STYLES: Record<string, { bg: string; color: string }> = {
-  pending:   { bg: '#f2cc8f33', color: '#7a5c00' },
-  approved:  { bg: 'rgba(129,178,154,0.15)', color: '#2d6a4f' },
-  denied:    { bg: 'rgba(188,71,73,0.10)', color: '#bc4749' },
-  cancelled: { bg: 'rgba(138,133,119,0.15)', color: '#5c5950' },
-  // Guest-invite specific states (InvitesSection/InvitesBento) — reuse the
-  // shared `cancelled` entry above for revoked/self-cancelled guests.
-  confirmed: { bg: 'rgba(61,64,91,0.08)',   color: '#3d405b' },
-  attended:  { bg: 'rgba(129,178,154,0.2)', color: '#2d6a4f' },
+export const EXPIRY_TOKEN: Record<ExpiryState, string> = {
+  ok:       'success',
+  warning:  'pending',
+  critical: 'alert',
 }

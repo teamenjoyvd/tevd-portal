@@ -8,7 +8,8 @@ import { Drawer } from '@/components/ui/drawer'
 import { TravelDocDrawerForm } from './TravelDocDrawerForm'
 import { BentoHeader } from './BentoHeader'
 import { BentoSkeleton } from './BentoSkeleton'
-import { type Profile } from '../types'
+import { StatusBadge } from './StatusBadge'
+import { type Profile, EXPIRY_TOKEN } from '../types'
 import { apiClient } from '@/lib/apiClient'
 import { useProfile } from '../useProfile'
 
@@ -49,12 +50,6 @@ function getExpiryText(profile: Profile): string {
     year: 'numeric',
     timeZone: 'UTC',
   })
-}
-
-const EXPIRY_STYLES = {
-  ok:       'bg-[#81b29a]/10 border-[#81b29a]/30 text-[#2d6a4f]',
-  warning:  'bg-[#f2cc8f]/20 border-[#f2cc8f] text-[#7a5c00]',
-  critical: 'bg-[#bc4749]/10 border-[#bc4749]/40 text-[var(--brand-crimson)]',
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -212,9 +207,13 @@ export const TravelDocContent = memo(function TravelDocContent() {
           </div>
 
           {expiryState && (
-            <div className={`mt-2 rounded-xl border px-3 py-2.5 text-xs font-medium ${EXPIRY_STYLES[expiryState]}`}>
+            <StatusBadge
+              status={EXPIRY_TOKEN[expiryState]}
+              className="mt-2 block w-full rounded-xl border px-3 py-2.5 text-xs font-medium"
+              style={{ borderColor: `color-mix(in srgb, var(--status-${EXPIRY_TOKEN[expiryState]}-fg) 35%, transparent)` }}
+            >
               {expiryState === 'ok' ? t('profile.expiry.ok') : expiryState === 'warning' ? t('profile.expiry.warning') : t('profile.expiry.critical')}
-            </div>
+            </StatusBadge>
           )}
         </div>
       </div>

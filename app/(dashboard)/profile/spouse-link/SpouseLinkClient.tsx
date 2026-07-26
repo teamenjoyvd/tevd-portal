@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { toast } from '@/lib/toast'
+import { ProfileBackLink } from '../components/ProfileBackLink'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -267,6 +268,7 @@ export default function SpouseLinkClient({
 
   const content = (
     <>
+      <ProfileBackLink />
       <div
         style={{
           borderRadius: 'var(--bento-radius)',

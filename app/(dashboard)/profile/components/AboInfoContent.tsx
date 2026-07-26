@@ -49,14 +49,14 @@ function SpouseLinkBanner({
     <Link
       href="/profile/spouse-link"
       className="flex items-center gap-2 rounded-xl px-4 py-3"
-      style={{ backgroundColor: '#f2cc8f33', textDecoration: 'none', marginTop: mt * 4 }}
+      style={{ backgroundColor: 'var(--status-pending-bg)', textDecoration: 'none', marginTop: mt * 4 }}
     >
-      <span className="text-sm font-medium" style={{ color: '#7a5c00' }}>
+      <span className="text-sm font-medium" style={{ color: 'var(--status-pending-fg)' }}>
         {count === 1
           ? t('profile.spouseLinkBanner.single')
           : t('profile.spouseLinkBanner.multiple').replace('{{count}}', String(count))}
       </span>
-      <span className="ml-auto text-xs font-semibold" style={{ color: '#7a5c00' }}>{t('profile.spouseLinkBanner.review')}</span>
+      <span className="ml-auto text-xs font-semibold" style={{ color: 'var(--status-pending-fg)' }}>{t('profile.spouseLinkBanner.review')}</span>
     </Link>
   )
 }
@@ -196,7 +196,7 @@ export const AboInfoContent = memo(function AboInfoContent() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <p className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>{t('profile.aboHash')}</p>
             <p className="text-sm font-medium font-mono" style={{ color: 'var(--text-primary)' }}>
-              {aboNumber} <Check size={14} className="inline-block align-text-bottom" style={{ color: '#2d6a4f' }} />
+              {aboNumber} <Check size={14} className="inline-block align-text-bottom" style={{ color: 'var(--status-success-fg)' }} />
             </p>
           </div>
           <div style={{ borderTop: '1px solid var(--border-default)', paddingTop: 10 }}>
@@ -261,12 +261,12 @@ export const AboInfoContent = memo(function AboInfoContent() {
       {aboMode === 'pending' && (
         <div className="space-y-3">
           {verRequest?.status === 'denied' && (
-            <div className="rounded-xl px-4 py-3 mb-2" style={{ backgroundColor: '#bc474915' }}>
-              <p className="text-sm font-medium" style={{ color: 'var(--brand-crimson)' }}>
+            <div className="rounded-xl px-4 py-3 mb-2" style={{ backgroundColor: 'var(--status-alert-bg)' }}>
+              <p className="text-sm font-medium" style={{ color: 'var(--status-alert-fg)' }}>
                 {t('profile.prevDenied')}
               </p>
               {verRequest.admin_note && (
-                <p className="text-xs mt-0.5" style={{ color: 'var(--brand-crimson)' }}>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--status-alert-fg)' }}>
                   {verRequest.admin_note}
                 </p>
               )}
@@ -281,11 +281,11 @@ export const AboInfoContent = memo(function AboInfoContent() {
             </div>
           )}
           {verRequest?.status === 'pending' && (
-            <div className="rounded-xl px-4 py-3" style={{ backgroundColor: '#f2cc8f33' }}>
-              <p className="text-sm font-medium" style={{ color: '#7a5c00' }}>
+            <div className="rounded-xl px-4 py-3" style={{ backgroundColor: 'var(--status-pending-bg)' }}>
+              <p className="text-sm font-medium" style={{ color: 'var(--status-pending-fg)' }}>
                 {verRequest.request_type === 'manual' ? t('profile.manualVerifPending') : t('profile.verifPending')}
               </p>
-              <p className="text-xs mt-0.5" style={{ color: '#7a5c00' }}>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--status-pending-fg)' }}>
                 {verRequest.request_type === 'manual'
                   ? `Upline ${verRequest.claimed_upline_abo}`
                   : `ABO ${verRequest.claimed_abo} · Upline ${verRequest.claimed_upline_abo}`}
@@ -438,8 +438,8 @@ function VerificationForm({
             value={aboInput}
             onChange={e => onAboChange(e.target.value)}
             placeholder="e.g. 7023040472"
-            className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm font-mono"
-            style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
+            className="w-full border rounded-xl px-3 py-2.5 text-sm font-mono"
+            style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)', borderColor: 'var(--border-default)' }}
           />
         </div>
       )}
@@ -451,8 +451,8 @@ function VerificationForm({
           value={uplineInput}
           onChange={e => onUplineChange(e.target.value)}
           placeholder="e.g. 7010970187"
-          className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm font-mono"
-          style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
+          className="w-full border rounded-xl px-3 py-2.5 text-sm font-mono"
+          style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)', borderColor: 'var(--border-default)' }}
         />
       </div>
       {submitError && (
@@ -470,8 +470,8 @@ function VerificationForm({
       <button
         onClick={onSubmit}
         disabled={submitPending || (verificationMode === 'standard' ? (!aboInput || !uplineInput) : !uplineInput)}
-        className="w-full py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity"
-        style={{ backgroundColor: 'var(--text-primary)' }}
+        className="w-full py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40 hover:opacity-90 transition-opacity"
+        style={{ backgroundColor: 'var(--text-primary)', color: 'var(--brand-parchment)' }}
       >
         {submitPending ? t('profile.submitting') : t('profile.submitVerif')}
       </button>
@@ -502,8 +502,8 @@ function SpouseLinkSection({
 }) {
   if (spouseLinkRequest?.status === 'pending') {
     return (
-      <div className="mt-4 rounded-xl px-4 py-3" style={{ backgroundColor: '#f2cc8f33' }}>
-        <p className="text-sm font-medium" style={{ color: '#7a5c00' }}>
+      <div className="mt-4 rounded-xl px-4 py-3" style={{ backgroundColor: 'var(--status-pending-bg)' }}>
+        <p className="text-sm font-medium" style={{ color: 'var(--status-pending-fg)' }}>
           {t('profile.spouseLinkPending')}
         </p>
         <button
@@ -521,12 +521,12 @@ function SpouseLinkSection({
   return (
     <div className="mt-4 space-y-3" style={{ borderTop: '1px solid var(--border-default)', paddingTop: 16 }}>
       {spouseLinkRequest?.status === 'denied' && (
-        <div className="rounded-xl px-4 py-3" style={{ backgroundColor: '#bc474915' }}>
-          <p className="text-sm font-medium" style={{ color: 'var(--brand-crimson)' }}>
+        <div className="rounded-xl px-4 py-3" style={{ backgroundColor: 'var(--status-alert-bg)' }}>
+          <p className="text-sm font-medium" style={{ color: 'var(--status-alert-fg)' }}>
             {t('profile.spouseLinkDenied')}
           </p>
           {spouseLinkRequest.admin_note && (
-            <p className="text-xs mt-0.5" style={{ color: 'var(--brand-crimson)' }}>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--status-alert-fg)' }}>
               {spouseLinkRequest.admin_note}
             </p>
           )}
@@ -543,8 +543,8 @@ function SpouseLinkSection({
           value={spouseAboInput}
           onChange={e => onAboChange(e.target.value)}
           placeholder="e.g. 7023040472"
-          className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm font-mono"
-          style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)' }}
+          className="w-full border rounded-xl px-3 py-2.5 text-sm font-mono"
+          style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)', borderColor: 'var(--border-default)' }}
         />
       </div>
       {submitError && (
@@ -553,8 +553,8 @@ function SpouseLinkSection({
       <button
         onClick={onSubmit}
         disabled={submitPending || !spouseAboInput}
-        className="w-full py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity"
-        style={{ backgroundColor: 'var(--text-primary)' }}
+        className="w-full py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40 hover:opacity-90 transition-opacity"
+        style={{ backgroundColor: 'var(--text-primary)', color: 'var(--brand-parchment)' }}
       >
         {submitPending ? t('profile.submitting') : (spouseLinkRequest?.status === 'denied' ? t('profile.spouseLinkResubmit') : t('profile.spouseLinkSubmit'))}
       </button>
