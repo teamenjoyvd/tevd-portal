@@ -2,8 +2,9 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Copy, Check, RefreshCw, Save } from 'lucide-react'
+import { Copy, Check, RefreshCw, Save, Calendar as CalendarIcon } from 'lucide-react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
+import { BentoHeader } from './BentoHeader'
 import {
   AlertDialog,
   AlertDialogContent,
@@ -84,7 +85,7 @@ export function CalendarSection({ profileId }: { profileId: string }) {
 
   return (
     <div>
-      <p className="text-xs font-semibold tracking-widest uppercase mb-1" style={{ color: 'var(--text-secondary)' }}>{t('profile.calSub')}</p>
+      <BentoHeader icon={CalendarIcon} title={t('profile.calSub')} />
       <p className="text-xs mb-1 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{t('profile.calSubDesc')}</p>
       <p className="text-xs mb-3 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{t('profile.calSubInstructions')}</p>
 

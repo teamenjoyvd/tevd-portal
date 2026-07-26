@@ -2,9 +2,11 @@
 
 import { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { HeartPulse } from 'lucide-react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { Drawer } from '@/components/ui/drawer'
 import { isVitalRecorded } from '@/lib/vitals'
+import { BentoHeader } from './BentoHeader'
 import { type ProfileVitalSign, VARIABLE_CAP } from '../types'
 import { ShowMoreButton } from './shared'
 import { apiClient } from '@/lib/apiClient'
@@ -76,12 +78,7 @@ export function VitalsSection({ profileId, role }: { profileId: string; role: st
   return (
     <>
       <div>
-        <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-1 pr-24" style={{ color: 'var(--brand-crimson)' }}>
-          {t('profile.vitalSigns')}
-        </p>
-        <p className="text-xs mb-4" style={{ color: 'var(--text-secondary)' }}>
-          {t('profile.vitalSigns.adminNote')}
-        </p>
+        <BentoHeader icon={HeartPulse} title={t('profile.vitalSigns')} subtitle={t('profile.vitalSigns.adminNote')} />
         <div className="grid grid-cols-2 gap-2">
           {visible.map(vs => <VitalCard key={vs.definition_id} vs={vs} />)}
         </div>

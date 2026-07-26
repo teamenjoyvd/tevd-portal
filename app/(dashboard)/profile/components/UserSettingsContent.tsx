@@ -1,9 +1,11 @@
 'use client'
 
 import { memo } from 'react'
+import { Settings } from 'lucide-react'
 import { useTheme } from '@/lib/hooks/useTheme'
 import { useFontSize, type FontSize } from '@/lib/hooks/useFontSize'
 import { useLanguage } from '@/lib/hooks/useLanguage'
+import { BentoHeader } from './BentoHeader'
 
 const FONT_STEPS: { value: FontSize; label: string; size: number }[] = [
   { value: 'md', label: 'A',  size: 16 },
@@ -18,9 +20,7 @@ export const UserSettingsContent = memo(function UserSettingsContent() {
 
   return (
     <div>
-      <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-5 pr-24" style={{ color: 'var(--brand-crimson)' }}>
-        {t('profile.settings')}
-      </p>
+      <BentoHeader icon={Settings} title={t('profile.settings')} />
 
       <div className="space-y-5">
         {/* Theme */}

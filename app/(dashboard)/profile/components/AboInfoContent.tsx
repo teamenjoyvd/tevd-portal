@@ -3,8 +3,10 @@
 import { memo, useState } from 'react'
 import Link from 'next/link'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { IdCard } from 'lucide-react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { getRoleColors } from '@/lib/role-colors'
+import { BentoHeader } from './BentoHeader'
 import { type SpouseLinkRequest } from '../types'
 import { apiClient } from '@/lib/apiClient'
 import { useProfile } from '../useProfile'
@@ -143,9 +145,7 @@ export const AboInfoContent = memo(function AboInfoContent() {
   if (role === 'guest' && profileIsPending) {
     return (
       <div>
-        <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-5 pr-24" style={{ color: 'var(--brand-crimson)' }}>
-          {t('profile.tile.aboInfo')}
-        </p>
+        <BentoHeader icon={IdCard} title={t('profile.tile.aboInfo')} />
         <div className="space-y-3 animate-pulse">
           <div className="h-4 rounded-lg w-3/4" style={{ backgroundColor: 'var(--border-default)' }} />
           <div className="h-4 rounded-lg w-1/2" style={{ backgroundColor: 'var(--border-default)' }} />
@@ -182,9 +182,7 @@ export const AboInfoContent = memo(function AboInfoContent() {
 
   return (
     <div>
-      <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-5 pr-24" style={{ color: 'var(--brand-crimson)' }}>
-        {t('profile.tile.aboInfo')}
-      </p>
+      <BentoHeader icon={IdCard} title={t('profile.tile.aboInfo')} />
 
       {aboMode === 'confirmed' && (
         <div className="space-y-3">

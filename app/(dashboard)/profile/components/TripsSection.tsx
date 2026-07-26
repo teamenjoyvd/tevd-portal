@@ -2,8 +2,10 @@
 
 import { useState, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { Luggage } from 'lucide-react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { Drawer } from '@/components/ui/drawer'
+import { BentoHeader } from './BentoHeader'
 import { type TripEntry, VARIABLE_CAP } from '../types'
 import { TripRow, ShowMoreButton } from './shared'
 import { apiClient } from '@/lib/apiClient'
@@ -39,7 +41,7 @@ export function TripsSection({ profileId, role }: { profileId: string; role: str
   return (
     <>
       <div>
-        <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-4 pr-24" style={{ color: 'var(--brand-crimson)' }}>{t('profile.trips')}</p>
+        <BentoHeader icon={Luggage} title={t('profile.trips')} />
         {trips.length === 0 ? (
           <div className="space-y-1">
             <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('profile.trips.empty')}</p>

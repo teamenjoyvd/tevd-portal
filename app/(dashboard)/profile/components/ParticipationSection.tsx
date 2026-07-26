@@ -2,9 +2,11 @@
 
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { Users } from 'lucide-react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { Drawer } from '@/components/ui/drawer'
 import { formatDate } from '@/lib/format'
+import { BentoHeader } from './BentoHeader'
 import { type EventRoleRequest, VARIABLE_CAP, REG_STATUS_STYLES } from '../types'
 import { ShowMoreButton } from './shared'
 import { apiClient } from '@/lib/apiClient'
@@ -51,7 +53,7 @@ export function ParticipationSection({ profileId, role }: { profileId: string; r
   return (
     <>
       <div>
-        <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-6 pr-24" style={{ color: 'var(--brand-crimson)' }}>{t('profile.participation')}</p>
+        <BentoHeader icon={Users} title={t('profile.participation')} />
         {roles.length === 0 ? (
           <div className="space-y-1">
             <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('profile.participation.empty')}</p>

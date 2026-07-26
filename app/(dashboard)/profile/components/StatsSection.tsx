@@ -2,7 +2,9 @@
 
 import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
+import { BarChart3 } from 'lucide-react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
+import { BentoHeader } from './BentoHeader'
 import { type LosSummaryData } from '../types'
 import { apiClient } from '@/lib/apiClient'
 
@@ -26,7 +28,7 @@ export function StatsSection({ role, aboNumber }: { role: string; aboNumber: str
 
   return (
     <div>
-      <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-4 pr-24" style={{ color: 'var(--brand-crimson)' }}>{t('profile.stats')}</p>
+      <BentoHeader icon={BarChart3} title={t('profile.stats')} />
       {losSummary && (
         <div className="flex flex-wrap items-center gap-4">
           <div>

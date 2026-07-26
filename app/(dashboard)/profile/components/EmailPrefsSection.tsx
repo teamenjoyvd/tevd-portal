@@ -2,8 +2,10 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { Mail } from 'lucide-react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { Switch } from '@/components/ui/switch'
+import { BentoHeader } from './BentoHeader'
 import { type NotificationPrefs, DEFAULT_NOTIFICATION_PREFS } from '../types'
 import { apiClient } from '@/lib/apiClient'
 import { useProfile } from '../useProfile'
@@ -62,24 +64,24 @@ export function EmailPrefsSection() {
 
   return (
     <div>
-      {/* Eyebrow */}
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-xs font-semibold tracking-[0.25em] uppercase" style={{ color: 'var(--brand-crimson)' }}>
-          {t('profile.emailNotifications')}
-        </p>
-        <div className="flex items-center gap-2">
-          {saved && (
-            <span className="text-xs font-medium" style={{ color: 'var(--brand-forest)' }}>
-              {t('profile.saved')}
-            </span>
-          )}
-          {save.isError && (
-            <span className="text-xs font-medium" style={{ color: 'var(--brand-crimson)' }}>
-              {t('profile.error')}
-            </span>
-          )}
-        </div>
-      </div>
+      <BentoHeader
+        icon={Mail}
+        title={t('profile.emailNotifications')}
+        action={
+          <div className="flex items-center gap-2">
+            {saved && (
+              <span className="text-xs font-medium" style={{ color: 'var(--brand-forest)' }}>
+                {t('profile.saved')}
+              </span>
+            )}
+            {save.isError && (
+              <span className="text-xs font-medium" style={{ color: 'var(--brand-crimson)' }}>
+                {t('profile.error')}
+              </span>
+            )}
+          </div>
+        }
+      />
 
       {/* Rows */}
       <div className="space-y-3">

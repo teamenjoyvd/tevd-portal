@@ -2,9 +2,11 @@
 
 import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
+import { UserPlus } from 'lucide-react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { apiClient } from '@/lib/apiClient'
 import { computeFunnel, type GuestRow } from '@/lib/invites'
+import { BentoHeader } from './BentoHeader'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -48,10 +50,7 @@ export function InvitesBento() {
   return (
     <div>
       <div className="flex flex-col gap-4 h-full">
-        {/* Header */}
-        <p className="text-[10px] font-semibold tracking-widest uppercase" style={{ color: 'var(--text-secondary)' }}>
-          {t('profile.bento.invites')}
-        </p>
+        <BentoHeader icon={UserPlus} title={t('profile.bento.invites')} />
 
         {/* Stat chips */}
         {isLoading ? (

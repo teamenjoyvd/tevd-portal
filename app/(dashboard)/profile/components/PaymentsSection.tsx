@@ -2,10 +2,12 @@
 
 import { useState, useCallback } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { CreditCard } from 'lucide-react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { Drawer } from '@/components/ui/drawer'
 import { PaymentForm } from '@/components/payment/PaymentForm'
 import { formatCurrency } from '@/lib/format'
+import { BentoHeader } from './BentoHeader'
 import { type TripEntry, type GenericPayment, type PayableItem, VARIABLE_CAP } from '../types'
 import { PaymentRow, ShowMoreButton } from './shared'
 import { apiClient } from '@/lib/apiClient'
@@ -96,12 +98,15 @@ export function PaymentsSection({ profileId, role }: { profileId: string; role: 
   return (
     <>
       <div>
-        <div className="flex items-center justify-between mb-4 pr-24">
-          <p className="text-xs font-semibold tracking-[0.25em] uppercase" style={{ color: 'var(--brand-crimson)' }}>{t('payment.title')}</p>
-          <button onClick={handleOpenSubmit}
-            className="px-3 py-1.5 rounded-xl text-xs font-semibold text-white hover:opacity-90 transition-opacity flex-shrink-0"
-            style={{ backgroundColor: 'var(--brand-forest)' }}>{t('payment.submitShort')}</button>
-        </div>
+        <BentoHeader
+          icon={CreditCard}
+          title={t('payment.title')}
+          action={
+            <button onClick={handleOpenSubmit}
+              className="px-3 py-1.5 rounded-xl text-xs font-semibold text-white hover:opacity-90 transition-opacity flex-shrink-0"
+              style={{ backgroundColor: 'var(--brand-forest)' }}>{t('payment.submitShort')}</button>
+          }
+        />
         {Object.keys(visibleByItem).length === 0 ? (
           <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('payment.none')}</p>
         ) : (

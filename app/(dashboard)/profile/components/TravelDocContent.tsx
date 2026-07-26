@@ -2,9 +2,11 @@
 
 import { memo, useState, useEffect } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { Plane } from 'lucide-react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { Drawer } from '@/components/ui/drawer'
 import { TravelDocDrawerForm } from './TravelDocDrawerForm'
+import { BentoHeader } from './BentoHeader'
 import { type Profile } from '../types'
 import { apiClient } from '@/lib/apiClient'
 import { useProfile } from '../useProfile'
@@ -165,18 +167,19 @@ export const TravelDocContent = memo(function TravelDocContent() {
   return (
     <>
       <div>
-        <div className="flex items-center justify-between mb-5 pr-24">
-          <p className="text-xs font-semibold tracking-[0.25em] uppercase" style={{ color: 'var(--brand-crimson)' }}>
-            {t('profile.tile.travelDoc')}
-          </p>
-          <button
-            onClick={() => setDrawerOpen(true)}
-            className="text-xs font-semibold hover:opacity-70 transition-opacity px-3 py-1.5 rounded-xl border"
-            style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
-          >
-            {t('profile.edit')}
-          </button>
-        </div>
+        <BentoHeader
+          icon={Plane}
+          title={t('profile.tile.travelDoc')}
+          action={
+            <button
+              onClick={() => setDrawerOpen(true)}
+              className="text-xs font-semibold hover:opacity-70 transition-opacity px-3 py-1.5 rounded-xl border"
+              style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+            >
+              {t('profile.edit')}
+            </button>
+          }
+        />
 
         <div className="space-y-3">
           <div>
