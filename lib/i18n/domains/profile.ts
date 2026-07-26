@@ -34,6 +34,7 @@ export const profile = {
   'profile.calSubCopy':         { en: 'Copy link',               bg: 'Копирай линк'             },
   'profile.calSubCopied':       { en: 'Copied!',                 bg: 'Копирано!'                },
   'profile.calSubRegenerate':   { en: 'Regenerate',              bg: 'Регенерирай'              },
+  'profile.calendar.generating': { en: 'Generating…',           bg: 'Генериране…'              },
   'profile.calSubRegenerateConfirmTitle': { en: 'Regenerate your calendar link?', bg: 'Регенериране на линка за календара?' },
   'profile.calSubRegenerateConfirmDesc':  { en: 'Your old link will stop working.', bg: 'Старият линк ще спре да работи.' },
   'profile.calDisplayName':     { en: 'Calendar display name',   bg: 'Показвано име на календара' },

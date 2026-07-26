@@ -1,44 +1,51 @@
 ## Goal
-Issue #613 (2607-DEV-613, branch `dev/2607-DEV-613`): purge dead legacy CSS palette tokens, add semantic `--status-*` tokens for `StatusPill`, fix Mapbox dark styling, update DESIGN-SYSTEM.md.
+BUILD issue #665 (2607-DEV-665, branch `dev/2607-DEV-665`): migrate all 13 `/profile` bentos onto the shared `BentoCard`/`.card` design system — shell, header, skeleton, empty state, elevation tokens.
 
 ## Now
-PR [#664](https://github.com/teamenjoyvd/tevd-portal/pull/664) open as **draft** against `main` (`Closes #613`), branch `dev/2607-DEV-613` pushed (commits `561fb4d` code+docs). CI and Vercel Preview not yet checked this turn — draft was just opened.
+Step 1: shared primitive (`BentoCard` forwardRef), elevation tokens, new co-located components (`BentoHeader`/`BentoSkeleton`/`BentoEmpty`), `bento-registry.ts` (`BENTO_META`/`BENTO_ICON_MAP`), i18n string.
 
 ## Next
-- Check CI status and Vercel Preview READY on PR #664.
-- No authenticated Clerk DEV credentials available locally — needs a human visual check of `StatusPill` light/dark on the live Preview (admin > reminders) before marking ready for review.
-- When ready: mark PR ready for review to trigger the single CodeRabbit pass (per docs/ai/BUILD.md FINALIZE), address findings in one batched push.
-- After merge: run the post-merge tail (prod Vercel deploy check, confirm issue #613 auto-closed, remove `docs/CLAIMS.md` `#613` row).
-4. `docs/design/DESIGN-SYSTEM.md`: Component states + Usage rules sections, reflecting actual scope (note Mapbox/calendar chips already correct).
-5. `npm run build` + `npm run lint`, then `/code-review low` before pushing draft PR.
+1. Step 1 (this step) — build check.
+2. Step 4 (write first per issue) — new `e2e/profile-bento-auth.spec.ts` regression spec.
+3. Step 2 — atomic shell refactor: `SortableBento.tsx`, `BentoGrid.tsx`, `ProfileClient.tsx`, all 13 content components lose their `rounded-2xl p-6 h-full` wrapper. Run new e2e spec as the checkpoint.
+4. Step 3a — headers: all 13 components → `<BentoHeader>`.
+5. Step 3b — skeletons: all 13 → `<BentoSkeleton>`, add missing states to `CalendarSection`/`EmailPrefsSection`.
+6. Step 3c — empty states/icons: `<BentoEmpty>`, lucide icon swaps, dead-code removal per issue.
+7. Verification pass per issue's `## Verification` section (build, lint, e2e local, 1280/390 screenshots, dark theme incl. `/` and `/about`).
+8. `/code-review low` before push; open draft PR `Closes #665`.
 
 ## Constraints
-- Never push directly to `main`; `dev/[YYMM]-DEV-[GH#]` branches only
-- No `git push` without the user explicitly asking for a push in-conversation (quote required) — not asked yet this session
-- Never mark Done on static analysis alone — Vercel PR preview must be READY and CI green
-- No failing check gets weakened/skipped to pass
-- Change only lines the task requires — do not touch `--forest`/`--crimson`/`--sienna`/`--stone` (still live, used by calendar files) or the 3 other files also using non-firing `dark:` classes (`ReminderTable.tsx`, `RemindersTab.tsx`, `LinksGuidesTile.tsx` — out of scope, noted only)
+- 390px mobile-first — every bento must render correctly at 390px, including the mobile static-stack path.
+- shadcn/ui for any interactive primitive added.
+- Component co-location — profile-only components stay under `app/(dashboard)/profile/components/`.
+- No Tailwind `dark:` variants in the profile folder — use `[data-theme="dark"]` selectors.
+- Preserve dnd-kit drag/reorder, collapse/expand, and `profile.ui_prefs` persistence exactly.
+- Cards stay non-interactive — no `interactive-lift`, no whole-card `onClick`.
+- No `.bento-tile` entrance animation.
+- Do not adopt `.bento-grid` class (`grid-auto-rows`/`grid-auto-flow: dense` conflict) — keep profile's explicit inline grid, only source `gap` from `var(--bento-gap)`.
+- Headers stay in content components, not hoisted into `SortableBento` (stateful action buttons live there).
+- `PersonalDetailsContent`'s crimson border: plain `style={{ borderColor: 'var(--brand-crimson)' }}` override, NOT `variant="edge-alert"`.
+- No `git push` without the user explicitly asking for a push in-conversation (quote required) — not asked yet this session.
+- Part 2 (status-token consolidation, back links, colour sweep) is a separate, later issue — do not do that work here even though it touches the same files.
+- NOTED items in the issue (RoleRow remount, resetLayout pre-hydration bug, raw status strings, etc.) are deliberately NOT fixed here.
 
 ## Decisions
-DECISION: skip the Mapbox dark-style item entirely — `LocationTile.tsx` and `AboutMapTile.tsx` already implement the exact prescribed pattern (`setStyle()` + `styledata` + `MutationObserver`/`useTheme` watching `data-theme`). Verified by reading both files in full; issue's "confirmed live" claim does not match current code.
-DECISION: skip the "calendar chip restyle" — repo-wide grep for `--eggshell|--deep|--sage|--sandy` returns zero hits outside `globals.css`'s own definitions. The calendar files (`FilterControls.tsx`, `MonthView.tsx`, `AgendaView.tsx`, `AdminCalendarClient.tsx`) use `--forest`/`--crimson`/`--sienna`, which `styles/brand-tokens.css:16-17` documents as intentional legacy aliases for brand tokens — not part of this purge, not touching them.
-DECISION: only delete the 4 named-dead tokens from `globals.css`'s legacy `:root` block; keep `--forest`/`--crimson`/`--sienna`/`--stone` since they're actively referenced elsewhere and out of the issue's literal scope.
-DECISION: `StatusPill` status->token mapping: `sent`->success, `claimed`->info, `failed`+`permanently_failed`->alert (both, distinguished only by label text — only 4 semantic tokens exist for 5 states), `pending`/default->pending.
+DECISION: follow the issue's own Step 0-4 ordering verbatim rather than re-deriving a plan — it already verified its own file:line claims (confirmed `BentoCard.tsx:69` spread order during PLAN).
+DECISION: write the new `e2e/profile-bento-auth.spec.ts` before Step 2's shell refactor (per issue), so it's the checkpoint for the atomic 13-file change, not an afterthought.
 
 ## Facts
-- Theming mechanism: `data-theme="dark"|"light"` attribute on `<html>`, set by `lib/hooks/useTheme.ts` and read via `document.documentElement.getAttribute('data-theme')` — NOT Tailwind's default `dark:` variant (media or `.dark` class), which is why `StatusPill.tsx`'s `dark:bg-*` classes never fire. No `@custom-variant dark` defined anywhere in the repo (confirmed by grep).
-- `styles/brand-tokens.css` pattern for dark overrides: single `[data-theme="dark"] { --token: value; }` block redefining light-mode custom properties — new `--status-*` tokens should follow this same shape.
-- Other files with the same non-firing `dark:` bug (NOT in scope for #613): `app/admin/calendar/[id]/components/ReminderTable.tsx`, `app/admin/settings/components/RemindersTab.tsx`, `app/(dashboard)/components/tiles/LinksGuidesTile.tsx`.
-- `StatusPill` consumers: `ReminderTable.tsx`, `RemindersTab.tsx` — both just render `<StatusPill status={...} />`, no external color coupling.
+- Route: `app/(dashboard)/profile/` — `page.tsx` (server) → `ProfileClient.tsx` (builds `bentoMap`, order/collapse state, `profile.ui_prefs` persistence) → `BentoGrid.tsx` (desktop, dnd-kit, dynamic import) or static stack (mobile) → `SortableBento.tsx` (shared shell).
+- 13 bento ids: `bento-registry.ts` `BENTO_IDS`/`DEFAULT_ORDER`.
+- `BentoCard`/`Eyebrow` live in `components/bento/BentoCard.tsx`; `style` spreads after `spanStyle` at line 69 (verified).
+- `components/ui/skeleton.tsx` exports `Skeleton({ className, style })` using `.skeleton-shimmer` + `--skeleton-base`.
+- Test commands: `npm run build`, `npm run lint`, `npm run test:e2e:auth`, `npm run test:mobile` (authenticated E2E CI job is a known skip — must run locally against DEV, per memory).
+- `BENTO_HEIGHT = { S: 160, M: 280 }` currently lives in `ProfileClient.tsx:40` — moving to `bento-registry.ts` per issue.
 
 ## Done
-#613 CLAIM — RESULT: `blocked` label removed (deps #611/#612 both merged), branch `dev/2607-DEV-613` cut from up-to-date `main`, issue `## Branch` section added, `docs/CLAIMS.md` row registered (pruned stale `#612` row, its PR #663 already merged).
-#613 BUILD (code) — RESULT: trimmed scope executed — `app/globals.css` (4 dead tokens removed, `body` bg fixed to `var(--bg-global)`), `styles/brand-tokens.css` (8 new `--status-*` tokens, light+dark), `components/admin/StatusPill.tsx` (rebuilt on tokens via inline style), `docs/design/DESIGN-SYSTEM.md` (Component States + Usage Rules sections). `npm run build` exit 0 (full route manifest generated, TypeScript clean), `npm run lint` 0 errors/485 warnings (none in changed files, pre-existing baseline). Manual diff review done (no `/code-review` skill invokable this session). `npm install` was also run mid-session — 29 packages (`@radix-ui/react-toggle`, `-toggle-group`, `-switch` etc.) were declared in `package.json` but missing from `node_modules`, unrelated pre-existing gap from the merged #610 PR; `package-lock.json` unchanged, so this was a local sync only, not a dependency change.
+PLAN + CLAIM for #665 — RESULT: issue CLAIM-complete (`## Design Checklist` all checked, `## Branch` = `dev/2607-DEV-665`), branch cut from `main` and pushed, `docs/CLAIMS.md` row registered (pruned stale merged #613 row).
 
 ## Open items
-- No local authenticated visual check of `StatusPill` in light/dark was possible (no stored admin Clerk DEV credentials, same gap as #608/#607) — needs a human check on the Vercel Preview before marking ready for review.
-- PR body should note the trimmed scope (Mapbox/calendar-chip items already satisfied, not touched) so reviewers aren't surprised by the smaller diff.
-- Not yet committed/pushed — no push requested in-conversation yet.
+(none yet — populate as Step 1 proceeds)
 
 ## Failed attempts
-- ATTEMPT: ran `npm run build` concurrently with `npm install` (mid-flight dependency sync) — the build process appeared to hang at "Creating an optimized production build..." for several minutes with no forward log output. FIXED by not killing it: confirmed via `Get-CimInstance Win32_Process` that it was still spawning live Turbopack worker processes, so it was slow (3.4min compile), not stuck — waited it out instead of killing. Avoid running `npm install` concurrently with a build in future sessions; it's likely what caused the slowdown/confusion.
+(none yet)

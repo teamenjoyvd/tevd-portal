@@ -1,10 +1,10 @@
-import React from 'react'
+import React, { forwardRef } from 'react'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
 type CardVariant = 'default' | 'forest' | 'crimson' | 'teal' | 'edge-info' | 'edge-alert'
 
-type BentoCardProps = {
+export type BentoCardProps = {
   children?: React.ReactNode
   variant?: CardVariant
   colSpan?: number
@@ -34,7 +34,7 @@ export function Eyebrow({ children, style }: { children: React.ReactNode; style?
 
 // ── BentoCard ──────────────────────────────────────────────────────────────────
 
-export default function BentoCard({
+const BentoCard = forwardRef<HTMLDivElement, BentoCardProps>(function BentoCard({
   children,
   variant = 'default',
   colSpan,
@@ -43,7 +43,7 @@ export default function BentoCard({
   className = '',
   style,
   onClick,
-}: BentoCardProps) {
+}, ref) {
   const variantClass =
     variant === 'default'     ? 'card' :
     variant === 'forest'      ? 'card card--forest' :
@@ -65,6 +65,7 @@ export default function BentoCard({
 
   return (
     <div
+      ref={ref}
       className={`${variantClass} ${liftClass} ${className}`.trim()}
       style={{ ...spanStyle, ...style }}
       onClick={onClick}
@@ -72,4 +73,6 @@ export default function BentoCard({
       {children}
     </div>
   )
-}
+})
+
+export default BentoCard
