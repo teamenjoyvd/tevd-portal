@@ -6,7 +6,7 @@ import { apiClient } from '@/lib/apiClient'
 import type { TranslationKey } from '@/lib/i18n'
 import { PendingPopover } from './PendingPopover'
 import MemberActions from './MemberActions'
-import { SLOT_STATUS_STYLES } from './styles'
+import { SLOT_STATUS_STYLES, REGISTRATION_STATUS_STYLES } from './styles'
 import type { EventDetail, GuestRegistration, RoleSlot } from './types'
 
 function AdminRegistrationsTab({ eventId }: { eventId: string }) {
@@ -38,10 +38,8 @@ function AdminRegistrationsTab({ eventId }: { eventId: string }) {
   return (
     <div className="px-4 py-3 space-y-2">
       {registrations.map(g => {
-        const isAttended = !!g.attended_at
-        const statusColor = isAttended ? '#2d6a4f' : g.status === 'confirmed' ? '#3d405b' : '#7a5c00'
-        const statusBg    = isAttended ? 'rgba(129,178,154,0.2)' : g.status === 'confirmed' ? 'rgba(61,64,91,0.08)' : 'rgba(242,204,143,0.3)'
-        const statusLabel = isAttended ? 'Attended' : g.status === 'confirmed' ? 'Confirmed' : 'Pending'
+        const registrationStyle = REGISTRATION_STATUS_STYLES[g.status as keyof typeof REGISTRATION_STATUS_STYLES] ?? REGISTRATION_STATUS_STYLES.pending
+        const statusLabel = g.status === 'attended' ? 'Attended' : g.status === 'cancelled' ? 'Cancelled' : g.status === 'confirmed' ? 'Confirmed' : 'Pending'
 
         return (
           <div
@@ -63,7 +61,7 @@ function AdminRegistrationsTab({ eventId }: { eventId: string }) {
               </div>
               <span
                 className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
-                style={{ backgroundColor: statusBg, color: statusColor }}
+                style={{ backgroundColor: registrationStyle.bg, color: registrationStyle.color }}
               >
                 {statusLabel}
               </span>

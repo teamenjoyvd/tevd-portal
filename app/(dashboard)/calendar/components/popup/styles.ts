@@ -9,3 +9,10 @@ export const REQUEST_STATUS_STYLES = {
   approved: { bg: '#81b29a33', color: '#2d6a4f'  },
   denied:   { bg: '#bc474920', color: '#bc4749'  },
 }
+
+export const REGISTRATION_STATUS_STYLES = {
+  attended:  { bg: 'rgba(129,178,154,0.2)',  color: '#2d6a4f' },
+  cancelled: { bg: '#bc474920',              color: '#bc4749' },
+  confirmed: { bg: 'rgba(61,64,91,0.08)',    color: '#3d405b' },
+  pending:   { bg: 'rgba(242,204,143,0.3)',  color: '#7a5c00' },
+}
