@@ -2,9 +2,12 @@
 
 import { memo, useState, useEffect } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { Plane } from 'lucide-react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { Drawer } from '@/components/ui/drawer'
 import { TravelDocDrawerForm } from './TravelDocDrawerForm'
+import { BentoHeader } from './BentoHeader'
+import { BentoSkeleton } from './BentoSkeleton'
 import { type Profile } from '../types'
 import { apiClient } from '@/lib/apiClient'
 import { useProfile } from '../useProfile'
@@ -147,12 +150,9 @@ export const TravelDocContent = memo(function TravelDocContent() {
 
   if (isLoading || !profile) {
     return (
-      <div className="rounded-2xl p-6 h-full animate-pulse" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-        <div className="h-3 rounded w-1/2 mb-5" style={{ backgroundColor: 'var(--border-default)' }} />
-        <div className="space-y-3">
-          <div className="h-3 rounded w-3/4" style={{ backgroundColor: 'var(--border-default)' }} />
-          <div className="h-3 rounded w-1/2" style={{ backgroundColor: 'var(--border-default)' }} />
-        </div>
+      <div>
+        <BentoHeader icon={Plane} title={t('profile.tile.travelDoc')} />
+        <BentoSkeleton rows={3} />
       </div>
     )
   }
@@ -164,19 +164,20 @@ export const TravelDocContent = memo(function TravelDocContent() {
 
   return (
     <>
-      <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-        <div className="flex items-center justify-between mb-5 pr-24">
-          <p className="text-xs font-semibold tracking-[0.25em] uppercase" style={{ color: 'var(--brand-crimson)' }}>
-            {t('profile.tile.travelDoc')}
-          </p>
-          <button
-            onClick={() => setDrawerOpen(true)}
-            className="text-xs font-semibold hover:opacity-70 transition-opacity px-3 py-1.5 rounded-xl border"
-            style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
-          >
-            {t('profile.edit')}
-          </button>
-        </div>
+      <div>
+        <BentoHeader
+          icon={Plane}
+          title={t('profile.tile.travelDoc')}
+          action={
+            <button
+              onClick={() => setDrawerOpen(true)}
+              className="text-xs font-semibold hover:opacity-70 transition-opacity px-3 py-1.5 rounded-xl border"
+              style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+            >
+              {t('profile.edit')}
+            </button>
+          }
+        />
 
         <div className="space-y-3">
           <div>
