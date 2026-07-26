@@ -6,3 +6,4 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
+| #639 | `dev/2607-DEV-639` | `lib/utils/base-url.ts`, `lib/utils/base-url.test.ts` (new), `.env.example`; migration: no | 2026-07-26T00:00:00Z |
