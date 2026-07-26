@@ -87,7 +87,7 @@ export function VitalsSection({ profileId, role }: { profileId: string; role: st
       <div>
         <BentoHeader icon={HeartPulse} title={t('profile.vitalSigns')} subtitle={t('profile.vitalSigns.adminNote')} />
         {visible.length === 0 ? (
-          <BentoEmpty message={t('profile.vitalSigns.empty')} hint={t('profile.vitalSigns.emptyHint')} />
+          <BentoEmpty message={t('profile.vitalSigns.empty')} />
         ) : (
           <div className="grid grid-cols-2 gap-2">
             {visible.map(vs => <VitalCard key={vs.definition_id} vs={vs} />)}

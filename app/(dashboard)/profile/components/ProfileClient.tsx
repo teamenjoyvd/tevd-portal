@@ -17,7 +17,7 @@ import { StatsSection } from './StatsSection'
 import { AdminSection } from './AdminSection'
 import { EmailPrefsSection } from './EmailPrefsSection'
 import { InvitesBento } from './InvitesBento'
-import { BENTO_IDS, DEFAULT_ORDER, BENTO_META, BENTO_HEIGHT } from './bento-registry'
+import { BENTO_IDS, DEFAULT_ORDER, BENTO_META, BENTO_HEIGHT, type BentoId } from './bento-registry'
 import { apiClient } from '@/lib/apiClient'
 import { useProfile } from '../useProfile'
 
@@ -39,7 +39,7 @@ type Props = {
 
 const DESKTOP_QUERY = '(min-width: 768px)' // matches Tailwind `md` breakpoint used below
 
-function metaFor(id: string) {
+function metaFor(id: BentoId) {
   const meta = BENTO_META[id]
   return { colSpan: meta.colSpan, minHeight: BENTO_HEIGHT[meta.height] }
 }

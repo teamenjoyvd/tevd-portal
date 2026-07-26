@@ -82,7 +82,7 @@ export function CalendarSection({ profileId }: { profileId: string }) {
     saveDisplayName.mutate(displayName)
   }, [displayName, saveDisplayName])
 
-  if (calLoading) {
+  if (calLoading === true) {
     return (
       <div>
         <BentoHeader icon={CalendarIcon} title={t('profile.calSub')} />
@@ -99,7 +99,7 @@ export function CalendarSection({ profileId }: { profileId: string }) {
 
       {/* Feed URL row */}
       <div className="flex items-center gap-2">
-        <input readOnly value={calData?.url ?? ''} placeholder={t('profile.calendar.generating')}
+        <input readOnly value={calData?.url ?? ''} placeholder={t('profile.calGenerating')}
           className="flex-1 min-w-0 border rounded-xl px-3 py-2 text-xs font-mono truncate"
           style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)', backgroundColor: 'var(--bg-global)' }} />
         <button

@@ -4,7 +4,7 @@ import { forwardRef, type ReactNode } from 'react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { Button } from '@/components/ui/button'
 import BentoCard from '@/components/bento/BentoCard'
-import { BENTO_KEY_MAP, BENTO_ICON_MAP } from './bento-registry'
+import { BENTO_KEY_MAP, BENTO_ICON_MAP, type BentoId } from './bento-registry'
 
 // ── Drag handle ───────────────────────────────────────────────────────────────
 // No @dnd-kit import here — this file is also the mobile-path render, and the
@@ -85,7 +85,7 @@ export function SortableBento({
 
   const bentoKey = BENTO_KEY_MAP[id]
   const label = bentoKey ? t(bentoKey) : id
-  const Icon = BENTO_ICON_MAP[id]
+  const Icon = BENTO_ICON_MAP[id as BentoId] as typeof BENTO_ICON_MAP[BentoId] | undefined
 
   if (collapsed) {
     return (

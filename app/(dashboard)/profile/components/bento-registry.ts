@@ -73,8 +73,9 @@ export const BENTO_KEY_MAP: Record<string, TranslationKey> = {
 export const BENTO_HEIGHT = { S: 160, M: 280 } as const
 
 type BentoHeightTier = keyof typeof BENTO_HEIGHT
+export type BentoId = (typeof BENTO_IDS)[keyof typeof BENTO_IDS]
 
-export const BENTO_META: Record<string, { colSpan: number; height: BentoHeightTier }> = {
+export const BENTO_META: Record<BentoId, { colSpan: number; height: BentoHeightTier }> = {
   [BENTO_IDS.PERSONAL_DETAILS]: { colSpan: 6, height: 'M' },
   [BENTO_IDS.ABO_INFO]:         { colSpan: 6, height: 'M' },
   [BENTO_IDS.TRAVEL_DOC]:       { colSpan: 6, height: 'S' },
@@ -92,7 +93,7 @@ export const BENTO_META: Record<string, { colSpan: number; height: BentoHeightTi
 
 // ── Bento id → icon map — also used by the collapsed bar ─────────────────────
 
-export const BENTO_ICON_MAP: Record<string, LucideIcon> = {
+export const BENTO_ICON_MAP: Record<BentoId, LucideIcon> = {
   [BENTO_IDS.PERSONAL_DETAILS]: User,
   [BENTO_IDS.ABO_INFO]:         IdCard,
   [BENTO_IDS.TRAVEL_DOC]:       Plane,

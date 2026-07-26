@@ -48,49 +48,47 @@ export function InvitesBento() {
   ]
 
   return (
-    <div>
-      <div className="flex flex-col gap-4 h-full">
-        <BentoHeader icon={UserPlus} title={t('profile.bento.invites')} />
+    <div className="flex flex-col gap-4 h-full">
+      <BentoHeader icon={UserPlus} title={t('profile.bento.invites')} />
 
-        {/* Stat chips */}
-        {isLoading ? (
-          <div className="grid grid-cols-2 gap-2">
-            {[...Array(4)].map((_, i) => (
-              <div
-                key={i}
-                className="h-14 rounded-xl animate-pulse"
-                style={{ backgroundColor: 'rgba(0,0,0,0.06)' }}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-2">
-            {stats.map(({ label, value }) => (
-              <div
-                key={label}
-                className="rounded-xl px-3 py-2 flex flex-col gap-0.5"
-                style={{ backgroundColor: 'rgba(0,0,0,0.04)' }}
-              >
-                <span className="text-xl font-bold tabular-nums" style={{ color: 'var(--text-primary)' }}>
-                  {value}
-                </span>
-                <span className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>
-                  {label}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
+      {/* Stat chips */}
+      {isLoading ? (
+        <div className="grid grid-cols-2 gap-2">
+          {[...Array(4)].map((_, i) => (
+            <div
+              key={i}
+              className="h-14 rounded-xl animate-pulse"
+              style={{ backgroundColor: 'rgba(0,0,0,0.06)' }}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-2">
+          {stats.map(({ label, value }) => (
+            <div
+              key={label}
+              className="rounded-xl px-3 py-2 flex flex-col gap-0.5"
+              style={{ backgroundColor: 'rgba(0,0,0,0.04)' }}
+            >
+              <span className="text-xl font-bold tabular-nums" style={{ color: 'var(--text-primary)' }}>
+                {value}
+              </span>
+              <span className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>
+                {label}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
 
-        {/* CTA */}
-        <Link
-          href="/profile/invites"
-          className="mt-auto text-xs font-semibold px-3 py-2 rounded-xl transition-opacity hover:opacity-70 text-left block"
-          style={{ backgroundColor: 'rgba(0,0,0,0.05)', color: 'var(--text-primary)' }}
-        >
-          {t('profile.invites.viewAll')} →
-        </Link>
-      </div>
+      {/* CTA */}
+      <Link
+        href="/profile/invites"
+        className="mt-auto text-xs font-semibold px-3 py-2 rounded-xl transition-opacity hover:opacity-70 text-left block"
+        style={{ backgroundColor: 'rgba(0,0,0,0.05)', color: 'var(--text-primary)' }}
+      >
+        {t('profile.invites.viewAll')} →
+      </Link>
     </div>
   )
 }
