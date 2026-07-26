@@ -6,4 +6,4 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
-| #613 | `dev/2607-DEV-613` | `app/globals.css`, `app/(dashboard)/calendar/components/CalendarClient.tsx`, `app/admin/calendar/components/AdminCalendarClient.tsx`, `styles/brand-tokens.css`, `components/admin/StatusPill.tsx`, Mapbox tile components (`LocationTile`/`AboutMapTile`), `docs/design/DESIGN-SYSTEM.md`; migration: no | 2026-07-25T19:00:00Z |
+| #639 | `dev/2607-DEV-639` | `lib/utils/base-url.ts`, `lib/utils/base-url.test.ts` (new), `.env.example`; migration: no | 2026-07-26T00:00:00Z |
