@@ -28,6 +28,7 @@
   --text-tertiary:     #8A8577;
   --text-nav:          var(--text-secondary); /* nav chrome — bumped in dark mode */
   --border-default:    rgba(45, 51, 42, 0.08);
+  --bg-card-raised:    rgba(45, 51, 42, 0.04);
   --border-hover:      rgba(188, 71, 73, 0.30);
   --nav-border:        rgba(45, 51, 42, 0.08); /* nav pill border — more visible in dark mode */
   --accent-left-info:  var(--brand-teal);
@@ -59,6 +60,8 @@
   --status-alert-fg:    #96393b;
   --status-pending-bg:  rgba(224, 122, 95, 0.14);
   --status-pending-fg:  #a3502e;
+  --status-neutral-bg:  rgba(138, 133, 119, 0.15);
+  --status-neutral-fg:  #5c5950;
 
   /* ── Font scale ── */
   --font-scale: 1;
@@ -98,6 +101,8 @@ html { font-size: calc(var(--font-scale) * 16px); }
   --status-alert-fg:    #f19a9b;
   --status-pending-bg:  rgba(232, 150, 120, 0.20);
   --status-pending-fg:  #f0b08d;
+  --status-neutral-bg:  rgba(181, 176, 168, 0.20);
+  --status-neutral-fg:  #B5B0A8;
 }
 
 /* ── Utility classes ── */

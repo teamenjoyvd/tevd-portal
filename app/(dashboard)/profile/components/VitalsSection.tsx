@@ -23,15 +23,15 @@ function VitalCard({ vs }: { vs: ProfileVitalSign }) {
     <div
       className="rounded-xl p-3 flex flex-col gap-1"
       style={{
-        backgroundColor: recorded ? 'rgba(188,71,73,0.08)' : 'var(--bg-global)',
-        border: `1px solid ${recorded ? 'rgba(188,71,73,0.2)' : 'var(--border-default)'}`,
+        backgroundColor: recorded ? 'color-mix(in srgb, var(--brand-crimson) 8%, transparent)' : 'var(--bg-global)',
+        border: `1px solid ${recorded ? 'color-mix(in srgb, var(--brand-crimson) 20%, transparent)' : 'var(--border-default)'}`,
       }}
     >
       <span
         className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full self-start"
         style={{
-          backgroundColor: recorded ? 'rgba(188,71,73,0.12)' : 'var(--border-default)',
-          color: recorded ? 'var(--brand-crimson)' : 'var(--text-secondary)',
+          backgroundColor: recorded ? 'var(--status-alert-bg)' : 'var(--border-default)',
+          color: recorded ? 'var(--status-alert-fg)' : 'var(--text-secondary)',
         }}
       >
         {recorded ? t('profile.vitalRecorded') : t('profile.vitalNotRecorded')}

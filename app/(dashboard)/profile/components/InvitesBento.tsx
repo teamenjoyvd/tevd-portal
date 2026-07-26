@@ -58,7 +58,7 @@ export function InvitesBento() {
             <div
               key={i}
               className="h-14 rounded-xl animate-pulse"
-              style={{ backgroundColor: 'rgba(0,0,0,0.06)' }}
+              style={{ backgroundColor: 'var(--skeleton-base)' }}
             />
           ))}
         </div>
@@ -68,7 +68,7 @@ export function InvitesBento() {
             <div
               key={label}
               className="rounded-xl px-3 py-2 flex flex-col gap-0.5"
-              style={{ backgroundColor: 'rgba(0,0,0,0.04)' }}
+              style={{ backgroundColor: 'var(--bg-card-raised)' }}
             >
               <span className="text-xl font-bold tabular-nums" style={{ color: 'var(--text-primary)' }}>
                 {value}
@@ -85,7 +85,7 @@ export function InvitesBento() {
       <Link
         href="/profile/invites"
         className="mt-auto text-xs font-semibold px-3 py-2 rounded-xl transition-opacity hover:opacity-70 text-left block"
-        style={{ backgroundColor: 'rgba(0,0,0,0.05)', color: 'var(--text-primary)' }}
+        style={{ backgroundColor: 'var(--border-default)', color: 'var(--text-primary)' }}
       >
         {t('profile.invites.viewAll')} →
       </Link>

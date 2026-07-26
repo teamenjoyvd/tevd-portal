@@ -49,12 +49,16 @@ export type LosSummaryData = { ... }
 ```
 
 Also exports shared constants and utilities used by multiple sections:
-- `PAYMENT_STATUS_STYLES`
-- `REG_STATUS_STYLES`
+- `EXPIRY_TOKEN` — travel-doc expiry state → semantic status token, consumed by `StatusBadge`
 - `VARIABLE_CAP`
 - `ShowMoreButton`
 - `TripRow`
 - `PaymentRow`
+
+Status badges (`PAYMENT_STATUS_STYLES`/`REG_STATUS_STYLES` — removed) are now rendered by
+`app/(dashboard)/profile/components/StatusBadge.tsx`, which resolves a raw status string to
+one of the semantic `--status-*` tokens in `styles/brand-tokens.css` (mirrors
+`components/admin/StatusPill.tsx`, but the caller supplies the label).
 
 ### `app/(dashboard)/profile/components/SortableBento.tsx` (new)
 

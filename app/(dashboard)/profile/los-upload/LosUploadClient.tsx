@@ -9,6 +9,7 @@ import { DropZone } from '@/components/los-import/DropZone'
 import { AssemblySummary } from '@/components/los-import/AssemblySummary'
 import { SubtreePreview, type ChangeStatus, type NodeMeta } from '@/components/los-import/SubtreePreview'
 import { useLanguage } from '@/lib/hooks/useLanguage'
+import { ProfileBackLink } from '../components/ProfileBackLink'
 
 type Submission = {
   id: string
@@ -149,6 +150,7 @@ export function LosUploadClient({ aboNumber }: { aboNumber: string | null }) {
   if (!aboNumber) {
     return (
       <div className="py-8 max-w-[900px] mx-auto px-4 sm:px-6">
+        <ProfileBackLink />
         <h1 className="font-display text-2xl font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Upload your LOS</h1>
         <div className="rounded-xl border px-5 py-8 text-center" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
           <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
@@ -161,6 +163,7 @@ export function LosUploadClient({ aboNumber }: { aboNumber: string | null }) {
 
   return (
     <div className="py-8 pb-16 max-w-[900px] mx-auto px-4 sm:px-6 space-y-6">
+      <ProfileBackLink />
       <div>
         <h1 className="font-display text-2xl font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Upload your LOS</h1>
         <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>

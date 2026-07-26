@@ -1,6 +1,8 @@
 'use client'
 
 import { useLanguage } from '@/lib/hooks/useLanguage'
+import { StatusBadge } from './StatusBadge'
+import { EXPIRY_TOKEN } from '../types'
 
 function getExpiryState(validThrough: string | null): 'ok' | 'warning' | 'critical' | null {
   if (!validThrough) return null
@@ -9,12 +11,6 @@ function getExpiryState(validThrough: string | null): 'ok' | 'warning' | 'critic
   if (diffDays < 90)  return 'critical'
   if (diffDays < 180) return 'warning'
   return 'ok'
-}
-
-const EXPIRY_STYLES = {
-  ok:       'bg-[#81b29a]/10 border-[#81b29a]/30 text-[#2d6a4f]',
-  warning:  'bg-[#f2cc8f]/20 border-[#f2cc8f] text-[#7a5c00]',
-  critical: 'bg-[#bc4749]/10 border-[#bc4749]/40 text-[var(--brand-crimson)]',
 }
 
 export function TravelDocDrawerForm({
@@ -115,7 +111,11 @@ export function TravelDocDrawerForm({
       </div>
 
       {expiryState && (
-        <div className={`rounded-xl border px-4 py-3 text-sm font-medium ${EXPIRY_STYLES[expiryState]}`}>
+        <StatusBadge
+          status={EXPIRY_TOKEN[expiryState]}
+          className="block w-full rounded-xl border px-4 py-3 text-sm font-medium"
+          style={{ borderColor: `color-mix(in srgb, var(--status-${EXPIRY_TOKEN[expiryState]}-fg) 35%, transparent)` }}
+        >
           {EXPIRY_LABELS[expiryState]}
           {form.valid_through && (
             <span className="font-normal ml-1 opacity-70">
@@ -124,7 +124,7 @@ export function TravelDocDrawerForm({
               })}
             </span>
           )}
-        </div>
+        </StatusBadge>
       )}
 
       {isError && (

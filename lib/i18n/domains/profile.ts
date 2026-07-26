@@ -28,6 +28,7 @@ export const profile = {
   'profile.saving':             { en: 'Saving…',                 bg: 'Запазване…'               },
   'profile.saved':              { en: 'Saved ✓',                 bg: 'Запазено ✓'               },
   'profile.edit':               { en: 'Edit',                    bg: 'Редактирай'               },
+  'profile.backToProfile':      { en: 'Back to Profile',         bg: 'Обратно към профила'      },
   'profile.calSub':             { en: 'Calendar Subscription',   bg: 'Абонамент за календар'    },
   'profile.calSubDesc':         { en: 'Subscribe to your personalised calendar feed on your phone or any calendar app.', bg: 'Абонирайте се за персонализирания си календар на телефона или в приложение за календар.' },
   'profile.calSubInstructions': { en: 'Open your phone calendar app → Add calendar → From URL → Paste the link below. Your calendar will update automatically.', bg: 'Отворете приложението за календар → Добавяне на календар → По URL → Поставете линка по-долу. Календарът ви ще се обновява автоматично.' },
