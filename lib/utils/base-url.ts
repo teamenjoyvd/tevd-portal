@@ -7,11 +7,11 @@
  * (email `actionUrl`, ICS feed subscription URL, magic links).
  */
 export async function getBaseUrl(): Promise<string> {
-  const configured = process.env.NEXT_PUBLIC_APP_URL?.trim()
-  if (configured === undefined || configured === '') {
+  const normalized = process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/+$/, '')
+  if (normalized === undefined || normalized === '') {
     throw new Error(
       'NEXT_PUBLIC_APP_URL is not set. Set it in .env.local to build absolute links locally.'
     )
   }
-  return configured.replace(/\/+$/, '')
+  return normalized
 }

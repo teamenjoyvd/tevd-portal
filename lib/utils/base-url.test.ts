@@ -23,4 +23,9 @@ describe('getBaseUrl', () => {
     process.env.NEXT_PUBLIC_APP_URL = '   '
     await expect(getBaseUrl()).rejects.toThrow('NEXT_PUBLIC_APP_URL is not set')
   })
+
+  it('throws when NEXT_PUBLIC_APP_URL is slash-only', async () => {
+    process.env.NEXT_PUBLIC_APP_URL = '////'
+    await expect(getBaseUrl()).rejects.toThrow('NEXT_PUBLIC_APP_URL is not set')
+  })
 })
