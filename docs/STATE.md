@@ -2,13 +2,14 @@
 BUILD issue #666 (2607-DEV-666, branch `dev/2607-DEV-666`): Profile bento standardization 2 — semantic status token consolidation (`StatusBadge`, delete `PAYMENT_STATUS_STYLES`/`REG_STATUS_STYLES`/`EXPIRY_STYLES`), unified `ProfileBackLink` on the 3 drill pages, remaining raw-colour-literal sweep, shadcn `AlertDialog` for trip cancel, `next/link` for AdminSection.
 
 ## Now
-Starting EXECUTE stage. Local branch `claude/build-666-5662de` fast-forwarded to include `origin/dev/2607-DEV-666`'s CLAIM-registration commit (063b990) — CLAIMS.md now has the #666 row, stale #665 row already pruned by that commit.
+PR #670 opened as draft (`Closes #666`), commit 9af5d57 pushed to `dev/2607-DEV-666`. Waiting on CI + Vercel Preview.
 
 ## Next
-1. Step 5: brand-tokens.css neutral tokens + DESIGN-SYSTEM.md doc, StatusBadge.tsx, EXPIRY_TOKEN in types.ts, route shared.tsx/ParticipationSection/InvitesSection through it, TravelDocContent/TravelDocDrawerForm dedupe, remaining literal sweep, profile-refactor.md doc update.
-2. Step 6: ProfileBackLink.tsx + 3 drill pages + i18n key, AlertDialog for shared.tsx TripRow cancel, AdminSection next/link.
-3. Verification per issue's Verification section (build/lint, e2e, both-theme badge check, AlertDialog check, back-link check, admin nav check).
-4. `/code-review low` before first push; push draft PR with `Closes #666`.
+1. Check CI status and Vercel Preview READY on PR #670.
+2. On the Preview: both-theme status-badge check, AlertDialog replaces confirm on trip cancel, back link present/working on all 3 drill pages at 1280/390, `/admin` nav from AdminSection is client-side (not reload).
+3. Run `npm run test:e2e:auth` for real against a real Clerk/Supabase target (not possible in this worktree — no `.env.local`/local Supabase/seeded Clerk users) — paste output.
+4. Mark PR ready for review → one CodeRabbit pass → batched fix push → merge → GCR (remove CLAIMS.md row, close issue).
+5. After merge: no migrations in this PR, so no prod gate to approve — just confirm prod Vercel deploy READY and smoke-check `/profile`.
 
 ## Constraints
 - 390px mobile-first.
