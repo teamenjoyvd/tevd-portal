@@ -1,9 +1,11 @@
 'use client'
 
 import { memo } from 'react'
+import { Settings, Sun, Moon } from 'lucide-react'
 import { useTheme } from '@/lib/hooks/useTheme'
 import { useFontSize, type FontSize } from '@/lib/hooks/useFontSize'
 import { useLanguage } from '@/lib/hooks/useLanguage'
+import { BentoHeader } from './BentoHeader'
 
 const FONT_STEPS: { value: FontSize; label: string; size: number }[] = [
   { value: 'md', label: 'A',  size: 16 },
@@ -17,10 +19,8 @@ export const UserSettingsContent = memo(function UserSettingsContent() {
   const { lang, toggle: toggleLang, t } = useLanguage()
 
   return (
-    <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-      <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-5 pr-24" style={{ color: 'var(--brand-crimson)' }}>
-        {t('profile.settings')}
-      </p>
+    <div>
+      <BentoHeader icon={Settings} title={t('profile.settings')} />
 
       <div className="space-y-5">
         {/* Theme */}
@@ -40,18 +40,7 @@ export const UserSettingsContent = memo(function UserSettingsContent() {
                     border: '1px solid var(--border-default)',
                   }}
                 >
-                  {th === 'light' ? (
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
-                      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="4"/>
-                      <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
-                    </svg>
-                  ) : (
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
-                      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
-                    </svg>
-                  )}
+                  {th === 'light' ? <Sun size={12} /> : <Moon size={12} />}
                   {th === 'light' ? t('profile.theme.light') : t('profile.theme.dark')}
                 </button>
               )

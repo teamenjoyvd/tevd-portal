@@ -2,11 +2,12 @@
 
 import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
+import { BarChart3 } from 'lucide-react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
+import { BentoHeader } from './BentoHeader'
+import { BentoSkeleton } from './BentoSkeleton'
 import { type LosSummaryData } from '../types'
 import { apiClient } from '@/lib/apiClient'
-
-export const STATS_MIN_HEIGHT = 160
 
 export function StatsSection({ role, aboNumber }: { role: string; aboNumber: string | null }) {
   const { t } = useLanguage()
@@ -20,15 +21,20 @@ export function StatsSection({ role, aboNumber }: { role: string; aboNumber: str
   })
 
   if (isLoading) {
-    return <div className="rounded-2xl animate-pulse h-full" style={{ backgroundColor: 'var(--border-default)' }} />
+    return (
+      <div>
+        <BentoHeader icon={BarChart3} title={t('profile.stats')} />
+        <BentoSkeleton rows={2} />
+      </div>
+    )
   }
 
   // Merged LOS bento: show when there are stats to display OR the user (core) can upload.
   if (!losSummary && !isCore) return null
 
   return (
-    <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-      <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-4 pr-24" style={{ color: 'var(--brand-crimson)' }}>{t('profile.stats')}</p>
+    <div>
+      <BentoHeader icon={BarChart3} title={t('profile.stats')} />
       {losSummary && (
         <div className="flex flex-wrap items-center gap-4">
           <div>

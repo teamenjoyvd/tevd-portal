@@ -34,6 +34,7 @@ export const profile = {
   'profile.calSubCopy':         { en: 'Copy link',               bg: 'Копирай линк'             },
   'profile.calSubCopied':       { en: 'Copied!',                 bg: 'Копирано!'                },
   'profile.calSubRegenerate':   { en: 'Regenerate',              bg: 'Регенерирай'              },
+  'profile.calGenerating':      { en: 'Generating…',            bg: 'Генериране…'              },
   'profile.calSubRegenerateConfirmTitle': { en: 'Regenerate your calendar link?', bg: 'Регенериране на линка за календара?' },
   'profile.calSubRegenerateConfirmDesc':  { en: 'Your old link will stop working.', bg: 'Старият линк ще спре да работи.' },
   'profile.calDisplayName':     { en: 'Calendar display name',   bg: 'Показвано име на календара' },
@@ -119,6 +120,7 @@ export const profile = {
   'profile.vitalRecorded':            { en: '✓ Recorded',                                       bg: '✓ Записано'                                      },
   'profile.vitalNotRecorded':         { en: '○ Not recorded',                                   bg: '○ Не е записано'                                 },
   'profile.vitalSigns.adminNote':     { en: 'Your coach logs these after events.',               bg: 'Вашият треньор записва тези след събития.'        },
+  'profile.vitalSigns.empty':         { en: 'No vital signs recorded yet.',                      bg: 'Все още няма записани жизнени показатели.'        },
   // StatsSection
   'profile.stats':                    { en: 'STATS',                                            bg: 'СТАТИСТИКА'                                      },
   'profile.statsDepth':               { en: 'Depth',                                            bg: 'Дълбочина'                                       },

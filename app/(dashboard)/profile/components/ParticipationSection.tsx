@@ -2,14 +2,16 @@
 
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { Users } from 'lucide-react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { Drawer } from '@/components/ui/drawer'
 import { formatDate } from '@/lib/format'
+import { BentoHeader } from './BentoHeader'
+import { BentoSkeleton } from './BentoSkeleton'
+import { BentoEmpty } from './BentoEmpty'
 import { type EventRoleRequest, VARIABLE_CAP, REG_STATUS_STYLES } from '../types'
 import { ShowMoreButton } from './shared'
 import { apiClient } from '@/lib/apiClient'
-
-export const PARTICIPATION_MIN_HEIGHT = 280
 
 export function ParticipationSection({ profileId, role }: { profileId: string; role: string }) {
   const { t } = useLanguage()
@@ -23,7 +25,12 @@ export function ParticipationSection({ profileId, role }: { profileId: string; r
   })
 
   if (isLoading) {
-    return <div className="rounded-2xl animate-pulse h-full" style={{ backgroundColor: 'var(--border-default)' }} />
+    return (
+      <div>
+        <BentoHeader icon={Users} title={t('profile.participation')} />
+        <BentoSkeleton rows={2} />
+      </div>
+    )
   }
 
   const roles = eventRolesData ?? []
@@ -52,13 +59,10 @@ export function ParticipationSection({ profileId, role }: { profileId: string; r
 
   return (
     <>
-      <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-        <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-6 pr-24" style={{ color: 'var(--brand-crimson)' }}>{t('profile.participation')}</p>
+      <div>
+        <BentoHeader icon={Users} title={t('profile.participation')} />
         {roles.length === 0 ? (
-          <div className="space-y-1">
-            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('profile.participation.empty')}</p>
-            <p className="text-xs" style={{ color: 'var(--text-secondary)', opacity: 0.7 }}>{t('profile.participation.emptyHint')}</p>
-          </div>
+          <BentoEmpty message={t('profile.participation.empty')} hint={t('profile.participation.emptyHint')} />
         ) : (
           <div className="space-y-2">
             {visible.map(er => <RoleRow key={er.id} er={er} />)}
