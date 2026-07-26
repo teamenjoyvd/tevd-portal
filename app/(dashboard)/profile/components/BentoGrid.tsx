@@ -23,7 +23,7 @@ import { SortableBento, DragHandle } from './SortableBento'
 // loaded by ProfileClient.tsx (next/dynamic, ssr:false) so mobile never
 // pulls this chunk in.
 
-type BentoEntry = { colSpan: number; minHeight: number; node: React.ReactNode }
+type BentoEntry = { colSpan: number; minHeight: number; node: React.ReactNode; cardStyle?: React.CSSProperties }
 
 function SortableBentoItem({
   id,
@@ -60,6 +60,7 @@ function SortableBentoItem({
         opacity: isDragging ? 0.5 : 1,
       }}
       dragHandle={<DragHandle ref={setActivatorNodeRef} {...attributes} {...listeners} />}
+      cardStyle={entry.cardStyle}
     >
       {entry.node}
     </SortableBento>
@@ -95,7 +96,7 @@ export default function BentoGrid({
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={orderedBentos.map(b => b.id)} strategy={rectSortingStrategy}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: '12px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: 'var(--bento-gap)' }}>
           {orderedBentos.map(({ id, entry }) => (
             <SortableBentoItem
               key={id}

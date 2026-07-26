@@ -2,14 +2,16 @@
 
 import { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { HeartPulse } from 'lucide-react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { Drawer } from '@/components/ui/drawer'
 import { isVitalRecorded } from '@/lib/vitals'
+import { BentoHeader } from './BentoHeader'
+import { BentoSkeleton } from './BentoSkeleton'
+import { BentoEmpty } from './BentoEmpty'
 import { type ProfileVitalSign, VARIABLE_CAP } from '../types'
 import { ShowMoreButton } from './shared'
 import { apiClient } from '@/lib/apiClient'
-
-export const VITALS_MIN_HEIGHT = 280
 
 function VitalCard({ vs }: { vs: ProfileVitalSign }) {
   const { t } = useLanguage()
@@ -69,7 +71,12 @@ export function VitalsSection({ profileId, role }: { profileId: string; role: st
   )
 
   if (isLoading) {
-    return <div className="rounded-2xl animate-pulse h-full" style={{ backgroundColor: 'var(--border-default)' }} />
+    return (
+      <div>
+        <BentoHeader icon={HeartPulse} title={t('profile.vitalSigns')} subtitle={t('profile.vitalSigns.adminNote')} />
+        <BentoSkeleton rows={2} />
+      </div>
+    )
   }
 
   const visible = vitals.slice(0, VARIABLE_CAP)
@@ -77,21 +84,16 @@ export function VitalsSection({ profileId, role }: { profileId: string; role: st
 
   return (
     <>
-      <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-        <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-1 pr-24" style={{ color: 'var(--brand-crimson)' }}>
-          {t('profile.vitalSigns')}
-        </p>
-        <p className="text-xs mb-4" style={{ color: 'var(--text-secondary)' }}>
-          {t('profile.vitalSigns.adminNote')}
-        </p>
-        <div className="grid grid-cols-2 gap-2">
-          {visible.map(vs => <VitalCard key={vs.definition_id} vs={vs} />)}
-        </div>
-        {overflow > 0 && (
-          <div>
-            <ShowMoreButton count={overflow} onClick={() => setDrawerOpen(true)} />
+      <div>
+        <BentoHeader icon={HeartPulse} title={t('profile.vitalSigns')} subtitle={t('profile.vitalSigns.adminNote')} />
+        {visible.length === 0 ? (
+          <BentoEmpty message={t('profile.vitalSigns.empty')} />
+        ) : (
+          <div className="grid grid-cols-2 gap-2">
+            {visible.map(vs => <VitalCard key={vs.definition_id} vs={vs} />)}
           </div>
         )}
+        {overflow > 0 && <ShowMoreButton count={overflow} onClick={() => setDrawerOpen(true)} />}
       </div>
 
       <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title={t('profile.allVitalSigns')}>

@@ -2,13 +2,15 @@
 
 import { useState, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { Luggage } from 'lucide-react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { Drawer } from '@/components/ui/drawer'
+import { BentoHeader } from './BentoHeader'
+import { BentoSkeleton } from './BentoSkeleton'
+import { BentoEmpty } from './BentoEmpty'
 import { type TripEntry, VARIABLE_CAP } from '../types'
 import { TripRow, ShowMoreButton } from './shared'
 import { apiClient } from '@/lib/apiClient'
-
-export const TRIPS_MIN_HEIGHT = 280
 
 export function TripsSection({ profileId, role }: { profileId: string; role: string }) {
   const { t } = useLanguage()
@@ -31,7 +33,12 @@ export function TripsSection({ profileId, role }: { profileId: string; role: str
   const handleCancel = useCallback((tripId: string) => { cancelTrip.mutate(tripId) }, [cancelTrip])
 
   if (isLoading) {
-    return <div className="rounded-2xl animate-pulse h-full" style={{ backgroundColor: 'var(--border-default)' }} />
+    return (
+      <div>
+        <BentoHeader icon={Luggage} title={t('profile.trips')} />
+        <BentoSkeleton rows={2} />
+      </div>
+    )
   }
 
   const trips = tripsData ?? []
@@ -40,13 +47,10 @@ export function TripsSection({ profileId, role }: { profileId: string; role: str
 
   return (
     <>
-      <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-        <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-4 pr-24" style={{ color: 'var(--brand-crimson)' }}>{t('profile.trips')}</p>
+      <div>
+        <BentoHeader icon={Luggage} title={t('profile.trips')} />
         {trips.length === 0 ? (
-          <div className="space-y-1">
-            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('profile.trips.empty')}</p>
-            <p className="text-xs" style={{ color: 'var(--text-secondary)', opacity: 0.7 }}>{t('profile.trips.emptyHint')}</p>
-          </div>
+          <BentoEmpty message={t('profile.trips.empty')} hint={t('profile.trips.emptyHint')} />
         ) : (
           <div className="space-y-2">
             {visible.map(entry => (

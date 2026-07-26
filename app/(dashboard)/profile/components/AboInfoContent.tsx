@@ -3,8 +3,11 @@
 import { memo, useState } from 'react'
 import Link from 'next/link'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { IdCard, Check } from 'lucide-react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { getRoleColors } from '@/lib/role-colors'
+import { BentoHeader } from './BentoHeader'
+import { BentoSkeleton } from './BentoSkeleton'
 import { type SpouseLinkRequest } from '../types'
 import { apiClient } from '@/lib/apiClient'
 import { useProfile } from '../useProfile'
@@ -142,14 +145,9 @@ export const AboInfoContent = memo(function AboInfoContent() {
 
   if (role === 'guest' && profileIsPending) {
     return (
-      <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-        <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-5 pr-24" style={{ color: 'var(--brand-crimson)' }}>
-          {t('profile.tile.aboInfo')}
-        </p>
-        <div className="space-y-3 animate-pulse">
-          <div className="h-4 rounded-lg w-3/4" style={{ backgroundColor: 'var(--border-default)' }} />
-          <div className="h-4 rounded-lg w-1/2" style={{ backgroundColor: 'var(--border-default)' }} />
-        </div>
+      <div>
+        <BentoHeader icon={IdCard} title={t('profile.tile.aboInfo')} />
+        <BentoSkeleton rows={2} />
       </div>
     )
   }
@@ -181,10 +179,8 @@ export const AboInfoContent = memo(function AboInfoContent() {
     /stale|old|outdated|re.import/i.test(verRequest.admin_note)
 
   return (
-    <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-      <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-5 pr-24" style={{ color: 'var(--brand-crimson)' }}>
-        {t('profile.tile.aboInfo')}
-      </p>
+    <div>
+      <BentoHeader icon={IdCard} title={t('profile.tile.aboInfo')} />
 
       {aboMode === 'confirmed' && (
         <div className="space-y-3">
@@ -200,7 +196,7 @@ export const AboInfoContent = memo(function AboInfoContent() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <p className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>{t('profile.aboHash')}</p>
             <p className="text-sm font-medium font-mono" style={{ color: 'var(--text-primary)' }}>
-              {aboNumber} <span style={{ color: '#2d6a4f' }}>✓</span>
+              {aboNumber} <Check size={14} className="inline-block align-text-bottom" style={{ color: '#2d6a4f' }} />
             </p>
           </div>
           <div style={{ borderTop: '1px solid var(--border-default)', paddingTop: 10 }}>

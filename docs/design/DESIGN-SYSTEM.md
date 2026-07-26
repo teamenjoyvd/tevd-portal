@@ -71,7 +71,7 @@ Hierarchical shadow system for layering UI surfaces. All shadows are defined in
 | `--shadow-hover` | Hover state of interactive cards (`.interactive-lift` class) | `0 2px 4px rgba(45, 51, 42, 0.05), 0 12px 24px -8px rgba(45, 51, 42, 0.10)` |
 | `--shadow-modal` | Overlay surfaces (dialog, sheet, popover, dropdown) | `0 4px 12px rgba(26, 31, 24, 0.08), 0 24px 48px -12px rgba(26, 31, 24, 0.18)` |
 
-Dark mode uses the same token names with parchment-tinted values for consistency.
+Dark mode redefines the same token names with the same blur/offset geometry, tint swapped from the light forest base to the dark `--brand-void` base at roughly 3x the alpha — a shadow needs more opacity to read against a dark surface.
 
 ## Component States
 

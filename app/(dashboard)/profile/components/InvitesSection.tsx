@@ -50,8 +50,6 @@ function fmt(d: string | null): string {
   return d !== null ? formatDate(d) : '—'
 }
 
-export const INVITES_MIN_HEIGHT = 240
-
 // ── Component ────────────────────────────────────────────────────────────────
 
 export function InvitesSection() {

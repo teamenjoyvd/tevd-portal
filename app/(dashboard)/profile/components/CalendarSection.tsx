@@ -2,8 +2,10 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Copy, Check, RefreshCw, Save } from 'lucide-react'
+import { Copy, Check, RefreshCw, Save, Calendar as CalendarIcon } from 'lucide-react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
+import { BentoHeader } from './BentoHeader'
+import { BentoSkeleton } from './BentoSkeleton'
 import {
   AlertDialog,
   AlertDialogContent,
@@ -16,10 +18,6 @@ import {
 } from '@/components/ui/alert-dialog'
 import { apiClient } from '@/lib/apiClient'
 import { useProfile } from '../useProfile'
-
-export const CALENDAR_MIN_HEIGHT = 160
-
-const DEFAULT_CALENDAR_NAME = 'teamenjoyVD'
 
 export function CalendarSection({ profileId }: { profileId: string }) {
   const { t } = useLanguage()
@@ -41,7 +39,7 @@ export function CalendarSection({ profileId }: { profileId: string }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fullProfile?.id, savedDisplayName])
 
-  const { data: calData, refetch: refetchCal } = useQuery<{ url: string }>({
+  const { data: calData, isLoading: calLoading, refetch: refetchCal } = useQuery<{ url: string }>({
     queryKey: ['cal-feed-token'],
     queryFn: () => apiClient('/api/calendar/feed-token'),
     enabled: !!profileId,
@@ -84,15 +82,24 @@ export function CalendarSection({ profileId }: { profileId: string }) {
     saveDisplayName.mutate(displayName)
   }, [displayName, saveDisplayName])
 
+  if (calLoading === true) {
+    return (
+      <div>
+        <BentoHeader icon={CalendarIcon} title={t('profile.calSub')} />
+        <BentoSkeleton rows={2} />
+      </div>
+    )
+  }
+
   return (
-    <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-      <p className="text-xs font-semibold tracking-widest uppercase mb-1" style={{ color: 'var(--text-secondary)' }}>{t('profile.calSub')}</p>
+    <div>
+      <BentoHeader icon={CalendarIcon} title={t('profile.calSub')} />
       <p className="text-xs mb-1 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{t('profile.calSubDesc')}</p>
       <p className="text-xs mb-3 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{t('profile.calSubInstructions')}</p>
 
       {/* Feed URL row */}
       <div className="flex items-center gap-2">
-        <input readOnly value={calData?.url ?? ''} placeholder="Generating…"
+        <input readOnly value={calData?.url ?? ''} placeholder={t('profile.calGenerating')}
           className="flex-1 min-w-0 border rounded-xl px-3 py-2 text-xs font-mono truncate"
           style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)', backgroundColor: 'var(--bg-global)' }} />
         <button
