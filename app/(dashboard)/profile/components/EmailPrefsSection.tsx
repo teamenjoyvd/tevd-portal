@@ -2,13 +2,14 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { Mail } from 'lucide-react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { Switch } from '@/components/ui/switch'
+import { BentoHeader } from './BentoHeader'
+import { BentoSkeleton } from './BentoSkeleton'
 import { type NotificationPrefs, DEFAULT_NOTIFICATION_PREFS } from '../types'
 import { apiClient } from '@/lib/apiClient'
 import { useProfile } from '../useProfile'
-
-export const EMAIL_PREFS_MIN_HEIGHT = 280
 
 type PrefKey = keyof NotificationPrefs
 
@@ -29,7 +30,7 @@ export function EmailPrefsSection() {
   const { t } = useLanguage()
   const qc = useQueryClient()
 
-  const { data: profile } = useProfile()
+  const { data: profile, isLoading } = useProfile()
   const prefs = profile?.notification_prefs ?? DEFAULT_NOTIFICATION_PREFS
 
   const [local, setLocal] = useState<NotificationPrefs>(prefs)
@@ -62,26 +63,35 @@ export function EmailPrefsSection() {
     })
   }, [save.mutate])
 
-  return (
-    <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-      {/* Eyebrow */}
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-xs font-semibold tracking-[0.25em] uppercase" style={{ color: 'var(--brand-crimson)' }}>
-          {t('profile.emailNotifications')}
-        </p>
-        <div className="flex items-center gap-2">
-          {saved && (
-            <span className="text-xs font-medium" style={{ color: 'var(--brand-forest)' }}>
-              {t('profile.saved')}
-            </span>
-          )}
-          {save.isError && (
-            <span className="text-xs font-medium" style={{ color: 'var(--brand-crimson)' }}>
-              {t('profile.error')}
-            </span>
-          )}
-        </div>
+  if (isLoading) {
+    return (
+      <div>
+        <BentoHeader icon={Mail} title={t('profile.emailNotifications')} />
+        <BentoSkeleton rows={5} />
       </div>
+    )
+  }
+
+  return (
+    <div>
+      <BentoHeader
+        icon={Mail}
+        title={t('profile.emailNotifications')}
+        action={
+          <div className="flex items-center gap-2">
+            {saved && (
+              <span className="text-xs font-medium" style={{ color: 'var(--brand-forest)' }}>
+                {t('profile.saved')}
+              </span>
+            )}
+            {save.isError && (
+              <span className="text-xs font-medium" style={{ color: 'var(--brand-crimson)' }}>
+                {t('profile.error')}
+              </span>
+            )}
+          </div>
+        }
+      />
 
       {/* Rows */}
       <div className="space-y-3">
