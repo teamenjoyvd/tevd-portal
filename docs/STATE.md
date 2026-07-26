@@ -2,14 +2,15 @@
 BUILD issue #665 (2607-DEV-665, branch `dev/2607-DEV-665`): migrate all 13 `/profile` bentos onto the shared `BentoCard`/`.card` design system — shell, header, skeleton, empty state, elevation tokens.
 
 ## Now
-Step 3a next: headers — all 13 content components → `<BentoHeader>`.
+All of Step 1/2/3/4 (issue's own numbered plan) implemented and committed. Running `/code-review low` next, then push + draft PR.
 
 ## Next
-1. Step 3a — headers: all 13 components → `<BentoHeader>`; fix missing `pr-24`/gutter clearance (Calendar, EmailPrefs, InvitesBento); Vitals subtitle prop; Admin `tone="teal"`.
-2. Step 3b — skeletons: all 13 → `<BentoSkeleton>`, add missing states to `CalendarSection`/`EmailPrefsSection`.
-3. Step 3c — empty states/icons: `<BentoEmpty>`, lucide icon swaps, dead-code removal per issue (`DEFAULT_CALENDAR_NAME`, unused `formatCurrency` import in PaymentsSection, redundant `ShowMoreButton` wrapper div in VitalsSection).
-4. Verification pass per issue's `## Verification` section (build, lint, e2e local, 1280/390 screenshots, dark theme incl. `/` and `/about`).
-5. `/code-review low` before push; open draft PR `Closes #665`.
+1. `/code-review low` on the branch diff; fix findings locally.
+2. Push `dev/2607-DEV-665`, open draft PR `Closes #665`.
+3. Wait for CI green + Vercel Preview READY — this is the actual verification gate; local browser check is blocked in this worktree (no Supabase env vars, confirmed by starting the dev server: `Error: supabaseUrl is required` at `lib/supabase/service.ts:8`, same gap as #613/#608/#607).
+4. On the Preview: confirm 1280px chrome doesn't overlap Calendar/EmailPrefs/InvitesBento headers, 390px no horizontal overflow, dark theme on all 13 bentos + `/` + `/about` + one modal (Step 1 touched shared `--shadow-*` tokens), loading throttle shows header+shimmer with no vanish/pop and correct switch positions on EmailPrefsSection.
+5. Run `npm run test:e2e:auth` + `npm run test:mobile` for real against a real Clerk/Supabase target (not possible in this worktree) — paste output, since CI's authenticated E2E job is a known skip.
+6. Mark PR ready for review → one CodeRabbit pass → batched fix push → merge → GCR (remove CLAIMS.md row, close issue).
 
 ## Constraints
 - 390px mobile-first — every bento must render correctly at 390px, including the mobile static-stack path.
