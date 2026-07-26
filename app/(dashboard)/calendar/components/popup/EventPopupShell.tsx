@@ -219,7 +219,7 @@ export default function EventPopupShell({
                 </button>
               </div>
             </DialogHeader>
-            {qrDataUrl && (
+            {qrDataUrl !== null && (
               <div className="flex flex-col items-center gap-4">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
