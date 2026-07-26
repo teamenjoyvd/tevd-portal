@@ -6,4 +6,4 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
-| #665 | `dev/2607-DEV-665` | `components/bento/BentoCard.tsx`, `styles/brand-tokens.css`, `docs/design/DESIGN-SYSTEM.md`, `docs/architecture/DECISIONS.md`, all of `app/(dashboard)/profile/components/` (13 content components + shared shell), `e2e/profile-bento-auth.spec.ts`; migration: no | 2026-07-26T00:00:00Z |
+| #666 | `dev/2607-DEV-666` | `styles/brand-tokens.css`, `app/(dashboard)/profile/types.ts`, `app/(dashboard)/profile/components/` (`StatusBadge.tsx` new, `ProfileBackLink.tsx` new, `shared.tsx`, `ParticipationSection.tsx`, `InvitesSection.tsx`, `AboInfoContent.tsx`, `VitalsSection.tsx`, `InvitesBento.tsx`, `PaymentsSection.tsx`, `CalendarSection.tsx`, `AdminSection.tsx`, `TravelDocContent.tsx`, `TravelDocDrawerForm.tsx`), `app/(dashboard)/profile/invites/page.tsx`, `app/(dashboard)/profile/los-upload/LosUploadClient.tsx`, `app/(dashboard)/profile/spouse-link/SpouseLinkClient.tsx`, `lib/i18n/translations.ts`, `docs/features/profile-refactor.md`; migration: no | 2026-07-26T00:00:00Z |
