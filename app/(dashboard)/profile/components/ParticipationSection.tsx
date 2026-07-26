@@ -7,6 +7,7 @@ import { useLanguage } from '@/lib/hooks/useLanguage'
 import { Drawer } from '@/components/ui/drawer'
 import { formatDate } from '@/lib/format'
 import { BentoHeader } from './BentoHeader'
+import { BentoSkeleton } from './BentoSkeleton'
 import { type EventRoleRequest, VARIABLE_CAP, REG_STATUS_STYLES } from '../types'
 import { ShowMoreButton } from './shared'
 import { apiClient } from '@/lib/apiClient'
@@ -23,7 +24,12 @@ export function ParticipationSection({ profileId, role }: { profileId: string; r
   })
 
   if (isLoading) {
-    return <div className="animate-pulse h-full rounded-lg" style={{ backgroundColor: 'var(--border-default)' }} />
+    return (
+      <div>
+        <BentoHeader icon={Users} title={t('profile.participation')} />
+        <BentoSkeleton rows={2} />
+      </div>
+    )
   }
 
   const roles = eventRolesData ?? []

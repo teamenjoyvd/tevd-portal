@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { BarChart3 } from 'lucide-react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { BentoHeader } from './BentoHeader'
+import { BentoSkeleton } from './BentoSkeleton'
 import { type LosSummaryData } from '../types'
 import { apiClient } from '@/lib/apiClient'
 
@@ -20,7 +21,12 @@ export function StatsSection({ role, aboNumber }: { role: string; aboNumber: str
   })
 
   if (isLoading) {
-    return <div className="animate-pulse h-full rounded-lg" style={{ backgroundColor: 'var(--border-default)' }} />
+    return (
+      <div>
+        <BentoHeader icon={BarChart3} title={t('profile.stats')} />
+        <BentoSkeleton rows={2} />
+      </div>
+    )
   }
 
   // Merged LOS bento: show when there are stats to display OR the user (core) can upload.

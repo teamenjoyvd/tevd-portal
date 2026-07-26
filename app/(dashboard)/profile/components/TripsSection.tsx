@@ -6,6 +6,7 @@ import { Luggage } from 'lucide-react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { Drawer } from '@/components/ui/drawer'
 import { BentoHeader } from './BentoHeader'
+import { BentoSkeleton } from './BentoSkeleton'
 import { type TripEntry, VARIABLE_CAP } from '../types'
 import { TripRow, ShowMoreButton } from './shared'
 import { apiClient } from '@/lib/apiClient'
@@ -31,7 +32,12 @@ export function TripsSection({ profileId, role }: { profileId: string; role: str
   const handleCancel = useCallback((tripId: string) => { cancelTrip.mutate(tripId) }, [cancelTrip])
 
   if (isLoading) {
-    return <div className="animate-pulse h-full rounded-lg" style={{ backgroundColor: 'var(--border-default)' }} />
+    return (
+      <div>
+        <BentoHeader icon={Luggage} title={t('profile.trips')} />
+        <BentoSkeleton rows={2} />
+      </div>
+    )
   }
 
   const trips = tripsData ?? []

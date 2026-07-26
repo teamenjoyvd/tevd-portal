@@ -7,6 +7,7 @@ import { useLanguage } from '@/lib/hooks/useLanguage'
 import { Drawer } from '@/components/ui/drawer'
 import { TravelDocDrawerForm } from './TravelDocDrawerForm'
 import { BentoHeader } from './BentoHeader'
+import { BentoSkeleton } from './BentoSkeleton'
 import { type Profile } from '../types'
 import { apiClient } from '@/lib/apiClient'
 import { useProfile } from '../useProfile'
@@ -149,12 +150,9 @@ export const TravelDocContent = memo(function TravelDocContent() {
 
   if (isLoading || !profile) {
     return (
-      <div className="animate-pulse">
-        <div className="h-3 rounded w-1/2 mb-5" style={{ backgroundColor: 'var(--border-default)' }} />
-        <div className="space-y-3">
-          <div className="h-3 rounded w-3/4" style={{ backgroundColor: 'var(--border-default)' }} />
-          <div className="h-3 rounded w-1/2" style={{ backgroundColor: 'var(--border-default)' }} />
-        </div>
+      <div>
+        <BentoHeader icon={Plane} title={t('profile.tile.travelDoc')} />
+        <BentoSkeleton rows={3} />
       </div>
     )
   }

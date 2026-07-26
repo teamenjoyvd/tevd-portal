@@ -8,6 +8,7 @@ import { Drawer } from '@/components/ui/drawer'
 import { PaymentForm } from '@/components/payment/PaymentForm'
 import { formatCurrency } from '@/lib/format'
 import { BentoHeader } from './BentoHeader'
+import { BentoSkeleton } from './BentoSkeleton'
 import { type TripEntry, type GenericPayment, type PayableItem, VARIABLE_CAP } from '../types'
 import { PaymentRow, ShowMoreButton } from './shared'
 import { apiClient } from '@/lib/apiClient'
@@ -85,7 +86,12 @@ export function PaymentsSection({ profileId, role }: { profileId: string; role: 
   const handleOpenSubmit = useCallback(() => setSubmitDrawerOpen(true), [])
 
   if (isLoading) {
-    return <div className="animate-pulse h-full rounded-lg" style={{ backgroundColor: 'var(--border-default)' }} />
+    return (
+      <div>
+        <BentoHeader icon={CreditCard} title={t('payment.title')} />
+        <BentoSkeleton rows={3} />
+      </div>
+    )
   }
 
   const allPayments = paymentsData ?? []

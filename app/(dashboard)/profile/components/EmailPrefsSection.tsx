@@ -6,6 +6,7 @@ import { Mail } from 'lucide-react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { Switch } from '@/components/ui/switch'
 import { BentoHeader } from './BentoHeader'
+import { BentoSkeleton } from './BentoSkeleton'
 import { type NotificationPrefs, DEFAULT_NOTIFICATION_PREFS } from '../types'
 import { apiClient } from '@/lib/apiClient'
 import { useProfile } from '../useProfile'
@@ -29,7 +30,7 @@ export function EmailPrefsSection() {
   const { t } = useLanguage()
   const qc = useQueryClient()
 
-  const { data: profile } = useProfile()
+  const { data: profile, isLoading } = useProfile()
   const prefs = profile?.notification_prefs ?? DEFAULT_NOTIFICATION_PREFS
 
   const [local, setLocal] = useState<NotificationPrefs>(prefs)
@@ -61,6 +62,15 @@ export function EmailPrefsSection() {
       return next
     })
   }, [save.mutate])
+
+  if (isLoading) {
+    return (
+      <div>
+        <BentoHeader icon={Mail} title={t('profile.emailNotifications')} />
+        <BentoSkeleton rows={5} />
+      </div>
+    )
+  }
 
   return (
     <div>

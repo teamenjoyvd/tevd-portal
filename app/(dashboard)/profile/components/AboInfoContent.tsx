@@ -7,6 +7,7 @@ import { IdCard } from 'lucide-react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { getRoleColors } from '@/lib/role-colors'
 import { BentoHeader } from './BentoHeader'
+import { BentoSkeleton } from './BentoSkeleton'
 import { type SpouseLinkRequest } from '../types'
 import { apiClient } from '@/lib/apiClient'
 import { useProfile } from '../useProfile'
@@ -146,10 +147,7 @@ export const AboInfoContent = memo(function AboInfoContent() {
     return (
       <div>
         <BentoHeader icon={IdCard} title={t('profile.tile.aboInfo')} />
-        <div className="space-y-3 animate-pulse">
-          <div className="h-4 rounded-lg w-3/4" style={{ backgroundColor: 'var(--border-default)' }} />
-          <div className="h-4 rounded-lg w-1/2" style={{ backgroundColor: 'var(--border-default)' }} />
-        </div>
+        <BentoSkeleton rows={2} />
       </div>
     )
   }

@@ -7,6 +7,7 @@ import { useLanguage } from '@/lib/hooks/useLanguage'
 import { Drawer } from '@/components/ui/drawer'
 import { isVitalRecorded } from '@/lib/vitals'
 import { BentoHeader } from './BentoHeader'
+import { BentoSkeleton } from './BentoSkeleton'
 import { type ProfileVitalSign, VARIABLE_CAP } from '../types'
 import { ShowMoreButton } from './shared'
 import { apiClient } from '@/lib/apiClient'
@@ -69,7 +70,12 @@ export function VitalsSection({ profileId, role }: { profileId: string; role: st
   )
 
   if (isLoading) {
-    return <div className="animate-pulse h-full rounded-lg" style={{ backgroundColor: 'var(--border-default)' }} />
+    return (
+      <div>
+        <BentoHeader icon={HeartPulse} title={t('profile.vitalSigns')} subtitle={t('profile.vitalSigns.adminNote')} />
+        <BentoSkeleton rows={2} />
+      </div>
+    )
   }
 
   const visible = vitals.slice(0, VARIABLE_CAP)

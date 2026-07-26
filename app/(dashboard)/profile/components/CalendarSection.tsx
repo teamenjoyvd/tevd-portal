@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Copy, Check, RefreshCw, Save, Calendar as CalendarIcon } from 'lucide-react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { BentoHeader } from './BentoHeader'
+import { BentoSkeleton } from './BentoSkeleton'
 import {
   AlertDialog,
   AlertDialogContent,
@@ -40,7 +41,7 @@ export function CalendarSection({ profileId }: { profileId: string }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fullProfile?.id, savedDisplayName])
 
-  const { data: calData, refetch: refetchCal } = useQuery<{ url: string }>({
+  const { data: calData, isLoading: calLoading, refetch: refetchCal } = useQuery<{ url: string }>({
     queryKey: ['cal-feed-token'],
     queryFn: () => apiClient('/api/calendar/feed-token'),
     enabled: !!profileId,
@@ -82,6 +83,15 @@ export function CalendarSection({ profileId }: { profileId: string }) {
   const handleSaveName = useCallback(() => {
     saveDisplayName.mutate(displayName)
   }, [displayName, saveDisplayName])
+
+  if (calLoading) {
+    return (
+      <div>
+        <BentoHeader icon={CalendarIcon} title={t('profile.calSub')} />
+        <BentoSkeleton rows={2} />
+      </div>
+    )
+  }
 
   return (
     <div>
