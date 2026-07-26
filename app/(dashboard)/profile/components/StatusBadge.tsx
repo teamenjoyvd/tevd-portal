@@ -21,6 +21,7 @@ const STATUS_TOKEN_MAP: Record<string, StatusToken> = {
   expiring:  'info',
   cancelled: 'neutral',
   revoked:   'neutral',
+  inactive:  'neutral',
   // Identity entries — lets callers (e.g. EXPIRY_TOKEN in ../types.ts) pass an
   // already-resolved token name straight through instead of a raw status.
   success:   'success',
