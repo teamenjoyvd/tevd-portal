@@ -145,7 +145,7 @@ export const PersonalDetailsContent = memo(function PersonalDetailsContent() {
 
   if (isLoading || !profile) {
     return (
-      <div className="rounded-2xl p-6 h-full animate-pulse" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+      <div className="animate-pulse">
         <div className="h-3 rounded w-1/2 mb-5" style={{ backgroundColor: 'var(--border-default)' }} />
         <div className="space-y-3">
           <div className="h-3 rounded w-3/4" style={{ backgroundColor: 'var(--border-default)' }} />
@@ -160,15 +160,7 @@ export const PersonalDetailsContent = memo(function PersonalDetailsContent() {
 
   return (
     <>
-      <div
-        className="rounded-2xl p-6 h-full"
-        style={{
-          backgroundColor: 'var(--bg-card)',
-          border: incomplete
-            ? '1px solid var(--brand-crimson)'
-            : '1px solid var(--border-default)',
-        }}
-      >
+      <div>
         <div className="flex items-center justify-between mb-5 pr-24">
           <p className="text-xs font-semibold tracking-[0.25em] uppercase" style={{ color: 'var(--brand-crimson)' }}>
             {t('profile.tile.personalDetails')}

@@ -8,8 +8,6 @@ import { type NotificationPrefs, DEFAULT_NOTIFICATION_PREFS } from '../types'
 import { apiClient } from '@/lib/apiClient'
 import { useProfile } from '../useProfile'
 
-export const EMAIL_PREFS_MIN_HEIGHT = 280
-
 type PrefKey = keyof NotificationPrefs
 
 interface PrefRow {
@@ -63,7 +61,7 @@ export function EmailPrefsSection() {
   }, [save.mutate])
 
   return (
-    <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+    <div>
       {/* Eyebrow */}
       <div className="flex items-center justify-between mb-4">
         <p className="text-xs font-semibold tracking-[0.25em] uppercase" style={{ color: 'var(--brand-crimson)' }}>

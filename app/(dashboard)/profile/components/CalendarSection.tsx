@@ -17,8 +17,6 @@ import {
 import { apiClient } from '@/lib/apiClient'
 import { useProfile } from '../useProfile'
 
-export const CALENDAR_MIN_HEIGHT = 160
-
 const DEFAULT_CALENDAR_NAME = 'teamenjoyVD'
 
 export function CalendarSection({ profileId }: { profileId: string }) {
@@ -85,7 +83,7 @@ export function CalendarSection({ profileId }: { profileId: string }) {
   }, [displayName, saveDisplayName])
 
   return (
-    <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+    <div>
       <p className="text-xs font-semibold tracking-widest uppercase mb-1" style={{ color: 'var(--text-secondary)' }}>{t('profile.calSub')}</p>
       <p className="text-xs mb-1 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{t('profile.calSubDesc')}</p>
       <p className="text-xs mb-3 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{t('profile.calSubInstructions')}</p>

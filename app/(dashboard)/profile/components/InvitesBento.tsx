@@ -46,7 +46,7 @@ export function InvitesBento() {
   ]
 
   return (
-    <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+    <div>
       <div className="flex flex-col gap-4 h-full">
         {/* Header */}
         <p className="text-[10px] font-semibold tracking-widest uppercase" style={{ color: 'var(--text-secondary)' }}>

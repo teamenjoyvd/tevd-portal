@@ -10,8 +10,6 @@ import { type TripEntry, type GenericPayment, type PayableItem, VARIABLE_CAP } f
 import { PaymentRow, ShowMoreButton } from './shared'
 import { apiClient } from '@/lib/apiClient'
 
-export const PAYMENTS_MIN_HEIGHT = 280
-
 function groupByItem(payments: GenericPayment[]): Record<string, GenericPayment[]> {
   const map: Record<string, GenericPayment[]> = {}
   for (const pay of payments) {
@@ -85,7 +83,7 @@ export function PaymentsSection({ profileId, role }: { profileId: string; role: 
   const handleOpenSubmit = useCallback(() => setSubmitDrawerOpen(true), [])
 
   if (isLoading) {
-    return <div className="rounded-2xl animate-pulse h-full" style={{ backgroundColor: 'var(--border-default)' }} />
+    return <div className="animate-pulse h-full rounded-lg" style={{ backgroundColor: 'var(--border-default)' }} />
   }
 
   const allPayments = paymentsData ?? []
@@ -97,7 +95,7 @@ export function PaymentsSection({ profileId, role }: { profileId: string; role: 
 
   return (
     <>
-      <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+      <div>
         <div className="flex items-center justify-between mb-4 pr-24">
           <p className="text-xs font-semibold tracking-[0.25em] uppercase" style={{ color: 'var(--brand-crimson)' }}>{t('payment.title')}</p>
           <button onClick={handleOpenSubmit}

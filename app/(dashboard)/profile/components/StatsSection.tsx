@@ -6,8 +6,6 @@ import { useLanguage } from '@/lib/hooks/useLanguage'
 import { type LosSummaryData } from '../types'
 import { apiClient } from '@/lib/apiClient'
 
-export const STATS_MIN_HEIGHT = 160
-
 export function StatsSection({ role, aboNumber }: { role: string; aboNumber: string | null }) {
   const { t } = useLanguage()
   const isCore = role === 'core'
@@ -20,14 +18,14 @@ export function StatsSection({ role, aboNumber }: { role: string; aboNumber: str
   })
 
   if (isLoading) {
-    return <div className="rounded-2xl animate-pulse h-full" style={{ backgroundColor: 'var(--border-default)' }} />
+    return <div className="animate-pulse h-full rounded-lg" style={{ backgroundColor: 'var(--border-default)' }} />
   }
 
   // Merged LOS bento: show when there are stats to display OR the user (core) can upload.
   if (!losSummary && !isCore) return null
 
   return (
-    <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+    <div>
       <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-4 pr-24" style={{ color: 'var(--brand-crimson)' }}>{t('profile.stats')}</p>
       {losSummary && (
         <div className="flex flex-wrap items-center gap-4">

@@ -8,8 +8,6 @@ import { type TripEntry, VARIABLE_CAP } from '../types'
 import { TripRow, ShowMoreButton } from './shared'
 import { apiClient } from '@/lib/apiClient'
 
-export const TRIPS_MIN_HEIGHT = 280
-
 export function TripsSection({ profileId, role }: { profileId: string; role: string }) {
   const { t } = useLanguage()
   const qc = useQueryClient()
@@ -31,7 +29,7 @@ export function TripsSection({ profileId, role }: { profileId: string; role: str
   const handleCancel = useCallback((tripId: string) => { cancelTrip.mutate(tripId) }, [cancelTrip])
 
   if (isLoading) {
-    return <div className="rounded-2xl animate-pulse h-full" style={{ backgroundColor: 'var(--border-default)' }} />
+    return <div className="animate-pulse h-full rounded-lg" style={{ backgroundColor: 'var(--border-default)' }} />
   }
 
   const trips = tripsData ?? []
@@ -40,7 +38,7 @@ export function TripsSection({ profileId, role }: { profileId: string; role: str
 
   return (
     <>
-      <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+      <div>
         <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-4 pr-24" style={{ color: 'var(--brand-crimson)' }}>{t('profile.trips')}</p>
         {trips.length === 0 ? (
           <div className="space-y-1">

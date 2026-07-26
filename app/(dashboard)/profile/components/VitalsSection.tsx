@@ -9,8 +9,6 @@ import { type ProfileVitalSign, VARIABLE_CAP } from '../types'
 import { ShowMoreButton } from './shared'
 import { apiClient } from '@/lib/apiClient'
 
-export const VITALS_MIN_HEIGHT = 280
-
 function VitalCard({ vs }: { vs: ProfileVitalSign }) {
   const { t } = useLanguage()
   const label    = vs.vital_sign_definitions!.label
@@ -69,7 +67,7 @@ export function VitalsSection({ profileId, role }: { profileId: string; role: st
   )
 
   if (isLoading) {
-    return <div className="rounded-2xl animate-pulse h-full" style={{ backgroundColor: 'var(--border-default)' }} />
+    return <div className="animate-pulse h-full rounded-lg" style={{ backgroundColor: 'var(--border-default)' }} />
   }
 
   const visible = vitals.slice(0, VARIABLE_CAP)
@@ -77,7 +75,7 @@ export function VitalsSection({ profileId, role }: { profileId: string; role: st
 
   return (
     <>
-      <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+      <div>
         <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-1 pr-24" style={{ color: 'var(--brand-crimson)' }}>
           {t('profile.vitalSigns')}
         </p>

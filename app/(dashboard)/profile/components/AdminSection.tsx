@@ -5,7 +5,7 @@ import { useLanguage } from '@/lib/hooks/useLanguage'
 export function AdminSection() {
   const { t } = useLanguage()
   return (
-    <div className="rounded-2xl p-6 h-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+    <div>
       <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-4 pr-24" style={{ color: 'var(--brand-teal)' }}>{t('profile.adminTools')}</p>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, minmax(0, 1fr))', gap: '12px' }}>
         <a href="/admin"

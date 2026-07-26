@@ -8,16 +8,16 @@ import { AboInfoContent } from './AboInfoContent'
 import { TravelDocContent } from './TravelDocContent'
 import { UserSettingsContent } from './UserSettingsContent'
 import { SortableBento } from './SortableBento'
-import { TripsSection, TRIPS_MIN_HEIGHT } from './TripsSection'
-import { PaymentsSection, PAYMENTS_MIN_HEIGHT } from './PaymentsSection'
-import { VitalsSection, VITALS_MIN_HEIGHT } from './VitalsSection'
-import { ParticipationSection, PARTICIPATION_MIN_HEIGHT } from './ParticipationSection'
-import { CalendarSection, CALENDAR_MIN_HEIGHT } from './CalendarSection'
-import { StatsSection, STATS_MIN_HEIGHT } from './StatsSection'
+import { TripsSection } from './TripsSection'
+import { PaymentsSection } from './PaymentsSection'
+import { VitalsSection } from './VitalsSection'
+import { ParticipationSection } from './ParticipationSection'
+import { CalendarSection } from './CalendarSection'
+import { StatsSection } from './StatsSection'
 import { AdminSection } from './AdminSection'
-import { EmailPrefsSection, EMAIL_PREFS_MIN_HEIGHT } from './EmailPrefsSection'
+import { EmailPrefsSection } from './EmailPrefsSection'
 import { InvitesBento } from './InvitesBento'
-import { BENTO_IDS, DEFAULT_ORDER } from './bento-registry'
+import { BENTO_IDS, DEFAULT_ORDER, BENTO_META, BENTO_HEIGHT } from './bento-registry'
 import { apiClient } from '@/lib/apiClient'
 import { useProfile } from '../useProfile'
 
@@ -37,8 +37,12 @@ type Props = {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const BENTO_HEIGHT = { S: 160, M: 280 } as const
 const DESKTOP_QUERY = '(min-width: 768px)' // matches Tailwind `md` breakpoint used below
+
+function metaFor(id: string) {
+  const meta = BENTO_META[id]
+  return { colSpan: meta.colSpan, minHeight: BENTO_HEIGHT[meta.height] }
+}
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -138,59 +142,67 @@ export function ProfileClient({ profileId, role, aboNumber, hasInvites }: Props)
     persistPrefs(DEFAULT_ORDER, {})
   }, [persistPrefs])
 
-  type BentoEntry = { colSpan: number; minHeight: number; node: React.ReactNode }
+  type BentoEntry = { colSpan: number; minHeight: number; node: React.ReactNode; cardStyle?: React.CSSProperties }
+
+  // Incomplete-profile crimson border on PersonalDetailsContent's card: derived
+  // here (not inside the content component, which no longer renders its own
+  // card shell) via the same ['profile'] query the content component uses —
+  // TanStack Query dedupes the request (docs/architecture/DECISIONS.md
+  // Cross-Section Data Dependency Rule).
+  const personalDetailsIncomplete = !!fullProfile && !fullProfile.first_name
 
   const bentoMap: Record<string, BentoEntry | null> = {
     [BENTO_IDS.PERSONAL_DETAILS]: {
-      colSpan: 6, minHeight: BENTO_HEIGHT.M,
+      ...metaFor(BENTO_IDS.PERSONAL_DETAILS),
       node: <PersonalDetailsContent />,
+      cardStyle: personalDetailsIncomplete ? { borderColor: 'var(--brand-crimson)' } : undefined,
     },
     [BENTO_IDS.ABO_INFO]: {
-      colSpan: 6, minHeight: BENTO_HEIGHT.M,
+      ...metaFor(BENTO_IDS.ABO_INFO),
       node: <AboInfoContent />,
     },
     [BENTO_IDS.TRAVEL_DOC]: !isGuest ? {
-      colSpan: 6, minHeight: BENTO_HEIGHT.S,
+      ...metaFor(BENTO_IDS.TRAVEL_DOC),
       node: <TravelDocContent />,
     } : null,
     [BENTO_IDS.SETTINGS]: {
-      colSpan: 6, minHeight: BENTO_HEIGHT.M,
+      ...metaFor(BENTO_IDS.SETTINGS),
       node: <UserSettingsContent />,
     },
     [BENTO_IDS.TRIPS]: !isGuest ? {
-      colSpan: 6, minHeight: TRIPS_MIN_HEIGHT,
+      ...metaFor(BENTO_IDS.TRIPS),
       node: <TripsSection profileId={profileId} role={role} />,
     } : null,
     [BENTO_IDS.PAYMENTS]: !isGuest ? {
-      colSpan: 6, minHeight: PAYMENTS_MIN_HEIGHT,
+      ...metaFor(BENTO_IDS.PAYMENTS),
       node: <PaymentsSection profileId={profileId} role={role} />,
     } : null,
     [BENTO_IDS.EMAIL_PREFS]: !isGuest ? {
-      colSpan: 6, minHeight: EMAIL_PREFS_MIN_HEIGHT,
+      ...metaFor(BENTO_IDS.EMAIL_PREFS),
       node: <EmailPrefsSection />,
     } : null,
     [BENTO_IDS.VITALS]: !isGuest ? {
-      colSpan: 6, minHeight: VITALS_MIN_HEIGHT,
+      ...metaFor(BENTO_IDS.VITALS),
       node: <VitalsSection profileId={profileId} role={role} />,
     } : null,
     [BENTO_IDS.PARTICIPATION]: !isGuest ? {
-      colSpan: 6, minHeight: PARTICIPATION_MIN_HEIGHT,
+      ...metaFor(BENTO_IDS.PARTICIPATION),
       node: <ParticipationSection profileId={profileId} role={role} />,
     } : null,
     [BENTO_IDS.CALENDAR]: {
-      colSpan: 6, minHeight: CALENDAR_MIN_HEIGHT,
+      ...metaFor(BENTO_IDS.CALENDAR),
       node: <CalendarSection profileId={profileId} />,
     },
     [BENTO_IDS.STATS]: (aboNumber !== null || isCore) ? {
-      colSpan: 6, minHeight: STATS_MIN_HEIGHT,
+      ...metaFor(BENTO_IDS.STATS),
       node: <StatsSection role={role} aboNumber={aboNumber} />,
     } : null,
     [BENTO_IDS.INVITES]: hasInvites ? {
-      colSpan: 6, minHeight: BENTO_HEIGHT.M,
+      ...metaFor(BENTO_IDS.INVITES),
       node: <InvitesBento />,
     } : null,
     [BENTO_IDS.ADMIN]: isAdmin ? {
-      colSpan: 6, minHeight: BENTO_HEIGHT.S,
+      ...metaFor(BENTO_IDS.ADMIN),
       node: <AdminSection />,
     } : null,
   }
@@ -249,6 +261,7 @@ export function ProfileClient({ profileId, role, aboNumber, hasInvites }: Props)
                 onToggleCollapse={() => toggleCollapse(id)}
                 colSpan={entry.colSpan}
                 minHeight={entry.minHeight}
+                cardStyle={entry.cardStyle}
                 disableDrag
               >
                 {entry.node}

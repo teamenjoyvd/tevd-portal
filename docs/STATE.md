@@ -2,15 +2,14 @@
 BUILD issue #665 (2607-DEV-665, branch `dev/2607-DEV-665`): migrate all 13 `/profile` bentos onto the shared `BentoCard`/`.card` design system — shell, header, skeleton, empty state, elevation tokens.
 
 ## Now
-Step 2 next: atomic shell refactor across `SortableBento.tsx`, `BentoGrid.tsx`, `ProfileClient.tsx`, and all 13 content components.
+Step 3a next: headers — all 13 content components → `<BentoHeader>`.
 
 ## Next
-1. Step 2 — atomic shell refactor: `SortableBento.tsx` renders `BentoCard` directly (both branches), delete `bento-mobile-full`; `BentoGrid.tsx` gap token; `ProfileClient.tsx` reads `BENTO_META`; all 13 content components lose `rounded-2xl p-6 h-full` wrapper + inline bg/border + `*_MIN_HEIGHT` exports. Run new e2e spec as the checkpoint (best-effort locally — see Open items on env gap).
-2. Step 3a — headers: all 13 components → `<BentoHeader>`.
-3. Step 3b — skeletons: all 13 → `<BentoSkeleton>`, add missing states to `CalendarSection`/`EmailPrefsSection`.
-4. Step 3c — empty states/icons: `<BentoEmpty>`, lucide icon swaps, dead-code removal per issue.
-5. Verification pass per issue's `## Verification` section (build, lint, e2e local, 1280/390 screenshots, dark theme incl. `/` and `/about`).
-6. `/code-review low` before push; open draft PR `Closes #665`.
+1. Step 3a — headers: all 13 components → `<BentoHeader>`; fix missing `pr-24`/gutter clearance (Calendar, EmailPrefs, InvitesBento); Vitals subtitle prop; Admin `tone="teal"`.
+2. Step 3b — skeletons: all 13 → `<BentoSkeleton>`, add missing states to `CalendarSection`/`EmailPrefsSection`.
+3. Step 3c — empty states/icons: `<BentoEmpty>`, lucide icon swaps, dead-code removal per issue (`DEFAULT_CALENDAR_NAME`, unused `formatCurrency` import in PaymentsSection, redundant `ShowMoreButton` wrapper div in VitalsSection).
+4. Verification pass per issue's `## Verification` section (build, lint, e2e local, 1280/390 screenshots, dark theme incl. `/` and `/about`).
+5. `/code-review low` before push; open draft PR `Closes #665`.
 
 ## Constraints
 - 390px mobile-first — every bento must render correctly at 390px, including the mobile static-stack path.
@@ -41,6 +40,9 @@ DECISION: write the new `e2e/profile-bento-auth.spec.ts` before Step 2's shell r
 
 ## Done
 PLAN + CLAIM for #665 — RESULT: issue CLAIM-complete (`## Design Checklist` all checked, `## Branch` = `dev/2607-DEV-665`), branch cut from `main` and pushed, `docs/CLAIMS.md` row registered (pruned stale merged #613 row).
+Step 1 — RESULT: `BentoCard` forwardRef, dark `--shadow-*` tokens, `BentoHeader`/`BentoSkeleton`/`BentoEmpty` created, `bento-registry.ts` `BENTO_META`/`BENTO_ICON_MAP`/`BENTO_HEIGHT`, `profile.calendar.generating` i18n string, DESIGN-SYSTEM.md:74 fixed. `npm run build`/`lint` clean vs baseline. Committed 7bd6fb4.
+Step 4 — RESULT: `e2e/profile-bento-auth.spec.ts` (5 tests) written, wired into `playwright.config.ts` (`authenticated` testMatch + `desktop` testIgnore gained `profile-bento-auth`; `mobile-390` picks it up unchanged). `playwright test --list` confirms correct project routing. Committed b9147e6.
+Step 2 — RESULT: atomic shell refactor across `SortableBento.tsx` (now renders `BentoCard` directly, both collapsed/expanded branches, `bento-mobile-full` deleted), `BentoGrid.tsx` (gap token), `ProfileClient.tsx` (reads `BENTO_META`/`BENTO_HEIGHT`, computes `personalDetailsIncomplete` and passes it as `cardStyle` through `SortableBento`→`BentoCard`), and all 13 content components (wrapper `rounded-2xl p-6 h-full` + inline bg/border stripped, 7 `*_MIN_HEIGHT` exports deleted + the already-dead `INVITES_MIN_HEIGHT` in `InvitesSection.tsx` = 8 total). `npm run build`/`lint` clean, 480 warnings matches baseline exactly. New e2e spec NOT run for real (env gap, see Open items) — not yet committed.
 
 ## Open items
 - New `e2e/profile-bento-auth.spec.ts` (5 tests) has NOT been executed against a real Clerk/Supabase session — this worktree has no `.env.local`, no local Supabase, no seeded Clerk test users (same gap noted on #613/#608/#607). `playwright test --list` confirms the file is wired correctly into both the `authenticated` and `mobile-390` projects and excluded from `desktop`; actual pass/fail is still unverified. Must run for real (`npm run test:e2e:auth` + `npm run test:mobile`) before claiming Step 2/Verification done, per docs/ai/BUILD.md VERIFY.
