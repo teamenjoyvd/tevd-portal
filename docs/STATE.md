@@ -2,17 +2,15 @@
 BUILD issue #665 (2607-DEV-665, branch `dev/2607-DEV-665`): migrate all 13 `/profile` bentos onto the shared `BentoCard`/`.card` design system — shell, header, skeleton, empty state, elevation tokens.
 
 ## Now
-Step 1: shared primitive (`BentoCard` forwardRef), elevation tokens, new co-located components (`BentoHeader`/`BentoSkeleton`/`BentoEmpty`), `bento-registry.ts` (`BENTO_META`/`BENTO_ICON_MAP`), i18n string.
+Step 2 next: atomic shell refactor across `SortableBento.tsx`, `BentoGrid.tsx`, `ProfileClient.tsx`, and all 13 content components.
 
 ## Next
-1. Step 1 (this step) — build check.
-2. Step 4 (write first per issue) — new `e2e/profile-bento-auth.spec.ts` regression spec.
-3. Step 2 — atomic shell refactor: `SortableBento.tsx`, `BentoGrid.tsx`, `ProfileClient.tsx`, all 13 content components lose their `rounded-2xl p-6 h-full` wrapper. Run new e2e spec as the checkpoint.
-4. Step 3a — headers: all 13 components → `<BentoHeader>`.
-5. Step 3b — skeletons: all 13 → `<BentoSkeleton>`, add missing states to `CalendarSection`/`EmailPrefsSection`.
-6. Step 3c — empty states/icons: `<BentoEmpty>`, lucide icon swaps, dead-code removal per issue.
-7. Verification pass per issue's `## Verification` section (build, lint, e2e local, 1280/390 screenshots, dark theme incl. `/` and `/about`).
-8. `/code-review low` before push; open draft PR `Closes #665`.
+1. Step 2 — atomic shell refactor: `SortableBento.tsx` renders `BentoCard` directly (both branches), delete `bento-mobile-full`; `BentoGrid.tsx` gap token; `ProfileClient.tsx` reads `BENTO_META`; all 13 content components lose `rounded-2xl p-6 h-full` wrapper + inline bg/border + `*_MIN_HEIGHT` exports. Run new e2e spec as the checkpoint (best-effort locally — see Open items on env gap).
+2. Step 3a — headers: all 13 components → `<BentoHeader>`.
+3. Step 3b — skeletons: all 13 → `<BentoSkeleton>`, add missing states to `CalendarSection`/`EmailPrefsSection`.
+4. Step 3c — empty states/icons: `<BentoEmpty>`, lucide icon swaps, dead-code removal per issue.
+5. Verification pass per issue's `## Verification` section (build, lint, e2e local, 1280/390 screenshots, dark theme incl. `/` and `/about`).
+6. `/code-review low` before push; open draft PR `Closes #665`.
 
 ## Constraints
 - 390px mobile-first — every bento must render correctly at 390px, including the mobile static-stack path.
@@ -45,7 +43,7 @@ DECISION: write the new `e2e/profile-bento-auth.spec.ts` before Step 2's shell r
 PLAN + CLAIM for #665 — RESULT: issue CLAIM-complete (`## Design Checklist` all checked, `## Branch` = `dev/2607-DEV-665`), branch cut from `main` and pushed, `docs/CLAIMS.md` row registered (pruned stale merged #613 row).
 
 ## Open items
-(none yet — populate as Step 1 proceeds)
+- New `e2e/profile-bento-auth.spec.ts` (5 tests) has NOT been executed against a real Clerk/Supabase session — this worktree has no `.env.local`, no local Supabase, no seeded Clerk test users (same gap noted on #613/#608/#607). `playwright test --list` confirms the file is wired correctly into both the `authenticated` and `mobile-390` projects and excluded from `desktop`; actual pass/fail is still unverified. Must run for real (`npm run test:e2e:auth` + `npm run test:mobile`) before claiming Step 2/Verification done, per docs/ai/BUILD.md VERIFY.
 
 ## Failed attempts
 (none yet)

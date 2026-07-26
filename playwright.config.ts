@@ -52,6 +52,8 @@ export default defineConfig({
       // browserName pinned: devices['iPhone 12'] defaults to webkit, but CI
       // (preview-smoke.yml) installs chromium only — keep local & CI identical.
       name: 'mobile-390',
+      // profile-bento-auth.spec.ts is intentionally NOT ignored here — its
+      // mobile-390-only describe block asserts the static-stack path.
       testIgnore: /(admin-auth|los-submission-auth)\.spec\.ts/,
       use: {
         ...devices['iPhone 12'],
@@ -61,14 +63,17 @@ export default defineConfig({
     },
     {
       name: 'desktop',
-      testIgnore: /(admin-auth|los-submission-auth)\.spec\.ts/,
+      // profile-bento-auth.spec.ts excluded here too — it's Clerk-authenticated
+      // and already covered at 1280px by the 'authenticated' project below;
+      // running it a second time on 'desktop' would just duplicate the sign-in.
+      testIgnore: /(admin-auth|los-submission-auth|profile-bento-auth)\.spec\.ts/,
       use: { viewport: { width: 1280, height: 800 } },
     },
     {
       // Authenticated coverage (issue #560) — requires local Supabase +
       // npm run e2e:seed-clerk. Never target a preview/prod-DB deployment.
       name: 'authenticated',
-      testMatch: /(admin-auth|los-submission-auth)\.spec\.ts/,
+      testMatch: /(admin-auth|los-submission-auth|profile-bento-auth)\.spec\.ts/,
       use: { viewport: { width: 1280, height: 800 } },
     },
   ],
