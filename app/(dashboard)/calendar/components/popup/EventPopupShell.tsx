@@ -9,6 +9,8 @@ import {
   DialogContent,
   DialogDescription,
   DialogHeader,
+  DialogOverlay,
+  DialogPortal,
   DialogTitle,
 } from '@/components/ui/dialog'
 import type { TranslationKey } from '@/lib/i18n'
@@ -193,35 +195,53 @@ export default function EventPopupShell({
       </div>
 
       <Dialog open={qrDataUrl !== null} onOpenChange={(open) => { if (!open) onQrDismiss() }}>
-        <DialogContent
-          className="left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
-          style={{ width: 320, maxWidth: '90vw' }}
-        >
-          <DialogHeader>
-            <DialogTitle>{t('cal.qrTitle')}</DialogTitle>
-            <DialogDescription>{t('cal.qrDescription')}</DialogDescription>
-          </DialogHeader>
-          {qrDataUrl && (
-            <div className="flex flex-col items-center gap-4">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={qrDataUrl}
-                alt={t('cal.qrTitle')}
-                width={256}
-                height={256}
-                className="h-auto w-full max-w-[256px] rounded-lg border border-black/5"
-              />
-              <button
-                onClick={downloadQr}
-                className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-white transition-opacity hover:opacity-80"
-                style={{ background: 'var(--brand-teal)' }}
-              >
-                <Download size={14} />
-                {t('cal.qrDownload')}
-              </button>
-            </div>
-          )}
-        </DialogContent>
+        <DialogPortal>
+          <DialogOverlay className="z-[60]" style={{ backgroundColor: 'rgba(0,0,0,0.32)' }} />
+          <DialogContent
+            className="left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 p-5 z-[60]"
+            style={{ width: 320, maxWidth: '90vw', border: '1px solid var(--border-default)' }}
+          >
+            <DialogHeader className="mb-5">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <DialogTitle className="font-display" style={{ color: 'var(--text-primary)' }}>
+                    {t('cal.qrTitle')}
+                  </DialogTitle>
+                  <DialogDescription>{t('cal.qrDescription')}</DialogDescription>
+                </div>
+                <button
+                  onClick={onQrDismiss}
+                  aria-label="Close"
+                  className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-black/5 transition-colors flex-shrink-0 mt-0.5"
+                  style={{ color: 'var(--text-secondary)' }}
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            </DialogHeader>
+            {qrDataUrl && (
+              <div className="flex flex-col items-center gap-4">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={qrDataUrl}
+                  alt={t('cal.qrTitle')}
+                  width={256}
+                  height={256}
+                  className="h-auto w-full max-w-[256px] rounded-lg border"
+                  style={{ borderColor: 'var(--border-default)' }}
+                />
+                <button
+                  onClick={downloadQr}
+                  className="flex items-center gap-1.5 rounded-xl px-5 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+                  style={{ backgroundColor: 'var(--brand-teal)' }}
+                >
+                  <Download size={14} />
+                  {t('cal.qrDownload')}
+                </button>
+              </div>
+            )}
+          </DialogContent>
+        </DialogPortal>
       </Dialog>
     </>
   )
