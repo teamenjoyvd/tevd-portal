@@ -6,9 +6,9 @@ import { CreditCard } from 'lucide-react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { Drawer } from '@/components/ui/drawer'
 import { PaymentForm } from '@/components/payment/PaymentForm'
-import { formatCurrency } from '@/lib/format'
 import { BentoHeader } from './BentoHeader'
 import { BentoSkeleton } from './BentoSkeleton'
+import { BentoEmpty } from './BentoEmpty'
 import { type TripEntry, type GenericPayment, type PayableItem, VARIABLE_CAP } from '../types'
 import { PaymentRow, ShowMoreButton } from './shared'
 import { apiClient } from '@/lib/apiClient'
@@ -114,7 +114,7 @@ export function PaymentsSection({ profileId, role }: { profileId: string; role: 
           }
         />
         {Object.keys(visibleByItem).length === 0 ? (
-          <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('payment.none')}</p>
+          <BentoEmpty message={t('payment.none')} />
         ) : (
           <PaymentGroups groups={visibleByItem} cancelledTripIds={cancelledTripIds} />
         )}

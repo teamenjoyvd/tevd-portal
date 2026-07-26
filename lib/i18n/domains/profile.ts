@@ -120,6 +120,8 @@ export const profile = {
   'profile.vitalRecorded':            { en: '✓ Recorded',                                       bg: '✓ Записано'                                      },
   'profile.vitalNotRecorded':         { en: '○ Not recorded',                                   bg: '○ Не е записано'                                 },
   'profile.vitalSigns.adminNote':     { en: 'Your coach logs these after events.',               bg: 'Вашият треньор записва тези след събития.'        },
+  'profile.vitalSigns.empty':         { en: 'No vital signs recorded yet.',                      bg: 'Все още няма записани жизнени показатели.'        },
+  'profile.vitalSigns.emptyHint':     { en: 'Your coach logs these after events.',               bg: 'Вашият треньор записва тези след събития.'        },
   // StatsSection
   'profile.stats':                    { en: 'STATS',                                            bg: 'СТАТИСТИКА'                                      },
   'profile.statsDepth':               { en: 'Depth',                                            bg: 'Дълбочина'                                       },

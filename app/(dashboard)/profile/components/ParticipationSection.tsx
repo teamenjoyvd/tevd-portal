@@ -8,6 +8,7 @@ import { Drawer } from '@/components/ui/drawer'
 import { formatDate } from '@/lib/format'
 import { BentoHeader } from './BentoHeader'
 import { BentoSkeleton } from './BentoSkeleton'
+import { BentoEmpty } from './BentoEmpty'
 import { type EventRoleRequest, VARIABLE_CAP, REG_STATUS_STYLES } from '../types'
 import { ShowMoreButton } from './shared'
 import { apiClient } from '@/lib/apiClient'
@@ -61,10 +62,7 @@ export function ParticipationSection({ profileId, role }: { profileId: string; r
       <div>
         <BentoHeader icon={Users} title={t('profile.participation')} />
         {roles.length === 0 ? (
-          <div className="space-y-1">
-            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('profile.participation.empty')}</p>
-            <p className="text-xs" style={{ color: 'var(--text-secondary)', opacity: 0.7 }}>{t('profile.participation.emptyHint')}</p>
-          </div>
+          <BentoEmpty message={t('profile.participation.empty')} hint={t('profile.participation.emptyHint')} />
         ) : (
           <div className="space-y-2">
             {visible.map(er => <RoleRow key={er.id} er={er} />)}

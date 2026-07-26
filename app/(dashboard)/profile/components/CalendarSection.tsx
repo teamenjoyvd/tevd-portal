@@ -19,8 +19,6 @@ import {
 import { apiClient } from '@/lib/apiClient'
 import { useProfile } from '../useProfile'
 
-const DEFAULT_CALENDAR_NAME = 'teamenjoyVD'
-
 export function CalendarSection({ profileId }: { profileId: string }) {
   const { t } = useLanguage()
   const queryClient = useQueryClient()

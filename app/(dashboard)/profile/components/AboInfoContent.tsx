@@ -3,7 +3,7 @@
 import { memo, useState } from 'react'
 import Link from 'next/link'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { IdCard } from 'lucide-react'
+import { IdCard, Check } from 'lucide-react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { getRoleColors } from '@/lib/role-colors'
 import { BentoHeader } from './BentoHeader'
@@ -196,7 +196,7 @@ export const AboInfoContent = memo(function AboInfoContent() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <p className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>{t('profile.aboHash')}</p>
             <p className="text-sm font-medium font-mono" style={{ color: 'var(--text-primary)' }}>
-              {aboNumber} <span style={{ color: '#2d6a4f' }}>✓</span>
+              {aboNumber} <Check size={14} className="inline-block align-text-bottom" style={{ color: '#2d6a4f' }} />
             </p>
           </div>
           <div style={{ borderTop: '1px solid var(--border-default)', paddingTop: 10 }}>

@@ -8,6 +8,7 @@ import { Drawer } from '@/components/ui/drawer'
 import { isVitalRecorded } from '@/lib/vitals'
 import { BentoHeader } from './BentoHeader'
 import { BentoSkeleton } from './BentoSkeleton'
+import { BentoEmpty } from './BentoEmpty'
 import { type ProfileVitalSign, VARIABLE_CAP } from '../types'
 import { ShowMoreButton } from './shared'
 import { apiClient } from '@/lib/apiClient'
@@ -85,14 +86,14 @@ export function VitalsSection({ profileId, role }: { profileId: string; role: st
     <>
       <div>
         <BentoHeader icon={HeartPulse} title={t('profile.vitalSigns')} subtitle={t('profile.vitalSigns.adminNote')} />
-        <div className="grid grid-cols-2 gap-2">
-          {visible.map(vs => <VitalCard key={vs.definition_id} vs={vs} />)}
-        </div>
-        {overflow > 0 && (
-          <div>
-            <ShowMoreButton count={overflow} onClick={() => setDrawerOpen(true)} />
+        {visible.length === 0 ? (
+          <BentoEmpty message={t('profile.vitalSigns.empty')} hint={t('profile.vitalSigns.emptyHint')} />
+        ) : (
+          <div className="grid grid-cols-2 gap-2">
+            {visible.map(vs => <VitalCard key={vs.definition_id} vs={vs} />)}
           </div>
         )}
+        {overflow > 0 && <ShowMoreButton count={overflow} onClick={() => setDrawerOpen(true)} />}
       </div>
 
       <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title={t('profile.allVitalSigns')}>

@@ -7,6 +7,7 @@ import { useLanguage } from '@/lib/hooks/useLanguage'
 import { Drawer } from '@/components/ui/drawer'
 import { BentoHeader } from './BentoHeader'
 import { BentoSkeleton } from './BentoSkeleton'
+import { BentoEmpty } from './BentoEmpty'
 import { type TripEntry, VARIABLE_CAP } from '../types'
 import { TripRow, ShowMoreButton } from './shared'
 import { apiClient } from '@/lib/apiClient'
@@ -49,10 +50,7 @@ export function TripsSection({ profileId, role }: { profileId: string; role: str
       <div>
         <BentoHeader icon={Luggage} title={t('profile.trips')} />
         {trips.length === 0 ? (
-          <div className="space-y-1">
-            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('profile.trips.empty')}</p>
-            <p className="text-xs" style={{ color: 'var(--text-secondary)', opacity: 0.7 }}>{t('profile.trips.emptyHint')}</p>
-          </div>
+          <BentoEmpty message={t('profile.trips.empty')} hint={t('profile.trips.emptyHint')} />
         ) : (
           <div className="space-y-2">
             {visible.map(entry => (
