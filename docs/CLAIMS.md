@@ -7,3 +7,4 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
 | #671 | `dev/2607-DEV-671` | `app/(dashboard)/calendar/components/popup/EventPopupShell.tsx`; migration: no | 2026-07-27T00:00:00Z |
+| #673 | `dev/2607-DEV-673` | `app/(dashboard)/components/tiles/AnnouncementTile.tsx`, `app/(dashboard)/components/tiles/LocationTile.tsx`; migration: no | 2026-07-27T00:00:00Z |
