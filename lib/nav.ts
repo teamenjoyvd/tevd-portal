@@ -2,7 +2,7 @@
 // Adding, removing, or renaming a route = one edit here, propagates everywhere.
 //
 // Consumer guide:
-//   Header    — PUBLIC_NAV + FOOTER_MEMBER_NAV (library, no /los, no /roles)
+//   Header    — PUBLIC_NAV + FOOTER_MEMBER_NAV (library + roles, no /los)
 //   Footer    — PUBLIC_NAV + FOOTER_MEMBER_NAV (library + roles, no /los)
 //   AdminNav  — ADMIN_NAV
 
