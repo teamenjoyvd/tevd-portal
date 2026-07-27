@@ -64,7 +64,7 @@ export default function LocationTile({
   const { theme, mounted } = useTheme()
   const isDark = mounted ? theme === 'dark' : false
   const mapContainer = useRef<HTMLDivElement>(null)
-  const mapRef = useRef<{ remove: () => void; setStyle: (s: string) => void; once: (e: string, cb: () => void) => void } | null>(null)
+  const mapRef = useRef<{ remove: () => void; setStyle: (s: string) => void; once: (e: string, cb: () => void) => void; resize: () => void } | null>(null)
   const [ready, setReady] = useState(false)
 
   // Initialization
@@ -123,6 +123,17 @@ export default function LocationTile({
       mapRef.current.once('styledata', () => setReady(true))
     }
   }, [theme, mounted])
+
+  // Re-measure the canvas when the card grows or shrinks (e.g. a taller sibling
+  // bento tile drags this row with it) — mapbox-gl v2 only observes window resize.
+  useEffect(() => {
+    if (!mapContainer.current) return
+    const observer = new ResizeObserver(() => {
+      mapRef.current?.resize()
+    })
+    observer.observe(mapContainer.current)
+    return () => observer.disconnect()
+  }, [])
 
   if (!TOKEN) return <LocationFallback colSpan={colSpan} mobileColSpan={mobileColSpan} rowSpan={rowSpan} style={style} />
 

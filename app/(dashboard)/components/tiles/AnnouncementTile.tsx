@@ -30,7 +30,7 @@ export default function AnnouncementTile({ titles, contents, slug }: Props) {
         {slug ? (
           <Link href={`/news/${slug}`}>
             <h2
-              className="font-display text-xl font-semibold leading-snug mb-2 hover:opacity-80 transition-opacity"
+              className="font-display text-xl font-semibold leading-snug mb-2 md:line-clamp-2 md:min-h-[2.75em] hover:opacity-80 transition-opacity"
               style={{ color: 'var(--text-primary)' }}
             >
               {title}
@@ -38,7 +38,7 @@ export default function AnnouncementTile({ titles, contents, slug }: Props) {
           </Link>
         ) : (
           <h2
-            className="font-display text-xl font-semibold leading-snug mb-2"
+            className="font-display text-xl font-semibold leading-snug mb-2 md:line-clamp-2 md:min-h-[2.75em]"
             style={{ color: 'var(--text-primary)' }}
           >
             {title}
@@ -46,14 +46,8 @@ export default function AnnouncementTile({ titles, contents, slug }: Props) {
         )}
         {content && (
           <p
-            className="font-body text-sm leading-relaxed"
-            style={{
-              color: 'var(--text-secondary)',
-              display: '-webkit-box',
-              WebkitLineClamp: 4,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden',
-            } as React.CSSProperties}
+            className="font-body text-sm leading-relaxed line-clamp-4 md:line-clamp-3"
+            style={{ color: 'var(--text-secondary)' }}
           >
             {content}
           </p>
