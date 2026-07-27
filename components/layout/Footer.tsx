@@ -51,7 +51,7 @@ export default function Footer() {
           </nav>
 
           {/* Col 3 — Socials + contact: Tickets → Mail → Instagram → Facebook */}
-          <div className="flex items-center gap-3 md:justify-end">
+          <div className="flex items-center gap-3 md:justify-end md:justify-self-end">
 
             {/* Tickets */}
             <a href="https://epaygo.bg/3640737494" target="_blank" rel="noopener noreferrer"
