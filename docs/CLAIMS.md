@@ -8,3 +8,4 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 |---|---|---|---|
 | #671 | `dev/2607-DEV-671` | `app/(dashboard)/calendar/components/popup/EventPopupShell.tsx`; migration: no | 2026-07-27T00:00:00Z |
 | #673 | `dev/2607-DEV-673` | `app/(dashboard)/components/tiles/AnnouncementTile.tsx`, `app/(dashboard)/components/tiles/LocationTile.tsx`; migration: no | 2026-07-27T00:00:00Z |
+| #679 | `dev/2607-DEV-679` | `.github/workflows/ci.yml` (e2e-authenticated job env export); migration: no | 2026-07-31T00:00:00Z |
