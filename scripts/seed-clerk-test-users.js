@@ -49,9 +49,14 @@ loadEnvFile(path.join(root, '.env.local'))
 const MEMBER_EMAIL = process.env.E2E_CLERK_MEMBER_EMAIL || 'e2e-member-tevd-portal@example.com'
 const ADMIN_EMAIL = process.env.E2E_CLERK_ADMIN_EMAIL || 'e2e-admin-tevd-portal@example.com'
 
+// abo_number: trg_guard_abo_number_null (20260716000100_normalize_prod_schema_drift.sql)
+// rejects a NULL abo_number on a primary profile with role member or core. Admin is
+// exempt by design there ("ops role, no LOS identity"), so it stays NULL. The value is
+// text and UNIQUE (baseline.sql:31,47) with no format check — this reserved-looking
+// string cannot collide with a real ABO number on the hosted DEV project.
 const TEST_USERS = [
-  { email: MEMBER_EMAIL, role: 'member', firstName: 'E2E', lastName: 'Member' },
-  { email: ADMIN_EMAIL, role: 'admin', firstName: 'E2E', lastName: 'Admin' },
+  { email: MEMBER_EMAIL, role: 'member', firstName: 'E2E', lastName: 'Member', aboNumber: 'E2E-MEMBER-0001' },
+  { email: ADMIN_EMAIL, role: 'admin', firstName: 'E2E', lastName: 'Admin', aboNumber: null },
 ]
 
 const DEV_PROJECT_REF = 'iymwxdewcpvpjgzewtzk'
@@ -74,13 +79,14 @@ async function ensureClerkUser(clerk, { email, role, firstName, lastName }) {
   })
 }
 
-async function upsertProfile(supabase, clerkId, { role, firstName, lastName, email }) {
+async function upsertProfile(supabase, clerkId, { role, firstName, lastName, email, aboNumber }) {
   const { error } = await supabase.from('profiles').upsert(
     {
       clerk_id: clerkId,
       first_name: firstName,
       last_name: lastName,
       role,
+      abo_number: aboNumber ?? null,
       contact_email: email,
       display_names: { en: `${firstName} ${lastName}` },
     },
