@@ -30,11 +30,13 @@ function SortableBentoItem({
   entry,
   collapsed,
   onToggleCollapse,
+  controlsDisabled,
 }: {
   id: string
   entry: BentoEntry
   collapsed: boolean
   onToggleCollapse: () => void
+  controlsDisabled?: boolean
 }) {
   const {
     attributes,
@@ -44,13 +46,17 @@ function SortableBentoItem({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id })
+    // dnd-kit's own gate: stops the sensor activating at all before the saved
+    // layout is restored. Hiding the handle alone would still leave the item
+    // draggable by other means.
+  } = useSortable({ id, disabled: controlsDisabled })
 
   return (
     <SortableBento
       id={id}
       collapsed={collapsed}
       onToggleCollapse={onToggleCollapse}
+      controlsDisabled={controlsDisabled}
       colSpan={entry.colSpan}
       minHeight={entry.minHeight}
       cardRef={setNodeRef}
@@ -73,12 +79,14 @@ export default function BentoGrid({
   bentoCollapsed,
   onToggleCollapse,
   onReorder,
+  controlsDisabled,
 }: {
   orderedBentos: { id: string; entry: BentoEntry }[]
   bentoOrder: string[]
   bentoCollapsed: Record<string, boolean>
   onToggleCollapse: (id: string) => void
   onReorder: (next: string[]) => void
+  controlsDisabled?: boolean
 }) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -104,6 +112,7 @@ export default function BentoGrid({
               entry={entry}
               collapsed={!!bentoCollapsed[id]}
               onToggleCollapse={() => onToggleCollapse(id)}
+              controlsDisabled={controlsDisabled}
             />
           ))}
         </div>

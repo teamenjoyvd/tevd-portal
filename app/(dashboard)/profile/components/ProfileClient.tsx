@@ -135,10 +135,19 @@ export function ProfileClient({ profileId, role, aboNumber, hasInvites }: Props)
     }, PERSIST_DEBOUNCE_MS)
   }, [flushPrefs, t])
 
+  // Mirrored into refs so the handlers below can read the latest values without
+  // reaching for them inside a state updater. React updaters must be pure — it
+  // may replay them — so persistPrefs (which mutates a ref and arms a timer)
+  // must not run in there, even though it happens to be idempotent today.
   const bentoCollapsedRef = useRef(bentoCollapsed)
   useEffect(() => {
     bentoCollapsedRef.current = bentoCollapsed
   }, [bentoCollapsed])
+
+  const bentoOrderRef = useRef(bentoOrder)
+  useEffect(() => {
+    bentoOrderRef.current = bentoOrder
+  }, [bentoOrder])
 
   const handleReorder = useCallback((next: string[]) => {
     if (!layoutRestored) return
@@ -148,11 +157,9 @@ export function ProfileClient({ profileId, role, aboNumber, hasInvites }: Props)
 
   const toggleCollapse = useCallback((id: string) => {
     if (!layoutRestored) return
-    setBentoCollapsed(prev => {
-      const next = { ...prev, [id]: !prev[id] }
-      setBentoOrder(order => { persistPrefs(order, next); return order })
-      return next
-    })
+    const next = { ...bentoCollapsedRef.current, [id]: !bentoCollapsedRef.current[id] }
+    setBentoCollapsed(next)
+    persistPrefs(bentoOrderRef.current, next)
   }, [persistPrefs, layoutRestored])
 
   const orderedBentosRef = useRef<{ id: string; entry: { colSpan: number; minHeight: number; node: React.ReactNode } }[]>([])
@@ -165,7 +172,7 @@ export function ProfileClient({ profileId, role, aboNumber, hasInvites }: Props)
     const next = { ...bentoCollapsedRef.current }
     ids.forEach(id => { next[id] = !allCollapsed })
     setBentoCollapsed(next)
-    setBentoOrder(order => { persistPrefs(order, next); return order })
+    persistPrefs(bentoOrderRef.current, next)
   }, [persistPrefs, layoutRestored])
 
   // Gated like handleReorder/toggleCollapse/toggleAll. Without this, a reset
@@ -292,6 +299,7 @@ export function ProfileClient({ profileId, role, aboNumber, hasInvites }: Props)
             bentoCollapsed={bentoCollapsed}
             onToggleCollapse={toggleCollapse}
             onReorder={handleReorder}
+            controlsDisabled={!layoutRestored}
           />
         ) : (
           <div className="flex flex-col gap-3">
@@ -304,6 +312,7 @@ export function ProfileClient({ profileId, role, aboNumber, hasInvites }: Props)
                 colSpan={entry.colSpan}
                 minHeight={entry.minHeight}
                 cardStyle={entry.cardStyle}
+                controlsDisabled={!layoutRestored}
                 disableDrag
               >
                 {entry.node}

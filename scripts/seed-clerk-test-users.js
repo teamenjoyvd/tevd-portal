@@ -59,7 +59,10 @@ const ADMIN_EMAIL = process.env.E2E_CLERK_ADMIN_EMAIL || 'e2e-admin-tevd-portal@
 // this value, and `onConflict: 'clerk_id'` does not resolve a violation of the
 // separate profiles_abo_number_key constraint. assertAboNumberFree() below turns
 // that into an actionable error instead of a raw constraint failure.
-const MEMBER_ABO = process.env.E2E_CLERK_MEMBER_ABO || 'E2E-MEMBER-0001'
+// `??` not `||`: an explicitly-empty E2E_CLERK_MEMBER_ABO must not be silently
+// swapped for the default. It is rejected in main() instead — the DB trigger only
+// rejects NULL, so a blank string would otherwise be inserted as a real value.
+const MEMBER_ABO = process.env.E2E_CLERK_MEMBER_ABO ?? 'E2E-MEMBER-0001'
 
 const TEST_USERS = [
   { email: MEMBER_EMAIL, role: 'member', firstName: 'E2E', lastName: 'Member', aboNumber: MEMBER_ABO },
@@ -149,6 +152,15 @@ async function main() {
   }
   if (!serviceRoleKey) {
     console.error('seed-clerk-test-users: SUPABASE_SERVICE_ROLE_KEY is not set.')
+    process.exitCode = 1
+    return
+  }
+  if (MEMBER_ABO.trim() === '') {
+    console.error(
+      'seed-clerk-test-users: E2E_CLERK_MEMBER_ABO is set but empty. Unset it to use the ' +
+        'default fixture value, or give it a real reserved value — a blank abo_number would ' +
+        'satisfy the NOT NULL trigger and be stored as a real one.',
+    )
     process.exitCode = 1
     return
   }

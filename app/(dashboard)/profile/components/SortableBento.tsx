@@ -59,6 +59,7 @@ export function SortableBento({
   colSpan,
   minHeight,
   disableDrag,
+  controlsDisabled,
   children,
   cardRef,
   dragStyle,
@@ -71,6 +72,10 @@ export function SortableBento({
   colSpan: number
   minHeight: number
   disableDrag?: boolean
+  // True until ProfileClient has restored the saved layout. onToggleCollapse and
+  // the reorder handler both early-return before then, so the controls are shown
+  // disabled rather than silently doing nothing.
+  controlsDisabled?: boolean
   children: ReactNode
   // Drag wiring — supplied only by BentoGrid.tsx's dnd-kit wrapper (desktop path).
   cardRef?: (node: HTMLDivElement | null) => void
@@ -96,7 +101,7 @@ export function SortableBento({
         style={{ paddingTop: 12, paddingBottom: 12, ...dragStyle, ...cardStyle }}
       >
         <div className="flex items-center gap-3">
-          {!disableDrag && dragHandle}
+          {!disableDrag && !controlsDisabled && dragHandle}
           {Icon && <Icon size={14} style={{ color: 'var(--text-secondary)', opacity: 0.6, flexShrink: 0 }} />}
           <span className="text-xs font-semibold tracking-[0.2em] uppercase" style={{ color: 'var(--text-secondary)' }}>
             {label}
@@ -107,6 +112,7 @@ export function SortableBento({
           variant="ghost"
           size="icon"
           onClick={onToggleCollapse}
+          disabled={controlsDisabled}
           title={t('profile.bento.expand')}
           aria-label={t('profile.bento.expand')}
           style={{ fontSize: 12, lineHeight: 1, opacity: 0.5, flexShrink: 0 }}
@@ -130,12 +136,13 @@ export function SortableBento({
       }}
     >
       <div style={{ position: 'absolute', top: 12, right: 12, display: 'flex', alignItems: 'center', gap: 6, zIndex: 10 }}>
-        {!disableDrag && dragHandle}
+        {!disableDrag && !controlsDisabled && dragHandle}
         <Button
           type="button"
           variant="ghost"
           size="icon"
           onClick={onToggleCollapse}
+          disabled={controlsDisabled}
           title={t('profile.bento.collapse')}
           aria-label={t('profile.bento.collapse')}
           style={{ fontSize: 12, lineHeight: 1, opacity: 0.5, flexShrink: 0 }}
