@@ -37,6 +37,11 @@ const DEFAULT_FORM: LinkFormData = {
   access_roles: [...ALL_ROLES],
 }
 
+// Stable identity for "no data yet" — see the note in NewsTab.tsx. A `= []`
+// default here mints a new array every render, so the derived-state compare
+// below fired setState during render and crashed the route.
+const EMPTY: SiteLink[] = []
+
 export function LinksTab() {
   const qc = useQueryClient()
   const { t } = useLanguage()
@@ -46,10 +51,11 @@ export function LinksTab() {
   const [editInitial, setEditInitial] = useState<LinkFormData>(DEFAULT_FORM)
   const [createKey, setCreateKey] = useState(0)
 
-  const { data: linksRaw = [] } = useQuery<SiteLink[]>({
+  const { data: linksData } = useQuery<SiteLink[]>({
     queryKey: ['admin-links'],
     queryFn: () => fetchJson<SiteLink[]>('/api/admin/links'),
   })
+  const linksRaw = linksData ?? EMPTY
   const [localLinks, setLocalLinks] = useState<SiteLink[]>(() => [...linksRaw])
   const [prevLinksRaw, setPrevLinksRaw] = useState(linksRaw)
   if (prevLinksRaw !== linksRaw) {

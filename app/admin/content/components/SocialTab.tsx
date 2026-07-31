@@ -35,6 +35,11 @@ type SocialPost = {
   posted_at: string | null
 }
 
+// Stable identity for "no data yet" — see the note in NewsTab.tsx. A `= []`
+// default here mints a new array every render, so the derived-state compare
+// below fired setState during render and crashed the route.
+const EMPTY: SocialPost[] = []
+
 export function SocialTab() {
   const qc = useQueryClient()
   const { t } = useLanguage()
@@ -43,10 +48,11 @@ export function SocialTab() {
   const [socialAlertTarget, setSocialAlertTarget] = useState<{ id: string; name: string } | null>(null)
   const [sDragging, setSDragging] = useState<string | null>(null)
 
-  const { data: socialPostsRaw = [] } = useQuery<SocialPost[]>({
+  const { data: socialPostsData } = useQuery<SocialPost[]>({
     queryKey: ['admin-social-posts'],
     queryFn: () => fetchJson<SocialPost[]>('/api/admin/social-posts'),
   })
+  const socialPostsRaw = socialPostsData ?? EMPTY
   const [localSocials, setLocalSocials] = useState<SocialPost[]>(() => [...socialPostsRaw])
   const [prevSocialsRaw, setPrevSocialsRaw] = useState(socialPostsRaw)
   if (prevSocialsRaw !== socialPostsRaw) {

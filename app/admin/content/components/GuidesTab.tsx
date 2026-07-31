@@ -23,6 +23,11 @@ import { emptyGuide, type Guide } from './guide-types'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { fetchJson } from '@/lib/utils/fetchJson'
 
+// Stable identity for "no data yet" — see the note in NewsTab.tsx. A `= []`
+// default here mints a new array every render, so the derived-state compare
+// below fired setState during render and crashed the route.
+const EMPTY: Guide[] = []
+
 export function GuidesTab() {
   const qc = useQueryClient()
   const router = useRouter()
@@ -32,10 +37,11 @@ export function GuidesTab() {
   const [guideAlertTarget, setGuideAlertTarget] = useState<{ id: string; name: string } | null>(null)
   const [gDragging, setGDragging] = useState<string | null>(null)
 
-  const { data: guidesRaw = [], isLoading: guidesLoading } = useQuery<Guide[]>({
+  const { data: guidesData, isLoading: guidesLoading } = useQuery<Guide[]>({
     queryKey: ['admin-guides'],
     queryFn: () => fetchJson<Guide[]>('/api/admin/guides'),
   })
+  const guidesRaw = guidesData ?? EMPTY
   const [localGuides, setLocalGuides] = useState<Guide[]>(() => [...guidesRaw])
   const [prevGuidesRaw, setPrevGuidesRaw] = useState(guidesRaw)
   if (prevGuidesRaw !== guidesRaw) {
