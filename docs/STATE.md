@@ -2,17 +2,15 @@
 BUILD issue #676 (2607-DEV-676, branch `dev/2607-DEV-676`): payments on behalf of others — one submission + one proof produces N `payments` rows sharing a `payment_group_id`, one per real-profile beneficiary in the payer's own LOS, each landing on that person's own ledger. Admin approves/rejects the whole group only.
 
 ## Now
-Steps 1-4 of the issue's 12 are DONE and verified (see Done): the schema + RPCs are live on DEV, types are regenerated, and the pure lib layer is unit-tested. Commits `45e7143` (migration + types) and `e1bae5c` (lib). Nothing pushed. Next up is step 5, the member API.
+ALL 12 steps of the issue are code-complete and locally verified. `npm run verify` (lint + check-types + test + build) exits 0. Nothing pushed — no push has been requested this session.
 
 ## Next
-5. Member API: `app/api/payments/route.ts`, `beneficiaries/route.ts`, `group/[groupId]/route.ts`, proof-route narrowing.
-6. Admin API: group route, 409 guards, select-string extension, approval notification.
-7. `lib/types/payments.ts` + i18n keys in `lib/i18n/domains/payment.ts` (every locale).
-8. `BeneficiaryPicker.tsx`, `SplitEditor.tsx` standalone.
-9. `PaymentForm` `allowOnBehalf` wiring; both existing call sites unchanged flag-off.
-10. Enable at `AttendeeView.tsx` + `PaymentsSection.tsx`; withdraw card.
-11. Admin UI (`PaymentGroupCard.tsx`, `PendingPaymentsSection.tsx`, `PaymentsClient.tsx`).
-12. `npm run verify`, then `/code-review low`, then draft PR.
+1. `/code-review low` on the branch diff (escalate to `/security-review` — this PR touches auth boundaries, RLS and a migration); fix findings locally BEFORE any push.
+2. Run `e2e/payments-on-behalf.spec.ts` locally against DEV — CI's `Authenticated E2E (Clerk)` passes by skipping (#679), so it is not coverage.
+3. Push + open PR as DRAFT (needs the user's explicit go-ahead), wait for CI green + Vercel preview READY.
+4. Manual 390px pass on the preview: happy path, admin group card, beneficiary sees the payment but cannot open the proof.
+5. Mark ready -> one CodeRabbit pass -> fix all findings in ONE batched push.
+6. After merge: approve the gated `migrate-prod` run (this PR HAS a migration), smoke-check production, then GCR — remove the `docs/CLAIMS.md` row, drop the `seed_676_*` DEV fixture, close #676.
 
 ## Constraints
 - Never push to `main`; `dev/2607-DEV-676` only.
@@ -30,7 +28,8 @@ Steps 1-4 of the issue's 12 are DONE and verified (see Done): the schema + RPCs 
 
 ## Facts
 - DEV Supabase project ref `iymwxdewcpvpjgzewtzk`; `supabase/.temp/project-ref` confirms the CLI is linked to DEV. CLI v2.109.1.
-- Read-only DEV SQL runner (no psql on host): `C:\Users\fefence\AppData\Local\Temp\claude\D--react-teamenjoyvd-tevd-portal\a19b2d80-0672-475c-8d5a-09b6ba23078c\scratchpad\devsql.ps1 -Sql "<sql>"` — reads the CLI token from Windows Credential Manager (`Supabase CLI:supabase`, UTF-8 blob) and POSTs to the Management API. Verified working 2026-07-31. Queries selecting person names are blocked by the permission classifier — aggregate instead.
+- DEV SQL runner (no psql on host): a PowerShell script in the session scratchpad reads the Supabase CLI token from Windows Credential Manager (target `Supabase CLI:supabase`; the blob is UTF-8 — decode with `PtrToStringAnsi`, not `PtrToStringUni`) and POSTs to `https://api.supabase.com/v1/projects/iymwxdewcpvpjgzewtzk/database/query`. Verified working 2026-07-31. Only the LAST statement's result set comes back, so put the rows you want last. Queries selecting person names are blocked by the permission classifier — aggregate instead.
+- NEVER paste an absolute Windows path into a tracked file. Tailwind v4 scans every source file for utility candidates, and a backslash followed by hex-digit characters (as in a temp path whose UUID segment starts with hex letters) parses as a CSS unicode escape. `String.fromCodePoint` on the resulting value exceeds the Unicode maximum and kills `npm run build` with `Invalid code point <n>` pointed at `app/globals.css:1:1` — nowhere near the real file. Describe the path, never paste it; writing the literal sequence out even as an example re-breaks the build.
 - Schema anchors (`supabase/migrations/20260315000000_baseline.sql`): `payments` at :307-331 with exactly two FKs to `profiles` (`profile_id` :327, `logged_by_admin` :328); payments RLS at :1069-1075, `payments_member_insert` at :1072; `tree_nodes` at :115-127; `profiles` at :28-49 (no `primary_profile_id` — added by `20260508000100`); `upsert_tree_node` placeholder-root branch at :407-419.
 - "Approved ABO-less member" = `role <> 'guest'` with `abo_number IS NULL` — `approve_member_verification` (`20260509000400_approve_member_verification_gcr.sql:90-101`) sets `role='member'` + `upline_abo_number` and leaves `abo_number` NULL for `request_type='manual'`.
 - Migration precedent to copy (header, guard, grants): `supabase/migrations/20260713000000_2607_feat_los_submission_requests.sql`.
@@ -59,3 +58,5 @@ Steps 1-4 of the issue's 12 are DONE and verified (see Done): the schema + RPCs 
 
 ## Failed attempts
 - ATTEMPT 1 [L1] (`npm run build` / `npm run verify`): replaced the novel arbitrary utility `text-[0.6875rem]` with the repo's existing `text-[11px]` idiom in `components/payment/BeneficiaryPicker.tsx:113,138,167`, on the hypothesis that Tailwind's candidate scanner choked on a rem-valued arbitrary text size -> SAME failure, byte-identical: `CssSyntaxError: tailwindcss: app/globals.css:1:1: Invalid code point 10591021`, thrown from `markUsedVariable` -> `String.fromCodePoint`. Hypothesis disproved. Note `markUsedVariable` operates on CSS custom-property names inside globals.css, not on scanned class names, so the TSX may be irrelevant entirely. (The `text-[11px]` change is KEPT — it matches repo convention either way.)
+- ATTEMPT 2 [L1]: removed `e2e/payments-on-behalf.spec.ts` from the tree on the hypothesis that Tailwind was scanning the new Playwright spec -> SAME failure. Hypothesis disproved.
+- RESOLVED [L3, by bisection + arithmetic]. Control build at `b7790c7` (detached, pre-work) SUCCEEDED, proving the break was mine, not pre-existing. Build at `26103f2` still failed — which ruled out every `.tsx` commit, since no new component existed yet. The decisive step was reading the number: 10591021 == 0xA19B2D, and `docs/STATE.md` contained a scratchpad path whose UUID segment made the literal sequence backslash-a19b2d. CAUSE: Tailwind v4 scans every source file (including .md) for utility candidates and unescapes CSS unicode escapes via `String.fromCodePoint`; 0xA19B2D is above the Unicode maximum 0x10FFFF, so it threw RangeError, reported against `app/globals.css:1:1` — a file I had never touched. Fix: describe the scratchpad path instead of pasting it. `npm run verify` then exited 0. The first draft of the warning note re-broke the build by quoting the sequence verbatim; it is now written in prose.
