@@ -155,13 +155,17 @@ export function EventRolesTab() {
             <button
               key={e.id}
               onClick={() => setFilterEventId(e.id)}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors max-w-[200px] truncate flex-shrink-0"
+              className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors max-w-[200px] flex-shrink-0 inline-flex items-center gap-1"
               style={{
                 backgroundColor: filterEventId === e.id ? 'var(--text-primary)' : 'rgba(0,0,0,0.05)',
                 color: filterEventId === e.id ? 'white' : 'var(--text-secondary)',
               }}
             >
-              {e.start_time ? `${e.title} · ${formatDate(e.start_time)}` : e.title}
+              {/* Title truncates, date does not: recurring Google-synced events
+                  share a title, so the date is the only thing that tells the
+                  chips apart — truncating the whole label can hide it. */}
+              <span className="min-w-0 truncate">{e.title}</span>
+              {e.start_time !== '' && <span className="flex-shrink-0">· {formatDate(e.start_time)}</span>}
             </button>
           ))}
         </div>

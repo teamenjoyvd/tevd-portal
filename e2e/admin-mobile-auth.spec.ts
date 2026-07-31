@@ -27,6 +27,28 @@ import { ADMIN_NAV } from '../lib/nav'
 const ADMIN_EMAIL = process.env.E2E_CLERK_ADMIN_EMAIL ?? 'e2e-admin-tevd-portal@example.com'
 const VIEWPORT_WIDTH = 390
 
+/**
+ * playwright.config.ts:24 feeds the same BASE_URL to every project, so a local
+ * run with BASE_URL set would point clerk.signIn() — and the writes behind it —
+ * at a preview or production deployment. Authenticated specs are local-only
+ * (playwright.config.ts:79-80); fail loudly rather than sign in over there.
+ */
+const BASE_URL = process.env.BASE_URL ?? 'http://localhost:3000'
+const IS_LOCAL_TARGET = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/|$)/.test(BASE_URL)
+
+/**
+ * Which ADMIN_NAV routes render a tab bar (app/admin/components/AdminTabs.tsx
+ * consumers + SettingsTabs). Encoded explicitly so a route that silently loses
+ * its tabs — or redirects away before rendering — fails instead of turning the
+ * per-tab sweep into a no-op.
+ */
+const TABBED_ROUTES = new Set([
+  '/admin/approval-hub',
+  '/admin/content',
+  '/admin/members',
+  '/admin/settings',
+])
+
 // Duplicated from admin-auth.spec.ts:22 rather than exported from it — that
 // spec is passing in CI and a shared-helper refactor would put it at risk for
 // no benefit here.
@@ -57,14 +79,23 @@ async function expectNoHorizontalOverflow(page: Page, label: string) {
  */
 async function checkRouteAndItsTabs(page: Page, route: string, locale: string) {
   await page.goto(route)
-  // .first(): the readiness wait must not depend on there being exactly one
-  // main landmark. A page that grows a second one is a defect worth failing
-  // on, but it should surface as its own finding rather than as a strict-mode
-  // violation that aborts the overflow sweep before it measures anything.
-  await expect(page.getByRole('main').first()).toBeVisible({ timeout: 60_000 })
+  // Exactly one main landmark: nesting a second one is invalid HTML (the bug
+  // fixed on /admin/settings in 045b4e3), and a redirect away from the route
+  // would otherwise still satisfy a `.first()` visibility wait.
+  const mains = page.getByRole('main')
+  await expect(mains).toHaveCount(1, { timeout: 60_000 })
+  await expect(mains).toBeVisible()
+  expect(new URL(page.url()).pathname, `redirected away from ${route}`).toBe(route)
   await expectNoHorizontalOverflow(page, `${route} [${locale}]`)
 
   const tabs = page.getByRole('tab')
+  // Fail closed: on a tabbed route an empty tab list means the bar never
+  // rendered, which would silently skip every per-tab measurement below.
+  if (TABBED_ROUTES.has(route)) {
+    await expect(tabs.first(), `no tab bar rendered on ${route}`).toBeVisible({ timeout: 15_000 })
+  } else {
+    await expect(tabs, `unexpected tab bar on ${route} — add it to TABBED_ROUTES`).toHaveCount(0)
+  }
   const count = await tabs.count()
   for (let i = 0; i < count; i++) {
     const tab = tabs.nth(i)
@@ -85,6 +116,13 @@ test.describe('admin section at 390px', () => {
       testInfo.project.name !== 'authenticated',
       'runs under the authenticated project with a 390px viewport override',
     )
+    if (!IS_LOCAL_TARGET) {
+      throw new Error(
+        `admin-mobile-auth is local-only: BASE_URL is "${BASE_URL}". Signing in here ` +
+        `would target a deployed environment's Clerk + Supabase. Unset BASE_URL and run ` +
+        `against a local server with local Supabase + npm run e2e:seed-clerk.`,
+      )
+    }
   })
 
   for (const locale of ['en', 'bg'] as const) {
@@ -93,7 +131,7 @@ test.describe('admin section at 390px', () => {
       // COOKIE_KEY in lib/context/LangProvider.tsx. Precedent:
       // e2e/guest-invite.spec.ts:192.
       await context.addCookies([
-        { name: 'tevd_lang', value: locale, url: process.env.BASE_URL ?? 'http://localhost:3000' },
+        { name: 'tevd_lang', value: locale, url: BASE_URL },
       ])
 
       await signInAs(page, ADMIN_EMAIL)

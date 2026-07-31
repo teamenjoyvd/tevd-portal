@@ -1,5 +1,7 @@
+'use client'
+
 import { formatDateTime } from '@/lib/format'
-import { t } from '@/lib/i18n'
+import { useLanguage } from '@/lib/hooks/useLanguage'
 
 const PAGE_SIZE = 50
 
@@ -20,6 +22,9 @@ interface NotificationsTabProps {
 }
 
 export function NotificationsTab({ rows, page, count }: NotificationsTabProps) {
+  // Locale comes from the LangProvider (tevd_lang cookie), not a hardcoded
+  // 'en' — otherwise switching to BG left this whole table in English.
+  const { t } = useLanguage()
   const totalPages = Math.ceil(count / PAGE_SIZE)
 
   function buildUrl(p: number) {
@@ -37,12 +42,12 @@ export function NotificationsTab({ rows, page, count }: NotificationsTabProps) {
           className="hidden md:grid md:grid-cols-[auto_auto_1fr_1fr_auto_auto] gap-4 px-4 py-3 text-xs font-semibold tracking-widest uppercase"
           style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-secondary)', borderBottom: '1px solid var(--border-default)' }}
         >
-          <span>{t('admin.notifications.col.created', 'en')}</span>
-          <span>{t('admin.notifications.col.type', 'en')}</span>
-          <span>{t('admin.notifications.col.title', 'en')}</span>
-          <span>{t('admin.notifications.col.member', 'en')}</span>
-          <span>{t('admin.notifications.col.read', 'en')}</span>
-          <span>{t('admin.notifications.col.deleted', 'en')}</span>
+          <span>{t('admin.notifications.col.created')}</span>
+          <span>{t('admin.notifications.col.type')}</span>
+          <span>{t('admin.notifications.col.title')}</span>
+          <span>{t('admin.notifications.col.member')}</span>
+          <span>{t('admin.notifications.col.read')}</span>
+          <span>{t('admin.notifications.col.deleted')}</span>
         </div>
 
         {rows.map((row, i) => {
@@ -69,10 +74,10 @@ export function NotificationsTab({ rows, page, count }: NotificationsTabProps) {
               <span className="truncate md:whitespace-nowrap" style={{ color: 'var(--text-primary)' }}>{memberName}</span>
               {row.is_read ? (
                 <span className="text-xs font-medium px-2 py-0.5 rounded-full w-fit"
-                  style={{ backgroundColor: 'rgba(45,51,42,0.08)', color: 'var(--brand-forest)' }}>{t('admin.notifications.badge.read', 'en')}</span>
+                  style={{ backgroundColor: 'rgba(45,51,42,0.08)', color: 'var(--brand-forest)' }}>{t('admin.notifications.badge.read')}</span>
               ) : (
                 <span className="text-xs font-medium px-2 py-0.5 rounded-full w-fit"
-                  style={{ backgroundColor: 'rgba(188,71,73,0.10)', color: 'var(--brand-crimson)' }}>{t('admin.notifications.badge.unread', 'en')}</span>
+                  style={{ backgroundColor: 'rgba(188,71,73,0.10)', color: 'var(--brand-crimson)' }}>{t('admin.notifications.badge.unread')}</span>
               )}
               {/* Deleted-at: hidden on mobile when absent — without the column
                   header there it would read as a second, unexplained date. */}
@@ -87,14 +92,14 @@ export function NotificationsTab({ rows, page, count }: NotificationsTabProps) {
         })}
 
         {rows.length === 0 && (
-          <p className="px-4 py-12 text-center text-sm" style={{ color: 'var(--text-secondary)' }}>{t('admin.notifications.empty', 'en')}</p>
+          <p className="px-4 py-12 text-center text-sm" style={{ color: 'var(--text-secondary)' }}>{t('admin.notifications.empty')}</p>
         )}
       </div>
 
       {totalPages > 1 && (
         <div className="flex items-center justify-between gap-3 flex-wrap mt-6">
           <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-            {t('admin.notifications.pagination.info', 'en')
+            {t('admin.notifications.pagination.info')
               .replace('{{page}}', String(page))
               .replace('{{total}}', String(totalPages))
               .replace('{{count}}', String(count))}
@@ -103,12 +108,12 @@ export function NotificationsTab({ rows, page, count }: NotificationsTabProps) {
             {page > 1 && (
               <a href={buildUrl(page - 1)}
                 className="px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors hover:bg-black/5"
-                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}>{t('admin.notifications.pagination.prev', 'en')}</a>
+                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}>{t('admin.notifications.pagination.prev')}</a>
             )}
             {page < totalPages && (
               <a href={buildUrl(page + 1)}
                 className="px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors hover:bg-black/5"
-                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}>{t('admin.notifications.pagination.next', 'en')}</a>
+                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}>{t('admin.notifications.pagination.next')}</a>
             )}
           </div>
         </div>

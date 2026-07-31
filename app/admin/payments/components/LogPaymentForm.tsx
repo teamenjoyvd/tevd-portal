@@ -46,15 +46,15 @@ export function LogPaymentForm({
   const activeItems = useMemo(() => items.filter(i => i.is_active), [items])
 
   function handleLog() {
-    if (!entity || !profileId || !amount) return
+    if (entity === '' || profileId === '' || amount === '') return
     const [type, id] = entity.split('::')
     const body: Record<string, unknown> = {
       profile_id: profileId,
       amount: Number(amount),
       currency,
       transaction_date: txDate,
-      payment_method: method || null,
-      note: note || null,
+      payment_method: method === '' ? null : method,
+      note: note === '' ? null : note,
       admin_status: payStatus,
     }
     if (type === 'trip') body.trip_id = id
@@ -146,11 +146,11 @@ export function LogPaymentForm({
           className="w-full border rounded-xl px-3 py-2.5 text-sm"
           style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
       </div>
-      {externalError && <p className="text-sm" style={{ color: 'var(--brand-crimson)' }}>{externalError}</p>}
+      {externalError !== null && externalError !== '' && <p className="text-sm" style={{ color: 'var(--brand-crimson)' }}>{externalError}</p>}
       <div className="flex flex-col gap-3 pt-2 sm:flex-row">
         <button
           onClick={handleLog}
-          disabled={isPending || !entity || !profileId || !amount || Number(amount) <= 0}
+          disabled={isPending || entity === '' || profileId === '' || amount === '' || Number(amount) <= 0}
           className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity"
           style={{ backgroundColor: 'var(--brand-crimson)' }}
         >

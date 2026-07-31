@@ -21,6 +21,13 @@ export function PendingPaymentsSection({
 }) {
   const { t } = useLanguage()
 
+  // An absent note and an empty note both mean "no admin note" — collapse both
+  // to null explicitly rather than truthiness-checking a string that can be ''.
+  function noteFor(id: string): string | null {
+    const note = reviewNotes[id]
+    return note === undefined || note === '' ? null : note
+  }
+
   if (payments.length === 0) return null
 
   return (
@@ -73,13 +80,13 @@ export function PendingPaymentsSection({
                   stretching vertically inside the stacked column. */}
               <div className="flex gap-2 sm:contents">
                 <button
-                  onClick={() => onApprove(p.id, reviewNotes[p.id] || null)}
+                  onClick={() => onApprove(p.id, noteFor(p.id))}
                   disabled={isPending}
                   className="flex-1 sm:flex-none px-4 py-2 rounded-xl text-xs font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity sm:flex-shrink-0"
                   style={{ backgroundColor: '#2d6a4f' }}
                 >{t('admin.operations.payments.btn.approve')}</button>
                 <button
-                  onClick={() => onReject(p.id, reviewNotes[p.id] || null)}
+                  onClick={() => onReject(p.id, noteFor(p.id))}
                   disabled={isPending}
                   className="flex-1 sm:flex-none px-4 py-2 rounded-xl text-xs font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity sm:flex-shrink-0"
                   style={{ backgroundColor: 'var(--brand-crimson)' }}

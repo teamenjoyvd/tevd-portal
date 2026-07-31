@@ -194,7 +194,7 @@ export function PaymentsClient({
               disabled={deleteMutation.isPending}
               onClick={e => {
                 e.preventDefault()
-                if (deleteTargetId) deleteMutation.mutate(deleteTargetId)
+                if (deleteTargetId !== null) deleteMutation.mutate(deleteTargetId)
               }}
             >
               {deleteMutation.isPending ? '…' : t('admin.operations.payments.dialog.confirm')}

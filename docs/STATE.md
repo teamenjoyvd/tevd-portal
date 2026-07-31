@@ -2,13 +2,12 @@
 BUILD issue #678 (2607-DEV-678, branch `dev/2607-DEV-678`): admin section 390px mobile sweep — every `/admin/*` route renders correctly at 390px in both BG and EN, guarded by a new authenticated Playwright spec. Folds in #680 (PaymentsClient pins English), which otherwise blocks BG verification on `/admin/payments`.
 
 ## Now
-All 6 steps implemented and committed (`c0f11fb`, 24 files). Branch pushed; draft PR #685 open. Waiting on CI — specifically the `Authenticated E2E (Clerk)` job, which is the only thing that has actually executed `e2e/admin-mobile-auth.spec.ts`.
+GCR pass on PR #685: all 8 CI checks green, Vercel preview READY, CodeRabbit posted 5 threads. All 5 addressed locally in one commit (6 files) — awaiting the user's go-ahead to push.
 
 ## Next
-1. Confirm `Authenticated E2E (Clerk)` on PR #685 ran its steps (not green-by-skip) and is green. Any 390px assertion failure names the exact route/tab/locale — fix that surface, don't loosen the assertion.
-2. Confirm Vercel preview READY.
-3. Mark PR #685 ready for review → single CodeRabbit pass → fix all findings in ONE batched push.
-4. Merge, then GCR: remove the `docs/CLAIMS.md` row, close #678 and #680.
+1. Push the GCR commit; wait for CI + preview to go green again.
+2. Resolve the 4 fully-applied CodeRabbit threads; reply-then-leave-open on the partially-applied truthiness thread (boolean-only sites skipped).
+3. Merge, then GCR tail: remove the `docs/CLAIMS.md` row, close #678 and #680.
 5. No migrations — no `migrate-prod` gate; just confirm the prod deploy is READY and smoke-check the production URL.
 
 ## Constraints
