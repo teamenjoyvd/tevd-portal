@@ -24,16 +24,37 @@ import { BENTO_IDS } from '../app/(dashboard)/profile/components/bento-registry'
 
 const MEMBER_EMAIL = process.env.E2E_CLERK_MEMBER_EMAIL ?? 'e2e-member-tevd-portal@example.com'
 
-// ProfileClient debounces ui_prefs PATCH by 500ms after every reorder/
-// collapse/reset call — give it margin before reload or the write races
-// the navigation.
-const PERSIST_DEBOUNCE_MARGIN_MS = 800
+// ProfileClient debounces the ui_prefs PATCH after every reorder/collapse/
+// reset. This suite used to bridge that with a fixed 800ms sleep, which
+// raced the debounce on a loaded CI runner. Every wait now polls observable
+// state — see expectPersisted below.
 
 async function signInAndOpenProfile(page: Page) {
   await page.goto('/')
   await clerk.signIn({ page, emailAddress: MEMBER_EMAIL })
   await page.goto('/profile')
-  await expect(page.locator('body')).toBeVisible()
+  // Waiting on `body` proved nothing: it is visible long before useProfile()
+  // resolves, and Playwright's webServer runs `npm run dev`, so /profile is
+  // compiled on demand and the first hit is slow. The layout controls are
+  // disabled until layoutRestored, so an enabled Reset button is the real
+  // signal that the saved layout is in and interaction is safe.
+  await expect(page.getByRole('button', { name: 'Reset layout' })).toBeEnabled({ timeout: 60_000 })
+}
+
+/**
+ * Persistence is debounced (PERSIST_DEBOUNCE_MS in ProfileClient), so the
+ * write lands some time after the click. Poll the persisted state instead of
+ * sleeping a fixed interval — a fixed sleep races the debounce on a loaded CI
+ * runner, which is exactly how this suite failed on #682.
+ */
+async function expectPersisted(
+  page: Page,
+  predicate: (prefs: { bento_order?: string[]; bento_collapsed?: Record<string, boolean> }) => boolean,
+  message: string,
+) {
+  await expect
+    .poll(async () => predicate(await getPersistedUiPrefs(page)), { message, timeout: 15_000 })
+    .toBe(true)
 }
 
 async function getPersistedUiPrefs(page: Page) {
@@ -52,7 +73,14 @@ test.describe('desktop bento grid — drag, collapse, layout persistence', () =>
     await signInAndOpenProfile(page)
 
     await page.getByRole('button', { name: 'Reset layout' }).click()
-    await page.waitForTimeout(PERSIST_DEBOUNCE_MARGIN_MS)
+    // Wait for the reset to actually land, rather than assuming 800ms is
+    // enough. Previously this asserted on `bento_order: []` and compared
+    // indexOf -1 < -1, which reported a race as a logic failure.
+    await expectPersisted(
+      page,
+      prefs => (prefs.bento_order ?? []).includes(BENTO_IDS.PERSONAL_DETAILS),
+      'reset layout should persist bento_order',
+    )
 
     const prefs = await getPersistedUiPrefs(page)
     expect(prefs.bento_collapsed ?? {}).toEqual({})
@@ -67,12 +95,16 @@ test.describe('desktop bento grid — drag, collapse, layout persistence', () =>
     await signInAndOpenProfile(page)
 
     await page.getByRole('button', { name: 'Reset layout' }).click()
-    await page.waitForTimeout(PERSIST_DEBOUNCE_MARGIN_MS)
+    await expectPersisted(
+      page,
+      prefs => (prefs.bento_order ?? []).includes(BENTO_IDS.PERSONAL_DETAILS),
+      'reset layout should persist before dragging',
+    )
     // Collapse all first: fixed-size bars make the drag geometry
     // deterministic and keep the assertion independent of each bento's
     // (soon to change, per Step 3) internal content layout.
     await page.getByRole('button', { name: 'Collapse all' }).click()
-    await page.waitForTimeout(PERSIST_DEBOUNCE_MARGIN_MS)
+    await expect(page.getByRole('button', { name: 'Expand all' })).toBeVisible()
 
     const handles = page.locator('[title="Drag to reorder"]')
     await expect(handles.first()).toBeVisible()
@@ -94,7 +126,14 @@ test.describe('desktop bento grid — drag, collapse, layout persistence', () =>
     await page.mouse.move(secondBox!.x + secondBox!.width / 2, secondBox!.y + secondBox!.height / 2 + 4, { steps: 10 })
     await page.mouse.move(secondBox!.x + secondBox!.width / 2, secondBox!.y + secondBox!.height / 2 + 8, { steps: 5 })
     await page.mouse.up()
-    await page.waitForTimeout(PERSIST_DEBOUNCE_MARGIN_MS)
+    await expectPersisted(
+      page,
+      prefs => {
+        const o = prefs.bento_order ?? []
+        return o.indexOf(secondId) < o.indexOf(firstId)
+      },
+      `drag should persist ${secondId} before ${firstId}`,
+    )
 
     await page.reload()
     const afterOrder = (await getPersistedUiPrefs(page)).bento_order ?? []
@@ -104,10 +143,20 @@ test.describe('desktop bento grid — drag, collapse, layout persistence', () =>
   test('collapsing a bento persists after reload', async ({ page }) => {
     await signInAndOpenProfile(page)
     await page.getByRole('button', { name: 'Reset layout' }).click()
-    await page.waitForTimeout(PERSIST_DEBOUNCE_MARGIN_MS)
+    await expectPersisted(
+      page,
+      prefs => Object.values(prefs.bento_collapsed ?? {}).every(v => !v),
+      'reset should clear collapse state',
+    )
 
-    await page.getByRole('button', { name: 'Collapse', exact: true }).first().click()
-    await page.waitForTimeout(PERSIST_DEBOUNCE_MARGIN_MS)
+    const collapseButton = page.getByRole('button', { name: 'Collapse', exact: true }).first()
+    await expect(collapseButton).toBeVisible()
+    await collapseButton.click()
+    await expectPersisted(
+      page,
+      prefs => Object.values(prefs.bento_collapsed ?? {}).some(Boolean),
+      'collapsing one bento should persist',
+    )
 
     const beforeReload = await getPersistedUiPrefs(page)
     const collapsedIds = Object.entries(beforeReload.bento_collapsed ?? {}).filter(([, v]) => v).map(([k]) => k)
@@ -124,11 +173,14 @@ test.describe('desktop bento grid — drag, collapse, layout persistence', () =>
   test('expand-all toggles every bento back open', async ({ page }) => {
     await signInAndOpenProfile(page)
     await page.getByRole('button', { name: 'Collapse all' }).click()
-    await page.waitForTimeout(PERSIST_DEBOUNCE_MARGIN_MS)
     await expect(page.getByRole('button', { name: 'Expand all' })).toBeVisible()
 
     await page.getByRole('button', { name: 'Expand all' }).click()
-    await page.waitForTimeout(PERSIST_DEBOUNCE_MARGIN_MS)
+    await expectPersisted(
+      page,
+      prefs => Object.values(prefs.bento_collapsed ?? {}).every(v => !v),
+      'expand all should clear every collapsed flag',
+    )
 
     const prefs = await getPersistedUiPrefs(page)
     const anyCollapsed = Object.values(prefs.bento_collapsed ?? {}).some(Boolean)

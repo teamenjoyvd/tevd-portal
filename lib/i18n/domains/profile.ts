@@ -64,6 +64,7 @@ export const profile = {
   'profile.spouseLinkBanner.review':      { en: 'Review →',          bg: 'Преглед →'                    },
   'profile.incompleteHint':     { en: 'Complete your profile to get started.', bg: 'Попълнете профила си, за да започнете.' },
   'profile.resetLayout':        { en: 'Reset layout',            bg: 'Нулирай оформлението'     },
+  'profile.layoutSaveError':    { en: 'Could not save your layout. It may not persist after a reload.', bg: 'Оформлението не беше запазено. Възможно е да не се запази след презареждане.' },
   'profile.collapseAll':        { en: 'Collapse all',            bg: 'Свий всички'              },
   'profile.expandAll':          { en: 'Expand all',              bg: 'Разгъни всички'           },
   'profile.tile.personalDetails': { en: 'Personal Details', bg: 'Лични данни'           },
