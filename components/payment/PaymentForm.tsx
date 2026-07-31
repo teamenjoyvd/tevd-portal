@@ -1,11 +1,14 @@
 'use client'
 
-import { useState, useRef } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMemo, useState, useRef } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { formatCurrency } from '@/lib/format'
 import { uploadToSignedUrl } from '@/lib/utils/uploadToSignedUrl'
-import type { PayableItem } from './types'
+import { isBalanced, redistribute, setRowAmount, type SplitRow } from '@/lib/payments/split'
+import { BeneficiaryPicker } from './BeneficiaryPicker'
+import { SplitEditor } from './SplitEditor'
+import type { Beneficiary, PayableItem } from './types'
 
 type TripContext    = { context?: 'trip';   tripId: string }
 type GenericContext = { context: 'generic'; payableItems: PayableItem[] }
@@ -13,6 +16,12 @@ type GenericContext = { context: 'generic'; payableItems: PayableItem[] }
 type PaymentFormProps = (TripContext | GenericContext) & {
   onSuccess?: () => void
   onCancel?:  () => void
+  /**
+   * Opt in to paying on behalf of others (2607-DEV-676). Default false, so a
+   * call site that passes nothing renders and posts exactly as before —
+   * rollout and rollback are a one-word flag flip per route.
+   */
+  allowOnBehalf?: boolean
 }
 
 /**
@@ -23,10 +32,15 @@ type PaymentFormProps = (TripContext | GenericContext) & {
  *
  * Both contexts share identical UX: segmented method control, styled upload
  * zone, required-field legend, forest-green CTA.
+ *
+ * With allowOnBehalf the form gains a "Who is this for?" block that defaults to
+ * just the payer. At one participant it is behaviourally today's form and posts
+ * no `beneficiaries` key at all; at two or more, Amount becomes Total and a
+ * per-person breakdown appears.
  */
 export function PaymentForm(props: PaymentFormProps) {
   const { t } = useLanguage()
-  const { onSuccess, onCancel } = props
+  const { onSuccess, onCancel, allowOnBehalf = false } = props
   const qc = useQueryClient()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -37,8 +51,54 @@ export function PaymentForm(props: PaymentFormProps) {
   const [file, setFile]       = useState<File | null>(null)
   const [note, setNote]       = useState('')
 
+  const [participants, setParticipants] = useState<SplitRow[]>([])
+  const [pickerOpen, setPickerOpen]     = useState(false)
+
   const selectedItem = 'payableItems' in props ? props.payableItems.find(i => i.id === itemId) : null
   const currency     = selectedItem?.currency ?? 'EUR'
+
+  // Prefetched on mount so the picker is already warm on the first tap. Not
+  // fetched at all when the flag is off, so the legacy call sites make no extra
+  // request.
+  const { data: beneficiaries = [], isLoading: beneficiariesLoading } = useQuery<Beneficiary[]>({
+    queryKey: ['payment-beneficiaries'],
+    queryFn: async () => {
+      const res = await fetch('/api/payments/beneficiaries')
+      if (!res.ok) throw new Error('Could not load beneficiaries')
+      return res.json()
+    },
+    enabled: allowOnBehalf,
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const self = beneficiaries.find(b => b.relation === 'self') ?? null
+  const people = useMemo(
+    () => Object.fromEntries(beneficiaries.map(b => [b.profile_id, b])) as Record<string, Beneficiary>,
+    [beneficiaries],
+  )
+
+  // Amounts live in integer cents; the euro input is only a rendering of them.
+  const parsedAmount = parseFloat(amount)
+  const totalCents   = Number.isNaN(parsedAmount) ? 0 : Math.round(parsedAmount * 100)
+
+  // The payer is DERIVED as the default participant rather than seeded by an
+  // effect: an effect that setStates on load cascades a second render, and it
+  // would also race the beneficiaries fetch against a user already typing.
+  // Empty state therefore means "just me", and resetting is setParticipants([]).
+  const roster = useMemo<SplitRow[]>(() => {
+    if (participants.length > 0) return participants
+    if (!allowOnBehalf || !self) return []
+    return [{ profileId: self.profile_id, amountCents: totalCents, locked: false }]
+  }, [participants, allowOnBehalf, self, totalCents])
+
+  /** Re-split across unlocked rows. Redistribution is invalid below one cent,
+   *  in which case the rows are left alone — the form is unsubmittable anyway. */
+  function rebalance(rows: SplitRow[], total: number): SplitRow[] {
+    if (!Number.isInteger(total) || total <= 0 || rows.length === 0) return rows
+    return redistribute(rows, total)
+  }
+
+  const isOnBehalf = allowOnBehalf && roster.length >= 2
 
   const submitMutation = useMutation({
     mutationFn: async () => {
@@ -57,6 +117,18 @@ export function PaymentForm(props: PaymentFormProps) {
           ? { trip_id: props.tripId }
           : { payable_item_id: itemId }
 
+      // Only a genuine multi-person submission carries the group keys. With one
+      // participant the body is byte-identical to the legacy form's.
+      const onBehalf = isOnBehalf
+        ? {
+            total_cents: totalCents,
+            beneficiaries: roster.map(row => ({
+              profile_id:   row.profileId,
+              amount_cents: row.amountCents,
+            })),
+          }
+        : {}
+
       const res = await fetch('/api/payments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -68,6 +140,7 @@ export function PaymentForm(props: PaymentFormProps) {
           payment_method:   method,
           proof_url,
           note: note || null,
+          ...onBehalf,
         }),
       })
       const body = await res.json().catch(() => ({}))
@@ -81,13 +154,18 @@ export function PaymentForm(props: PaymentFormProps) {
         qc.invalidateQueries({ queryKey: ['profile-generic-payments'] })
       }
       setItemId(''); setAmount(''); setDate(''); setMethod('cash'); setFile(null); setNote('')
+      setParticipants([]) // empty means "just me" — the roster memo re-derives it
+      setPickerOpen(false)
       onSuccess?.()
     },
   })
 
-  const parsedAmount = parseFloat(amount)
   const entityValid  = 'tripId' in props ? true : !!itemId
-  const canSubmit    = !isNaN(parsedAmount) && parsedAmount > 0 && !!date && entityValid && !submitMutation.isPending
+  // On a group submission the shares must add up EXACTLY — the same assertion
+  // submit_payment_group makes in SQL, so the button never promises a submit
+  // the database will refuse.
+  const splitValid   = !isOnBehalf || isBalanced(roster, totalCents)
+  const canSubmit    = !isNaN(parsedAmount) && parsedAmount > 0 && !!date && entityValid && splitValid && !submitMutation.isPending
 
   const inputStyle = {
     backgroundColor: 'var(--bg-global)',
@@ -107,6 +185,29 @@ export function PaymentForm(props: PaymentFormProps) {
     marginBottom: '0.375rem',
     color: 'var(--text-secondary)',
   } as const
+
+  // The picker replaces the form inside the SAME drawer rather than opening a
+  // nested one — see BeneficiaryPicker for why nesting vaul drawers breaks.
+  if (pickerOpen) {
+    return (
+      <BeneficiaryPicker
+        beneficiaries={beneficiaries}
+        selectedIds={roster.map(p => p.profileId)}
+        isLoading={beneficiariesLoading}
+        onBack={() => setPickerOpen(false)}
+        onSelect={b => {
+          // Built from `roster`, never the raw state: while the payer is still
+          // the derived default, raw state is [] and an updater would drop them.
+          setParticipants(
+            roster.some(p => p.profileId === b.profile_id)
+              ? roster
+              : rebalance([...roster, { profileId: b.profile_id, amountCents: 0, locked: false }], totalCents),
+          )
+          setPickerOpen(false)
+        }}
+      />
+    )
+  }
 
   return (
     <div className="space-y-5">
@@ -143,17 +244,106 @@ export function PaymentForm(props: PaymentFormProps) {
         </div>
       )}
 
-      {/* Amount */}
+      {/* Who is this for? — only when the flag is on. Defaults to the payer
+          alone, at which point everything below behaves exactly as before. */}
+      {allowOnBehalf && (
+        <div>
+          <label style={labelStyle}>{t('payment.whoIsThisFor')}</label>
+          <div className="flex flex-wrap gap-2">
+            {roster.map(row => {
+              const person = people[row.profileId]
+              return (
+                <span
+                  key={row.profileId}
+                  className="inline-flex items-center gap-1.5 rounded-full pl-3 pr-2 text-xs"
+                  style={{
+                    minHeight: '32px',
+                    border: '1px solid var(--border-default)',
+                    backgroundColor: 'var(--bg-global)',
+                    color: 'var(--text-primary)',
+                  }}
+                >
+                  {person ? `${person.first_name} ${person.last_name}` : '…'}
+                  {roster.length > 1 && (
+                    <button
+                      type="button"
+                      aria-label={t('payment.remove')}
+                      onClick={() =>
+                        setParticipants(rebalance(roster.filter(p => p.profileId !== row.profileId), totalCents))
+                      }
+                      className="flex items-center justify-center transition-opacity hover:opacity-70"
+                      style={{
+                        width: '20px', height: '20px',
+                        background: 'none', border: 'none',
+                        color: 'var(--text-secondary)', cursor: 'pointer', padding: 0,
+                      }}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                      </svg>
+                    </button>
+                  )}
+                </span>
+              )
+            })}
+
+            <button
+              type="button"
+              onClick={() => setPickerOpen(true)}
+              className="inline-flex items-center rounded-full px-3 text-xs font-semibold transition-opacity hover:opacity-70"
+              style={{
+                minHeight: '32px',
+                border: '1px dashed var(--border-default)',
+                background: 'none',
+                color: 'var(--text-secondary)',
+                cursor: 'pointer',
+              }}
+            >
+              {t('payment.addPerson')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Amount — labelled Total once the money is being split. */}
       <div>
         <label style={labelStyle}>
-          {t('payment.amount')} ({currency}) <span style={{ color: 'var(--brand-crimson)' }}>*</span>
+          {isOnBehalf ? t('payment.total') : t('payment.amount')} ({currency}){' '}
+          <span style={{ color: 'var(--brand-crimson)' }}>*</span>
         </label>
         <input
           type="number" min="0" step="0.01" placeholder="0.00"
-          value={amount} onChange={e => setAmount(e.target.value)}
+          value={amount}
+          onChange={e => {
+            const next = e.target.value
+            setAmount(next)
+            const parsed = parseFloat(next)
+            const nextTotal = Number.isNaN(parsed) ? 0 : Math.round(parsed * 100)
+            // Untouched state stays empty so the roster memo keeps deriving
+            // the payer at the new total; only a real selection is rebalanced.
+            setParticipants(prev => (prev.length === 0 ? prev : rebalance(prev, nextTotal)))
+          }}
           style={inputStyle}
         />
       </div>
+
+      {/* Per-person breakdown */}
+      {isOnBehalf && (
+        <SplitEditor
+          rows={roster}
+          people={people}
+          totalCents={totalCents}
+          currency={currency}
+          onChangeAmount={(profileId, amountCents) =>
+            setParticipants(totalCents > 0 ? setRowAmount(roster, profileId, amountCents, totalCents) : roster)
+          }
+          onRemove={profileId =>
+            setParticipants(rebalance(roster.filter(p => p.profileId !== profileId), totalCents))
+          }
+        />
+      )}
 
       {/* Date */}
       <div>

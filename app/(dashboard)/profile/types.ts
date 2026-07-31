@@ -120,6 +120,14 @@ export type GenericPayment = {
   note: string | null
   admin_note: string | null
   created_at: string
+  // Paying on behalf of others (2607-DEV-676). GET /api/payments now returns
+  // rows on my ledger AND rows I paid for, so a row's owner is not always me.
+  admin_status?: string
+  profile_id?: string
+  paid_by_profile_id?: string | null
+  payment_group_id?: string | null
+  beneficiary?: { id: string; first_name: string; last_name: string } | null
+  payer?: { id: string; first_name: string; last_name: string } | null
   payable_items: {
     id: string
     title: string

@@ -27,7 +27,7 @@ function SubmitPaymentDrawer({
   const { t } = useLanguage()
   return (
     <Drawer open={open} onClose={onClose} title={t('payment.submit')}>
-      <PaymentForm context="trip" tripId={tripId} onSuccess={onClose} onCancel={onClose} />
+      <PaymentForm context="trip" tripId={tripId} allowOnBehalf onSuccess={onClose} onCancel={onClose} />
     </Drawer>
   )
 }
@@ -236,7 +236,11 @@ export function AttendeeView({
                         {p.note ? ` · ${p.note}` : ''}
                       </p>
                     </div>
-                    {p.proof_url && (
+                    {/* Only the PAYER may open the proof (2607-DEV-676): the route
+                        404s for everyone else, so showing the link to a beneficiary
+                        would be a dead end. Legacy rows have a null payer and fall
+                        back to the row owner. `??` not `||` — zero-is-data rule. */}
+                    {p.proof_url && (p.paid_by_profile_id ?? p.profile_id) === profile.id && (
                       <a
                         href={`/api/profile/payments/${p.id}/proof`}
                         target="_blank"
