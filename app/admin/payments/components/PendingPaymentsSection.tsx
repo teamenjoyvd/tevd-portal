@@ -3,6 +3,39 @@
 import { formatDate, formatCurrency } from '@/lib/format'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import type { Payment } from '@/lib/types/payments'
+import { PaymentGroupCard } from './PaymentGroupCard'
+
+/**
+ * Bucket the queue into on-behalf groups and legacy singles, preserving the
+ * original order (2607-DEV-676). The key is `payment_group_id` or, for a single,
+ * a `single:` prefix that cannot collide with a uuid — so one loop renders both
+ * without a second pass or a sort.
+ */
+type Bucket =
+  | { kind: 'single'; key: string; payment: Payment }
+  | { kind: 'group'; key: string; groupId: string; rows: Payment[] }
+
+function bucketize(payments: Payment[]): Bucket[] {
+  const buckets: Bucket[] = []
+  const groupIndex = new Map<string, number>()
+
+  for (const p of payments) {
+    const groupId = p.payment_group_id
+    if (!groupId) {
+      buckets.push({ kind: 'single', key: `single:${p.id}`, payment: p })
+      continue
+    }
+    const at = groupIndex.get(groupId)
+    if (at === undefined) {
+      groupIndex.set(groupId, buckets.length)
+      buckets.push({ kind: 'group', key: groupId, groupId, rows: [p] })
+    } else {
+      const bucket = buckets[at]
+      if (bucket.kind === 'group') bucket.rows.push(p)
+    }
+  }
+  return buckets
+}
 
 export function PendingPaymentsSection({
   payments,
@@ -10,9 +43,68 @@ export function PendingPaymentsSection({
   setReviewNotes,
   onApprove,
   onReject,
+  onApproveGroup,
+  onRejectGroup,
   isPending,
 }: {
   payments: Payment[]
+  reviewNotes: Record<string, string>
+  setReviewNotes: React.Dispatch<React.SetStateAction<Record<string, string>>>
+  onApprove: (id: string, note: string | null) => void
+  onReject: (id: string, note: string | null) => void
+  onApproveGroup: (groupId: string, note: string | null) => void
+  onRejectGroup: (groupId: string, note: string) => void
+  isPending: boolean
+}) {
+  const { t } = useLanguage()
+
+  if (payments.length === 0) return null
+
+  return (
+    <div>
+      <p className="text-xs font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
+        {t('admin.operations.payments.pendingTitle').replace('{{count}}', String(payments.length))}
+      </p>
+      <div className="rounded-2xl border overflow-hidden" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
+        {bucketize(payments).map((bucket, i) => bucket.kind === 'group' ? (
+          <div key={bucket.key}
+            style={{ borderTop: i > 0 ? '1px solid var(--border-default)' : 'none' }}>
+            <PaymentGroupCard
+              groupId={bucket.groupId}
+              rows={bucket.rows}
+              note={reviewNotes[bucket.groupId] ?? ''}
+              setNote={value => setReviewNotes(n => ({ ...n, [bucket.groupId]: value }))}
+              onApprove={onApproveGroup}
+              onReject={onRejectGroup}
+              isPending={isPending}
+            />
+          </div>
+        ) : (
+          <div key={bucket.key}
+            style={{ borderTop: i > 0 ? '1px solid var(--border-default)' : 'none' }}>
+            <PendingSingleRow
+              p={bucket.payment}
+              reviewNotes={reviewNotes}
+              setReviewNotes={setReviewNotes}
+              onApprove={onApprove}
+              onReject={onReject}
+              isPending={isPending}
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/**
+ * A legacy, non-grouped pending payment. Markup lifted verbatim out of the map
+ * so the single-row queue renders exactly as it did before groups existed.
+ */
+function PendingSingleRow({
+  p, reviewNotes, setReviewNotes, onApprove, onReject, isPending,
+}: {
+  p: Payment
   reviewNotes: Record<string, string>
   setReviewNotes: React.Dispatch<React.SetStateAction<Record<string, string>>>
   onApprove: (id: string, note: string | null) => void
@@ -28,17 +120,8 @@ export function PendingPaymentsSection({
     return note === undefined || note === '' ? null : note
   }
 
-  if (payments.length === 0) return null
-
   return (
-    <div>
-      <p className="text-xs font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
-        {t('admin.operations.payments.pendingTitle').replace('{{count}}', String(payments.length))}
-      </p>
-      <div className="rounded-2xl border overflow-hidden" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
-        {payments.map((p, i) => (
-          <div key={p.id} className="px-5 py-4 space-y-3"
-            style={{ borderTop: i > 0 ? '1px solid var(--border-default)' : 'none' }}>
+          <div className="px-5 py-4 space-y-3">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
@@ -94,8 +177,5 @@ export function PendingPaymentsSection({
               </div>
             </div>
           </div>
-        ))}
-      </div>
-    </div>
   )
 }

@@ -80,10 +80,31 @@ export function PaymentsClient({
     onSuccess: () => router.refresh(),
   })
 
+  // Groups are resolved as a unit — /api/admin/payments/[id] 409s on any row
+  // carrying a payment_group_id, so a group never reaches reviewMutation.
+  const reviewGroupMutation = useMutation({
+    mutationFn: ({ groupId, admin_status, admin_note }: { groupId: string; admin_status: string; admin_note: string | null }) =>
+      fetch(`/api/admin/payments/group/${groupId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ admin_status, admin_note }),
+      }).then(async r => { if (!r.ok) throw new Error((await r.json()).error); return r.json() }),
+    onSuccess: () => router.refresh(),
+    onError: (e: Error) => setPayError(e.message),
+  })
+
   const deleteMutation = useMutation({
-    mutationFn: (id: string) =>
-      fetch(`/api/admin/payments/${id}`, { method: 'DELETE' })
-        .then(async r => { if (!r.ok) throw new Error((await r.json()).error) }),
+    mutationFn: (id: string) => {
+      // A grouped row must be deleted as a group: the single-row endpoint 409s
+      // on it, and deleting one sibling would orphan the rest and leave the
+      // payer's total silently short.
+      const row = initialPayments.find(p => p.id === id)
+      const url = row?.payment_group_id
+        ? `/api/admin/payments/group/${row.payment_group_id}`
+        : `/api/admin/payments/${id}`
+      return fetch(url, { method: 'DELETE' })
+        .then(async r => { if (!r.ok) throw new Error((await r.json()).error) })
+    },
     onSuccess: () => router.refresh(),
     onSettled: () => setDeleteTargetId(null),
   })
@@ -117,7 +138,9 @@ export function PaymentsClient({
         setReviewNotes={setReviewNotes}
         onApprove={(id, note) => reviewMutation.mutate({ id, admin_status: 'approved', admin_note: note })}
         onReject={(id, note) => reviewMutation.mutate({ id, admin_status: 'rejected', admin_note: note })}
-        isPending={reviewMutation.isPending}
+        onApproveGroup={(groupId, note) => reviewGroupMutation.mutate({ groupId, admin_status: 'approved', admin_note: note })}
+        onRejectGroup={(groupId, note) => reviewGroupMutation.mutate({ groupId, admin_status: 'rejected', admin_note: note })}
+        isPending={reviewMutation.isPending || reviewGroupMutation.isPending}
       />
 
       <div className="flex gap-2 flex-wrap">
@@ -153,6 +176,14 @@ export function PaymentsClient({
                     {entityLabel} · {formatDate(p.transaction_date)} · {formatCurrency(p.amount, p.currency)}
                     {p.payment_method && ` · ${p.payment_method}`}
                   </p>
+                  {/* Without this, a grouped row is indistinguishable from a
+                      self-payment and the money looks like it came from the
+                      person whose ledger it sits on. */}
+                  {p.payment_group_id && p.payer && (
+                    <p className="text-xs mt-0.5 italic" style={{ color: 'var(--text-secondary)' }}>
+                      {t('payment.paidBy')} {p.payer.first_name} {p.payer.last_name}
+                    </p>
+                  )}
                 </div>
                 <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap sm:flex-shrink-0">
                   <span className="text-[10px] font-semibold px-2.5 py-1 rounded-full"
