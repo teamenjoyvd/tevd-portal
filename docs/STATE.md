@@ -50,10 +50,12 @@ ALL 12 steps of the issue are code-complete and locally verified. `npm run verif
 - Steps 3-4 DONE (`e1bae5c`) — `lib/payments/split.ts` (integer cents; floor + one-cent remainder; edit locks a row and unlocked rows absorb the difference; over-committed locks zero the unlocked rows rather than going negative) and `lib/payments/eligibility.ts` (`fetchPayableBeneficiaries`, `assertGroupAllowed` — one round trip, in-memory comparison, 403 without confirming a probed profile exists). RESULT: `npx vitest run lib/payments/split.test.ts` 27/27 passed; `npx tsc --noEmit` exit 0.
 
 ## Open items
+- NOT RUN: `e2e/payments-on-behalf.spec.ts` has never been executed. It is registered in the `authenticated` Playwright project and excluded from `mobile-390`/`desktop`, but CI's `Authenticated E2E (Clerk)` passes by skipping (#679), so it must be run LOCALLY against DEV before this counts as coverage. Treat the spec as EDITED-UNVERIFIED.
+- NOT RUN: no manual pass on a Vercel preview yet — nothing is pushed.
 - DEV fixture `seed_676_*` (7 profiles, ABOs 6760001-6760004) is STILL PRESENT on DEV and is needed for the E2E/manual passes. Re-seed or clean up with `<scratchpad>/seed_676.sql` (it deletes `clerk_id LIKE 'seed_676_%'` first, so it is idempotent). Remove it at GCR time.
 - NOTED (not done): `approve_member_verification` with `request_type='manual'` sets `role='member'` while leaving `abo_number` NULL — on a primary profile that now trips `trg_guard_abo_number_null`. The manual verification path looks broken independently of this issue. Not in #676's DoD.
 - NOTED (not done): `upsert_tree_node` writes `depth = 0` for every node in the seeded fixture even at ltree depth 3 (`6760001.6760002.6760003`). `path` is correct; only `depth` is wrong. Pre-existing, not in #676's DoD.
-- `docs/ai/GOTCHAS.md` row 12 says `payments` has two FKs to `profiles`; must become three in this PR.
+- DONE: `docs/ai/GOTCHAS.md` row 12 now says THREE FKs to `profiles` and names all three. `docs/ai/REF.md` gained the four new/changed routes and the two new `payments` columns.
 - Issue-noted, NOT in scope: `app/api/payments/route.ts:37` `if (!amount)` rejects a `0` amount and admits a negative one; `app/admin/members/[id]/components/PaymentsPanel.tsx:3-7` declares a `status` column that does not exist on `payments`.
 
 ## Failed attempts
