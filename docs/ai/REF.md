@@ -103,8 +103,10 @@ Used by `TripHeroSection` (admin canvas sampling) and `shared.tsx` (member count
 | `/admin/content` | Tabs: Announcements \| Quick Links \| Guides \| Social Posts \| Bento. Edit via Drawer. |
 | `/admin/data-center` | LOS import (multi-file, 3-phase) + reconciliation panel |
 | `/admin/notifications` | All-time audit log incl. soft-deleted, paginated 50/page |
-| `/admin/operations` | URL-param tabs: `?tab=trips\|items\|payments`. All create/edit via Drawer. |
-| `/admin/payable-items` | `redirect()` → `/admin/operations?tab=items` |
+| `/admin/operations` | `redirect()` → `/admin/payments`. Tabs were extracted into `/admin/trips` (#369), `/admin/items` (#370), `/admin/payments` (#371). |
+| `/admin/payable-items` | `redirect()` → `/admin/items` |
+| `/admin/howtos` | `redirect()` → `/admin/content?tab=guides` |
+| `/admin/guides` | `redirect()` → `/admin/content?tab=guides` |
 
 Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; member selector from `/api/admin/members`; status filter pills; pending member submissions at top.
 
@@ -142,7 +144,7 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
     /data-center/page.tsx
     /notifications/page.tsx
     /operations/page.tsx
-    /payable-items/page.tsx        # redirect → /admin/operations?tab=items
+    /payable-items/page.tsx        # redirect → /admin/items
     /trips/[id]/components/
       TripHeroSection.tsx          # 'use client' — hero image upload + counter colour picker
   /api

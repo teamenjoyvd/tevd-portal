@@ -1,53 +1,45 @@
 ## Goal
-BUILD issue #678 (2607-DEV-678, branch `dev/2607-DEV-678`): admin section 390px mobile sweep — every `/admin/*` route renders correctly at 390px in both BG and EN, guarded by a new authenticated Playwright spec. Folds in #680 (PaymentsClient pins English), which otherwise blocks BG verification on `/admin/payments`.
+BUILD issue #681 (2607-DEV-681, branch `dev/2607-DEV-681`): delete 14 unreferenced dead stubs under `app/admin/**` plus the orphaned `app/(dashboard)/admin/layout.tsx` guard, collapse two double-hop redirects (`howtos`, `payable-items`), and correct the `docs/ai/REF.md` route table.
 
 ## Now
-GCR pass on PR #685 pushed (`4560790`); 4 threads resolved, the payments-truthiness thread replied-and-left-open. That commit's `Authenticated E2E (Clerk)` went RED — and caught a real, pre-existing crash on `/admin/content` (see Facts). Fix committed on top; waiting on the re-run.
+BUILD code-complete at `90ed666` (19 files: 14 deleted, 5 edited). All local gates green — see Done. Not pushed; no push has been requested this session.
 
 ## Next
-1. Confirm `Authenticated E2E (Clerk)` is green on the NewsTab fix — this is the first run in which `/admin/content` is actually measured at 390px, so a fresh overflow finding there is possible.
-2. Merge, then GCR tail: remove the `docs/CLAIMS.md` row, close #678 and #680, smoke-check production.
-5. No migrations — no `migrate-prod` gate; just confirm the prod deploy is READY and smoke-check the production URL.
+1. CI green + Vercel preview READY on the draft PR, then mark ready for the single CodeRabbit pass.
+2. Confirm `Authenticated E2E (Clerk)` actually ran its steps (green-by-skip does not count) — it is the regression net for the deleted admin surface.
+3. No migrations — no `migrate-prod` gate. GCR tail: remove the `docs/CLAIMS.md` row, close #681.
+
+## Review status
+- `/code-review low` was launched (agent `a6426e9a98ae57649`) and finished in 9s with 1 tool call and an EMPTY output file. That is a no-op, NOT a clean review — do not record it as a passing gate. Substituted a manual read of `git diff main..HEAD -- app/` before pushing; re-run the reviewer if a real pass is wanted.
 
 ## Constraints
-- 390px mobile-first.
-- No `git push` unless the user asks for a push in this conversation (quote required). Asked and granted this session ("Push + open draft PR") — that grant covers this branch only, not future ones.
-- Never push to `main`; `dev/2607-DEV-678` only.
+- Never push to `main`; `dev/2607-DEV-681` only.
+- No `git push` unless the user asks for a push in this conversation (quote required). GRANTED this session: user wrote "draft PR afterwards" alongside `/code-review low`. That grant covers `dev/2607-DEV-681` only, and only after the review findings are addressed.
 - Never weaken a check to make it pass.
 - Fold the `docs/CLAIMS.md` row + `docs/STATE.md` updates into this PR — no standalone cleanup PR.
-- Fix tab overflow at the admin call sites; do NOT modify `components/ui/tabs.tsx` (shared shadcn primitive with non-admin consumers).
-- Scope guard: EST ~35 files / ~550 lines. Stop and report if actual passes 2x either number, or needs a migration / new dependency / API contract change.
+- Change only what the DoD requires; log other findings as NOTED.
 
 ## Decisions
-- Tab rails stay INSIDE the shell padding (`app/admin/layout.tsx:20` = `px-4 md:px-6 lg:px-8`). No negative margins — a flat `-mx-4` under-compensates at `md`/`lg` and clips the active pill's rounded edge.
-- Touch reorder = explicit move up/down buttons (`sm:hidden`), not a pointer-events DnD rewrite. Reuses the existing per-tab reorder `useMutation`; no new API route.
-- `NotificationsTab` uses the single-tree `flex flex-col md:grid` morph from `EmailLogTable.tsx:164-183`, NOT a duplicated `hidden md:block` / `md:hidden` tree — the duplicated-tree approach is exactly the bug being deleted from `payments/page.tsx`.
+- `app/admin/operations/page.tsx` is KEPT — it is a live redirect target at `/admin/operations`. Only its `components/` subtree goes.
+- `payable-items` redirects to `/admin/items` (the real home of items), not to `/admin/payments` where the old chain landed.
 
 ## Facts
-- Verified against `beabac8`. Issue body's line numbers are partly stale — corrections posted as issue comment 5142555431 and mirrored in the plan file.
-- `useDragSort.ts` exports `makeDragHandlers`, not a hook. Its existing `onDrop()` (`:27`) maps the stale `local` captured at render — `moveBy` must compute and pass its own array.
-- `EventRolesTab:140` chip wall already has `flex-wrap` + `truncate`; the defect is vertical height from indistinguishable recurring-event titles, not x-overflow.
-- `playwright.config.ts` regexes at `:60`/`:72`/`:79` are literal alternations of three exact filenames — a new spec must be added to all three.
-- BG locale in e2e = `tevd_lang` cookie; precedent `e2e/guest-invite.spec.ts:192`.
-- #679 closed by `beabac8`: `Authenticated E2E (Clerk)` genuinely runs in CI now (15 tests, ~4 min). Step 6 is a real merge gate.
-- `/admin/content` was crashing for everyone, on `main` too: all four of its tabs defaulted `data: x = []`, minting a new array identity every render, so the `prev !== raw` derived-state compare right below always fired setState during render -> "Too many re-renders" -> admin error boundary. The old spec passed it because the error boundary still renders a `<main>` and `count === 0` skipped the tab loop. Found only once the readiness check was made fail-closed (CodeRabbit thread on PR #685). Fixed in `NewsTab` first (`4669fef`), which then exposed the same crash in `GuidesTab` on tab click. All four now use a module-level `EMPTY` + `data ?? EMPTY`.
-- Sweep for that pattern: `grep -rn -B3 "if (prev[A-Za-z]* !== " app --include=*.tsx`. Only `app/admin/content/*` and `app/admin/members/components/VitalSignsConfig.tsx:24` match; the latter compares a derived **string** key, so its identity is stable and it is not affected. A bare `data: x = []` default without an identity compare is harmless and widespread.
-- `app/globals.css:44` sets `html { overflow-x: hidden }` — clips visually but `scrollWidth` still reports true overflow, so the 390px assertion is valid.
+- C14 deletion greps run against `1aa6d72`: bare names repo-wide hit only self-references, two historical comments (`lib/types/payments.ts:2`, `lib/types/items.ts:2`), and live twins at *different* paths (`app/admin/payments/components/{LogPaymentForm,PendingPaymentsSection}.tsx`, `app/admin/items/{new,[id]}/components/Item*Form.tsx`). Quoted-name grep: no matches. No barrel `index.ts*` exists under `app/admin`.
+- `app/(dashboard)/admin/layout.tsx` is the only file under `app/(dashboard)/admin/` — guards zero routes.
+- `middleware.ts` does not exist (routing-touching ticket check).
+- Redirect chains confirmed by Read: `howtos -> /admin/guides -> /admin/content?tab=guides`; `payable-items -> /admin/operations?tab=items -> /admin/payments` (drops the param, wrong section).
 
 ## Done
-- CLAIM: issue #678 gained `## Design Checklist` (all four checked) + `## Branch`; verification-corrections comment posted; branch `dev/2607-DEV-678` cut from `beabac8`; `docs/CLAIMS.md` row added and the merged #683 row pruned.
-- BUILD steps 1-6, commit `c0f11fb`, 24 files (scope guard was ~35 — inside budget).
-- Verified locally: `npx tsc --noEmit` clean; `npm run build` ✓ compiled successfully; `npm run lint` 0 errors / 477 warnings vs. 481 baseline (4 fewer, none new).
-- Draft PR #685 opened with `Closes #678` + `Closes #680`.
+- CLAIM complete: issue #681 has `## Design Checklist` (four checked) + `## Branch`; branch cut; `docs/CLAIMS.md` row registered in `1aa6d72` (merged #678 row pruned in the same commit).
+- BUILD code-complete, commit `90ed666`: 14 files deleted, `app/admin/howtos/page.tsx` + `app/admin/payable-items/page.tsx` + `docs/ai/REF.md` edited. 19 files, 30 insertions / 108 deletions — well inside the EST.
+- Verified locally at `90ed666`: `npx tsc --noEmit` exit 0; `npm run build` compiled successfully; `npm run lint` 0 errors / 476 warnings (baseline 477 — one fewer, the deleted `BlockEditor` stub's; none new); `npm test` 17 files / 211 tests passed.
+- DoD invariants re-checked after deletion: `find app -name layout.tsx -path "*admin*"` -> `app/admin/layout.tsx` only (exactly one admin guard); `middleware.ts` absent; the deleted-name grep returns no import sites (only two provenance comments and this branch's own CLAIMS row).
 
 ## Open items
-- **`e2e/admin-mobile-auth.spec.ts` has never been run locally.** Docker was unavailable so local Supabase could not start, and `.env.local` points at PROD, which is not a legitimate target for authenticated e2e. User chose CI as the gate. Until that job is green, the spec is unproven in both directions — it has not been seen red either, so it is not yet known to detect anything.
-- `EventForm.tsx:213` has a fourth `flex gap-2` (form footer) left untouched pending the 390px assertion. NOTED, not done.
-- `GuideAttachmentsPanel.tsx:89` is a 5th `makeDragHandlers` consumer; its reorder is equally touch-dead. Not wired to `moveBy` in this PR.
-- `app/admin/components/LangTabs.tsx` has **zero consumers** repo-wide; its docstring claiming "Used by AnnouncementsTab" is false. Deliberately left untouched here — it belongs in #681's dead-stub cleanup.
-- The 390px spec asserts overflow only, not locale. It cannot catch English-pinned strings, which is why the #680 gap in `PendingPaymentsSection` survived the first green run.
-- `PendingPaymentsSection` returns `null` when there are no pending payments, so CI's seed data never renders it. Its 390px layout is unverified by the spec — fixed by inspection, not by assertion.
-- `moveBy` reads the render-time `local` rather than the `setLocal` updater form, on purpose: `onDrop` is a mutation and a side effect inside an updater double-fires under StrictMode. Real taps are separate ticks, so `local` is current.
+- `app/admin/components/LangTabs.tsx` has zero consumers repo-wide and a false docstring ("Used by AnnouncementsTab"). Same class of debt, carried over from #678; NOT in #681's DoD. NOTED, not done.
+- `docs/ai/REF.md:109` prose ("Operations payments tab: Log Payment Drawer…") describes a tab that now lives at `/admin/payments`. Outside the DoD's named lines. NOTED, not done.
+- `BottomNav.tsx` dead stub (GOTCHAS row 31) — outside the admin tree, out of scope per the issue.
 
 ## Failed attempts
-(none yet)
+- ATTEMPT 1 [L1]: `npm run build` after the 14 deletions + 2 redirect edits -> `# Fatal process out of memory: Zone`, `Next.js build worker exited with code: 2147483651`. Not a compile error. Environment at the time: 8.5 GB total / 2.3 GB free; `scripts/build.js:14` requests `--max-old-space-size=4096`. Next step: prove pre-existing by building the clean tree at `1aa6d72` (detached) rather than asserting it.
+  RESOLVED, not reproducible: the control build at `1aa6d72` (detached, after `rm -rf .next`) succeeded, so it was NOT proven pre-existing; the same branch then built clean at `90ed666` under the same `rm -rf .next` conditions. Two conditions differed from the failing run — a stale `.next` was present, and `tsc`+`lint` had just run in the same shell against 2.3 GB free. Treat `rm -rf .next` as the first response if it recurs; do not raise `--max-old-space-size` (the OS, not the V8 heap, was the limit — "Fatal process out of memory: Zone" with 4096 already requested).
