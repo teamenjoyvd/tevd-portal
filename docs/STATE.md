@@ -5,14 +5,16 @@ BUILD issue #681 (2607-DEV-681, branch `dev/2607-DEV-681`): delete 14 unreferenc
 BUILD code-complete at `90ed666` (19 files: 14 deleted, 5 edited). All local gates green — see Done. Not pushed; no push has been requested this session.
 
 ## Next
-1. `/code-review low` on the diff, fix findings locally.
-2. Ask the user for a push grant; then push `dev/2607-DEV-681` and open the PR as DRAFT with `Closes #681`.
-3. CI green + Vercel preview READY, then mark ready for the single CodeRabbit pass.
-4. No migrations — no `migrate-prod` gate. GCR tail: remove the `docs/CLAIMS.md` row, close #681.
+1. CI green + Vercel preview READY on the draft PR, then mark ready for the single CodeRabbit pass.
+2. Confirm `Authenticated E2E (Clerk)` actually ran its steps (green-by-skip does not count) — it is the regression net for the deleted admin surface.
+3. No migrations — no `migrate-prod` gate. GCR tail: remove the `docs/CLAIMS.md` row, close #681.
+
+## Review status
+- `/code-review low` was launched (agent `a6426e9a98ae57649`) and finished in 9s with 1 tool call and an EMPTY output file. That is a no-op, NOT a clean review — do not record it as a passing gate. Substituted a manual read of `git diff main..HEAD -- app/` before pushing; re-run the reviewer if a real pass is wanted.
 
 ## Constraints
 - Never push to `main`; `dev/2607-DEV-681` only.
-- No `git push` unless the user asks for a push in this conversation (quote required). Not yet asked this session.
+- No `git push` unless the user asks for a push in this conversation (quote required). GRANTED this session: user wrote "draft PR afterwards" alongside `/code-review low`. That grant covers `dev/2607-DEV-681` only, and only after the review findings are addressed.
 - Never weaken a check to make it pass.
 - Fold the `docs/CLAIMS.md` row + `docs/STATE.md` updates into this PR — no standalone cleanup PR.
 - Change only what the DoD requires; log other findings as NOTED.
