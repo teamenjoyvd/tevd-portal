@@ -2,12 +2,11 @@
 BUILD issue #678 (2607-DEV-678, branch `dev/2607-DEV-678`): admin section 390px mobile sweep — every `/admin/*` route renders correctly at 390px in both BG and EN, guarded by a new authenticated Playwright spec. Folds in #680 (PaymentsClient pins English), which otherwise blocks BG verification on `/admin/payments`.
 
 ## Now
-GCR pass on PR #685: all 8 CI checks green, Vercel preview READY, CodeRabbit posted 5 threads. All 5 addressed locally in one commit (6 files) — awaiting the user's go-ahead to push.
+GCR pass on PR #685 pushed (`4560790`); 4 threads resolved, the payments-truthiness thread replied-and-left-open. That commit's `Authenticated E2E (Clerk)` went RED — and caught a real, pre-existing crash on `/admin/content` (see Facts). Fix committed on top; waiting on the re-run.
 
 ## Next
-1. Push the GCR commit; wait for CI + preview to go green again.
-2. Resolve the 4 fully-applied CodeRabbit threads; reply-then-leave-open on the partially-applied truthiness thread (boolean-only sites skipped).
-3. Merge, then GCR tail: remove the `docs/CLAIMS.md` row, close #678 and #680.
+1. Confirm `Authenticated E2E (Clerk)` is green on the NewsTab fix — this is the first run in which `/admin/content` is actually measured at 390px, so a fresh overflow finding there is possible.
+2. Merge, then GCR tail: remove the `docs/CLAIMS.md` row, close #678 and #680, smoke-check production.
 5. No migrations — no `migrate-prod` gate; just confirm the prod deploy is READY and smoke-check the production URL.
 
 ## Constraints
@@ -31,6 +30,7 @@ GCR pass on PR #685: all 8 CI checks green, Vercel preview READY, CodeRabbit pos
 - `playwright.config.ts` regexes at `:60`/`:72`/`:79` are literal alternations of three exact filenames — a new spec must be added to all three.
 - BG locale in e2e = `tevd_lang` cookie; precedent `e2e/guest-invite.spec.ts:192`.
 - #679 closed by `beabac8`: `Authenticated E2E (Clerk)` genuinely runs in CI now (15 tests, ~4 min). Step 6 is a real merge gate.
+- `/admin/content` was crashing on load for everyone, on `main` too: `NewsTab.tsx:32` defaulted `data: rawItems = []`, minting a new array identity every render, so the `prevRaw !== rawItems` derived-state compare at `:38` always fired setState during render -> "Too many re-renders" -> admin error boundary. The old spec passed it because the error boundary still renders a `<main>` and `count === 0` skipped the tab loop. Found only once the readiness check was made fail-closed (CodeRabbit thread on PR #685). NewsTab was the only site pairing a `= []` default with an identity compare; the bare `= []` default elsewhere is harmless.
 - `app/globals.css:44` sets `html { overflow-x: hidden }` — clips visually but `scrollWidth` still reports true overflow, so the 390px assertion is valid.
 
 ## Done
