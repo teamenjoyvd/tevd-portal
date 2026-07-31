@@ -162,6 +162,80 @@ describe('POST /api/payments', () => {
   })
 })
 
+// ── Proof-path binding (2607-DEV-676 security follow-up) ─────────────────────
+
+describe('POST /api/payments — proof_url ownership', () => {
+  it('A10: rejects a proof_url under another profile prefix with 400 and no insert', async () => {
+    mockAuth.mockResolvedValue({ userId: 'clerk_1' })
+    const supabase = mockSupabase({
+      profiles: { data: { id: 'p1', role: 'member' }, error: null },
+      payments: { data: { id: 'pay_1' }, error: null },
+    })
+    mockCreateServiceClient.mockReturnValue(supabase)
+    const { POST } = await import('@/app/api/payments/route')
+
+    const res = await POST(
+      postReq({
+        amount: 10,
+        transaction_date: '2026-07-01',
+        trip_id: 't1',
+        proof_url: 'p2/alice-bank-statement.jpg',
+      }),
+    )
+
+    expect(res.status).toBe(400)
+    const insert = (supabase.from('payments') as unknown as { insert: ReturnType<typeof vi.fn> }).insert
+    expect(insert).not.toHaveBeenCalled()
+  })
+
+  it('A11: accepts a proof_url under the caller own prefix and stores it', async () => {
+    mockAuth.mockResolvedValue({ userId: 'clerk_1' })
+    const supabase = mockSupabase({
+      profiles: { data: { id: 'p1', role: 'member' }, error: null },
+      payments: { data: { id: 'pay_1' }, error: null },
+    })
+    mockCreateServiceClient.mockReturnValue(supabase)
+    const { POST } = await import('@/app/api/payments/route')
+
+    const res = await POST(
+      postReq({
+        amount: 10,
+        transaction_date: '2026-07-01',
+        trip_id: 't1',
+        proof_url: 'p1/mine.jpg',
+      }),
+    )
+
+    expect(res.status).toBe(201)
+    const insert = (supabase.from('payments') as unknown as { insert: ReturnType<typeof vi.fn> }).insert
+    expect(insert).toHaveBeenCalledWith(expect.objectContaining({ proof_url: 'p1/mine.jpg' }))
+  })
+
+  it('A12: GET withholds the proof path from a beneficiary who did not pay', async () => {
+    mockAuth.mockResolvedValue({ userId: 'clerk_1' })
+    mockCreateServiceClient.mockReturnValue(
+      mockSupabase({
+        profiles: { data: { id: 'p1', role: 'member' }, error: null },
+        payments: {
+          data: [
+            // Paid by me — I uploaded it, I keep it.
+            { id: 'a', proof_url: 'p1/mine.jpg', profile_id: 'p1', paid_by_profile_id: null },
+            // On my ledger, but my upline transferred the money and the image is
+            // a screenshot of THEIR bank account.
+            { id: 'b', proof_url: 'p9/their-bank.jpg', profile_id: 'p1', paid_by_profile_id: 'p9' },
+          ],
+          error: null,
+        },
+      }),
+    )
+    const { GET } = await import('@/app/api/payments/route')
+
+    const body = await (await GET()).json()
+    expect(body.find((r: { id: string }) => r.id === 'a').proof_url).toBe('p1/mine.jpg')
+    expect(body.find((r: { id: string }) => r.id === 'b').proof_url).toBeNull()
+  })
+})
+
 // ── On-behalf payment groups (2607-DEV-676) ──────────────────────────────────
 
 /** The payer plus two people they are genuinely allowed to pay for. */
@@ -328,6 +402,27 @@ describe('POST /api/payments — beneficiary groups', () => {
       }),
     )
     expect(res.status).toBe(400)
+  })
+
+  it('A9: a group submission carrying another profile proof path is rejected 400', async () => {
+    mockAuth.mockResolvedValue({ userId: 'clerk_1' })
+    const supabase = groupSupabase()
+    mockCreateServiceClient.mockReturnValue(supabase)
+    const { POST } = await import('@/app/api/payments/route')
+
+    const res = await POST(
+      postReq({
+        amount: 100,
+        transaction_date: '2026-07-01',
+        trip_id: 't1',
+        proof_url: 'SOMEONE_ELSE/bank.jpg',
+        beneficiaries: [{ profile_id: 'p2', amount_cents: 10000 }],
+      }),
+    )
+
+    expect(res.status).toBe(400)
+    const calls = (supabase.rpc as unknown as ReturnType<typeof vi.fn>).mock.calls
+    expect(calls.some((c) => c[0] === 'submit_payment_group')).toBe(false)
   })
 
   it('maps a P0001 from the RPC to 403 — the in-transaction eligibility re-check', async () => {

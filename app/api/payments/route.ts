@@ -2,6 +2,7 @@ import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getCallerProfile } from '@/lib/supabase/guards'
 import { MAX_BENEFICIARIES, assertGroupAllowed } from '@/lib/payments/eligibility'
+import { assertOwnProofPath, redactForeignProofUrls } from '@/lib/payments/proof'
 
 /** One beneficiary of an on-behalf payment, as the client sends it. */
 type BeneficiaryInput = { profile_id: string; amount_cents: number }
@@ -25,7 +26,11 @@ export async function GET(): Promise<Response> {
     .order('created_at', { ascending: false })
 
   if (error) return Response.json({ error: error.message }, { status: 500 })
-  return Response.json(data ?? [])
+
+  // A beneficiary owns the row but did not upload the proof — and the object
+  // path is the payer's. Withholding it keeps the image, and the bank details
+  // on it, payer-and-admin-only as intended. See lib/payments/proof.ts.
+  return Response.json(redactForeignProofUrls(data ?? [], profile.id))
 }
 
 export async function POST(req: Request): Promise<Response> {
@@ -53,6 +58,15 @@ export async function POST(req: Request): Promise<Response> {
       .from('payable_items').select('id').eq('id', payable_item_id).eq('is_active', true).single()
     if (!item) return Response.json({ error: 'Payable item not found or inactive' }, { status: 404 })
   }
+
+  // A proof path must live under the caller's own storage prefix. Without this,
+  // any path they can name gets signed for them later by
+  // /api/profile/payments/[id]/proof, which authorises on who the row's payer is
+  // — and they are the payer of their own row. Checked once here so both the
+  // group and legacy branches below write only a validated value.
+  const proofCheck = assertOwnProofPath(proof_url, profile.id)
+  if (!proofCheck.ok) return Response.json({ error: proofCheck.error }, { status: 400 })
+  const proofPath = proofCheck.value
 
   // ── On-behalf submission (2607-DEV-676) ────────────────────────────────────
   // Strictly additive: with no `beneficiaries` key the request falls through to
@@ -111,7 +125,7 @@ export async function POST(req: Request): Promise<Response> {
         currency:         currency ?? 'EUR',
         transaction_date,
         payment_method:   payment_method ?? null,
-        proof_url:        proof_url ?? null,
+        proof_url:        proofPath,
         note:             note ?? null,
         total_cents:      totalCents,
         beneficiaries:    rows,
@@ -145,7 +159,7 @@ export async function POST(req: Request): Promise<Response> {
       currency:        currency ?? 'EUR',
       transaction_date,
       payment_method:  payment_method ?? null,
-      proof_url:       proof_url ?? null,
+      proof_url:       proofPath,
       note:            note ?? null,
       member_status:   'approved',
       admin_status:    'pending',

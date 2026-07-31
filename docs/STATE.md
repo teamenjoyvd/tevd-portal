@@ -2,15 +2,14 @@
 BUILD issue #676 (2607-DEV-676, branch `dev/2607-DEV-676`): payments on behalf of others — one submission + one proof produces N `payments` rows sharing a `payment_group_id`, one per real-profile beneficiary in the payer's own LOS, each landing on that person's own ledger. Admin approves/rejects the whole group only.
 
 ## Now
-ALL 12 steps of the issue are code-complete and locally verified. `npm run verify` (lint + check-types + test + build) exits 0. Nothing pushed — no push has been requested this session.
+ALL 12 steps of the issue are code-complete and locally verified. `/security-review` found ONE finding (proof-image disclosure via a beneficiary's group row); it is fixed and covered by tests. Pushed as a DRAFT PR.
 
 ## Next
-1. `/code-review low` on the branch diff (escalate to `/security-review` — this PR touches auth boundaries, RLS and a migration); fix findings locally BEFORE any push.
+1. Wait for CI green + Vercel preview READY on the draft PR.
 2. Run `e2e/payments-on-behalf.spec.ts` locally against DEV — CI's `Authenticated E2E (Clerk)` passes by skipping (#679), so it is not coverage.
-3. Push + open PR as DRAFT (needs the user's explicit go-ahead), wait for CI green + Vercel preview READY.
-4. Manual 390px pass on the preview: happy path, admin group card, beneficiary sees the payment but cannot open the proof.
-5. Mark ready -> one CodeRabbit pass -> fix all findings in ONE batched push.
-6. After merge: approve the gated `migrate-prod` run (this PR HAS a migration), smoke-check production, then GCR — remove the `docs/CLAIMS.md` row, drop the `seed_676_*` DEV fixture, close #676.
+3. Manual 390px pass on the preview: happy path, admin group card, beneficiary sees the payment but cannot open the proof.
+4. Mark ready -> one CodeRabbit pass -> fix all findings in ONE batched push.
+5. After merge: approve the gated `migrate-prod` run (this PR HAS a migration), smoke-check production, then GCR — remove the `docs/CLAIMS.md` row, drop the `seed_676_*` DEV fixture, close #676.
 
 ## Constraints
 - Never push to `main`; `dev/2607-DEV-676` only.
@@ -49,6 +48,8 @@ ALL 12 steps of the issue are code-complete and locally verified. `npm run verif
 
 - Steps 3-4 DONE (`e1bae5c`) — `lib/payments/split.ts` (integer cents; floor + one-cent remainder; edit locks a row and unlocked rows absorb the difference; over-committed locks zero the unlocked rows rather than going negative) and `lib/payments/eligibility.ts` (`fetchPayableBeneficiaries`, `assertGroupAllowed` — one round trip, in-memory comparison, 403 without confirming a probed profile exists). RESULT: `npx vitest run lib/payments/split.test.ts` 27/27 passed; `npx tsc --noEmit` exit 0.
 
+- SECURITY FIX (post-review) — `/security-review` returned exactly one finding, confirmed at 8/10 by an independent verification pass, and it is REAL. Chain: `submit_payment_group` copies the payer's single `proof_url` onto every beneficiary row; the widened reads then hand that path to the beneficiary, who is not entitled to the image; both member POST routes wrote `proof_url` verbatim from the body; so a beneficiary could plant the payer's path on a throwaway row of their OWN and have `/api/profile/payments/[id]/proof` sign it — that route authorises on who the ROW's payer is, and on their own row that is them. Impact: the exact bank-details disclosure the narrowed proof route was added to prevent. Fixed with two independent defences in `lib/payments/proof.ts`: `assertOwnProofPath` (a written `proof_url` must sit under the caller's own `${profile_id}/` prefix, mirroring the guard that already existed at `app/api/profile/payments/upload-url/confirm/route.ts:22-30` but which a hand-crafted request simply skipped) and `redactForeignProofUrls` (nulls the path for anyone but the payer on read). FOUR disclosure channels, not the two the reviewers named: `/api/payments` GET, `/api/profile/payments` GET, `/api/trips/[id]/payments` GET, and — missed by both review passes — `app/(dashboard)/trips/[id]/page.tsx`, a server component whose `select('*')` ships the path inside the serialized RSC props. Admin routes deliberately untouched: admins are entitled to the proof.
+
 ## Open items
 - NOT RUN: `e2e/payments-on-behalf.spec.ts` has never been executed. It is registered in the `authenticated` Playwright project and excluded from `mobile-390`/`desktop`, but CI's `Authenticated E2E (Clerk)` passes by skipping (#679), so it must be run LOCALLY against DEV before this counts as coverage. Treat the spec as EDITED-UNVERIFIED.
 - NOT RUN: no manual pass on a Vercel preview yet — nothing is pushed.
@@ -57,6 +58,8 @@ ALL 12 steps of the issue are code-complete and locally verified. `npm run verif
 - NOTED (not done): `upsert_tree_node` writes `depth = 0` for every node in the seeded fixture even at ltree depth 3 (`6760001.6760002.6760003`). `path` is correct; only `depth` is wrong. Pre-existing, not in #676's DoD.
 - DONE: `docs/ai/GOTCHAS.md` row 12 now says THREE FKs to `profiles` and names all three. `docs/ai/REF.md` gained the four new/changed routes and the two new `payments` columns.
 - Issue-noted, NOT in scope: `app/api/payments/route.ts:37` `if (!amount)` rejects a `0` amount and admits a negative one; `app/admin/members/[id]/components/PaymentsPanel.tsx:3-7` declares a `status` column that does not exist on `payments`.
+- NOTED (not done): `app/(dashboard)/profile/components/shared.tsx:120` and `app/(dashboard)/trips/[id]/components/ArchivedView.tsx:70` render `proof_url` directly as an `href`. Since `20260517000200` made `trip-proofs` private, that value is a storage KEY, not a URL, so those two links have been dead for months. Pre-existing and unrelated to #676; the correct target is `/api/profile/payments/<id>/proof`, as `AttendeeView.tsx:245` already does.
+- NOTED (not done): the ownership guard now enforced on write means any pre-existing `payments.proof_url` NOT under its payer's prefix is unreachable-by-design going forward, but historical rows are untouched. No backfill was run and none appears necessary — `upload-url` has always minted the prefix; worth one query on prod after merge to confirm zero exceptions.
 
 ## Failed attempts
 - ATTEMPT 1 [L1] (`npm run build` / `npm run verify`): replaced the novel arbitrary utility `text-[0.6875rem]` with the repo's existing `text-[11px]` idiom in `components/payment/BeneficiaryPicker.tsx:113,138,167`, on the hypothesis that Tailwind's candidate scanner choked on a rem-valued arbitrary text size -> SAME failure, byte-identical: `CssSyntaxError: tailwindcss: app/globals.css:1:1: Invalid code point 10591021`, thrown from `markUsedVariable` -> `String.fromCodePoint`. Hypothesis disproved. Note `markUsedVariable` operates on CSS custom-property names inside globals.css, not on scanned class names, so the TSX may be irrelevant entirely. (The `text-[11px]` change is KEPT — it matches repo convention either way.)
