@@ -94,7 +94,11 @@ export default async function AdminSettingsPage({
   }
 
   return (
-    <main className="max-w-[1440px] w-full mx-auto p-4 md:p-6 lg:p-8">
+    // Not a <main>: app/admin/layout.tsx:20 already provides the page's main
+    // landmark, and nesting a second one is invalid HTML. Its max-width,
+    // centering and padding came from that shell too, so this element was
+    // double-padding the content — 32px of inset per side at 390px.
+    <div>
       <div className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>Settings</h1>
         <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Email, notifications, reminder config, and system settings.</p>
@@ -108,6 +112,6 @@ export default async function AdminSettingsPage({
           {tab === 'system' && <SystemTab />}
         </SettingsTabs>
       </Suspense>
-    </main>
+    </div>
   )
 }

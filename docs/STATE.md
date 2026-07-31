@@ -2,16 +2,14 @@
 BUILD issue #678 (2607-DEV-678, branch `dev/2607-DEV-678`): admin section 390px mobile sweep — every `/admin/*` route renders correctly at 390px in both BG and EN, guarded by a new authenticated Playwright spec. Folds in #680 (PaymentsClient pins English), which otherwise blocks BG verification on `/admin/payments`.
 
 ## Now
-CLAIM complete. Starting BUILD step 1 (shared primitives): `AdminTabs.tsx` scroll rail, `AdminListCard.tsx` stacking + move up/down, `useDragSort.ts` `moveBy`, wire the 4 content tabs, `LangTabs.tsx` flex-wrap.
+All 6 steps implemented and committed (`c0f11fb`, 24 files). Branch pushed; draft PR #685 open. Waiting on CI — specifically the `Authenticated E2E (Clerk)` job, which is the only thing that has actually executed `e2e/admin-mobile-auth.spec.ts`.
 
 ## Next
-1. Step 1 — shared primitives. Check: `npm run build`; `/admin/content` at 390px EN+BG; reorder persists across reload.
-2. Step 2 — `SettingsTabs.tsx` rail (fix at call site, not `components/ui/tabs.tsx`).
-3. Step 3 — Approval Hub: `EventRolesTab` chip label gains a date + rail; action rows at `EventRolesTab:216` / `TripRegistrationsTab:171` stack under `sm`.
-4. Step 4 — Calendar inner pill groups `flex-wrap`; `AdminCalendarClient:309` event rows stack; `EventForm:125/137/149`.
-5. Step 5 — delete duplicate render at `payments/page.tsx:38-63`; PaymentsClient → `useLanguage()` + 7 new keys in `lib/i18n/domains/admin/operations.ts`; grid prefixes; `NotificationsTab` → EmailLogTable morph; `MembersTable` overflow-x-auto.
-6. Step 6 — new `e2e/admin-mobile-auth.spec.ts`; register in all three regexes in `playwright.config.ts` (`:60`, `:72`, `:79`).
-7. `/code-review low` on the diff, fix locally, then push + draft PR (`Closes #678`, `Closes #680`).
+1. Confirm `Authenticated E2E (Clerk)` on PR #685 ran its steps (not green-by-skip) and is green. Any 390px assertion failure names the exact route/tab/locale — fix that surface, don't loosen the assertion.
+2. Confirm Vercel preview READY.
+3. Mark PR #685 ready for review → single CodeRabbit pass → fix all findings in ONE batched push.
+4. Merge, then GCR: remove the `docs/CLAIMS.md` row, close #678 and #680.
+5. No migrations — no `migrate-prod` gate; just confirm the prod deploy is READY and smoke-check the production URL.
 
 ## Constraints
 - 390px mobile-first.
@@ -38,9 +36,15 @@ CLAIM complete. Starting BUILD step 1 (shared primitives): `AdminTabs.tsx` scrol
 
 ## Done
 - CLAIM: issue #678 gained `## Design Checklist` (all four checked) + `## Branch`; verification-corrections comment posted; branch `dev/2607-DEV-678` cut from `beabac8`; `docs/CLAIMS.md` row added and the merged #683 row pruned.
+- BUILD steps 1-6, commit `c0f11fb`, 24 files (scope guard was ~35 — inside budget).
+- Verified locally: `npx tsc --noEmit` clean; `npm run build` ✓ compiled successfully; `npm run lint` 0 errors / 477 warnings vs. 481 baseline (4 fewer, none new).
+- Draft PR #685 opened with `Closes #678` + `Closes #680`.
 
 ## Open items
-- `/admin/payments` BG verification depends on the folded-in #680 fix landing in step 5.
+- **`e2e/admin-mobile-auth.spec.ts` has never been run locally.** Docker was unavailable so local Supabase could not start, and `.env.local` points at PROD, which is not a legitimate target for authenticated e2e. User chose CI as the gate. Until that job is green, the spec is unproven in both directions — it has not been seen red either, so it is not yet known to detect anything.
+- `EventForm.tsx:213` has a fourth `flex gap-2` (form footer) left untouched pending the 390px assertion. NOTED, not done.
+- `LogPaymentForm.tsx` still uses `t(key, 'en')` throughout. Out of #680's stated scope (which named `PaymentsClient.tsx` only) and behind a drawer the spec does not open — worth a follow-up issue if BG matters in that drawer.
+- `GuideAttachmentsPanel.tsx:89` is a 5th `makeDragHandlers` consumer; its reorder is equally touch-dead. Not wired to `moveBy` in this PR.
 
 ## Failed attempts
 (none yet)

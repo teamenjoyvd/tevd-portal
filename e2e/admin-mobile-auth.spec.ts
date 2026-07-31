@@ -57,7 +57,11 @@ async function expectNoHorizontalOverflow(page: Page, label: string) {
  */
 async function checkRouteAndItsTabs(page: Page, route: string, locale: string) {
   await page.goto(route)
-  await expect(page.locator('main')).toBeVisible({ timeout: 60_000 })
+  // .first(): the readiness wait must not depend on there being exactly one
+  // main landmark. A page that grows a second one is a defect worth failing
+  // on, but it should surface as its own finding rather than as a strict-mode
+  // violation that aborts the overflow sweep before it measures anything.
+  await expect(page.getByRole('main').first()).toBeVisible({ timeout: 60_000 })
   await expectNoHorizontalOverflow(page, `${route} [${locale}]`)
 
   const tabs = page.getByRole('tab')
