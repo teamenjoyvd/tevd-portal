@@ -19,6 +19,7 @@ import { EmailPrefsSection } from './EmailPrefsSection'
 import { InvitesBento } from './InvitesBento'
 import { BENTO_IDS, DEFAULT_ORDER, BENTO_META, BENTO_HEIGHT, type BentoId } from './bento-registry'
 import { apiClient } from '@/lib/apiClient'
+import { toast } from '@/lib/toast'
 import { useProfile } from '../useProfile'
 
 // dnd-kit (@dnd-kit/core, /sortable, /utilities) lives entirely inside
@@ -38,6 +39,10 @@ type Props = {
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const DESKTOP_QUERY = '(min-width: 768px)' // matches Tailwind `md` breakpoint used below
+
+// Layout changes coalesce for this long before hitting /api/profile. Anything
+// still pending is flushed on unmount and on pagehide — see flushPrefs below.
+const PERSIST_DEBOUNCE_MS = 500
 
 function metaFor(id: BentoId) {
   const meta = BENTO_META[id]
@@ -60,6 +65,7 @@ export function ProfileClient({ profileId, role, aboNumber, hasInvites }: Props)
   const [layoutRestored, setLayoutRestored] = useState(false)
   const [isDesktop, setIsDesktop]           = useState(false)
   const persistDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const pendingPrefsRef = useRef<{ order: string[]; collapsed: Record<string, boolean> } | null>(null)
 
   useEffect(() => {
     const mql = window.matchMedia(DESKTOP_QUERY)
@@ -69,11 +75,36 @@ export function ProfileClient({ profileId, role, aboNumber, hasInvites }: Props)
     return () => mql.removeEventListener('change', handler)
   }, [])
 
-  useEffect(() => {
-    return () => {
-      if (persistDebounceRef.current) clearTimeout(persistDebounceRef.current)
+  // Sends whatever is pending right now, if anything. `keepalive` so the
+  // request survives the document being torn down (pagehide); apiClient
+  // spreads RequestInit straight into fetch.
+  const flushPrefs = useCallback((opts?: { keepalive?: boolean }) => {
+    if (persistDebounceRef.current) {
+      clearTimeout(persistDebounceRef.current)
+      persistDebounceRef.current = null
     }
+    const pending = pendingPrefsRef.current
+    if (pending === null) return null
+    pendingPrefsRef.current = null
+
+    return apiClient('/api/profile', {
+      method: 'PATCH',
+      body: JSON.stringify({ ui_prefs: { bento_order: pending.order, bento_collapsed: pending.collapsed } }),
+      keepalive: opts?.keepalive ?? false,
+    })
   }, [])
+
+  // A pending write must not be thrown away. The previous cleanup called
+  // clearTimeout and nothing else, so collapsing a bento and navigating within
+  // the debounce window silently lost the change. Flush instead of discard.
+  useEffect(() => {
+    const onPageHide = () => { flushPrefs({ keepalive: true })?.catch(() => { /* page is going away */ }) }
+    window.addEventListener('pagehide', onPageHide)
+    return () => {
+      window.removeEventListener('pagehide', onPageHide)
+      flushPrefs({ keepalive: true })?.catch(() => { /* unmounted */ })
+    }
+  }, [flushPrefs])
 
   useEffect(() => {
     if (layoutRestored || !fullProfile?.id) return
@@ -94,19 +125,29 @@ export function ProfileClient({ profileId, role, aboNumber, hasInvites }: Props)
   }, [fullProfile?.id])
 
   const persistPrefs = useCallback((order: string[], collapsed: Record<string, boolean>) => {
+    pendingPrefsRef.current = { order, collapsed }
     if (persistDebounceRef.current) clearTimeout(persistDebounceRef.current)
     persistDebounceRef.current = setTimeout(() => {
-      apiClient('/api/profile', {
-        method: 'PATCH',
-        body: JSON.stringify({ ui_prefs: { bento_order: order, bento_collapsed: collapsed } }),
-      }).catch(() => { /* silent */ })
-    }, 500)
-  }, [])
+      // Was `.catch(() => {})`, which made a failed save look identical to a
+      // slow one — to the user and to the e2e suite alike. Surface it so the
+      // layout is not silently lost at the next reload.
+      flushPrefs()?.catch(() => { toast.error(t('profile.layoutSaveError')) })
+    }, PERSIST_DEBOUNCE_MS)
+  }, [flushPrefs, t])
 
+  // Mirrored into refs so the handlers below can read the latest values without
+  // reaching for them inside a state updater. React updaters must be pure — it
+  // may replay them — so persistPrefs (which mutates a ref and arms a timer)
+  // must not run in there, even though it happens to be idempotent today.
   const bentoCollapsedRef = useRef(bentoCollapsed)
   useEffect(() => {
     bentoCollapsedRef.current = bentoCollapsed
   }, [bentoCollapsed])
+
+  const bentoOrderRef = useRef(bentoOrder)
+  useEffect(() => {
+    bentoOrderRef.current = bentoOrder
+  }, [bentoOrder])
 
   const handleReorder = useCallback((next: string[]) => {
     if (!layoutRestored) return
@@ -116,11 +157,9 @@ export function ProfileClient({ profileId, role, aboNumber, hasInvites }: Props)
 
   const toggleCollapse = useCallback((id: string) => {
     if (!layoutRestored) return
-    setBentoCollapsed(prev => {
-      const next = { ...prev, [id]: !prev[id] }
-      setBentoOrder(order => { persistPrefs(order, next); return order })
-      return next
-    })
+    const next = { ...bentoCollapsedRef.current, [id]: !bentoCollapsedRef.current[id] }
+    setBentoCollapsed(next)
+    persistPrefs(bentoOrderRef.current, next)
   }, [persistPrefs, layoutRestored])
 
   const orderedBentosRef = useRef<{ id: string; entry: { colSpan: number; minHeight: number; node: React.ReactNode } }[]>([])
@@ -133,14 +172,19 @@ export function ProfileClient({ profileId, role, aboNumber, hasInvites }: Props)
     const next = { ...bentoCollapsedRef.current }
     ids.forEach(id => { next[id] = !allCollapsed })
     setBentoCollapsed(next)
-    setBentoOrder(order => { persistPrefs(order, next); return order })
+    persistPrefs(bentoOrderRef.current, next)
   }, [persistPrefs, layoutRestored])
 
+  // Gated like handleReorder/toggleCollapse/toggleAll. Without this, a reset
+  // clicked before useProfile() resolves persists DEFAULT_ORDER while the
+  // restore effect above then overwrites local state with the saved order —
+  // the user sees the old layout return and the DB disagrees until reload.
   const resetLayout = useCallback(() => {
+    if (!layoutRestored) return
     setBentoOrder(DEFAULT_ORDER)
     setBentoCollapsed({})
     persistPrefs(DEFAULT_ORDER, {})
-  }, [persistPrefs])
+  }, [persistPrefs, layoutRestored])
 
   type BentoEntry = { colSpan: number; minHeight: number; node: React.ReactNode; cardStyle?: React.CSSProperties }
 
@@ -222,16 +266,21 @@ export function ProfileClient({ profileId, role, aboNumber, hasInvites }: Props)
       <div className="max-w-[1280px] mx-auto px-4 sm:px-6 xl:px-8">
 
         <div className="flex justify-end gap-4 mb-3">
+          {/* Disabled until the saved layout is restored: these handlers all
+              early-return before then, and a control that silently does
+              nothing is worse than one that shows it is not ready yet. */}
           <button
             onClick={toggleAll}
-            className="text-xs font-medium hover:opacity-70 transition-opacity"
+            disabled={!layoutRestored}
+            className="text-xs font-medium hover:opacity-70 transition-opacity disabled:opacity-40 disabled:cursor-default"
             style={{ color: 'var(--text-secondary)' }}
           >
             {allCollapsed ? t('profile.expandAll') : t('profile.collapseAll')}
           </button>
           <button
             onClick={resetLayout}
-            className="text-xs font-medium hover:opacity-70 transition-opacity"
+            disabled={!layoutRestored}
+            className="text-xs font-medium hover:opacity-70 transition-opacity disabled:opacity-40 disabled:cursor-default"
             style={{ color: 'var(--text-secondary)' }}
           >
             {t('profile.resetLayout')}
@@ -250,6 +299,7 @@ export function ProfileClient({ profileId, role, aboNumber, hasInvites }: Props)
             bentoCollapsed={bentoCollapsed}
             onToggleCollapse={toggleCollapse}
             onReorder={handleReorder}
+            controlsDisabled={!layoutRestored}
           />
         ) : (
           <div className="flex flex-col gap-3">
@@ -262,6 +312,7 @@ export function ProfileClient({ profileId, role, aboNumber, hasInvites }: Props)
                 colSpan={entry.colSpan}
                 minHeight={entry.minHeight}
                 cardStyle={entry.cardStyle}
+                controlsDisabled={!layoutRestored}
                 disableDrag
               >
                 {entry.node}

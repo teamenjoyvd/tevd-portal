@@ -125,12 +125,22 @@ jobs:
         run: |
           supabase start
           supabase db reset
-      - name: Export local Supabase keys
-        if: steps.check.outputs.ready == 'true'
-        run: supabase status -o env >> "$GITHUB_ENV"
-      - name: Map local Supabase keys to app env names
+      # `supabase status -o env` emits SHELL-QUOTED assignments
+      # (API_URL="http://127.0.0.1:54321"). $GITHUB_ENV is parsed literally, not
+      # sourced, so appending that output directly makes the quotes part of the
+      # value — every consumer then sees `"http://127.0.0.1:54321"`, which fails
+      # the anchored allowlist regex in scripts/seed-clerk-test-users.js:60 and
+      # would hand quoted JWTs to createClient. Source the output first so the
+      # shell strips the quotes, then write the bare values. Kept as ONE step:
+      # shell variables do not survive between steps, only $GITHUB_ENV does.
+      - name: Export local Supabase keys as app env names
         if: steps.check.outputs.ready == 'true'
         run: |
+          supabase status -o env > supabase-status.env
+          set -a
+          . ./supabase-status.env
+          set +a
+          rm -f supabase-status.env
           {
             echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
             echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY"

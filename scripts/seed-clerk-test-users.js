@@ -49,9 +49,24 @@ loadEnvFile(path.join(root, '.env.local'))
 const MEMBER_EMAIL = process.env.E2E_CLERK_MEMBER_EMAIL || 'e2e-member-tevd-portal@example.com'
 const ADMIN_EMAIL = process.env.E2E_CLERK_ADMIN_EMAIL || 'e2e-admin-tevd-portal@example.com'
 
+// abo_number: trg_guard_abo_number_null (20260716000100_normalize_prod_schema_drift.sql)
+// rejects a NULL abo_number on a primary profile with role member or core. Admin is
+// exempt by design there ("ops role, no LOS identity"), so it stays NULL. The value is
+// text and UNIQUE (baseline.sql:31,47) with no format check. The reserved-looking
+// string will not collide with a real ABO number, but uniqueness is NOT guaranteed
+// on the hosted DEV project this script also targets: a stale fixture row (same
+// email re-created in Clerk after a wipe, hence a new clerk_id) would still hold
+// this value, and `onConflict: 'clerk_id'` does not resolve a violation of the
+// separate profiles_abo_number_key constraint. assertAboNumberFree() below turns
+// that into an actionable error instead of a raw constraint failure.
+// `??` not `||`: an explicitly-empty E2E_CLERK_MEMBER_ABO must not be silently
+// swapped for the default. It is rejected in main() instead — the DB trigger only
+// rejects NULL, so a blank string would otherwise be inserted as a real value.
+const MEMBER_ABO = process.env.E2E_CLERK_MEMBER_ABO ?? 'E2E-MEMBER-0001'
+
 const TEST_USERS = [
-  { email: MEMBER_EMAIL, role: 'member', firstName: 'E2E', lastName: 'Member' },
-  { email: ADMIN_EMAIL, role: 'admin', firstName: 'E2E', lastName: 'Admin' },
+  { email: MEMBER_EMAIL, role: 'member', firstName: 'E2E', lastName: 'Member', aboNumber: MEMBER_ABO },
+  { email: ADMIN_EMAIL, role: 'admin', firstName: 'E2E', lastName: 'Admin', aboNumber: null },
 ]
 
 const DEV_PROJECT_REF = 'iymwxdewcpvpjgzewtzk'
@@ -74,13 +89,41 @@ async function ensureClerkUser(clerk, { email, role, firstName, lastName }) {
   })
 }
 
-async function upsertProfile(supabase, clerkId, { role, firstName, lastName, email }) {
+// profiles.abo_number is UNIQUE, but the upsert below conflict-resolves on clerk_id
+// only — a row holding this abo_number under a DIFFERENT clerk_id raises a raw
+// constraint error naming neither the fixture nor the remedy. Check first and fail
+// with something actionable. Read-only: never mutate a row this script does not own
+// (and nulling the holder's abo_number would itself trip trg_guard_abo_number_null).
+async function assertAboNumberFree(supabase, clerkId, aboNumber, email) {
+  if (aboNumber == null) return
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('clerk_id')
+    .eq('abo_number', aboNumber)
+    .maybeSingle()
+
+  if (error) throw new Error(`abo_number precheck failed for ${email}: ${error.message}`)
+  if (data == null || data.clerk_id === clerkId) return
+
+  throw new Error(
+    `abo_number "${aboNumber}" (fixture for ${email}) is already held by profile ` +
+      `clerk_id=${data.clerk_id}. This is a stale fixture from an earlier Clerk test ` +
+      `instance. Clear or reassign that profile's abo_number, or set ` +
+      `E2E_CLERK_MEMBER_ABO to a different reserved value.`,
+  )
+}
+
+async function upsertProfile(supabase, clerkId, { role, firstName, lastName, email, aboNumber }) {
+  await assertAboNumberFree(supabase, clerkId, aboNumber, email)
+
   const { error } = await supabase.from('profiles').upsert(
     {
       clerk_id: clerkId,
       first_name: firstName,
       last_name: lastName,
       role,
+      abo_number: aboNumber ?? null,
       contact_email: email,
       display_names: { en: `${firstName} ${lastName}` },
     },
@@ -109,6 +152,15 @@ async function main() {
   }
   if (!serviceRoleKey) {
     console.error('seed-clerk-test-users: SUPABASE_SERVICE_ROLE_KEY is not set.')
+    process.exitCode = 1
+    return
+  }
+  if (MEMBER_ABO.trim() === '') {
+    console.error(
+      'seed-clerk-test-users: E2E_CLERK_MEMBER_ABO is set but empty. Unset it to use the ' +
+        'default fixture value, or give it a real reserved value — a blank abo_number would ' +
+        'satisfy the NOT NULL trigger and be stored as a real one.',
+    )
     process.exitCode = 1
     return
   }
