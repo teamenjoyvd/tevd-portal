@@ -6,4 +6,4 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
-| #683 | `dev/2607-DEV-683` | `app/(dashboard)/profile/components/ProfileClient.tsx`, `e2e/profile-bento-auth.spec.ts`, `lib/i18n/domains/profile.ts`; migration: no | 2026-07-31T00:00:00Z |
+| #678 | `dev/2607-DEV-678` | `app/admin/**` (AdminTabs, AdminListCard, LangTabs, approval-hub, content, calendar, payments, members, settings), `app/admin/content/components/useDragSort.ts`, `lib/i18n/domains/admin/operations.ts`, `e2e/admin-mobile-auth.spec.ts`, `playwright.config.ts`; also closes #680; migration: no | 2026-07-31T00:00:00Z |
