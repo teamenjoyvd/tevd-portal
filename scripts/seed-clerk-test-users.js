@@ -52,10 +52,17 @@ const ADMIN_EMAIL = process.env.E2E_CLERK_ADMIN_EMAIL || 'e2e-admin-tevd-portal@
 // abo_number: trg_guard_abo_number_null (20260716000100_normalize_prod_schema_drift.sql)
 // rejects a NULL abo_number on a primary profile with role member or core. Admin is
 // exempt by design there ("ops role, no LOS identity"), so it stays NULL. The value is
-// text and UNIQUE (baseline.sql:31,47) with no format check — this reserved-looking
-// string cannot collide with a real ABO number on the hosted DEV project.
+// text and UNIQUE (baseline.sql:31,47) with no format check. The reserved-looking
+// string will not collide with a real ABO number, but uniqueness is NOT guaranteed
+// on the hosted DEV project this script also targets: a stale fixture row (same
+// email re-created in Clerk after a wipe, hence a new clerk_id) would still hold
+// this value, and `onConflict: 'clerk_id'` does not resolve a violation of the
+// separate profiles_abo_number_key constraint. assertAboNumberFree() below turns
+// that into an actionable error instead of a raw constraint failure.
+const MEMBER_ABO = process.env.E2E_CLERK_MEMBER_ABO || 'E2E-MEMBER-0001'
+
 const TEST_USERS = [
-  { email: MEMBER_EMAIL, role: 'member', firstName: 'E2E', lastName: 'Member', aboNumber: 'E2E-MEMBER-0001' },
+  { email: MEMBER_EMAIL, role: 'member', firstName: 'E2E', lastName: 'Member', aboNumber: MEMBER_ABO },
   { email: ADMIN_EMAIL, role: 'admin', firstName: 'E2E', lastName: 'Admin', aboNumber: null },
 ]
 
@@ -79,7 +86,34 @@ async function ensureClerkUser(clerk, { email, role, firstName, lastName }) {
   })
 }
 
+// profiles.abo_number is UNIQUE, but the upsert below conflict-resolves on clerk_id
+// only — a row holding this abo_number under a DIFFERENT clerk_id raises a raw
+// constraint error naming neither the fixture nor the remedy. Check first and fail
+// with something actionable. Read-only: never mutate a row this script does not own
+// (and nulling the holder's abo_number would itself trip trg_guard_abo_number_null).
+async function assertAboNumberFree(supabase, clerkId, aboNumber, email) {
+  if (aboNumber == null) return
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('clerk_id')
+    .eq('abo_number', aboNumber)
+    .maybeSingle()
+
+  if (error) throw new Error(`abo_number precheck failed for ${email}: ${error.message}`)
+  if (data == null || data.clerk_id === clerkId) return
+
+  throw new Error(
+    `abo_number "${aboNumber}" (fixture for ${email}) is already held by profile ` +
+      `clerk_id=${data.clerk_id}. This is a stale fixture from an earlier Clerk test ` +
+      `instance. Clear or reassign that profile's abo_number, or set ` +
+      `E2E_CLERK_MEMBER_ABO to a different reserved value.`,
+  )
+}
+
 async function upsertProfile(supabase, clerkId, { role, firstName, lastName, email, aboNumber }) {
+  await assertAboNumberFree(supabase, clerkId, aboNumber, email)
+
   const { error } = await supabase.from('profiles').upsert(
     {
       clerk_id: clerkId,
