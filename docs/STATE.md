@@ -1,40 +1,53 @@
 ## Goal
-BUILD issue #673 (2607-DEV-673, branch `dev/2607-DEV-673`): fix Bulgarian announcement title wrap inflating home bento row 3 + Mapbox canvas not re-measuring under it.
+BUILD issue #678 (2607-DEV-678, branch `dev/2607-DEV-678`): admin section 390px mobile sweep — every `/admin/*` route renders correctly at 390px in both BG and EN, guarded by a new authenticated Playwright spec. Folds in #680 (PaymentsClient pins English), which otherwise blocks BG verification on `/admin/payments`.
 
 ## Now
-Starting EXECUTE stage — about to edit `app/(dashboard)/components/tiles/AnnouncementTile.tsx` (title/body clamp) then `app/(dashboard)/components/tiles/LocationTile.tsx` (ResizeObserver + map.resize()).
+GCR pass on PR #685 pushed (`4560790`); 4 threads resolved, the payments-truthiness thread replied-and-left-open. That commit's `Authenticated E2E (Clerk)` went RED — and caught a real, pre-existing crash on `/admin/content` (see Facts). Fix committed on top; waiting on the re-run.
 
 ## Next
-1. Edit `AnnouncementTile.tsx`: `h2` gets `md:line-clamp-2 md:min-h-[2.75em]`; body clamp switches from inline `WebkitLineClamp: 4` to Tailwind `line-clamp-4 md:line-clamp-3` classes so it can be responsive.
-2. Edit `LocationTile.tsx`: add `ResizeObserver` effect on `mapContainer.current` calling `mapRef.current.resize()`, disconnect on cleanup; widen `mapRef` structural type to include `resize: () => void`.
-3. `npm run lint` and `npx tsc --noEmit`.
-4. `/code-review low` on the diff, fix findings locally.
-5. Push branch, open PR as draft (`Closes #673`), wait CI green + Preview READY.
-6. Manual verification: EN/BG toggle at 1440px (row 3 height unchanged, no forest band under map) and at 390px (BG title unclamped, cards stack).
-7. Mark PR ready → one CodeRabbit pass → batched fix push → merge → GCR (remove CLAIMS.md row, close issue).
-8. No migrations in this PR — no prod gate to approve, just confirm prod deploy READY.
+1. Confirm `Authenticated E2E (Clerk)` is green on the NewsTab fix — this is the first run in which `/admin/content` is actually measured at 390px, so a fresh overflow finding there is possible.
+2. Merge, then GCR tail: remove the `docs/CLAIMS.md` row, close #678 and #680, smoke-check production.
+5. No migrations — no `migrate-prod` gate; just confirm the prod deploy is READY and smoke-check the production URL.
 
 ## Constraints
 - 390px mobile-first.
-- No `git push` of commits without the user explicitly asking for a push in-conversation (quote required) — not asked yet this session. (Branch-ref push for CLAIM scaffolding already done per docs/ai/CLAIM.md, that's a separate, already-approved-by-workflow action.)
-- Two files only: `AnnouncementTile.tsx`, `LocationTile.tsx` — per issue's Affected Files list; EST ~20 changed lines.
-- Resize observer must be a separate effect from the theme-swap effect and must not touch `setReady` (per issue's Gotchas Flagged).
+- No `git push` unless the user asks for a push in this conversation (quote required). Asked and granted this session ("Push + open draft PR") — that grant covers this branch only, not future ones.
+- Never push to `main`; `dev/2607-DEV-678` only.
+- Never weaken a check to make it pass.
+- Fold the `docs/CLAIMS.md` row + `docs/STATE.md` updates into this PR — no standalone cleanup PR.
+- Fix tab overflow at the admin call sites; do NOT modify `components/ui/tabs.tsx` (shared shadcn primitive with non-admin consumers).
+- Scope guard: EST ~35 files / ~550 lines. Stop and report if actual passes 2x either number, or needs a migration / new dependency / API contract change.
 
 ## Decisions
-(none yet — following issue's prescribed change list verbatim, PLAN already validated it against source)
+- Tab rails stay INSIDE the shell padding (`app/admin/layout.tsx:20` = `px-4 md:px-6 lg:px-8`). No negative margins — a flat `-mx-4` under-compensates at `md`/`lg` and clips the active pill's rounded edge.
+- Touch reorder = explicit move up/down buttons (`sm:hidden`), not a pointer-events DnD rewrite. Reuses the existing per-tab reorder `useMutation`; no new API route.
+- `NotificationsTab` uses the single-tree `flex flex-col md:grid` morph from `EmailLogTable.tsx:164-183`, NOT a duplicated `hidden md:block` / `md:hidden` tree — the duplicated-tree approach is exactly the bug being deleted from `payments/page.tsx`.
 
 ## Facts
-- `AnnouncementTile.tsx` title `h2` currently unclamped (`app/(dashboard)/components/tiles/AnnouncementTile.tsx:32-46`); body clamp is inline-style `WebkitLineClamp: 4` (line 53).
-- `LocationTile.tsx` has `mapRef` typed `{ remove; setStyle; once }` (line 67), no `resize`; init effect at lines 71-116; theme-swap effect at 119-125; render at 129-153, map container div at 133.
-- Desktop-only grid: `app/(dashboard)/page.tsx:81` wraps the whole desktop bento in `hidden md:block`; row 3 track `minmax(220px, auto)` at line 84 (repeat(4, ...)).
-- `LocationTileLazy.tsx` wraps `LocationTile` in `next/dynamic` with `ssr:false` — no changes needed there.
-- No E2E covers home bento (confirmed: no home-bento spec in `e2e/`).
+- Verified against `beabac8`. Issue body's line numbers are partly stale — corrections posted as issue comment 5142555431 and mirrored in the plan file.
+- `useDragSort.ts` exports `makeDragHandlers`, not a hook. Its existing `onDrop()` (`:27`) maps the stale `local` captured at render — `moveBy` must compute and pass its own array.
+- `EventRolesTab:140` chip wall already has `flex-wrap` + `truncate`; the defect is vertical height from indistinguishable recurring-event titles, not x-overflow.
+- `playwright.config.ts` regexes at `:60`/`:72`/`:79` are literal alternations of three exact filenames — a new spec must be added to all three.
+- BG locale in e2e = `tevd_lang` cookie; precedent `e2e/guest-invite.spec.ts:192`.
+- #679 closed by `beabac8`: `Authenticated E2E (Clerk)` genuinely runs in CI now (15 tests, ~4 min). Step 6 is a real merge gate.
+- `/admin/content` was crashing for everyone, on `main` too: all four of its tabs defaulted `data: x = []`, minting a new array identity every render, so the `prev !== raw` derived-state compare right below always fired setState during render -> "Too many re-renders" -> admin error boundary. The old spec passed it because the error boundary still renders a `<main>` and `count === 0` skipped the tab loop. Found only once the readiness check was made fail-closed (CodeRabbit thread on PR #685). Fixed in `NewsTab` first (`4669fef`), which then exposed the same crash in `GuidesTab` on tab click. All four now use a module-level `EMPTY` + `data ?? EMPTY`.
+- Sweep for that pattern: `grep -rn -B3 "if (prev[A-Za-z]* !== " app --include=*.tsx`. Only `app/admin/content/*` and `app/admin/members/components/VitalSignsConfig.tsx:24` match; the latter compares a derived **string** key, so its identity is stable and it is not affected. A bare `data: x = []` default without an identity compare is harmless and widespread.
+- `app/globals.css:44` sets `html { overflow-x: hidden }` — clips visually but `scrollWidth` still reports true overflow, so the 390px assertion is valid.
 
 ## Done
-PLAN + CLAIM completed this session: issue #673 already had a complete Design Checklist authored at creation (verified DoD against current codebase, matched exactly); added `## Branch` section, cut `dev/2607-DEV-673` from `main`, `docs/CLAIMS.md` row added and committed (8545f19).
+- CLAIM: issue #678 gained `## Design Checklist` (all four checked) + `## Branch`; verification-corrections comment posted; branch `dev/2607-DEV-678` cut from `beabac8`; `docs/CLAIMS.md` row added and the merged #683 row pruned.
+- BUILD steps 1-6, commit `c0f11fb`, 24 files (scope guard was ~35 — inside budget).
+- Verified locally: `npx tsc --noEmit` clean; `npm run build` ✓ compiled successfully; `npm run lint` 0 errors / 477 warnings vs. 481 baseline (4 fewer, none new).
+- Draft PR #685 opened with `Closes #678` + `Closes #680`.
 
 ## Open items
-(none yet)
+- **`e2e/admin-mobile-auth.spec.ts` has never been run locally.** Docker was unavailable so local Supabase could not start, and `.env.local` points at PROD, which is not a legitimate target for authenticated e2e. User chose CI as the gate. Until that job is green, the spec is unproven in both directions — it has not been seen red either, so it is not yet known to detect anything.
+- `EventForm.tsx:213` has a fourth `flex gap-2` (form footer) left untouched pending the 390px assertion. NOTED, not done.
+- `GuideAttachmentsPanel.tsx:89` is a 5th `makeDragHandlers` consumer; its reorder is equally touch-dead. Not wired to `moveBy` in this PR.
+- `app/admin/components/LangTabs.tsx` has **zero consumers** repo-wide; its docstring claiming "Used by AnnouncementsTab" is false. Deliberately left untouched here — it belongs in #681's dead-stub cleanup.
+- The 390px spec asserts overflow only, not locale. It cannot catch English-pinned strings, which is why the #680 gap in `PendingPaymentsSection` survived the first green run.
+- `PendingPaymentsSection` returns `null` when there are no pending payments, so CI's seed data never renders it. Its 390px layout is unverified by the spec — fixed by inspection, not by assertion.
+- `moveBy` reads the render-time `local` rather than the `setLocal` updater form, on purpose: `onDrop` is a mutation and a side effect inside an updater double-fires under StrictMode. Real taps are separate ticks, so `local` is current.
 
 ## Failed attempts
 (none yet)

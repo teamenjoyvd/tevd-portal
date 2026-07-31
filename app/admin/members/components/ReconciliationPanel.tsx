@@ -63,7 +63,7 @@ export function ReconciliationPanel({
         )}
       </div>
       {linkError && <p className="text-xs mb-3" style={{ color: 'var(--brand-crimson)' }}>{linkError}</p>}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <p className="text-xs font-semibold tracking-widest uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>
             Unrecognized in LOS — {unrecognized.length}

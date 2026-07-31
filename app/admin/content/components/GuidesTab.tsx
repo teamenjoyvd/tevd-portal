@@ -23,6 +23,11 @@ import { emptyGuide, type Guide } from './guide-types'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { fetchJson } from '@/lib/utils/fetchJson'
 
+// Stable identity for "no data yet" — see the note in NewsTab.tsx. A `= []`
+// default here mints a new array every render, so the derived-state compare
+// below fired setState during render and crashed the route.
+const EMPTY: Guide[] = []
+
 export function GuidesTab() {
   const qc = useQueryClient()
   const router = useRouter()
@@ -32,10 +37,11 @@ export function GuidesTab() {
   const [guideAlertTarget, setGuideAlertTarget] = useState<{ id: string; name: string } | null>(null)
   const [gDragging, setGDragging] = useState<string | null>(null)
 
-  const { data: guidesRaw = [], isLoading: guidesLoading } = useQuery<Guide[]>({
+  const { data: guidesData, isLoading: guidesLoading } = useQuery<Guide[]>({
     queryKey: ['admin-guides'],
     queryFn: () => fetchJson<Guide[]>('/api/admin/guides'),
   })
+  const guidesRaw = guidesData ?? EMPTY
   const [localGuides, setLocalGuides] = useState<Guide[]>(() => [...guidesRaw])
   const [prevGuidesRaw, setPrevGuidesRaw] = useState(guidesRaw)
   if (prevGuidesRaw !== guidesRaw) {
@@ -127,7 +133,7 @@ export function GuidesTab() {
         </div>
       ) : (
         <div className="space-y-1.5">
-          {localGuides.map(guide => (
+          {localGuides.map((guide, i) => (
             <AdminListCard
               key={guide.id}
               grip
@@ -139,6 +145,10 @@ export function GuidesTab() {
               onDragOver={e => gDrag.onDragOver(e, guide.id)}
               onDrop={gDrag.onDrop}
               onDragEnd={gDrag.onDragEnd}
+              onMoveUp={() => gDrag.moveBy(guide.id, -1)}
+              onMoveDown={() => gDrag.moveBy(guide.id, 1)}
+              canMoveUp={i > 0}
+              canMoveDown={i < localGuides.length - 1}
               actions={
                 <>
                   <AdminStatusBadge variant={guide.is_published ? 'active' : 'inactive'} label={guide.is_published ? 'Published' : 'Draft'} />

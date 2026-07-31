@@ -136,11 +136,14 @@ export function EventRolesTab() {
 
   return (
     <div>
+      {/* Scroll rail rather than a wrapping wall: recurring Google-synced
+          events share a title, so an unbounded wrap stacks many rows deep
+          at 390px. The date in each label is what makes them distinct. */}
       {eventsWithRequests.length > 1 && (
-        <div className="flex gap-2 flex-wrap mb-5">
+        <div className="flex gap-2 overflow-x-auto pb-1 mb-5" style={{ scrollbarWidth: 'none' }}>
           <button
             onClick={() => setFilterEventId('all')}
-            className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+            className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex-shrink-0"
             style={{
               backgroundColor: filterEventId === 'all' ? 'var(--text-primary)' : 'rgba(0,0,0,0.05)',
               color: filterEventId === 'all' ? 'white' : 'var(--text-secondary)',
@@ -152,13 +155,17 @@ export function EventRolesTab() {
             <button
               key={e.id}
               onClick={() => setFilterEventId(e.id)}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors max-w-[160px] truncate"
+              className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors max-w-[200px] flex-shrink-0 inline-flex items-center gap-1"
               style={{
                 backgroundColor: filterEventId === e.id ? 'var(--text-primary)' : 'rgba(0,0,0,0.05)',
                 color: filterEventId === e.id ? 'white' : 'var(--text-secondary)',
               }}
             >
-              {e.title}
+              {/* Title truncates, date does not: recurring Google-synced events
+                  share a title, so the date is the only thing that tells the
+                  chips apart — truncating the whole label can hide it. */}
+              <span className="min-w-0 truncate">{e.title}</span>
+              {e.start_time !== '' && <span className="flex-shrink-0">· {formatDate(e.start_time)}</span>}
             </button>
           ))}
         </div>
@@ -182,7 +189,7 @@ export function EventRolesTab() {
             const { primary, secondary } = requesterName(r)
             return (
               <div key={r.id} className="rounded-xl border px-4 py-3.5" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
-                <div className="flex items-start gap-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
@@ -213,11 +220,11 @@ export function EventRolesTab() {
                       </p>
                     )}
                   </div>
-                  <div className="flex gap-2 flex-shrink-0">
+                  <div className="flex gap-2 sm:flex-shrink-0">
                     <button
                       onClick={() => updateMutation.mutate({ id: r.id, status: 'approved' })}
                       disabled={updateMutation.isPending}
-                      className="px-4 py-1.5 rounded-lg text-sm font-medium text-white disabled:opacity-50"
+                      className="flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-medium text-white disabled:opacity-50"
                       style={{ backgroundColor: 'var(--brand-teal)' }}
                     >
                       {t('admin.approval.verify.btn.approve')}
@@ -225,7 +232,7 @@ export function EventRolesTab() {
                     <button
                       onClick={() => updateMutation.mutate({ id: r.id, status: 'denied' })}
                       disabled={updateMutation.isPending}
-                      className="px-4 py-1.5 rounded-lg text-sm font-medium disabled:opacity-50"
+                      className="flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-medium disabled:opacity-50"
                       style={{ backgroundColor: 'rgba(0,0,0,0.06)', color: 'var(--text-primary)' }}
                     >
                       {t('admin.approval.verify.btn.deny')}

@@ -22,6 +22,12 @@ import { formatDate } from '@/lib/format'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { fetchJson } from '@/lib/utils/fetchJson'
 
+// Stable identity for the "no data yet" case. A `data: rawItems = []` default
+// mints a fresh array on every render, so the derived-state compare below was
+// always true and setState ran during every render — React bailed out with
+// "Too many re-renders" and the error boundary replaced /admin/content.
+const EMPTY: NewsItem[] = []
+
 export function NewsTab() {
   const qc = useQueryClient()
   const { t } = useLanguage()
@@ -29,10 +35,11 @@ export function NewsTab() {
   const [alertTarget, setAlertTarget] = useState<{ id: string; name: string } | null>(null)
   const [dragging, setDragging] = useState<string | null>(null)
 
-  const { data: rawItems = [], isLoading } = useQuery<NewsItem[]>({
+  const { data, isLoading } = useQuery<NewsItem[]>({
     queryKey: ['announcements'],
     queryFn: () => fetchJson<NewsItem[]>('/api/admin/announcements'),
   })
+  const rawItems = data ?? EMPTY
   const [localItems, setLocalItems] = useState<NewsItem[]>(() => [...rawItems])
   const [prevRaw, setPrevRaw] = useState(rawItems)
   if (prevRaw !== rawItems) {
@@ -152,7 +159,7 @@ export function NewsTab() {
         </div>
       ) : (
         <div className="space-y-1.5">
-          {localItems.map(item => (
+          {localItems.map((item, i) => (
             <AdminListCard
               key={item.id}
               grip
@@ -163,6 +170,10 @@ export function NewsTab() {
               onDragOver={e => drag.onDragOver(e, item.id)}
               onDrop={drag.onDrop}
               onDragEnd={drag.onDragEnd}
+              onMoveUp={() => drag.moveBy(item.id, -1)}
+              onMoveDown={() => drag.moveBy(item.id, 1)}
+              canMoveUp={i > 0}
+              canMoveDown={i < localItems.length - 1}
               actions={
                 <>
                   <button

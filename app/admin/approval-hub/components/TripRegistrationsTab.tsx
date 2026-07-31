@@ -112,10 +112,10 @@ export function TripRegistrationsTab() {
   return (
     <div>
       {trips.length > 1 && (
-        <div className="flex gap-2 flex-wrap mb-5">
+        <div className="flex gap-2 overflow-x-auto pb-1 mb-5" style={{ scrollbarWidth: 'none' }}>
           <button
             onClick={() => setFilterTripId('all')}
-            className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+            className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex-shrink-0"
             style={{
               backgroundColor: filterTripId === 'all' ? 'var(--text-primary)' : 'rgba(0,0,0,0.05)',
               color: filterTripId === 'all' ? 'white' : 'var(--text-secondary)',
@@ -127,7 +127,7 @@ export function TripRegistrationsTab() {
             <button
               key={trip.id}
               onClick={() => setFilterTripId(trip.id)}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+              className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors max-w-[200px] truncate flex-shrink-0"
               style={{
                 backgroundColor: filterTripId === trip.id ? 'var(--text-primary)' : 'rgba(0,0,0,0.05)',
                 color: filterTripId === trip.id ? 'white' : 'var(--text-secondary)',
@@ -154,7 +154,7 @@ export function TripRegistrationsTab() {
       ) : (
         <div className="space-y-2">
           {pending.map(r => (
-            <div key={r.id} className="rounded-xl border px-4 py-3.5 flex items-center gap-3" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
+            <div key={r.id} className="rounded-xl border px-4 py-3.5 flex flex-col gap-3 sm:flex-row sm:items-center" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
                   {r.profile?.first_name} {r.profile?.last_name}
@@ -168,11 +168,11 @@ export function TripRegistrationsTab() {
                   {tripTitle(r)} · {formatDate(r.created_at)}
                 </p>
               </div>
-              <div className="flex gap-2 flex-shrink-0">
+              <div className="flex gap-2 sm:flex-shrink-0">
                 <button
                   onClick={() => updateMutation.mutate({ id: r.id, status: 'approved' })}
                   disabled={updateMutation.isPending}
-                  className="px-4 py-1.5 rounded-lg text-sm font-medium text-white disabled:opacity-50 transition-opacity"
+                  className="flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-medium text-white disabled:opacity-50 transition-opacity"
                   style={{ backgroundColor: 'var(--brand-teal)' }}
                 >
                   {t('admin.approval.verify.btn.approve')}
@@ -180,7 +180,7 @@ export function TripRegistrationsTab() {
                 <button
                   onClick={() => updateMutation.mutate({ id: r.id, status: 'denied' })}
                   disabled={updateMutation.isPending}
-                  className="px-4 py-1.5 rounded-lg text-sm font-medium disabled:opacity-50 transition-opacity"
+                  className="flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-medium disabled:opacity-50 transition-opacity"
                   style={{ backgroundColor: 'rgba(0,0,0,0.06)', color: 'var(--text-primary)' }}
                 >
                   {t('admin.approval.verify.btn.deny')}

@@ -37,6 +37,11 @@ const DEFAULT_FORM: LinkFormData = {
   access_roles: [...ALL_ROLES],
 }
 
+// Stable identity for "no data yet" — see the note in NewsTab.tsx. A `= []`
+// default here mints a new array every render, so the derived-state compare
+// below fired setState during render and crashed the route.
+const EMPTY: SiteLink[] = []
+
 export function LinksTab() {
   const qc = useQueryClient()
   const { t } = useLanguage()
@@ -46,10 +51,11 @@ export function LinksTab() {
   const [editInitial, setEditInitial] = useState<LinkFormData>(DEFAULT_FORM)
   const [createKey, setCreateKey] = useState(0)
 
-  const { data: linksRaw = [] } = useQuery<SiteLink[]>({
+  const { data: linksData } = useQuery<SiteLink[]>({
     queryKey: ['admin-links'],
     queryFn: () => fetchJson<SiteLink[]>('/api/admin/links'),
   })
+  const linksRaw = linksData ?? EMPTY
   const [localLinks, setLocalLinks] = useState<SiteLink[]>(() => [...linksRaw])
   const [prevLinksRaw, setPrevLinksRaw] = useState(linksRaw)
   if (prevLinksRaw !== linksRaw) {
@@ -139,7 +145,7 @@ export function LinksTab() {
       </div>
 
       <div className="space-y-1.5">
-        {localLinks.map(l => (
+        {localLinks.map((l, i) => (
           <AdminListCard
             key={l.id}
             grip
@@ -150,6 +156,10 @@ export function LinksTab() {
             onDragOver={e => lDrag.onDragOver(e, l.id)}
             onDrop={lDrag.onDrop}
             onDragEnd={lDrag.onDragEnd}
+            onMoveUp={() => lDrag.moveBy(l.id, -1)}
+            onMoveDown={() => lDrag.moveBy(l.id, 1)}
+            canMoveUp={i > 0}
+            canMoveDown={i < localLinks.length - 1}
             actions={
               <>
                 <button onClick={() => startEditingLink(l)}

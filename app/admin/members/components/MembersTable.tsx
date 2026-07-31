@@ -194,7 +194,7 @@ export function MembersTable({
         const m = row.original
         if (!m.profile || m.profile.role === 'admin') return null
         return (
-          <div className="flex gap-1 justify-end">
+          <div className="flex gap-1 justify-end flex-wrap">
             {m.profile.role === 'member' && (
               <button
                 onClick={() => onPromote(m.profile!.id, 'core')}
@@ -274,7 +274,10 @@ export function MembersTable({
         onExport={handleExport}
       />
 
-      <div className="rounded-2xl border shadow-sm overflow-hidden" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
+      {/* overflow-x-auto, not overflow-hidden: MOBILE_HIDDEN trims columns at
+          <lg but the remaining ones can still exceed 390px, and a hard clip
+          made those cells unreachable rather than scrollable. */}
+      <div className="rounded-2xl border shadow-sm overflow-x-auto" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
         <Table className="border-collapse">
           <TableHeader>
             {table.getHeaderGroups().map(hg => (
