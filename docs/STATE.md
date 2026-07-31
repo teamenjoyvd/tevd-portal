@@ -2,11 +2,9 @@
 BUILD issue #676 (2607-DEV-676, branch `dev/2607-DEV-676`): payments on behalf of others — one submission + one proof produces N `payments` rows sharing a `payment_group_id`, one per real-profile beneficiary in the payer's own LOS, each landing on that person's own ledger. Admin approves/rejects the whole group only.
 
 ## Now
-Steps 1-2 of the issue's 12 are DONE and verified on DEV (see Done). Next up is step 3, `lib/payments/split.ts`.
+Steps 1-4 of the issue's 12 are DONE and verified (see Done): the schema + RPCs are live on DEV, types are regenerated, and the pure lib layer is unit-tested. Commits `45e7143` (migration + types) and `e1bae5c` (lib). Nothing pushed. Next up is step 5, the member API.
 
 ## Next
-3. `lib/payments/split.ts` + `split.test.ts` (vitest).
-4. `lib/payments/eligibility.ts` — `fetchPayableBeneficiaries`, `assertGroupAllowed`.
 5. Member API: `app/api/payments/route.ts`, `beneficiaries/route.ts`, `group/[groupId]/route.ts`, proof-route narrowing.
 6. Admin API: group route, 409 guards, select-string extension, approval notification.
 7. `lib/types/payments.ts` + i18n keys in `lib/i18n/domains/payment.ts` (every locale).
@@ -48,6 +46,8 @@ Steps 1-2 of the issue's 12 are DONE and verified on DEV (see Done). Next up is 
 - V3 `can_pay_for` — RESULT: 16/16 assertions pass, including leafA->legA false, leafA->root false, legA<->legB false both ways, legB->aboless(other leg) false, spouse->root false, guest->anyone false.
 - RPC behaviour on DEV — RESULT: 9/9. T1 happy path inserted 2 rows under one group id; **T2 out-of-LOS beneficiary REJECTED `P0001 profile … is not payable by …`** (the security test, bypassing the picker entirely); T3 sum mismatch rejected; T4 duplicate beneficiary rejected; T5 missing trip/item rejected; T6 wrong-payer withdraw deleted 0; T7 approved-group withdraw deleted 0; T8 payer withdraw deleted 2 and returned the shared `proof_url`; T9 zero leftover rows.
 - Step 2 DONE — `types/supabase.ts` regenerated from DEV (2998 -> 3044 lines). Diff is purely additive: the two columns in Row/Insert/Update, the `payments_paid_by_profile_id_fkey` relationships, and Args/Returns for all four RPCs. `npx tsc --noEmit` exit 0.
+
+- Steps 3-4 DONE (`e1bae5c`) — `lib/payments/split.ts` (integer cents; floor + one-cent remainder; edit locks a row and unlocked rows absorb the difference; over-committed locks zero the unlocked rows rather than going negative) and `lib/payments/eligibility.ts` (`fetchPayableBeneficiaries`, `assertGroupAllowed` — one round trip, in-memory comparison, 403 without confirming a probed profile exists). RESULT: `npx vitest run lib/payments/split.test.ts` 27/27 passed; `npx tsc --noEmit` exit 0.
 
 ## Open items
 - DEV fixture `seed_676_*` (7 profiles, ABOs 6760001-6760004) is STILL PRESENT on DEV and is needed for the E2E/manual passes. Re-seed or clean up with `<scratchpad>/seed_676.sql` (it deletes `clerk_id LIKE 'seed_676_%'` first, so it is idempotent). Remove it at GCR time.
