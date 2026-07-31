@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { getCallerProfile } from '@/lib/supabase/guards'
 import { requireAuth } from '@/lib/supabase/with-profile'
 
 export const dynamic = 'force-dynamic'
@@ -15,20 +16,32 @@ export async function GET(
   const { id } = await params
   const supabase = createServiceClient()
 
-  // Single query: fetch payment and verify ownership via join on profiles.
-  // payments has two FKs to profiles (profile_id, logged_by_admin) —
-  // !profile_id disambiguates to the ownership FK.
-  // !inner ensures the payments row is excluded if the profile join fails —
-  // without it, .eq('profiles.clerk_id') only filters the nested object,
-  // not the top-level row, leaving an IDOR vector.
+  // 2607-DEV-676 narrows this to the PAYER only. A beneficiary can see that the
+  // payment exists, but must not open the image: a bank-transfer screenshot
+  // routinely shows the payer's account number and balance, and on a group
+  // payment the payer is a different person from the row's owner.
+  //
+  // The embedded-filter join this replaced could not express that rule, since
+  // the answer now depends on two columns. Comparing explicitly in TS is also
+  // why the IDOR hazard the old comment warned about does not apply: the
+  // ownership test is a plain equality on values we fetched, not a nested
+  // filter that silently leaves the top-level row in place. `payments` now has
+  // THREE FKs to profiles, so any future embed here must be hinted.
+  const profile = await getCallerProfile(userId, supabase)
+  if (!profile) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
   const { data: payment } = await supabase
     .from('payments')
-    .select('id, proof_url, profiles!profile_id!inner(clerk_id)')
+    .select('id, proof_url, profile_id, paid_by_profile_id')
     .eq('id', id)
-    .eq('profiles.clerk_id', userId)
     .single()
 
-  if (!payment || !payment.proof_url) {
+  // Legacy/self-paid rows have paid_by_profile_id NULL and the payer is
+  // profile_id; group rows name the payer explicitly. `??` not `||`, per the
+  // zero-is-data rule — and so an empty string could never fall through.
+  const payerId = payment?.paid_by_profile_id ?? payment?.profile_id ?? null
+
+  if (!payment || !payment.proof_url || payerId !== profile.id) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
 

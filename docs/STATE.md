@@ -21,6 +21,7 @@ Steps 1-4 of the issue's 12 are DONE and verified (see Done): the schema + RPCs 
 - Fold the `docs/CLAIMS.md` row + `docs/STATE.md` updates into this PR — no standalone cleanup PR.
 - Change only what the DoD requires; log other findings as NOTED.
 - Issue-stated: do NOT add group support to `app/api/profile/payments/route.ts` and do not edit it. Ask before editing `docs/guardrails/PROJECT.md`.
+- User, 2026-07-31, on the DEV `seed_676_*` fixture: "Leave it until GCR and continue 5-12" — do not clean it up before the GCR tail.
 
 ## Decisions
 - DECISION: migration filename `20260731000000_2607_feat_676_pay_on_behalf.sql` — 2026-07-31 is a new day (latest existing is `20260723000000`), so the counter resets to `000000` per GOTCHAS row 14.
