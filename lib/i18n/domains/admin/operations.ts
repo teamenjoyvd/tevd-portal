@@ -74,7 +74,14 @@ export const adminOperations = {
   'admin.operations.form.btn.cancel': { en: 'Cancel', bg: 'Откажи' },
 
   // -- Operations: Payments --
+  'admin.operations.payments.title': { en: 'Payments', bg: 'Плащания' },
   'admin.operations.payments.btn.log': { en: 'Log Payment', bg: 'Регистрирай плащане' },
+  'admin.operations.payments.btn.delete': { en: 'Delete', bg: 'Изтрий' },
+  'admin.operations.payments.aria.delete': { en: 'Delete payment', bg: 'Изтрий плащането' },
+  'admin.operations.payments.dialog.title': { en: 'Delete this payment?', bg: 'Изтриване на това плащане?' },
+  'admin.operations.payments.dialog.body': { en: 'This action cannot be undone.', bg: 'Действието е необратимо.' },
+  'admin.operations.payments.dialog.cancel': { en: 'Cancel', bg: 'Откажи' },
+  'admin.operations.payments.dialog.confirm': { en: 'Delete', bg: 'Изтрий' },
   'admin.operations.payments.pendingTitle': { en: 'Pending submissions ({{count}})', bg: 'Чакащи подавания ({{count}})' },
   'admin.operations.payments.viewProof': { en: 'View proof ↗', bg: 'Виж доказателство ↗' },
   'admin.operations.payments.badge.pending': { en: 'pending', bg: 'чакащо' },

@@ -97,7 +97,7 @@ export function LogPaymentForm({
           </SelectContent>
         </Select>
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.operations.payments.lbl.amount', 'en')}</label>
           <input type="number" step="0.01" min="0" value={amount} onChange={e => setAmount(e.target.value)}
@@ -111,7 +111,7 @@ export function LogPaymentForm({
             style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.operations.payments.lbl.date', 'en')}</label>
           <input type="date" value={txDate} onChange={e => setTxDate(e.target.value)}

@@ -56,8 +56,9 @@ export default defineConfig({
       // admin-auth/los-submission-auth: preview-smoke.yml runs this project
       // against a live Vercel Preview with no Clerk secrets configured, so
       // clerk.signIn() fails outright. Its 390px static-stack coverage runs
-      // under 'authenticated' instead, with an explicit viewport override.
-      testIgnore: /(admin-auth|los-submission-auth|profile-bento-auth)\.spec\.ts/,
+      // under 'authenticated' instead, with an explicit viewport override —
+      // as does admin-mobile-auth.spec.ts, for the same reason.
+      testIgnore: /(admin-auth|admin-mobile-auth|los-submission-auth|profile-bento-auth)\.spec\.ts/,
       use: {
         ...devices['iPhone 12'],
         browserName: 'chromium',
@@ -69,14 +70,16 @@ export default defineConfig({
       // profile-bento-auth.spec.ts excluded here too — it's Clerk-authenticated
       // and already covered at 1280px by the 'authenticated' project below;
       // running it a second time on 'desktop' would just duplicate the sign-in.
-      testIgnore: /(admin-auth|los-submission-auth|profile-bento-auth)\.spec\.ts/,
+      // admin-mobile-auth.spec.ts is 390px-only and Clerk-authenticated, so it
+      // has no business on a 1280px unauthenticated project either.
+      testIgnore: /(admin-auth|admin-mobile-auth|los-submission-auth|profile-bento-auth)\.spec\.ts/,
       use: { viewport: { width: 1280, height: 800 } },
     },
     {
       // Authenticated coverage (issue #560) — requires local Supabase +
       // npm run e2e:seed-clerk. Never target a preview/prod-DB deployment.
       name: 'authenticated',
-      testMatch: /(admin-auth|los-submission-auth|profile-bento-auth)\.spec\.ts/,
+      testMatch: /(admin-auth|admin-mobile-auth|los-submission-auth|profile-bento-auth)\.spec\.ts/,
       use: { viewport: { width: 1280, height: 800 } },
     },
   ],

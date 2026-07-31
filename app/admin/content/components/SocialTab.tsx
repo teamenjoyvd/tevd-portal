@@ -191,7 +191,7 @@ export function SocialTab() {
             <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t('admin.content.social.empty')}</p>
           </div>
         )}
-        {localSocials.map(post => (
+        {localSocials.map((post, i) => (
           <AdminListCard
             key={post.id}
             grip
@@ -214,6 +214,10 @@ export function SocialTab() {
             onDragOver={e => sDrag.onDragOver(e, post.id)}
             onDrop={sDrag.onDrop}
             onDragEnd={sDrag.onDragEnd}
+            onMoveUp={() => sDrag.moveBy(post.id, -1)}
+            onMoveDown={() => sDrag.moveBy(post.id, 1)}
+            canMoveUp={i > 0}
+            canMoveDown={i < localSocials.length - 1}
             actions={
               <>
                 {post.is_pinned && <AdminStatusBadge variant="pinned" label={t('admin.content.social.badge.pinned')} />}

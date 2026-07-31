@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useMutation } from '@tanstack/react-query'
 import { formatDate, formatCurrency } from '@/lib/format'
-import { t } from '@/lib/i18n'
+import { useLanguage } from '@/lib/hooks/useLanguage'
 import type { Payment } from '@/lib/types/payments'
 import { PendingPaymentsSection } from './PendingPaymentsSection'
 import { LogPaymentDrawer } from './LogPaymentDrawer'
@@ -41,6 +41,7 @@ export function PaymentsClient({
   initialPending: Payment[]
 }) {
   const router = useRouter()
+  const { t } = useLanguage()
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all')
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({})
@@ -97,16 +98,16 @@ export function PaymentsClient({
   return (
     <section className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <h1 className="font-display text-2xl font-semibold" style={{ color: 'var(--text-primary)' }}>
-          Payments
+          {t('admin.operations.payments.title')}
         </h1>
         <button
           onClick={() => setDrawerOpen(true)}
           className="px-4 py-2 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-opacity"
           style={{ backgroundColor: 'var(--brand-crimson)' }}
         >
-          {t('admin.operations.payments.btn.log', 'en')}
+          {t('admin.operations.payments.btn.log')}
         </button>
       </div>
 
@@ -127,13 +128,13 @@ export function PaymentsClient({
               backgroundColor: statusFilter === f.key ? 'var(--text-primary)' : 'rgba(0,0,0,0.06)',
               color: statusFilter === f.key ? 'var(--bg-card)' : 'var(--text-secondary)',
             }}>
-            {t(f.labelKey, 'en')}
+            {t(f.labelKey)}
           </button>
         ))}
       </div>
 
       {payments.length === 0 ? (
-        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t('admin.operations.payments.empty', 'en')}</p>
+        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t('admin.operations.payments.empty')}</p>
       ) : (
         <div className="rounded-2xl border overflow-hidden" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
           {payments.map((p, i) => {
@@ -141,7 +142,7 @@ export function PaymentsClient({
             const entityLabel = p.trips?.title ?? p.payable_items?.title ?? '—'
             const isDeleting = deleteMutation.isPending && deleteTargetId === p.id
             return (
-              <div key={p.id} className="px-5 py-3 flex items-center justify-between gap-4"
+              <div key={p.id} className="px-5 py-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
                 style={{ borderTop: i > 0 ? '1px solid var(--border-default)' : 'none' }}>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
@@ -153,7 +154,7 @@ export function PaymentsClient({
                     {p.payment_method && ` · ${p.payment_method}`}
                   </p>
                 </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap sm:flex-shrink-0">
                   <span className="text-[10px] font-semibold px-2.5 py-1 rounded-full"
                     style={{ backgroundColor: pill.bg, color: pill.color }}>
                     {p.admin_status}
@@ -163,9 +164,9 @@ export function PaymentsClient({
                     disabled={isDeleting}
                     className="text-xs px-2 py-1 rounded-lg border transition-colors hover:bg-black/5 disabled:opacity-40"
                     style={{ borderColor: 'var(--border-default)', color: 'var(--brand-crimson)' }}
-                    aria-label="Delete payment"
+                    aria-label={t('admin.operations.payments.aria.delete')}
                   >
-                    {isDeleting ? '…' : 'Delete'}
+                    {isDeleting ? '…' : t('admin.operations.payments.btn.delete')}
                   </button>
                 </div>
               </div>
@@ -180,13 +181,15 @@ export function PaymentsClient({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this payment?</AlertDialogTitle>
+            <AlertDialogTitle>{t('admin.operations.payments.dialog.title')}</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone.
+              {t('admin.operations.payments.dialog.body')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleteMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>
+              {t('admin.operations.payments.dialog.cancel')}
+            </AlertDialogCancel>
             <AlertDialogAction
               disabled={deleteMutation.isPending}
               onClick={e => {
@@ -194,7 +197,7 @@ export function PaymentsClient({
                 if (deleteTargetId) deleteMutation.mutate(deleteTargetId)
               }}
             >
-              {deleteMutation.isPending ? '…' : 'Delete'}
+              {deleteMutation.isPending ? '…' : t('admin.operations.payments.dialog.confirm')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

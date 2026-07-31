@@ -127,7 +127,7 @@ export function GuidesTab() {
         </div>
       ) : (
         <div className="space-y-1.5">
-          {localGuides.map(guide => (
+          {localGuides.map((guide, i) => (
             <AdminListCard
               key={guide.id}
               grip
@@ -139,6 +139,10 @@ export function GuidesTab() {
               onDragOver={e => gDrag.onDragOver(e, guide.id)}
               onDrop={gDrag.onDrop}
               onDragEnd={gDrag.onDragEnd}
+              onMoveUp={() => gDrag.moveBy(guide.id, -1)}
+              onMoveDown={() => gDrag.moveBy(guide.id, 1)}
+              canMoveUp={i > 0}
+              canMoveDown={i < localGuides.length - 1}
               actions={
                 <>
                   <AdminStatusBadge variant={guide.is_published ? 'active' : 'inactive'} label={guide.is_published ? 'Published' : 'Draft'} />

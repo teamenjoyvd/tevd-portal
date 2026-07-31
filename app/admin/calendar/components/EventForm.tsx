@@ -122,7 +122,7 @@ export function EventForm({
       <div className="flex flex-wrap gap-4 items-start">
         <div>
           <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.calendar.lbl.category')}</label>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             {CATEGORIES.map(c => (
               <button key={c} type="button" onClick={() => setF(p => ({ ...p, category: c }))}
                 className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
@@ -134,7 +134,7 @@ export function EventForm({
         </div>
         <div>
           <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.calendar.lbl.type')}</label>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             {EVENT_TYPES.map(t2 => (
               <button key={t2} type="button" onClick={() => setF(p => ({ ...p, event_type: f.event_type === t2 ? null : t2 }))}
                 className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
@@ -146,7 +146,7 @@ export function EventForm({
         </div>
         <div>
           <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('admin.calendar.lbl.visibleTo')}</label>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             {ALL_ROLES.map(role => (
               <button key={role} type="button" onClick={() => setF(p => ({
                 ...p,

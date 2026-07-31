@@ -272,13 +272,13 @@ export default function AdminCalendarClient() {
         </div>
 
         <div className="flex gap-2 flex-wrap items-center">
-          <div className="flex gap-1.5">
+          <div className="flex gap-1.5 flex-wrap">
             {(['All', 'N21', 'Personal'] as CategoryFilter[]).map(c => (
               <Pill key={c} active={categoryFilter === c} onClick={() => setCategoryFilter(c)}>{c}</Pill>
             ))}
           </div>
           <div className="w-px h-4 flex-shrink-0" style={{ backgroundColor: 'var(--border-default)' }} />
-          <div className="flex gap-1.5">
+          <div className="flex gap-1.5 flex-wrap">
             {([
               { value: 'upcoming', key: 'admin.calendar.timeScope.upcoming' },
               { value: 'past',     key: 'admin.calendar.timeScope.past'     },
@@ -306,7 +306,7 @@ export default function AdminCalendarClient() {
       ) : (
         <div className="rounded-2xl border overflow-hidden" style={{ borderColor: 'var(--border-default)' }}>
           {displayEvents.map((ev, i) => (
-            <div key={ev.id} className="px-5 py-4 flex items-center gap-4"
+            <div key={ev.id} className="px-5 py-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4"
               style={{ borderTop: i > 0 ? '1px solid var(--border-default)' : 'none', backgroundColor: i % 2 === 0 ? 'var(--bg-card)' : 'var(--bg-global)' }}>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap mb-0.5">

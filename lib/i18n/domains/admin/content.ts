@@ -71,6 +71,10 @@ export const adminContent = {
   'admin.content.social.dialog.cancel': { en: 'Cancel', bg: 'Откажи' },
   'admin.content.social.dialog.confirm': { en: 'Delete', bg: 'Изтрий' },
 
+  // -- Content: touch reorder (mobile substitute for the desktop drag grip) --
+  'admin.content.reorder.moveUp': { en: 'Move up', bg: 'Премести нагоре' },
+  'admin.content.reorder.moveDown': { en: 'Move down', bg: 'Премести надолу' },
+
   // -- Content: Guides --
   'admin.content.guides.btn.new': { en: '+ New Guide', bg: '+ Ново ръководство' },
   'admin.content.guides.drawer.newTitle': { en: 'New Guide', bg: 'Ново ръководство' },

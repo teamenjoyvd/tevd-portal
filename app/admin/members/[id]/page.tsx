@@ -442,7 +442,7 @@ export default function MemberDetailPage() {
             style={{ color: 'var(--text-secondary)' }}>
             LOS data
           </p>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {LOS_KEYS.map(([key, label]) => (
               <div key={key}>
                 <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{label}</p>

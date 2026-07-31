@@ -139,7 +139,7 @@ export function LinksTab() {
       </div>
 
       <div className="space-y-1.5">
-        {localLinks.map(l => (
+        {localLinks.map((l, i) => (
           <AdminListCard
             key={l.id}
             grip
@@ -150,6 +150,10 @@ export function LinksTab() {
             onDragOver={e => lDrag.onDragOver(e, l.id)}
             onDrop={lDrag.onDrop}
             onDragEnd={lDrag.onDragEnd}
+            onMoveUp={() => lDrag.moveBy(l.id, -1)}
+            onMoveDown={() => lDrag.moveBy(l.id, 1)}
+            canMoveUp={i > 0}
+            canMoveDown={i < localLinks.length - 1}
             actions={
               <>
                 <button onClick={() => startEditingLink(l)}

@@ -152,7 +152,7 @@ export function NewsTab() {
         </div>
       ) : (
         <div className="space-y-1.5">
-          {localItems.map(item => (
+          {localItems.map((item, i) => (
             <AdminListCard
               key={item.id}
               grip
@@ -163,6 +163,10 @@ export function NewsTab() {
               onDragOver={e => drag.onDragOver(e, item.id)}
               onDrop={drag.onDrop}
               onDragEnd={drag.onDragEnd}
+              onMoveUp={() => drag.moveBy(item.id, -1)}
+              onMoveDown={() => drag.moveBy(item.id, 1)}
+              canMoveUp={i > 0}
+              canMoveDown={i < localItems.length - 1}
               actions={
                 <>
                   <button

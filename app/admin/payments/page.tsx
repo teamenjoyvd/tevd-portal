@@ -37,27 +37,14 @@ export default async function PaymentsPage() {
 
   return (
     <div className="space-y-6 pb-16">
-
-      {/* ════════════════════════════════════════════════════════════════════
-          DESKTOP layout (md+)
-          ════════════════════════════════════════════════════════════════════ */}
-      <div className="hidden md:block">
-        <PaymentsClient
-          initialPayments={allPayments}
-          initialPending={pendingPayments}
-        />
-      </div>
-
-      {/* ════════════════════════════════════════════════════════════════════
-          MOBILE layout (< md)
-          ════════════════════════════════════════════════════════════════════ */}
-      <div className="md:hidden">
-        <PaymentsClient
-          initialPayments={allPayments}
-          initialPending={pendingPayments}
-        />
-      </div>
-
+      {/* Single responsive render. This used to be a hidden md:block /
+          md:hidden pair passing identical props, but PaymentsClient has no
+          responsive branching — it produced a duplicate <h1>, duplicate
+          AlertDialogs and duplicate mutation instances in every viewport. */}
+      <PaymentsClient
+        initialPayments={allPayments}
+        initialPending={pendingPayments}
+      />
     </div>
   )
 }
