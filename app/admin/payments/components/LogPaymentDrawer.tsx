@@ -3,7 +3,7 @@
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Drawer } from '@/components/ui/drawer'
-import { t } from '@/lib/i18n'
+import { useLanguage } from '@/lib/hooks/useLanguage'
 import { fetchJson } from '@/lib/utils/fetchJson'
 import { LogPaymentForm } from './LogPaymentForm'
 import type { Trip } from '@/lib/types/trips'
@@ -23,6 +23,8 @@ export function LogPaymentDrawer({
   isPending: boolean
   externalError: string | null
 }) {
+  const { t } = useLanguage()
+
   // Lazy fetch — only runs while drawer is open
   const { data: trips = [] } = useQuery<Trip[]>({
     queryKey: ['trips'],
@@ -68,7 +70,7 @@ export function LogPaymentDrawer({
     <Drawer
       open={open}
       onClose={onClose}
-      title={t('admin.operations.payments.drawer.title', 'en')}
+      title={t('admin.operations.payments.drawer.title')}
     >
       <LogPaymentForm
         trips={trips}

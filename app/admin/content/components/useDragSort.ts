@@ -35,6 +35,10 @@ export function makeDragHandlers<T extends { id: string }>(
      * reusing onDrop() above, which maps `local` as captured at render time.
      */
     moveBy: (id: string, delta: number) => {
+      // Reads `local` (the render-time array) rather than the setLocal updater
+      // form on purpose: onDrop is a mutation, and a side effect inside an
+      // updater fires twice under StrictMode. Real taps are separate ticks
+      // with a render between them, so `local` is current for each one.
       const from = local.findIndex(x => x.id === id)
       if (from === -1) return
       const to = from + delta

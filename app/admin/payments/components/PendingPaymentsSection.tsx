@@ -1,7 +1,7 @@
 'use client'
 
 import { formatDate, formatCurrency } from '@/lib/format'
-import { t } from '@/lib/i18n'
+import { useLanguage } from '@/lib/hooks/useLanguage'
 import type { Payment } from '@/lib/types/payments'
 
 export function PendingPaymentsSection({
@@ -19,12 +19,14 @@ export function PendingPaymentsSection({
   onReject: (id: string, note: string | null) => void
   isPending: boolean
 }) {
+  const { t } = useLanguage()
+
   if (payments.length === 0) return null
 
   return (
     <div>
       <p className="text-xs font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
-        {t('admin.operations.payments.pendingTitle', 'en').replace('{{count}}', String(payments.length))}
+        {t('admin.operations.payments.pendingTitle').replace('{{count}}', String(payments.length))}
       </p>
       <div className="rounded-2xl border overflow-hidden" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
         {payments.map((p, i) => (
@@ -51,34 +53,38 @@ export function PendingPaymentsSection({
                     className="text-xs hover:underline"
                     style={{ color: 'var(--brand-teal)' }}
                   >
-                    {t('admin.operations.payments.viewProof', 'en')}
+                    {t('admin.operations.payments.viewProof')}
                   </a>
                 )}
               </div>
               <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0" style={{ backgroundColor: '#f2cc8f33', color: '#7a5c00' }}>
-                {t('admin.operations.payments.badge.pending', 'en')}
+                {t('admin.operations.payments.badge.pending')}
               </span>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
               <input
                 value={reviewNotes[p.id] ?? ''}
                 onChange={e => setReviewNotes(n => ({ ...n, [p.id]: e.target.value }))}
-                placeholder={t('admin.operations.payments.placeholder.adminNote', 'en')}
+                placeholder={t('admin.operations.payments.placeholder.adminNote')}
                 className="flex-1 border rounded-xl px-3 py-2 text-xs"
                 style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
               />
-              <button
-                onClick={() => onApprove(p.id, reviewNotes[p.id] || null)}
-                disabled={isPending}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity flex-shrink-0"
-                style={{ backgroundColor: '#2d6a4f' }}
-              >{t('admin.operations.payments.btn.approve', 'en')}</button>
-              <button
-                onClick={() => onReject(p.id, reviewNotes[p.id] || null)}
-                disabled={isPending}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity flex-shrink-0"
-                style={{ backgroundColor: 'var(--brand-crimson)' }}
-              >{t('admin.operations.payments.btn.deny', 'en')}</button>
+              {/* Own row under sm so the two buttons split the width instead of
+                  stretching vertically inside the stacked column. */}
+              <div className="flex gap-2 sm:contents">
+                <button
+                  onClick={() => onApprove(p.id, reviewNotes[p.id] || null)}
+                  disabled={isPending}
+                  className="flex-1 sm:flex-none px-4 py-2 rounded-xl text-xs font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity sm:flex-shrink-0"
+                  style={{ backgroundColor: '#2d6a4f' }}
+                >{t('admin.operations.payments.btn.approve')}</button>
+                <button
+                  onClick={() => onReject(p.id, reviewNotes[p.id] || null)}
+                  disabled={isPending}
+                  className="flex-1 sm:flex-none px-4 py-2 rounded-xl text-xs font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity sm:flex-shrink-0"
+                  style={{ backgroundColor: 'var(--brand-crimson)' }}
+                >{t('admin.operations.payments.btn.deny')}</button>
+              </div>
             </div>
           </div>
         ))}

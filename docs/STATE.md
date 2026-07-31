@@ -13,7 +13,7 @@ All 6 steps implemented and committed (`c0f11fb`, 24 files). Branch pushed; draf
 
 ## Constraints
 - 390px mobile-first.
-- No `git push` unless the user asks for a push in this conversation (quote required). Not asked yet.
+- No `git push` unless the user asks for a push in this conversation (quote required). Asked and granted this session ("Push + open draft PR") — that grant covers this branch only, not future ones.
 - Never push to `main`; `dev/2607-DEV-678` only.
 - Never weaken a check to make it pass.
 - Fold the `docs/CLAIMS.md` row + `docs/STATE.md` updates into this PR — no standalone cleanup PR.
@@ -43,8 +43,11 @@ All 6 steps implemented and committed (`c0f11fb`, 24 files). Branch pushed; draf
 ## Open items
 - **`e2e/admin-mobile-auth.spec.ts` has never been run locally.** Docker was unavailable so local Supabase could not start, and `.env.local` points at PROD, which is not a legitimate target for authenticated e2e. User chose CI as the gate. Until that job is green, the spec is unproven in both directions — it has not been seen red either, so it is not yet known to detect anything.
 - `EventForm.tsx:213` has a fourth `flex gap-2` (form footer) left untouched pending the 390px assertion. NOTED, not done.
-- `LogPaymentForm.tsx` still uses `t(key, 'en')` throughout. Out of #680's stated scope (which named `PaymentsClient.tsx` only) and behind a drawer the spec does not open — worth a follow-up issue if BG matters in that drawer.
 - `GuideAttachmentsPanel.tsx:89` is a 5th `makeDragHandlers` consumer; its reorder is equally touch-dead. Not wired to `moveBy` in this PR.
+- `app/admin/components/LangTabs.tsx` has **zero consumers** repo-wide; its docstring claiming "Used by AnnouncementsTab" is false. Deliberately left untouched here — it belongs in #681's dead-stub cleanup.
+- The 390px spec asserts overflow only, not locale. It cannot catch English-pinned strings, which is why the #680 gap in `PendingPaymentsSection` survived the first green run.
+- `PendingPaymentsSection` returns `null` when there are no pending payments, so CI's seed data never renders it. Its 390px layout is unverified by the spec — fixed by inspection, not by assertion.
+- `moveBy` reads the render-time `local` rather than the `setLocal` updater form, on purpose: `onDrop` is a mutation and a side effect inside an updater double-fires under StrictMode. Real taps are separate ticks, so `local` is current.
 
 ## Failed attempts
 (none yet)
