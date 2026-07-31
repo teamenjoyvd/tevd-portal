@@ -1,45 +1,60 @@
 ## Goal
-BUILD issue #681 (2607-DEV-681, branch `dev/2607-DEV-681`): delete 14 unreferenced dead stubs under `app/admin/**` plus the orphaned `app/(dashboard)/admin/layout.tsx` guard, collapse two double-hop redirects (`howtos`, `payable-items`), and correct the `docs/ai/REF.md` route table.
+BUILD issue #676 (2607-DEV-676, branch `dev/2607-DEV-676`): payments on behalf of others — one submission + one proof produces N `payments` rows sharing a `payment_group_id`, one per real-profile beneficiary in the payer's own LOS, each landing on that person's own ledger. Admin approves/rejects the whole group only.
 
 ## Now
-BUILD code-complete at `90ed666` (19 files: 14 deleted, 5 edited). All local gates green — see Done. Not pushed; no push has been requested this session.
+Steps 1-2 of the issue's 12 are DONE and verified on DEV (see Done). Next up is step 3, `lib/payments/split.ts`.
 
 ## Next
-1. CI green + Vercel preview READY on the draft PR, then mark ready for the single CodeRabbit pass.
-2. Confirm `Authenticated E2E (Clerk)` actually ran its steps (green-by-skip does not count) — it is the regression net for the deleted admin surface.
-3. No migrations — no `migrate-prod` gate. GCR tail: remove the `docs/CLAIMS.md` row, close #681.
-
-## Review status
-- `/code-review low` was launched (agent `a6426e9a98ae57649`) and finished in 9s with 1 tool call and an EMPTY output file. That is a no-op, NOT a clean review — do not record it as a passing gate. Substituted a manual read of `git diff main..HEAD -- app/` before pushing; re-run the reviewer if a real pass is wanted.
+3. `lib/payments/split.ts` + `split.test.ts` (vitest).
+4. `lib/payments/eligibility.ts` — `fetchPayableBeneficiaries`, `assertGroupAllowed`.
+5. Member API: `app/api/payments/route.ts`, `beneficiaries/route.ts`, `group/[groupId]/route.ts`, proof-route narrowing.
+6. Admin API: group route, 409 guards, select-string extension, approval notification.
+7. `lib/types/payments.ts` + i18n keys in `lib/i18n/domains/payment.ts` (every locale).
+8. `BeneficiaryPicker.tsx`, `SplitEditor.tsx` standalone.
+9. `PaymentForm` `allowOnBehalf` wiring; both existing call sites unchanged flag-off.
+10. Enable at `AttendeeView.tsx` + `PaymentsSection.tsx`; withdraw card.
+11. Admin UI (`PaymentGroupCard.tsx`, `PendingPaymentsSection.tsx`, `PaymentsClient.tsx`).
+12. `npm run verify`, then `/code-review low`, then draft PR.
 
 ## Constraints
-- Never push to `main`; `dev/2607-DEV-681` only.
-- No `git push` unless the user asks for a push in this conversation (quote required). GRANTED this session: user wrote "draft PR afterwards" alongside `/code-review low`. That grant covers `dev/2607-DEV-681` only, and only after the review findings are addressed.
+- Never push to `main`; `dev/2607-DEV-676` only.
+- No `git push` unless the user asks for a push in this conversation (quote required). NOT GRANTED yet this session.
 - Never weaken a check to make it pass.
 - Fold the `docs/CLAIMS.md` row + `docs/STATE.md` updates into this PR — no standalone cleanup PR.
 - Change only what the DoD requires; log other findings as NOTED.
+- Issue-stated: do NOT add group support to `app/api/profile/payments/route.ts` and do not edit it. Ask before editing `docs/guardrails/PROJECT.md`.
 
 ## Decisions
-- `app/admin/operations/page.tsx` is KEPT — it is a live redirect target at `/admin/operations`. Only its `components/` subtree goes.
-- `payable-items` redirects to `/admin/items` (the real home of items), not to `/admin/payments` where the old chain landed.
+- DECISION: migration filename `20260731000000_2607_feat_676_pay_on_behalf.sql` — 2026-07-31 is a new day (latest existing is `20260723000000`), so the counter resets to `000000` per GOTCHAS row 14.
+- DECISION: both new write RPCs carry the GOTCHAS row 34 guard `IF auth.role() <> 'service_role' AND NOT public.is_admin() THEN RAISE EXCEPTION 'Unauthorized'` and take the payer/viewer as an explicit parameter — Pattern A helpers return NULL under service role.
+- DECISION: nothing granted to `authenticated` on `can_pay_for` / `get_payable_beneficiaries` — an arbitrary-payer argument would be an LOS-mapping oracle. `service_role` only.
 
 ## Facts
-- C14 deletion greps run against `1aa6d72`: bare names repo-wide hit only self-references, two historical comments (`lib/types/payments.ts:2`, `lib/types/items.ts:2`), and live twins at *different* paths (`app/admin/payments/components/{LogPaymentForm,PendingPaymentsSection}.tsx`, `app/admin/items/{new,[id]}/components/Item*Form.tsx`). Quoted-name grep: no matches. No barrel `index.ts*` exists under `app/admin`.
-- `app/(dashboard)/admin/layout.tsx` is the only file under `app/(dashboard)/admin/` — guards zero routes.
-- `middleware.ts` does not exist (routing-touching ticket check).
-- Redirect chains confirmed by Read: `howtos -> /admin/guides -> /admin/content?tab=guides`; `payable-items -> /admin/operations?tab=items -> /admin/payments` (drops the param, wrong section).
+- DEV Supabase project ref `iymwxdewcpvpjgzewtzk`; `supabase/.temp/project-ref` confirms the CLI is linked to DEV. CLI v2.109.1.
+- Read-only DEV SQL runner (no psql on host): `C:\Users\fefence\AppData\Local\Temp\claude\D--react-teamenjoyvd-tevd-portal\a19b2d80-0672-475c-8d5a-09b6ba23078c\scratchpad\devsql.ps1 -Sql "<sql>"` — reads the CLI token from Windows Credential Manager (`Supabase CLI:supabase`, UTF-8 blob) and POSTs to the Management API. Verified working 2026-07-31. Queries selecting person names are blocked by the permission classifier — aggregate instead.
+- Schema anchors (`supabase/migrations/20260315000000_baseline.sql`): `payments` at :307-331 with exactly two FKs to `profiles` (`profile_id` :327, `logged_by_admin` :328); payments RLS at :1069-1075, `payments_member_insert` at :1072; `tree_nodes` at :115-127; `profiles` at :28-49 (no `primary_profile_id` — added by `20260508000100`); `upsert_tree_node` placeholder-root branch at :407-419.
+- "Approved ABO-less member" = `role <> 'guest'` with `abo_number IS NULL` — `approve_member_verification` (`20260509000400_approve_member_verification_gcr.sql:90-101`) sets `role='member'` + `upline_abo_number` and leaves `abo_number` NULL for `request_type='manual'`.
+- Migration precedent to copy (header, guard, grants): `supabase/migrations/20260713000000_2607_feat_los_submission_requests.sql`.
+- Carried from #681: if `npm run build` dies with `Fatal process out of memory: Zone`, first response is `rm -rf .next` — the OS, not the V8 heap, was the limit; do not raise `--max-old-space-size`.
 
 ## Done
-- CLAIM complete: issue #681 has `## Design Checklist` (four checked) + `## Branch`; branch cut; `docs/CLAIMS.md` row registered in `1aa6d72` (merged #678 row pruned in the same commit).
-- BUILD code-complete, commit `90ed666`: 14 files deleted, `app/admin/howtos/page.tsx` + `app/admin/payable-items/page.tsx` + `docs/ai/REF.md` edited. 19 files, 30 insertions / 108 deletions — well inside the EST.
-- Verified locally at `90ed666`: `npx tsc --noEmit` exit 0; `npm run build` compiled successfully; `npm run lint` 0 errors / 476 warnings (baseline 477 — one fewer, the deleted `BlockEditor` stub's; none new); `npm test` 17 files / 211 tests passed.
-- DoD invariants re-checked after deletion: `find app -name layout.tsx -path "*admin*"` -> `app/admin/layout.tsx` only (exactly one admin guard); `middleware.ts` absent; the deleted-name grep returns no import sites (only two provenance comments and this branch's own CLAIMS row).
+- CLAIM complete: #676 has `## Design Checklist` (four checked) + `## Branch`; branch `dev/2607-DEV-676` checked out; `docs/CLAIMS.md` row registered at `b7790c7`.
+- V1 data reality check on DEV (2026-07-31) — RESULT: DEV is effectively empty and the issue's stated premise is DISPROVED. `profiles` = 11 (3 admin / 4 core / 3 member / 1 guest); `tree_nodes` = 2 (max depth 0); `los_members` = 0; `payments` = 0; profiles with no tree node = 9; **placeholder roots = 0**; **secondaries (`primary_profile_id NOT NULL`) = 0**; ABO-less profiles = 1 admin + 1 guest, both with NULL `upline_abo_number` — i.e. **zero approved ABO-less members**. The issue claimed "placeholder roots definitely exist"; they do not on DEV.
+
+- PLAN CHANGE (2026-07-31): assumed approved ABO-less MEMBERS exist and are why the `guest` branch is needed; actually `trg_guard_abo_number_null` (`20260716000100_normalize_prod_schema_drift.sql:25-54`, BEFORE INSERT OR UPDATE ON profiles, live on prod AND DEV) REJECTS `abo_number IS NULL` on any primary profile with role `member`/`core`, exempting only admin, guest and co-owners. Evidence: the fixture INSERT failed with `P0001 abo_number cannot be NULL for a primary profile with role member`. Resolution: branch 4 is KEPT (additive; the manual-verification path clearly intends the category) but its migration comment now states that today it can only match an admin-role profile carrying an `upline_abo_number`; co-owners are already covered by `household` + the `downline` COALESCE anchoring.
+- Step 1 DONE — migration `20260731000000_2607_feat_676_pay_on_behalf.sql` applied to DEV via `supabase db push` (clean; only that file was pending). Adds `payment_group_id` + `paid_by_profile_id` (both nullable, both-or-neither CHECK, one partial index each, third FK to profiles), `get_payable_beneficiaries`, `can_pay_for`, `submit_payment_group`, `withdraw_payment_group`, policy `payments_payer_select`, and replaces `payments_member_insert` with `logged_by_admin IS NULL AND COALESCE(paid_by_profile_id, profile_id) = get_my_profile_id()`.
+- V3 grants — RESULT: all four functions are `postgres=X/postgres | service_role=X/postgres`. `authenticated` has NO EXECUTE. Verified from `pg_proc.proacl` on DEV.
+- V2 eligibility matrix on the seeded fixture — RESULT: 18/18 rows exactly as predicted. root(core) -> self + legA/legB/leafA/spouse as downline + aboless as guest; legA -> self + spouse(household) + leafA(downline) + aboless; leafA(leaf) -> self + aboless only; spouse(secondary) -> self + legA(household) + leafA(downline, borrowing the primary's node) + aboless; legB -> self ONLY; guest viewer -> self ONLY. **No upline appears for any viewer and no sibling leg leaks.**
+- V3 `can_pay_for` — RESULT: 16/16 assertions pass, including leafA->legA false, leafA->root false, legA<->legB false both ways, legB->aboless(other leg) false, spouse->root false, guest->anyone false.
+- RPC behaviour on DEV — RESULT: 9/9. T1 happy path inserted 2 rows under one group id; **T2 out-of-LOS beneficiary REJECTED `P0001 profile … is not payable by …`** (the security test, bypassing the picker entirely); T3 sum mismatch rejected; T4 duplicate beneficiary rejected; T5 missing trip/item rejected; T6 wrong-payer withdraw deleted 0; T7 approved-group withdraw deleted 0; T8 payer withdraw deleted 2 and returned the shared `proof_url`; T9 zero leftover rows.
+- Step 2 DONE — `types/supabase.ts` regenerated from DEV (2998 -> 3044 lines). Diff is purely additive: the two columns in Row/Insert/Update, the `payments_paid_by_profile_id_fkey` relationships, and Args/Returns for all four RPCs. `npx tsc --noEmit` exit 0.
 
 ## Open items
-- `app/admin/components/LangTabs.tsx` has zero consumers repo-wide and a false docstring ("Used by AnnouncementsTab"). Same class of debt, carried over from #678; NOT in #681's DoD. NOTED, not done.
-- `docs/ai/REF.md:109` prose ("Operations payments tab: Log Payment Drawer…") describes a tab that now lives at `/admin/payments`. Outside the DoD's named lines. NOTED, not done.
-- `BottomNav.tsx` dead stub (GOTCHAS row 31) — outside the admin tree, out of scope per the issue.
+- DEV fixture `seed_676_*` (7 profiles, ABOs 6760001-6760004) is STILL PRESENT on DEV and is needed for the E2E/manual passes. Re-seed or clean up with `<scratchpad>/seed_676.sql` (it deletes `clerk_id LIKE 'seed_676_%'` first, so it is idempotent). Remove it at GCR time.
+- NOTED (not done): `approve_member_verification` with `request_type='manual'` sets `role='member'` while leaving `abo_number` NULL — on a primary profile that now trips `trg_guard_abo_number_null`. The manual verification path looks broken independently of this issue. Not in #676's DoD.
+- NOTED (not done): `upsert_tree_node` writes `depth = 0` for every node in the seeded fixture even at ltree depth 3 (`6760001.6760002.6760003`). `path` is correct; only `depth` is wrong. Pre-existing, not in #676's DoD.
+- `docs/ai/GOTCHAS.md` row 12 says `payments` has two FKs to `profiles`; must become three in this PR.
+- Issue-noted, NOT in scope: `app/api/payments/route.ts:37` `if (!amount)` rejects a `0` amount and admits a negative one; `app/admin/members/[id]/components/PaymentsPanel.tsx:3-7` declares a `status` column that does not exist on `payments`.
 
 ## Failed attempts
-- ATTEMPT 1 [L1]: `npm run build` after the 14 deletions + 2 redirect edits -> `# Fatal process out of memory: Zone`, `Next.js build worker exited with code: 2147483651`. Not a compile error. Environment at the time: 8.5 GB total / 2.3 GB free; `scripts/build.js:14` requests `--max-old-space-size=4096`. Next step: prove pre-existing by building the clean tree at `1aa6d72` (detached) rather than asserting it.
-  RESOLVED, not reproducible: the control build at `1aa6d72` (detached, after `rm -rf .next`) succeeded, so it was NOT proven pre-existing; the same branch then built clean at `90ed666` under the same `rm -rf .next` conditions. Two conditions differed from the failing run — a stale `.next` was present, and `tsc`+`lint` had just run in the same shell against 2.3 GB free. Treat `rm -rf .next` as the first response if it recurs; do not raise `--max-old-space-size` (the OS, not the V8 heap, was the limit — "Fatal process out of memory: Zone" with 4096 already requested).
+- (none this session)

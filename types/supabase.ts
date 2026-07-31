@@ -1307,7 +1307,9 @@ export type Database = {
           member_reject_reason: string | null
           member_status: string
           note: string | null
+          paid_by_profile_id: string | null
           payable_item_id: string | null
+          payment_group_id: string | null
           payment_method: string | null
           profile_id: string
           proof_url: string | null
@@ -1327,7 +1329,9 @@ export type Database = {
           member_reject_reason?: string | null
           member_status?: string
           note?: string | null
+          paid_by_profile_id?: string | null
           payable_item_id?: string | null
+          payment_group_id?: string | null
           payment_method?: string | null
           profile_id: string
           proof_url?: string | null
@@ -1347,7 +1351,9 @@ export type Database = {
           member_reject_reason?: string | null
           member_status?: string
           note?: string | null
+          paid_by_profile_id?: string | null
           payable_item_id?: string | null
+          payment_group_id?: string | null
           payment_method?: string | null
           profile_id?: string
           proof_url?: string | null
@@ -1366,6 +1372,20 @@ export type Database = {
           {
             foreignKeyName: "payments_logged_by_admin_fkey"
             columns: ["logged_by_admin"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_paid_by_profile_id_fkey"
+            columns: ["paid_by_profile_id"]
+            isOneToOne: false
+            referencedRelation: "member_roles_history"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "payments_paid_by_profile_id_fkey"
+            columns: ["paid_by_profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -2147,6 +2167,10 @@ export type Database = {
           upline_abo_number: string
         }[]
       }
+      can_pay_for: {
+        Args: { p_beneficiary: string; p_payer: string }
+        Returns: boolean
+      }
       claim_due_notifications: {
         Args: {
           p_channel: Database["public"]["Enums"]["notification_channel"]
@@ -2274,6 +2298,17 @@ export type Database = {
         Args: never
         Returns: Database["public"]["Enums"]["user_role"]
       }
+      get_payable_beneficiaries: {
+        Args: { p_target?: string; p_viewer: string }
+        Returns: {
+          abo_number: string
+          first_name: string
+          last_name: string
+          profile_id: string
+          relation: string
+          role: string
+        }[]
+      }
       get_trip_team_attendees: {
         Args: { p_trip_id: string; p_viewer_profile: string }
         Returns: {
@@ -2344,6 +2379,10 @@ export type Database = {
       release_los_submissions: { Args: { p_ids: string[] }; Returns: number }
       rollback_los_import: { Args: { p_import_id: string }; Returns: Json }
       run_los_digest: { Args: never; Returns: undefined }
+      submit_payment_group: {
+        Args: { p_payer: string; p_payload: Json }
+        Returns: string
+      }
       text2ltree: { Args: { "": string }; Returns: unknown }
       upsert_tree_node: {
         Args: {
@@ -2358,6 +2397,13 @@ export type Database = {
         Returns: {
           name: string
           secret: string
+        }[]
+      }
+      withdraw_payment_group: {
+        Args: { p_group_id: string; p_payer: string }
+        Returns: {
+          deleted: number
+          proof_url: string
         }[]
       }
     }
