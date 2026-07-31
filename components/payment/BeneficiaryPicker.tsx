@@ -110,7 +110,7 @@ export function BeneficiaryPicker({ beneficiaries, selectedIds, onSelect, onBack
       {sections.map(section => (
         <div key={section.relation} className="space-y-1">
           <p
-            className="text-[0.6875rem] font-semibold uppercase tracking-wide px-1 pt-1"
+            className="text-[11px] font-semibold uppercase tracking-wide px-1 pt-1"
             style={{ color: 'var(--text-secondary)' }}
           >
             {relationLabel[section.relation]}
@@ -135,7 +135,7 @@ export function BeneficiaryPicker({ beneficiaries, selectedIds, onSelect, onBack
                 }}
               >
                 <span
-                  className="flex items-center justify-center rounded-full text-[0.6875rem] font-semibold flex-shrink-0"
+                  className="flex items-center justify-center rounded-full text-[11px] font-semibold flex-shrink-0"
                   style={{
                     width: '32px',
                     height: '32px',
@@ -164,7 +164,7 @@ export function BeneficiaryPicker({ beneficiaries, selectedIds, onSelect, onBack
 
       {/* Honest about the cap rather than silently truncating. */}
       {!isLoading && beneficiaries.length > MAX_ROWS && (
-        <p className="text-[0.6875rem] pt-1 text-center" style={{ color: 'var(--text-secondary)' }}>
+        <p className="text-[11px] pt-1 text-center" style={{ color: 'var(--text-secondary)' }}>
           {lang === 'bg'
             ? `Показани са първите ${MAX_ROWS}. Използвайте търсенето.`
             : `Showing the first ${MAX_ROWS}. Use search to narrow.`}

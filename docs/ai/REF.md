@@ -302,7 +302,8 @@ Normalised UNION ALL over `profiles_audit` + `role_change_audit`. Columns: `prof
 **`spouse_link_requests`** — `id, requester_id → profiles, claimed_primary_id → profiles, status (pending|approved|denied), admin_note, created_at, resolved_at`
 - ADR-016. UNIQUE on `requester_id`. RLS: requester reads/inserts/deletes own pending; admin full access.
 
-**`payments`** — `id, profile_id, trip_id, payable_item_id, amount, currency, transaction_date, admin_status, member_status, admin_reject_reason, member_reject_reason, payment_method, proof_url, note, admin_note, logged_by_admin, properties, created_at`
+**`payments`** — `id, profile_id, trip_id, payable_item_id, amount, currency, transaction_date, admin_status, member_status, admin_reject_reason, member_reject_reason, payment_method, proof_url, note, admin_note, logged_by_admin, payment_group_id, paid_by_profile_id, properties, created_at`
+- `payment_group_id` + `paid_by_profile_id` (2607-DEV-676) are both-or-neither by CHECK; legacy/self-paid rows have both NULL and are never backfilled. Consumers needing the payer read `paid_by_profile_id ?? profile_id`. Third FK to `profiles` — hint every PostgREST embed.
 - Exactly one of `trip_id` / `payable_item_id` non-null.
 - GREEN = both statuses `'approved'`.
 - ⚠️ Two FKs to `profiles` — PostgREST join MUST use `profiles!profile_id(...)`.
@@ -426,7 +427,10 @@ Normalised UNION ALL over `profiles_audit` + `role_change_audit`. Columns: `prof
 | `/api/profile/payments` | GET, POST | POST triggers `sendNotificationEmail` to admin |
 | `/api/profile/trips/[id]/cancel` | POST | |
 | `/api/payable-items` | GET | Active items only |
-| `/api/payments` | GET, POST | Unified |
+| `/api/payments` | GET, POST | Unified. GET returns rows on the caller's ledger AND rows they paid for. POST is additive: no `beneficiaries` key → legacy single row; with it → `submit_payment_group` writes N rows sharing a `payment_group_id` |
+| `/api/payments/beneficiaries` | GET | The picker's only source — wraps `get_payable_beneficiaries` (self / household / downline / ABO-less approved members). Never returns an upline |
+| `/api/payments/group/[groupId]` | DELETE | Payer withdraws a whole still-pending group. Hard delete; best-effort proof cleanup. 404 when not the payer's or no longer pending |
+| `/api/admin/payments/group/[groupId]` | PATCH, DELETE | Whole-group approve/reject/delete. Reject emails the PAYER once; approve emails each beneficiary |
 | `/api/trips` | GET, POST | GET: role-filtered list (unauthenticated → guest). POST: admin-only create |
 | `/api/trips/[id]/messages` | GET | Read-only trip bulletin (admin-authored; no author shown to members) |
 | `/api/trips/[id]/payments` | GET | |

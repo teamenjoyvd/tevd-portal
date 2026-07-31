@@ -58,7 +58,7 @@ export default defineConfig({
       // clerk.signIn() fails outright. Its 390px static-stack coverage runs
       // under 'authenticated' instead, with an explicit viewport override —
       // as does admin-mobile-auth.spec.ts, for the same reason.
-      testIgnore: /(admin-auth|admin-mobile-auth|los-submission-auth|profile-bento-auth)\.spec\.ts/,
+      testIgnore: /(admin-auth|admin-mobile-auth|los-submission-auth|profile-bento-auth|payments-on-behalf)\.spec\.ts/,
       use: {
         ...devices['iPhone 12'],
         browserName: 'chromium',
@@ -72,14 +72,14 @@ export default defineConfig({
       // running it a second time on 'desktop' would just duplicate the sign-in.
       // admin-mobile-auth.spec.ts is 390px-only and Clerk-authenticated, so it
       // has no business on a 1280px unauthenticated project either.
-      testIgnore: /(admin-auth|admin-mobile-auth|los-submission-auth|profile-bento-auth)\.spec\.ts/,
+      testIgnore: /(admin-auth|admin-mobile-auth|los-submission-auth|profile-bento-auth|payments-on-behalf)\.spec\.ts/,
       use: { viewport: { width: 1280, height: 800 } },
     },
     {
       // Authenticated coverage (issue #560) — requires local Supabase +
       // npm run e2e:seed-clerk. Never target a preview/prod-DB deployment.
       name: 'authenticated',
-      testMatch: /(admin-auth|admin-mobile-auth|los-submission-auth|profile-bento-auth)\.spec\.ts/,
+      testMatch: /(admin-auth|admin-mobile-auth|los-submission-auth|profile-bento-auth|payments-on-behalf)\.spec\.ts/,
       use: { viewport: { width: 1280, height: 800 } },
     },
   ],

@@ -58,4 +58,4 @@ Steps 1-4 of the issue's 12 are DONE and verified (see Done): the schema + RPCs 
 - Issue-noted, NOT in scope: `app/api/payments/route.ts:37` `if (!amount)` rejects a `0` amount and admits a negative one; `app/admin/members/[id]/components/PaymentsPanel.tsx:3-7` declares a `status` column that does not exist on `payments`.
 
 ## Failed attempts
-- (none this session)
+- ATTEMPT 1 [L1] (`npm run build` / `npm run verify`): replaced the novel arbitrary utility `text-[0.6875rem]` with the repo's existing `text-[11px]` idiom in `components/payment/BeneficiaryPicker.tsx:113,138,167`, on the hypothesis that Tailwind's candidate scanner choked on a rem-valued arbitrary text size -> SAME failure, byte-identical: `CssSyntaxError: tailwindcss: app/globals.css:1:1: Invalid code point 10591021`, thrown from `markUsedVariable` -> `String.fromCodePoint`. Hypothesis disproved. Note `markUsedVariable` operates on CSS custom-property names inside globals.css, not on scanned class names, so the TSX may be irrelevant entirely. (The `text-[11px]` change is KEPT — it matches repo convention either way.)
