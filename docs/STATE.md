@@ -2,21 +2,34 @@
 BUILD issue #676 (2607-DEV-676, branch `dev/2607-DEV-676`): payments on behalf of others — one submission + one proof produces N `payments` rows sharing a `payment_group_id`, one per real-profile beneficiary in the payer's own LOS, each landing on that person's own ledger. Admin approves/rejects the whole group only.
 
 ## Now
-PR 687 head is now `21558be` — the `/profile` crash fix (PROFILE CRASH entry in Done), VERIFIED on the
-preview. CI on `21558be` has NOT been checked yet; do that before merging.
+PR 687 at `82e4f1b`: all 11 checks pass, Vercel READY, both `/profile` crash fixes verified in the
+browser, `docs/CLAIMS.md` row released. Two CodeRabbit rounds dispositioned, zero unresolved threads —
+but CodeRabbit reported `Review rate limited` on the last two commits, so those were never reviewed.
 
-Previous state, still accurate for everything else — PR 687 at `8f3d8f7`: EVERY check green (CI, Replay migrations, Preview Smoke, Vercel READY) and ZERO unresolved review threads. Two CodeRabbit rounds done — 11 findings then 3 more, all dispositioned. NOT merged: the two human-verification gates below are still outstanding, and the process forbids Done on static analysis alone.
+The E2E run on `82e4f1b` was `16 passed / 1 flaky / 1 skipped`. The flaky one is
+`profile-bento-auth.spec.ts:143 › collapsing a bento persists after reload` — failed on
+`expect(locator).toBeEnabled()` (1.0m), passed on retry #1 (9.9s). A causal link to the payments
+edits is implausible (that control gates on `layoutRestored` from `useProfile()`, which those edits do
+not touch) but UNPROVEN — the 3x-isolated flake procedure was not run.
+
+Uncommitted-at-the-time work now folded in: `scripts/seed-clerk-test-users.js` seeds the on-behalf
+fixture so the `1 skipped` becomes a real run. See Next 1.
 
 ## Next
-1. Run `e2e/payments-on-behalf.spec.ts` so it actually EXECUTES. Correction to the old note: the job
-   is no longer a vacuous skip — on `21558be` it ran `Running 18 tests`, `17 passed`, `1 skipped`,
-   and the 1 skip IS this spec. It opts out at `e2e/payments-on-behalf.spec.ts:59`
-   (`test.skip(count === 0, …)`) because CI seeds via `scripts/seed-clerk-test-users.js`, which
-   creates a member with NO downline or co-owner, so the picker has nobody to add. The `seed_676_*`
-   fixture that gives the member a downline lives on DEV, but the spec header forbids targeting a
-   deployed DB. To close this gate, either replicate the `seed_676_*` shape into the local Supabase
-   the authenticated project runs against, or extend `seed-clerk-test-users.js` to seed a second
-   linked profile. Until then the #676 happy path has NEVER executed anywhere.
+1. Confirm `e2e/payments-on-behalf.spec.ts` actually EXECUTES in CI. `scripts/seed-clerk-test-users.js`
+   now seeds the two things the spec needs and the old fixture lacked: a DOWNLINE profile
+   (`clerk_id = seed_e2e_downline_tevd_portal`, `abo_number E2E-DOWNLINE-0001`) with a `tree_nodes`
+   row under the member — `get_payable_beneficiaries` reaches a downline only through
+   `tree_nodes.path <@ <viewer path>`, so a bare profiles row is invisible to the picker — and one
+   active `payable_items` row (`E2E Test Fee`), without which the form's item `<select>` has a single
+   option and the spec skips at :100. The downline carries a real `abo_number` deliberately: the
+   picker renders `{abo ? `${abo} · ` : ''}{relation}` and the spec's locator filters on `·`, so an
+   ABO-less co-owner would be a valid beneficiary the test could not see.
+   PASS CRITERION: the job reports 18 passed / 0 skipped. Anything that still says `1 skipped` on
+   payments-on-behalf means the fixture did not take — read the seed step's log lines, they name each
+   row. This is EDITED-UNVERIFIED against a real database: the script cannot be exercised from this
+   machine (`.env.local` points at PROD, and the Clerk key here is the prod instance — creating
+   fixture users there is not acceptable), so CI's local-Supabase run IS the verification.
 2. Manual 390px pass on the preview: happy path, admin group card, beneficiary sees the payment but cannot open the proof. Add the typeable-share-input check (`SplitEditor` draft state) — that fix is EDITED-UNVERIFIED in a browser.
 3. Merge.
 4. After merge: approve the gated `migrate-prod` run (this PR HAS a migration), smoke-check production, then GCR — remove the `docs/CLAIMS.md` row, drop the `seed_676_*` DEV fixture, close #676.
@@ -105,7 +118,19 @@ Previous state, still accurate for everything else — PR 687 at `8f3d8f7`: EVER
   and InvitesSection, and translating it is a copy decision beyond #676's DoD.
 - DONE: the `Seed the DEV calendar smoke fixture` workflow step ran green in CI on `496ac06` (`seed-smoke-calendar: ready — guest-visible event on the 15th of 2026-08 and 2026-09`, then `10 passed (1.6m)`). That also proves the repo secret `SUPABASE_SERVICE_ROLE_KEY` is the DEV key, as the user stated. The URL still comes from `SUPABASE_PROJECT_ID_DEV` and the script still refuses any other project ref, so a future key rotation to the wrong scope 401s instead of writing to prod.
 - NOTED (not done): DEV's three ad-hoc July `calendar_events` rows (`tmp-605-parity-event`, `QR test event`, `WES Старосел – 3-day span test`) are leftovers, not a fixture. The last one carries `google_event_id = 'e2e-multiday-span-test'`, so a calendar-sync run will delete it as unreconciled.
-- NOT RUN: `e2e/payments-on-behalf.spec.ts` has never been executed. It is registered in the `authenticated` Playwright project and excluded from `mobile-390`/`desktop`, but CI's `Authenticated E2E (Clerk)` passes by skipping (#679), so it must be run LOCALLY against DEV before this counts as coverage. Treat the spec as EDITED-UNVERIFIED.
+- NOT RUN (in progress): `e2e/payments-on-behalf.spec.ts` has still never executed. Correction to the
+  older note here: the job is NOT a vacuous skip any more — on `82e4f1b` it genuinely ran
+  `Running 18 tests`, and this spec is specifically the `1 skipped`. The seed extension in Next 1 is
+  the fix; until a CI run shows 0 skipped, treat the spec as EDITED-UNVERIFIED.
+- NOTED (not done): `e2e/payments-on-behalf.spec.ts` exercises only the `downline` branch of
+  `get_payable_beneficiaries`. `household` (co-owner) and the ABO-less `guest` branch stay uncovered.
+- NOTED (not done): the seed now writes an active `payable_items` row to the SHARED DEV project when
+  run there, so `E2E Test Fee` appears in every DEV user's payment drawer. Acceptable for a fixture,
+  but it is not isolated. If it is ever flipped `is_active = false` by hand, the seed will not
+  reactivate it (guard is on title) and the spec silently returns to skipping.
+- NOTED (not done): `.github/workflows/ci.yml:132` cites `scripts/seed-clerk-test-users.js:60` for the
+  URL allowlist regex. That line reference was already stale before this change (the guard is
+  `isSafeSupabaseTarget`, not a line-60 regex) and is now further off. Comment-only.
 - NOT RUN: no manual pass on a Vercel preview yet — nothing is pushed.
 - DEV fixture `seed_676_*` (7 profiles, ABOs 6760001-6760004) is STILL PRESENT on DEV and is needed for the E2E/manual passes. Re-seed or clean up with `<scratchpad>/seed_676.sql` (it deletes `clerk_id LIKE 'seed_676_%'` first, so it is idempotent). Remove it at GCR time.
 - NOTED (not done): `approve_member_verification` with `request_type='manual'` sets `role='member'` while leaving `abo_number` NULL — on a primary profile that now trips `trg_guard_abo_number_null`. The manual verification path looks broken independently of this issue. Not in #676's DoD.
