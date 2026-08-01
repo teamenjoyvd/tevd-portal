@@ -110,8 +110,8 @@ export function PaymentRow({
       </span>
       <span style={{ color: 'var(--text-secondary)' }}>{formatDate(pay.transaction_date)}</span>
       {pay.payment_method && <span style={{ color: 'var(--text-secondary)' }}>{pay.payment_method}</span>}
-      <StatusBadge status={pay.status} className="ml-auto font-semibold px-2 py-0.5 rounded-full flex-shrink-0 flex items-center gap-1">
-        {pay.status}
+      <StatusBadge status={pay.admin_status} className="ml-auto font-semibold px-2 py-0.5 rounded-full flex-shrink-0 flex items-center gap-1">
+        {pay.admin_status}
         {(pay.admin_note || linkedTripCancelled) && (
           <span title={linkedTripCancelled ? t('home.shared.tripCancelled') : (pay.admin_note ?? '')} style={{ cursor: 'help', fontSize: 10, lineHeight: 1 }}>ⓘ</span>
         )}

@@ -114,7 +114,10 @@ export type GenericPayment = {
   id: string
   amount: number
   transaction_date: string
-  status: string
+  // The payments table has no `status` column — GET /api/payments returns
+  // admin_status/member_status. admin_status is the status every other payment
+  // surface displays (trips AttendeeView/ArchivedView, admin/payments).
+  admin_status: string
   payment_method: string | null
   proof_url: string | null
   note: string | null
@@ -122,7 +125,6 @@ export type GenericPayment = {
   created_at: string
   // Paying on behalf of others (2607-DEV-676). GET /api/payments now returns
   // rows on my ledger AND rows I paid for, so a row's owner is not always me.
-  admin_status?: string
   profile_id?: string
   paid_by_profile_id?: string | null
   payment_group_id?: string | null

@@ -2,6 +2,11 @@
 BUILD issue #676 (2607-DEV-676, branch `dev/2607-DEV-676`): payments on behalf of others — one submission + one proof produces N `payments` rows sharing a `payment_group_id`, one per real-profile beneficiary in the payer's own LOS, each landing on that person's own ledger. Admin approves/rejects the whole group only.
 
 ## Now
+Fixing a `/profile` crash found during the manual preview gate (see the PROFILE CRASH entry in Done):
+`PaymentRow` read `pay.status`, a field `payments` has never had, so `StatusBadge` threw on
+`undefined.toLowerCase()` and the error boundary ate the whole page. Edited, `npm run verify` exit 0,
+NOT yet confirmed in a browser — that needs a push so the preview rebuilds.
+
 PR 687 head `8f3d8f7`: EVERY check green (CI, Replay migrations, Preview Smoke, Vercel READY) and ZERO unresolved review threads. Two CodeRabbit rounds done — 11 findings then 3 more, all dispositioned. NOT merged: the two human-verification gates below are still outstanding, and the process forbids Done on static analysis alone.
 
 ## Next
@@ -34,6 +39,24 @@ PR 687 head `8f3d8f7`: EVERY check green (CI, Replay migrations, Preview Smoke, 
 - Carried from #681: if `npm run build` dies with `Fatal process out of memory: Zone`, first response is `rm -rf .next` — the OS, not the V8 heap, was the limit; do not raise `--max-old-space-size`.
 
 ## Done
+- PROFILE CRASH (2026-08-01, found by the user on the preview after submitting an on-behalf payment).
+  SYMPTOM: `/profile` renders the error boundary, console `TypeError: Cannot read properties of
+  undefined (reading 'toLowerCase')`. REPRODUCED in-browser on the preview: DOM read back
+  "Something went wrong", and `fetch('/api/payments')` returned `hasStatusKey: false` with
+  `admin_status: "pending"`, `member_status: "approved"`. CAUSE: `app/(dashboard)/profile/types.ts`
+  declared `GenericPayment.status: string`, but `payments` has NO `status` column (baseline
+  :307-331 — only `admin_status`/`member_status`) and `app/api/payments/route.ts:25` never selected
+  one, so `shared.tsx:113` handed `undefined` to `StatusBadge.tsx:46` `status.toLowerCase()`.
+  NOT a #676 regression: `shared.tsx` is untouched on this branch and main's GET never returned
+  `status` either. Introduced on main 2026-07-27 by `570d587` (#670), which replaced the tolerant
+  `PAYMENT_STATUS_STYLES[pay.status] ?? …pending` lookup with `.toLowerCase()`; latent until a
+  profile has >=1 generic payment. FIX (3 files): `types.ts` drops the phantom `status` and makes
+  `admin_status` required; `shared.tsx:113-114` renders `pay.admin_status` (the status every other
+  payment surface shows — AttendeeView :226-230, ArchivedView :56-60, admin PaymentsClient :190,217);
+  `StatusBadge.tsx` gains `rejected: 'alert'`, since admin writes `rejected` and the map only had
+  `denied`, so a rejected payment would have rendered amber "pending". RESULT: `npm run verify`
+  exit 0 — `Test Files 21 passed (21)`, `Tests 280 passed (280)`, 0 eslint errors. Browser
+  confirmation still EDITED-UNVERIFIED (needs a push to rebuild the preview).
 - CODERABBIT PASS (2026-08-01, 11 findings, all verified against live code before acting — none phantom). FIXED 10: (1) RLS `payments_member_insert` admitted `COALESCE(paid_by_profile_id, profile_id) = get_my_profile_id()`, which a signed-in user satisfies by naming THEMSELVES payer while pointing `profile_id` at anyone — real privilege escalation, `can_pay_for` cannot backstop it since EXECUTE is revoked from `authenticated`; now self-inserts only (`paid_by_profile_id IS NULL AND payment_group_id IS NULL AND profile_id = get_my_profile_id()`), applied to DEV and confirmed by `pg_policy`. (2) `PaymentForm.isOnBehalf` used `roster.length >= 2`, so removing your own chip from a 2-person roster left one OTHER person, dropped the group payload, and credited the payer — now gated on roster CONTENTS. (3) `rebalance`/`setRowAmount` did not guard `MAX_TOTAL_CENTS`, so a total over 1,000,000.00 threw `SplitError` out of a state updater; `MAX_TOTAL_CENTS` + new `isValidTotal` exported from `split.ts` and used in both paths (3 new tests, one asserting `isValidTotal` is false exactly where `redistribute` throws). (4) `SplitEditor` share input was fully controlled on `toFixed(2)` and reformatted every keystroke — "50.00" was untypeable; now a per-row draft, formatted on blur. (5) `/api/payments` returned raw Postgres text on non-P0001; now logged server-side, generic 500 to the client. (6) `ledgerPayments` dropped the payer's OWN row from a group they paid for, contradicting its own comment; now keyed on `profile_id` first. (7) withdraw failures were silent — dialog now renders `withdrawMutation.error` and resets on close. (8) admin review/delete failures went to `payError`, which renders only inside the closed `LogPaymentDrawer`; now shown beside the pending queue. (9) BeneficiaryPicker cap notice counted the unfiltered roster, not matches. (10) the cap sliced the flat list before grouping, so a whole relation section could vanish; matches are now sorted by `RELATION_ORDER` before slicing. Also fixed the e2e assertion that contradicted the redistribution contract (one edit locks a row and the other absorbs, so a single `fill` can never unbalance — the spec now locks both rows).
 - SKIPPED 1, with reason: CodeRabbit wanted group DELETE gated on `admin_status = 'pending'`. Declined — `app/api/admin/payments/[id]/route.ts` DELETE has never been status-gated either, so gating only the group form would remove a capability admins already have for every other row. Took CodeRabbit's own stated alternative: documented the intent on the route and fixed the real defect, the confirmation dialog now naming the row count and statuses (`deleteGroupScope`, read from `initialPayments` so the status filter cannot hide siblings).
 - CODERABBIT ROUND 2 (2026-08-01) — the re-review passed but raised 3 items on code written this session. FIXED 2: (a) `MAX_TOTAL_CENTS` was enforced only in the browser; `app/api/payments/route.ts` and `submit_payment_group` now assert the same ceiling, so a hand-crafted request cannot post an arbitrary total (verified on DEV: `rejected: total_cents exceeds the 100000000 cent ceiling (got 200000000)`). (b) `seed-smoke-calendar.js` matched the DEV ref anywhere in the URL — `https://evil.example/?ref=<ref>` and `https://<ref>.supabase.co.evil.example` both passed; now parses the URL and compares hostname exactly (11 adversarial cases probed, all pass). Applied the updated RPC to DEV with `supabase db query --linked -f` (the CLI has a `db query` subcommand — no credential-manager workaround needed).
@@ -56,6 +79,14 @@ PR 687 head `8f3d8f7`: EVERY check green (CI, Replay migrations, Preview Smoke, 
 - SECURITY FIX (post-review) — `/security-review` returned exactly one finding, confirmed at 8/10 by an independent verification pass, and it is REAL. Chain: `submit_payment_group` copies the payer's single `proof_url` onto every beneficiary row; the widened reads then hand that path to the beneficiary, who is not entitled to the image; both member POST routes wrote `proof_url` verbatim from the body; so a beneficiary could plant the payer's path on a throwaway row of their OWN and have `/api/profile/payments/[id]/proof` sign it — that route authorises on who the ROW's payer is, and on their own row that is them. Impact: the exact bank-details disclosure the narrowed proof route was added to prevent. Fixed with two independent defences in `lib/payments/proof.ts`: `assertOwnProofPath` (a written `proof_url` must sit under the caller's own `${profile_id}/` prefix, mirroring the guard that already existed at `app/api/profile/payments/upload-url/confirm/route.ts:22-30` but which a hand-crafted request simply skipped) and `redactForeignProofUrls` (nulls the path for anyone but the payer on read). FOUR disclosure channels, not the two the reviewers named: `/api/payments` GET, `/api/profile/payments` GET, `/api/trips/[id]/payments` GET, and — missed by both review passes — `app/(dashboard)/trips/[id]/page.tsx`, a server component whose `select('*')` ships the path inside the serialized RSC props. Admin routes deliberately untouched: admins are entitled to the proof.
 
 ## Open items
+- UNKNOWN, worth one query: does PROD have `payments` rows? If yes, `/profile` has been crashing in
+  production for every such user since `570d587` shipped 2026-07-27 (#670) — same phantom
+  `pay.status`. The read-only count query was blocked by the permission classifier this session, so
+  the prod blast radius is unmeasured. `select count(*), count(distinct profile_id) from payments`.
+- NOTED (not done): `PaymentRow` renders the status label raw and untranslated (`{pay.admin_status}`
+  -> "pending"), as `{pay.status}` was always meant to. `AttendeeView.tsx:230` translates the same
+  value via `t('payment.approved')`/`t('payment.pending')`. Left as-is — matches ParticipationSection
+  and InvitesSection, and translating it is a copy decision beyond #676's DoD.
 - DONE: the `Seed the DEV calendar smoke fixture` workflow step ran green in CI on `496ac06` (`seed-smoke-calendar: ready — guest-visible event on the 15th of 2026-08 and 2026-09`, then `10 passed (1.6m)`). That also proves the repo secret `SUPABASE_SERVICE_ROLE_KEY` is the DEV key, as the user stated. The URL still comes from `SUPABASE_PROJECT_ID_DEV` and the script still refuses any other project ref, so a future key rotation to the wrong scope 401s instead of writing to prod.
 - NOTED (not done): DEV's three ad-hoc July `calendar_events` rows (`tmp-605-parity-event`, `QR test event`, `WES Старосел – 3-day span test`) are leftovers, not a fixture. The last one carries `google_event_id = 'e2e-multiday-span-test'`, so a calendar-sync run will delete it as unreconciled.
 - NOT RUN: `e2e/payments-on-behalf.spec.ts` has never been executed. It is registered in the `authenticated` Playwright project and excluded from `mobile-390`/`desktop`, but CI's `Authenticated E2E (Clerk)` passes by skipping (#679), so it must be run LOCALLY against DEV before this counts as coverage. Treat the spec as EDITED-UNVERIFIED.
