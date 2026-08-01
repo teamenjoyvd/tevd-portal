@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { loadProfile } from '@/lib/server/ensure-profile'
 import { TripDetailClient } from './TripDetailClient'
+import { redactForeignProofUrls } from '@/lib/payments/proof'
 import type { Tables } from '@/types/supabase'
 
 export type TripState = 'locked' | 'available' | 'pending' | 'attendee' | 'archived'
@@ -86,6 +87,12 @@ export default async function TripDetailPage({
       .order('transaction_date', { ascending: true }),
   ])
 
+  // `select('*')` on my own rows now includes ones an upline paid for
+  // (2607-DEV-676). AttendeeView hides the proof LINK for those, but the path
+  // would still ship inside the serialized RSC props — strip it here so it never
+  // leaves the server. See lib/payments/proof.ts.
+  const visiblePayments = redactForeignProofUrls(payments ?? [], profile.id)
+
   const state = deriveTripState(trip, profile, registration ?? null)
 
   let teamAttendees: TeamAttendee[] = []
@@ -102,7 +109,7 @@ export default async function TripDetailPage({
       trip={trip}
       state={state}
       registration={registration ?? null}
-      payments={payments ?? []}
+      payments={visiblePayments}
       profile={profile}
       teamAttendees={teamAttendees}
     />

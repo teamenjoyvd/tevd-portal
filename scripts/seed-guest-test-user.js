@@ -43,12 +43,7 @@ const GUEST_EMAIL = process.env.E2E_GUEST_EMAIL || 'e2e-guest-tevd-portal@exampl
 const GUEST_NAME = 'E2E Guest'
 
 // Supabase project ID for DEV/preview — this script must never write to prod.
-const DEV_PROJECT_REF = 'iymwxdewcpvpjgzewtzk'
-
-function isSafeSupabaseTarget(url) {
-  if (/^https?:\/\/(127\.0\.0\.1|localhost)(:|\/|$)/.test(url)) return true
-  return url.includes(DEV_PROJECT_REF)
-}
+const { isSafeSupabaseTarget } = require('./lib/safe-supabase-target')
 
 async function main() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''

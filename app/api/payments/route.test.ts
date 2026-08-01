@@ -17,6 +17,7 @@ function chainable(result: QueryResult): Record<string, unknown> {
   const passthrough = () => () => obj
   obj.select = passthrough()
   obj.eq = passthrough()
+  obj.or = passthrough()
   obj.order = passthrough()
   obj.update = passthrough()
   obj.limit = passthrough()
@@ -28,9 +29,23 @@ function chainable(result: QueryResult): Record<string, unknown> {
   return obj
 }
 
-function mockSupabase(routes: Record<string, QueryResult>): SupabaseClient {
+function mockSupabase(
+  routes: Record<string, QueryResult>,
+  rpcs: Record<string, QueryResult> = {},
+): SupabaseClient {
+  // One builder per table, memoized: a fresh object per `from()` call would give
+  // every assertion its own pristine `insert` spy, so `not.toHaveBeenCalledWith`
+  // would pass vacuously no matter what the route did.
+  const builders = new Map<string, Record<string, unknown>>()
   return {
-    from: (table: string) => chainable(routes[table]),
+    from: (table: string) => {
+      const existing = builders.get(table)
+      if (existing) return existing
+      const built = chainable(routes[table])
+      builders.set(table, built)
+      return built
+    },
+    rpc: vi.fn((name: string) => Promise.resolve(rpcs[name] ?? { data: null, error: null })),
   } as unknown as SupabaseClient
 }
 
@@ -144,5 +159,296 @@ describe('POST /api/payments', () => {
     expect(res.status).toBe(201)
     const body = await res.json()
     expect(body).toEqual(insertedRow)
+  })
+})
+
+// ── Proof-path binding (2607-DEV-676 security follow-up) ─────────────────────
+
+describe('POST /api/payments — proof_url ownership', () => {
+  it('A10: rejects a proof_url under another profile prefix with 400 and no insert', async () => {
+    mockAuth.mockResolvedValue({ userId: 'clerk_1' })
+    const supabase = mockSupabase({
+      profiles: { data: { id: 'p1', role: 'member' }, error: null },
+      payments: { data: { id: 'pay_1' }, error: null },
+    })
+    mockCreateServiceClient.mockReturnValue(supabase)
+    const { POST } = await import('@/app/api/payments/route')
+
+    const res = await POST(
+      postReq({
+        amount: 10,
+        transaction_date: '2026-07-01',
+        trip_id: 't1',
+        proof_url: 'p2/alice-bank-statement.jpg',
+      }),
+    )
+
+    expect(res.status).toBe(400)
+    const insert = (supabase.from('payments') as unknown as { insert: ReturnType<typeof vi.fn> }).insert
+    expect(insert).not.toHaveBeenCalled()
+  })
+
+  it('A11: accepts a proof_url under the caller own prefix and stores it', async () => {
+    mockAuth.mockResolvedValue({ userId: 'clerk_1' })
+    const supabase = mockSupabase({
+      profiles: { data: { id: 'p1', role: 'member' }, error: null },
+      payments: { data: { id: 'pay_1' }, error: null },
+    })
+    mockCreateServiceClient.mockReturnValue(supabase)
+    const { POST } = await import('@/app/api/payments/route')
+
+    const res = await POST(
+      postReq({
+        amount: 10,
+        transaction_date: '2026-07-01',
+        trip_id: 't1',
+        proof_url: 'p1/mine.jpg',
+      }),
+    )
+
+    expect(res.status).toBe(201)
+    const insert = (supabase.from('payments') as unknown as { insert: ReturnType<typeof vi.fn> }).insert
+    expect(insert).toHaveBeenCalledWith(expect.objectContaining({ proof_url: 'p1/mine.jpg' }))
+  })
+
+  it('A12: GET withholds the proof path from a beneficiary who did not pay', async () => {
+    mockAuth.mockResolvedValue({ userId: 'clerk_1' })
+    mockCreateServiceClient.mockReturnValue(
+      mockSupabase({
+        profiles: { data: { id: 'p1', role: 'member' }, error: null },
+        payments: {
+          data: [
+            // Paid by me — I uploaded it, I keep it.
+            { id: 'a', proof_url: 'p1/mine.jpg', profile_id: 'p1', paid_by_profile_id: null },
+            // On my ledger, but my upline transferred the money and the image is
+            // a screenshot of THEIR bank account.
+            { id: 'b', proof_url: 'p9/their-bank.jpg', profile_id: 'p1', paid_by_profile_id: 'p9' },
+          ],
+          error: null,
+        },
+      }),
+    )
+    const { GET } = await import('@/app/api/payments/route')
+
+    const body = await (await GET()).json()
+    expect(body.find((r: { id: string }) => r.id === 'a').proof_url).toBe('p1/mine.jpg')
+    expect(body.find((r: { id: string }) => r.id === 'b').proof_url).toBeNull()
+  })
+})
+
+// ── On-behalf payment groups (2607-DEV-676) ──────────────────────────────────
+
+/** The payer plus two people they are genuinely allowed to pay for. */
+const ELIGIBLE = {
+  data: [
+    { profile_id: 'p1', first_name: 'Pay', last_name: 'Er', abo_number: '1', role: 'member', relation: 'self' },
+    { profile_id: 'p2', first_name: 'Down', last_name: 'Line', abo_number: '2', role: 'member', relation: 'downline' },
+    { profile_id: 'p3', first_name: 'Co', last_name: 'Owner', abo_number: null, role: 'member', relation: 'household' },
+  ],
+  error: null,
+}
+
+function groupSupabase(overrides: Record<string, QueryResult> = {}) {
+  return mockSupabase(
+    {
+      profiles: { data: { id: 'p1', role: 'member' }, error: null },
+      payments: {
+        data: [
+          { id: 'pay_1', profile_id: 'p1', paid_by_profile_id: 'p1', payment_group_id: 'g1', amount: 100 },
+          { id: 'pay_2', profile_id: 'p2', paid_by_profile_id: 'p1', payment_group_id: 'g1', amount: 100 },
+        ],
+        error: null,
+      },
+      ...overrides,
+    },
+    {
+      get_payable_beneficiaries: ELIGIBLE,
+      submit_payment_group: { data: 'g1', error: null },
+    },
+  )
+}
+
+describe('POST /api/payments — beneficiary groups', () => {
+  it('A1: a body with no beneficiaries key still takes the legacy single-row path', async () => {
+    mockAuth.mockResolvedValue({ userId: 'clerk_1' })
+    const supabase = mockSupabase({
+      profiles: { data: { id: 'p1', role: 'member' }, error: null },
+      payments: { data: { id: 'pay_1' }, error: null },
+    })
+    mockCreateServiceClient.mockReturnValue(supabase)
+    const { POST } = await import('@/app/api/payments/route')
+
+    const res = await POST(postReq({ amount: 10, transaction_date: '2026-07-01', trip_id: 't1' }))
+
+    expect(res.status).toBe(201)
+    // The regression proof: the legacy insert must carry neither new column,
+    // so existing rows keep passing the both-or-neither CHECK.
+    const insert = (supabase.from('payments') as unknown as { insert: ReturnType<typeof vi.fn> }).insert
+    expect(insert).toHaveBeenCalled() // guards the two negative assertions below from passing vacuously
+    expect(supabase.rpc).not.toHaveBeenCalled()
+    expect(insert).not.toHaveBeenCalledWith(expect.objectContaining({ payment_group_id: expect.anything() }))
+    expect(insert).not.toHaveBeenCalledWith(expect.objectContaining({ paid_by_profile_id: expect.anything() }))
+  })
+
+  it('A2: a valid group submits once and returns the group id with its rows', async () => {
+    mockAuth.mockResolvedValue({ userId: 'clerk_1' })
+    const supabase = groupSupabase()
+    mockCreateServiceClient.mockReturnValue(supabase)
+    const { POST } = await import('@/app/api/payments/route')
+
+    const res = await POST(
+      postReq({
+        amount: 200,
+        transaction_date: '2026-07-01',
+        trip_id: 't1',
+        beneficiaries: [
+          { profile_id: 'p1', amount_cents: 10000 },
+          { profile_id: 'p2', amount_cents: 10000 },
+        ],
+      }),
+    )
+
+    expect(res.status).toBe(201)
+    const body = await res.json()
+    expect(body.payment_group_id).toBe('g1')
+    expect(body.payments).toHaveLength(2)
+
+    // The group id is generated inside the RPC and never taken from the client.
+    const call = (supabase.rpc as unknown as ReturnType<typeof vi.fn>).mock.calls.find(
+      (c) => c[0] === 'submit_payment_group',
+    )
+    expect(call?.[1].p_payer).toBe('p1')
+    expect(call?.[1].p_payload.total_cents).toBe(20000)
+    expect(call?.[1].p_payload).not.toHaveProperty('payment_group_id')
+  })
+
+  it('A3: a hand-crafted body naming an out-of-LOS profile_id is rejected with 403', async () => {
+    mockAuth.mockResolvedValue({ userId: 'clerk_1' })
+    const supabase = groupSupabase()
+    mockCreateServiceClient.mockReturnValue(supabase)
+    const { POST } = await import('@/app/api/payments/route')
+
+    const res = await POST(
+      postReq({
+        amount: 200,
+        transaction_date: '2026-07-01',
+        trip_id: 't1',
+        beneficiaries: [
+          { profile_id: 'p1', amount_cents: 10000 },
+          { profile_id: 'STRANGER', amount_cents: 10000 },
+        ],
+      }),
+    )
+
+    expect(res.status).toBe(403)
+    // Rejected before any write is attempted.
+    const calls = (supabase.rpc as unknown as ReturnType<typeof vi.fn>).mock.calls
+    expect(calls.some((c) => c[0] === 'submit_payment_group')).toBe(false)
+  })
+
+  it('A4: rows that do not sum to the total are rejected with 400', async () => {
+    mockAuth.mockResolvedValue({ userId: 'clerk_1' })
+    const supabase = groupSupabase()
+    mockCreateServiceClient.mockReturnValue(supabase)
+    const { POST } = await import('@/app/api/payments/route')
+
+    const res = await POST(
+      postReq({
+        amount: 200,
+        transaction_date: '2026-07-01',
+        trip_id: 't1',
+        beneficiaries: [
+          { profile_id: 'p1', amount_cents: 10000 },
+          { profile_id: 'p2', amount_cents: 9999 },
+        ],
+      }),
+    )
+
+    expect(res.status).toBe(400)
+    const calls = (supabase.rpc as unknown as ReturnType<typeof vi.fn>).mock.calls
+    expect(calls.some((c) => c[0] === 'submit_payment_group')).toBe(false)
+  })
+
+  it('rejects a zero amount_cents explicitly rather than reading it as missing', async () => {
+    mockAuth.mockResolvedValue({ userId: 'clerk_1' })
+    mockCreateServiceClient.mockReturnValue(groupSupabase())
+    const { POST } = await import('@/app/api/payments/route')
+
+    const res = await POST(
+      postReq({
+        amount: 100,
+        transaction_date: '2026-07-01',
+        trip_id: 't1',
+        beneficiaries: [{ profile_id: 'p1', amount_cents: 0 }],
+      }),
+    )
+    expect(res.status).toBe(400)
+  })
+
+  it('rejects a duplicated beneficiary', async () => {
+    mockAuth.mockResolvedValue({ userId: 'clerk_1' })
+    mockCreateServiceClient.mockReturnValue(groupSupabase())
+    const { POST } = await import('@/app/api/payments/route')
+
+    const res = await POST(
+      postReq({
+        amount: 200,
+        transaction_date: '2026-07-01',
+        trip_id: 't1',
+        beneficiaries: [
+          { profile_id: 'p2', amount_cents: 10000 },
+          { profile_id: 'p2', amount_cents: 10000 },
+        ],
+      }),
+    )
+    expect(res.status).toBe(400)
+  })
+
+  it('A9: a group submission carrying another profile proof path is rejected 400', async () => {
+    mockAuth.mockResolvedValue({ userId: 'clerk_1' })
+    const supabase = groupSupabase()
+    mockCreateServiceClient.mockReturnValue(supabase)
+    const { POST } = await import('@/app/api/payments/route')
+
+    const res = await POST(
+      postReq({
+        amount: 100,
+        transaction_date: '2026-07-01',
+        trip_id: 't1',
+        proof_url: 'SOMEONE_ELSE/bank.jpg',
+        beneficiaries: [{ profile_id: 'p2', amount_cents: 10000 }],
+      }),
+    )
+
+    expect(res.status).toBe(400)
+    const calls = (supabase.rpc as unknown as ReturnType<typeof vi.fn>).mock.calls
+    expect(calls.some((c) => c[0] === 'submit_payment_group')).toBe(false)
+  })
+
+  it('maps a P0001 from the RPC to 403 — the in-transaction eligibility re-check', async () => {
+    mockAuth.mockResolvedValue({ userId: 'clerk_1' })
+    mockCreateServiceClient.mockReturnValue(
+      mockSupabase(
+        { profiles: { data: { id: 'p1', role: 'member' }, error: null } },
+        {
+          get_payable_beneficiaries: ELIGIBLE,
+          submit_payment_group: {
+            data: null,
+            error: { message: 'profile p2 is not payable by p1', code: 'P0001' } as { message: string },
+          },
+        },
+      ),
+    )
+    const { POST } = await import('@/app/api/payments/route')
+
+    const res = await POST(
+      postReq({
+        amount: 100,
+        transaction_date: '2026-07-01',
+        trip_id: 't1',
+        beneficiaries: [{ profile_id: 'p2', amount_cents: 10000 }],
+      }),
+    )
+    expect(res.status).toBe(403)
   })
 })

@@ -1,4 +1,5 @@
 import { withProfile } from '@/lib/supabase/with-profile'
+import { assertOwnProofPath, redactForeignProofUrls } from '@/lib/payments/proof'
 
 export async function GET(): Promise<Response> {
   const ctx = await withProfile()
@@ -19,7 +20,9 @@ export async function GET(): Promise<Response> {
       .order('created_at', { ascending: false }),
     supabase
       .from('payments')
-      .select('id, trip_id, payable_item_id, amount, currency, transaction_date, admin_status, member_status, payment_method, proof_url, note, logged_by_admin, created_at, trips(title), payable_items(title, item_type)')
+      // profile_id + paid_by_profile_id are selected only so the proof redaction
+      // below can tell who paid; this route still lists one profile's own rows.
+      .select('id, trip_id, payable_item_id, amount, currency, transaction_date, admin_status, member_status, payment_method, proof_url, note, logged_by_admin, created_at, profile_id, paid_by_profile_id, trips(title), payable_items(title, item_type)')
       .eq('profile_id', profile.id)
       .order('transaction_date', { ascending: false }),
   ])
@@ -27,9 +30,14 @@ export async function GET(): Promise<Response> {
   if (regError) return Response.json({ error: regError.message }, { status: 500 })
   if (payError) return Response.json({ error: payError.message }, { status: 500 })
 
+  // Rows on this profile's ledger now include ones somebody else paid for
+  // (2607-DEV-676), whose proof object belongs to that payer. Withhold the path
+  // from everyone but the payer — see lib/payments/proof.ts.
+  const visiblePayments = redactForeignProofUrls(payments ?? [], profile.id)
+
   // Group payments by trip_id for trip registrations view
-  const paymentsByTrip: Record<string, typeof payments> = {}
-  for (const p of (payments ?? [])) {
+  const paymentsByTrip: Record<string, typeof visiblePayments> = {}
+  for (const p of visiblePayments) {
     if (!p.trip_id) continue
     if (!paymentsByTrip[p.trip_id]) paymentsByTrip[p.trip_id] = []
     paymentsByTrip[p.trip_id]!.push(p)
@@ -64,6 +72,12 @@ export async function POST(req: Request): Promise<Response> {
     return Response.json({ error: 'Exactly one of trip_id or payable_item_id is required' }, { status: 400 })
   }
 
+  // Same storage-prefix guard as POST /api/payments: an unvalidated proof_url
+  // here would let a caller attach someone else's object to their own row, which
+  // /api/profile/payments/[id]/proof would then sign for them.
+  const proofCheck = assertOwnProofPath(proof_url, profile.id)
+  if (!proofCheck.ok) return Response.json({ error: proofCheck.error }, { status: 400 })
+
   const { data, error } = await supabase
     .from('payments')
     .insert({
@@ -75,7 +89,7 @@ export async function POST(req: Request): Promise<Response> {
       transaction_date,
       note:             note ?? null,
       payment_method:   payment_method ?? null,
-      proof_url:        proof_url ?? null,
+      proof_url:        proofCheck.value,
       member_status:    'approved',
       admin_status:     'pending',
     })

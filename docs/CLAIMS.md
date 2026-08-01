@@ -6,4 +6,3 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
-| #681 | `dev/2607-DEV-681` | deletes `app/admin/operations/components/**` (9 stubs), `app/admin/approval-hub/components/{DirectVerifyForm,VerificationList}.tsx`, `app/admin/content/components/{ImageBlockUploader,BlockEditor}.tsx`, `app/(dashboard)/admin/layout.tsx`; edits `app/admin/howtos/page.tsx`, `app/admin/payable-items/page.tsx`, `docs/ai/REF.md`; migration: no | 2026-07-31T21:15:00Z |

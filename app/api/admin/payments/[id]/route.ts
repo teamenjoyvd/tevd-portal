@@ -32,6 +32,23 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     return Response.json({ error: 'admin_status must be approved or rejected' }, { status: 400 })
   }
 
+  // 2607-DEV-676: a row belonging to an on-behalf group is approved or rejected
+  // only as a whole group, via /api/admin/payments/group/[groupId]. Refusing here
+  // makes partial approval structurally impossible rather than merely discouraged
+  // — half a group approved would put real money on one ledger and not the other.
+  const { data: existing } = await supabase
+    .from('payments')
+    .select('payment_group_id')
+    .eq('id', id)
+    .single()
+
+  if (existing?.payment_group_id) {
+    return Response.json(
+      { error: 'This payment is part of a group — approve or reject the whole group', payment_group_id: existing.payment_group_id },
+      { status: 409 },
+    )
+  }
+
   const { data, error } = await supabase
     .from('payments')
     .update({ admin_status, admin_note: admin_note ?? null })
@@ -94,6 +111,21 @@ export async function DELETE(
   if (ctx.guard) return ctx.guard
 
   const { id } = await params
+
+  // Same whole-group rule as PATCH: deleting one row would leave the rest of the
+  // group orphaned and the payer's total silently short.
+  const { data: existing } = await supabase
+    .from('payments')
+    .select('payment_group_id')
+    .eq('id', id)
+    .single()
+
+  if (existing?.payment_group_id) {
+    return Response.json(
+      { error: 'This payment is part of a group — delete the whole group', payment_group_id: existing.payment_group_id },
+      { status: 409 },
+    )
+  }
 
   const { error } = await supabase.from('payments').delete().eq('id', id)
   if (error) return Response.json({ error: error.message }, { status: 500 })

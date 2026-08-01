@@ -15,6 +15,7 @@ const STATUS_TOKEN_MAP: Record<string, StatusToken> = {
   valid:     'success',
   pending:   'pending',
   denied:    'alert',
+  rejected:  'alert',
   failed:    'alert',
   expired:   'alert',
   claimed:   'info',

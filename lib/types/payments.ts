@@ -21,7 +21,13 @@ export type Payment = {
   admin_note: string | null
   logged_by_admin: string | null
   created_at: string
+  /** Non-null on rows from an on-behalf submission; all siblings share it. */
+  payment_group_id: string | null
+  /** Who actually transferred the money. NULL on legacy/self-paid rows, where the payer is the row owner. */
+  paid_by_profile_id: string | null
   profiles: { first_name: string; last_name: string; abo_number: string | null } | null
+  /** The payer, hinted off the third FK to profiles. NULL on legacy rows. */
+  payer: { first_name: string; last_name: string; abo_number: string | null } | null
   trips: { title: string; destination: string } | null
   payable_items: { title: string; item_type: string; currency: string } | null
 }

@@ -42,7 +42,7 @@ const root = process.cwd()
 loadEnvFile(path.join(root, '.env.development.local'))
 loadEnvFile(path.join(root, '.env.local'))
 
-const DEV_PROJECT_REF = 'iymwxdewcpvpjgzewtzk'
+const { isSafeSupabaseTarget } = require('./lib/safe-supabase-target')
 
 // Kept in sync with e2e/library-guide.spec.ts (SMOKE_GUIDE_SLUG).
 const SMOKE_GUIDE_SLUG = 'e2e-smoke-guide'
@@ -65,10 +65,6 @@ const SMOKE_GUIDE = {
   is_published: true,
 }
 
-function isSafeSupabaseTarget(url) {
-  if (/^https?:\/\/(127\.0\.0\.1|localhost)(:|\/|$)/.test(url)) return true
-  return url.includes(DEV_PROJECT_REF)
-}
 
 async function main() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
