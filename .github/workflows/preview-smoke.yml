@@ -37,6 +37,20 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - run: npx playwright install --with-deps chromium
+      # e2e/calendar.spec.ts asserts the CURRENT Sofia month has at least one
+      # guest-visible event, and fails loudly rather than skipping when it does
+      # not. DEV held no rolling fixture, so the check expired the moment Sofia
+      # crossed into a new month (2026-07-31T21:00Z). This step renews it on
+      # every preview instead.
+      #
+      # The URL is built from SUPABASE_PROJECT_ID_DEV, never from a secret that
+      # could carry a prod host: the script refuses any project ref but DEV, so
+      # a mis-scoped service-role key fails the step instead of writing to prod.
+      - name: Seed the DEV calendar smoke fixture
+        run: npm run seed:smoke-calendar
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://${{ secrets.SUPABASE_PROJECT_ID_DEV }}.supabase.co
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       # VERCEL_AUTOMATION_BYPASS_SECRET: Vercel project -> Settings ->
       # Deployment Protection -> Protection Bypass for Automation, mirrored
       # into GitHub Actions secrets. Without it, deployment protection (SSO)
