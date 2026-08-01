@@ -6,3 +6,4 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
+| #677 | `dev/2607-DEV-677` | new `supabase/migrations/20260801000000_2607_feat_677_pay_guests.sql` (new `payment_guests` table, `payments.beneficiary_guest_id`, replaces `submit_payment_group`) + `types/supabase.ts`; `app/api/payments/{route.ts,beneficiaries/route.ts}`, `lib/payments/eligibility.ts`, new `app/api/admin/payment-guests/{route.ts,[id]/route.ts}`; `app/(dashboard)/trips/[id]/page.tsx` and its `components/{AttendeeView,ArchivedView}.tsx` (the personal-total correction); `components/payment/{types.ts,BeneficiaryPicker,PaymentForm,SplitEditor}.tsx`, `lib/i18n/domains/payment.ts`; `app/admin/payments/components/{GuestLinkPanel(new),PaymentsClient,PaymentGroupCard,LogPaymentDrawer}.tsx`; `e2e/payments-guest.spec.ts`, `docs/ai/{REF,GOTCHAS}.md`; migration: yes | 2026-08-01T19:29:17Z |
