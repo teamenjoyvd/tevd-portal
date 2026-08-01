@@ -6,4 +6,3 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
-| #676 | `dev/2607-DEV-676` | `supabase/migrations/<new>_pay_on_behalf.sql` + `types/supabase.ts`; new `lib/payments/{split,eligibility}.ts`; `app/api/payments/**` (incl. new `beneficiaries/`, `group/[groupId]/`), `app/api/admin/payments/**` (incl. new `group/[groupId]/`), `app/api/profile/payments/[id]/proof/route.ts`; `components/payment/**` (`PaymentForm`, new `BeneficiaryPicker`, `SplitEditor`); `app/(dashboard)/trips/[id]/components/AttendeeView.tsx`, `app/(dashboard)/profile/components/PaymentsSection.tsx`; `app/admin/payments/**`; `lib/types/payments.ts`, `lib/i18n/domains/payment.ts`, `docs/ai/GOTCHAS.md` (row 12); `e2e/payments-on-behalf.spec.ts`; migration: yes | 2026-07-31T19:09:53Z |

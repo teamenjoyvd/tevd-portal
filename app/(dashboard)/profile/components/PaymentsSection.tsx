@@ -41,14 +41,16 @@ function pendingGroupsIPaidFor(payments: GenericPayment[], myProfileId: string) 
     rows,
     total: rows.reduce((acc, r) => acc + Number(r.amount), 0),
     currency: rows[0].payable_items?.currency ?? 'EUR',
-    title: rows[0].payable_items?.title ?? '',
+    title: rows[0].payable_items?.title ?? rows[0].trips?.title ?? '',
   }))
 }
 
 function groupByItem(payments: GenericPayment[]): Record<string, GenericPayment[]> {
   const map: Record<string, GenericPayment[]> = {}
   for (const pay of payments) {
-    const key = pay.payable_items?.title ?? 'Unknown'
+    // Trip payments have no payable_item, so keying on payable_items alone
+    // filed every one of them under "Unknown".
+    const key = pay.payable_items?.title ?? pay.trips?.title ?? 'Unknown'
     if (!map[key]) map[key] = []
     map[key].push(pay)
   }

@@ -2,15 +2,21 @@
 BUILD issue #676 (2607-DEV-676, branch `dev/2607-DEV-676`): payments on behalf of others — one submission + one proof produces N `payments` rows sharing a `payment_group_id`, one per real-profile beneficiary in the payer's own LOS, each landing on that person's own ledger. Admin approves/rejects the whole group only.
 
 ## Now
-Fixing a `/profile` crash found during the manual preview gate (see the PROFILE CRASH entry in Done):
-`PaymentRow` read `pay.status`, a field `payments` has never had, so `StatusBadge` threw on
-`undefined.toLowerCase()` and the error boundary ate the whole page. Edited, `npm run verify` exit 0,
-NOT yet confirmed in a browser — that needs a push so the preview rebuilds.
+PR 687 head is now `21558be` — the `/profile` crash fix (PROFILE CRASH entry in Done), VERIFIED on the
+preview. CI on `21558be` has NOT been checked yet; do that before merging.
 
-PR 687 head `8f3d8f7`: EVERY check green (CI, Replay migrations, Preview Smoke, Vercel READY) and ZERO unresolved review threads. Two CodeRabbit rounds done — 11 findings then 3 more, all dispositioned. NOT merged: the two human-verification gates below are still outstanding, and the process forbids Done on static analysis alone.
+Previous state, still accurate for everything else — PR 687 at `8f3d8f7`: EVERY check green (CI, Replay migrations, Preview Smoke, Vercel READY) and ZERO unresolved review threads. Two CodeRabbit rounds done — 11 findings then 3 more, all dispositioned. NOT merged: the two human-verification gates below are still outstanding, and the process forbids Done on static analysis alone.
 
 ## Next
-1. Run `e2e/payments-on-behalf.spec.ts` locally against DEV — CI's `Authenticated E2E (Clerk)` passes by skipping (#679), so it is not coverage. Its unbalanced-split block was rewritten this session and has still never been executed.
+1. Run `e2e/payments-on-behalf.spec.ts` so it actually EXECUTES. Correction to the old note: the job
+   is no longer a vacuous skip — on `21558be` it ran `Running 18 tests`, `17 passed`, `1 skipped`,
+   and the 1 skip IS this spec. It opts out at `e2e/payments-on-behalf.spec.ts:59`
+   (`test.skip(count === 0, …)`) because CI seeds via `scripts/seed-clerk-test-users.js`, which
+   creates a member with NO downline or co-owner, so the picker has nobody to add. The `seed_676_*`
+   fixture that gives the member a downline lives on DEV, but the spec header forbids targeting a
+   deployed DB. To close this gate, either replicate the `seed_676_*` shape into the local Supabase
+   the authenticated project runs against, or extend `seed-clerk-test-users.js` to seed a second
+   linked profile. Until then the #676 happy path has NEVER executed anywhere.
 2. Manual 390px pass on the preview: happy path, admin group card, beneficiary sees the payment but cannot open the proof. Add the typeable-share-input check (`SplitEditor` draft state) — that fix is EDITED-UNVERIFIED in a browser.
 3. Merge.
 4. After merge: approve the gated `migrate-prod` run (this PR HAS a migration), smoke-check production, then GCR — remove the `docs/CLAIMS.md` row, drop the `seed_676_*` DEV fixture, close #676.
@@ -55,8 +61,11 @@ PR 687 head `8f3d8f7`: EVERY check green (CI, Replay migrations, Preview Smoke, 
   payment surface shows — AttendeeView :226-230, ArchivedView :56-60, admin PaymentsClient :190,217);
   `StatusBadge.tsx` gains `rejected: 'alert'`, since admin writes `rejected` and the map only had
   `denied`, so a rejected payment would have rendered amber "pending". RESULT: `npm run verify`
-  exit 0 — `Test Files 21 passed (21)`, `Tests 280 passed (280)`, 0 eslint errors. Browser
-  confirmation still EDITED-UNVERIFIED (needs a push to rebuild the preview).
+  exit 0 — `Test Files 21 passed (21)`, `Tests 280 passed (280)`, 0 eslint errors. VERIFIED on the
+  preview at `21558be` (deployment `dpl_7KfYQg5…`, readyState READY): reloading the same URL that
+  crashed now gives `errorBoundary: false`, no TypeError in the console, and the row renders
+  `100,00 € / 01.08.2026 г. / cash / pending / proof ↗` beside the group card
+  `200,00 € for E2E Member, E2E CoOwner / Withdraw`.
 - CODERABBIT PASS (2026-08-01, 11 findings, all verified against live code before acting — none phantom). FIXED 10: (1) RLS `payments_member_insert` admitted `COALESCE(paid_by_profile_id, profile_id) = get_my_profile_id()`, which a signed-in user satisfies by naming THEMSELVES payer while pointing `profile_id` at anyone — real privilege escalation, `can_pay_for` cannot backstop it since EXECUTE is revoked from `authenticated`; now self-inserts only (`paid_by_profile_id IS NULL AND payment_group_id IS NULL AND profile_id = get_my_profile_id()`), applied to DEV and confirmed by `pg_policy`. (2) `PaymentForm.isOnBehalf` used `roster.length >= 2`, so removing your own chip from a 2-person roster left one OTHER person, dropped the group payload, and credited the payer — now gated on roster CONTENTS. (3) `rebalance`/`setRowAmount` did not guard `MAX_TOTAL_CENTS`, so a total over 1,000,000.00 threw `SplitError` out of a state updater; `MAX_TOTAL_CENTS` + new `isValidTotal` exported from `split.ts` and used in both paths (3 new tests, one asserting `isValidTotal` is false exactly where `redistribute` throws). (4) `SplitEditor` share input was fully controlled on `toFixed(2)` and reformatted every keystroke — "50.00" was untypeable; now a per-row draft, formatted on blur. (5) `/api/payments` returned raw Postgres text on non-P0001; now logged server-side, generic 500 to the client. (6) `ledgerPayments` dropped the payer's OWN row from a group they paid for, contradicting its own comment; now keyed on `profile_id` first. (7) withdraw failures were silent — dialog now renders `withdrawMutation.error` and resets on close. (8) admin review/delete failures went to `payError`, which renders only inside the closed `LogPaymentDrawer`; now shown beside the pending queue. (9) BeneficiaryPicker cap notice counted the unfiltered roster, not matches. (10) the cap sliced the flat list before grouping, so a whole relation section could vanish; matches are now sorted by `RELATION_ORDER` before slicing. Also fixed the e2e assertion that contradicted the redistribution contract (one edit locks a row and the other absorbs, so a single `fill` can never unbalance — the spec now locks both rows).
 - SKIPPED 1, with reason: CodeRabbit wanted group DELETE gated on `admin_status = 'pending'`. Declined — `app/api/admin/payments/[id]/route.ts` DELETE has never been status-gated either, so gating only the group form would remove a capability admins already have for every other row. Took CodeRabbit's own stated alternative: documented the intent on the route and fixed the real defect, the confirmation dialog now naming the row count and statuses (`deleteGroupScope`, read from `initialPayments` so the status filter cannot hide siblings).
 - CODERABBIT ROUND 2 (2026-08-01) — the re-review passed but raised 3 items on code written this session. FIXED 2: (a) `MAX_TOTAL_CENTS` was enforced only in the browser; `app/api/payments/route.ts` and `submit_payment_group` now assert the same ceiling, so a hand-crafted request cannot post an arbitrary total (verified on DEV: `rejected: total_cents exceeds the 100000000 cent ceiling (got 200000000)`). (b) `seed-smoke-calendar.js` matched the DEV ref anywhere in the URL — `https://evil.example/?ref=<ref>` and `https://<ref>.supabase.co.evil.example` both passed; now parses the URL and compares hostname exactly (11 adversarial cases probed, all pass). Applied the updated RPC to DEV with `supabase db query --linked -f` (the CLI has a `db query` subcommand — no credential-manager workaround needed).
@@ -79,6 +88,13 @@ PR 687 head `8f3d8f7`: EVERY check green (CI, Replay migrations, Preview Smoke, 
 - SECURITY FIX (post-review) — `/security-review` returned exactly one finding, confirmed at 8/10 by an independent verification pass, and it is REAL. Chain: `submit_payment_group` copies the payer's single `proof_url` onto every beneficiary row; the widened reads then hand that path to the beneficiary, who is not entitled to the image; both member POST routes wrote `proof_url` verbatim from the body; so a beneficiary could plant the payer's path on a throwaway row of their OWN and have `/api/profile/payments/[id]/proof` sign it — that route authorises on who the ROW's payer is, and on their own row that is them. Impact: the exact bank-details disclosure the narrowed proof route was added to prevent. Fixed with two independent defences in `lib/payments/proof.ts`: `assertOwnProofPath` (a written `proof_url` must sit under the caller's own `${profile_id}/` prefix, mirroring the guard that already existed at `app/api/profile/payments/upload-url/confirm/route.ts:22-30` but which a hand-crafted request simply skipped) and `redactForeignProofUrls` (nulls the path for anyone but the payer on read). FOUR disclosure channels, not the two the reviewers named: `/api/payments` GET, `/api/profile/payments` GET, `/api/trips/[id]/payments` GET, and — missed by both review passes — `app/(dashboard)/trips/[id]/page.tsx`, a server component whose `select('*')` ships the path inside the serialized RSC props. Admin routes deliberately untouched: admins are entitled to the proof.
 
 ## Open items
+- NOTED (not done): trip payments display currency `'EUR'` by fallback, not the row's own `currency`
+  column — `PaymentsSection.tsx:43` and `shared.tsx:109` both read `payable_items?.currency ?? 'EUR'`,
+  and a trip payment's `payable_items` is NULL. Wrong for any non-EUR trip. `GenericPayment` does not
+  declare `currency` either, though GET /api/payments selects it.
+- NOTED (not done): `shared.tsx:102` gates the cancelled-trip ⓘ on
+  `pay.payable_items?.item_type === 'trip'`, which is ALWAYS false for a real trip payment (NULL
+  payable_items). The indicator has never shown for the rows it was written for.
 - UNKNOWN, worth one query: does PROD have `payments` rows? If yes, `/profile` has been crashing in
   production for every such user since `570d587` shipped 2026-07-27 (#670) — same phantom
   `pay.status`. The read-only count query was blocked by the permission classifier this session, so

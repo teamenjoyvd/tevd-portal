@@ -136,6 +136,13 @@ export type GenericPayment = {
     item_type: string
     currency: string
   } | null
+  // A trip payment has a NULL payable_item_id and carries its title here
+  // instead. GET /api/payments has always selected trips(id, title); the type
+  // simply never declared it.
+  trips: {
+    id: string
+    title: string
+  } | null
 }
 
 // VitalSign canonical type and predicate live in lib/vitals.ts.
