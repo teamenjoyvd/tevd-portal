@@ -100,14 +100,20 @@ fixture so the `1 skipped` becomes a real run. See Next 1.
   `ON CONFLICT (profile_id) DO UPDATE SET path = EXCLUDED.path`, so calling it for the member with a
   NULL sponsor — which is what "reconcile" would do — is exactly the reparent-to-root that the
   early-return guard at :178-181 was written to prevent.
+  FOLLOW-UP (same session, user approved widening scope): the guard was extracted to
+  `scripts/lib/safe-supabase-target.js` and all four seed scripts now require it — the drift between
+  four private copies is why fix (a) had to be made twice. Probed 6 URLs x 4 scripts = 24/24 correct:
+  plaintext-hosted, substring-in-query, suffixed-hostname and the PROD ref all refused; HTTPS-DEV and
+  localhost-http accepted.
 - RESOLVED: `preview-smoke.yml` now reads `SUPABASE_SERVICE_ROLE_KEY_DEV`, matching the repo's `_DEV`/`_PROD` convention. User created the secret 2026-08-01T07:52Z and removed the unsuffixed one. Green in CI on `8f3d8f7` (seed step ran, then `10 passed (1.6m)`).
-- NOTED (not done): TWO scripts still carry the loose `url.includes(DEV_PROJECT_REF)` guard that
-  `seed-smoke-calendar.js` has now had hardened twice (exact hostname, then HTTPS-only):
-  `scripts/seed-smoke-guide.js:68-71` and `scripts/seed-clerk-test-users.js:102-105`. Both accept
-  `https://evil.example/?ref=<ref>`, `https://<ref>.supabase.co.evil.example`, and plaintext http to
-  the hosted project, and both then send a service-role key. Same defect class CodeRabbit has now
-  flagged twice on this PR. Left out of scope under the "change only what the DoD requires"
-  constraint — raised with the user rather than folded in silently.
+- RESOLVED (2026-08-01, user-approved scope add): the loose `url.includes(DEV_PROJECT_REF)` write
+  guard existed in FOUR seed scripts, not the two first reported — `seed-smoke-guide.js`,
+  `seed-clerk-test-users.js` and `seed-guest-test-user.js` were all still substring-matching. All
+  four now require `scripts/lib/safe-supabase-target.js`; the per-script copies are gone, which is
+  what let the same defect be fixed twice on this PR and stay live elsewhere.
+- NOTED (not done): `scripts/check-env.js:106` still uses `url.includes(DEV_PROJECT_REF)`.
+  Deliberately left — it is an advisory classifier that prints which project you are pointed at, not
+  a write guard on a service-role key, and tightening it would change its DEV/PROD messaging.
 - CALENDAR SMOKE FIXTURE (2026-08-01, unrelated to #676 — see Open items). `390px smoke vs preview` failed on PR 687 with `no calendar events found in the current month view` (`e2e/calendar.spec.ts:47`). CAUSE: DEV `calendar_events` held 3 rows, all in Sofia month 2026-07, while `app/(dashboard)/calendar/page.tsx:20` derives the initial month from the Sofia calendar day — which rolled to 2026-08 at 2026-07-31T21:00Z (probe: 20:59Z -> 2026-07, 21:00Z -> 2026-08). Not a PR regression: the same spec passed at 18:47Z on `dev/2607-DEV-681`, and PR 687 touches no calendar file. FIX: `scripts/seed-smoke-calendar.js` (deterministic per-month UUID, upserts current + next Sofia month, DEV-ref guard mirroring seed-smoke-guide, `google_event_id` left NULL so calendar-sync reconciliation cannot delete it) + `seed:smoke-calendar` npm script + a seed step in `preview-smoke.yml`. Seeded DEV by hand and re-ran the failed job: `10 passed (1.6m)`, `✓ 1 [mobile-390] › e2e/calendar.spec.ts:21:7`, run conclusion `completed / success`.
 - CLAIM complete: #676 has `## Design Checklist` (four checked) + `## Branch`; branch `dev/2607-DEV-676` checked out; `docs/CLAIMS.md` row registered at `b7790c7`.
 - V1 data reality check on DEV (2026-07-31) — RESULT: DEV is effectively empty and the issue's stated premise is DISPROVED. `profiles` = 11 (3 admin / 4 core / 3 member / 1 guest); `tree_nodes` = 2 (max depth 0); `los_members` = 0; `payments` = 0; profiles with no tree node = 9; **placeholder roots = 0**; **secondaries (`primary_profile_id NOT NULL`) = 0**; ABO-less profiles = 1 admin + 1 guest, both with NULL `upline_abo_number` — i.e. **zero approved ABO-less members**. The issue claimed "placeholder roots definitely exist"; they do not on DEV.

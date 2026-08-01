@@ -60,7 +60,7 @@ const root = process.cwd()
 loadEnvFile(path.join(root, '.env.development.local'))
 loadEnvFile(path.join(root, '.env.local'))
 
-const DEV_PROJECT_REF = 'iymwxdewcpvpjgzewtzk'
+const { isSafeSupabaseTarget } = require('./lib/safe-supabase-target')
 
 // 'YYYY-MM-DD' of the Sofia calendar day (sv-SE gives ISO order).
 // Same formatter contract as lib/calendar-dates.ts SOFIA_DATE_FMT, restated
@@ -131,29 +131,6 @@ function fixtureEvent(monthKey) {
     location: 'Sofia',
     google_event_id: null,
   }
-}
-
-/**
- * The DEV ref must match the HOST, not merely appear somewhere in the string.
- * A substring test passes for `https://evil.example/?ref=iymwxdewcpvpjgzewtzk`
- * and for `https://iymwxdewcpvpjgzewtzk.supabase.co.evil.example`, either of
- * which would send a service-role key to a host that is not Supabase. Parse the
- * URL and compare the hostname exactly.
- */
-function isSafeSupabaseTarget(url) {
-  let parsed
-  try {
-    parsed = new URL(url)
-  } catch {
-    return false
-  }
-  // Only a local instance may be reached over plaintext. `http://<ref>.supabase.co`
-  // would otherwise pass this guard and put the service-role key on the wire in
-  // the clear — the hosted target must be HTTPS.
-  if (parsed.hostname === '127.0.0.1' || parsed.hostname === 'localhost') {
-    return parsed.protocol === 'https:' || parsed.protocol === 'http:'
-  }
-  return parsed.protocol === 'https:' && parsed.hostname === `${DEV_PROJECT_REF}.supabase.co`
 }
 
 async function main() {

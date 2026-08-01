@@ -97,12 +97,7 @@ const DOWNLINE_ABO = process.env.E2E_CLERK_DOWNLINE_ABO ?? 'E2E-DOWNLINE-0001'
 // (e2e/payments-on-behalf.spec.ts:100). One active item is the minimum.
 const PAYABLE_ITEM_TITLE = 'E2E Test Fee'
 
-const DEV_PROJECT_REF = 'iymwxdewcpvpjgzewtzk'
-
-function isSafeSupabaseTarget(url) {
-  if (/^https?:\/\/(127\.0\.0\.1|localhost)(:|\/|$)/.test(url)) return true
-  return url.includes(DEV_PROJECT_REF)
-}
+const { isSafeSupabaseTarget } = require('./lib/safe-supabase-target')
 
 async function ensureClerkUser(clerk, { email, role, firstName, lastName }) {
   const existing = await clerk.users.getUserList({ emailAddress: [email] })
