@@ -3,6 +3,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { getCallerProfile } from '@/lib/supabase/guards'
 import { MAX_BENEFICIARIES, assertGroupAllowed } from '@/lib/payments/eligibility'
 import { assertOwnProofPath, redactForeignProofUrls } from '@/lib/payments/proof'
+import { MAX_TOTAL_CENTS } from '@/lib/payments/split'
 
 /** One beneficiary of an on-behalf payment, as the client sends it. */
 type BeneficiaryInput = { profile_id: string; amount_cents: number }
@@ -101,6 +102,16 @@ export async function POST(req: Request): Promise<Response> {
     const totalCents = Number.isInteger(total_cents) ? total_cents : Math.round(Number(amount) * 100)
     if (!Number.isInteger(totalCents) || totalCents <= 0) {
       return Response.json({ error: 'total must be a positive integer number of cents' }, { status: 400 })
+    }
+    // The same ceiling lib/payments/split.ts enforces in the browser. Without it
+    // here the cap is decorative: the form refuses to redistribute above it, but
+    // a hand-crafted request never touches the form. submit_payment_group
+    // asserts it a third time, inside the write transaction.
+    if (totalCents > MAX_TOTAL_CENTS) {
+      return Response.json(
+        { error: `total exceeds the ${MAX_TOTAL_CENTS} cent ceiling` },
+        { status: 400 },
+      )
     }
     const sumCents = rows.reduce((acc, row) => acc + row.amount_cents, 0)
     if (sumCents !== totalCents) {

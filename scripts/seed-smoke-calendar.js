@@ -133,9 +133,23 @@ function fixtureEvent(monthKey) {
   }
 }
 
+/**
+ * The DEV ref must match the HOST, not merely appear somewhere in the string.
+ * A substring test passes for `https://evil.example/?ref=iymwxdewcpvpjgzewtzk`
+ * and for `https://iymwxdewcpvpjgzewtzk.supabase.co.evil.example`, either of
+ * which would send a service-role key to a host that is not Supabase. Parse the
+ * URL and compare the hostname exactly.
+ */
 function isSafeSupabaseTarget(url) {
-  if (/^https?:\/\/(127\.0\.0\.1|localhost)(:|\/|$)/.test(url)) return true
-  return url.includes(DEV_PROJECT_REF)
+  let parsed
+  try {
+    parsed = new URL(url)
+  } catch {
+    return false
+  }
+  if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return false
+  if (parsed.hostname === '127.0.0.1' || parsed.hostname === 'localhost') return true
+  return parsed.hostname === `${DEV_PROJECT_REF}.supabase.co`
 }
 
 async function main() {

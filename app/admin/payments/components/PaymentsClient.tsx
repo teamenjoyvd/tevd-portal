@@ -41,7 +41,7 @@ export function PaymentsClient({
   initialPending: Payment[]
 }) {
   const router = useRouter()
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all')
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({})
@@ -249,8 +249,9 @@ export function PaymentsClient({
                 a surprise. */}
             {deleteGroupScope !== null && (
               <AlertDialogDescription style={{ color: 'var(--brand-crimson)' }}>
-                {deleteGroupScope.count} payments in this group will be deleted
-                {' '}({deleteGroupScope.statuses.join(', ')}).
+                {lang === 'bg'
+                  ? `Ще бъдат изтрити ${deleteGroupScope.count} плащания от тази група (${deleteGroupScope.statuses.join(', ')}).`
+                  : `${deleteGroupScope.count} payments in this group will be deleted (${deleteGroupScope.statuses.join(', ')}).`}
               </AlertDialogDescription>
             )}
           </AlertDialogHeader>

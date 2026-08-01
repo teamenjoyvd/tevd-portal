@@ -308,6 +308,16 @@ BEGIN
     RAISE EXCEPTION 'total_cents must be a positive integer' USING ERRCODE = 'P0001';
   END IF;
 
+  -- 100_000_000 cents = 1,000,000.00, the same ceiling MAX_TOTAL_CENTS enforces
+  -- in lib/payments/split.ts and app/api/payments/route.ts. Asserted here too
+  -- because this is the only layer a hand-crafted request cannot skip. Keep the
+  -- three in step: a total accepted here but rejected by the form is a support
+  -- ticket, and one accepted by the form but rejected here is a dead end.
+  IF v_total_cents > 100000000 THEN
+    RAISE EXCEPTION 'total_cents exceeds the 100000000 cent ceiling (got %)', v_total_cents
+      USING ERRCODE = 'P0001';
+  END IF;
+
   IF v_sum_cents <> v_total_cents THEN
     RAISE EXCEPTION 'beneficiary amounts sum to % cents but the total is % cents',
       v_sum_cents, v_total_cents
