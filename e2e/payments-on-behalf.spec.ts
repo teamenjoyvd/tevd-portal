@@ -72,14 +72,22 @@ test.describe('payments on behalf of others @390', () => {
     await expect(shareInputs.nth(0)).toHaveValue('100.00')
     await expect(shareInputs.nth(1)).toHaveValue('100.00')
 
-    // An unbalanced split must block submission — the same assertion
-    // submit_payment_group makes in SQL.
+    // Typing one row LOCKS it and the still-unlocked row absorbs the
+    // difference, so a single edit can never unbalance the form — asserting the
+    // warning here would be asserting against the redistribution contract.
     await shareInputs.nth(0).fill('90')
+    await expect(shareInputs.nth(1)).toHaveValue('110.00')
+    await expect(page.getByText(/must add up to the total/i)).toBeHidden()
+
+    // Locking BOTH rows leaves nothing to absorb the shortfall. That is the
+    // only way to reach an unbalanced split, and it must block submission —
+    // the same assertion submit_payment_group makes in SQL.
+    await shareInputs.nth(1).fill('90')
     await expect(page.getByText(/must add up to the total/i)).toBeVisible()
     await expect(page.getByRole('button', { name: /^submit payment$/i })).toBeDisabled()
 
-    // Back to balanced: the remaining unlocked row absorbs the difference.
-    await expect(shareInputs.nth(1)).toHaveValue('110.00')
+    // Back to balanced by typing the exact complement.
+    await shareInputs.nth(1).fill('110')
     await expect(page.getByText(/must add up to the total/i)).toBeHidden()
 
     const today = new Date().toISOString().slice(0, 10)

@@ -42,7 +42,7 @@ export function BeneficiaryPicker({ beneficiaries, selectedIds, onSelect, onBack
     guest:     t('payment.relGuest'),
   }
 
-  const sections = useMemo(() => {
+  const { sections, matchCount } = useMemo(() => {
     const needle = search.trim().toLowerCase()
     const matches = needle
       ? beneficiaries.filter(b =>
@@ -50,10 +50,22 @@ export function BeneficiaryPicker({ beneficiaries, selectedIds, onSelect, onBack
           (b.abo_number ?? '').toLowerCase().includes(needle))
       : beneficiaries
 
-    const capped = matches.slice(0, MAX_ROWS)
-    return RELATION_ORDER
-      .map(relation => ({ relation, rows: capped.filter(b => b.relation === relation) }))
-      .filter(section => section.rows.length > 0)
+    // Sort by relation BEFORE slicing. Capping the flat list first means that if
+    // the first MAX_ROWS matches all happen to be `downline`, the `household`
+    // section vanishes entirely even though those people matched — the cap
+    // should trim the tail of the list, not delete whole categories.
+    const ordered = [...matches].sort(
+      (a, b) => RELATION_ORDER.indexOf(a.relation) - RELATION_ORDER.indexOf(b.relation),
+    )
+    const capped = ordered.slice(0, MAX_ROWS)
+    return {
+      // The notice counts MATCHES, not the unfiltered roster: after a search
+      // narrows 200 people to 3, "showing the first 50" is simply false.
+      matchCount: matches.length,
+      sections: RELATION_ORDER
+        .map(relation => ({ relation, rows: capped.filter(b => b.relation === relation) }))
+        .filter(section => section.rows.length > 0),
+    }
   }, [beneficiaries, search])
 
   const selected = new Set(selectedIds)
@@ -163,7 +175,7 @@ export function BeneficiaryPicker({ beneficiaries, selectedIds, onSelect, onBack
       ))}
 
       {/* Honest about the cap rather than silently truncating. */}
-      {!isLoading && beneficiaries.length > MAX_ROWS && (
+      {!isLoading && matchCount > MAX_ROWS && (
         <p className="text-[11px] pt-1 text-center" style={{ color: 'var(--text-secondary)' }}>
           {lang === 'bg'
             ? `Показани са първите ${MAX_ROWS}. Използвайте търсенето.`

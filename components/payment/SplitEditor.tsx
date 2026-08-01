@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { formatCurrency } from '@/lib/format'
 import { isBalanced, sumCents, type SplitRow } from '@/lib/payments/split'
@@ -29,6 +30,14 @@ type Props = {
  */
 export function SplitEditor({ rows, people, totalCents, currency, onChangeAmount, onRemove }: Props) {
   const { t } = useLanguage()
+
+  // Raw text per row while the user is typing, keyed by profile_id. Without it
+  // the input is fully controlled on (amountCents / 100).toFixed(2), so every
+  // keystroke reformats: typing "5" renders "5.00", the next digit makes
+  // "5.000" which parses back to 5 and renders "5.00" again — "50.00" can never
+  // be typed, and clearing the field snaps to "0.00". A row leaves the draft on
+  // blur, at which point the canonical formatted value takes over again.
+  const [draft, setDraft] = useState<Record<string, string>>({})
 
   const currentCents = sumCents(rows)
   const balanced = isBalanced(rows, totalCents)
@@ -73,12 +82,28 @@ export function SplitEditor({ rows, people, totalCents, currency, onChangeAmount
               min="0"
               step="0.01"
               inputMode="decimal"
-              value={(row.amountCents / 100).toFixed(2)}
+              value={draft[row.profileId] ?? (row.amountCents / 100).toFixed(2)}
               onChange={e => {
-                const parsed = Number.parseFloat(e.target.value)
-                // Number.isNaN, not truthiness: an amount of 0 is a real edit the
-                // user may be mid-way through typing, and must not be discarded.
-                onChangeAmount(row.profileId, Number.isNaN(parsed) ? 0 : Math.round(parsed * 100))
+                const next = e.target.value
+                setDraft(d => ({ ...d, [row.profileId]: next }))
+                // An empty or half-typed field ("", "5.", "-") is a transient
+                // state, not an edit to 0 — committing it would zero the row and
+                // redistribute under the user mid-keystroke. Number.isNaN, never
+                // truthiness: 0 itself is a legitimate share.
+                if (next === '') return
+                const parsed = Number.parseFloat(next)
+                if (Number.isNaN(parsed) || parsed < 0) return
+                onChangeAmount(row.profileId, Math.round(parsed * 100))
+              }}
+              onBlur={() => {
+                // Leaving the field empty means 0 — commit it now that the user
+                // has finished, then drop the draft so the row renders canonical.
+                if (draft[row.profileId] === '') onChangeAmount(row.profileId, 0)
+                setDraft(d => {
+                  const next = { ...d }
+                  delete next[row.profileId]
+                  return next
+                })
               }}
               className="text-sm text-right rounded-lg px-2 py-1"
               style={{

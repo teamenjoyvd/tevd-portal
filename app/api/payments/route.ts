@@ -135,8 +135,14 @@ export async function POST(req: Request): Promise<Response> {
     if (rpcError) {
       // P0001 is the RPC's own assertion vocabulary; every shape/sum case is
       // already screened above, so one reaching us is the eligibility re-check.
-      const status = rpcError.code === 'P0001' ? 403 : 500
-      return Response.json({ error: rpcError.message }, { status })
+      // Its text is written for the user and is safe to forward.
+      if (rpcError.code === 'P0001') {
+        return Response.json({ error: rpcError.message }, { status: 403 })
+      }
+      // Any other code is raw Postgres output — constraint, column and table
+      // names included. Log it server-side; tell the client nothing.
+      console.error('submit_payment_group failed', rpcError)
+      return Response.json({ error: 'Could not submit payment' }, { status: 500 })
     }
 
     const { data: created, error: readError } = await supabase

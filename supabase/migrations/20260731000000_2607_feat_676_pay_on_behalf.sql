@@ -422,12 +422,24 @@ DROP POLICY IF EXISTS payments_payer_select ON public.payments;
 CREATE POLICY payments_payer_select ON public.payments FOR SELECT
   USING (paid_by_profile_id = public.get_my_profile_id());
 
--- baseline.sql:1072 required profile_id = get_my_profile_id(), which would reject
--- EVERY group row and make this layer a lie. Replaced with a plain ownership
--- check that admits both shapes: a self-payment, or a group row I am paying for.
+-- Self-inserts ONLY, and deliberately so.
+--
+-- An earlier draft admitted group rows via
+-- COALESCE(paid_by_profile_id, profile_id) = get_my_profile_id(). That is a
+-- privilege escalation: the COALESCE is satisfied by naming YOURSELF as
+-- paid_by_profile_id while pointing profile_id at anyone at all, so a signed-in
+-- user could write a row onto an upline's ledger. can_pay_for cannot backstop
+-- it, because EXECUTE is revoked from `authenticated` at the grants above.
+--
+-- Group rows never need this policy: submit_payment_group is the only writer
+-- and it runs under service_role, which bypasses RLS entirely. So the honest
+-- shape is to admit nothing but a plain self-payment, and to state that group
+-- columns must be absent rather than leaving them unconstrained.
 DROP POLICY IF EXISTS payments_member_insert ON public.payments;
 CREATE POLICY payments_member_insert ON public.payments FOR INSERT
   WITH CHECK (
     logged_by_admin IS NULL
-    AND COALESCE(paid_by_profile_id, profile_id) = public.get_my_profile_id()
+    AND paid_by_profile_id IS NULL
+    AND payment_group_id IS NULL
+    AND profile_id = public.get_my_profile_id()
   );

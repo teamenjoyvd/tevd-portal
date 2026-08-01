@@ -55,6 +55,20 @@ export function PaymentsClient({
     [initialPayments, statusFilter]
   )
 
+  // Blast radius of the pending delete, or null when the target is a plain
+  // single row. Read from initialPayments, not `payments` — the status filter
+  // is exactly what hides the siblings the admin is about to destroy.
+  const deleteGroupScope = useMemo(() => {
+    if (deleteTargetId === null) return null
+    const groupId = initialPayments.find(p => p.id === deleteTargetId)?.payment_group_id
+    if (!groupId) return null
+    const siblings = initialPayments.filter(p => p.payment_group_id === groupId)
+    return {
+      count: siblings.length,
+      statuses: [...new Set(siblings.map(p => p.admin_status))].sort(),
+    }
+  }, [deleteTargetId, initialPayments])
+
   const logMutation = useMutation({
     mutationFn: (body: Record<string, unknown>) =>
       fetch('/api/admin/payments', {
@@ -82,6 +96,9 @@ export function PaymentsClient({
 
   // Groups are resolved as a unit — /api/admin/payments/[id] 409s on any row
   // carrying a payment_group_id, so a group never reaches reviewMutation.
+  // NOTE: review failures must NOT go to setPayError — payError renders only
+  // inside LogPaymentDrawer, which is closed during a review, so the admin
+  // would see nothing at all. They surface next to the pending queue instead.
   const reviewGroupMutation = useMutation({
     mutationFn: ({ groupId, admin_status, admin_note }: { groupId: string; admin_status: string; admin_note: string | null }) =>
       fetch(`/api/admin/payments/group/${groupId}`, {
@@ -90,7 +107,6 @@ export function PaymentsClient({
         body: JSON.stringify({ admin_status, admin_note }),
       }).then(async r => { if (!r.ok) throw new Error((await r.json()).error); return r.json() }),
     onSuccess: () => router.refresh(),
-    onError: (e: Error) => setPayError(e.message),
   })
 
   const deleteMutation = useMutation({
@@ -142,6 +158,16 @@ export function PaymentsClient({
         onRejectGroup={(groupId, note) => reviewGroupMutation.mutate({ groupId, admin_status: 'rejected', admin_note: note })}
         isPending={reviewMutation.isPending || reviewGroupMutation.isPending}
       />
+
+      {/* Approve/reject/delete all mutate then router.refresh(). On failure the
+          row simply stays put, which is indistinguishable from "nothing was
+          clicked" — so the reason has to be shown here, beside the queue the
+          admin is looking at. */}
+      {(reviewMutation.isError || reviewGroupMutation.isError || deleteMutation.isError) && (
+        <p className="text-xs" style={{ color: 'var(--brand-crimson)' }} role="alert">
+          {(reviewGroupMutation.error ?? reviewMutation.error ?? deleteMutation.error)?.message}
+        </p>
+      )}
 
       <div className="flex gap-2 flex-wrap">
         {STATUS_FILTERS.map(f => (
@@ -216,6 +242,17 @@ export function PaymentsClient({
             <AlertDialogDescription>
               {t('admin.operations.payments.dialog.body')}
             </AlertDialogDescription>
+            {/* Deleting one row of a group deletes ALL of them (the route keys
+                on payment_group_id), and this dialog is reachable from the full
+                payment list — including rows already approved. Naming the count
+                and the statuses is the difference between a considered click and
+                a surprise. */}
+            {deleteGroupScope !== null && (
+              <AlertDialogDescription style={{ color: 'var(--brand-crimson)' }}>
+                {deleteGroupScope.count} payments in this group will be deleted
+                {' '}({deleteGroupScope.statuses.join(', ')}).
+              </AlertDialogDescription>
+            )}
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleteMutation.isPending}>

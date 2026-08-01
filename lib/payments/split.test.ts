@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
+  MAX_TOTAL_CENTS,
   SplitError,
   equalSplit,
   initialSplit,
   isBalanced,
+  isValidTotal,
   redistribute,
   setRowAmount,
   sumCents,
@@ -14,6 +16,34 @@ const row = (profileId: string, amountCents: number, locked = false): SplitRow =
   profileId,
   amountCents,
   locked,
+})
+
+describe('isValidTotal', () => {
+  // The predicate exists so React callers can ASK instead of catching a
+  // SplitError thrown from inside a state updater. It must therefore agree with
+  // assertValidTotal on every boundary, or the guard is decorative.
+  it('accepts the boundaries assertValidTotal accepts', () => {
+    expect(isValidTotal(1)).toBe(true)
+    expect(isValidTotal(MAX_TOTAL_CENTS)).toBe(true)
+  })
+
+  it('rejects zero, negatives, non-integers and anything past the ceiling', () => {
+    expect(isValidTotal(0)).toBe(false)
+    expect(isValidTotal(-1)).toBe(false)
+    expect(isValidTotal(10.5)).toBe(false)
+    expect(isValidTotal(Number.NaN)).toBe(false)
+    expect(isValidTotal(MAX_TOTAL_CENTS + 1)).toBe(false)
+  })
+
+  it('agrees with redistribute: false exactly where redistribute throws', () => {
+    const rows = [row('a', 0), row('b', 0)]
+    for (const total of [0, -1, 10.5, MAX_TOTAL_CENTS + 1]) {
+      expect(isValidTotal(total)).toBe(false)
+      expect(() => redistribute(rows, total)).toThrow(SplitError)
+    }
+    expect(isValidTotal(MAX_TOTAL_CENTS)).toBe(true)
+    expect(() => redistribute(rows, MAX_TOTAL_CENTS)).not.toThrow()
+  })
 })
 
 describe('equalSplit', () => {

@@ -22,7 +22,18 @@ export type SplitRow = {
 }
 
 /** Cents cannot exceed this; guards against a pasted absurdity overflowing later maths. */
-const MAX_TOTAL_CENTS = 100_000_000 // 1,000,000.00
+export const MAX_TOTAL_CENTS = 100_000_000 // 1,000,000.00
+
+/**
+ * True when `totalCents` is a total this module will actually accept.
+ *
+ * Exported so callers can ASK before calling, rather than discovering the
+ * answer as a thrown SplitError. redistribute/setRowAmount run inside React
+ * event handlers and state updaters, where a throw unmounts the tree.
+ */
+export function isValidTotal(totalCents: number): boolean {
+  return Number.isInteger(totalCents) && totalCents > 0 && totalCents <= MAX_TOTAL_CENTS
+}
 
 export class SplitError extends Error {}
 

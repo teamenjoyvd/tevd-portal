@@ -149,8 +149,14 @@ export function PaymentsSection({ profileId, role }: { profileId: string; role: 
   // twice. My own row inside a group stays in the history where it belongs.
   const paidGroups = pendingGroupsIPaidFor(allPayments, profileId)
   const paidGroupIds = new Set(paidGroups.map(g => g.groupId))
+  // profile_id first: every row in a group shares one payer, so when the payer
+  // included THEMSELVES as a beneficiary their own row's group is in
+  // paidGroupIds too, and a group-membership test alone would delete it from
+  // their history — the opposite of what the comment above promises.
   const ledgerPayments = allPayments.filter(
-    pay => !(pay.payment_group_id && paidGroupIds.has(pay.payment_group_id)),
+    pay =>
+      pay.profile_id === profileId ||
+      !(pay.payment_group_id && paidGroupIds.has(pay.payment_group_id)),
   )
 
   const visiblePayments = ledgerPayments.slice(0, VARIABLE_CAP)
@@ -228,13 +234,29 @@ export function PaymentsSection({ profileId, role }: { profileId: string; role: 
 
       <AlertDialog
         open={withdrawTargetId !== null}
-        onOpenChange={open => { if (!open && !withdrawMutation.isPending) setWithdrawTargetId(null) }}
+        onOpenChange={open => {
+          if (!open && !withdrawMutation.isPending) {
+            setWithdrawTargetId(null)
+            // Drop a previous failure so reopening the dialog does not lead with
+            // a stale error.
+            withdrawMutation.reset()
+          }
+        }}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{t('payment.withdrawTitle')}</AlertDialogTitle>
             <AlertDialogDescription>{t('payment.withdrawBody')}</AlertDialogDescription>
           </AlertDialogHeader>
+          {/* Without this the dialog just stays open with the buttons live again
+              — a failed DELETE (already approved, RPC error) would look like
+              nothing happened at all. mutationFn always throws an Error with the
+              API's own message, so there is nothing to fall back to. */}
+          {withdrawMutation.isError && (
+            <p className="text-xs" style={{ color: '#bc4749' }}>
+              {withdrawMutation.error.message}
+            </p>
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel disabled={withdrawMutation.isPending}>
               {t('payment.cancel')}

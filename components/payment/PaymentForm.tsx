@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { formatCurrency } from '@/lib/format'
 import { uploadToSignedUrl } from '@/lib/utils/uploadToSignedUrl'
-import { isBalanced, redistribute, setRowAmount, type SplitRow } from '@/lib/payments/split'
+import { isBalanced, isValidTotal, redistribute, setRowAmount, type SplitRow } from '@/lib/payments/split'
 import { BeneficiaryPicker } from './BeneficiaryPicker'
 import { SplitEditor } from './SplitEditor'
 import type { Beneficiary, PayableItem } from './types'
@@ -91,14 +91,24 @@ export function PaymentForm(props: PaymentFormProps) {
     return [{ profileId: self.profile_id, amountCents: totalCents, locked: false }]
   }, [participants, allowOnBehalf, self, totalCents])
 
-  /** Re-split across unlocked rows. Redistribution is invalid below one cent,
-   *  in which case the rows are left alone — the form is unsubmittable anyway. */
+  /** Re-split across unlocked rows. Outside the accepted total range the rows
+   *  are left alone — the form is unsubmittable anyway, and redistribute would
+   *  throw a SplitError from inside a state updater and unmount the tree.
+   *  isValidTotal is the same predicate assertValidTotal enforces, so the two
+   *  cannot drift. */
   function rebalance(rows: SplitRow[], total: number): SplitRow[] {
-    if (!Number.isInteger(total) || total <= 0 || rows.length === 0) return rows
+    if (!isValidTotal(total) || rows.length === 0) return rows
     return redistribute(rows, total)
   }
 
-  const isOnBehalf = allowOnBehalf && roster.length >= 2
+  // Length is the wrong test. The payer can remove their OWN chip from a
+  // two-person roster, leaving one OTHER person: that is still a payment on
+  // someone else's behalf, and falling back to the legacy branch would post the
+  // money to the payer's own ledger while the form says it is for them.
+  const isOnBehalf =
+    allowOnBehalf &&
+    roster.length > 0 &&
+    (roster.length >= 2 || roster[0].profileId !== self?.profile_id)
 
   const submitMutation = useMutation({
     mutationFn: async () => {
@@ -337,7 +347,9 @@ export function PaymentForm(props: PaymentFormProps) {
           totalCents={totalCents}
           currency={currency}
           onChangeAmount={(profileId, amountCents) =>
-            setParticipants(totalCents > 0 ? setRowAmount(roster, profileId, amountCents, totalCents) : roster)
+            setParticipants(
+              isValidTotal(totalCents) ? setRowAmount(roster, profileId, amountCents, totalCents) : roster,
+            )
           }
           onRemove={profileId =>
             setParticipants(rebalance(roster.filter(p => p.profileId !== profileId), totalCents))

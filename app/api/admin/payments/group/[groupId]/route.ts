@@ -165,6 +165,12 @@ export async function DELETE(
 
   const { groupId } = await params
 
+  // Deliberately NOT gated on admin_status. The single-row admin delete
+  // (app/api/admin/payments/[id]/route.ts) has never been status-gated either,
+  // and an admin correcting a wrongly-approved payment is a real workflow;
+  // gating only the group form would remove a capability that exists for every
+  // other row. The blast radius is instead made explicit before the click —
+  // the confirmation dialog names the row count and the statuses involved.
   const { data, error } = await supabase
     .from('payments')
     .delete()
