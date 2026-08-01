@@ -69,11 +69,30 @@ export function PaymentGroupCard({
           <ul className="mt-2 space-y-0.5">
             {rows.map(row => (
               <li key={row.id} className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                <span style={{ color: 'var(--text-primary)' }}>
-                  {row.profiles?.first_name} {row.profiles?.last_name}
-                </span>
-                {row.profiles?.abo_number && (
-                  <span className="font-mono ml-1.5 opacity-60">{row.profiles.abo_number}</span>
+                {/* A guest row's `profiles` is the PAYER, not the beneficiary —
+                    a guest has no ledger (2607-DEV-677). Showing that name here
+                    would list the payer twice and hide who the money is for. */}
+                {row.payment_guests ? (
+                  <>
+                    <span style={{ color: 'var(--text-primary)' }}>{row.payment_guests.name}</span>
+                    {row.payment_guests.linked_profile_id === null && (
+                      <span
+                        className="ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold align-middle"
+                        style={{ backgroundColor: '#f2cc8f33', color: '#7a5c00' }}
+                      >
+                        {t('payment.guestUnlinked')}
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <span style={{ color: 'var(--text-primary)' }}>
+                      {row.profiles?.first_name} {row.profiles?.last_name}
+                    </span>
+                    {row.profiles?.abo_number && (
+                      <span className="font-mono ml-1.5 opacity-60">{row.profiles.abo_number}</span>
+                    )}
+                  </>
                 )}
                 {' — '}{formatCurrency(Number(row.amount), row.currency)}
               </li>

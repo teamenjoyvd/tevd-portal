@@ -12,7 +12,16 @@ export type TripProfile = Pick<
   'id' | 'role' | 'valid_through' | 'document_active_type'
 >
 type Registration = Tables<'trip_registrations'>
-export type TripPayment = Tables<'payments'>
+
+/**
+ * A trip payment row plus, when it covers an ad-hoc guest (2607-DEV-677), that
+ * guest's name. The row sits on the PAYER's profile_id — a guest has no ledger —
+ * so `beneficiary_guest_id` is what separates "money I owe" from "money I paid
+ * for someone else"; see the approvedTotal reducers in AttendeeView/ArchivedView.
+ */
+export type TripPayment = Tables<'payments'> & {
+  payment_guests: { id: string; name: string } | null
+}
 
 export type TeamAttendee = {
   profile_id: string
@@ -81,7 +90,12 @@ export default async function TripDetailPage({
       .maybeSingle(),
     supabase
       .from('payments')
-      .select('*')
+      // The guest's name is embedded, not filtered out. A guest row genuinely
+      // sits on this profile's ledger and the payer really did pay it, so
+      // hiding it here would show them less money than they handed over; the
+      // correction belongs in the TOTAL, not in the list. Only one FK points at
+      // payment_guests, so this embed needs no hint.
+      .select('*, payment_guests(id, name)')
       .eq('trip_id', id)
       .eq('profile_id', profile.id)
       .order('transaction_date', { ascending: true }),

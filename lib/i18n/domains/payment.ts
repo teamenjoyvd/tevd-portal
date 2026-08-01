@@ -53,4 +53,31 @@ export const payment = {
   'payment.rejectGroup':        { en: 'Reject group',                    bg: 'Отхвърли групата'                           },
   'payment.rejectReason':       { en: 'Reason for rejection',            bg: 'Причина за отхвърляне'                      },
   'payment.rejectReasonRequired': { en: 'A reason is required.',         bg: 'Необходима е причина.'                      },
+
+  // Ad-hoc guests with no account (2607-DEV-677). Distinct from
+  // 'payment.relGuest' above, which labels ABO-less APPROVED MEMBERS — those
+  // have a profile; these people have nothing at all.
+  'payment.relExternal':        { en: 'Guests (no account)',             bg: 'Гости (без профил)'                         },
+  'payment.addGuest':           { en: "Can't find them? Add a guest",    bg: 'Не ги намирате? Добавете гост'              },
+  'payment.guestName':          { en: 'Name',                            bg: 'Име'                                        },
+  'payment.guestEmail':         { en: 'Email (optional)',                bg: 'Имейл (по желание)'                         },
+  'payment.guestNameRequired':  { en: 'A name is required.',             bg: 'Необходимо е име.'                          },
+  'payment.guestAdd':           { en: 'Add',                             bg: 'Добави'                                     },
+  'payment.guestTag':           { en: 'guest',                           bg: 'гост'                                       },
+  'payment.guestAlreadyAdded':  { en: 'That guest is already on this payment.', bg: 'Този гост вече е добавен към плащането.' },
+  'payment.guestNotCounted':    { en: 'Guest shares are not counted towards your own balance.', bg: 'Сумите за гости не се броят към вашия баланс.' },
+
+  // Admin guest linking (2607-DEV-677). A record only — it moves no money.
+  'payment.guestLinkTitle':     { en: 'Guest links',                     bg: 'Свързване на гости'                         },
+  'payment.guestLinkEmpty':     { en: 'No guests to link.',              bg: 'Няма гости за свързване.'                   },
+  'payment.guestLinkHint':      { en: 'Linking is a record only — it moves no money and changes no payment.', bg: 'Свързването е само запис — не премества пари и не променя плащания.' },
+  'payment.guestUnlinked':      { en: 'unlinked guest',                  bg: 'несвързан гост'                             },
+  'payment.guestLinkedTo':      { en: 'Linked to',                       bg: 'Свързан с'                                  },
+  'payment.guestPaidBy':        { en: 'Added by',                        bg: 'Добавен от'                                 },
+  'payment.guestSelectMember':  { en: 'Select a member…',                bg: 'Изберете член…'                             },
+  'payment.guestLink':          { en: 'Link',                            bg: 'Свържи'                                     },
+  'payment.guestUnlink':        { en: 'Unlink',                          bg: 'Премахни връзката'                          },
+  'payment.guestUnlinkTitle':   { en: 'Unlink this guest?',              bg: 'Да се премахне ли връзката?'                },
+  'payment.guestUnlinkBody':    { en: 'The guest stays, along with every payment made for them. Only the link to the member is removed.', bg: 'Гостът остава заедно с всички плащания за него. Премахва се само връзката с члена.' },
+  'payment.guestPayments':      { en: 'payments',                        bg: 'плащания'                                   },
 } as const

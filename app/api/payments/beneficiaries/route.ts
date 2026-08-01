@@ -1,7 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getCallerProfile } from '@/lib/supabase/guards'
-import { fetchPayableBeneficiaries } from '@/lib/payments/eligibility'
+import { fetchPayableBeneficiaries, fetchPayableGuests } from '@/lib/payments/eligibility'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,7 +14,15 @@ export const dynamic = 'force-dynamic'
  * the write path read the same definition, "the UI offered someone the API then
  * rejects" cannot happen.
  *
- * Guests get themselves only, matching POST /api/payments, which 403s them.
+ * Guest-role callers get themselves only, matching POST /api/payments, which
+ * 403s them.
+ *
+ * Merged on top of that (2607-DEV-677): the caller's own remembered ad-hoc
+ * guests — people with no account at all — as `kind: 'guest'` entries carrying
+ * their real `payment_guests.id`, so paying for the same friend a second time
+ * submits an id and re-types nothing. They are appended AFTER the profile rows
+ * because the RPC's ordering (self -> household -> downline -> guest) is the
+ * picker's section order and ad-hoc people sort last.
  */
 export async function GET(): Promise<Response> {
   const { userId } = await auth()
@@ -28,5 +36,12 @@ export async function GET(): Promise<Response> {
   const { beneficiaries, error } = await fetchPayableBeneficiaries(supabase, profile.id)
   if (error) return Response.json({ error }, { status: 500 })
 
-  return Response.json(beneficiaries)
+  // A guest-role caller may only ever pay for themselves, so they get no guest
+  // list: offering them one would invite a submission POST /api/payments rejects.
+  if (profile.role === 'guest') return Response.json(beneficiaries)
+
+  const { guests, error: guestError } = await fetchPayableGuests(supabase, profile.id)
+  if (guestError) return Response.json({ error: guestError }, { status: 500 })
+
+  return Response.json([...beneficiaries, ...guests])
 }

@@ -1,12 +1,16 @@
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getCallerProfile } from '@/lib/supabase/guards'
-import { MAX_BENEFICIARIES, assertGroupAllowed } from '@/lib/payments/eligibility'
+import { MAX_BENEFICIARIES, assertGroupAllowed, type GroupEntry } from '@/lib/payments/eligibility'
 import { assertOwnProofPath, redactForeignProofUrls } from '@/lib/payments/proof'
 import { MAX_TOTAL_CENTS } from '@/lib/payments/split'
 
-/** One beneficiary of an on-behalf payment, as the client sends it. */
-type BeneficiaryInput = { profile_id: string; amount_cents: number }
+/**
+ * One beneficiary of an on-behalf payment, as the client sends it: a profile
+ * (2607-DEV-676), a guest this payer already knows, or a guest to be created
+ * inline (2607-DEV-677). Which of the three is asserted by assertGroupAllowed.
+ */
+type BeneficiaryInput = GroupEntry & { amount_cents: number }
 
 export async function GET(): Promise<Response> {
   const { userId } = await auth()
@@ -85,12 +89,13 @@ export async function POST(req: Request): Promise<Response> {
 
     const rows: BeneficiaryInput[] = beneficiaries
     for (const row of rows) {
-      if (typeof row?.profile_id !== 'string' || row.profile_id.length === 0) {
-        return Response.json({ error: 'each beneficiary needs a profile_id' }, { status: 400 })
-      }
+      // WHICH beneficiary each entry names — and that it names exactly one — is
+      // asserted by assertGroupAllowed below, which owns that vocabulary for
+      // all three shapes. Only the money is checked here.
+      //
       // Compared explicitly rather than truthiness-checked: 0 is a real number
       // and must be rejected as an amount, not silently read as "missing".
-      if (!Number.isInteger(row.amount_cents) || row.amount_cents <= 0) {
+      if (!Number.isInteger(row?.amount_cents) || row.amount_cents <= 0) {
         return Response.json(
           { error: 'each beneficiary amount_cents must be a positive integer' },
           { status: 400 },
@@ -124,8 +129,26 @@ export async function POST(req: Request): Promise<Response> {
     // Pre-flight so a hand-crafted request gets a clean 403 instead of a raw
     // Postgres error. NOT the boundary — submit_payment_group re-runs can_pay_for
     // inside the write transaction, where RLS being bypassed cannot matter.
-    const check = await assertGroupAllowed(supabase, profile.id, rows.map((r) => r.profile_id))
+    const check = await assertGroupAllowed(supabase, profile.id, rows)
     if (!check.ok) return Response.json({ error: check.error }, { status: check.status })
+
+    // Rebuilt key by key rather than forwarded: the body is user input, and this
+    // is what reaches a SECURITY DEFINER function. An entry carries exactly the
+    // one identifier assertGroupAllowed just validated and nothing else — no
+    // stray `profile_id` riding along beside a `guest`, no unknown keys.
+    const entries = rows.map((row) => ({
+      ...(typeof row.profile_id === 'string' ? { profile_id: row.profile_id } : {}),
+      ...(typeof row.guest_id === 'string' ? { guest_id: row.guest_id } : {}),
+      ...(row.guest != null
+        ? {
+            guest: {
+              name: String(row.guest.name ?? '').trim(),
+              email: String(row.guest.email ?? '').trim() || null,
+            },
+          }
+        : {}),
+      amount_cents: row.amount_cents,
+    }))
 
     // payment_group_id is generated inside the RPC — never accepted from the client.
     const { data: groupId, error: rpcError } = await supabase.rpc('submit_payment_group', {
@@ -139,7 +162,7 @@ export async function POST(req: Request): Promise<Response> {
         proof_url:        proofPath,
         note:             note ?? null,
         total_cents:      totalCents,
-        beneficiaries:    rows,
+        beneficiaries:    entries,
       },
     })
 
@@ -158,7 +181,7 @@ export async function POST(req: Request): Promise<Response> {
 
     const { data: created, error: readError } = await supabase
       .from('payments')
-      .select('id, amount, currency, transaction_date, admin_status, member_status, proof_url, note, profile_id, paid_by_profile_id, payment_group_id')
+      .select('id, amount, currency, transaction_date, admin_status, member_status, proof_url, note, profile_id, paid_by_profile_id, payment_group_id, beneficiary_guest_id, payment_guests(id, name)')
       .eq('payment_group_id', groupId)
       .order('created_at', { ascending: true })
 

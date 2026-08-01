@@ -6,6 +6,7 @@ import { Drawer } from '@/components/ui/drawer'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { fetchJson } from '@/lib/utils/fetchJson'
 import { LogPaymentForm } from './LogPaymentForm'
+import { dedupeMembers } from './members'
 import type { Trip } from '@/lib/types/trips'
 import type { PayableItem } from '@/lib/types/items'
 import type { MemberProfile, MembersResponse } from '@/lib/types/payments'
@@ -47,24 +48,9 @@ export function LogPaymentDrawer({
     staleTime: 60_000,
   })
 
-  const allMembers: MemberProfile[] = useMemo(() => {
-    if (!membersData) return []
-    const seen = new Set<string>()
-    const out: MemberProfile[] = []
-    for (const m of membersData.los_members ?? []) {
-      if (m.profile && !seen.has(m.profile.id)) {
-        seen.add(m.profile.id)
-        out.push(m.profile)
-      }
-    }
-    for (const m of membersData.manual_members_no_abo ?? []) {
-      if (!seen.has(m.id)) {
-        seen.add(m.id)
-        out.push({ id: m.id, first_name: m.first_name, last_name: m.last_name, abo_number: null })
-      }
-    }
-    return out.sort((a, b) => a.last_name.localeCompare(b.last_name))
-  }, [membersData])
+  // Hoisted to module scope in ./members so GuestLinkPanel shares the same
+  // definition off the same ['admin-members'] cache entry (2607-DEV-677).
+  const allMembers: MemberProfile[] = useMemo(() => dedupeMembers(membersData), [membersData])
 
   return (
     <Drawer

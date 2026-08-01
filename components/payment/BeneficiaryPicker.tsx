@@ -2,7 +2,11 @@
 
 import { useMemo, useState } from 'react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
-import { RELATION_ORDER, type Beneficiary, type BeneficiaryRelation } from './types'
+import {
+  RELATION_ORDER, displayNameOf, rowKeyOf,
+  type Beneficiary, type BeneficiaryRelation,
+} from './types'
+import { MAX_GUEST_EMAIL_LENGTH, MAX_GUEST_NAME_LENGTH } from '@/lib/payments/eligibility'
 
 /** Cap on rendered rows. A core with a large leg can return hundreds; the
  *  search narrows them long before scrolling would. */
@@ -10,15 +14,32 @@ const MAX_ROWS = 50
 
 type Props = {
   beneficiaries: Beneficiary[]
-  /** Already-chosen ids — shown as disabled so a double tap cannot duplicate a row. */
+  /** Already-chosen row keys — shown as disabled so a double tap cannot duplicate a row. */
   selectedIds: string[]
   onSelect: (b: Beneficiary) => void
+  /** Adds an ad-hoc guest with no account (2607-DEV-677). */
+  onAddGuest: (name: string, email: string | null) => void
   onBack: () => void
   isLoading?: boolean
+  /** Set when the typed guest is already on this payment — shown under the form. */
+  addGuestError?: string | null
 }
 
-function initials(first: string, last: string): string {
-  return `${first.charAt(0)}${last.charAt(0)}`.toUpperCase()
+function initialsOf(b: Beneficiary): string {
+  if (b.kind === 'profile') {
+    return `${b.first_name.charAt(0)}${b.last_name.charAt(0)}`.toUpperCase()
+  }
+  // A guest is one free-text field, so the second initial comes from the second
+  // word when there is one — "Ivan Petrov" -> IP, "Ivan" -> I.
+  const [first = '', second = ''] = b.name.trim().split(/\s+/)
+  return `${first.charAt(0)}${second.charAt(0)}`.toUpperCase()
+}
+
+/** What a row is searched by: name and ABO for a profile, name and email for a guest. */
+function searchHaystack(b: Beneficiary): string {
+  return b.kind === 'profile'
+    ? `${b.first_name} ${b.last_name} ${b.abo_number ?? ''}`.toLowerCase()
+    : `${b.name} ${b.email ?? ''}`.toLowerCase()
 }
 
 /**
@@ -31,23 +52,30 @@ function initials(first: string, last: string): string {
  * One tap selects and returns; there is no multi-select confirm step to get
  * wrong at 390px.
  */
-export function BeneficiaryPicker({ beneficiaries, selectedIds, onSelect, onBack, isLoading }: Props) {
+export function BeneficiaryPicker({
+  beneficiaries, selectedIds, onSelect, onAddGuest, onBack, isLoading, addGuestError,
+}: Props) {
   const { t, lang } = useLanguage()
   const [search, setSearch] = useState('')
+
+  // The inline add-a-guest form, closed until asked for.
+  const [addingGuest, setAddingGuest] = useState(false)
+  const [guestName, setGuestName]     = useState('')
+  const [guestEmail, setGuestEmail]   = useState('')
+  const [nameTouched, setNameTouched] = useState(false)
 
   const relationLabel: Record<BeneficiaryRelation, string> = {
     self:      t('payment.relSelf'),
     household: t('payment.relHousehold'),
     downline:  t('payment.relDownline'),
     guest:     t('payment.relGuest'),
+    external:  t('payment.relExternal'),
   }
 
   const { sections, matchCount } = useMemo(() => {
     const needle = search.trim().toLowerCase()
     const matches = needle
-      ? beneficiaries.filter(b =>
-          `${b.first_name} ${b.last_name}`.toLowerCase().includes(needle) ||
-          (b.abo_number ?? '').toLowerCase().includes(needle))
+      ? beneficiaries.filter(b => searchHaystack(b).includes(needle))
       : beneficiaries
 
     // Sort by relation BEFORE slicing. Capping the flat list first means that if
@@ -129,10 +157,11 @@ export function BeneficiaryPicker({ beneficiaries, selectedIds, onSelect, onBack
           </p>
 
           {section.rows.map(b => {
-            const isSelected = selected.has(b.profile_id)
+            const key = rowKeyOf(b)
+            const isSelected = selected.has(key)
             return (
               <button
-                key={b.profile_id}
+                key={key}
                 type="button"
                 disabled={isSelected}
                 onClick={() => onSelect(b)}
@@ -155,17 +184,19 @@ export function BeneficiaryPicker({ beneficiaries, selectedIds, onSelect, onBack
                     color: 'var(--text-secondary)',
                   }}
                 >
-                  {initials(b.first_name, b.last_name)}
+                  {initialsOf(b)}
                 </span>
 
                 <span className="min-w-0 flex-1">
                   <span className="block text-sm truncate" style={{ color: 'var(--text-primary)' }}>
-                    {b.first_name} {b.last_name}
+                    {displayNameOf(b)}
                   </span>
                   <span className="block text-xs truncate" style={{ color: 'var(--text-secondary)' }}>
-                    {/* An ABO-less co-owner or guest has no number to show, so the
-                        relation alone carries the row — never a bare separator. */}
-                    {b.abo_number ? `${b.abo_number} · ` : ''}{relationLabel[b.relation]}
+                    {/* An ABO-less co-owner, or a guest with no email, has nothing
+                        to show before the relation — never a bare separator. */}
+                    {b.kind === 'profile'
+                      ? `${b.abo_number ? `${b.abo_number} · ` : ''}${relationLabel[b.relation]}`
+                      : `${b.email ? `${b.email} · ` : ''}${relationLabel[b.relation]}`}
                   </span>
                 </span>
               </button>
@@ -173,6 +204,118 @@ export function BeneficiaryPicker({ beneficiaries, selectedIds, onSelect, onBack
           })}
         </div>
       ))}
+
+      {/* The way out when the person is in no list above, because they have no
+          account at all (2607-DEV-677). Pinned below the sections so it never
+          pushes real matches off a 390px screen, and always rendered — a search
+          that matches nothing is exactly when it is needed most. */}
+      {!isLoading && !addingGuest && (
+        <button
+          type="button"
+          onClick={() => setAddingGuest(true)}
+          className="w-full flex items-center justify-center rounded-xl px-3 text-xs font-semibold transition-opacity hover:opacity-70"
+          style={{
+            minHeight: '44px',
+            border: '1px dashed var(--border-default)',
+            background: 'none',
+            color: 'var(--text-secondary)',
+            cursor: 'pointer',
+          }}
+        >
+          {t('payment.addGuest')}
+        </button>
+      )}
+
+      {!isLoading && addingGuest && (
+        <div
+          className="space-y-2 rounded-xl p-3"
+          style={{ border: '1px dashed var(--border-default)' }}
+        >
+          <input
+            autoFocus
+            value={guestName}
+            onChange={e => setGuestName(e.target.value)}
+            onBlur={() => setNameTouched(true)}
+            // Capped at the same length as payment_guests_name_check, so the
+            // field cannot accept something the database will refuse.
+            maxLength={MAX_GUEST_NAME_LENGTH}
+            placeholder={t('payment.guestName')}
+            className="w-full border rounded-xl px-3 py-2 text-sm"
+            style={{
+              borderColor: 'var(--border-default)',
+              color: 'var(--text-primary)',
+              backgroundColor: 'var(--bg-global)',
+              outline: 'none',
+            }}
+          />
+          <input
+            type="email"
+            value={guestEmail}
+            onChange={e => setGuestEmail(e.target.value)}
+            maxLength={MAX_GUEST_EMAIL_LENGTH}
+            placeholder={t('payment.guestEmail')}
+            className="w-full border rounded-xl px-3 py-2 text-sm"
+            style={{
+              borderColor: 'var(--border-default)',
+              color: 'var(--text-primary)',
+              backgroundColor: 'var(--bg-global)',
+              outline: 'none',
+            }}
+          />
+
+          {nameTouched && guestName.trim() === '' && (
+            <p className="text-[11px]" style={{ color: '#bc4749' }}>
+              {t('payment.guestNameRequired')}
+            </p>
+          )}
+          {addGuestError && (
+            <p className="text-[11px]" style={{ color: '#bc4749' }}>
+              {addGuestError}
+            </p>
+          )}
+
+          <div className="flex gap-2 pt-1">
+            <button
+              type="button"
+              onClick={() => {
+                setAddingGuest(false)
+                setGuestName(''); setGuestEmail(''); setNameTouched(false)
+              }}
+              className="flex-1 rounded-xl text-xs font-semibold transition-opacity hover:opacity-70"
+              style={{
+                minHeight: '44px',
+                background: 'none',
+                border: '1px solid var(--border-default)',
+                color: 'var(--text-secondary)',
+                cursor: 'pointer',
+              }}
+            >
+              {t('payment.cancel')}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const name = guestName.trim()
+                setNameTouched(true)
+                if (name === '') return
+                // The parent owns the outcome: on a duplicate it re-renders this
+                // form with addGuestError set, so the typed text stays put and
+                // can be corrected rather than being thrown away.
+                onAddGuest(name, guestEmail.trim() || null)
+              }}
+              className="flex-1 rounded-xl text-xs font-semibold text-white transition-opacity hover:opacity-90"
+              style={{
+                minHeight: '44px',
+                backgroundColor: 'var(--brand-forest)',
+                border: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              {t('payment.guestAdd')}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Honest about the cap rather than silently truncating. */}
       {!isLoading && matchCount > MAX_ROWS && (

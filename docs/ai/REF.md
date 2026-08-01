@@ -302,11 +302,19 @@ Normalised UNION ALL over `profiles_audit` + `role_change_audit`. Columns: `prof
 **`spouse_link_requests`** — `id, requester_id → profiles, claimed_primary_id → profiles, status (pending|approved|denied), admin_note, created_at, resolved_at`
 - ADR-016. UNIQUE on `requester_id`. RLS: requester reads/inserts/deletes own pending; admin full access.
 
-**`payments`** — `id, profile_id, trip_id, payable_item_id, amount, currency, transaction_date, admin_status, member_status, admin_reject_reason, member_reject_reason, payment_method, proof_url, note, admin_note, logged_by_admin, payment_group_id, paid_by_profile_id, properties, created_at`
+**`payments`** — `id, profile_id, trip_id, payable_item_id, amount, currency, transaction_date, admin_status, member_status, admin_reject_reason, member_reject_reason, payment_method, proof_url, note, admin_note, logged_by_admin, payment_group_id, paid_by_profile_id, beneficiary_guest_id, properties, created_at`
 - `payment_group_id` + `paid_by_profile_id` (2607-DEV-676) are both-or-neither by CHECK; legacy/self-paid rows have both NULL and are never backfilled. Consumers needing the payer read `paid_by_profile_id ?? profile_id`. Third FK to `profiles` — hint every PostgREST embed.
+- `beneficiary_guest_id` (2607-DEV-677) → `payment_guests`. Non-null means the row covers someone with NO account, who has no ledger, so `profile_id = paid_by_profile_id` (the payer) — enforced by `payments_guest_ledger_check`, and it also requires a `payment_group_id`. **Every query computing one person's OWN total must exclude these rows** — use `personalApprovedTotal` (`lib/payments/totals.ts`). Listing queries must NOT: the payer did pay that money.
 - Exactly one of `trip_id` / `payable_item_id` non-null.
 - GREEN = both statuses `'approved'`.
-- ⚠️ Two FKs to `profiles` — PostgREST join MUST use `profiles!profile_id(...)`.
+- ⚠️ THREE FKs to `profiles` — PostgREST join MUST hint, e.g. `profiles!profile_id(...)`.
+
+**`payment_guests`** — `id, owner_profile_id, name, email, linked_profile_id, created_at`
+- Ad-hoc beneficiaries with no account (2607-DEV-677). Owned by the payer; remembered across payments and **outliving** them — neither `withdraw_payment_group` nor the admin group DELETE touches this table.
+- UNIQUE on `(owner_profile_id, lower(btrim(name)), lower(coalesce(email,'')))`, which is what makes a re-typed guest reuse one row and a double-submitted form idempotent. `guestIdentityKey` (`lib/payments/eligibility.ts`) mirrors the expression.
+- `linked_profile_id` is set manually by an admin via `/api/admin/payment-guests/[id]`. A **record only** — it moves no money and rewrites no `payments` row. Never auto-matched on email (`profiles.contact_email` is user-editable and unverified).
+- ⚠️ Two FKs to `profiles` (`owner_profile_id`, `linked_profile_id`) — hint every embed.
+- RLS: admin/core ALL; owner SELECT; owner INSERT with `linked_profile_id IS NULL`. No owner UPDATE/DELETE.
 
 **`trips`** — `id, title, description, destination, start_date, end_date, access_roles, accommodation_type, counter_bg_color, currency, image_url, inclusions, location, milestones, total_cost, trip_type, created_at`
 - `access_roles`: array of role strings. PostgREST filter: `.contains('access_roles', [role])`
@@ -427,10 +435,12 @@ Normalised UNION ALL over `profiles_audit` + `role_change_audit`. Columns: `prof
 | `/api/profile/payments` | GET, POST | POST triggers `sendNotificationEmail` to admin |
 | `/api/profile/trips/[id]/cancel` | POST | |
 | `/api/payable-items` | GET | Active items only |
-| `/api/payments` | GET, POST | Unified. GET returns rows on the caller's ledger AND rows they paid for. POST is additive: no `beneficiaries` key → legacy single row; with it → `submit_payment_group` writes N rows sharing a `payment_group_id` |
-| `/api/payments/beneficiaries` | GET | The picker's only source — wraps `get_payable_beneficiaries` (self / household / downline / ABO-less approved members). Never returns an upline |
+| `/api/payments` | GET, POST | Unified. GET returns rows on the caller's ledger AND rows they paid for. POST is additive: no `beneficiaries` key → legacy single row; with it → `submit_payment_group` writes N rows sharing a `payment_group_id`. Each beneficiary entry carries `amount_cents` plus EXACTLY ONE of `profile_id`, `guest_id`, or `guest:{name,email}` (2607-DEV-677) |
+| `/api/payments/beneficiaries` | GET | The picker's only source. Wraps `get_payable_beneficiaries` (self / household / downline / ABO-less approved members) as `kind:'profile'`, then appends the caller's own `payment_guests` as `kind:'guest'` + `relation:'external'` (2607-DEV-677). Never returns an upline; a guest-ROLE caller gets no guest list |
 | `/api/payments/group/[groupId]` | DELETE | Payer withdraws a whole still-pending group. Hard delete; best-effort proof cleanup. 404 when not the payer's or no longer pending |
 | `/api/admin/payments/group/[groupId]` | PATCH, DELETE | Whole-group approve/reject/delete. Reject emails the PAYER once; approve emails each beneficiary |
+| `/api/admin/payment-guests` | GET | Admin/core. Ad-hoc guests that have at least one payment; `?unlinked=1` narrows to the ones not yet linked to a member. Each row carries `payment_count` |
+| `/api/admin/payment-guests/[id]` | PATCH | Admin/core. Sets or clears `linked_profile_id` (`null` unlinks). A record only — moves no money, rewrites no payment |
 | `/api/trips` | GET, POST | GET: role-filtered list (unauthenticated → guest). POST: admin-only create |
 | `/api/trips/[id]/messages` | GET | Read-only trip bulletin (admin-authored; no author shown to members) |
 | `/api/trips/[id]/payments` | GET | |

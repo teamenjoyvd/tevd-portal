@@ -19,7 +19,7 @@ export async function GET(req: Request): Promise<Response> {
   // assembled client-side by payment_group_id, so the legacy row shape is unchanged.
   let query = supabase
     .from('payments')
-    .select('id, amount, currency, transaction_date, admin_status, member_status, admin_reject_reason, member_reject_reason, payment_method, proof_url, note, admin_note, logged_by_admin, created_at, payment_group_id, paid_by_profile_id, profiles!profile_id(first_name, last_name, abo_number), payer:profiles!paid_by_profile_id(first_name, last_name, abo_number), trips(title, destination), payable_items(title, item_type, currency)')
+    .select('id, amount, currency, transaction_date, admin_status, member_status, admin_reject_reason, member_reject_reason, payment_method, proof_url, note, admin_note, logged_by_admin, created_at, payment_group_id, paid_by_profile_id, beneficiary_guest_id, payment_guests(id, name, linked_profile_id), profiles!profile_id(first_name, last_name, abo_number), payer:profiles!paid_by_profile_id(first_name, last_name, abo_number), trips(title, destination), payable_items(title, item_type, currency)')
     .order('created_at', { ascending: false })
 
   if (statusFilter) query = query.eq('admin_status', statusFilter)

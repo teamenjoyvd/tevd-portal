@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { formatDate, formatCurrency } from '@/lib/format'
 import { BackButton, TripHeroImage, TripDetail, FALLBACK_ACCENT } from './shared'
+import { personalApprovedTotal } from '@/lib/payments/totals'
 import { TripMessagesTile } from './TripMessagesTile'
 import type { Tables } from '@/types/supabase'
 import type { TripProfile, TripPayment } from '../page'
@@ -14,9 +15,10 @@ export function ArchivedView({
 }: { trip: Trip; profile: TripProfile; payments: TripPayment[] }) {
   const [accentColor, setAccentColor] = useState(FALLBACK_ACCENT)
 
-  const approvedTotal = payments
-    .filter(p => p.admin_status === 'approved')
-    .reduce((sum, p) => sum + p.amount, 0)
+  // Same correction as AttendeeView (2607-DEV-677): a guest row sits on the
+  // payer's ledger but is not the payer's own fee, so the final "Total paid"
+  // must leave it out. See lib/payments/totals.ts.
+  const approvedTotal = personalApprovedTotal(payments)
 
   return (
     <div className="py-8 pb-16">
@@ -64,6 +66,10 @@ export function ArchivedView({
                         {formatDate(p.transaction_date)}
                         {p.payment_method ? ` · ${p.payment_method}` : ''}
                         {p.note ? ` · ${p.note}` : ''}
+                        {/* Untranslated to match this file, which renders
+                            'Approved'/'Pending' as literals and never calls
+                            useLanguage. */}
+                        {p.payment_guests ? ` · for ${p.payment_guests.name} · guest` : ''}
                       </p>
                     </div>
                     {p.proof_url && (

@@ -25,6 +25,12 @@ export type Payment = {
   payment_group_id: string | null
   /** Who actually transferred the money. NULL on legacy/self-paid rows, where the payer is the row owner. */
   paid_by_profile_id: string | null
+  /** Non-null when this row covers an ad-hoc guest with no account (2607-DEV-677).
+   *  `profiles` below is then the PAYER, not the beneficiary — a guest has no
+   *  ledger, so the row sits on the payer's. */
+  beneficiary_guest_id: string | null
+  /** The guest this row is for, when there is one. */
+  payment_guests: { id: string; name: string; linked_profile_id: string | null } | null
   profiles: { first_name: string; last_name: string; abo_number: string | null } | null
   /** The payer, hinted off the third FK to profiles. NULL on legacy rows. */
   payer: { first_name: string; last_name: string; abo_number: string | null } | null
