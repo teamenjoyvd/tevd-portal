@@ -201,11 +201,25 @@ async function ensureTreeNode(supabase, profileId, aboNumber, sponsorAboNumber, 
 async function ensurePayableItem(supabase, createdByProfileId) {
   const { data: existing, error: readError } = await supabase
     .from('payable_items')
-    .select('id')
+    .select('id, is_active, currency')
     .eq('title', PAYABLE_ITEM_TITLE)
     .maybeSingle()
   if (readError) throw new Error(`payable_items lookup failed: ${readError.message}`)
-  if (existing != null) return false
+
+  // Matching on title alone accepted an inactive or non-EUR row, and the spec
+  // needs an ACTIVE EUR item — so the seed reported success while the spec went
+  // on skipping at :100. Title is the only guard available (no natural unique
+  // key), so repair the row in place; inserting would leave two items sharing a
+  // title and break the .maybeSingle() above on the next run.
+  if (existing != null) {
+    if (existing.is_active === true && existing.currency === 'EUR') return 'present'
+    const { error: repairError } = await supabase
+      .from('payable_items')
+      .update({ is_active: true, currency: 'EUR' })
+      .eq('id', existing.id)
+    if (repairError) throw new Error(`payable_items repair failed: ${repairError.message}`)
+    return 'repaired'
+  }
 
   const { error } = await supabase.from('payable_items').insert({
     title: PAYABLE_ITEM_TITLE,
@@ -216,7 +230,7 @@ async function ensurePayableItem(supabase, createdByProfileId) {
     created_by: createdByProfileId,
   })
   if (error) throw new Error(`payable_items insert failed: ${error.message}`)
-  return true
+  return 'created'
 }
 
 async function main() {
@@ -302,11 +316,12 @@ async function main() {
   await ensureTreeNode(supabase, downlineProfileId, DOWNLINE_ABO, MEMBER_ABO, DOWNLINE_CLERK_ID)
   console.log(`seed-clerk-test-users: downline ready — ${DOWNLINE_ABO} under ${MEMBER_ABO}`)
 
-  const created = await ensurePayableItem(supabase, profileIdByRole.admin)
+  // Names which of the three outcomes happened: the spec skips unless this row
+  // is active and EUR, so "repaired" is the line that explains a run that used
+  // to skip and now does not.
+  const itemStatus = await ensurePayableItem(supabase, profileIdByRole.admin)
   console.log(
-    created
-      ? `seed-clerk-test-users: payable item created — "${PAYABLE_ITEM_TITLE}"`
-      : `seed-clerk-test-users: payable item "${PAYABLE_ITEM_TITLE}" already exists`,
+    `seed-clerk-test-users: payable item "${PAYABLE_ITEM_TITLE}" ${itemStatus} — active, EUR`,
   )
 }
 

@@ -147,9 +147,13 @@ function isSafeSupabaseTarget(url) {
   } catch {
     return false
   }
-  if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return false
-  if (parsed.hostname === '127.0.0.1' || parsed.hostname === 'localhost') return true
-  return parsed.hostname === `${DEV_PROJECT_REF}.supabase.co`
+  // Only a local instance may be reached over plaintext. `http://<ref>.supabase.co`
+  // would otherwise pass this guard and put the service-role key on the wire in
+  // the clear — the hosted target must be HTTPS.
+  if (parsed.hostname === '127.0.0.1' || parsed.hostname === 'localhost') {
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:'
+  }
+  return parsed.protocol === 'https:' && parsed.hostname === `${DEV_PROJECT_REF}.supabase.co`
 }
 
 async function main() {

@@ -2,9 +2,10 @@
 BUILD issue #676 (2607-DEV-676, branch `dev/2607-DEV-676`): payments on behalf of others — one submission + one proof produces N `payments` rows sharing a `payment_group_id`, one per real-profile beneficiary in the payer's own LOS, each landing on that person's own ledger. Admin approves/rejects the whole group only.
 
 ## Now
-PR 687 at `82e4f1b`: all 11 checks pass, Vercel READY, both `/profile` crash fixes verified in the
-browser, `docs/CLAIMS.md` row released. Two CodeRabbit rounds dispositioned, zero unresolved threads —
-but CodeRabbit reported `Review rate limited` on the last two commits, so those were never reviewed.
+PR 687 at `7f64679`: all 11 checks pass, Vercel READY, both `/profile` crash fixes verified in the
+browser, `docs/CLAIMS.md` row released. THREE CodeRabbit rounds dispositioned — round 3 reviewed the
+two commits the earlier `Review rate limited` had skipped and raised 3 items on the seed scripts
+(2 fixed, 1 skipped with its premise disproved). See the round-3 Done entry.
 
 The E2E run on `82e4f1b` was `16 passed / 1 flaky / 1 skipped`. The flaky one is
 `profile-bento-auth.spec.ts:143 › collapsing a bento persists after reload` — failed on
@@ -82,8 +83,31 @@ fixture so the `1 skipped` becomes a real run. See Next 1.
 - CODERABBIT PASS (2026-08-01, 11 findings, all verified against live code before acting — none phantom). FIXED 10: (1) RLS `payments_member_insert` admitted `COALESCE(paid_by_profile_id, profile_id) = get_my_profile_id()`, which a signed-in user satisfies by naming THEMSELVES payer while pointing `profile_id` at anyone — real privilege escalation, `can_pay_for` cannot backstop it since EXECUTE is revoked from `authenticated`; now self-inserts only (`paid_by_profile_id IS NULL AND payment_group_id IS NULL AND profile_id = get_my_profile_id()`), applied to DEV and confirmed by `pg_policy`. (2) `PaymentForm.isOnBehalf` used `roster.length >= 2`, so removing your own chip from a 2-person roster left one OTHER person, dropped the group payload, and credited the payer — now gated on roster CONTENTS. (3) `rebalance`/`setRowAmount` did not guard `MAX_TOTAL_CENTS`, so a total over 1,000,000.00 threw `SplitError` out of a state updater; `MAX_TOTAL_CENTS` + new `isValidTotal` exported from `split.ts` and used in both paths (3 new tests, one asserting `isValidTotal` is false exactly where `redistribute` throws). (4) `SplitEditor` share input was fully controlled on `toFixed(2)` and reformatted every keystroke — "50.00" was untypeable; now a per-row draft, formatted on blur. (5) `/api/payments` returned raw Postgres text on non-P0001; now logged server-side, generic 500 to the client. (6) `ledgerPayments` dropped the payer's OWN row from a group they paid for, contradicting its own comment; now keyed on `profile_id` first. (7) withdraw failures were silent — dialog now renders `withdrawMutation.error` and resets on close. (8) admin review/delete failures went to `payError`, which renders only inside the closed `LogPaymentDrawer`; now shown beside the pending queue. (9) BeneficiaryPicker cap notice counted the unfiltered roster, not matches. (10) the cap sliced the flat list before grouping, so a whole relation section could vanish; matches are now sorted by `RELATION_ORDER` before slicing. Also fixed the e2e assertion that contradicted the redistribution contract (one edit locks a row and the other absorbs, so a single `fill` can never unbalance — the spec now locks both rows).
 - SKIPPED 1, with reason: CodeRabbit wanted group DELETE gated on `admin_status = 'pending'`. Declined — `app/api/admin/payments/[id]/route.ts` DELETE has never been status-gated either, so gating only the group form would remove a capability admins already have for every other row. Took CodeRabbit's own stated alternative: documented the intent on the route and fixed the real defect, the confirmation dialog now naming the row count and statuses (`deleteGroupScope`, read from `initialPayments` so the status filter cannot hide siblings).
 - CODERABBIT ROUND 2 (2026-08-01) — the re-review passed but raised 3 items on code written this session. FIXED 2: (a) `MAX_TOTAL_CENTS` was enforced only in the browser; `app/api/payments/route.ts` and `submit_payment_group` now assert the same ceiling, so a hand-crafted request cannot post an arbitrary total (verified on DEV: `rejected: total_cents exceeds the 100000000 cent ceiling (got 200000000)`). (b) `seed-smoke-calendar.js` matched the DEV ref anywhere in the URL — `https://evil.example/?ref=<ref>` and `https://<ref>.supabase.co.evil.example` both passed; now parses the URL and compares hostname exactly (11 adversarial cases probed, all pass). Applied the updated RPC to DEV with `supabase db query --linked -f` (the CLI has a `db query` subcommand — no credential-manager workaround needed).
+- CODERABBIT ROUND 3 (2026-08-01, GCR on PR 687) — 3 items, all on the two commits the earlier
+  `Review rate limited` never reviewed. FIXED 2: (a) `seed-smoke-calendar.js` `isSafeSupabaseTarget`
+  accepted `http://<DEV_REF>.supabase.co`, putting the service-role key on the wire in cleartext;
+  plaintext is now localhost-only and the hosted target must be HTTPS (7 adversarial URLs probed
+  against the real script — the 4 hostile ones refused, HTTPS-DEV and both localhost forms accepted).
+  (b) `ensurePayableItem` matched on title alone, so an inactive or non-EUR `E2E Test Fee` counted as
+  present and the spec kept skipping at :100 while the seed logged success; it now repairs the row in
+  place (not a second insert — `payable_items` has no natural unique key and a duplicate title would
+  break the `.maybeSingle()` on the next run) and returns created/repaired/present so the CI log names
+  the outcome. SKIPPED 1, premise DISPROVED: CodeRabbit wanted `ensureTreeNode` to "reconcile the
+  member's existing tree node" or the downline would be "disconnected from the member parent". It
+  cannot be — `upsert_tree_node` (`20260509000300_upsert_tree_node_no_recurse.sql:38-52`) resolves the
+  sponsor via `profiles.abo_number` and then reads that profile's LIVE `tree_nodes.path`, so the
+  downline is appended under whatever path the member actually has. Worse, the same RPC ends
+  `ON CONFLICT (profile_id) DO UPDATE SET path = EXCLUDED.path`, so calling it for the member with a
+  NULL sponsor — which is what "reconcile" would do — is exactly the reparent-to-root that the
+  early-return guard at :178-181 was written to prevent.
 - RESOLVED: `preview-smoke.yml` now reads `SUPABASE_SERVICE_ROLE_KEY_DEV`, matching the repo's `_DEV`/`_PROD` convention. User created the secret 2026-08-01T07:52Z and removed the unsuffixed one. Green in CI on `8f3d8f7` (seed step ran, then `10 passed (1.6m)`).
-- NOTED (not done): `scripts/seed-smoke-guide.js:68-71` has the identical loose `url.includes(DEV_PROJECT_REF)` guard that was just fixed in `seed-smoke-calendar.js`. Same weakness, out of scope for #676.
+- NOTED (not done): TWO scripts still carry the loose `url.includes(DEV_PROJECT_REF)` guard that
+  `seed-smoke-calendar.js` has now had hardened twice (exact hostname, then HTTPS-only):
+  `scripts/seed-smoke-guide.js:68-71` and `scripts/seed-clerk-test-users.js:102-105`. Both accept
+  `https://evil.example/?ref=<ref>`, `https://<ref>.supabase.co.evil.example`, and plaintext http to
+  the hosted project, and both then send a service-role key. Same defect class CodeRabbit has now
+  flagged twice on this PR. Left out of scope under the "change only what the DoD requires"
+  constraint — raised with the user rather than folded in silently.
 - CALENDAR SMOKE FIXTURE (2026-08-01, unrelated to #676 — see Open items). `390px smoke vs preview` failed on PR 687 with `no calendar events found in the current month view` (`e2e/calendar.spec.ts:47`). CAUSE: DEV `calendar_events` held 3 rows, all in Sofia month 2026-07, while `app/(dashboard)/calendar/page.tsx:20` derives the initial month from the Sofia calendar day — which rolled to 2026-08 at 2026-07-31T21:00Z (probe: 20:59Z -> 2026-07, 21:00Z -> 2026-08). Not a PR regression: the same spec passed at 18:47Z on `dev/2607-DEV-681`, and PR 687 touches no calendar file. FIX: `scripts/seed-smoke-calendar.js` (deterministic per-month UUID, upserts current + next Sofia month, DEV-ref guard mirroring seed-smoke-guide, `google_event_id` left NULL so calendar-sync reconciliation cannot delete it) + `seed:smoke-calendar` npm script + a seed step in `preview-smoke.yml`. Seeded DEV by hand and re-ran the failed job: `10 passed (1.6m)`, `✓ 1 [mobile-390] › e2e/calendar.spec.ts:21:7`, run conclusion `completed / success`.
 - CLAIM complete: #676 has `## Design Checklist` (four checked) + `## Branch`; branch `dev/2607-DEV-676` checked out; `docs/CLAIMS.md` row registered at `b7790c7`.
 - V1 data reality check on DEV (2026-07-31) — RESULT: DEV is effectively empty and the issue's stated premise is DISPROVED. `profiles` = 11 (3 admin / 4 core / 3 member / 1 guest); `tree_nodes` = 2 (max depth 0); `los_members` = 0; `payments` = 0; profiles with no tree node = 9; **placeholder roots = 0**; **secondaries (`primary_profile_id NOT NULL`) = 0**; ABO-less profiles = 1 admin + 1 guest, both with NULL `upline_abo_number` — i.e. **zero approved ABO-less members**. The issue claimed "placeholder roots definitely exist"; they do not on DEV.
@@ -126,8 +150,9 @@ fixture so the `1 skipped` becomes a real run. See Next 1.
   `get_payable_beneficiaries`. `household` (co-owner) and the ABO-less `guest` branch stay uncovered.
 - NOTED (not done): the seed now writes an active `payable_items` row to the SHARED DEV project when
   run there, so `E2E Test Fee` appears in every DEV user's payment drawer. Acceptable for a fixture,
-  but it is not isolated. If it is ever flipped `is_active = false` by hand, the seed will not
-  reactivate it (guard is on title) and the spec silently returns to skipping.
+  but it is not isolated. RESOLVED half: the "flipped `is_active = false` by hand and the seed will
+  not reactivate it" trap is gone — `ensurePayableItem` now matches on title, repairs a row that is
+  inactive or non-EUR in place, and logs which of created/repaired/present happened.
 - NOTED (not done): `.github/workflows/ci.yml:132` cites `scripts/seed-clerk-test-users.js:60` for the
   URL allowlist regex. That line reference was already stale before this change (the guard is
   `isSafeSupabaseTarget`, not a line-60 regex) and is now further off. Comment-only.
