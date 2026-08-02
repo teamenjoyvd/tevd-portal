@@ -5,9 +5,13 @@ guests with NO account. A `payment_guests` row remembers the person; their `paym
 total; an admin can later link a guest to a real member as a record only.
 
 ## Now
-Draft PR #689 open. First CI run: 10 of 11 checks green — including `Build` in 51s, which settles the
-build that never completed locally (that ceiling was this machine, not the code). One red check fixed
-on top; awaiting the re-run.
+Draft PR #689, ALL 11 CHECKS GREEN at `4c921ef` — including `Build` (59s), which settles the build
+that never completed locally (that ceiling was this machine, not the code), and
+`Authenticated E2E (Clerk)`, where `e2e/payments-guest.spec.ts` PASSED in 16.0s on its first
+successful execution (`✓ 12 [authenticated] … 19 passed`).
+
+Two things still have no evidence and both need the preview by hand: admin link/unlink (G4), and a
+390px look at the new surfaces. Then mark ready for CodeRabbit.
 
 VERIFIED on the current tree (2026-08-02): `npx tsc --noEmit` exit 0; `npx eslint` on every changed
 area exit 0, 0 problems; `npx vitest run --exclude lib/actions/guest-registration.test.ts` =
@@ -20,9 +24,8 @@ carried note, `rm -rf .next` first — the OS, not the V8 heap, is the limit. Do
 `--max-old-space-size`.
 
 ## Next
-1. Push as DRAFT, CI green + Vercel preview READY. `npm run build` has NEVER completed locally (it
-   exceeds the 10-minute harness ceiling), so CI is its first real run. G4 (admin link/unlink) has
-   NOT been exercised against a real database yet — do it on the preview.
+1. G4 (admin link/unlink) still has NO evidence of any kind — no test, never run against a database.
+   Do it on the preview: `/admin/payments` → Guest links → pick a member → Link → Unlink.
 2. Manual 390px pass on the preview: add a guest from the picker, submit, confirm the payer's trip
    progress bar counts only their own share (G3 in the real UI), confirm the `/profile` group card
    names the GUEST and not the payer, admin link + unlink.
@@ -161,11 +164,9 @@ carried note, `rm -rf .next` first — the OS, not the V8 heap, is the limit. Do
 - NOT RUN: G4 (admin link/unlink) has no automated coverage and has never been exercised against a
   real database. `e2e/payments-guest.spec.ts` covers the member side only. Do it manually on the
   preview: `/admin/payments` → Guest links → pick a member → Link → Unlink.
-- `e2e/payments-guest.spec.ts` has still never PASSED, but it is now routed correctly (see the CI
-  entry under Done). It needs no seeded beneficiary — a guest is typed, not looked up — so the only
-  environmental skip left is the generic context's need for an active `payable_items` row, which
-  `scripts/seed-clerk-test-users.js` already seeds as `E2E Test Fee`. Confirm on the re-run that the
-  `authenticated` job reports it PASSED and not skipped.
+- DONE: `e2e/payments-guest.spec.ts` PASSED in CI at `4c921ef` — `✓ 12 [authenticated] ›
+  e2e/payments-guest.spec.ts:48:7 … (16.0s)`. Executed, not skipped, so the carried #676 worry about
+  the payments E2E passing vacuously does not apply to this spec.
 - The spec writes a real `payment_guests` row named `E2E Guest Nadia` on whichever database it runs
   against. It is uniquely indexed, so re-runs reuse the one row rather than accumulating — but on
   DEV it is a fixture that will need removing at GCR alongside `seed_676_*`.
@@ -208,4 +209,5 @@ carried note, `rm -rf .next` first — the OS, not the V8 heap, is the limit. Do
   picker prints the relation label as the section header AND inside every row's subtitle. The
   assertion above it — line 114, the actual memory requirement — PASSED, so add-guest → submit →
   withdraw → guest-survives is now proven end to end against a real database. Fixed by matching the
-  header exactly. 18 other authenticated tests passed in that run.
+  header exactly. 18 other authenticated tests passed in that run. FIXED — `✓ 12 [authenticated] ›
+  e2e/payments-guest.spec.ts:48:7 … (16.0s)`, `19 passed`, at `4c921ef`.
