@@ -114,6 +114,12 @@ test.describe('paying for an ad-hoc guest @390', () => {
     await expect(remembered.first()).toBeVisible({ timeout: 15_000 })
     // Listed under the ad-hoc section, not among the ABO-less approved members
     // that #676's `relation: 'guest'` already meant.
-    await expect(page.getByText(/guests \(no account\)/i)).toBeVisible()
+    //
+    // Matched EXACTLY, and scoped to the section header. The picker prints the
+    // relation label a second time inside each row's subtitle
+    // ("<email> · Guests (no account)"), so the loose regex this started as
+    // resolved to two elements and tripped strict mode on the spec's first real
+    // run — while the assertion above it, the actual memory requirement, passed.
+    await expect(page.getByText('Guests (no account)', { exact: true })).toBeVisible()
   })
 })

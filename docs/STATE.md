@@ -198,4 +198,14 @@ carried note, `rm -rf .next` first — the OS, not the V8 heap, is the limit. Do
   three regexes, and the new spec was never added to them, so `mobile-390` collected it and ran it
   against a live Vercel Preview that has no Clerk secrets. The spec's own docstring already said it
   belonged to `authenticated`; the config was never told. Fixed by adding `payments-guest` to all
-  three. Everything else in that run was green, `Build` included.
+  three. Everything else in that run was green, `Build` included. FIXED — `390px smoke vs preview`
+  passed on the re-run (2m22s).
+- ATTEMPT 1 [L1] on a SECOND, different failure, exposed only once the routing fix let the spec run
+  for the first time: `Authenticated E2E (Clerk)` failed at `payments-guest.spec.ts:117` with
+  `strict mode violation: getByText(/guests \(no account\)/i) resolved to 2 elements`. A TEST bug,
+  not a product bug — and the failure output is itself evidence the feature works, because element 2
+  was the remembered guest's own row (`e2e-guest-nadia@example.com · Guests (no account)`). The
+  picker prints the relation label as the section header AND inside every row's subtitle. The
+  assertion above it — line 114, the actual memory requirement — PASSED, so add-guest → submit →
+  withdraw → guest-survives is now proven end to end against a real database. Fixed by matching the
+  header exactly. 18 other authenticated tests passed in that run.
