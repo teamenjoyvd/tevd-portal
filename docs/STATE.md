@@ -37,6 +37,9 @@ carried note, `rm -rf .next` first — the OS, not the V8 heap, is the limit. Do
 - No `git push` unless the user asks for a push in this conversation (quote required). GRANTED
   2026-08-02, verbatim: "Address all security and non-security items discovered and open a draft PR".
   Scope: push `dev/2607-DEV-677` and open a DRAFT PR. Nothing else.
+- GRANTED 2026-08-02 (GCR pass, asked and answered): "Push, then resolve threads". Scope: push
+  `dev/2607-DEV-677`, then resolve the 8 applied CodeRabbit threads and reply on the 2 rejected
+  ones. Does NOT cover merging the PR or approving the gated `migrate-prod` run — ask again for both.
 - Never weaken a check to make it pass.
 - Fold the `docs/CLAIMS.md` row + `docs/STATE.md` updates into this PR — no standalone cleanup PR.
 - Change only what the DoD requires; log other findings as NOTED.
