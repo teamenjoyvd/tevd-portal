@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { formatDate, formatCurrency } from '@/lib/format'
+import { guestLabel } from '@/lib/payments/labels'
 import { type TripEntry, type GenericPayment } from '../types'
 import { StatusBadge } from './StatusBadge'
 
@@ -100,6 +101,10 @@ export function PaymentRow({
 }) {
   const { t } = useLanguage()
   const linkedTripCancelled = pay.payable_items?.item_type === 'trip' && cancelledTripIds.size > 0
+  // A guest row sits on the PAYER's ledger (2607-DEV-677), so without this it
+  // appears in their own history as an unexplained second payment of the same
+  // fee. Null on every ordinary row, which is every row that existed before.
+  const guestMarker = guestLabel(pay, t('payment.guestTag'))
   return (
     <div
       className="flex items-center gap-2 text-xs rounded-xl px-3 py-2"
@@ -110,6 +115,13 @@ export function PaymentRow({
       </span>
       <span style={{ color: 'var(--text-secondary)' }}>{formatDate(pay.transaction_date)}</span>
       {pay.payment_method && <span style={{ color: 'var(--text-secondary)' }}>{pay.payment_method}</span>}
+      {/* min-w-0 + truncate: at 390px this row is already tight, and an
+          untruncatable name would push the status badge past the viewport. */}
+      {guestMarker && (
+        <span className="truncate min-w-0" style={{ color: 'var(--text-secondary)' }}>
+          {t('payment.for')} {guestMarker}
+        </span>
+      )}
       <StatusBadge status={pay.admin_status} className="ml-auto font-semibold px-2 py-0.5 rounded-full flex-shrink-0 flex items-center gap-1">
         {pay.admin_status}
         {(pay.admin_note || linkedTripCancelled) && (

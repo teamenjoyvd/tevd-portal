@@ -10,6 +10,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { formatCurrency } from '@/lib/format'
+import { beneficiaryLabel } from '@/lib/payments/labels'
 import { PaymentForm } from '@/components/payment/PaymentForm'
 import { BentoHeader } from './BentoHeader'
 import { BentoSkeleton } from './BentoSkeleton'
@@ -197,17 +198,7 @@ export function PaymentsSection({ profileId, role }: { profileId: string; role: 
                     </p>
                     <p className="text-xs truncate" style={{ color: 'var(--text-secondary)' }}>
                       {t('payment.for')}{' '}
-                      {/* payment_guests first (2607-DEV-677): a guest row sits on
-                          the PAYER's ledger, so `beneficiary` — the profiles
-                          embed on profile_id — is the payer themselves. Reading
-                          it here would print the payer's own name once per guest
-                          instead of naming who the money was for. */}
-                      {group.rows
-                        .map(r => {
-                          if (r.payment_guests) return `${r.payment_guests.name} (${t('payment.guestTag')})`
-                          return r.beneficiary ? `${r.beneficiary.first_name} ${r.beneficiary.last_name}` : '—'
-                        })
-                        .join(', ')}
+                      {group.rows.map(r => beneficiaryLabel(r, t('payment.guestTag'))).join(', ')}
                     </p>
                   </div>
                   <button

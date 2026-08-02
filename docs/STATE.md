@@ -5,8 +5,9 @@ guests with NO account. A `payment_guests` row remembers the person; their `paym
 total; an admin can later link a guest to a real member as a record only.
 
 ## Now
-All six steps committed at `9ce2eb2`; the security review is done and its one non-security finding is
-fixed on top. Next action is the draft PR.
+Draft PR #689 open. First CI run: 10 of 11 checks green — including `Build` in 51s, which settles the
+build that never completed locally (that ceiling was this machine, not the code). One red check fixed
+on top; awaiting the re-run.
 
 VERIFIED on the current tree (2026-08-02): `npx tsc --noEmit` exit 0; `npx eslint` on every changed
 area exit 0, 0 problems; `npx vitest run --exclude lib/actions/guest-registration.test.ts` =
@@ -135,6 +136,19 @@ carried note, `rm -rf .next` first — the OS, not the V8 heap, is the limit. Do
   and so is not an enumeration oracle; `payments_guest_ledger_check` makes a cross-ledger guest row
   unrepresentable; the #676 proof-URL disclosure class is unreachable because `payerOf()` resolves a
   guest row to the payer; no dynamic SQL; no `dangerouslySetInnerHTML`; Pattern A helpers only.
+- CI, first run of PR #689: 10 of 11 checks green — `Build` (51s), `Type Check`, `Lint`, `Test`,
+  `Security Audit`, `Replay migrations from scratch`, `Authenticated E2E (Clerk)` (5m8s, so it really
+  ran; the vacuous-skip problem from #679 is gone), Vercel READY. `npm run build` therefore PASSES —
+  the 10-minute failure was this machine, not the code, and that UNVERIFIED item is now closed.
+- The guest name is now rendered through `lib/payments/labels.ts` (`guestLabel` /
+  `beneficiaryLabel`), tested by 10 cases in `labels.test.ts`. Extracted rather than inlined because
+  the repo has NO component-test infrastructure — `vitest.config.ts` is `environment: 'node'` with
+  `include` limited to `.ts`, and there is no jsdom or testing-library — so a pure helper is the only
+  part of that render a test can reach. The pixels still need the preview.
+- `PaymentRow` in `shared.tsx` now carries the same marker, so a guest row in the payer's per-item
+  history no longer reads as an unexplained second payment of their own fee. `truncate min-w-0`,
+  because at 390px that row is already tight and an untruncatable name would push the status badge
+  past the viewport.
 - FIX from that review (non-security, found while tracing the guest name through every surface):
   `PaymentsSection.tsx` rendered a pending group card's beneficiary list from `r.beneficiary`, the
   `profiles!profile_id` embed. On a guest row that IS the payer, so a card for "me + guest Ivan"
@@ -147,22 +161,17 @@ carried note, `rm -rf .next` first — the OS, not the V8 heap, is the limit. Do
 - NOT RUN: G4 (admin link/unlink) has no automated coverage and has never been exercised against a
   real database. `e2e/payments-guest.spec.ts` covers the member side only. Do it manually on the
   preview: `/admin/payments` → Guest links → pick a member → Link → Unlink.
-- NOT RUN: `e2e/payments-guest.spec.ts` has never executed. It needs no seeded beneficiary (a guest
-  is typed, not looked up), so the only environmental skip left is the generic context's need for an
-  active `payable_items` row — which `scripts/seed-clerk-test-users.js` already seeds as
-  `E2E Test Fee`.
+- `e2e/payments-guest.spec.ts` has still never PASSED, but it is now routed correctly (see the CI
+  entry under Done). It needs no seeded beneficiary — a guest is typed, not looked up — so the only
+  environmental skip left is the generic context's need for an active `payable_items` row, which
+  `scripts/seed-clerk-test-users.js` already seeds as `E2E Test Fee`. Confirm on the re-run that the
+  `authenticated` job reports it PASSED and not skipped.
 - The spec writes a real `payment_guests` row named `E2E Guest Nadia` on whichever database it runs
   against. It is uniquely indexed, so re-runs reuse the one row rather than accumulating — but on
   DEV it is a fixture that will need removing at GCR alongside `seed_676_*`.
 - NOTED (not done): `app/(dashboard)/profile/types.ts:80` declares a SECOND `TripPayment` type,
   unrelated to the one in `app/(dashboard)/trips/[id]/page.tsx`. Left alone — no personal-balance
   reducer consumes it, so the guest correction does not apply, but the name collision is a trap.
-- NOTED (not done): `shared.tsx:94` `PaymentRow` — the per-item payment HISTORY on `/profile` renders
-  amount/date/method/status only, so a guest row there is indistinguishable from one of the payer's
-  own and reads as a duplicate payment. The trip surfaces got a marker (`· for <name> · guest` in
-  `AttendeeView`/`ArchivedView`); this one did not, because it was outside the reported finding and
-  the standing constraint is to change only what the DoD requires. `GenericPayment` now carries the
-  data, so the fix is a two-line render change whenever it is wanted.
 - Deliberately NOT changed: `PaymentsSection.tsx:42` sums `amount` across a group INCLUDING guest
   rows. That is correct — it is the total of a transfer the payer made, shown on the withdraw card,
   not a personal balance.
@@ -182,4 +191,11 @@ carried note, `rm -rf .next` first — the OS, not the V8 heap, is the limit. Do
   needed for the E2E/manual passes. Its GCR cleanup was deferred by the user on 2026-07-31.
 
 ## Failed attempts
-_(none yet on #677)_
+- ATTEMPT 1 [L1] — first CI run of PR #689: `390px smoke vs preview` FAILED (both the initial run and
+  retry #1) with `The Clerk Frontend API URL is required to bypass bot protection`, thrown at
+  `e2e/payments-guest.spec.ts:37` inside `clerk.signIn`. NOT a product bug and NOT a 390px layout
+  failure: `playwright.config.ts` routes Clerk-authenticated specs to the `authenticated` project via
+  three regexes, and the new spec was never added to them, so `mobile-390` collected it and ran it
+  against a live Vercel Preview that has no Clerk secrets. The spec's own docstring already said it
+  belonged to `authenticated`; the config was never told. Fixed by adding `payments-guest` to all
+  three. Everything else in that run was green, `Build` included.
