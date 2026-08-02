@@ -5,8 +5,16 @@ guests with NO account. A `payment_guests` row remembers the person; their `paym
 total; an admin can later link a guest to a real member as a record only.
 
 ## Now
-PR #689 is READY (out of draft) and all 11 checks were green at `4c921ef`. CodeRabbit has run its
-one pass: 10 actionable review threads. GCR applied 8 and rejected 2 with a traced reason (below).
+PR #689 is READY and ALL 11 CHECKS ARE GREEN at `cecf884` — the post-GCR commit, so the review
+fixes are themselves verified in CI (`Build` 1m6s, `Authenticated E2E (Clerk)` 5m3s, `390px smoke`
+2m23s, `Replay migrations from scratch` 2m22s, Vercel READY). CodeRabbit ran its one pass:
+10 actionable threads, 8 applied and resolved, 2 rejected with the trace and left OPEN on purpose.
+
+The `docs/CLAIMS.md` row for #677 is removed in this same PR (folded, never a standalone cleanup
+PR). The registry is now empty.
+
+AWAITING THE MERGE. `migrate-prod` is gated on `main`, so it cannot be approved until #689 is
+merged — the order is merge -> approve the gated run -> smoke-check prod -> close #677.
 
 Two things still have no evidence and both need the preview by hand: admin link/unlink (G4), and a
 390px look at the new surfaces.
@@ -29,8 +37,9 @@ carried note, `rm -rf .next` first — the OS, not the V8 heap, is the limit. Do
    names the GUEST and not the payer, admin link + unlink.
 3. DONE — marked ready, one CodeRabbit pass, all findings addressed in ONE batched commit. Push it,
    resolve the 8 applied threads, reply on the 2 rejected ones, then merge.
-4. After merge: approve the gated `migrate-prod` run (this PR HAS a migration), smoke-check
-   production, then GCR — remove the `docs/CLAIMS.md` row, close #677.
+4. `docs/CLAIMS.md` row REMOVED in this PR (`cecf884`+1). Still to do, in this order and only after
+   the merge: approve the gated `migrate-prod` run (this PR HAS a migration — Actions `production`
+   environment gate), confirm it applied, smoke-check `https://www.teamenjoyvd.com`, close #677.
 
 ## Constraints
 - Never push to `main`; `dev/2607-DEV-677` only.
