@@ -4,12 +4,13 @@ import { useState } from 'react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { formatCurrency } from '@/lib/format'
 import { isBalanced, sumCents, type SplitRow } from '@/lib/payments/split'
-import type { Beneficiary } from './types'
+import { displayNameOf, type Beneficiary, type DraftGuest } from './types'
 
 type Props = {
   rows: SplitRow[]
-  /** Lookup for the display name of each row, keyed by profile_id. */
-  people: Record<string, Beneficiary>
+  /** Lookup for the display name of each row, keyed by ROW KEY — a bare uuid for
+   *  a profile, a prefixed key for a guest. See rowKeyOf in ./types. */
+  people: Record<string, Beneficiary | DraftGuest>
   totalCents: number
   currency: string
   /** Called with the row's new amount in integer cents; the caller locks and redistributes. */
@@ -31,7 +32,7 @@ type Props = {
 export function SplitEditor({ rows, people, totalCents, currency, onChangeAmount, onRemove }: Props) {
   const { t } = useLanguage()
 
-  // Raw text per row while the user is typing, keyed by profile_id. Without it
+  // Raw text per row while the user is typing, keyed by row key. Without it
   // the input is fully controlled on (amountCents / 100).toFixed(2), so every
   // keystroke reformats: typing "5" renders "5.00", the next digit makes
   // "5.000" which parses back to 5 and renders "5.00" again — "50.00" can never
@@ -63,7 +64,15 @@ export function SplitEditor({ rows, people, totalCents, currency, onChangeAmount
             }}
           >
             <span className="min-w-0 flex-1 text-sm truncate" style={{ color: 'var(--text-primary)' }}>
-              {person ? `${person.first_name} ${person.last_name}` : row.profileId}
+              {person ? displayNameOf(person) : row.profileId}
+              {/* A guest share is real money the payer owes, but it is not part
+                  of their OWN balance — saying so here is cheaper than a support
+                  question about a progress bar that did not move. */}
+              {person && person.kind !== 'profile' && (
+                <span className="ml-1.5 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                  · {t('payment.guestTag')}
+                </span>
+              )}
               {/* Marks a hand-typed row, which redistribution will not move. */}
               {row.locked && (
                 <svg

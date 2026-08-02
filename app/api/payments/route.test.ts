@@ -259,6 +259,13 @@ function groupSupabase(overrides: Record<string, QueryResult> = {}) {
         ],
         error: null,
       },
+      // The one ad-hoc guest this payer already knows (2607-DEV-677). Only
+      // queried when a request actually names a guest, so the profile-only
+      // tests above never touch it.
+      payment_guests: {
+        data: [{ id: 'gst_1', name: 'Ivan Petrov', email: 'ivan@example.com' }],
+        error: null,
+      },
       ...overrides,
     },
     {
@@ -450,5 +457,173 @@ describe('POST /api/payments — beneficiary groups', () => {
       }),
     )
     expect(res.status).toBe(403)
+  })
+})
+
+// Ad-hoc guests with no account (2607-DEV-677). The database-side rules are
+// probed directly against DEV; what these cover is the ROUTE's own screening —
+// what it forwards to submit_payment_group and what it refuses to.
+describe('POST /api/payments — ad-hoc guests', () => {
+  it('G1: an inline guest is forwarded as a guest entry, not a profile', async () => {
+    mockAuth.mockResolvedValue({ userId: 'clerk_1' })
+    const supabase = groupSupabase()
+    mockCreateServiceClient.mockReturnValue(supabase)
+    const { POST } = await import('@/app/api/payments/route')
+
+    const res = await POST(
+      postReq({
+        amount: 200,
+        transaction_date: '2026-07-01',
+        trip_id: 't1',
+        beneficiaries: [
+          { profile_id: 'p1', amount_cents: 10000 },
+          { guest: { name: '  Nadia Ivanova ', email: ' NADIA@example.com ' }, amount_cents: 10000 },
+        ],
+      }),
+    )
+
+    expect(res.status).toBe(201)
+    const call = (supabase.rpc as unknown as ReturnType<typeof vi.fn>).mock.calls.find(
+      (c) => c[0] === 'submit_payment_group',
+    )
+    const entries = call?.[1].p_payload.beneficiaries
+    // Trimmed but NOT case-folded: the stored value is what the payer typed and
+    // is what the picker shows back to them. Case-insensitivity belongs to the
+    // IDENTITY (guestIdentityKey / uq_payment_guests_owner_identity), which the
+    // G6 collision case below proves.
+    expect(entries[1].guest).toEqual({ name: 'Nadia Ivanova', email: 'NADIA@example.com' })
+    // The entry carries ONE identifier: a stray profile_id riding along beside a
+    // guest is what the rebuild in the route exists to prevent.
+    expect(entries[1]).not.toHaveProperty('profile_id')
+    expect(entries[1]).not.toHaveProperty('guest_id')
+  })
+
+  it('G2b: a remembered guest is submitted by id', async () => {
+    mockAuth.mockResolvedValue({ userId: 'clerk_1' })
+    const supabase = groupSupabase()
+    mockCreateServiceClient.mockReturnValue(supabase)
+    const { POST } = await import('@/app/api/payments/route')
+
+    const res = await POST(
+      postReq({
+        amount: 50,
+        transaction_date: '2026-07-01',
+        trip_id: 't1',
+        beneficiaries: [{ guest_id: 'gst_1', amount_cents: 5000 }],
+      }),
+    )
+
+    expect(res.status).toBe(201)
+    const call = (supabase.rpc as unknown as ReturnType<typeof vi.fn>).mock.calls.find(
+      (c) => c[0] === 'submit_payment_group',
+    )
+    expect(call?.[1].p_payload.beneficiaries[0]).toEqual({ guest_id: 'gst_1', amount_cents: 5000 })
+  })
+
+  it('G7: a guest_id belonging to someone else is rejected 403 and never submitted', async () => {
+    mockAuth.mockResolvedValue({ userId: 'clerk_1' })
+    const supabase = groupSupabase()
+    mockCreateServiceClient.mockReturnValue(supabase)
+    const { POST } = await import('@/app/api/payments/route')
+
+    const res = await POST(
+      postReq({
+        amount: 50,
+        transaction_date: '2026-07-01',
+        trip_id: 't1',
+        beneficiaries: [{ guest_id: 'gst_someone_else', amount_cents: 5000 }],
+      }),
+    )
+
+    expect(res.status).toBe(403)
+    const calls = (supabase.rpc as unknown as ReturnType<typeof vi.fn>).mock.calls
+    expect(calls.find((c) => c[0] === 'submit_payment_group')).toBeUndefined()
+  })
+
+  it('G6: the same guest named by id and re-typed inline collides with 400', async () => {
+    mockAuth.mockResolvedValue({ userId: 'clerk_1' })
+    mockCreateServiceClient.mockReturnValue(groupSupabase())
+    const { POST } = await import('@/app/api/payments/route')
+
+    const res = await POST(
+      postReq({
+        amount: 100,
+        transaction_date: '2026-07-01',
+        trip_id: 't1',
+        beneficiaries: [
+          { guest_id: 'gst_1', amount_cents: 5000 },
+          // Same identity as gst_1 under the unique index: trimmed, case-folded.
+          { guest: { name: ' ivan petrov ', email: 'IVAN@example.com' }, amount_cents: 5000 },
+        ],
+      }),
+    )
+
+    expect(res.status).toBe(400)
+  })
+
+  it('G8: an entry naming both a profile and a guest is rejected 400', async () => {
+    mockAuth.mockResolvedValue({ userId: 'clerk_1' })
+    mockCreateServiceClient.mockReturnValue(groupSupabase())
+    const { POST } = await import('@/app/api/payments/route')
+
+    const res = await POST(
+      postReq({
+        amount: 100,
+        transaction_date: '2026-07-01',
+        trip_id: 't1',
+        beneficiaries: [{ profile_id: 'p1', guest_id: 'gst_1', amount_cents: 10000 }],
+      }),
+    )
+
+    expect(res.status).toBe(400)
+  })
+
+  it('G9: a blank guest name is rejected 400', async () => {
+    mockAuth.mockResolvedValue({ userId: 'clerk_1' })
+    mockCreateServiceClient.mockReturnValue(groupSupabase())
+    const { POST } = await import('@/app/api/payments/route')
+
+    const res = await POST(
+      postReq({
+        amount: 100,
+        transaction_date: '2026-07-01',
+        trip_id: 't1',
+        beneficiaries: [{ guest: { name: '   ' }, amount_cents: 10000 }],
+      }),
+    )
+
+    expect(res.status).toBe(400)
+  })
+
+  // Regression, PR #689 review. `guest.name` arrives straight off req.json() and
+  // is validated by string methods; `??` substitutes only null and undefined, so
+  // a number reached `.trim()` and threw a TypeError out of a handler with no
+  // try/catch. The caller got a framework 500 instead of a 400, and any
+  // authenticated member could provoke it. `await POST(...)` re-throws here, so
+  // this test fails loudly rather than merely reporting the wrong status.
+  it.each([
+    ['a numeric name', { name: 123 }],
+    ['an object name', { name: { toString: 'no' } }],
+    ['an array name', { name: ['Ivan'] }],
+    ['a numeric email', { name: 'Ivan', email: 42 }],
+    ['a boolean email', { name: 'Ivan', email: true }],
+  ])('G13: %s is rejected 400, never 500, and never submitted', async (_label, guest) => {
+    mockAuth.mockResolvedValue({ userId: 'clerk_1' })
+    const supabase = groupSupabase()
+    mockCreateServiceClient.mockReturnValue(supabase)
+    const { POST } = await import('@/app/api/payments/route')
+
+    const res = await POST(
+      postReq({
+        amount: 100,
+        transaction_date: '2026-07-01',
+        trip_id: 't1',
+        beneficiaries: [{ guest, amount_cents: 10000 }],
+      }),
+    )
+
+    expect(res.status).toBe(400)
+    const calls = (supabase.rpc as unknown as ReturnType<typeof vi.fn>).mock.calls
+    expect(calls.find((c) => c[0] === 'submit_payment_group')).toBeUndefined()
   })
 })

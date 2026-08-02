@@ -1294,12 +1294,69 @@ export type Database = {
           },
         ]
       }
+      payment_guests: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          linked_profile_id: string | null
+          name: string
+          owner_profile_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          linked_profile_id?: string | null
+          name: string
+          owner_profile_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          linked_profile_id?: string | null
+          name?: string
+          owner_profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_guests_linked_profile_id_fkey"
+            columns: ["linked_profile_id"]
+            isOneToOne: false
+            referencedRelation: "member_roles_history"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "payment_guests_linked_profile_id_fkey"
+            columns: ["linked_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_guests_owner_profile_id_fkey"
+            columns: ["owner_profile_id"]
+            isOneToOne: false
+            referencedRelation: "member_roles_history"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "payment_guests_owner_profile_id_fkey"
+            columns: ["owner_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           admin_note: string | null
           admin_reject_reason: string | null
           admin_status: string
           amount: number
+          beneficiary_guest_id: string | null
           created_at: string
           currency: string
           id: string
@@ -1322,6 +1379,7 @@ export type Database = {
           admin_reject_reason?: string | null
           admin_status?: string
           amount: number
+          beneficiary_guest_id?: string | null
           created_at?: string
           currency?: string
           id?: string
@@ -1344,6 +1402,7 @@ export type Database = {
           admin_reject_reason?: string | null
           admin_status?: string
           amount?: number
+          beneficiary_guest_id?: string | null
           created_at?: string
           currency?: string
           id?: string
@@ -1362,6 +1421,13 @@ export type Database = {
           trip_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "payments_beneficiary_guest_id_fkey"
+            columns: ["beneficiary_guest_id"]
+            isOneToOne: false
+            referencedRelation: "payment_guests"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "payments_logged_by_admin_fkey"
             columns: ["logged_by_admin"]

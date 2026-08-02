@@ -8,6 +8,7 @@ import { useLanguage } from '@/lib/hooks/useLanguage'
 import type { Payment } from '@/lib/types/payments'
 import { PendingPaymentsSection } from './PendingPaymentsSection'
 import { LogPaymentDrawer } from './LogPaymentDrawer'
+import { GuestLinkPanel } from './GuestLinkPanel'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -169,6 +170,13 @@ export function PaymentsClient({
         </p>
       )}
 
+      {/* Below the pending queue: linking a guest is reconciliation work and is
+          never urgent (2607-DEV-677). The panel renders nothing while its fetch
+          is in flight; once loaded it always renders its card, an empty guest
+          list included, so that "no guests to link" is a stated result rather
+          than a blank space. */}
+      <GuestLinkPanel />
+
       <div className="flex gap-2 flex-wrap">
         {STATUS_FILTERS.map(f => (
           <button key={f.key} onClick={() => setStatusFilter(f.key)}
@@ -194,9 +202,22 @@ export function PaymentsClient({
               <div key={p.id} className="px-5 py-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
                 style={{ borderTop: i > 0 ? '1px solid var(--border-default)' : 'none' }}>
                 <div className="flex-1 min-w-0">
+                  {/* On a guest row `profiles` is the PAYER — the guest has no
+                      ledger, so the row sits on the payer's (2607-DEV-677).
+                      Showing that name unqualified would read as the payer
+                      paying twice for themselves. */}
                   <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                    {p.profiles?.first_name} {p.profiles?.last_name}
-                    {p.profiles?.abo_number && <span className="font-mono text-xs opacity-60 ml-1.5">{p.profiles.abo_number}</span>}
+                    {p.payment_guests ? (
+                      <>
+                        {p.payment_guests.name}
+                        <span className="text-xs opacity-60 ml-1.5">{t('payment.guestTag')}</span>
+                      </>
+                    ) : (
+                      <>
+                        {p.profiles?.first_name} {p.profiles?.last_name}
+                        {p.profiles?.abo_number && <span className="font-mono text-xs opacity-60 ml-1.5">{p.profiles.abo_number}</span>}
+                      </>
+                    )}
                   </p>
                   <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
                     {entityLabel} · {formatDate(p.transaction_date)} · {formatCurrency(p.amount, p.currency)}

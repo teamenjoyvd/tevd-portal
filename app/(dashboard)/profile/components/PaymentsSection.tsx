@@ -10,6 +10,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { formatCurrency } from '@/lib/format'
+import { beneficiaryLabel } from '@/lib/payments/labels'
 import { PaymentForm } from '@/components/payment/PaymentForm'
 import { BentoHeader } from './BentoHeader'
 import { BentoSkeleton } from './BentoSkeleton'
@@ -197,9 +198,7 @@ export function PaymentsSection({ profileId, role }: { profileId: string; role: 
                     </p>
                     <p className="text-xs truncate" style={{ color: 'var(--text-secondary)' }}>
                       {t('payment.for')}{' '}
-                      {group.rows
-                        .map(r => (r.beneficiary ? `${r.beneficiary.first_name} ${r.beneficiary.last_name}` : '—'))
-                        .join(', ')}
+                      {group.rows.map(r => beneficiaryLabel(r, t('payment.guestTag'))).join(', ')}
                     </p>
                   </div>
                   <button

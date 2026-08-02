@@ -8,7 +8,11 @@ import { uploadToSignedUrl } from '@/lib/utils/uploadToSignedUrl'
 import { isBalanced, isValidTotal, redistribute, setRowAmount, type SplitRow } from '@/lib/payments/split'
 import { BeneficiaryPicker } from './BeneficiaryPicker'
 import { SplitEditor } from './SplitEditor'
-import type { Beneficiary, PayableItem } from './types'
+import {
+  DRAFT_GUEST_KEY_PREFIX, GUEST_KEY_PREFIX,
+  displayNameOf, guestIdentity, rowKeyOf,
+  type Beneficiary, type DraftGuest, type PayableItem, type ProfileBeneficiary,
+} from './types'
 
 type TripContext    = { context?: 'trip';   tripId: string }
 type GenericContext = { context: 'generic'; payableItems: PayableItem[] }
@@ -54,6 +58,14 @@ export function PaymentForm(props: PaymentFormProps) {
   const [participants, setParticipants] = useState<SplitRow[]>([])
   const [pickerOpen, setPickerOpen]     = useState(false)
 
+  // Ad-hoc guests typed into the picker (2607-DEV-677). They exist only in this
+  // form until submit — the payment_guests row is written server-side, inside
+  // the same transaction as the payments, so abandoning the form leaves nothing
+  // behind and a double submit reuses one row.
+  const [draftGuests, setDraftGuests]   = useState<DraftGuest[]>([])
+  const [addGuestError, setAddGuestError] = useState<string | null>(null)
+  const draftGuestSeq = useRef(0)
+
   const selectedItem = 'payableItems' in props ? props.payableItems.find(i => i.id === itemId) : null
   const currency     = selectedItem?.currency ?? 'EUR'
 
@@ -71,10 +83,20 @@ export function PaymentForm(props: PaymentFormProps) {
     staleTime: 5 * 60 * 1000,
   })
 
-  const self = beneficiaries.find(b => b.relation === 'self') ?? null
+  const self =
+    beneficiaries.find(
+      (b): b is ProfileBeneficiary => b.kind === 'profile' && b.relation === 'self',
+    ) ?? null
+
+  // Keyed by ROW KEY, not by profile id: guests have no profile. Drafts are
+  // merged in so a just-typed guest has a name to render before it exists
+  // server-side.
   const people = useMemo(
-    () => Object.fromEntries(beneficiaries.map(b => [b.profile_id, b])) as Record<string, Beneficiary>,
-    [beneficiaries],
+    () =>
+      Object.fromEntries(
+        [...beneficiaries, ...draftGuests].map(b => [rowKeyOf(b), b]),
+      ) as Record<string, Beneficiary | DraftGuest>,
+    [beneficiaries, draftGuests],
   )
 
   // Amounts live in integer cents; the euro input is only a rendering of them.
@@ -110,6 +132,60 @@ export function PaymentForm(props: PaymentFormProps) {
     roster.length > 0 &&
     (roster.length >= 2 || roster[0].profileId !== self?.profile_id)
 
+  /** Removes a row, and the draft guest behind it when there was one. */
+  function removeRow(key: string) {
+    setParticipants(rebalance(roster.filter(p => p.profileId !== key), totalCents))
+    if (key.startsWith(DRAFT_GUEST_KEY_PREFIX)) {
+      setDraftGuests(g => g.filter(draft => rowKeyOf(draft) !== key))
+    }
+  }
+
+  /** True when someone already on this payment IS this guest — a remembered one
+   *  picked from the list and the same person re-typed carry different row keys
+   *  but resolve to a single payment_guests row, so the RPC would reject the
+   *  whole submission at the very end. Caught here instead. */
+  function guestAlreadyOnPayment(identity: string): boolean {
+    return roster.some(row => {
+      const person = people[row.profileId]
+      return person != null && person.kind !== 'profile' && guestIdentity(person.name, person.email) === identity
+    })
+  }
+
+  function addGuest(name: string, email: string | null) {
+    if (guestAlreadyOnPayment(guestIdentity(name, email))) {
+      setAddGuestError(t('payment.guestAlreadyAdded'))
+      return
+    }
+    draftGuestSeq.current += 1
+    const draft: DraftGuest = {
+      kind: 'draftGuest',
+      key: String(draftGuestSeq.current),
+      name,
+      email,
+      relation: 'external',
+    }
+    setDraftGuests(g => [...g, draft])
+    setParticipants(
+      rebalance([...roster, { profileId: rowKeyOf(draft), amountCents: 0, locked: false }], totalCents),
+    )
+    setAddGuestError(null)
+    setPickerOpen(false)
+  }
+
+  /** The one identifier this row submits — the three shapes submit_payment_group
+   *  accepts. A profile row keeps its bare uuid, so a profile-only submission is
+   *  byte-identical to what 2607-DEV-676 sent. */
+  function entryFor(key: string) {
+    if (key.startsWith(DRAFT_GUEST_KEY_PREFIX)) {
+      const draft = draftGuests.find(g => rowKeyOf(g) === key)
+      return { guest: { name: draft?.name ?? '', email: draft?.email ?? null } }
+    }
+    if (key.startsWith(GUEST_KEY_PREFIX)) {
+      return { guest_id: key.slice(GUEST_KEY_PREFIX.length) }
+    }
+    return { profile_id: key }
+  }
+
   const submitMutation = useMutation({
     mutationFn: async () => {
       let proof_url: string | null = null
@@ -133,7 +209,7 @@ export function PaymentForm(props: PaymentFormProps) {
         ? {
             total_cents: totalCents,
             beneficiaries: roster.map(row => ({
-              profile_id:   row.profileId,
+              ...entryFor(row.profileId),
               amount_cents: row.amountCents,
             })),
           }
@@ -165,7 +241,11 @@ export function PaymentForm(props: PaymentFormProps) {
       }
       setItemId(''); setAmount(''); setDate(''); setMethod('cash'); setFile(null); setNote('')
       setParticipants([]) // empty means "just me" — the roster memo re-derives it
+      setDraftGuests([]); setAddGuestError(null)
       setPickerOpen(false)
+      // A guest submitted just now is remembered server-side, so the picker must
+      // refetch or the next payment would offer them only as a fresh re-type.
+      qc.invalidateQueries({ queryKey: ['payment-beneficiaries'] })
       onSuccess?.()
     },
   })
@@ -204,15 +284,25 @@ export function PaymentForm(props: PaymentFormProps) {
         beneficiaries={beneficiaries}
         selectedIds={roster.map(p => p.profileId)}
         isLoading={beneficiariesLoading}
-        onBack={() => setPickerOpen(false)}
+        addGuestError={addGuestError}
+        onBack={() => { setAddGuestError(null); setPickerOpen(false) }}
+        onAddGuest={addGuest}
         onSelect={b => {
+          const key = rowKeyOf(b)
+          // A remembered guest can also be sitting on this payment as a re-typed
+          // draft under a different key; both resolve to one payment_guests row.
+          if (b.kind === 'guest' && guestAlreadyOnPayment(guestIdentity(b.name, b.email))) {
+            setAddGuestError(t('payment.guestAlreadyAdded'))
+            return
+          }
           // Built from `roster`, never the raw state: while the payer is still
           // the derived default, raw state is [] and an updater would drop them.
           setParticipants(
-            roster.some(p => p.profileId === b.profile_id)
+            roster.some(p => p.profileId === key)
               ? roster
-              : rebalance([...roster, { profileId: b.profile_id, amountCents: 0, locked: false }], totalCents),
+              : rebalance([...roster, { profileId: key, amountCents: 0, locked: false }], totalCents),
           )
+          setAddGuestError(null)
           setPickerOpen(false)
         }}
       />
@@ -273,14 +363,15 @@ export function PaymentForm(props: PaymentFormProps) {
                     color: 'var(--text-primary)',
                   }}
                 >
-                  {person ? `${person.first_name} ${person.last_name}` : '…'}
+                  {person ? displayNameOf(person) : '…'}
+                  {person && person.kind !== 'profile' && (
+                    <span style={{ color: 'var(--text-secondary)' }}>· {t('payment.guestTag')}</span>
+                  )}
                   {roster.length > 1 && (
                     <button
                       type="button"
                       aria-label={t('payment.remove')}
-                      onClick={() =>
-                        setParticipants(rebalance(roster.filter(p => p.profileId !== row.profileId), totalCents))
-                      }
+                      onClick={() => removeRow(row.profileId)}
                       className="flex items-center justify-center transition-opacity hover:opacity-70"
                       style={{
                         width: '20px', height: '20px',
@@ -351,10 +442,21 @@ export function PaymentForm(props: PaymentFormProps) {
               isValidTotal(totalCents) ? setRowAmount(roster, profileId, amountCents, totalCents) : roster,
             )
           }
-          onRemove={profileId =>
-            setParticipants(rebalance(roster.filter(p => p.profileId !== profileId), totalCents))
-          }
+          onRemove={removeRow}
         />
+      )}
+
+      {/* Said once, where the money is being split, because the trip progress
+          bar will not move for these shares — see lib/payments/totals.ts. */}
+      {/* `p != null` first: an unresolved row is not a guest, and `?.kind !==
+          'profile'` on undefined would be true and show this to everyone. */}
+      {isOnBehalf && roster.some(row => {
+        const p = people[row.profileId]
+        return p != null && p.kind !== 'profile'
+      }) && (
+        <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+          {t('payment.guestNotCounted')}
+        </p>
       )}
 
       {/* Date */}

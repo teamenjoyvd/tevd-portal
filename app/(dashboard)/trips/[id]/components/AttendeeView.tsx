@@ -6,6 +6,7 @@ import { formatDate, formatCurrency } from '@/lib/format'
 import { getRoleColors } from '@/lib/role-colors'
 import { Drawer } from '@/components/ui/drawer'
 import { PaymentForm } from '@/components/payment/PaymentForm'
+import { personalApprovedTotal } from '@/lib/payments/totals'
 import { TripDocumentsTile } from './TripDocumentsTile'
 import { TripMessagesTile } from './TripMessagesTile'
 import { BackButton, TripHeroImage, TripDetail, FALLBACK_ACCENT } from './shared'
@@ -115,9 +116,9 @@ export function AttendeeView({
   start.setHours(0, 0, 0, 0)
   const daysToGo = Math.max(0, Math.round((start.getTime() - today.getTime()) / 86400000))
 
-  const approvedTotal = payments
-    .filter(p => p.admin_status === 'approved')
-    .reduce((sum, p) => sum + p.amount, 0)
+  // Guest rows sit on the PAYER's ledger and are deliberately left out of this
+  // total — see lib/payments/totals.ts for why, and totals.test.ts for G3.
+  const approvedTotal = personalApprovedTotal(payments)
   const remaining = Math.max(0, trip.total_cost - approvedTotal)
   const progressPct = trip.total_cost > 0
     ? Math.min(100, Math.round((approvedTotal / trip.total_cost) * 100))
@@ -234,6 +235,12 @@ export function AttendeeView({
                         {formatDate(p.transaction_date)}
                         {p.payment_method ? ` · ${p.payment_method}` : ''}
                         {p.note ? ` · ${p.note}` : ''}
+                        {/* Says why this row is not in the balance above.
+                            translate() takes no interpolation args, so the name
+                            is composed here. */}
+                        {p.payment_guests
+                          ? ` · ${t('payment.for')} ${p.payment_guests.name} · ${t('payment.guestTag')}`
+                          : ''}
                       </p>
                     </div>
                     {/* Only the PAYER may open the proof (2607-DEV-676): the route
