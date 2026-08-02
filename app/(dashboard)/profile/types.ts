@@ -130,6 +130,12 @@ export type GenericPayment = {
   payment_group_id?: string | null
   beneficiary?: { id: string; first_name: string; last_name: string } | null
   payer?: { id: string; first_name: string; last_name: string } | null
+  // Ad-hoc guests (2607-DEV-677). A guest has no profiles row, so a guest
+  // payment sits on the PAYER's ledger and `beneficiary` above resolves to the
+  // payer — not to the person the money was for. Anything naming a row's
+  // beneficiary must prefer this when it is present.
+  beneficiary_guest_id?: string | null
+  payment_guests?: { id: string; name: string } | null
   payable_items: {
     id: string
     title: string

@@ -26,7 +26,7 @@ export async function GET(): Promise<Response> {
   // them, so no total changes; the money totals still sum by profile_id alone.
   const { data, error } = await supabase
     .from('payments')
-    .select('id, amount, currency, transaction_date, admin_status, member_status, payment_method, proof_url, note, admin_note, created_at, profile_id, paid_by_profile_id, payment_group_id, beneficiary:profiles!profile_id(id, first_name, last_name), payer:profiles!paid_by_profile_id(id, first_name, last_name), payable_items(id, title, item_type, currency), trips(id, title)')
+    .select('id, amount, currency, transaction_date, admin_status, member_status, payment_method, proof_url, note, admin_note, created_at, profile_id, paid_by_profile_id, payment_group_id, beneficiary_guest_id, payment_guests(id, name), beneficiary:profiles!profile_id(id, first_name, last_name), payer:profiles!paid_by_profile_id(id, first_name, last_name), payable_items(id, title, item_type, currency), trips(id, title)')
     .or(`profile_id.eq.${profile.id},paid_by_profile_id.eq.${profile.id}`)
     .order('created_at', { ascending: false })
 

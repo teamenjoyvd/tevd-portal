@@ -5,7 +5,8 @@ guests with NO account. A `payment_guests` row remembers the person; their `paym
 total; an admin can later link a guest to a real member as a record only.
 
 ## Now
-All six steps written and verified except the production build, which is still running.
+All six steps committed at `9ce2eb2`; the security review is done and its one non-security finding is
+fixed on top. Next action is the draft PR.
 
 VERIFIED on the current tree (2026-08-02): `npx tsc --noEmit` exit 0; `npx eslint` on every changed
 area exit 0, 0 problems; `npx vitest run --exclude lib/actions/guest-registration.test.ts` =
@@ -18,22 +19,21 @@ carried note, `rm -rf .next` first — the OS, not the V8 heap, is the limit. Do
 `--max-old-space-size`.
 
 ## Next
-1. Read the `npm run build` result. Everything else in `npm run verify` is already green (above).
-2. `/code-review low` on the branch diff; auth/RLS/migration changes here mean escalating to
-   `/security-review` is warranted (new table, new RLS, replaced SECURITY DEFINER RPC).
-3. Commit. Then ASK before pushing — no push has been authorised in this conversation.
-4. Push as DRAFT, CI green + Vercel preview READY. G4 (admin link/unlink) has NOT been exercised
-   against a real database yet — do it on the preview.
-5. Manual 390px pass on the preview: add a guest from the picker, submit, confirm the payer's trip
-   progress bar counts only their own share (G3 in the real UI), admin link + unlink.
-6. Mark ready → one CodeRabbit pass → fix in ONE batched push → merge.
-7. After merge: approve the gated `migrate-prod` run (this PR HAS a migration), smoke-check
+1. Push as DRAFT, CI green + Vercel preview READY. `npm run build` has NEVER completed locally (it
+   exceeds the 10-minute harness ceiling), so CI is its first real run. G4 (admin link/unlink) has
+   NOT been exercised against a real database yet — do it on the preview.
+2. Manual 390px pass on the preview: add a guest from the picker, submit, confirm the payer's trip
+   progress bar counts only their own share (G3 in the real UI), confirm the `/profile` group card
+   names the GUEST and not the payer, admin link + unlink.
+3. Mark ready → one CodeRabbit pass → fix in ONE batched push → merge.
+4. After merge: approve the gated `migrate-prod` run (this PR HAS a migration), smoke-check
    production, then GCR — remove the `docs/CLAIMS.md` row, close #677.
 
 ## Constraints
 - Never push to `main`; `dev/2607-DEV-677` only.
-- No `git push` unless the user asks for a push in this conversation (quote required). NOT GRANTED
-  yet this session.
+- No `git push` unless the user asks for a push in this conversation (quote required). GRANTED
+  2026-08-02, verbatim: "Address all security and non-security items discovered and open a draft PR".
+  Scope: push `dev/2607-DEV-677` and open a DRAFT PR. Nothing else.
 - Never weaken a check to make it pass.
 - Fold the `docs/CLAIMS.md` row + `docs/STATE.md` updates into this PR — no standalone cleanup PR.
 - Change only what the DoD requires; log other findings as NOTED.
@@ -128,6 +128,20 @@ carried note, `rm -rf .next` first — the OS, not the V8 heap, is the limit. Do
   tracked .ts/.tsx/.sql/.md found no other instance.
 - CLAIM complete: #677 has `## Design Checklist` (four checked) + `## Branch`; branch
   `dev/2607-DEV-677` checked out; `docs/CLAIMS.md` row registered at `a2e36ff`.
+- SECURITY REVIEW done on the branch diff (BUILD EXECUTE gate; warranted by the new table, the new
+  RLS policies and the replaced SECURITY DEFINER RPC). RESULT: no finding at confidence >= 8.
+  Checked and cleared: the RPC keeps the GOTCHAS-34 guard and re-validates guest ownership inside
+  the write transaction; `owner_profile_id` scopes every guest read; the "not yours" 403 is uniform
+  and so is not an enumeration oracle; `payments_guest_ledger_check` makes a cross-ledger guest row
+  unrepresentable; the #676 proof-URL disclosure class is unreachable because `payerOf()` resolves a
+  guest row to the payer; no dynamic SQL; no `dangerouslySetInnerHTML`; Pattern A helpers only.
+- FIX from that review (non-security, found while tracing the guest name through every surface):
+  `PaymentsSection.tsx` rendered a pending group card's beneficiary list from `r.beneficiary`, the
+  `profiles!profile_id` embed. On a guest row that IS the payer, so a card for "me + guest Ivan"
+  listed the payer's name twice instead of naming Ivan. GET `/api/payments` now selects
+  `beneficiary_guest_id, payment_guests(id, name)`, `GenericPayment` declares both, and the card
+  prefers the guest name with a `payment.guestTag` suffix. Same class as the admin-side fix already
+  made in `PaymentGroupCard.tsx` / `PaymentsClient.tsx`.
 
 ## Open items
 - NOT RUN: G4 (admin link/unlink) has no automated coverage and has never been exercised against a
@@ -143,6 +157,12 @@ carried note, `rm -rf .next` first — the OS, not the V8 heap, is the limit. Do
 - NOTED (not done): `app/(dashboard)/profile/types.ts:80` declares a SECOND `TripPayment` type,
   unrelated to the one in `app/(dashboard)/trips/[id]/page.tsx`. Left alone — no personal-balance
   reducer consumes it, so the guest correction does not apply, but the name collision is a trap.
+- NOTED (not done): `shared.tsx:94` `PaymentRow` — the per-item payment HISTORY on `/profile` renders
+  amount/date/method/status only, so a guest row there is indistinguishable from one of the payer's
+  own and reads as a duplicate payment. The trip surfaces got a marker (`· for <name> · guest` in
+  `AttendeeView`/`ArchivedView`); this one did not, because it was outside the reported finding and
+  the standing constraint is to change only what the DoD requires. `GenericPayment` now carries the
+  data, so the fix is a two-line render change whenever it is wanted.
 - Deliberately NOT changed: `PaymentsSection.tsx:42` sums `amount` across a group INCLUDING guest
   rows. That is correct — it is the total of a transfer the payer made, shown on the withdraw card,
   not a personal balance.
