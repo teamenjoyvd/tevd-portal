@@ -54,10 +54,19 @@ export const MAX_GUEST_NAME_LENGTH = 120
 export const MAX_GUEST_EMAIL_LENGTH = 254
 
 /**
- * The identity a guest is remembered by, mirroring the expression behind
- * `uq_payment_guests_owner_identity`: (owner, case-folded trimmed name,
- * case-folded email, empty when absent). Re-typing "  ivan petrov " must reuse
- * the row created for "Ivan Petrov", not create a second one.
+ * The identity a guest is remembered by — (owner, case-folded trimmed name,
+ * case-folded email, empty when absent) — matching what
+ * `uq_payment_guests_owner_identity` indexes. Re-typing "  ivan petrov " must
+ * reuse the row created for "Ivan Petrov", not create a second one.
+ *
+ * The two normalizations are NOT the same function: JS `trim()` strips the full
+ * ECMAScript whitespace set (tabs, NBSP, line terminators), while SQL `btrim()`
+ * with no argument strips the ASCII space only. They agree because the DB never
+ * sees an untrimmed name: POST /api/payments rebuilds every inline guest as
+ * `String(...).trim()` before the RPC (app/api/payments/route.ts:145-146), and
+ * `submit_payment_group` is service_role-only with that route as its sole
+ * caller. Any NEW caller of the RPC must trim in JS first, or "Ivan" and
+ * "Ivan\t" will be remembered as two different people.
  *
  * JSON-encoded rather than joined on a separator character: a name may contain
  * any character a user can type, so any plain delimiter admits a collision
@@ -136,7 +145,13 @@ export type GroupCheck =
 export type GroupEntry = {
   profile_id?: string | null
   guest_id?: string | null
-  guest?: { name?: string | null; email?: string | null } | null
+  /**
+   * `unknown` rather than `string`, because this shape arrives straight off
+   * `await req.json()` and is only ASSERTED to be well-formed here. Typing the
+   * fields as strings would let the compiler bless `.trim()` on a value that is
+   * a number at runtime — see the coercion check in assertGroupAllowed.
+   */
+  guest?: { name?: unknown; email?: unknown } | null
 }
 
 /**
@@ -198,7 +213,21 @@ export async function assertGroupAllowed(
       continue
     }
 
-    const name = (entry.guest?.name ?? '').trim()
+    // Type-checked BEFORE any string method touches them. These values come off
+    // `await req.json()` untouched (app/api/payments/route.ts:51), so they carry
+    // whatever JSON type the caller sent, and `??` substitutes only null and
+    // undefined — `(123).trim()` would throw a TypeError out of a handler with
+    // no try/catch, turning a bad request into a 500 any member could provoke.
+    // Rejected rather than coerced: `String(123)` would silently remember a
+    // guest named "123", and the route's own String(...) rebuild at :145 runs
+    // only after this check passes.
+    const rawName = entry.guest?.name ?? ''
+    const rawEmail = entry.guest?.email ?? ''
+    if (typeof rawName !== 'string' || typeof rawEmail !== 'string') {
+      return { ok: false, status: 400, error: 'A guest name and email must be text' }
+    }
+
+    const name = rawName.trim()
     if (name.length === 0 || name.length > MAX_GUEST_NAME_LENGTH) {
       return {
         ok: false,
@@ -206,7 +235,7 @@ export async function assertGroupAllowed(
         error: `A guest needs a name of 1 to ${MAX_GUEST_NAME_LENGTH} characters`,
       }
     }
-    const email = (entry.guest?.email ?? '').trim()
+    const email = rawEmail.trim()
     if (email.length > MAX_GUEST_EMAIL_LENGTH) {
       return {
         ok: false,

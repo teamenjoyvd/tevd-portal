@@ -33,15 +33,26 @@ export async function GET(): Promise<Response> {
   const profile = await getCallerProfile(userId, supabase)
   if (!profile) return Response.json({ error: 'Profile not found' }, { status: 404 })
 
+  // Both branches log the detail and return a fixed string. `error` here is
+  // PostgREST's own `error.message`, which names tables, columns and
+  // constraints; POST /api/payments already applies exactly this rule to
+  // non-P0001 Postgres output, and the picker has no use for the text either
+  // way — it degrades to "only yourself" on failure.
   const { beneficiaries, error } = await fetchPayableBeneficiaries(supabase, profile.id)
-  if (error) return Response.json({ error }, { status: 500 })
+  if (error) {
+    console.error('fetchPayableBeneficiaries failed', error)
+    return Response.json({ error: 'Could not load beneficiaries' }, { status: 500 })
+  }
 
   // A guest-role caller may only ever pay for themselves, so they get no guest
   // list: offering them one would invite a submission POST /api/payments rejects.
   if (profile.role === 'guest') return Response.json(beneficiaries)
 
   const { guests, error: guestError } = await fetchPayableGuests(supabase, profile.id)
-  if (guestError) return Response.json({ error: guestError }, { status: 500 })
+  if (guestError) {
+    console.error('fetchPayableGuests failed', guestError)
+    return Response.json({ error: 'Could not load beneficiaries' }, { status: 500 })
+  }
 
   return Response.json([...beneficiaries, ...guests])
 }

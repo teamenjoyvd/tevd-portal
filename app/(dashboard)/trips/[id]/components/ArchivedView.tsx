@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { formatDate, formatCurrency } from '@/lib/format'
+import { useLanguage } from '@/lib/hooks/useLanguage'
 import { BackButton, TripHeroImage, TripDetail, FALLBACK_ACCENT } from './shared'
 import { personalApprovedTotal } from '@/lib/payments/totals'
 import { TripMessagesTile } from './TripMessagesTile'
@@ -13,6 +14,7 @@ type Trip = Tables<'trips'>
 export function ArchivedView({
   trip, profile, payments,
 }: { trip: Trip; profile: TripProfile; payments: TripPayment[] }) {
+  const { t } = useLanguage()
   const [accentColor, setAccentColor] = useState(FALLBACK_ACCENT)
 
   // Same correction as AttendeeView (2607-DEV-677): a guest row sits on the
@@ -66,10 +68,16 @@ export function ArchivedView({
                         {formatDate(p.transaction_date)}
                         {p.payment_method ? ` · ${p.payment_method}` : ''}
                         {p.note ? ` · ${p.note}` : ''}
-                        {/* Untranslated to match this file, which renders
-                            'Approved'/'Pending' as literals and never calls
-                            useLanguage. */}
-                        {p.payment_guests ? ` · for ${p.payment_guests.name} · guest` : ''}
+                        {/* Says why this row is not in the total below.
+                            Translated, matching the identical marker in
+                            AttendeeView: an attribution the reader has to act on
+                            is worth more in their own language than the status
+                            literals around it, which stay English for now.
+                            translate() takes no interpolation args, so the name
+                            is composed here. */}
+                        {p.payment_guests
+                          ? ` · ${t('payment.for')} ${p.payment_guests.name} · ${t('payment.guestTag')}`
+                          : ''}
                       </p>
                     </div>
                     {p.proof_url && (

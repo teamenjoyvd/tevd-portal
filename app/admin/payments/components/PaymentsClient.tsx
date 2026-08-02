@@ -170,8 +170,11 @@ export function PaymentsClient({
         </p>
       )}
 
-      {/* Below the pending queue: linking a guest is reconciliation work, never
-          urgent, and it renders nothing at all while empty (2607-DEV-677). */}
+      {/* Below the pending queue: linking a guest is reconciliation work and is
+          never urgent (2607-DEV-677). The panel renders nothing while its fetch
+          is in flight; once loaded it always renders its card, an empty guest
+          list included, so that "no guests to link" is a stated result rather
+          than a blank space. */}
       <GuestLinkPanel />
 
       <div className="flex gap-2 flex-wrap">

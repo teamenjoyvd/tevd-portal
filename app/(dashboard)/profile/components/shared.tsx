@@ -117,7 +117,7 @@ export function PaymentRow({
       {pay.payment_method && <span style={{ color: 'var(--text-secondary)' }}>{pay.payment_method}</span>}
       {/* min-w-0 + truncate: at 390px this row is already tight, and an
           untruncatable name would push the status badge past the viewport. */}
-      {guestMarker && (
+      {guestMarker !== null && (
         <span className="truncate min-w-0" style={{ color: 'var(--text-secondary)' }}>
           {t('payment.for')} {guestMarker}
         </span>

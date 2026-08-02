@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { formatDate } from '@/lib/format'
 import { useLanguage } from '@/lib/hooks/useLanguage'
@@ -44,10 +45,11 @@ type PaymentGuest = {
 export function GuestLinkPanel() {
   const { t } = useLanguage()
   const qc = useQueryClient()
+  const router = useRouter()
   const [draft, setDraft] = useState<Record<string, string>>({})
   const [unlinkTarget, setUnlinkTarget] = useState<PaymentGuest | null>(null)
 
-  const { data: guests = [], isLoading } = useQuery<PaymentGuest[]>({
+  const { data: guests = [], isLoading, isError, error } = useQuery<PaymentGuest[]>({
     queryKey: ['admin-payment-guests'],
     queryFn: () => fetchJson<PaymentGuest[]>('/api/admin/payment-guests'),
     staleTime: 60_000,
@@ -69,7 +71,15 @@ export function GuestLinkPanel() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ linked_profile_id }),
       }).then(async r => { if (!r.ok) throw new Error((await r.json()).error); return r.json() }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-payment-guests'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-payment-guests'] })
+      // The panel is not the only surface reading this link. PaymentsClient and
+      // PaymentGroupCard render `payment_guests.linked_profile_id` from the
+      // SERVER props built in app/admin/payments/page.tsx, which no react-query
+      // invalidation reaches — without this the payment rows keep showing the
+      // `payment.guestUnlinked` badge until the admin reloads the page.
+      router.refresh()
+    },
     onSettled: () => setUnlinkTarget(null),
   })
 
@@ -98,7 +108,15 @@ export function GuestLinkPanel() {
         </p>
       )}
 
-      {guests.length === 0 ? (
+      {/* A failed fetch leaves `guests` at its [] default with isLoading false,
+          which renders identically to "nothing to reconcile" — so the admin
+          reads a broken request as an empty queue. Distinguished before the
+          empty case, never merged into it. */}
+      {isError ? (
+        <p className="px-5 pb-4 text-xs" style={{ color: 'var(--brand-crimson)' }} role="alert">
+          {(error as Error).message}
+        </p>
+      ) : guests.length === 0 ? (
         <p className="px-5 pb-4 text-sm" style={{ color: 'var(--text-secondary)' }}>
           {t('payment.guestLinkEmpty')}
         </p>

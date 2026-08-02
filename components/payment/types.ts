@@ -84,9 +84,15 @@ export function displayNameOf(b: Beneficiary | DraftGuest): string {
 }
 
 /**
- * Mirrors `guestIdentityKey` in lib/payments/eligibility.ts and the expression
- * behind `uq_payment_guests_owner_identity`. Used to stop the same person being
- * added twice on one payment — once from the remembered list and once re-typed.
+ * Mirrors `guestIdentityKey` in lib/payments/eligibility.ts — byte for byte, so
+ * that the picker's "already added" verdict and the server's 400 never disagree.
+ * Used to stop the same person being added twice on one payment: once from the
+ * remembered list and once re-typed.
+ *
+ * `uq_payment_guests_owner_identity` case-folds the same fields but trims with
+ * SQL `btrim()`, which strips only the ASCII space where `trim()` strips the
+ * whole ECMAScript whitespace set. See the note on `guestIdentityKey` for why
+ * the two still agree, and what a new caller of the RPC would have to preserve.
  *
  * JSON-encoded for the same reason as the server copy: any plain delimiter
  * admits a collision, since a name may contain any character a user can type.

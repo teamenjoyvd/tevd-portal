@@ -594,4 +594,36 @@ describe('POST /api/payments — ad-hoc guests', () => {
 
     expect(res.status).toBe(400)
   })
+
+  // Regression, PR #689 review. `guest.name` arrives straight off req.json() and
+  // is validated by string methods; `??` substitutes only null and undefined, so
+  // a number reached `.trim()` and threw a TypeError out of a handler with no
+  // try/catch. The caller got a framework 500 instead of a 400, and any
+  // authenticated member could provoke it. `await POST(...)` re-throws here, so
+  // this test fails loudly rather than merely reporting the wrong status.
+  it.each([
+    ['a numeric name', { name: 123 }],
+    ['an object name', { name: { toString: 'no' } }],
+    ['an array name', { name: ['Ivan'] }],
+    ['a numeric email', { name: 'Ivan', email: 42 }],
+    ['a boolean email', { name: 'Ivan', email: true }],
+  ])('G13: %s is rejected 400, never 500, and never submitted', async (_label, guest) => {
+    mockAuth.mockResolvedValue({ userId: 'clerk_1' })
+    const supabase = groupSupabase()
+    mockCreateServiceClient.mockReturnValue(supabase)
+    const { POST } = await import('@/app/api/payments/route')
+
+    const res = await POST(
+      postReq({
+        amount: 100,
+        transaction_date: '2026-07-01',
+        trip_id: 't1',
+        beneficiaries: [{ guest, amount_cents: 10000 }],
+      }),
+    )
+
+    expect(res.status).toBe(400)
+    const calls = (supabase.rpc as unknown as ReturnType<typeof vi.fn>).mock.calls
+    expect(calls.find((c) => c[0] === 'submit_payment_group')).toBeUndefined()
+  })
 })

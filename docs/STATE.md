@@ -5,13 +5,11 @@ guests with NO account. A `payment_guests` row remembers the person; their `paym
 total; an admin can later link a guest to a real member as a record only.
 
 ## Now
-Draft PR #689, ALL 11 CHECKS GREEN at `4c921ef` — including `Build` (59s), which settles the build
-that never completed locally (that ceiling was this machine, not the code), and
-`Authenticated E2E (Clerk)`, where `e2e/payments-guest.spec.ts` PASSED in 16.0s on its first
-successful execution (`✓ 12 [authenticated] … 19 passed`).
+PR #689 is READY (out of draft) and all 11 checks were green at `4c921ef`. CodeRabbit has run its
+one pass: 10 actionable review threads. GCR applied 8 and rejected 2 with a traced reason (below).
 
 Two things still have no evidence and both need the preview by hand: admin link/unlink (G4), and a
-390px look at the new surfaces. Then mark ready for CodeRabbit.
+390px look at the new surfaces.
 
 VERIFIED on the current tree (2026-08-02): `npx tsc --noEmit` exit 0; `npx eslint` on every changed
 area exit 0, 0 problems; `npx vitest run --exclude lib/actions/guest-registration.test.ts` =
@@ -29,7 +27,8 @@ carried note, `rm -rf .next` first — the OS, not the V8 heap, is the limit. Do
 2. Manual 390px pass on the preview: add a guest from the picker, submit, confirm the payer's trip
    progress bar counts only their own share (G3 in the real UI), confirm the `/profile` group card
    names the GUEST and not the payer, admin link + unlink.
-3. Mark ready → one CodeRabbit pass → fix in ONE batched push → merge.
+3. DONE — marked ready, one CodeRabbit pass, all findings addressed in ONE batched commit. Push it,
+   resolve the 8 applied threads, reply on the 2 rejected ones, then merge.
 4. After merge: approve the gated `migrate-prod` run (this PR HAS a migration), smoke-check
    production, then GCR — remove the `docs/CLAIMS.md` row, close #677.
 
@@ -159,6 +158,42 @@ carried note, `rm -rf .next` first — the OS, not the V8 heap, is the limit. Do
   `beneficiary_guest_id, payment_guests(id, name)`, `GenericPayment` declares both, and the card
   prefers the guest name with a `payment.guestTag` suffix. Same class as the admin-side fix already
   made in `PaymentGroupCard.tsx` / `PaymentsClient.tsx`.
+
+- GCR on PR #689 (2026-08-02) — CodeRabbit's 10 threads. BASELINE first:
+  `npx vitest run app/api/payments lib/payments` = `6 passed (6)` / `87 passed (87)`, green.
+  APPLIED 8. The one that mattered: `assertGroupAllowed` validated `guest.name` with `.trim()` on a
+  value taken straight off `req.json()`, and `??` substitutes only null/undefined — so
+  `{"guest":{"name":123}}` evaluated `(123).trim()` and threw a TypeError out of a POST handler with
+  NO try/catch. Any authenticated member could turn a bad request into a framework 500. The
+  `String(...)` rebuild at `app/api/payments/route.ts:145` looked like a defense but runs AFTER the
+  validator, so it never executed. Now type-checked before any string method and REJECTED rather
+  than coerced (`String(123)` would have remembered a guest named "123"); `GroupEntry.guest` fields
+  are typed `unknown` so the compiler stops blessing `.trim()` on them. 5 `G13` cases cover it.
+  Also: the picker's duplicate error was rendered only inside the add-guest form, but the second
+  path that sets it (tapping an already-added remembered guest) leaves that form closed, so the tap
+  returned in silence; guest-form inputs had a placeholder as their only accessible name;
+  `/api/payments/beneficiaries` forwarded raw PostgREST `error.message` to the client on BOTH
+  branches (the profile one was pre-existing — same class, folded in per the standing rule);
+  `GuestLinkPanel` rendered a failed fetch as "no guests to link" and left the server-rendered
+  payment rows stale after a link (`router.refresh()` added); `ArchivedView`'s guest attribution was
+  hardcoded English; `PaymentsClient`'s comment claimed the panel renders nothing while empty.
+- REJECTED 2 of the 10, both with the trace, both replied to on the thread rather than resolved:
+  (a) `components/payment/types.ts` "align `guestIdentity` with the SQL normalization" — real
+  asymmetry (JS `trim()` strips the full ECMAScript whitespace set, SQL `btrim()` only the ASCII
+  space) but NOT REACHABLE: `app/api/payments/route.ts:145-146` rebuilds every inline guest as
+  `String(...).trim()` before the RPC, and `submit_payment_group` is service_role-only with that
+  route as its sole caller, so SQL never receives an untrimmed name and `btrim` is a no-op on it.
+  Changing JS to ASCII-space-only would make "Ivan" and "Ivan\t" two different people — worse, not
+  better. Documented the dependency in both copies instead, since it was load-bearing and unstated.
+  (b) migration `payment_guests_admin_core_all` grants FOR ALL to `admin` AND `core` — deliberate:
+  `app/api/admin/payment-guests/[id]/route.ts:26` authorizes `adminOrCore`, so restricting the
+  policy to `admin` would desynchronize RLS from the rule actually enforced, on a table every server
+  path reaches through the service client (RLS bypassed) anyway. Also would mean re-editing an
+  already-applied migration for zero behavior change.
+- NOT applied, CodeRabbit "nitpick" tier, logged not done: `app/api/admin/payment-guests/route.ts`
+  GET is unbounded and feeds every guest id into one `.in()` filter (414 risk at scale); the two
+  independent fetches in `assertGroupAllowed` could run under `Promise.all`. Neither is a defect at
+  the current row counts and both change shapes this issue did not open.
 
 ## Open items
 - NOT RUN: G4 (admin link/unlink) has no automated coverage and has never been exercised against a

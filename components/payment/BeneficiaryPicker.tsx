@@ -12,6 +12,10 @@ import { MAX_GUEST_EMAIL_LENGTH, MAX_GUEST_NAME_LENGTH } from '@/lib/payments/el
  *  search narrows them long before scrolling would. */
 const MAX_ROWS = 50
 
+/** Ties the required-name message to the name input via aria-describedby. Only
+ *  one add-guest form is ever mounted, so a constant id cannot collide. */
+const GUEST_NAME_ERROR_ID = 'beneficiary-picker-guest-name-error'
+
 type Props = {
   beneficiaries: Beneficiary[]
   /** Already-chosen row keys — shown as disabled so a double tap cannot duplicate a row. */
@@ -205,6 +209,18 @@ export function BeneficiaryPicker({
         </div>
       ))}
 
+      {/* Also rendered with the form CLOSED. The duplicate verdict has a second
+          source — tapping a remembered guest who is already on the payment under
+          a re-typed draft key (PaymentForm's onSelect) — and that path leaves
+          `addingGuest` false. Shown only inside the form, that tap would return
+          in silence, and the row cannot be disabled instead because
+          `selectedIds` holds row keys and the duplicate carries a different one. */}
+      {addGuestError != null && addGuestError !== '' && !addingGuest && (
+        <p className="text-[11px] px-1" style={{ color: '#bc4749' }} role="alert">
+          {addGuestError}
+        </p>
+      )}
+
       {/* The way out when the person is in no list above, because they have no
           account at all (2607-DEV-677). Pinned below the sections so it never
           pushes real matches off a 390px screen, and always rendered — a search
@@ -240,6 +256,15 @@ export function BeneficiaryPicker({
             // field cannot accept something the database will refuse.
             maxLength={MAX_GUEST_NAME_LENGTH}
             placeholder={t('payment.guestName')}
+            // A placeholder is not an accessible name — it disappears on the
+            // first keystroke and screen readers are not required to announce
+            // it. aria-describedby wires the required-name message below to
+            // this field, which is otherwise unreachable from it.
+            aria-label={t('payment.guestName')}
+            aria-invalid={nameTouched && guestName.trim() === ''}
+            aria-describedby={
+              nameTouched && guestName.trim() === '' ? GUEST_NAME_ERROR_ID : undefined
+            }
             className="w-full border rounded-xl px-3 py-2 text-sm"
             style={{
               borderColor: 'var(--border-default)',
@@ -254,6 +279,7 @@ export function BeneficiaryPicker({
             onChange={e => setGuestEmail(e.target.value)}
             maxLength={MAX_GUEST_EMAIL_LENGTH}
             placeholder={t('payment.guestEmail')}
+            aria-label={t('payment.guestEmail')}
             className="w-full border rounded-xl px-3 py-2 text-sm"
             style={{
               borderColor: 'var(--border-default)',
@@ -264,12 +290,14 @@ export function BeneficiaryPicker({
           />
 
           {nameTouched && guestName.trim() === '' && (
-            <p className="text-[11px]" style={{ color: '#bc4749' }}>
+            <p id={GUEST_NAME_ERROR_ID} className="text-[11px]" style={{ color: '#bc4749' }}>
               {t('payment.guestNameRequired')}
             </p>
           )}
-          {addGuestError && (
-            <p className="text-[11px]" style={{ color: '#bc4749' }}>
+          {/* Explicit null/empty test, not truthiness: the prop is string | null
+              and '' is not a message worth reserving a line for. */}
+          {addGuestError != null && addGuestError !== '' && (
+            <p className="text-[11px]" style={{ color: '#bc4749' }} role="alert">
               {addGuestError}
             </p>
           )}
