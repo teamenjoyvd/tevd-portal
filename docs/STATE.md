@@ -135,21 +135,39 @@ open. Waiting on CI green + Vercel preview READY before marking it ready for rev
   SUPERSEDED 2026-08-03 (GCR PR691): option (a) is gone — there is no local Docker setup on this
   machine any more, so `http://127.0.0.1:54321` in `.env.development.local` is a dead target and
   every local E2E run must go through option (b), the hosted DEV project `iymwxdewcpvpjgzewtzk`.
-- BLOCKING, one command: `npm run e2e:seed-clerk` has NOT run since the L3 fixture was added to
-  it, and L3 no longer skips. The GCR pass removed the `test.skip(await paidBy.count() === 0)`
-  guard (CodeRabbit, and the repo forbids skipping a test to make it pass) and seeded the row it
-  was skipping for — a co-owner profile plus one `submit_payment_group` call that co-owner makes
-  FOR the member. A co-owner and not a second downline because `get_payable_beneficiaries`
-  reaches DOWNWARD only; the `household` branch is bidirectional and needs no `tree_nodes`
-  change, so the #676 picker fixture is untouched (the co-owner's `abo_number` stays NULL, which
-  both satisfies `trg_guard_abo_number_null`'s co-owner exemption and keeps the row out of that
-  spec's `.filter({ hasText: /·/ })` locator). Written through the RPC rather than as a direct
-  INSERT, so the fixture is one the application could actually produce and `can_pay_for` is
-  exercised. Statically verified ONLY: the seed's write to DEV was refused by this session's
-  permission layer. Run it before the next authenticated run or L3 fails instead of skipping —
+- DONE 2026-08-03 (GCR PR691): `e2e/payments-on-behalf.spec.ts` no longer skips ANY of its three
+  tests, and all three were EXECUTED against DEV — `3 passed, 0 skipped`, run against
+  `iymwxdewcpvpjgzewtzk` with a `npm run dev` whose Supabase env was overridden on the command
+  line (`playwright.config.ts:10-20` only fills vars that are `undefined`, so an exported var
+  wins over the dead `.env.development.local`). Three skips were removed:
+  - L3's `test.skip(await paidBy.count() === 0)`, and the row it was skipping for is now seeded:
+    a co-owner profile plus one `submit_payment_group` call that co-owner makes FOR the member.
+    A co-owner and not a second downline because `get_payable_beneficiaries` reaches DOWNWARD
+    only; the `household` branch is bidirectional and needs no `tree_nodes` change, so the #676
+    picker fixture is untouched (the co-owner's `abo_number` stays NULL, which both satisfies
+    `trg_guard_abo_number_null`'s co-owner exemption and keeps the row out of that spec's
+    `.filter({ hasText: /·/ })` locator). Written through the RPC, not a direct INSERT, so the
+    fixture is one the application could actually produce and `can_pay_for` is exercised.
+  - The #676 flow's two `test.skip`s on `.count()`. **Those were races, not data checks**:
+    `.count()` does not auto-wait, so a cold picker read 0 before `get_payable_beneficiaries`
+    resolved and the test stood itself down — observed live, skipping in a 3-test run and passing
+    when run alone. Replaced with `expect(...).toBeVisible()` / `.toBeAttached()` waits.
+- GOTCHA, cost an hour: `profiles.primary_profile_id` is UNIQUE
+  (`profiles_primary_profile_id_key`) — a primary profile may have AT MOST ONE co-owner. DEV
+  already carried one for the E2E member (`clerk_id = e2e_member_coowner`, planted outside any
+  script in this repo), so creating one unconditionally died on a raw duplicate-key error.
+  `ensureCoowner` now reuses whatever co-owner the member already has and only creates when there
+  is none — which is also the more honest fixture, since whoever the co-owner IS, is who can pay.
+- The seed is idempotent and was re-run to prove it (`co-owner reused` / `paid-for-me payment
+  present` on the second pass). To run it: export
   `NEXT_PUBLIC_SUPABASE_URL=https://iymwxdewcpvpjgzewtzk.supabase.co` plus the DEV `service_role`
-  key from `supabase projects api-keys --project-ref iymwxdewcpvpjgzewtzk`, then
-  `npm run e2e:seed-clerk`. Idempotent on the (beneficiary, payer) pair.
+  and `anon` keys from `supabase projects api-keys --project-ref iymwxdewcpvpjgzewtzk`, then
+  `npm run e2e:seed-clerk`.
+- FLAKE, seen once, not fixed: L8's `viewAll.first().click()` did not navigate on the very first
+  run against a cold Turbopack dev server (13 polls still on `/profile`), and passed on every run
+  afterwards. Cold-compile hydration race in the harness, not a defect in the link — the `<a>`
+  carries the right `href` in the failure snapshot. CI runs with `retries: 1`, so it is covered
+  there; local first runs may need a warm server.
 - NOTED (not done): `app/(dashboard)/profile/components/PaymentsSection.tsx:30`
   `pendingGroupsIPaidFor` still filters `paid_by_profile_id !== myProfileId` directly rather
   than through `payerOf`, so a legacy pending group with a NULL `paid_by_profile_id` is not

@@ -14,15 +14,15 @@ import { clerk } from '@clerk/testing/playwright'
  * matters.
  *
  * REQUIRES a signed-in member who has at least one other payable beneficiary —
- * a downline, or a co-owner. The DEV fixture seeded for this issue
- * (`clerk_id LIKE 'seed_676_%'`) provides exactly that shape. With only
- * themselves eligible the picker legitimately shows one row and the split path
- * is unreachable, so the suite SKIPS rather than passing vacuously — a green
- * run must mean the flow was actually exercised.
+ * a downline, or a co-owner — and one ACTIVE payable item. Both are seeded by
+ * scripts/seed-clerk-test-users.js, so their absence is a broken environment
+ * this file FAILS on. It used to skip instead, on `.count()` reads taken before
+ * the picker's query had resolved, which made the skip a race rather than a
+ * statement about the data: a green run meant nothing in particular.
  *
- * Requires local Supabase + a seeded Clerk test-instance member (see
- * scripts/seed-clerk-test-users.js). Never target a preview/prod-DB
- * deployment — same rule as admin-auth.spec.ts.
+ * Run `npm run e2e:seed-clerk` first, against local Supabase or the hosted DEV
+ * project. Never target a preview/prod-DB deployment — same rule as
+ * admin-auth.spec.ts.
  */
 
 const MEMBER_EMAIL = process.env.E2E_CLERK_MEMBER_EMAIL ?? 'e2e-member-tevd-portal@example.com'
@@ -55,9 +55,13 @@ test.describe('payments on behalf of others @390', () => {
 
     // Rows are buttons; the payer's own row renders disabled once selected.
     const candidates = page.locator('button:not([disabled])').filter({ hasText: /·/ })
-    const count = await candidates.count()
-    test.skip(count === 0, 'signed-in member has no other payable beneficiary — seed one before trusting this run')
 
+    // Waited for, not counted. `.count()` does not auto-wait, so on a cold
+    // picker it read 0 before get_payable_beneficiaries had resolved and the
+    // test skipped itself — intermittently, which is worse than never running.
+    // The downline fixture is seeded by scripts/seed-clerk-test-users.js, so
+    // its absence is a failure, not a reason to stand down.
+    await expect(candidates.first()).toBeVisible({ timeout: 15_000 })
     await candidates.first().click()
 
     // Back on the form: Amount is now labelled Total and the breakdown appears.
@@ -97,7 +101,10 @@ test.describe('payments on behalf of others @390', () => {
     const itemSelect = page.locator('select')
     if (await itemSelect.count() > 0) {
       const options = itemSelect.locator('option')
-      test.skip(await options.count() < 2, 'no active payable item on this environment')
+      // Same reasoning as the picker above: the seed guarantees one ACTIVE EUR
+      // payable item, so a placeholder-only <select> is a broken environment to
+      // fail on, not a condition to skip past.
+      await expect(options.nth(1)).toBeAttached({ timeout: 15_000 })
       await itemSelect.selectOption({ index: 1 })
       await amountInput.fill('200')
     }

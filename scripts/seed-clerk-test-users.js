@@ -112,6 +112,11 @@ const DOWNLINE_ABO = process.env.E2E_CLERK_DOWNLINE_ABO ?? 'E2E-DOWNLINE-0001'
 // and BeneficiaryPicker renders `{abo_number ? `${abo} · ` : ''}{relation}`, so
 // an ABO-less row carries no '·' and cannot be picked up by the #676 spec's
 // `.filter({ hasText: /·/ })` locator — which must keep selecting the downline.
+//
+// Only used when the member has NO co-owner yet. profiles.primary_profile_id is
+// UNIQUE (profiles_primary_profile_id_key), so a primary profile may have at
+// most one — creating unconditionally raised a raw duplicate-key error against
+// the co-owner the hosted DEV project already carried. See ensureCoowner.
 const COOWNER_CLERK_ID = 'seed_e2e_coowner_tevd_portal'
 
 // 50.00 EUR. Cents, because that is the only unit submit_payment_group accepts.
@@ -272,6 +277,39 @@ async function ensurePayableItem(supabase, createdByProfileId) {
   return { id: created.id, status: 'created' }
 }
 
+// The member's co-owner, reused when one already exists.
+//
+// profiles.primary_profile_id is UNIQUE, so "create a co-owner for the member"
+// is only valid when the member has none — the hosted DEV project already
+// carries one (`e2e_member_coowner`, planted outside this script), and creating
+// a second raised profiles_primary_profile_id_key. Reusing is also the more
+// honest fixture: whoever the member's co-owner IS, is who can pay for them.
+//
+// Returns the profile id either way; the caller does not care which happened
+// beyond the log line.
+async function ensureCoowner(supabase, memberProfileId) {
+  const { data: existing, error: readError } = await supabase
+    .from('profiles')
+    .select('id, first_name, last_name')
+    .eq('primary_profile_id', memberProfileId)
+    .maybeSingle()
+  if (readError) throw new Error(`co-owner lookup failed: ${readError.message}`)
+  if (existing != null) {
+    return { id: existing.id, status: `reused ${existing.first_name} ${existing.last_name}` }
+  }
+
+  const id = await upsertProfile(supabase, COOWNER_CLERK_ID, {
+    role: 'member',
+    firstName: 'E2E',
+    lastName: 'Coowner',
+    email: 'e2e-coowner-tevd-portal@example.com',
+    // NULL by design — see COOWNER_CLERK_ID above.
+    aboNumber: null,
+    primaryProfileId: memberProfileId,
+  })
+  return { id, status: 'created' }
+}
+
 // One payment group the CO-OWNER paid for the MEMBER, so the member's ledger
 // carries a row attributable to somebody else (L3, 2608-DEV-688).
 //
@@ -406,21 +444,13 @@ async function main() {
   )
 
   // ── paid-for-me fixture (L3, 2608-DEV-688) ─────────────────────────────────
-  const coownerProfileId = await upsertProfile(supabase, COOWNER_CLERK_ID, {
-    role: 'member',
-    firstName: 'E2E',
-    lastName: 'Coowner',
-    email: 'e2e-coowner-tevd-portal@example.com',
-    // NULL by design — see COOWNER_CLERK_ID above.
-    aboNumber: null,
-    primaryProfileId: memberProfileId,
-  })
-  console.log(`seed-clerk-test-users: co-owner ready — linked to ${MEMBER_EMAIL}`)
+  const coowner = await ensureCoowner(supabase, memberProfileId)
+  console.log(`seed-clerk-test-users: co-owner ${coowner.status} — linked to ${MEMBER_EMAIL}`)
 
   const paidForMe = await ensurePaidForMePayment(
     supabase,
     memberProfileId,
-    coownerProfileId,
+    coowner.id,
     payableItem.id,
   )
   console.log(
