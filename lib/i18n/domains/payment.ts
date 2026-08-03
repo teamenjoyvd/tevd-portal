@@ -80,4 +80,23 @@ export const payment = {
   'payment.guestUnlinkTitle':   { en: 'Unlink this guest?',              bg: 'Да се премахне ли връзката?'                },
   'payment.guestUnlinkBody':    { en: 'The guest stays, along with every payment made for them. Only the link to the member is removed.', bg: 'Гостът остава заедно с всички плащания за него. Премахва се само връзката с члена.' },
   'payment.guestPayments':      { en: 'payments',                        bg: 'плащания'                                   },
+
+  // The /profile/payments drill-down ledger (2608-DEV-688). 'payment.allPayments'
+  // above is reused as the page title, so replacing the bento's "show more"
+  // drawer with a link orphans no key.
+  'payment.viewAll':            { en: 'View all payments',               bg: 'Виж всички плащания'                        },
+  'payment.filterStatus':       { en: 'Status',                          bg: 'Статус'                                     },
+  'payment.allStatuses':        { en: 'All statuses',                    bg: 'Всички статуси'                             },
+  'payment.rejected':           { en: 'Rejected',                        bg: 'Отхвърлено'                                 },
+  'payment.search':             { en: 'Search item, name or note',       bg: 'Търсене по артикул, име или бележка'        },
+  'payment.dateFrom':           { en: 'From',                            bg: 'От'                                         },
+  'payment.dateTo':             { en: 'To',                              bg: 'До'                                         },
+  'payment.noResults':          { en: 'No payments match these filters.', bg: 'Няма плащания, отговарящи на филтрите.'     },
+  'payment.totalPaid':          { en: 'Paid',                            bg: 'Платено'                                    },
+  'payment.totalOnBehalf':      { en: 'Paid for others',                 bg: 'Платено за други'                           },
+  'payment.totalPaidForMe':     { en: 'Paid for me by others',           bg: 'Платено за мен от други'                    },
+  'payment.lifetimeNote':       { en: 'Lifetime approved totals — not affected by the filters above.', bg: 'Общо одобрени суми за целия период — филтрите по-горе не ги променят.' },
+  'payment.exportCsv':          { en: 'Export CSV',                      bg: 'Експорт CSV'                                },
+  'payment.status':             { en: 'Status',                          bg: 'Статус'                                     },
+  'payment.attribution':        { en: 'For / by',                        bg: 'За / от'                                    },
 } as const

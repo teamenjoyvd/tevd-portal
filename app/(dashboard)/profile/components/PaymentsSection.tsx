@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import Link from 'next/link'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CreditCard } from 'lucide-react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
@@ -11,12 +12,13 @@ import {
 } from '@/components/ui/alert-dialog'
 import { formatCurrency } from '@/lib/format'
 import { beneficiaryLabel } from '@/lib/payments/labels'
+import { currencyOf, ledgerEntries, titleOf } from '@/lib/payments/ledger'
 import { PaymentForm } from '@/components/payment/PaymentForm'
 import { BentoHeader } from './BentoHeader'
 import { BentoSkeleton } from './BentoSkeleton'
 import { BentoEmpty } from './BentoEmpty'
 import { type TripEntry, type GenericPayment, type PayableItem, VARIABLE_CAP } from '../types'
-import { PaymentRow, ShowMoreButton } from './shared'
+import { PaymentRow } from './shared'
 import { apiClient } from '@/lib/apiClient'
 
 /**
@@ -41,51 +43,15 @@ function pendingGroupsIPaidFor(payments: GenericPayment[], myProfileId: string) 
     groupId,
     rows,
     total: rows.reduce((acc, r) => acc + Number(r.amount), 0),
-    currency: rows[0].payable_items?.currency ?? 'EUR',
-    title: rows[0].payable_items?.title ?? rows[0].trips?.title ?? '',
+    currency: currencyOf(rows[0]),
+    title: titleOf(rows[0]),
   }))
-}
-
-function groupByItem(payments: GenericPayment[]): Record<string, GenericPayment[]> {
-  const map: Record<string, GenericPayment[]> = {}
-  for (const pay of payments) {
-    // Trip payments have no payable_item, so keying on payable_items alone
-    // filed every one of them under "Unknown".
-    const key = pay.payable_items?.title ?? pay.trips?.title ?? 'Unknown'
-    if (!map[key]) map[key] = []
-    map[key].push(pay)
-  }
-  return map
-}
-
-function PaymentGroups({
-  groups,
-  cancelledTripIds,
-}: {
-  groups: Record<string, GenericPayment[]>
-  cancelledTripIds: Set<string>
-}) {
-  return (
-    <div className="space-y-4">
-      {Object.entries(groups).map(([itemTitle, itemPayments]) => (
-        <div key={itemTitle}>
-          <p className="text-[11px] font-semibold tracking-widest uppercase mb-1.5" style={{ color: 'var(--text-secondary)' }}>{itemTitle}</p>
-          <div className="space-y-1.5">
-            {itemPayments.map(pay => (
-              <PaymentRow key={pay.id} pay={pay} cancelledTripIds={cancelledTripIds} />
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
-  )
 }
 
 export function PaymentsSection({ profileId, role }: { profileId: string; role: string }) {
   const { t } = useLanguage()
   const qc = useQueryClient()
   const [submitDrawerOpen, setSubmitDrawerOpen] = useState(false)
-  const [listDrawerOpen, setListDrawerOpen]     = useState(false)
 
   const enabled = !!profileId && role !== 'guest'
 
@@ -162,11 +128,10 @@ export function PaymentsSection({ profileId, role }: { profileId: string; role: 
       !(pay.payment_group_id && paidGroupIds.has(pay.payment_group_id)),
   )
 
-  const visiblePayments = ledgerPayments.slice(0, VARIABLE_CAP)
-  const overflow = ledgerPayments.length - VARIABLE_CAP
-
-  const visibleByItem = groupByItem(visiblePayments)
-  const allByItem     = groupByItem(ledgerPayments)
+  // VARIABLE_CAP now caps collapsed ENTRIES, not raw rows: the bento's unit is
+  // "latest transactions", and one on-behalf group IS one transaction.
+  const entries = ledgerEntries(ledgerPayments, profileId)
+  const visibleEntries = entries.slice(0, VARIABLE_CAP)
 
   return (
     <>
@@ -215,12 +180,27 @@ export function PaymentsSection({ profileId, role }: { profileId: string; role: 
           </div>
         )}
 
-        {Object.keys(visibleByItem).length === 0 && paidGroups.length === 0 ? (
+        {visibleEntries.length === 0 && paidGroups.length === 0 ? (
           <BentoEmpty message={t('payment.none')} />
         ) : (
-          <PaymentGroups groups={visibleByItem} cancelledTripIds={cancelledTripIds} />
+          <div className="space-y-1.5">
+            {visibleEntries.map(entry => (
+              <PaymentRow key={entry.key} entry={entry} me={profileId} cancelledTripIds={cancelledTripIds} />
+            ))}
+          </div>
         )}
-        {overflow > 0 && <ShowMoreButton count={overflow} onClick={() => setListDrawerOpen(true)} />}
+        {/* A link, not a drawer: /profile/payments shares the
+            ['profile-generic-payments'] query key, so client-side navigation
+            mounts it warm off this cache with no refetch. */}
+        {entries.length > 0 && (
+          <Link
+            href="/profile/payments"
+            className="inline-block mt-3 text-xs font-semibold hover:opacity-70 transition-opacity"
+            style={{ color: 'var(--brand-crimson)' }}
+          >
+            {t('payment.viewAll')}
+          </Link>
+        )}
       </div>
 
       <Drawer open={submitDrawerOpen} onClose={closeSubmitDrawer} title={t('payment.submit')}>
@@ -275,20 +255,6 @@ export function PaymentsSection({ profileId, role }: { profileId: string; role: 
         </AlertDialogContent>
       </AlertDialog>
 
-      <Drawer open={listDrawerOpen} onClose={() => setListDrawerOpen(false)} title={t('payment.allPayments')}>
-        <div className="space-y-4 mb-6">
-          <PaymentGroups groups={allByItem} cancelledTripIds={cancelledTripIds} />
-        </div>
-        <div className="border-t pt-4" style={{ borderColor: 'var(--border-default)' }}>
-          <button
-            onClick={() => { setListDrawerOpen(false); setSubmitDrawerOpen(true) }}
-            className="w-full py-2.5 rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity"
-            style={{ backgroundColor: 'var(--brand-forest)', color: 'var(--brand-parchment)' }}
-          >
-            {t('payment.submitShort')}
-          </button>
-        </div>
-      </Drawer>
     </>
   )
 }
