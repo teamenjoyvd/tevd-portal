@@ -120,6 +120,15 @@ export function PaymentRow({
   // scope for 2608-DEV-688 and left as found.
   const linkedTripCancelled = head.payable_items?.item_type === 'trip' && cancelledTripIds.size > 0
 
+  // Exactly one of these two ever says anything, so they need no separator
+  // between them. `paidBy` is non-null only when somebody else paid, and such an
+  // entry is never collapsed (ledgerEntries collapses only for the payer), so it
+  // holds one row — which must be on MY ledger, since GET /api/payments returns
+  // nothing where I am neither owner nor payer. `beneficiaryNames` then filters
+  // that row out on `profile_id !== me`, and it cannot be a guest row either:
+  // payments_guest_ledger_check forces profile_id = paid_by_profile_id, which
+  // contradicts somebody else having paid. The same invariant is what lets
+  // `Attribution` on /profile/payments return early on `paidBy`.
   const forNames = beneficiaryNames(entry, me, t('payment.guestTag'))
   const paidBy = payerName(entry, me)
   // An admin note explains a rejection. '' is not an explanation, so it must not

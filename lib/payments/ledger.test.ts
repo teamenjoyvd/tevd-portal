@@ -222,6 +222,20 @@ describe('beneficiaryNames / payerName', () => {
 
     expect(payerName(entry, ME)).toBeNull()
   })
+
+  it('never names beneficiaries and a payer at once — the two are exclusive', () => {
+    // What lets both surfaces render them without a separator between them, and
+    // lets Attribution on /profile/payments return early on the payer. An entry
+    // somebody else paid is never collapsed, so it holds one row; that row is on
+    // my ledger, so beneficiaryNames filters it out on `profile_id !== me`.
+    const [entry] = ledgerEntries(
+      [row({ paid_by_profile_id: FRIEND, payer: { first_name: 'Ivan', last_name: 'Dimov' } })],
+      ME,
+    )
+
+    expect(payerName(entry, ME)).toBe('Ivan Dimov')
+    expect(beneficiaryNames(entry, ME, 'guest')).toEqual([])
+  })
 })
 
 describe('lifetimeTotals', () => {
