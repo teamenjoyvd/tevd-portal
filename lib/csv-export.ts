@@ -67,7 +67,7 @@ const EXPORT_COLUMNS: { header: string; value: (m: LOSMember) => string }[] = [
 
 // ── CSV builder ───────────────────────────────────────────────────────────────
 
-function csvQuote(value: string): string {
+export function csvQuote(value: string): string {
   // Escape any double-quotes inside the value, then wrap in double-quotes
   return `"${value.replace(/"/g, '""')}"`
 }

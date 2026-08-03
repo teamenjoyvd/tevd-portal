@@ -287,10 +287,10 @@ export function PaymentsLedgerClient() {
                 <tr style={{ backgroundColor: 'var(--bg-global)' }}>
                   <SortableHeader label={t('payment.date')} active={sortKey === 'date'} dir={sortDir} onClick={() => toggleSort('date')} />
                   <SortableHeader label={t('payment.amount')} active={sortKey === 'amount'} dir={sortDir} onClick={() => toggleSort('amount')} />
-                  <HeaderCell label={t('payment.item')} />
-                  <HeaderCell label={t('payment.attribution')} />
-                  <HeaderCell label={t('payment.method')} />
-                  <HeaderCell label={t('payment.status')} />
+                  <HeaderCell>{t('payment.item')}</HeaderCell>
+                  <HeaderCell>{t('payment.attribution')}</HeaderCell>
+                  <HeaderCell>{t('payment.method')}</HeaderCell>
+                  <HeaderCell>{t('payment.status')}</HeaderCell>
                 </tr>
               </thead>
               <tbody>
@@ -338,10 +338,12 @@ function Attribution({ entry, me, guestTag }: { entry: LedgerEntry; me: string; 
   return null
 }
 
-function HeaderCell({ label }: { label: string }) {
+const HEADER_CELL_CLASS = 'px-3 py-2 text-left text-[11px] font-semibold tracking-wide uppercase'
+
+function HeaderCell({ children }: { children: React.ReactNode }) {
   return (
-    <th className="px-3 py-2 text-left text-[11px] font-semibold tracking-wide uppercase" style={{ color: 'var(--text-secondary)' }}>
-      {label}
+    <th className={HEADER_CELL_CLASS} style={{ color: 'var(--text-secondary)' }}>
+      {children}
     </th>
   )
 }
@@ -358,12 +360,12 @@ function SortableHeader({
   onClick: () => void
 }) {
   return (
-    <th className="px-3 py-2 text-left text-[11px] font-semibold tracking-wide uppercase" style={{ color: 'var(--text-secondary)' }}>
-      <button type="button" onClick={onClick} className="hover:opacity-70 transition-opacity uppercase">
+    <HeaderCell>
+      <button type="button" onClick={onClick} className="uppercase hover:opacity-70 transition-opacity">
         {label}
         {active && (dir === 'asc' ? ' ↑' : ' ↓')}
       </button>
-    </th>
+    </HeaderCell>
   )
 }
 

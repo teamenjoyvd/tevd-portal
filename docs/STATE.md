@@ -7,24 +7,26 @@ lifetime totals, CSV export), and fix the trip-payment "always EUR" mislabel on 
 ## Now
 BUILD steps 1-3 are CODE-COMPLETE and statically verified; step 4's spec is WRITTEN but has
 never been EXECUTED. All 9 files in the DoD are edited. Nothing is committed yet.
-BLOCKED on one decision only: the authenticated E2E cannot run in this session — Docker
-Desktop is down, so local Supabase (`127.0.0.1:54321`, which `.env.development.local`
-selects) is unavailable, and DEV credentials are not in any local env file. See `## Open
-items` for the three ways forward.
+Committed at `4fb02da` and pushed. The authenticated E2E could NOT run this session — Docker
+Desktop is down, so local Supabase (`127.0.0.1:54321`, which `.env.development.local` selects)
+is unavailable, and DEV credentials are in no local env file. The user chose to defer the
+390px check to the Vercel PR preview; see `## Open items`.
 
 ## Next
-1. Decide how to execute `npx playwright test --project=authenticated` (see `## Open items`),
-   then run it and record the result. L8 is the ONLY matrix item with no evidence yet.
-2. /code-review low.
-3. Commit, then ASK before pushing (the 2026-08-03 push grant was scoped to the CLAIM push).
-4. DRAFT PR -> CI green + Vercel preview READY -> mark ready -> one CodeRabbit pass -> merge
-   -> GCR (drop the CLAIMS.md row IN the merging PR, close #688).
+1. /code-review low.
+2. ASK before opening the PR — the push grant does not cover it. Then DRAFT PR -> CI green +
+   Vercel preview READY -> open the preview at 390px BY HAND and confirm
+   `document.scrollingElement.scrollWidth <= 390` on `/profile/payments` (this is L8's only
+   evidence under the user's option (c)) -> mark ready -> one CodeRabbit pass -> merge.
+3. GCR: drop the `docs/CLAIMS.md` row IN the merging PR, close #688.
 
 ## Constraints
 - Never push to `main`; `dev/2608-DEV-688` only.
 - No `git push` unless the user asks for a push in this conversation (quote required).
   GRANTED 2026-08-03, verbatim: "push to github so I can start tomorrow ready to go with BUILD".
   Scope: push `dev/2608-DEV-688`. Does NOT cover opening a PR or merging — ask again for both.
+  RE-GRANTED 2026-08-03 for the BUILD commit, user selected "Push now" ("Push
+  dev/2608-DEV-688 to origin now. Does not open a PR"). Opening the PR still needs its own ask.
 - Never weaken a check to make it pass.
 - Fold the `docs/CLAIMS.md` row removal + `docs/STATE.md` updates into the merging PR — NEVER a
   standalone cleanup PR.
@@ -128,7 +130,11 @@ items` for the three ways forward.
   start`, `npm run e2e:seed-clerk`, then `npx playwright test --project=authenticated`;
   (b) point the run at DEV (`iymwxdewcpvpjgzewtzk`) by pulling the Pre-Production env vars —
   do NOT let that overwrite `.env.local`, which holds prod credentials; (c) accept the Vercel
-  PR preview as the 390px check and run the specs after merge. (a) is the honest one.
+  PR preview as the 390px check and run the specs after merge.
+  DECIDED BY THE USER 2026-08-03: option (c). L8 therefore ships UNPROVEN by an executed test —
+  check the preview by hand at 390px before marking Done, and do not read a green
+  `Authenticated E2E (Clerk)` tick as proof (it has gone green in 6s without running the specs;
+  tracked as #679). Confirm the run reports 0 skipped, or treat it as no evidence.
 - NOTED (not done): `app/(dashboard)/profile/components/PaymentsSection.tsx:30`
   `pendingGroupsIPaidFor` still filters `paid_by_profile_id !== myProfileId` directly rather
   than through `payerOf`, so a legacy pending group with a NULL `paid_by_profile_id` is not

@@ -36,6 +36,9 @@
 
 import { payerOf } from './proof'
 import { beneficiaryLabel } from './labels'
+// The repo's one RFC-4180 field quoter. Reused rather than re-implemented so a
+// correction to the escaping rule cannot land in only one of two exports.
+import { csvQuote } from '../csv-export'
 
 /**
  * The columns this module reads. Declared structurally rather than importing
@@ -258,11 +261,6 @@ export function lifetimeTotals(rows: readonly LedgerRow[], me: string): Lifetime
 /** U+FEFF byte-order mark, constructed rather than pasted so this source file
  *  does not itself contain a stray BOM in the middle of a line. */
 const BOM = String.fromCharCode(0xfeff)
-
-/** RFC 4180: wrap every field, double any embedded quote. Matches lib/csv-export.ts. */
-function csvQuote(value: string): string {
-  return `"${value.replace(/"/g, '""')}"`
-}
 
 const CSV_HEADERS = [
   'Date',

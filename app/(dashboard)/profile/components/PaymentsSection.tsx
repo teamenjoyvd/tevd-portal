@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { formatCurrency } from '@/lib/format'
 import { beneficiaryLabel } from '@/lib/payments/labels'
-import { currencyOf, ledgerEntries } from '@/lib/payments/ledger'
+import { currencyOf, ledgerEntries, titleOf } from '@/lib/payments/ledger'
 import { PaymentForm } from '@/components/payment/PaymentForm'
 import { BentoHeader } from './BentoHeader'
 import { BentoSkeleton } from './BentoSkeleton'
@@ -44,7 +44,7 @@ function pendingGroupsIPaidFor(payments: GenericPayment[], myProfileId: string) 
     rows,
     total: rows.reduce((acc, r) => acc + Number(r.amount), 0),
     currency: currencyOf(rows[0]),
-    title: rows[0].payable_items?.title ?? rows[0].trips?.title ?? '',
+    title: titleOf(rows[0]),
   }))
 }
 
