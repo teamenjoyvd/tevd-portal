@@ -132,6 +132,24 @@ open. Waiting on CI green + Vercel preview READY before marking it ready for rev
   RESOLVED 2026-08-03: the user ran the authenticated E2E and reports it passing, so L3 and L8
   ARE covered by an executed run — it was this session's environment (Docker down) that could
   not execute it, not the suite. No further local run is owed.
+  SUPERSEDED 2026-08-03 (GCR PR691): option (a) is gone — there is no local Docker setup on this
+  machine any more, so `http://127.0.0.1:54321` in `.env.development.local` is a dead target and
+  every local E2E run must go through option (b), the hosted DEV project `iymwxdewcpvpjgzewtzk`.
+- BLOCKING, one command: `npm run e2e:seed-clerk` has NOT run since the L3 fixture was added to
+  it, and L3 no longer skips. The GCR pass removed the `test.skip(await paidBy.count() === 0)`
+  guard (CodeRabbit, and the repo forbids skipping a test to make it pass) and seeded the row it
+  was skipping for — a co-owner profile plus one `submit_payment_group` call that co-owner makes
+  FOR the member. A co-owner and not a second downline because `get_payable_beneficiaries`
+  reaches DOWNWARD only; the `household` branch is bidirectional and needs no `tree_nodes`
+  change, so the #676 picker fixture is untouched (the co-owner's `abo_number` stays NULL, which
+  both satisfies `trg_guard_abo_number_null`'s co-owner exemption and keeps the row out of that
+  spec's `.filter({ hasText: /·/ })` locator). Written through the RPC rather than as a direct
+  INSERT, so the fixture is one the application could actually produce and `can_pay_for` is
+  exercised. Statically verified ONLY: the seed's write to DEV was refused by this session's
+  permission layer. Run it before the next authenticated run or L3 fails instead of skipping —
+  `NEXT_PUBLIC_SUPABASE_URL=https://iymwxdewcpvpjgzewtzk.supabase.co` plus the DEV `service_role`
+  key from `supabase projects api-keys --project-ref iymwxdewcpvpjgzewtzk`, then
+  `npm run e2e:seed-clerk`. Idempotent on the (beneficiary, payer) pair.
 - NOTED (not done): `app/(dashboard)/profile/components/PaymentsSection.tsx:30`
   `pendingGroupsIPaidFor` still filters `paid_by_profile_id !== myProfileId` directly rather
   than through `payerOf`, so a legacy pending group with a NULL `paid_by_profile_id` is not

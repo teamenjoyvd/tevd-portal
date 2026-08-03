@@ -122,7 +122,13 @@ export function PaymentRow({
 
   const forNames = beneficiaryNames(entry, me, t('payment.guestTag'))
   const paidBy = payerName(entry, me)
-  const detail = entry.title || null
+  // An admin note explains a rejection. '' is not an explanation, so it must not
+  // raise the ⓘ affordance that promises one.
+  const hasAdminNote = entry.admin_note != null && entry.admin_note !== ''
+  // `titleOf` returns '' for a row naming neither item nor trip, so the empty
+  // string is the real "no title" signal here — compared explicitly rather than
+  // truthiness-tested, per the repo's zero-is-data rule.
+  const detail = entry.title !== '' ? entry.title : null
 
   return (
     <div className="text-xs rounded-xl px-3 py-2" style={{ backgroundColor: 'var(--bg-global)' }}>
@@ -131,10 +137,10 @@ export function PaymentRow({
           {formatCurrency(entry.amount, entry.currency)}
         </span>
         <span style={{ color: 'var(--text-secondary)' }}>{formatDate(entry.transaction_date)}</span>
-        {entry.payment_method && <span className="truncate min-w-0" style={{ color: 'var(--text-secondary)' }}>{entry.payment_method}</span>}
+        {entry.payment_method != null && entry.payment_method !== '' && <span className="truncate min-w-0" style={{ color: 'var(--text-secondary)' }}>{entry.payment_method}</span>}
         <StatusBadge status={entry.status} className="ml-auto font-semibold px-2 py-0.5 rounded-full flex-shrink-0 flex items-center gap-1">
           {entry.status}
-          {(entry.admin_note || linkedTripCancelled) && (
+          {(hasAdminNote || linkedTripCancelled) && (
             <span title={linkedTripCancelled ? t('home.shared.tripCancelled') : (entry.admin_note ?? '')} style={{ cursor: 'help', fontSize: 10, lineHeight: 1 }}>ⓘ</span>
           )}
         </StatusBadge>
@@ -145,12 +151,12 @@ export function PaymentRow({
       </div>
       {/* truncate + min-w-0: at 390px an untruncatable list of names would push
           the card past the viewport. */}
-      {(detail || forNames.length > 0 || paidBy) && (
+      {(detail != null || forNames.length > 0 || paidBy != null) && (
         <p className="mt-1 truncate min-w-0 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
           {detail}
-          {detail && (forNames.length > 0 || paidBy) ? ' · ' : ''}
+          {detail != null && (forNames.length > 0 || paidBy != null) ? ' · ' : ''}
           {forNames.length > 0 && `${t('payment.for')} ${forNames.join(', ')}`}
-          {paidBy && `${t('payment.paidBy')} ${paidBy}`}
+          {paidBy != null && `${t('payment.paidBy')} ${paidBy}`}
         </p>
       )}
     </div>

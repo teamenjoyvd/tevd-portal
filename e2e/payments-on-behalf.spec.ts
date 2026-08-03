@@ -152,6 +152,9 @@ test.describe('profile payments ledger @390', () => {
     // scrollWidth assertion below is actually measuring.
     await expect(page.getByTestId('ledger-totals')).toBeVisible()
 
+    // 390 is not the running project's width by coincidence: the module-level
+    // test.use() above pins the viewport for every test in this file, so this
+    // measurement means the same thing under any project that picks the file up.
     const scrollWidth = await page.evaluate(() => document.scrollingElement?.scrollWidth ?? 0)
     expect(scrollWidth, 'no horizontal overflow at 390px').toBeLessThanOrEqual(390)
   })
@@ -166,13 +169,11 @@ test.describe('profile payments ledger @390', () => {
     // getByText would match a hidden node and fail toBeVisible() at 390px.
     const paidBy = page.getByTestId('ledger-cards').getByText(/paid by /i)
 
-    // Data-dependent by nature: attribution can only be asserted on a ledger
-    // that HAS a row someone else paid. CI's fixture member has an empty
-    // ledger, so this skips there — treat a green run as coverage ONLY when
-    // the report shows it executed. Seeding that row is tracked in
-    // docs/STATE.md.
-    test.skip(await paidBy.count() === 0, 'no row on this ledger was paid by someone else — seed one before trusting this run')
-
+    // Unconditional. scripts/seed-clerk-test-users.js seeds a co-owner and one
+    // payment group that co-owner paid for this member, so the row is part of
+    // the fixture rather than something the environment might happen to have.
+    // An earlier version skipped when the ledger was empty, which made a green
+    // run mean nothing — the failure mode issue #679 tracks.
     await expect(paidBy.first()).toBeVisible()
   })
 })

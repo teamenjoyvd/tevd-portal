@@ -95,7 +95,7 @@ describe('ledgerEntries', () => {
     const entries = ledgerEntries(groupOfThree(), ME)
 
     expect(entries).toHaveLength(1)
-    expect(entries[0].key).toBe('g:grp_1')
+    expect(entries[0].key).toBe('g:grp_1:EUR')
     expect(entries[0].isGroup).toBe(true)
     expect(entries[0].amount).toBe(240)
     expect(entries[0].rows.map(r => r.id)).toEqual(['p_me', 'p_friend', 'p_guest'])
@@ -157,7 +157,24 @@ describe('ledgerEntries', () => {
       row({ id: 'p_other', payment_group_id: 'grp_2', paid_by_profile_id: ME, amount: 25 }),
     ]
 
-    expect(ledgerEntries(rows, ME).map(e => e.key)).toEqual(['g:grp_1', 'g:grp_2'])
+    expect(ledgerEntries(rows, ME).map(e => e.key)).toEqual(['g:grp_1:EUR', 'g:grp_2:EUR'])
+  })
+
+  it('never sums two currencies into one total, even inside one group', () => {
+    // submit_payment_group writes one currency per group, so this shape should
+    // not exist — but `amount` sums the whole bucket while `currency` reports a
+    // single code, and a total in the wrong denomination is wrong money that
+    // formatCurrency would render with a plausible symbol. Keying on the
+    // currency makes that arithmetic rather than an assumption.
+    const rows = [
+      row({ id: 'p_eur', payment_group_id: 'grp_x', paid_by_profile_id: ME, amount: 100, currency: 'EUR' }),
+      row({ id: 'p_usd', payment_group_id: 'grp_x', paid_by_profile_id: ME, amount: 40, currency: 'USD' }),
+    ]
+
+    const entries = ledgerEntries(rows, ME)
+
+    expect(entries.map(e => e.key)).toEqual(['g:grp_x:EUR', 'g:grp_x:USD'])
+    expect(entries.map(e => [e.currency, e.amount])).toEqual([['EUR', 100], ['USD', 40]])
   })
 
   it('is empty on an empty ledger rather than throwing', () => {
@@ -309,5 +326,37 @@ describe('toLedgerCSV', () => {
 
   it('emits a header-only file for an empty ledger', () => {
     expect(toLedgerCSV([]).trimEnd().split('\r\n')).toHaveLength(1)
+  })
+
+  it('neutralises a formula in member-supplied free text', () => {
+    // `note` is typed by a member, so it is the one column an attacker fully
+    // controls. RFC-4180 quoting does not help: the parser strips the quotes
+    // before the spreadsheet evaluates the cell.
+    const csv = toLedgerCSV([row({ id: 'p', note: '=HYPERLINK("http://evil","click")' })])
+
+    expect(csv).toContain(`"'=HYPERLINK(""http://evil"",""click"")"`)
+  })
+
+  it('neutralises a formula in a name and a title too', () => {
+    const csv = toLedgerCSV([
+      row({
+        id: 'p',
+        payable_items: { title: '+SUM(A1:A9)', item_type: 'membership', currency: 'EUR' },
+        paid_by_profile_id: FRIEND,
+        payer: { first_name: '@cmd', last_name: 'Petrov' },
+      }),
+    ])
+
+    expect(csv).toContain(`"'+SUM(A1:A9)"`)
+    expect(csv).toContain(`"'@cmd Petrov"`)
+  })
+
+  it('leaves a negative amount numeric rather than prefixing it', () => {
+    // The guard is for text only. Prefixing '-27.5' would demote a number to a
+    // text cell, which is the one place the fix would do damage.
+    const csv = toLedgerCSV([row({ id: 'p', amount: -27.5 })])
+
+    expect(csv).toContain('"-27.5"')
+    expect(csv).not.toContain(`"'-27.5"`)
   })
 })

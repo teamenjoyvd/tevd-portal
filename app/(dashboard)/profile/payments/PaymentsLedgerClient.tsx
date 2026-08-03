@@ -18,7 +18,7 @@
  * require one, and two files would duplicate the same mapping twice.
  */
 
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Download } from 'lucide-react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
@@ -58,7 +58,9 @@ export function PaymentsLedgerClient() {
   const { data: payments, isLoading } = useQuery<GenericPayment[]>({
     queryKey: ['profile-generic-payments'],
     queryFn: () => apiClient('/api/payments'),
-    enabled: !!me,
+    // `me` is '' until useProfile resolves — compared explicitly rather than
+    // truthiness-tested, per the repo's zero-is-data rule.
+    enabled: me !== '',
     staleTime: 2 * 60 * 1000,
   })
 
@@ -80,6 +82,12 @@ export function PaymentsLedgerClient() {
     searchDebounceRef.current = setTimeout(() => setDebouncedSearch(value), 300)
   }, [])
 
+  // The pending timer must not outlive the component: navigating away mid-type
+  // would otherwise fire setDebouncedSearch on an unmounted tree.
+  useEffect(() => () => {
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current)
+  }, [])
+
   const guestTag = t('payment.guestTag')
   const rows = useMemo(() => payments ?? [], [payments])
 
@@ -99,10 +107,12 @@ export function PaymentsLedgerClient() {
       // comparing the leading 10 characters is a plain lexicographic ISO
       // comparison — no timezone shifts the day here.
       const day = entry.transaction_date.slice(0, 10)
-      if (dateFrom && day < dateFrom) return false
-      if (dateTo && day > dateTo) return false
+      // '' is the unset state of a <input type="date"> and of the search box —
+      // compared explicitly so an empty bound is never read as a filter.
+      if (dateFrom !== '' && day < dateFrom) return false
+      if (dateTo !== '' && day > dateTo) return false
 
-      if (needle) {
+      if (needle !== '') {
         const haystack = [
           entry.title,
           entry.payment_method ?? '',
@@ -158,7 +168,7 @@ export function PaymentsLedgerClient() {
     URL.revokeObjectURL(url)
   }, [visibleEntries, guestTag])
 
-  if (isLoading || !me) {
+  if (isLoading || me === '') {
     return (
       <div>
         <h1 className="text-xl font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
@@ -268,7 +278,10 @@ export function PaymentsLedgerClient() {
 
       {visibleEntries.length === 0 ? (
         <p className="text-sm py-8 text-center" style={{ color: 'var(--text-secondary)' }}>
-          {t('payment.noResults')}
+          {/* An untouched ledger is not a filter miss. `noResults` reads "No
+              payments match these filters", which blames a filter a member with
+              zero payments never set. */}
+          {allEntries.length === 0 ? t('payment.none') : t('payment.noResults')}
         </p>
       ) : (
         <>
@@ -333,7 +346,7 @@ function Attribution({ entry, me, guestTag }: { entry: LedgerEntry; me: string; 
   const forNames = beneficiaryNames(entry, me, guestTag)
   const paidBy = payerName(entry, me)
 
-  if (paidBy) return <>{t('payment.paidBy')} {paidBy}</>
+  if (paidBy != null) return <>{t('payment.paidBy')} {paidBy}</>
   if (forNames.length > 0) return <>{t('payment.for')} {forNames.join(', ')}</>
   return null
 }
@@ -387,13 +400,15 @@ function EntryCard({ entry, me, guestTag }: { entry: LedgerEntry; me: string; gu
       </div>
       <p className="mt-1 truncate min-w-0 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
         {entry.title}
-        {entry.title && entry.payment_method ? ' · ' : ''}
+        {/* The separator earns its place only when both sides are present; '' is
+            "no title" and null is "no method", so neither may be truthy-tested. */}
+        {entry.title !== '' && entry.payment_method != null && entry.payment_method !== '' ? ' · ' : ''}
         {entry.payment_method}
       </p>
       <p className="truncate min-w-0 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
         <Attribution entry={entry} me={me} guestTag={guestTag} />
       </p>
-      {entry.admin_note && (
+      {entry.admin_note != null && entry.admin_note !== '' && (
         <p className="mt-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
           {t('payment.note')}: {entry.admin_note}
         </p>

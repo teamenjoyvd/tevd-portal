@@ -29,9 +29,18 @@ function fmtDot(n: number | null): string {
   return String(n ?? 0)
 }
 
-/** Text-prefix a non-empty value */
+/**
+ * Text-prefix a non-empty value.
+ *
+ * Shaped by the Amway format, but it doubles as this export's formula-injection
+ * guard: every user-controlled column below (name, email, address, phone, ABO
+ * numbers, dates) goes through `tick`, so a value opening with `=`, `+`, `-`,
+ * `@`, TAB or CR reaches the spreadsheet as text. The columns that skip `tick`
+ * are the numeric ones, which must stay numeric — see `csvSafe` for the general
+ * form of the same rule.
+ */
 function tick(v: string): string {
-  return v ? `'${v}` : ''
+  return v !== '' ? `'${v}` : ''
 }
 
 // ── Column spec (exact Amway order) ───────────────────────────────────────────
@@ -70,6 +79,24 @@ const EXPORT_COLUMNS: { header: string; value: (m: LOSMember) => string }[] = [
 export function csvQuote(value: string): string {
   // Escape any double-quotes inside the value, then wrap in double-quotes
   return `"${value.replace(/"/g, '""')}"`
+}
+
+/**
+ * Neutralises a leading formula character.
+ *
+ * Excel, LibreOffice and Google Sheets evaluate a cell opening with `=`, `+`,
+ * `-`, `@`, TAB or CR as a formula — quoting per RFC 4180 does not stop that,
+ * because the quotes are consumed by the CSV parser before the spreadsheet ever
+ * sees the value. A leading apostrophe forces the cell to text and is stripped
+ * from the display, so the value still reads as written.
+ *
+ * Lives next to `csvQuote` so the repo's two exports share one rule rather than
+ * growing two. Apply to user-controlled TEXT only: prefixing a number would
+ * turn a numeric cell into text, which is why `buildMembersCSV`'s numeric
+ * columns go through neither this nor `tick`.
+ */
+export function csvSafe(value: string): string {
+  return /^[=+\-@\t\r]/.test(value) ? `'${value}` : value
 }
 
 export function buildMembersCSV(members: LOSMember[]): string {

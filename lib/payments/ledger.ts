@@ -38,7 +38,7 @@ import { payerOf } from './proof'
 import { beneficiaryLabel } from './labels'
 // The repo's one RFC-4180 field quoter. Reused rather than re-implemented so a
 // correction to the escaping rule cannot land in only one of two exports.
-import { csvQuote } from '../csv-export'
+import { csvQuote, csvSafe } from '../csv-export'
 
 /**
  * The columns this module reads. Declared structurally rather than importing
@@ -71,7 +71,8 @@ export type LedgerRow = {
 
 /** One line in the ledger: either a single payment or one collapsed group. */
 export type LedgerEntry = {
-  /** `g:${payment_group_id}` for a collapsed group, `p:${row.id}` otherwise. */
+  /** `g:${payment_group_id}:${currency}` for a collapsed group, `p:${row.id}`
+   *  otherwise. Currency is in the key because the total sums the bucket. */
   key: string
   /** Every raw row this entry stands for, in input order. Never empty. */
   rows: LedgerRow[]
@@ -139,7 +140,13 @@ export function ledgerEntries(rows: readonly LedgerRow[], me: string): LedgerEnt
     // Collapse only when BOTH hold: the row belongs to a group, and the viewer
     // is the one who transferred the money. Anything else is its own entry.
     const collapse = row.payment_group_id != null && payerOf(row) === me
-    const key = collapse ? `g:${row.payment_group_id}` : `p:${row.id}`
+    // Currency is part of the key, not just of the head row: `amount` sums the
+    // whole bucket while `currency` reports one code, so a group holding two
+    // denominations would render a single total in the head's currency and
+    // formatCurrency would give that wrong number a plausible symbol.
+    // submit_payment_group writes one currency per group today; keying on it
+    // means this stays arithmetic rather than an assumption.
+    const key = collapse ? `g:${row.payment_group_id}:${currencyOf(row)}` : `p:${row.id}`
     const bucket = buckets.get(key)
     if (bucket) {
       bucket.push(row)
@@ -300,14 +307,21 @@ export function toLedgerCSV(rows: readonly LedgerRow[], guestTag = 'guest'): str
         // Not toFixed(): the amount is written for a spreadsheet, and a locale
         // that reads '.' as a thousands separator is a formatting concern of
         // the file's reader, not something a fixed decimal count fixes.
+        //
+        // NOT csvSafe'd, unlike the text columns below: a negative amount opens
+        // with '-', and prefixing it would demote a numeric cell to text — the
+        // one place the guard would do harm. The value is a JS number rendered
+        // by String(), so it cannot carry a formula in the first place.
         String(row.amount),
         currencyOf(row),
         row.admin_status,
-        row.payment_method ?? '',
-        titleOf(row),
-        beneficiaryLabel(row, guestTag),
-        row.payer ? `${row.payer.first_name} ${row.payer.last_name}` : '',
-        row.note ?? '',
+        // Everything from here down is free text a member or admin typed, or a
+        // name they chose, so each is a formula-injection vector on its own.
+        csvSafe(row.payment_method ?? ''),
+        csvSafe(titleOf(row)),
+        csvSafe(beneficiaryLabel(row, guestTag)),
+        csvSafe(row.payer ? `${row.payer.first_name} ${row.payer.last_name}` : ''),
+        csvSafe(row.note ?? ''),
       ]
         .map(csvQuote)
         .join(','),
