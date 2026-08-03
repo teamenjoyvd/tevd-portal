@@ -116,3 +116,49 @@ test.describe('payments on behalf of others @390', () => {
     await expect(page.getByRole('button', { name: /^withdraw$/i })).toHaveCount(0, { timeout: 15_000 })
   })
 })
+
+/**
+ * The /profile/payments drill-down ledger (2608-DEV-688). L8 and L3 from the
+ * issue's verification matrix.
+ *
+ * Reached by clicking the bento's link rather than by page.goto: the link
+ * existing and being a client-side navigation is half of what replaced the old
+ * "show more" drawer, and a direct goto would not notice if it broke.
+ */
+test.describe('profile payments ledger @390', () => {
+  test('L8: renders at 390px with no horizontal overflow', async ({ page }) => {
+    await signInAndOpenProfile(page)
+
+    const viewAll = page.getByRole('link', { name: /view all payments/i })
+    // The link only renders when the member has at least one payment. An
+    // account with an empty ledger cannot exercise the page, so skip rather
+    // than pass vacuously.
+    test.skip(await viewAll.count() === 0, 'signed-in member has no payments — seed one before trusting this run')
+
+    await viewAll.first().click()
+    await expect(page).toHaveURL(/\/profile\/payments$/)
+    await expect(page.getByRole('heading', { name: /all payments/i })).toBeVisible({ timeout: 15_000 })
+
+    // The lifetime totals and the filter row are the two widest blocks; both
+    // must fit. html{overflow-x:hidden} clips visually but does NOT mask this.
+    const scrollWidth = await page.evaluate(() => document.scrollingElement?.scrollWidth ?? 0)
+    expect(scrollWidth, 'no horizontal overflow at 390px').toBeLessThanOrEqual(390)
+  })
+
+  test('L3: a row someone else paid for me is labelled with the payer', async ({ page }) => {
+    await signInAndOpenProfile(page)
+
+    const viewAll = page.getByRole('link', { name: /view all payments/i })
+    test.skip(await viewAll.count() === 0, 'signed-in member has no payments — seed one before trusting this run')
+
+    await viewAll.first().click()
+    await expect(page.getByRole('heading', { name: /all payments/i })).toBeVisible({ timeout: 15_000 })
+
+    // Attribution after approval is the entire point of the issue, so this must
+    // never report success on a ledger that has no foreign-payer row at all.
+    const paidBy = page.getByText(/paid by /i)
+    test.skip(await paidBy.count() === 0, 'no row on this ledger was paid by someone else — seed one before trusting this run')
+
+    await expect(paidBy.first()).toBeVisible()
+  })
+})

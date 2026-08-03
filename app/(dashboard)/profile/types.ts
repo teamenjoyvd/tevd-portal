@@ -118,6 +118,11 @@ export type GenericPayment = {
   // admin_status/member_status. admin_status is the status every other payment
   // surface displays (trips AttendeeView/ArchivedView, admin/payments).
   admin_status: string
+  // GET /api/payments has always selected this; the type never declared it, so
+  // every reader fell back to `payable_items?.currency ?? 'EUR'` — and a trip
+  // payment has no payable_item, which force-labelled every one of them EUR
+  // (2608-DEV-688). Read it through `currencyOf` in lib/payments/ledger.ts.
+  currency: string
   payment_method: string | null
   proof_url: string | null
   note: string | null

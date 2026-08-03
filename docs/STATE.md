@@ -5,33 +5,20 @@ was, add a `/profile/payments` drill-down ledger (status filter, debounced searc
 lifetime totals, CSV export), and fix the trip-payment "always EUR" mislabel on the way.
 
 ## Now
-CLAIM is COMPLETE and PUSHED. Nothing is built yet — zero code files touched.
-Issue #688 carries the full DoD, affected-file list, gotchas and `## Design Checklist` (4/4
-checked) + `## Branch`; `docs/CLAIMS.md` has the claim row (`migration: no`) at `716b4ad`;
-branch `dev/2608-DEV-688` is pushed and tracks `origin/dev/2608-DEV-688` (NOT main).
-Next session opens with BUILD step 1 below. Read issue #688's body first — it is the spec.
+BUILD steps 1-3 are CODE-COMPLETE and statically verified; step 4's spec is WRITTEN but has
+never been EXECUTED. All 9 files in the DoD are edited. Nothing is committed yet.
+BLOCKED on one decision only: the authenticated E2E cannot run in this session — Docker
+Desktop is down, so local Supabase (`127.0.0.1:54321`, which `.env.development.local`
+selects) is unavailable, and DEV credentials are not in any local env file. See `## Open
+items` for the three ways forward.
 
 ## Next
-BUILD in four steps, each ending with its own check. Never carry two failing steps.
-1. `lib/payments/ledger.ts` + `lib/payments/ledger.test.ts` (new), and add `currency: string` to
-   `GenericPayment` in `app/(dashboard)/profile/types.ts`.
-   Helpers: `currencyOf(pay)` = `pay.currency ?? payable_items?.currency ?? 'EUR'`;
-   `ledgerEntries(rows, me)` keyed `payment_group_id && payerOf(row) === me -> g:${id}` else
-   `p:${row.id}`, each raw row emitted exactly once, group status = shared status when uniform
-   else `'pending'` (NEVER `undefined` — `StatusBadge` calls `.toLowerCase()` and throws);
-   `lifetimeTotals(rows, me)` reduces over RAW rows into three per-currency buckets;
-   `toLedgerCSV(rows)` = one line per raw row, no `proof_url` column, RFC-4180 quoting.
-   CHECK: `npx vitest run lib/payments`
-2. `app/(dashboard)/profile/components/shared.tsx` (`PaymentRow`: `currencyOf` + `for A, B` /
-   `Paid by X`) and `PaymentsSection.tsx` (`groupByItem` -> `ledgerEntries`; the "show more"
-   Drawer -> a `next/link` to `/profile/payments`); new i18n keys in en + bg.
-   CHECK: `npm run build`
-3. `app/(dashboard)/profile/payments/page.tsx` + `PaymentsLedgerClient.tsx` (new route).
-   CHECK: `npm run build` + a manual 390px pass
-4. Append the L3 + L8 specs to `e2e/payments-on-behalf.spec.ts`.
-   CHECK: `npx playwright test --project=authenticated` against DEV
-Then: /code-review low -> push -> DRAFT PR -> CI green + preview READY -> ready -> one CodeRabbit
-pass -> merge -> GCR (drop the CLAIMS.md row IN the merging PR, close #688).
+1. Decide how to execute `npx playwright test --project=authenticated` (see `## Open items`),
+   then run it and record the result. L8 is the ONLY matrix item with no evidence yet.
+2. /code-review low.
+3. Commit, then ASK before pushing (the 2026-08-03 push grant was scoped to the CLAIM push).
+4. DRAFT PR -> CI green + Vercel preview READY -> mark ready -> one CodeRabbit pass -> merge
+   -> GCR (drop the CLAIMS.md row IN the merging PR, close #688).
 
 ## Constraints
 - Never push to `main`; `dev/2608-DEV-688` only.
@@ -113,12 +100,39 @@ pass -> merge -> GCR (drop the CLAIMS.md row IN the merging PR, close #688).
   `PaymentsSection.tsx:35` filters `admin_status !== 'pending'`, which is where attribution is
   lost at approval. Issue line refs were 1-3 lines stale (written pre-#677-merge); every code
   claim holds. 9 files, ~600 lines estimated, migration: no, E2E project: `authenticated`.
+- BUILD #688 steps 1-3 (2026-08-03) — RESULT: code-complete, statically green.
+  `npx vitest run lib/payments` -> 5 files / 88 tests passed (baseline was 4 / 58; +30 in the
+  new `lib/payments/ledger.test.ts`). `npx vitest run --exclude lib/actions/guest-registration.test.ts`
+  -> 23 files / 311 tests passed. `npm run check-types` -> clean. `npm run lint` -> 0 errors
+  (476 warnings, all pre-existing; the two new files contribute none). `npm run build` -> success,
+  `ƒ /profile/payments` present in the route table.
+  Matrix status: L1, L2, L4, L5, L6, L7 asserted in unit tests; L3 asserted at the helper level
+  (`payerName`) plus an E2E spec that has not run; L8 has NO evidence — it needs a real 390px
+  render behind Clerk auth.
+  Design notes worth keeping: filtering on the new page happens at ENTRY level, never row level
+  (row-level filtering would render a 3-person group with a partial total); `lifetimeTotals`
+  counts `admin_status === 'approved'` only, matching `personalApprovedTotal`, and
+  `payment.lifetimeNote` says so in both languages; `PaymentRow` now takes
+  `{ entry, me, cancelledTripIds }` instead of `{ pay, cancelledTripIds }`.
 - CLAIM #688 (2026-08-03) — RESULT: complete and pushed. `docs/CLAIMS.md` registry was EMPTY, so no
   scope overlap and no in-flight `migration: yes` row to sequence against. Issue #688 updated with
   DoD + affected files + gotchas + `## Design Checklist` (4/4) + `## Branch`; row committed at
   `716b4ad`; branch pushed (`* [new branch] dev/2608-DEV-688 -> dev/2608-DEV-688`).
 
 ## Open items
+- BLOCKING #688's Done gate: the `authenticated` Playwright project has never executed the new
+  L3/L8 specs. `playwright.config.ts:10-20` loads `.env.development.local` FIRST and never
+  overwrites, and that file sets `NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321` — so a local
+  run targets LOCAL Supabase, not `.env.local`'s prod project. Local Supabase is down because
+  Docker Desktop is not running. Three ways forward: (a) start Docker Desktop, `npx supabase
+  start`, `npm run e2e:seed-clerk`, then `npx playwright test --project=authenticated`;
+  (b) point the run at DEV (`iymwxdewcpvpjgzewtzk`) by pulling the Pre-Production env vars —
+  do NOT let that overwrite `.env.local`, which holds prod credentials; (c) accept the Vercel
+  PR preview as the 390px check and run the specs after merge. (a) is the honest one.
+- NOTED (not done): `app/(dashboard)/profile/components/PaymentsSection.tsx:30`
+  `pendingGroupsIPaidFor` still filters `paid_by_profile_id !== myProfileId` directly rather
+  than through `payerOf`, so a legacy pending group with a NULL `paid_by_profile_id` is not
+  offered a withdraw card. Pre-existing, untouched by #688.
 - CARRIED FROM #677, NOT DONE — the prod tail. PR #689 is merged (`5311a9c` on `main`) but the
   post-merge sequence was never executed: approve the gated `migrate-prod` run (GitHub Actions,
   `production` environment, manual approval — #677 HAS a migration), confirm it applied,
