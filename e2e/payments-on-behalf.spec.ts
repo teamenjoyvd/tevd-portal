@@ -129,34 +129,48 @@ test.describe('profile payments ledger @390', () => {
   test('L8: renders at 390px with no horizontal overflow', async ({ page }) => {
     await signInAndOpenProfile(page)
 
+    // Deliberately NOT guarded by "does this member have payments". The page
+    // renders its heading, the three lifetime total cards, the filter row and
+    // the empty-state on a ledger with zero rows, and those blocks are the
+    // widest thing on it — so the 390px assertion is meaningful either way.
+    // An earlier version reached the page only through the bento link and
+    // therefore skipped outright on CI's empty fixture: a green tick that had
+    // measured nothing, which is the failure mode issue #679 tracks.
     const viewAll = page.getByRole('link', { name: /view all payments/i })
-    // The link only renders when the member has at least one payment. An
-    // account with an empty ledger cannot exercise the page, so skip rather
-    // than pass vacuously.
-    test.skip(await viewAll.count() === 0, 'signed-in member has no payments — seed one before trusting this run')
+    if (await viewAll.count() > 0) {
+      // Prefer the real click when there IS data: the link replacing the old
+      // "show more" drawer is part of what this issue changed.
+      await viewAll.first().click()
+    } else {
+      await page.goto('/profile/payments')
+    }
 
-    await viewAll.first().click()
     await expect(page).toHaveURL(/\/profile\/payments$/)
     await expect(page.getByRole('heading', { name: /all payments/i })).toBeVisible({ timeout: 15_000 })
+    // The totals grid renders on an empty ledger too, so this holds whether or
+    // not the member has payments — and it is one of the two widest blocks the
+    // scrollWidth assertion below is actually measuring.
+    await expect(page.getByTestId('ledger-totals')).toBeVisible()
 
-    // The lifetime totals and the filter row are the two widest blocks; both
-    // must fit. html{overflow-x:hidden} clips visually but does NOT mask this.
     const scrollWidth = await page.evaluate(() => document.scrollingElement?.scrollWidth ?? 0)
     expect(scrollWidth, 'no horizontal overflow at 390px').toBeLessThanOrEqual(390)
   })
 
   test('L3: a row someone else paid for me is labelled with the payer', async ({ page }) => {
     await signInAndOpenProfile(page)
-
-    const viewAll = page.getByRole('link', { name: /view all payments/i })
-    test.skip(await viewAll.count() === 0, 'signed-in member has no payments — seed one before trusting this run')
-
-    await viewAll.first().click()
+    await page.goto('/profile/payments')
     await expect(page.getByRole('heading', { name: /all payments/i })).toBeVisible({ timeout: 15_000 })
 
-    // Attribution after approval is the entire point of the issue, so this must
-    // never report success on a ledger that has no foreign-payer row at all.
-    const paidBy = page.getByText(/paid by /i)
+    // Scoped to the below-md card list on purpose. The md: <table> renders the
+    // same attribution text into the DOM while display:none, so an unscoped
+    // getByText would match a hidden node and fail toBeVisible() at 390px.
+    const paidBy = page.getByTestId('ledger-cards').getByText(/paid by /i)
+
+    // Data-dependent by nature: attribution can only be asserted on a ledger
+    // that HAS a row someone else paid. CI's fixture member has an empty
+    // ledger, so this skips there — treat a green run as coverage ONLY when
+    // the report shows it executed. Seeding that row is tracked in
+    // docs/STATE.md.
     test.skip(await paidBy.count() === 0, 'no row on this ledger was paid by someone else — seed one before trusting this run')
 
     await expect(paidBy.first()).toBeVisible()

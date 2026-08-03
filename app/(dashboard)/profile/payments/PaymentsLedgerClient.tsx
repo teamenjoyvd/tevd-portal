@@ -196,7 +196,7 @@ export function PaymentsLedgerClient() {
       {/* Lifetime totals. Rendered above the filters and labelled, because a
           total that ignores the filter sitting next to it is otherwise read as
           a bug. */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4" data-testid="ledger-totals">
         <TotalCard label={t('payment.totalPaid')} totals={totals.paid} />
         <TotalCard label={t('payment.totalOnBehalf')} totals={totals.onBehalf} />
         <TotalCard label={t('payment.totalPaidForMe')} totals={totals.paidForMe} />
@@ -273,7 +273,7 @@ export function PaymentsLedgerClient() {
       ) : (
         <>
           {/* ── Stacked cards, below md ─────────────────────────────────────── */}
-          <div className="space-y-2 md:hidden">
+          <div className="space-y-2 md:hidden" data-testid="ledger-cards">
             {visibleEntries.map(entry => (
               <EntryCard key={entry.key} entry={entry} me={me} guestTag={guestTag} />
             ))}
