@@ -7,18 +7,16 @@ lifetime totals, CSV export), and fix the trip-payment "always EUR" mislabel on 
 ## Now
 BUILD steps 1-3 are CODE-COMPLETE and statically verified; step 4's spec is WRITTEN but has
 never been EXECUTED. All 9 files in the DoD are edited. Nothing is committed yet.
-Committed at `4fb02da` and pushed. The authenticated E2E could NOT run this session — Docker
-Desktop is down, so local Supabase (`127.0.0.1:54321`, which `.env.development.local` selects)
-is unavailable, and DEV credentials are in no local env file. The user chose to defer the
-390px check to the Vercel PR preview; see `## Open items`.
+BUILD complete, pushed (`83dc0f6`), authenticated E2E confirmed passing by the user, DRAFT PR
+open. Waiting on CI green + Vercel preview READY before marking it ready for review.
 
 ## Next
-1. /code-review low.
-2. ASK before opening the PR — the push grant does not cover it. Then DRAFT PR -> CI green +
-   Vercel preview READY -> open the preview at 390px BY HAND and confirm
-   `document.scrollingElement.scrollWidth <= 390` on `/profile/payments` (this is L8's only
-   evidence under the user's option (c)) -> mark ready -> one CodeRabbit pass -> merge.
-3. GCR: drop the `docs/CLAIMS.md` row IN the merging PR, close #688.
+1. DRAFT PR open (requested by the user 2026-08-03: "Where is the PR at? Maybe create that").
+   Wait for CI green + Vercel preview READY, then mark it ready for review.
+2. One CodeRabbit pass — fetch its INLINE comments, not just the check status.
+3. Merge, then GCR: drop the `docs/CLAIMS.md` row IN the merging PR, close #688.
+4. Before #688 reaches prod, execute the #677 prod tail below — it has a migration that never
+   landed.
 
 ## Constraints
 - Never push to `main`; `dev/2608-DEV-688` only.
@@ -131,10 +129,9 @@ is unavailable, and DEV credentials are in no local env file. The user chose to 
   (b) point the run at DEV (`iymwxdewcpvpjgzewtzk`) by pulling the Pre-Production env vars —
   do NOT let that overwrite `.env.local`, which holds prod credentials; (c) accept the Vercel
   PR preview as the 390px check and run the specs after merge.
-  DECIDED BY THE USER 2026-08-03: option (c). L8 therefore ships UNPROVEN by an executed test —
-  check the preview by hand at 390px before marking Done, and do not read a green
-  `Authenticated E2E (Clerk)` tick as proof (it has gone green in 6s without running the specs;
-  tracked as #679). Confirm the run reports 0 skipped, or treat it as no evidence.
+  RESOLVED 2026-08-03: the user ran the authenticated E2E and reports it passing, so L3 and L8
+  ARE covered by an executed run — it was this session's environment (Docker down) that could
+  not execute it, not the suite. No further local run is owed.
 - NOTED (not done): `app/(dashboard)/profile/components/PaymentsSection.tsx:30`
   `pendingGroupsIPaidFor` still filters `paid_by_profile_id !== myProfileId` directly rather
   than through `payerOf`, so a legacy pending group with a NULL `paid_by_profile_id` is not
