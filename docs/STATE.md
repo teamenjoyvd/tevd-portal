@@ -1,260 +1,154 @@
 ## Goal
-BUILD issue #677 (2607-DEV-677, branch `dev/2607-DEV-677`): payments on behalf of others — ad-hoc
-guests with NO account. A `payment_guests` row remembers the person; their `payments` row keeps
-`profile_id = the payer` (a guest has no ledger) but must be EXCLUDED from the payer's own trip
-total; an admin can later link a guest to a real member as a record only.
+BUILD issue #688 (2608-DEV-688, branch `dev/2608-DEV-688`): keep on-behalf payment attribution
+visible AFTER admin approval, collapse an approved on-behalf group to the one bank transfer it
+was, add a `/profile/payments` drill-down ledger (status filter, debounced search, date range,
+lifetime totals, CSV export), and fix the trip-payment "always EUR" mislabel on the way.
 
 ## Now
-PR #689 is READY and ALL 11 CHECKS ARE GREEN at `cecf884` — the post-GCR commit, so the review
-fixes are themselves verified in CI (`Build` 1m6s, `Authenticated E2E (Clerk)` 5m3s, `390px smoke`
-2m23s, `Replay migrations from scratch` 2m22s, Vercel READY). CodeRabbit ran its one pass:
-10 actionable threads, 8 applied and resolved, 2 rejected with the trace and left OPEN on purpose.
-
-The `docs/CLAIMS.md` row for #677 is removed in this same PR (folded, never a standalone cleanup
-PR). The registry is now empty.
-
-AWAITING THE MERGE. `migrate-prod` is gated on `main`, so it cannot be approved until #689 is
-merged — the order is merge -> approve the gated run -> smoke-check prod -> close #677.
-
-Two things still have no evidence and both need the preview by hand: admin link/unlink (G4), and a
-390px look at the new surfaces.
-
-VERIFIED on the current tree (2026-08-02): `npx tsc --noEmit` exit 0; `npx eslint` on every changed
-area exit 0, 0 problems; `npx vitest run --exclude lib/actions/guest-registration.test.ts` =
-`Test Files 21 passed (21)`, `Tests 268 passed (268)`; the excluded file alone = `3 failed | 21
-passed (24)`, byte-identical to the red baseline and untouched by this branch. The arithmetic ties
-out: 280 baseline - 24 excluded + 6 new `totals.test.ts` + 6 new guest route cases = 268.
-
-NOTE on running the build here: `npm run build` timed out at 10 minutes on a warm `.next`. Per the
-carried note, `rm -rf .next` first — the OS, not the V8 heap, is the limit. Do NOT raise
-`--max-old-space-size`.
+CLAIM is COMPLETE and PUSHED. Nothing is built yet — zero code files touched.
+Issue #688 carries the full DoD, affected-file list, gotchas and `## Design Checklist` (4/4
+checked) + `## Branch`; `docs/CLAIMS.md` has the claim row (`migration: no`) at `716b4ad`;
+branch `dev/2608-DEV-688` is pushed and tracks `origin/dev/2608-DEV-688` (NOT main).
+Next session opens with BUILD step 1 below. Read issue #688's body first — it is the spec.
 
 ## Next
-1. G4 (admin link/unlink) still has NO evidence of any kind — no test, never run against a database.
-   Do it on the preview: `/admin/payments` → Guest links → pick a member → Link → Unlink.
-2. Manual 390px pass on the preview: add a guest from the picker, submit, confirm the payer's trip
-   progress bar counts only their own share (G3 in the real UI), confirm the `/profile` group card
-   names the GUEST and not the payer, admin link + unlink.
-3. DONE — marked ready, one CodeRabbit pass, all findings addressed in ONE batched commit. Push it,
-   resolve the 8 applied threads, reply on the 2 rejected ones, then merge.
-4. `docs/CLAIMS.md` row REMOVED in this PR (`cecf884`+1). Still to do, in this order and only after
-   the merge: approve the gated `migrate-prod` run (this PR HAS a migration — Actions `production`
-   environment gate), confirm it applied, smoke-check `https://www.teamenjoyvd.com`, close #677.
+BUILD in four steps, each ending with its own check. Never carry two failing steps.
+1. `lib/payments/ledger.ts` + `lib/payments/ledger.test.ts` (new), and add `currency: string` to
+   `GenericPayment` in `app/(dashboard)/profile/types.ts`.
+   Helpers: `currencyOf(pay)` = `pay.currency ?? payable_items?.currency ?? 'EUR'`;
+   `ledgerEntries(rows, me)` keyed `payment_group_id && payerOf(row) === me -> g:${id}` else
+   `p:${row.id}`, each raw row emitted exactly once, group status = shared status when uniform
+   else `'pending'` (NEVER `undefined` — `StatusBadge` calls `.toLowerCase()` and throws);
+   `lifetimeTotals(rows, me)` reduces over RAW rows into three per-currency buckets;
+   `toLedgerCSV(rows)` = one line per raw row, no `proof_url` column, RFC-4180 quoting.
+   CHECK: `npx vitest run lib/payments`
+2. `app/(dashboard)/profile/components/shared.tsx` (`PaymentRow`: `currencyOf` + `for A, B` /
+   `Paid by X`) and `PaymentsSection.tsx` (`groupByItem` -> `ledgerEntries`; the "show more"
+   Drawer -> a `next/link` to `/profile/payments`); new i18n keys in en + bg.
+   CHECK: `npm run build`
+3. `app/(dashboard)/profile/payments/page.tsx` + `PaymentsLedgerClient.tsx` (new route).
+   CHECK: `npm run build` + a manual 390px pass
+4. Append the L3 + L8 specs to `e2e/payments-on-behalf.spec.ts`.
+   CHECK: `npx playwright test --project=authenticated` against DEV
+Then: /code-review low -> push -> DRAFT PR -> CI green + preview READY -> ready -> one CodeRabbit
+pass -> merge -> GCR (drop the CLAIMS.md row IN the merging PR, close #688).
 
 ## Constraints
-- Never push to `main`; `dev/2607-DEV-677` only.
-- No `git push` unless the user asks for a push in this conversation (quote required). GRANTED
-  2026-08-02, verbatim: "Address all security and non-security items discovered and open a draft PR".
-  Scope: push `dev/2607-DEV-677` and open a DRAFT PR. Nothing else.
-- GRANTED 2026-08-02 (GCR pass, asked and answered): "Push, then resolve threads". Scope: push
-  `dev/2607-DEV-677`, then resolve the 8 applied CodeRabbit threads and reply on the 2 rejected
-  ones. Does NOT cover merging the PR or approving the gated `migrate-prod` run — ask again for both.
+- Never push to `main`; `dev/2608-DEV-688` only.
+- No `git push` unless the user asks for a push in this conversation (quote required).
+  GRANTED 2026-08-03, verbatim: "push to github so I can start tomorrow ready to go with BUILD".
+  Scope: push `dev/2608-DEV-688`. Does NOT cover opening a PR or merging — ask again for both.
 - Never weaken a check to make it pass.
-- Fold the `docs/CLAIMS.md` row + `docs/STATE.md` updates into this PR — no standalone cleanup PR.
-- Change only what the DoD requires; log other findings as NOTED.
+- Fold the `docs/CLAIMS.md` row removal + `docs/STATE.md` updates into the merging PR — NEVER a
+  standalone cleanup PR.
+- Change only what the DoD requires; log other findings as `NOTED (not done): <thing> <file:line>`.
 - Ask before editing `docs/guardrails/PROJECT.md`.
-- Issue-stated non-goal: linking a guest to a member is a RECORD ONLY — it moves no money and
-  rewrites no `payments` row. Do not invent a migration of payment rows.
-- Issue-stated: `get_payable_beneficiaries` is deliberately NOT touched — guests merge in TypeScript
-  so the RPC's LOS semantics stay pure.
+- Issue-stated out of scope, must NOT be fixed here and must NOT be propagated into the new page
+  or the CSV export: `shared.tsx:131-133` renders `proof_url` as an `href` although it is a
+  private-bucket storage KEY, not a URL (`lib/payments/proof.ts:1-10`).
+- Issue-stated: NO new API route, NO schema change, NO TanStack Table, and `abo_number` is
+  deliberately NOT added to the embeds (it is null for exactly the people it would identify).
+- Issue-stated: ONE responsive layout file for the ledger table. 6 columns permits a dual layout
+  under the Layout Decision Rules but does not require one; two files would duplicate ~40 lines.
 
 ## Decisions
-- DECISION (from PLAN, settled with the user 2026-08-01): the accounting correction lives in the
-  REDUCERS, not the query — `page.tsx` keeps fetching the guest row so the payer still sees money
-  they really paid; only `approvedTotal` skips it.
-- DECISION: ad-hoc people carry `kind: 'guest'` + `relation: 'external'` (new `payment.relExternal`
-  label). `relation: 'guest'` is already taken by #676 for ABO-less approved MEMBERS
-  (`20260731000000_2607_feat_676_pay_on_behalf.sql:173`); nothing shipped by #676 is renamed.
-- DECISION: `GuestLinkPanel` reuses the `['admin-members']` react-query key + a hoisted dedupe
-  helper. `allMembers` is NOT a reusable array — it is computed inside `LogPaymentDrawer.tsx:50-67`
-  with `enabled: open`.
-- DECISION: migration filename `20260801000000_...` — 2026-08-01 is a new day (latest existing is
-  `20260731000000`), so the counter resets to `000000` per GOTCHAS row 14.
+- DECISION (PLAN 2026-08-03): #677 landed FIRST (`5311a9c`), so #688 is the second lander and owns
+  the guest extension. The NAMING half already ships — `payment_guests(id, name)` is in the
+  `/api/payments` select, `beneficiary_guest_id`/`payment_guests` are on `GenericPayment`, and
+  `beneficiaryLabel()` in `lib/payments/labels.ts` already prefers the guest name. What #688 adds
+  is the TOTALS half.
+- DECISION: totals reduce over RAW rows, not over collapsed entries — reducing over entries
+  double-counts the payer's own share. Lifetime, unaffected by the filters, labelled as such.
+- DECISION: `VARIABLE_CAP` now caps collapsed ENTRIES, not raw rows. The bento's unit is "latest
+  transactions" and a group IS one transaction.
+- DECISION: the new client component lives at
+  `app/(dashboard)/profile/payments/PaymentsLedgerClient.tsx`, matching
+  `profile/spouse-link/SpouseLinkClient.tsx` — not under `profile/components/`.
+- DECISION: the page reuses query key `['profile-generic-payments']`, so client-side navigation
+  from the bento mounts it warm off the existing cache. No second route, no refetch per keystroke.
+- DECISION: `payment.allPayments` is reused as the new page's title, so removing the "show more"
+  Drawer orphans no translation key.
 
 ## Facts
-- DEV Supabase project ref `iymwxdewcpvpjgzewtzk`; `supabase/.temp/project-ref` confirms the CLI is
-  linked to DEV. Apply with `supabase db push`; ad-hoc SQL with `supabase db query --linked -f <file>`.
+- Branch `dev/2608-DEV-688`, cut from `origin/main` @ `5311a9c`, upstream
+  `origin/dev/2608-DEV-688`. `git checkout -b X origin/main` sets the upstream to `origin/main` —
+  a bare `git push` would then target main; this branch was corrected with
+  `git branch --unset-upstream` before its first push.
+- BUILD BASELINE, captured 2026-08-03 before any edit:
+  `npx vitest run lib/payments` -> `Test Files 4 passed (4)`, `Tests 58 passed (58)`.
+- WIDER baseline is RED and NOT caused by any current work:
+  `lib/actions/guest-registration.test.ts` fails 2-3 of its 24 tests non-deterministically (spy
+  pollution surfacing under this machine's slowness). Run
+  `npx vitest run --exclude lib/actions/guest-registration.test.ts` and compare against that, never
+  against green.
+- Key symbols: `payerOf` -> `lib/payments/proof.ts:43`; `guestLabel`/`beneficiaryLabel` ->
+  `lib/payments/labels.ts`; `personalApprovedTotal` -> `lib/payments/totals.ts:30`;
+  CSV quoting prior art -> `lib/csv-export.ts:70-99` + `app/admin/members/components/MembersTable.tsx:88-93`;
+  300 ms search debounce prior art -> `app/admin/calendar/components/AdminCalendarClient.tsx:54-69`;
+  `GenericPayment` -> `app/(dashboard)/profile/types.ts:113-152`.
+- `e2e/payments-on-behalf.spec.ts` is already in the `authenticated` `testMatch` and BOTH
+  `testIgnore` regexes (`playwright.config.ts:64,78,85`). A new spec file would cost three regex
+  edits for nothing.
+- A guest payment row satisfies `profile_id = paid_by_profile_id` (`payments_guest_ledger_check`,
+  `20260801000000_2607_feat_677_pay_guests.sql:120`), so it LOOKS like the payer's own row. The
+  "paid" bucket must exclude `beneficiary_guest_id != null`; those rows belong in "paid on behalf
+  of others". This is the highest-risk item in the ticket.
+- DEV Supabase project ref `iymwxdewcpvpjgzewtzk`. Apply migrations with `supabase db push`;
+  ad-hoc SQL with `supabase db query --linked -f <file>`. #688 needs NO migration.
+- If `npm run build` dies with `Fatal process out of memory: Zone` or times out on a warm `.next`,
+  first response is `rm -rf .next` — the OS, not the V8 heap, is the limit. Do NOT raise
+  `--max-old-space-size`.
 - NEVER paste an absolute Windows path into a tracked file. Tailwind v4 scans every source file
   (including .md) for utility candidates; a backslash followed by hex-digit characters parses as a
-  CSS unicode escape, and `String.fromCodePoint` on the result exceeds the Unicode maximum and kills
-  `npm run build` with `Invalid code point <n>` pointed at `app/globals.css:1:1` — nowhere near the
-  real file. Describe the path, never paste it; writing the sequence out even as an example
-  re-breaks the build.
-- If `npm run build` dies with `Fatal process out of memory: Zone`, first response is `rm -rf .next`
-  — the OS, not the V8 heap, was the limit; do not raise `--max-old-space-size`.
-- Premise anchors verified on `main` @ `dd91007`: `app/(dashboard)/trips/[id]/page.tsx:84-87` is the
-  ONLY payments query feeding a money total; `AttendeeView.tsx:118-120` and `ArchivedView.tsx:17-19`
-  both reduce that same prop into `approvedTotal`.
-- `payments` already has THREE FKs to `profiles` (`profile_id`, `logged_by_admin`,
-  `paid_by_profile_id`) — every PostgREST embed must be hinted. `payment_guests` will add a table
-  with TWO FKs to `profiles` (`owner_profile_id`, `linked_profile_id`), same class of trap.
-- `MAX_TOTAL_CENTS` = 100000000 is asserted in three places that must stay in step:
-  `lib/payments/split.ts`, `app/api/payments/route.ts:110`, `submit_payment_group`.
+  CSS unicode escape and kills `npm run build` with `Invalid code point <n>` pointed at
+  `app/globals.css:1:1` — nowhere near the real file. Describe the path, never paste it.
+- Regenerate `types/supabase.ts` through Git Bash (`>` redirect), NOT PowerShell
+  `Out-File -Encoding utf8` — the latter writes CRLF + BOM and rewrites all ~3100 lines.
 
 ## Done
-- BASELINE (before any code edit, `npm run verify`) — RESULT: RED. `Test Files 1 failed | 20 passed
-  (21)`, `Tests 3 failed | 277 passed (280)`, all in `lib/actions/guest-registration.test.ts`. NOT
-  caused by #677 (only `docs/STATE.md` and the new migration existed at that point) and NOT stable:
-  a second run of that file alone gave `2 failed | 22 passed (24)` with a DIFFERENT test hitting the
-  5000ms timeout and the spy count differing (`upsertSpy` called 3 times, then 2, expected 1). Reads
-  as cross-test spy pollution surfacing under this machine's slowness (68-128s transform/import).
-  Compare every later run against this line, not against green.
-- Step 1 DONE — `supabase/migrations/20260801000000_2607_feat_677_pay_guests.sql` applied to DEV via
-  `supabase db push`. RESULT: 13/13 probes pass, DEV left at `payments_left=2 guests_left=0` (its
-  pre-probe state). G1 `rows=2 guest_rows=1 guest_table=1 all_ledgers_on_payer=t`; G2 a re-typed
-  guest (case + whitespace) reuses the row; G2b `guest_id` reuses it; G5 a guest row on a foreign
-  ledger is rejected by `payments_guest_ledger_check`; G5b a guest row outside a group is rejected by
-  `payments_group_pair_check`; G6 the same guest twice in one group rejected; G7 another payer using
-  my guest rejected; G8 an entry naming two kinds rejected; G9 a blank guest name rejected; G10 the
-  pure #676 payload still accepted; G11 paying for your upline still rejected; G12 the guest row
-  survives `withdraw_payment_group`.
-- BUG FOUND AND FIXED BY THE PROBES (G8): the "exactly one of profile_id / guest_id / guest" check
-  computed `1 + 1 + (jsonb_typeof(e -> 'guest') = 'object')::int`, and `jsonb_typeof(NULL)` is NULL
-  when the key is absent, so the sum was NULL and `NULL <> 1` filtered nothing. An entry naming BOTH
-  a profile and a guest passed. Fixed with `coalesce(jsonb_typeof(...), '')`; re-applied to DEV via
-  `supabase migration repair --status reverted 20260801000000` + `db push` (the migration is
-  re-runnable throughout: IF NOT EXISTS / DROP+ADD / CREATE OR REPLACE).
-- Step 2 DONE — `types/supabase.ts` regenerated from DEV (3044 -> 3110 lines), diff purely additive:
-  the `payment_guests` table, `payments.beneficiary_guest_id` in Row/Insert/Update, and the FK
-  relationships. `npx tsc --noEmit` exit 0. NOTE: regenerate through Git Bash (`>` redirect), NOT
-  PowerShell `Out-File -Encoding utf8` — the latter writes CRLF + BOM and rewrites all 3100 lines.
-- Steps 3-4 DONE — RESULT: `npx vitest run app/api/payments lib/payments` = `Test Files 5 passed (5)`,
-  `Tests 79 passed (79)`; `npx tsc --noEmit` exit 0. Server: `eligibility.ts` gained `PayableGuest` /
-  `fetchPayableGuests` / `guestIdentityKey` and `assertGroupAllowed` now takes `GroupEntry[]` (all
-  three shapes) instead of a `string[]` of profile ids; `beneficiaries/route.ts` appends the caller's
-  guests (never for a guest-ROLE caller); `payments/route.ts` rebuilds each entry key by key before
-  it reaches the RPC. Accounting: the duplicated `approvedTotal` reducer was extracted to
-  `lib/payments/totals.ts` (`personalApprovedTotal`) so G3 is testable directly — 6 cases in
-  `lib/payments/totals.test.ts`, which is where the DoD's "route-level vitest case for G3" landed,
-  since after the PLAN correction the arithmetic is in the reducers and not in any route.
-- Steps 5-6 DONE (picker + admin), plus `e2e/payments-guest.spec.ts` and the REF/GOTCHAS updates.
-  Picker: `components/payment/types.ts` now exports a DISCRIMINATED UNION (`kind: 'profile' |
-  'guest'`) plus `rowKeyOf`/`displayNameOf`/`guestIdentity`; a guest rides `SplitRow.profileId` as an
-  opaque prefixed row KEY (`guest:<uuid>` / `newguest:<n>`), so `lib/payments/split.ts` and its 27
-  tests needed no change and a profile-only submission is byte-identical to #676's. Admin: the
-  `allMembers` dedupe was hoisted to `app/admin/payments/components/members.ts` and is now shared by
-  `LogPaymentDrawer` and the new `GuestLinkPanel` off one `['admin-members']` cache entry.
-- BUG FOUND (invisible, would have broken the build tooling): `guestIdentityKey` in
-  `lib/payments/eligibility.ts` was written with a literal NUL byte (U+0000) as its separator. Git
-  classified the file as BINARY — `git diff` showed `Bin 3289 -> 9646 bytes` instead of a reviewable
-  diff, which would have made the whole file unreviewable in the PR. Both copies (server
-  `guestIdentityKey`, client `guestIdentity`) now use `JSON.stringify([name, email])`, which is also
-  collision-free: any plain delimiter can appear inside a name a user typed. A NUL scan over every
-  tracked .ts/.tsx/.sql/.md found no other instance.
-- CLAIM complete: #677 has `## Design Checklist` (four checked) + `## Branch`; branch
-  `dev/2607-DEV-677` checked out; `docs/CLAIMS.md` row registered at `a2e36ff`.
-- SECURITY REVIEW done on the branch diff (BUILD EXECUTE gate; warranted by the new table, the new
-  RLS policies and the replaced SECURITY DEFINER RPC). RESULT: no finding at confidence >= 8.
-  Checked and cleared: the RPC keeps the GOTCHAS-34 guard and re-validates guest ownership inside
-  the write transaction; `owner_profile_id` scopes every guest read; the "not yours" 403 is uniform
-  and so is not an enumeration oracle; `payments_guest_ledger_check` makes a cross-ledger guest row
-  unrepresentable; the #676 proof-URL disclosure class is unreachable because `payerOf()` resolves a
-  guest row to the payer; no dynamic SQL; no `dangerouslySetInnerHTML`; Pattern A helpers only.
-- CI, first run of PR #689: 10 of 11 checks green — `Build` (51s), `Type Check`, `Lint`, `Test`,
-  `Security Audit`, `Replay migrations from scratch`, `Authenticated E2E (Clerk)` (5m8s, so it really
-  ran; the vacuous-skip problem from #679 is gone), Vercel READY. `npm run build` therefore PASSES —
-  the 10-minute failure was this machine, not the code, and that UNVERIFIED item is now closed.
-- The guest name is now rendered through `lib/payments/labels.ts` (`guestLabel` /
-  `beneficiaryLabel`), tested by 10 cases in `labels.test.ts`. Extracted rather than inlined because
-  the repo has NO component-test infrastructure — `vitest.config.ts` is `environment: 'node'` with
-  `include` limited to `.ts`, and there is no jsdom or testing-library — so a pure helper is the only
-  part of that render a test can reach. The pixels still need the preview.
-- `PaymentRow` in `shared.tsx` now carries the same marker, so a guest row in the payer's per-item
-  history no longer reads as an unexplained second payment of their own fee. `truncate min-w-0`,
-  because at 390px that row is already tight and an untruncatable name would push the status badge
-  past the viewport.
-- FIX from that review (non-security, found while tracing the guest name through every surface):
-  `PaymentsSection.tsx` rendered a pending group card's beneficiary list from `r.beneficiary`, the
-  `profiles!profile_id` embed. On a guest row that IS the payer, so a card for "me + guest Ivan"
-  listed the payer's name twice instead of naming Ivan. GET `/api/payments` now selects
-  `beneficiary_guest_id, payment_guests(id, name)`, `GenericPayment` declares both, and the card
-  prefers the guest name with a `payment.guestTag` suffix. Same class as the admin-side fix already
-  made in `PaymentGroupCard.tsx` / `PaymentsClient.tsx`.
-
-- GCR on PR #689 (2026-08-02) — CodeRabbit's 10 threads. BASELINE first:
-  `npx vitest run app/api/payments lib/payments` = `6 passed (6)` / `87 passed (87)`, green.
-  APPLIED 8. The one that mattered: `assertGroupAllowed` validated `guest.name` with `.trim()` on a
-  value taken straight off `req.json()`, and `??` substitutes only null/undefined — so
-  `{"guest":{"name":123}}` evaluated `(123).trim()` and threw a TypeError out of a POST handler with
-  NO try/catch. Any authenticated member could turn a bad request into a framework 500. The
-  `String(...)` rebuild at `app/api/payments/route.ts:145` looked like a defense but runs AFTER the
-  validator, so it never executed. Now type-checked before any string method and REJECTED rather
-  than coerced (`String(123)` would have remembered a guest named "123"); `GroupEntry.guest` fields
-  are typed `unknown` so the compiler stops blessing `.trim()` on them. 5 `G13` cases cover it.
-  Also: the picker's duplicate error was rendered only inside the add-guest form, but the second
-  path that sets it (tapping an already-added remembered guest) leaves that form closed, so the tap
-  returned in silence; guest-form inputs had a placeholder as their only accessible name;
-  `/api/payments/beneficiaries` forwarded raw PostgREST `error.message` to the client on BOTH
-  branches (the profile one was pre-existing — same class, folded in per the standing rule);
-  `GuestLinkPanel` rendered a failed fetch as "no guests to link" and left the server-rendered
-  payment rows stale after a link (`router.refresh()` added); `ArchivedView`'s guest attribution was
-  hardcoded English; `PaymentsClient`'s comment claimed the panel renders nothing while empty.
-- REJECTED 2 of the 10, both with the trace, both replied to on the thread rather than resolved:
-  (a) `components/payment/types.ts` "align `guestIdentity` with the SQL normalization" — real
-  asymmetry (JS `trim()` strips the full ECMAScript whitespace set, SQL `btrim()` only the ASCII
-  space) but NOT REACHABLE: `app/api/payments/route.ts:145-146` rebuilds every inline guest as
-  `String(...).trim()` before the RPC, and `submit_payment_group` is service_role-only with that
-  route as its sole caller, so SQL never receives an untrimmed name and `btrim` is a no-op on it.
-  Changing JS to ASCII-space-only would make "Ivan" and "Ivan\t" two different people — worse, not
-  better. Documented the dependency in both copies instead, since it was load-bearing and unstated.
-  (b) migration `payment_guests_admin_core_all` grants FOR ALL to `admin` AND `core` — deliberate:
-  `app/api/admin/payment-guests/[id]/route.ts:26` authorizes `adminOrCore`, so restricting the
-  policy to `admin` would desynchronize RLS from the rule actually enforced, on a table every server
-  path reaches through the service client (RLS bypassed) anyway. Also would mean re-editing an
-  already-applied migration for zero behavior change.
-- NOT applied, CodeRabbit "nitpick" tier, logged not done: `app/api/admin/payment-guests/route.ts`
-  GET is unbounded and feeds every guest id into one `.in()` filter (414 risk at scale); the two
-  independent fetches in `assertGroupAllowed` could run under `Promise.all`. Neither is a defect at
-  the current row counts and both change shapes this issue did not open.
+- PLAN #688 (2026-08-03) — RESULT: READY. Premise re-verified on `main` @ `5311a9c`: `types.ts`
+  declares no `currency` while `app/api/payments/route.ts:29` selects it, and both `shared.tsx:114`
+  and `PaymentsSection.tsx:44` fall back to `payable_items?.currency ?? 'EUR'` — and a trip
+  payment's `payable_items` is NULL, so every trip payment is force-labelled EUR.
+  `PaymentsSection.tsx:35` filters `admin_status !== 'pending'`, which is where attribution is
+  lost at approval. Issue line refs were 1-3 lines stale (written pre-#677-merge); every code
+  claim holds. 9 files, ~600 lines estimated, migration: no, E2E project: `authenticated`.
+- CLAIM #688 (2026-08-03) — RESULT: complete and pushed. `docs/CLAIMS.md` registry was EMPTY, so no
+  scope overlap and no in-flight `migration: yes` row to sequence against. Issue #688 updated with
+  DoD + affected files + gotchas + `## Design Checklist` (4/4) + `## Branch`; row committed at
+  `716b4ad`; branch pushed (`* [new branch] dev/2608-DEV-688 -> dev/2608-DEV-688`).
 
 ## Open items
-- NOT RUN: G4 (admin link/unlink) has no automated coverage and has never been exercised against a
-  real database. `e2e/payments-guest.spec.ts` covers the member side only. Do it manually on the
-  preview: `/admin/payments` → Guest links → pick a member → Link → Unlink.
-- DONE: `e2e/payments-guest.spec.ts` PASSED in CI at `4c921ef` — `✓ 12 [authenticated] ›
-  e2e/payments-guest.spec.ts:48:7 … (16.0s)`. Executed, not skipped, so the carried #676 worry about
-  the payments E2E passing vacuously does not apply to this spec.
-- The spec writes a real `payment_guests` row named `E2E Guest Nadia` on whichever database it runs
-  against. It is uniquely indexed, so re-runs reuse the one row rather than accumulating — but on
-  DEV it is a fixture that will need removing at GCR alongside `seed_676_*`.
-- NOTED (not done): `app/(dashboard)/profile/types.ts:80` declares a SECOND `TripPayment` type,
-  unrelated to the one in `app/(dashboard)/trips/[id]/page.tsx`. Left alone — no personal-balance
-  reducer consumes it, so the guest correction does not apply, but the name collision is a trap.
-- Deliberately NOT changed: `PaymentsSection.tsx:42` sums `amount` across a group INCLUDING guest
-  rows. That is correct — it is the total of a transfer the payer made, shown on the withdraw card,
-  not a personal balance.
-- Carried from #676, still open: `e2e/payments-on-behalf.spec.ts` had never executed as of the #676
-  merge — the seed extension in `scripts/seed-clerk-test-users.js` was EDITED-UNVERIFIED against a
-  real database. Confirm on this PR's CI run that the payments E2E reports 0 skipped.
-- Carried from #676, unmeasured: does PROD have `payments` rows? If yes, `/profile` was crashing in
+- CARRIED FROM #677, NOT DONE — the prod tail. PR #689 is merged (`5311a9c` on `main`) but the
+  post-merge sequence was never executed: approve the gated `migrate-prod` run (GitHub Actions,
+  `production` environment, manual approval — #677 HAS a migration), confirm it applied,
+  smoke-check `https://www.teamenjoyvd.com`, then close issue #677. Do this BEFORE #688 reaches
+  prod, or #688 ships against a schema its migration never landed on.
+- CARRIED FROM #677, NEVER VERIFIED (G4): admin guest link/unlink has NO automated coverage and has
+  never been exercised against a real database. `e2e/payments-guest.spec.ts` covers the member side
+  only. Do it by hand: `/admin/payments` -> Guest links -> pick a member -> Link -> Unlink.
+- CARRIED FROM #677: DEV fixtures still present and still uncleaned — `seed_676_*` (7 profiles,
+  ABOs 6760001-6760004, deferred by the user 2026-07-31) and a `payment_guests` row named
+  `E2E Guest Nadia` written by `e2e/payments-guest.spec.ts` (uniquely indexed, so re-runs reuse it
+  rather than accumulate). Both are still NEEDED for the authenticated E2E — do not delete before
+  #688's step 4 runs.
+- CARRIED FROM #676, UNMEASURED: does PROD have `payments` rows? If yes, `/profile` was crashing in
   production for every such user between 2026-07-27 (`570d587`, #670) and the #676 merge. One
   read-only query answers it: `select count(*), count(distinct profile_id) from payments`.
-- Carried NOTED (not done), unrelated to #677: trip payments display currency `'EUR'` by fallback
-  (`PaymentsSection.tsx:43`, `shared.tsx:109` both read `payable_items?.currency ?? 'EUR'`, and a
-  trip payment's `payable_items` is NULL); `shared.tsx:102` gates the cancelled-trip ⓘ on
-  `payable_items?.item_type === 'trip'`, always false for a real trip payment;
-  `shared.tsx:120` and `ArchivedView.tsx:70` render `proof_url` directly as an `href` although it is
-  a storage KEY, not a URL, since `20260517000200` made `trip-proofs` private.
-- DEV fixture `seed_676_*` (7 profiles, ABOs 6760001-6760004) is still present on DEV and is still
-  needed for the E2E/manual passes. Its GCR cleanup was deferred by the user on 2026-07-31.
+- NOTED (not done), in scope of the FILES #688 touches but explicitly excluded by the issue:
+  `shared.tsx:103` gates the cancelled-trip info marker on `payable_items?.item_type === 'trip'`,
+  which is always false for a real trip payment (its `payable_items` is NULL).
+- NOTED (not done): `app/admin/payments/components/LogPaymentDrawer.tsx:60` merges
+  `membersData.manual_members_no_abo`, but `GET /api/admin/members` never emits that key — the
+  admin log-payment dropdown silently excludes ABO-less profiles.
+- NOTED (not done): `app/(dashboard)/profile/types.ts:80` declares a SECOND `TripPayment` type,
+  unrelated to the one in `app/(dashboard)/trips/[id]/page.tsx`. Name collision, left alone.
+- REFERENCE SWEEP owed at BUILD step 2, per CLAUDE.md iron rule 3: `groupByItem` (single caller)
+  and the removed `listDrawerOpen` Drawer. `ShowMoreButton` keeps its other three callers
+  (`TripsSection.tsx:61`, `VitalsSection.tsx:96`, `ParticipationSection.tsx:70`) — do not delete it.
+- The CI check `Authenticated E2E (Clerk)` has historically gone green in seconds WITHOUT running
+  the specs (tracked as #679). It ran for real on #677's PR, but do not treat a green tick as
+  proof: confirm the run reports 0 skipped, and run step 4 locally against DEV regardless.
 
 ## Failed attempts
-- ATTEMPT 1 [L1] — first CI run of PR #689: `390px smoke vs preview` FAILED (both the initial run and
-  retry #1) with `The Clerk Frontend API URL is required to bypass bot protection`, thrown at
-  `e2e/payments-guest.spec.ts:37` inside `clerk.signIn`. NOT a product bug and NOT a 390px layout
-  failure: `playwright.config.ts` routes Clerk-authenticated specs to the `authenticated` project via
-  three regexes, and the new spec was never added to them, so `mobile-390` collected it and ran it
-  against a live Vercel Preview that has no Clerk secrets. The spec's own docstring already said it
-  belonged to `authenticated`; the config was never told. Fixed by adding `payments-guest` to all
-  three. Everything else in that run was green, `Build` included. FIXED — `390px smoke vs preview`
-  passed on the re-run (2m22s).
-- ATTEMPT 1 [L1] on a SECOND, different failure, exposed only once the routing fix let the spec run
-  for the first time: `Authenticated E2E (Clerk)` failed at `payments-guest.spec.ts:117` with
-  `strict mode violation: getByText(/guests \(no account\)/i) resolved to 2 elements`. A TEST bug,
-  not a product bug — and the failure output is itself evidence the feature works, because element 2
-  was the remembered guest's own row (`e2e-guest-nadia@example.com · Guests (no account)`). The
-  picker prints the relation label as the section header AND inside every row's subtitle. The
-  assertion above it — line 114, the actual memory requirement — PASSED, so add-guest → submit →
-  withdraw → guest-survives is now proven end to end against a real database. Fixed by matching the
-  header exactly. 18 other authenticated tests passed in that run. FIXED — `✓ 12 [authenticated] ›
-  e2e/payments-guest.spec.ts:48:7 … (16.0s)`, `19 passed`, at `4c921ef`.
+(none for #688 — no code written yet)
