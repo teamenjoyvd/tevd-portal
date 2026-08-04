@@ -177,6 +177,30 @@ describe('fail-closed behaviour', () => {
       .resolves.toBe(false)
   })
 
+  it('never writes the recipient address into the failure log (PR #693 review)', async () => {
+    const { client } = buildClient({
+      rpcResult: { data: null, error: { code: '57014', message: 'statement timeout' } },
+    })
+    mockCreateServiceClient.mockReturnValue(client)
+    const errorSpy = vi.mocked(console.error)
+    const { consumeEmailCap } = await import('@/lib/rate-limit')
+
+    await consumeEmailCap({
+      recipient: 'jane@example.com',
+      template:  'guest_event_magic_link',
+      windowMs:  HOUR,
+      max:       3,
+    })
+
+    expect(errorSpy).toHaveBeenCalledTimes(1)
+    const logged = JSON.stringify(errorSpy.mock.calls[0])
+    expect(logged).not.toContain('jane@example.com')
+    expect(logged).not.toContain('jane')
+    // The scope still identifies WHICH guard tripped, and the digest still lets
+    // repeated failures for one recipient be correlated.
+    expect(logged).toContain('email+template')
+  })
+
   it('denies when the RPC error carries no code at all', async () => {
     const { client } = buildClient({
       rpcResult: { data: null, error: { message: 'network unreachable' } },

@@ -5,12 +5,20 @@ count-then-decide guest-invite rate limits with ONE atomic `SECURITY DEFINER` RP
 actually capped instead of every caller reading the same stale count.
 
 ## Now
-BUILD steps 1-5 COMPLETE and verified (see Done). All 8 DoD files edited, migration applied to
-DEV, types regenerated, concurrency proof passed. Nothing committed yet.
+PR #693 is OPEN and NOT a draft (the user marked it ready_for_review at 2026-08-04 14:46Z from the
+GitHub UI). All 9 CI checks green. CodeRabbit's single pass returned 3 inline comments; all 3 are
+applied and pushed as one batched commit. Awaiting CodeRabbit's re-review, then merge.
 
 ## Next
-0. Run the review pass (`/security-review` — this touches RLS, a SECURITY DEFINER function and a
-   migration), fix findings locally, THEN ask the user before any commit/push.
+1. Confirm CodeRabbit's incremental re-review is clean and all 3 threads are resolved.
+2. Merge #693 — needs the user's explicit go-ahead.
+3. Post-merge: drop the `docs/CLAIMS.md` #625 row, close #625.
+4. PROD TAIL, in this order: approve #677's pending `migrate-prod` run FIRST (it has never landed),
+   then #625's. Smoke-check `https://www.teamenjoyvd.com`.
+5. ONLY after #625's migration is confirmed applied on prod: open + action the issue to delete the
+   `PGRST202`/`42883` fallback from `lib/rate-limit.ts`. It CANNOT be removed at GCR time — between
+   merge and migrate-prod approval, prod runs the new code against a schema with no
+   `consume_rate_limit`, and the guards fail closed on a public flow.
 
 ## Next (original build order, all done)
 1. Step 1: write `supabase/migrations/20260804000000_2608_feat_625_atomic_rate_limits.sql`
@@ -130,25 +138,46 @@ DEV, types regenerated, concurrency proof passed. Nothing committed yet.
   rows deleted afterwards (`remaining_jobs=0`, `total_rows=0`).
 
 ## Open items
+- FLAKE, seen once on PR #693's CI, NOT caused by #625: `e2e/payments-on-behalf.spec.ts:169`
+  ("L3: a row someone else paid for me is labelled with the payer") failed a `toBeVisible()` at
+  36.3s then passed on retry #1 in 6.2s — a cold-server timing profile, same file and same shape as
+  the L8 flake logged during #688. The run was otherwise honest: `Running 21 tests using 2 workers`
+  -> `20 passed`, `1 flaky`, **0 skipped**, so this was NOT the vacuous green tracked as #679.
+  #625 touches rate limiting only; that spec asserts payment attribution labels.
 - At GCR: open a follow-up issue to REMOVE the transitional `PGRST202`/`42883` fallback from
   `lib/rate-limit.ts` once `consume_rate_limit` is live in prod. The fallback is dead weight after
   that and silently re-opens the race if it ever fires.
-- OPEN QUESTION FOR THE USER — the `price_checker` DB role. Findings (DEV `iymwxdewcpvpjgzewtzk`,
-  2026-08-04): it is a LOGIN role, not superuser, `rolbypassrls = false`, no role memberships, owns
-  0 objects, no password expiry (`rolvaliduntil` null), no connection limit. It holds `arwdDxtm` on
-  ALL 41 public tables — including the brand-new `rate_limit_events` — because of an
-  `ALTER DEFAULT PRIVILEGES IN SCHEMA public` rule owned by `postgres` that lists it alongside
-  anon/authenticated/service_role, for both TABLES and SEQUENCES. So every future table this repo
-  ever creates is auto-granted to it. `grep -ri price_checker` over the whole repo returns ZERO hits
-  outside this file: no migration creates the role, no code connects as it. It was created out of
-  band (dashboard/SQL editor) and is unversioned. Postgres keeps no role-creation timestamp, so
-  "when" is not recoverable from the catalog. NOT a #625 regression — #625 merely inherits the rule.
-  Containment today: RLS enabled + zero policies + `rolbypassrls = false` means it cannot read
-  `rate_limit_events`. But it CAN read every pre-existing table whose RLS policies admit it.
-  UNVERIFIED: whether the role also exists in PROD (`ynykjpnetfwqzdnsgkkg`). To check, run in the
-  prod dashboard SQL editor (read-only):
-  `select rolname, rolcanlogin, rolbypassrls from pg_roles where rolname = 'price_checker';`
-  and `select defaclrole::regrole, defaclobjtype, array_to_string(defaclacl,' | ') from pg_default_acl;`
+- OPEN — the `price_checker` DB role. A dormant, unversioned LOGIN credential on DEV only.
+  DEV-ONLY: the user confirmed 2026-08-04 it does NOT exist on prod. On DEV `iymwxdewcpvpjgzewtzk`
+  it is a LOGIN role WITH A PASSWORD SET (`pg_authid.rolpassword is not null`), not superuser,
+  `rolbypassrls = false`, no role memberships, owns 0 objects, no password expiry, no connection
+  limit. It is the ONLY non-Supabase-standard role on the project (the others —
+  `cli_login_postgres`, `supabase_etl_admin`, `supabase_functions_admin`,
+  `supabase_privileged_role` — are all stock).
+  IT HAS BEEN USED, EXACTLY ONCE, AND NEVER SINCE. `pg_stat_statements` holds 4 statements for its
+  `userid`, and `stats_since` dates every one of them to **2026-07-29**:
+    11:09:04.100 — `select b.oid, b.typarray from pg_catalog.pg_type a left join ... where
+                    a.typcategory = $1 group by b.oid, b.typarray order by b.oid`  (2 calls)
+    11:09:04.169 — `SELECT current_user, current_database(), current_schemas($1)`  (1 call)
+    11:09:04.231 — `SELECT table_schema,table_name FROM information_schema.tables
+                    WHERE table_name IN ($1,$2)`                                    (1 call)
+    11:13:34.884 — `SELECT datname FROM pg_database WHERE datistemplate=$1`         (1 call)
+  That is a client-library/GUI CONNECTION HANDSHAKE, not application traffic: type-catalog
+  bootstrap, identity probe, an existence check for two specific named tables, then a
+  list-databases 4.5 minutes later. Zero queries against any business table, ever. So: someone
+  pointed a tool at the DEV database as this role on 2026-07-29, it introspected, and it was never
+  used again. Literals are normalised to $1/$2 so WHICH two tables it looked for is not recoverable.
+  Grants: `arwdDxtm` on ALL 41 public tables. Old tables came from an explicit
+  `GRANT ALL ON ALL TABLES IN SCHEMA public`; NEW tables (including `rate_limit_events`) come from
+  an `ALTER DEFAULT PRIVILEGES IN SCHEMA public` rule owned by `postgres` that lists it beside
+  anon/authenticated/service_role for both TABLES and SEQUENCES — so every table this repo will
+  ever create is auto-granted to it.
+  NOT a #625 regression; #625 merely inherits the default-privileges rule, and RLS (enabled, zero
+  policies, `rolbypassrls = false`) still blocks it from `rate_limit_events`. It CAN read every
+  pre-existing table whose RLS policies admit it.
+  DECIDE: revoke it (`DROP ROLE price_checker` + drop the default-privileges entry) or, if the tool
+  is wanted, recreate it in a migration with least-privilege grants so it stops being invisible.
+  Either way it is a separate ticket, not #625.
 - CARRIED FROM #677, NOT DONE — the prod tail. PR #689 is merged (`5311a9c` on `main`) but the
   post-merge sequence was never executed: approve the gated `migrate-prod` run (GitHub Actions,
   `production` environment, manual approval — #677 HAS a migration), confirm it applied,
@@ -173,6 +202,26 @@ DEV, types regenerated, concurrency proof passed. Nothing committed yet.
   private-bucket storage KEY, not a URL (`lib/payments/proof.ts:1-10`).
 - The CI check `Authenticated E2E (Clerk)` has historically gone green in seconds WITHOUT running
   the specs (tracked as #679). Never treat a green tick as proof: confirm the run reports 0 skipped.
+
+## Done (GCR)
+- GCR PR #693 (2026-08-04) — RESULT: all 3 CodeRabbit inline comments applied in ONE batch.
+  (1) MAJOR/security, `lib/rate-limit.ts:40` — the failure log wrote the whole bucket key, which
+  embeds the recipient email (CWE-532). Now logs `{ scope, key: keyDigest(key) }` — a 12-char
+  SHA-256 prefix — so repeated failures for one recipient still correlate without recording who.
+  Backed by a regression test PROVEN RED first: reverting the fix gave
+  `AssertionError: expected '["consume_rate_limit failed, denying"…' not to contain 'jane@example.com'`.
+  (2) MINOR/correctness, `lib/rate-limit.ts:66,90` — truthiness checks on `template` / `shareLinkId`,
+  a direct CLAUDE.md iron-rule violation. Now `template != null` / `shareLinkId !== null`. The SAME
+  defect class was folded in for the two legacy fallback functions, which must scope identically or
+  the fallback would count a different bucket than the RPC path.
+  (3) MAJOR/performance, migration — `idx_rate_limit_events_key_created` leads with `bucket_key` and
+  cannot serve the nightly sweep's global `created_at` predicate; since `bucket_key` is composed
+  from a public form's email field, an abuser can mint unlimited distinct keys whose rows only the
+  sweep ever collects. Added `idx_rate_limit_events_created_at` in a SEPARATE migration
+  (`20260804000100`) rather than editing `20260804000000`, which is already applied on DEV — both
+  ship in the same PR so prod applies them together. Verified on DEV: all 3 indexes present.
+  Re-verified after the fixes: 45 tests -> 46 (13 in `lib/rate-limit.test.ts`), `tsc --noEmit`
+  clean, `npx eslint` on the changed files silent.
 
 ## Failed attempts
 Both are about the PROOF HARNESS only — no attempt failed against the migration or the TS code.

@@ -1,3 +1,4 @@
+import { createHash } from 'crypto'
 import { createServiceClient } from '@/lib/supabase/service'
 
 // Guest-invite abuse guards (2607-DEV-591), reworked atomic in 2608-DEV-625.
@@ -21,10 +22,19 @@ function isMissingFunction(error: { code?: string | null } | null): boolean {
   return error?.code != null && MISSING_FUNCTION_CODES.has(error.code)
 }
 
+/**
+ * A bucket key embeds the recipient's email address, so it must never reach a
+ * log. This yields the scope plus a short digest — enough to correlate repeated
+ * failures for one recipient without recording who they are.
+ */
+function keyDigest(key: string): string {
+  return createHash('sha256').update(key).digest('hex').slice(0, 12)
+}
+
 /** `true`/`false` = the RPC decided; `'rpc-missing'` = it isn't deployed yet. */
 type Outcome = boolean | 'rpc-missing'
 
-async function consumeSlot(key: string, windowMs: number, max: number): Promise<Outcome> {
+async function consumeSlot(key: string, scope: string, windowMs: number, max: number): Promise<Outcome> {
   const supabase = createServiceClient()
 
   const { data, error } = await supabase.rpc(RPC, {
@@ -37,7 +47,7 @@ async function consumeSlot(key: string, windowMs: number, max: number): Promise<
     if (isMissingFunction(error)) return 'rpc-missing'
     // Fail closed: a broken guard must not silently unblock the abuse it is
     // meant to enforce.
-    console.error('consume_rate_limit failed, denying', { key, error })
+    console.error('consume_rate_limit failed, denying', { scope, key: keyDigest(key), error })
     return false
   }
   // `data` is boolean | null. A null here means the RPC returned no row at all,
@@ -63,9 +73,12 @@ export async function consumeEmailCap({
   windowMs,
   max,
 }: EmailCapArgs): Promise<boolean> {
-  const key = template ? `email:${recipient}:${template}` : `email:${recipient}`
+  // Explicit null check, not truthiness: '' is a supplied template, not an
+  // absent one, and must not silently collapse into the recipient-wide bucket.
+  const scoped = template != null
+  const key = scoped ? `email:${recipient}:${template}` : `email:${recipient}`
 
-  const outcome = await consumeSlot(key, windowMs, max)
+  const outcome = await consumeSlot(key, scoped ? 'email+template' : 'email', windowMs, max)
   if (outcome !== 'rpc-missing') return outcome
   return legacyEmailCap({ recipient, template, windowMs, max })
 }
@@ -87,9 +100,10 @@ export async function consumeRegistrationSlot({
   windowMs,
   max,
 }: RegistrationSlotArgs): Promise<boolean> {
-  const key = shareLinkId ? `guest-reg:link:${shareLinkId}` : `guest-reg:event:${eventId}`
+  const byLink = shareLinkId !== null
+  const key = byLink ? `guest-reg:link:${shareLinkId}` : `guest-reg:event:${eventId}`
 
-  const outcome = await consumeSlot(key, windowMs, max)
+  const outcome = await consumeSlot(key, byLink ? 'guest-reg:link' : 'guest-reg:event', windowMs, max)
   if (outcome !== 'rpc-missing') return outcome
   return legacyRegistrationThrottle({ shareLinkId, eventId, windowMs, max })
 }
@@ -107,6 +121,9 @@ export async function consumeRegistrationSlot({
 async function legacyEmailCap({ recipient, template, windowMs, max }: EmailCapArgs): Promise<boolean> {
   const supabase = createServiceClient()
   const windowStart = new Date(Date.now() - windowMs).toISOString()
+  // Same explicit null check as consumeEmailCap — the two paths must scope
+  // identically, or the fallback would count a different bucket.
+  const scoped = template != null
 
   let query = supabase
     .from('notification_delivery_log')
@@ -115,11 +132,15 @@ async function legacyEmailCap({ recipient, template, windowMs, max }: EmailCapAr
     .eq('recipient', recipient)
     .gte('created_at', windowStart)
 
-  if (template) query = query.eq('template', template)
+  if (scoped) query = query.eq('template', template)
 
   const { count, error } = await query
   if (error) {
-    console.error('legacyEmailCap query failed, denying', { recipient, template, error })
+    console.error('legacyEmailCap query failed, denying', {
+      scope: scoped ? 'email+template' : 'email',
+      key:   keyDigest(scoped ? `email:${recipient}:${template}` : `email:${recipient}`),
+      error,
+    })
     return false
   }
   return (count ?? 0) < max
@@ -139,7 +160,7 @@ async function legacyRegistrationThrottle({
     .select('id', { count: 'exact', head: true })
     .gte('created_at', windowStart)
 
-  query = shareLinkId ? query.eq('share_link_id', shareLinkId) : query.eq('event_id', eventId)
+  query = shareLinkId !== null ? query.eq('share_link_id', shareLinkId) : query.eq('event_id', eventId)
 
   const { count, error } = await query
   if (error) {
