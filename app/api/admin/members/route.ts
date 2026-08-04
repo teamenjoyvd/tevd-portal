@@ -38,5 +38,15 @@ export async function GET() {
     profile: profilesByAbo[m.abo_number] ?? null,
   }))
 
-  return Response.json({ los_members: enrichedLOS })
+  // Household co-owners: role-guarded to have no abo_number (trg_guard_abo_number_null),
+  // so they can never appear in the LOS-joined list above.
+  const { data: manualMembers, error: manualErr } = await supabase
+    .from('profiles')
+    .select('id, first_name, last_name, upline_abo_number')
+    .in('role', ['member', 'core'])
+    .is('abo_number', null)
+
+  if (manualErr) return Response.json({ error: manualErr.message }, { status: 500 })
+
+  return Response.json({ los_members: enrichedLOS, manual_members_no_abo: manualMembers ?? [] })
 }

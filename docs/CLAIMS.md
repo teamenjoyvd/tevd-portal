@@ -6,4 +6,4 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
-| #688 | `dev/2608-DEV-688` | `lib/payments/ledger.ts` (new) + its test · `app/(dashboard)/profile/types.ts` · `profile/components/{PaymentsSection,shared}.tsx` · `app/(dashboard)/profile/payments/**` (new route) · `lib/i18n/domains/payment.ts` · `e2e/payments-on-behalf.spec.ts` — **migration: no** | 2026-08-03 |
+| #690 | `dev/2608-DEV-690` | `app/api/admin/members/route.ts` + its test (new) · `app/admin/payments/components/members.test.ts` (new) — **migration: no** | 2026-08-04 |
