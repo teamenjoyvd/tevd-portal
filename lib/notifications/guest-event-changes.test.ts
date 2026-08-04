@@ -2,20 +2,20 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 // Unit coverage for the event-change/cancel guest notifier (issue 2607-DEV-592):
 //  - diffEventFields: pure diff of the tracked fields.
-//  - notifyGuestsOfEventUpdate: no-op on an empty diff; respects checkEmailCap
+//  - notifyGuestsOfEventUpdate: no-op on an empty diff; respects consumeEmailCap
 //    per recipient; sends to all active (non-cancelled, non-expired) registrants.
 
 // -- Seams --------------------------------------------------------------------
 
 const mockCreateServiceClient = vi.fn()
-const mockCheckEmailCap = vi.fn()
+const mockConsumeEmailCap = vi.fn()
 const sentEmails: { to: string; template: string }[] = []
 
 vi.mock('@/lib/supabase/service', () => ({
   createServiceClient: () => mockCreateServiceClient(),
 }))
 vi.mock('@/lib/rate-limit', () => ({
-  checkEmailCap: (...args: unknown[]) => mockCheckEmailCap(...args),
+  consumeEmailCap: (...args: unknown[]) => mockConsumeEmailCap(...args),
 }))
 vi.mock('@/lib/email/send', () => ({
   sendTransactionalEmail: vi.fn((opts: { to: string; template: string }) => {
@@ -36,7 +36,7 @@ vi.mock('@/lib/email/templates/GuestEventCancelledEmail', () => ({
 beforeEach(() => {
   vi.clearAllMocks()
   sentEmails.length = 0
-  mockCheckEmailCap.mockResolvedValue(true)
+  mockConsumeEmailCap.mockResolvedValue(true)
 })
 
 // -- diffEventFields ------------------------------------------------------------
@@ -126,7 +126,7 @@ describe('notifyGuestsOfEventUpdate', () => {
     mockCreateServiceClient.mockReturnValue(buildClient({
       regs: [{ email: 'capped@example.com', name: 'Capped', lang: 'en' }],
     }))
-    mockCheckEmailCap.mockResolvedValue(false)
+    mockConsumeEmailCap.mockResolvedValue(false)
     const { notifyGuestsOfEventUpdate } = await import('@/lib/notifications/guest-event-changes')
 
     notifyGuestsOfEventUpdate('event-1', [{ field: 'start_time', oldValue: 'old', newValue: 'new' }])

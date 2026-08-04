@@ -9,7 +9,7 @@ import { sendTransactionalEmail } from '@/lib/email/send'
 import { renderEmailTemplate } from '@/lib/email/templates/render'
 import { GuestEventUpdatedEmail, type ChangedField } from '@/lib/email/templates/GuestEventUpdatedEmail'
 import { GuestEventCancelledEmail } from '@/lib/email/templates/GuestEventCancelledEmail'
-import { checkEmailCap } from '@/lib/rate-limit'
+import { consumeEmailCap } from '@/lib/rate-limit'
 import { formatDateTime } from '@/lib/format'
 
 type Lang = 'en' | 'bg'
@@ -96,7 +96,7 @@ export function notifyGuestsOfEventUpdate(eventId: string, changedFields: Change
     .then(async ctx => {
       if (!ctx) return
       for (const recipient of ctx.recipients) {
-        const withinDailyCap = await checkEmailCap({
+        const withinDailyCap = await consumeEmailCap({
           recipient: recipient.email,
           windowMs:  GUEST_EMAIL_DAILY_WINDOW_MS,
           max:       GUEST_EMAIL_DAILY_CAP,
@@ -135,7 +135,7 @@ export function notifyGuestsOfEventCancellation(eventTitle: string, recipients: 
 
   ;(async () => {
     for (const recipient of recipients) {
-      const withinDailyCap = await checkEmailCap({
+      const withinDailyCap = await consumeEmailCap({
         recipient: recipient.email,
         windowMs:  GUEST_EMAIL_DAILY_WINDOW_MS,
         max:       GUEST_EMAIL_DAILY_CAP,

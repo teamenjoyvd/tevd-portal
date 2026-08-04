@@ -36,6 +36,17 @@ vi.mock('next/headers', () => ({
   headers: () => Promise.resolve(new Map([['host', 'req-host.example']])),
 }))
 
+// Since 2608-DEV-625 the abuse guards CONSUME a slot through the
+// consume_rate_limit RPC instead of running a count query, so there is no
+// count for a Supabase fixture to fake. They are mocked at the module boundary
+// here; the key/window/max they send lives in lib/rate-limit.test.ts.
+const mockConsumeEmailCap = vi.fn()
+const mockConsumeRegistrationSlot = vi.fn()
+vi.mock('@/lib/rate-limit', () => ({
+  consumeEmailCap:         (...args: unknown[]) => mockConsumeEmailCap(...args),
+  consumeRegistrationSlot: (...args: unknown[]) => mockConsumeRegistrationSlot(...args),
+}))
+
 // -- Supabase mock ------------------------------------------------------------
 
 type Row = Record<string, unknown> | null
@@ -63,8 +74,8 @@ function buildClient(existing: Row) {
       if (table === 'guest_registrations') {
         return {
           select: (_cols: string, sel?: { count?: string; head?: boolean }) => {
-            // Abuse-protection throttle count (2607-DEV-591) — always under
-            // the limit here; these fixtures exercise other behavior.
+            // Capacity count only — the throttle is module-mocked above and no
+            // longer issues a count query (2608-DEV-625).
             if (sel?.count) return countChain(0)
             const selectChain: Record<string, unknown> = {
               eq: () => selectChain,
@@ -75,10 +86,6 @@ function buildClient(existing: Row) {
           update: updateSpy,
           upsert: upsertSpy,
         }
-      }
-      // Overall daily email cap (2607-DEV-591) — always under the limit here.
-      if (table === 'notification_delivery_log') {
-        return { select: () => countChain(0) }
       }
       throw new Error(`unexpected table ${table}`)
     },
@@ -100,6 +107,9 @@ const HOUR = 60 * 60 * 1000
 beforeEach(() => {
   vi.clearAllMocks()
   capturedMagicLink = ''
+  // Under every limit by default; the abuse-protection describes override this.
+  mockConsumeEmailCap.mockResolvedValue(true)
+  mockConsumeRegistrationSlot.mockResolvedValue(true)
   process.env.NEXT_PUBLIC_APP_URL = 'https://portal.example'
 })
 
@@ -227,10 +237,6 @@ function countChain(count: number) {
 function buildResendClient(opts: {
   event?: Record<string, unknown> | null
   reg?: Record<string, unknown> | null
-  deliveryCount?: number
-  // [hourly-cap call count, daily-cap call count] — call order matches
-  // checkEmailCap invocation order in resendGuestLink.
-  deliveryCounts?: [number, number]
 }) {
   const event = opts.event === undefined
     ? { id: 'e', title: 'Trip Kickoff', allow_guest_registration: true, end_time: new Date(Date.now() + 24 * HOUR).toISOString() }
@@ -238,8 +244,6 @@ function buildResendClient(opts: {
   const reg = opts.reg === undefined
     ? { id: 'r1', name: 'Jane Guest', token: 'tok-123', lang: 'en' }
     : opts.reg
-  const counts = opts.deliveryCounts ?? [opts.deliveryCount ?? 0, opts.deliveryCount ?? 0]
-  let callIndex = 0
 
   const updateSpy = vi.fn(() => ({ eq: () => Promise.resolve({ error: null }) }))
 
@@ -252,15 +256,6 @@ function buildResendClient(opts: {
         return {
           select: () => ({ eq: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: reg, error: null }) }) }) }),
           update: updateSpy,
-        }
-      }
-      if (table === 'notification_delivery_log') {
-        return {
-          select: () => {
-            const count = counts[callIndex] ?? counts[counts.length - 1]
-            callIndex++
-            return countChain(count)
-          },
         }
       }
       throw new Error(`unexpected table ${table}`)
@@ -300,7 +295,7 @@ describe('resendGuestLink — neutrality', () => {
 
 describe('resendGuestLink — rate cap', () => {
   it('sends when under the hourly cap', async () => {
-    const { client } = buildResendClient({ deliveryCount: 2 })
+    const { client } = buildResendClient({})
     mockCreateServiceClient.mockReturnValue(client)
     const sendModule = await import('@/lib/email/send')
     const { resendGuestLink } = await import('@/lib/actions/guest-registration')
@@ -310,7 +305,9 @@ describe('resendGuestLink — rate cap', () => {
   })
 
   it('no-ops (does not send a 4th email) once the hourly cap is reached', async () => {
-    const { client } = buildResendClient({ deliveryCount: 3 })
+    const { client } = buildResendClient({})
+    // First consume call in resendGuestLink is the hourly template-scoped cap.
+    mockConsumeEmailCap.mockResolvedValueOnce(false)
     mockCreateServiceClient.mockReturnValue(client)
     const sendModule = await import('@/lib/email/send')
     const { resendGuestLink } = await import('@/lib/actions/guest-registration')
@@ -321,7 +318,13 @@ describe('resendGuestLink — rate cap', () => {
   })
 
   it('no-ops once the overall daily cap is reached, even under the hourly cap (2607-DEV-591)', async () => {
-    const { client } = buildResendClient({ deliveryCounts: [0, 10] })
+    const { client } = buildResendClient({})
+    // Call order is load-bearing: hourly template-scoped cap first (allows),
+    // overall daily cap second (denies). Asserted here so a reordering of the
+    // two consumeEmailCap calls in resendGuestLink fails this test.
+    mockConsumeEmailCap
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(false)
     mockCreateServiceClient.mockReturnValue(client)
     const sendModule = await import('@/lib/email/send')
     const { resendGuestLink } = await import('@/lib/actions/guest-registration')
@@ -344,11 +347,6 @@ function buildCapacityClient(opts: { guestCapacity: number | null; activeCount: 
   }
   const upsertSpy = vi.fn(() => Promise.resolve({ error: null }))
   const updateSpy = vi.fn(() => ({ eq: () => ({ eq: () => Promise.resolve({ error: null }) }) }))
-  // The throttle check (2607-DEV-591) runs a count query before the capacity
-  // count query — first count-style select is the throttle (always under
-  // limit here), the next is the real capacity count.
-  let countCallIndex = 0
-
   const client = {
     from: (table: string) => {
       if (table === 'calendar_events') {
@@ -357,19 +355,14 @@ function buildCapacityClient(opts: { guestCapacity: number | null; activeCount: 
       if (table === 'guest_registrations') {
         return {
           select: (_cols: string, sel?: { count?: string; head?: boolean }) => {
-            if (sel?.count) {
-              const count = countCallIndex === 0 ? 0 : opts.activeCount
-              countCallIndex++
-              return countChain(count)
-            }
+            // The capacity count is now the ONLY count query registerGuest
+            // runs — the throttle became an RPC in 2608-DEV-625.
+            if (sel?.count) return countChain(opts.activeCount)
             return { eq: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: opts.existing ?? null, error: null }) }) }) }
           },
           update: updateSpy,
           upsert: upsertSpy,
         }
-      }
-      if (table === 'notification_delivery_log') {
-        return { select: () => countChain(0) }
       }
       throw new Error(`unexpected table ${table}`)
     },
@@ -503,9 +496,9 @@ describe('cancelGuestRegistration', () => {
 
 // -- registerGuest — abuse protection (2607-DEV-591) --------------------------
 
-function buildAbuseClient(opts: { throttleCount?: number; dailyCount?: number; existing?: Row }) {
-  const throttleCount = opts.throttleCount ?? 0
-  const dailyCount = opts.dailyCount ?? 0
+// Both guards are module-mocked (see the seams block) — this fixture only has
+// to keep the surrounding registration flow alive while they allow or deny.
+function buildAbuseClient(opts: { existing?: Row } = {}) {
   const existing = opts.existing ?? null
 
   const event = {
@@ -526,15 +519,13 @@ function buildAbuseClient(opts: { throttleCount?: number; dailyCount?: number; e
       if (table === 'guest_registrations') {
         return {
           select: (_cols: string, sel?: { count?: string; head?: boolean }) => {
-            if (sel?.count) return countChain(throttleCount)
+            // guest_capacity is null in this fixture, so no capacity count runs.
+            if (sel?.count) return countChain(0)
             return { eq: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: existing, error: null }) }) }) }
           },
           update: updateSpy,
           upsert: upsertSpy,
         }
-      }
-      if (table === 'notification_delivery_log') {
-        return { select: () => countChain(dailyCount) }
       }
       throw new Error(`unexpected table ${table}`)
     },
@@ -561,7 +552,8 @@ describe('registerGuest — honeypot', () => {
 
 describe('registerGuest — registration throttle', () => {
   it('rejects with a bilingual message once the per-link/event throttle is reached', async () => {
-    const { client, upsertSpy } = buildAbuseClient({ throttleCount: 30 })
+    const { client, upsertSpy } = buildAbuseClient()
+    mockConsumeRegistrationSlot.mockResolvedValue(false)
     mockCreateServiceClient.mockReturnValue(client)
     const { registerGuest } = await import('@/lib/actions/guest-registration')
 
@@ -573,7 +565,7 @@ describe('registerGuest — registration throttle', () => {
   })
 
   it('allows registration when under the throttle', async () => {
-    const { client, upsertSpy } = buildAbuseClient({ throttleCount: 5 })
+    const { client, upsertSpy } = buildAbuseClient()
     mockCreateServiceClient.mockReturnValue(client)
     const { registerGuest } = await import('@/lib/actions/guest-registration')
 
@@ -586,7 +578,8 @@ describe('registerGuest — registration throttle', () => {
 
 describe('registerGuest — overall email cap', () => {
   it('registers but skips the send once the daily email cap is reached', async () => {
-    const { client, upsertSpy } = buildAbuseClient({ dailyCount: 10 })
+    const { client, upsertSpy } = buildAbuseClient()
+    mockConsumeEmailCap.mockResolvedValue(false)
     mockCreateServiceClient.mockReturnValue(client)
     const sendModule = await import('@/lib/email/send')
     const { registerGuest } = await import('@/lib/actions/guest-registration')

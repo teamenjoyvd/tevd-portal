@@ -9,7 +9,7 @@ import { renderEmailTemplate } from '@/lib/email/templates/render'
 import { GuestEventMagicLinkEmail } from '@/lib/email/templates/GuestEventMagicLinkEmail'
 import { notifySharerOfRegistration, notifySharerOfCancellation } from '@/lib/notifications/share-events'
 import { getBaseUrl } from '@/lib/utils/base-url'
-import { checkEmailCap, checkRegistrationThrottle } from '@/lib/rate-limit'
+import { consumeEmailCap, consumeRegistrationSlot } from '@/lib/rate-limit'
 
 // -- Types --------------------------------------------------------------------
 
@@ -109,7 +109,9 @@ export async function registerGuest(
 
   // Per-link (or per-event for token-less loads) registration throttle —
   // guards against a script hammering one share link / event with submissions.
-  const withinThrottle = await checkRegistrationThrottle({
+  // Consuming, not merely reading: this submission has now spent a slot whether
+  // or not the rest of the action succeeds (2608-DEV-625).
+  const withinThrottle = await consumeRegistrationSlot({
     shareLinkId,
     eventId,
     windowMs: REGISTRATION_THROTTLE_WINDOW_MS,
@@ -189,7 +191,9 @@ export async function registerGuest(
   // (neutral, same shape as a real send so probing reveals nothing). The
   // registration itself already succeeded above, so the sharer still gets
   // notified below regardless of this guest's own cap.
-  const withinDailyCap = await checkEmailCap({
+  // The slot is spent here, not at send time — if sendTransactionalEmail below
+  // fails, this attempt still counted (2608-DEV-625).
+  const withinDailyCap = await consumeEmailCap({
     recipient: email,
     windowMs:  GUEST_EMAIL_DAILY_WINDOW_MS,
     max:       GUEST_EMAIL_DAILY_CAP,
@@ -275,7 +279,7 @@ export async function resendGuestLink(eventId: string, email: string): Promise<R
 
   // Rate cap — count sends to this recipient in the trailing hour, regardless
   // of which event they were for (per-recipient, not per-event).
-  const withinResendCap = await checkEmailCap({
+  const withinResendCap = await consumeEmailCap({
     recipient: email,
     template:  MAGIC_LINK_TEMPLATE,
     windowMs:  RESEND_RATE_WINDOW_MS,
@@ -283,8 +287,10 @@ export async function resendGuestLink(eventId: string, email: string): Promise<R
   })
   if (!withinResendCap) return NEUTRAL_RESULT
 
-  // Overall guest-email cap (all templates), shared with registerGuest.
-  const withinDailyCap = await checkEmailCap({
+  // Overall guest-email cap (all templates), shared with registerGuest. Order
+  // is deliberate and asserted by the tests: a recipient already over the daily
+  // cap has burned an hourly slot above. Harmless — they are blocked either way.
+  const withinDailyCap = await consumeEmailCap({
     recipient: email,
     windowMs:  GUEST_EMAIL_DAILY_WINDOW_MS,
     max:       GUEST_EMAIL_DAILY_CAP,

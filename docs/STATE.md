@@ -1,207 +1,191 @@
 ## Goal
-BUILD issue #688 (2608-DEV-688, branch `dev/2608-DEV-688`): keep on-behalf payment attribution
-visible AFTER admin approval, collapse an approved on-behalf group to the one bank transfer it
-was, add a `/profile/payments` drill-down ledger (status filter, debounced search, date range,
-lifetime totals, CSV export), and fix the trip-payment "always EUR" mislabel on the way.
+BUILD issue #625 (2608-DEV-625, branch `dev/2608-DEV-625`): replace the two JS-side
+count-then-decide guest-invite rate limits with ONE atomic `SECURITY DEFINER` RPC
+(`consume_rate_limit`) over a self-pruning `rate_limit_events` ledger, so a parallel burst is
+actually capped instead of every caller reading the same stale count.
 
 ## Now
-BUILD steps 1-3 are CODE-COMPLETE and statically verified; step 4's spec is WRITTEN but has
-never been EXECUTED. All 9 files in the DoD are edited. Nothing is committed yet.
-BUILD complete, pushed (`83dc0f6`), authenticated E2E confirmed passing by the user, DRAFT PR
-open. Waiting on CI green + Vercel preview READY before marking it ready for review.
+BUILD steps 1-5 COMPLETE and verified (see Done). All 8 DoD files edited, migration applied to
+DEV, types regenerated, concurrency proof passed. Nothing committed yet.
 
 ## Next
-1. DRAFT PR open (requested by the user 2026-08-03: "Where is the PR at? Maybe create that").
-   Wait for CI green + Vercel preview READY, then mark it ready for review.
-2. One CodeRabbit pass — fetch its INLINE comments, not just the check status.
-3. Merge, then GCR: drop the `docs/CLAIMS.md` row IN the merging PR, close #688.
-4. Before #688 reaches prod, execute the #677 prod tail below — it has a migration that never
-   landed.
+0. Run the review pass (`/security-review` — this touches RLS, a SECURITY DEFINER function and a
+   migration), fix findings locally, THEN ask the user before any commit/push.
+
+## Next (original build order, all done)
+1. Step 1: write `supabase/migrations/20260804000000_2608_feat_625_atomic_rate_limits.sql`
+   (table + RPC + grants + nightly cron sweep + `-- ROLLBACK:` header). Check: file reads back
+   clean; real check is step 5's `supabase db push`.
+2. Step 2: rewrite `lib/rate-limit.ts` — `checkEmailCap` -> `consumeEmailCap`,
+   `checkRegistrationThrottle` -> `consumeRegistrationSlot`, both calling the RPC, both
+   fail-closed, plus the transitional `PGRST202`/`42883` fallback to the old count path.
+   Check: `npm run check-types`.
+3. Step 3: REFERENCE SWEEP + call sites — `lib/actions/guest-registration.ts:12,112,192,278,287`
+   and `lib/notifications/guest-event-changes.ts:12,99,138`. Check: `npm run check-types`.
+4. Step 4: tests — new `lib/rate-limit.test.ts`; switch `guest-registration.test.ts` and
+   `guest-event-changes.test.ts` to module-mock the new export names. Check:
+   `npx vitest run lib/rate-limit lib/actions/guest-registration.test.ts lib/notifications/guest-event-changes.test.ts`.
+5. Step 5: `supabase db push` to DEV, regenerate `types/supabase.ts`, run the 40-parallel
+   concurrency proof (exactly 30 true), `npm run lint` + `npm run build`.
+6. `/code-review low` on the diff (auth/RLS/migration -> escalate per BUILD.md), then ASK the
+   user before any push.
 
 ## Constraints
-- Never push to `main`; `dev/2608-DEV-688` only.
-- No `git push` unless the user asks for a push in this conversation (quote required).
-  GRANTED 2026-08-03, verbatim: "push to github so I can start tomorrow ready to go with BUILD".
-  Scope: push `dev/2608-DEV-688`. Does NOT cover opening a PR or merging — ask again for both.
-  RE-GRANTED 2026-08-03 for the BUILD commit, user selected "Push now" ("Push
-  dev/2608-DEV-688 to origin now. Does not open a PR"). Opening the PR still needs its own ask.
+- Never push to `main`; `dev/2608-DEV-625` only. The branch has NO upstream configured
+  (`git rev-parse --abbrev-ref @{u}` -> fatal), so a bare `git push` cannot hit main.
+- No `git push` unless the user asks for a push in THIS conversation, quoted beside the command.
+  GRANTED 2026-08-04, verbatim: "draft PR, commit everything necessary". Scope: commit the #625
+  work, push `dev/2608-DEV-625`, open the PR AS A DRAFT. Does NOT cover marking the PR ready for
+  review or merging — ask again for both.
 - Never weaken a check to make it pass.
 - Fold the `docs/CLAIMS.md` row removal + `docs/STATE.md` updates into the merging PR — NEVER a
   standalone cleanup PR.
 - Change only what the DoD requires; log other findings as `NOTED (not done): <thing> <file:line>`.
 - Ask before editing `docs/guardrails/PROJECT.md`.
-- Issue-stated out of scope, must NOT be fixed here and must NOT be propagated into the new page
-  or the CSV export: `shared.tsx:131-133` renders `proof_url` as an `href` although it is a
-  private-bucket storage KEY, not a URL (`lib/payments/proof.ts:1-10`).
-- Issue-stated: NO new API route, NO schema change, NO TanStack Table, and `abo_number` is
-  deliberately NOT added to the embeds (it is null for exactly the people it would identify).
-- Issue-stated: ONE responsive layout file for the ledger table. 6 columns permits a dual layout
-  under the Layout Decision Rules but does not require one; two files would duplicate ~40 lines.
+- Issue-stated: preserve existing scoping exactly — email+template for the 3/h resend cap, email
+  alone for the 10/day cap, `share_link_id` else `event_id` for the 30/h throttle — and preserve
+  fail-closed-on-error.
+- Issue-stated `NOTED (not done)`: the two `consumeEmailCap` calls in `resendGuestLink` keep their
+  current order (daily cap second, so a daily-blocked recipient burns an hourly slot). Do NOT
+  reorder — the tests deliberately assert that order.
+- No RLS policy is written on `rate_limit_events` at all (deny-by-default, service-role only), so
+  the Pattern A / `auth.jwt()` trap is avoided by construction.
 
 ## Decisions
-- DECISION (PLAN 2026-08-03): #677 landed FIRST (`5311a9c`), so #688 is the second lander and owns
-  the guest extension. The NAMING half already ships — `payment_guests(id, name)` is in the
-  `/api/payments` select, `beneficiary_guest_id`/`payment_guests` are on `GenericPayment`, and
-  `beneficiaryLabel()` in `lib/payments/labels.ts` already prefers the guest name. What #688 adds
-  is the TOTALS half.
-- DECISION: totals reduce over RAW rows, not over collapsed entries — reducing over entries
-  double-counts the payer's own share. Lifetime, unaffected by the filters, labelled as such.
-- DECISION: `VARIABLE_CAP` now caps collapsed ENTRIES, not raw rows. The bento's unit is "latest
-  transactions" and a group IS one transaction.
-- DECISION: the new client component lives at
-  `app/(dashboard)/profile/payments/PaymentsLedgerClient.tsx`, matching
-  `profile/spouse-link/SpouseLinkClient.tsx` — not under `profile/components/`.
-- DECISION: the page reuses query key `['profile-generic-payments']`, so client-side navigation
-  from the bento mounts it warm off the existing cache. No second route, no refetch per keystroke.
-- DECISION: `payment.allPayments` is reused as the new page's title, so removing the "show more"
-  Drawer orphans no translation key.
+- DECISION (PLAN 2026-08-04): ledger + advisory lock, NOT a fixed-window counter table. A counter
+  keyed by `(key, bucket)` turns the sliding window into a fixed one and lets a burst straddling a
+  bucket boundary pass `2 x max`; the current guards are sliding and the issue requires preserving
+  them.
+- DECISION (PLAN 2026-08-04): the counting source moves off `notification_delivery_log` /
+  `guest_registrations` onto the new ledger — that move is what makes check-and-act one statement.
+  Two intended behavior changes follow (see Facts).
+- DECISION (PLAN 2026-08-04): rename `check*` -> `consume*` is mandatory, not cosmetic. Calling a
+  consuming operation `check` invites a double-call that burns two slots.
+- DECISION (PLAN 2026-08-04): ship the migration and the code in ONE PR with a `PGRST202` fallback,
+  rather than a migration-only PR followed by a code-only PR. Vercel deploys on merge while
+  `migrate-prod` waits for manual approval, so prod would briefly run new code against a schema
+  with no `consume_rate_limit` — and these guards fail CLOSED, which would deny every guest
+  registration and guest email on a public flow. The fallback closes that window; the two-PR
+  alternative costs a second full CI/preview cycle.
+- DECISION (BUILD 2026-08-04): `guest-registration.test.ts` and `guest-event-changes.test.ts`
+  module-mock `@/lib/rate-limit` (prior art: `guest-event-changes.test.ts:17-19` already does),
+  rather than driving the caps through the Supabase client fixture. The RPC no longer issues a
+  count query, so the fixtures' `notification_delivery_log` branches and their count-call-index
+  bookkeeping (`buildCapacityClient` assumes the throttle count runs BEFORE the capacity count)
+  would otherwise all be wrong. Key/window/max assertions live in the new `lib/rate-limit.test.ts`.
 
 ## Facts
-- Branch `dev/2608-DEV-688`, cut from `origin/main` @ `5311a9c`, upstream
-  `origin/dev/2608-DEV-688`. `git checkout -b X origin/main` sets the upstream to `origin/main` —
-  a bare `git push` would then target main; this branch was corrected with
-  `git branch --unset-upstream` before its first push.
-- BUILD BASELINE, captured 2026-08-03 before any edit:
-  `npx vitest run lib/payments` -> `Test Files 4 passed (4)`, `Tests 58 passed (58)`.
-- WIDER baseline is RED and NOT caused by any current work:
-  `lib/actions/guest-registration.test.ts` fails 2-3 of its 24 tests non-deterministically (spy
-  pollution surfacing under this machine's slowness). Run
-  `npx vitest run --exclude lib/actions/guest-registration.test.ts` and compare against that, never
-  against green.
-- Key symbols: `payerOf` -> `lib/payments/proof.ts:43`; `guestLabel`/`beneficiaryLabel` ->
-  `lib/payments/labels.ts`; `personalApprovedTotal` -> `lib/payments/totals.ts:30`;
-  CSV quoting prior art -> `lib/csv-export.ts:70-99` + `app/admin/members/components/MembersTable.tsx:88-93`;
-  300 ms search debounce prior art -> `app/admin/calendar/components/AdminCalendarClient.tsx:54-69`;
-  `GenericPayment` -> `app/(dashboard)/profile/types.ts:113-152`.
-- `e2e/payments-on-behalf.spec.ts` is already in the `authenticated` `testMatch` and BOTH
-  `testIgnore` regexes (`playwright.config.ts:64,78,85`). A new spec file would cost three regex
-  edits for nothing.
-- A guest payment row satisfies `profile_id = paid_by_profile_id` (`payments_guest_ledger_check`,
-  `20260801000000_2607_feat_677_pay_guests.sql:120`), so it LOOKS like the payer's own row. The
-  "paid" bucket must exclude `beneficiary_guest_id != null`; those rows belong in "paid on behalf
-  of others". This is the highest-risk item in the ticket.
-- DEV Supabase project ref `iymwxdewcpvpjgzewtzk`. Apply migrations with `supabase db push`;
-  ad-hoc SQL with `supabase db query --linked -f <file>`. #688 needs NO migration.
-- If `npm run build` dies with `Fatal process out of memory: Zone` or times out on a warm `.next`,
-  first response is `rm -rf .next` — the OS, not the V8 heap, is the limit. Do NOT raise
-  `--max-old-space-size`.
+- BUILD BASELINE, captured 2026-08-04 before any edit:
+  `npx vitest run lib/actions/guest-registration.test.ts lib/notifications/guest-event-changes.test.ts`
+  -> `Test Files 2 passed (2)`, `Tests 33 passed (33)`. Green, despite the old STATE.md's
+  "guest-registration.test.ts is flaky" note.
+- Branch `dev/2608-DEV-625` @ `b39773e`, clean, NO upstream configured.
+- DEV Supabase project ref `iymwxdewcpvpjgzewtzk`. Migrations: `supabase db push`. Types:
+  `supabase gen types typescript --project-id iymwxdewcpvpjgzewtzk > types/supabase.ts` — run the
+  redirect through Git Bash, NOT PowerShell `Out-File -Encoding utf8` (CRLF+BOM rewrites ~3100 lines).
+- Migration filename counter: `supabase/migrations/` has no `20260804*` file (last is
+  `20260801000000`), so today starts at `000000`.
+- Two INTENDED behavior changes, both stated in the issue: (1) the registration throttle now counts
+  SUBMISSIONS, not distinct registrants — `guest_registrations` is upserted on `(event_id, email)`,
+  so a re-submitting guest never incremented the old count, which is exactly why a scripted burst
+  slid under it; (2) a slot is consumed at check time, not send time, so a later
+  `sendTransactionalEmail` failure (`lib/actions/guest-registration.ts:221`) spends the slot anyway.
+- Key symbols: guards -> `lib/rate-limit.ts:7,44`; call sites ->
+  `lib/actions/guest-registration.ts:112,192,278,287` and
+  `lib/notifications/guest-event-changes.ts:99,138`; limits ->
+  `guest-registration.ts:44-47,246-248`, `guest-event-changes.ts:20-21`.
+- Structural prior art: `supabase/migrations/20260714000000_2607_feat_claim_los_submissions.sql`
+  (SECURITY DEFINER + `auth.role()` guard + REVOKE/GRANT), `20260705000900_notification_cron.sql`
+  (pg_cron unschedule-then-schedule), `20260801000000_2607_feat_677_pay_guests.sql`
+  (`-- ROLLBACK:` header + table style).
+- If `npm run build` dies with `Fatal process out of memory: Zone`, first response is `rm -rf .next`
+  — the OS, not the V8 heap, is the limit. Do NOT raise `--max-old-space-size`.
 - NEVER paste an absolute Windows path into a tracked file. Tailwind v4 scans every source file
-  (including .md) for utility candidates; a backslash followed by hex-digit characters parses as a
-  CSS unicode escape and kills `npm run build` with `Invalid code point <n>` pointed at
-  `app/globals.css:1:1` — nowhere near the real file. Describe the path, never paste it.
-- Regenerate `types/supabase.ts` through Git Bash (`>` redirect), NOT PowerShell
-  `Out-File -Encoding utf8` — the latter writes CRLF + BOM and rewrites all ~3100 lines.
+  (including .md) for utility candidates; a backslash + hex digits parses as a CSS unicode escape
+  and kills `npm run build` with `Invalid code point <n>` pointed at `app/globals.css:1:1`.
+- E2E coverage for #625: none, by design — server-side abuse guard, no UI surface, nothing renders
+  differently at 390px. Verification is vitest + the DEV concurrency proof.
 
 ## Done
-- PLAN #688 (2026-08-03) — RESULT: READY. Premise re-verified on `main` @ `5311a9c`: `types.ts`
-  declares no `currency` while `app/api/payments/route.ts:29` selects it, and both `shared.tsx:114`
-  and `PaymentsSection.tsx:44` fall back to `payable_items?.currency ?? 'EUR'` — and a trip
-  payment's `payable_items` is NULL, so every trip payment is force-labelled EUR.
-  `PaymentsSection.tsx:35` filters `admin_status !== 'pending'`, which is where attribution is
-  lost at approval. Issue line refs were 1-3 lines stale (written pre-#677-merge); every code
-  claim holds. 9 files, ~600 lines estimated, migration: no, E2E project: `authenticated`.
-- BUILD #688 steps 1-3 (2026-08-03) — RESULT: code-complete, statically green.
-  `npx vitest run lib/payments` -> 5 files / 88 tests passed (baseline was 4 / 58; +30 in the
-  new `lib/payments/ledger.test.ts`). `npx vitest run --exclude lib/actions/guest-registration.test.ts`
-  -> 23 files / 311 tests passed. `npm run check-types` -> clean. `npm run lint` -> 0 errors
-  (476 warnings, all pre-existing; the two new files contribute none). `npm run build` -> success,
-  `ƒ /profile/payments` present in the route table.
-  Matrix status: L1, L2, L4, L5, L6, L7 asserted in unit tests; L3 asserted at the helper level
-  (`payerName`) plus an E2E spec that has not run; L8 has NO evidence — it needs a real 390px
-  render behind Clerk auth.
-  Design notes worth keeping: filtering on the new page happens at ENTRY level, never row level
-  (row-level filtering would render a 3-person group with a partial total); `lifetimeTotals`
-  counts `admin_status === 'approved'` only, matching `personalApprovedTotal`, and
-  `payment.lifetimeNote` says so in both languages; `PaymentRow` now takes
-  `{ entry, me, cancelledTripIds }` instead of `{ pay, cancelledTripIds }`.
-- CLAIM #688 (2026-08-03) — RESULT: complete and pushed. `docs/CLAIMS.md` registry was EMPTY, so no
-  scope overlap and no in-flight `migration: yes` row to sequence against. Issue #688 updated with
-  DoD + affected files + gotchas + `## Design Checklist` (4/4) + `## Branch`; row committed at
-  `716b4ad`; branch pushed (`* [new branch] dev/2608-DEV-688 -> dev/2608-DEV-688`).
+- CLAIM #625 (2026-08-04) — RESULT: complete. Issue #625 carries `## Design Checklist` 4/4 and
+  `## Branch`; `docs/CLAIMS.md` row committed at `b39773e` (which also pruned the merged #690 row).
+- PLAN #625 (2026-08-04) — RESULT: READY. Verdict, DoD, affected files, gotchas and the two
+  behavior-change notes are in the issue body.
+- BUILD #625 steps 1-5 (2026-08-04) — RESULT: code-complete and verified.
+  `npx vitest run lib/rate-limit.test.ts lib/actions/guest-registration.test.ts lib/notifications/guest-event-changes.test.ts`
+  -> 3 files / 45 tests passed (baseline was 2 / 33; +12 in the new `lib/rate-limit.test.ts`).
+  `npm run check-types` -> clean. `npm run lint` -> 0 errors, 475 warnings (baseline 476, all
+  pre-existing); `npx eslint` on all six changed TS files -> zero output. `npm run build` -> success.
+  Migration applied to DEV via `supabase db push`; `types/supabase.ts` regenerated (+22 lines only,
+  no CRLF/BOM rewrite) carrying `rate_limit_events` and `consume_rate_limit`.
+- CONCURRENCY PROOF #625 (2026-08-04) — RESULT: PASSED, stronger than the DoD asked.
+  Driven by 40 pg_cron jobs on a '10 seconds' schedule against key `test:cronproof-1`,
+  `consume_rate_limit(key, 3600000, 30)`: 5 rounds x EXACTLY 40 callers firing in the same second
+  (`date_trunc('second', start_time)` buckets: 11:49:24, :34, :44, :54, 11:50:04), 200 runs across
+  200 distinct backends, 0 job failures — and `rate_limit_events` held EXACTLY 30 rows for the key.
+  Over-issue would have shown as >30. Object-level guards verified on DEV in the same session:
+  `rls_enabled=true`, `policy_count=0`, function `prosecdef=true`, function ACL
+  `postgres=X | service_role=X` (no PUBLIC/anon/authenticated), table ACL free of anon/authenticated,
+  and `rate-limit-events-sweep @ 15 3 * * *` scheduled. All proof jobs unscheduled and all proof
+  rows deleted afterwards (`remaining_jobs=0`, `total_rows=0`).
 
 ## Open items
-- BLOCKING #688's Done gate: the `authenticated` Playwright project has never executed the new
-  L3/L8 specs. `playwright.config.ts:10-20` loads `.env.development.local` FIRST and never
-  overwrites, and that file sets `NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321` — so a local
-  run targets LOCAL Supabase, not `.env.local`'s prod project. Local Supabase is down because
-  Docker Desktop is not running. Three ways forward: (a) start Docker Desktop, `npx supabase
-  start`, `npm run e2e:seed-clerk`, then `npx playwright test --project=authenticated`;
-  (b) point the run at DEV (`iymwxdewcpvpjgzewtzk`) by pulling the Pre-Production env vars —
-  do NOT let that overwrite `.env.local`, which holds prod credentials; (c) accept the Vercel
-  PR preview as the 390px check and run the specs after merge.
-  RESOLVED 2026-08-03: the user ran the authenticated E2E and reports it passing, so L3 and L8
-  ARE covered by an executed run — it was this session's environment (Docker down) that could
-  not execute it, not the suite. No further local run is owed.
-  SUPERSEDED 2026-08-03 (GCR PR691): option (a) is gone — there is no local Docker setup on this
-  machine any more, so `http://127.0.0.1:54321` in `.env.development.local` is a dead target and
-  every local E2E run must go through option (b), the hosted DEV project `iymwxdewcpvpjgzewtzk`.
-- DONE 2026-08-03 (GCR PR691): `e2e/payments-on-behalf.spec.ts` no longer skips ANY of its three
-  tests, and all three were EXECUTED against DEV — `3 passed, 0 skipped`, run against
-  `iymwxdewcpvpjgzewtzk` with a `npm run dev` whose Supabase env was overridden on the command
-  line (`playwright.config.ts:10-20` only fills vars that are `undefined`, so an exported var
-  wins over the dead `.env.development.local`). Three skips were removed:
-  - L3's `test.skip(await paidBy.count() === 0)`, and the row it was skipping for is now seeded:
-    a co-owner profile plus one `submit_payment_group` call that co-owner makes FOR the member.
-    A co-owner and not a second downline because `get_payable_beneficiaries` reaches DOWNWARD
-    only; the `household` branch is bidirectional and needs no `tree_nodes` change, so the #676
-    picker fixture is untouched (the co-owner's `abo_number` stays NULL, which both satisfies
-    `trg_guard_abo_number_null`'s co-owner exemption and keeps the row out of that spec's
-    `.filter({ hasText: /·/ })` locator). Written through the RPC, not a direct INSERT, so the
-    fixture is one the application could actually produce and `can_pay_for` is exercised.
-  - The #676 flow's two `test.skip`s on `.count()`. **Those were races, not data checks**:
-    `.count()` does not auto-wait, so a cold picker read 0 before `get_payable_beneficiaries`
-    resolved and the test stood itself down — observed live, skipping in a 3-test run and passing
-    when run alone. Replaced with `expect(...).toBeVisible()` / `.toBeAttached()` waits.
-- GOTCHA, cost an hour: `profiles.primary_profile_id` is UNIQUE
-  (`profiles_primary_profile_id_key`) — a primary profile may have AT MOST ONE co-owner. DEV
-  already carried one for the E2E member (`clerk_id = e2e_member_coowner`, planted outside any
-  script in this repo), so creating one unconditionally died on a raw duplicate-key error.
-  `ensureCoowner` now reuses whatever co-owner the member already has and only creates when there
-  is none — which is also the more honest fixture, since whoever the co-owner IS, is who can pay.
-- The seed is idempotent and was re-run to prove it (`co-owner reused` / `paid-for-me payment
-  present` on the second pass). To run it: export
-  `NEXT_PUBLIC_SUPABASE_URL=https://iymwxdewcpvpjgzewtzk.supabase.co` plus the DEV `service_role`
-  and `anon` keys from `supabase projects api-keys --project-ref iymwxdewcpvpjgzewtzk`, then
-  `npm run e2e:seed-clerk`.
-- FLAKE, seen once, not fixed: L8's `viewAll.first().click()` did not navigate on the very first
-  run against a cold Turbopack dev server (13 polls still on `/profile`), and passed on every run
-  afterwards. Cold-compile hydration race in the harness, not a defect in the link — the `<a>`
-  carries the right `href` in the failure snapshot. CI runs with `retries: 1`, so it is covered
-  there; local first runs may need a warm server.
-- NOTED (not done): `app/(dashboard)/profile/components/PaymentsSection.tsx:30`
-  `pendingGroupsIPaidFor` still filters `paid_by_profile_id !== myProfileId` directly rather
-  than through `payerOf`, so a legacy pending group with a NULL `paid_by_profile_id` is not
-  offered a withdraw card. Pre-existing, untouched by #688.
+- At GCR: open a follow-up issue to REMOVE the transitional `PGRST202`/`42883` fallback from
+  `lib/rate-limit.ts` once `consume_rate_limit` is live in prod. The fallback is dead weight after
+  that and silently re-opens the race if it ever fires.
+- OPEN QUESTION FOR THE USER — the `price_checker` DB role. Findings (DEV `iymwxdewcpvpjgzewtzk`,
+  2026-08-04): it is a LOGIN role, not superuser, `rolbypassrls = false`, no role memberships, owns
+  0 objects, no password expiry (`rolvaliduntil` null), no connection limit. It holds `arwdDxtm` on
+  ALL 41 public tables — including the brand-new `rate_limit_events` — because of an
+  `ALTER DEFAULT PRIVILEGES IN SCHEMA public` rule owned by `postgres` that lists it alongside
+  anon/authenticated/service_role, for both TABLES and SEQUENCES. So every future table this repo
+  ever creates is auto-granted to it. `grep -ri price_checker` over the whole repo returns ZERO hits
+  outside this file: no migration creates the role, no code connects as it. It was created out of
+  band (dashboard/SQL editor) and is unversioned. Postgres keeps no role-creation timestamp, so
+  "when" is not recoverable from the catalog. NOT a #625 regression — #625 merely inherits the rule.
+  Containment today: RLS enabled + zero policies + `rolbypassrls = false` means it cannot read
+  `rate_limit_events`. But it CAN read every pre-existing table whose RLS policies admit it.
+  UNVERIFIED: whether the role also exists in PROD (`ynykjpnetfwqzdnsgkkg`). To check, run in the
+  prod dashboard SQL editor (read-only):
+  `select rolname, rolcanlogin, rolbypassrls from pg_roles where rolname = 'price_checker';`
+  and `select defaclrole::regrole, defaclobjtype, array_to_string(defaclacl,' | ') from pg_default_acl;`
 - CARRIED FROM #677, NOT DONE — the prod tail. PR #689 is merged (`5311a9c` on `main`) but the
   post-merge sequence was never executed: approve the gated `migrate-prod` run (GitHub Actions,
   `production` environment, manual approval — #677 HAS a migration), confirm it applied,
-  smoke-check `https://www.teamenjoyvd.com`, then close issue #677. Do this BEFORE #688 reaches
-  prod, or #688 ships against a schema its migration never landed on.
-- CARRIED FROM #677, NEVER VERIFIED (G4): admin guest link/unlink has NO automated coverage and has
-  never been exercised against a real database. `e2e/payments-guest.spec.ts` covers the member side
-  only. Do it by hand: `/admin/payments` -> Guest links -> pick a member -> Link -> Unlink.
-- CARRIED FROM #677: DEV fixtures still present and still uncleaned — `seed_676_*` (7 profiles,
-  ABOs 6760001-6760004, deferred by the user 2026-07-31) and a `payment_guests` row named
-  `E2E Guest Nadia` written by `e2e/payments-guest.spec.ts` (uniquely indexed, so re-runs reuse it
-  rather than accumulate). Both are still NEEDED for the authenticated E2E — do not delete before
-  #688's step 4 runs.
+  smoke-check `https://www.teamenjoyvd.com`, then close issue #677. #625 ALSO has a migration, so
+  its gated run will queue behind the same approval.
+- CARRIED FROM #677, NEVER VERIFIED: admin guest link/unlink has NO automated coverage and has
+  never been exercised against a real database. Do it by hand: `/admin/payments` -> Guest links ->
+  pick a member -> Link -> Unlink.
+- CARRIED FROM #677: DEV fixtures still present and uncleaned — `seed_676_*` (7 profiles, ABOs
+  6760001-6760004) and a `payment_guests` row named `E2E Guest Nadia`. Both still needed by the
+  authenticated E2E.
 - CARRIED FROM #676, UNMEASURED: does PROD have `payments` rows? If yes, `/profile` was crashing in
   production for every such user between 2026-07-27 (`570d587`, #670) and the #676 merge. One
   read-only query answers it: `select count(*), count(distinct profile_id) from payments`.
-- NOTED (not done), in scope of the FILES #688 touches but explicitly excluded by the issue:
-  `shared.tsx:103` gates the cancelled-trip info marker on `payable_items?.item_type === 'trip'`,
-  which is always false for a real trip payment (its `payable_items` is NULL).
-- NOTED (not done): `app/admin/payments/components/LogPaymentDrawer.tsx:60` merges
-  `membersData.manual_members_no_abo`, but `GET /api/admin/members` never emits that key — the
-  admin log-payment dropdown silently excludes ABO-less profiles.
-- NOTED (not done): `app/(dashboard)/profile/types.ts:80` declares a SECOND `TripPayment` type,
-  unrelated to the one in `app/(dashboard)/trips/[id]/page.tsx`. Name collision, left alone.
-- REFERENCE SWEEP owed at BUILD step 2, per CLAUDE.md iron rule 3: `groupByItem` (single caller)
-  and the removed `listDrawerOpen` Drawer. `ShowMoreButton` keeps its other three callers
-  (`TripsSection.tsx:61`, `VitalsSection.tsx:96`, `ParticipationSection.tsx:70`) — do not delete it.
+- NOTED (not done): `app/(dashboard)/profile/components/PaymentsSection.tsx:30`
+  `pendingGroupsIPaidFor` filters `paid_by_profile_id !== myProfileId` directly rather than through
+  `payerOf`, so a legacy pending group with a NULL `paid_by_profile_id` is not offered a withdraw
+  card.
+- NOTED (not done): `app/(dashboard)/profile/components/shared.tsx:103` gates the cancelled-trip
+  info marker on `payable_items?.item_type === 'trip'`, always false for a real trip payment (its
+  `payable_items` is NULL). Same file `:131-133` renders `proof_url` as an `href` although it is a
+  private-bucket storage KEY, not a URL (`lib/payments/proof.ts:1-10`).
 - The CI check `Authenticated E2E (Clerk)` has historically gone green in seconds WITHOUT running
-  the specs (tracked as #679). It ran for real on #677's PR, but do not treat a green tick as
-  proof: confirm the run reports 0 skipped, and run step 4 locally against DEV regardless.
+  the specs (tracked as #679). Never treat a green tick as proof: confirm the run reports 0 skipped.
 
 ## Failed attempts
-(none for #688 — no code written yet)
+Both are about the PROOF HARNESS only — no attempt failed against the migration or the TS code.
+- ATTEMPT 1 [L1]: ran 40 parallel `supabase db query --linked` after `cd`-ing to the script's own
+  directory -> all 41 invocations returned
+  `{"code":"LegacyProjectNotLinkedError","message":"Cannot find project ref"}`. The CLI resolves
+  the ref from `<cwd>/supabase/.temp/project-ref`. Fix: `supabase --workdir <repo> ...`.
+- ATTEMPT 2 [L1]: same 40-process shape with `--workdir` -> only 25 of 40 sessions ever returned a
+  verdict; the other 15 hung for 12+ minutes with empty output files. The Management API will not
+  serve 40 simultaneous sessions. Structural change (D7), not a third retry: drive the callers from
+  INSIDE Postgres with pg_cron background workers and read the verdict off the ledger row count.
+  That is the run recorded under Done.
+- ATTEMPT 3 [L1]: put `cron.schedule` x40, `pg_sleep(20)` and the measurement in ONE `-f` file ->
+  `job_runs = 0`. The Management API runs a file as a single transaction, so the `cron.job` inserts
+  were invisible to the pg_cron scheduler until COMMIT — which happened after the sleep. Fix: split
+  scheduling and measurement into separate calls/transactions.
