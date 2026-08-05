@@ -6,4 +6,4 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
-| #625 | `dev/2608-DEV-625` | `lib/rate-limit.ts` (+ new test) · `lib/actions/guest-registration.ts` · `lib/notifications/guest-event-changes.ts` (+ both tests) · `supabase/migrations/20260804000000_2608_feat_625_atomic_rate_limits.sql` (new) · `types/supabase.ts` — **migration: yes** | 2026-08-04 |
+
