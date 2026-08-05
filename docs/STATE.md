@@ -66,6 +66,8 @@ of Supabase project `isthoadgyqdmjmapvpzj`, which `test-ssl.ts` had hard-coded i
 - User decision 2026-08-05: drop the role on DEV immediately rather than waiting for the migration
   to land, because the credential was live and already publicly named.
 - Never weaken a check to make it pass.
+- User instruction 2026-08-05, verbatim: "drop the topic about the password rotation". Do not
+  raise it again in any form.
 - Fold the `docs/CLAIMS.md` row removal + `docs/STATE.md` updates into the merging PR — NEVER a
   standalone cleanup PR.
 - Change only what the DoD requires; log other findings as `NOTED (not done): <thing> <file:line>`.
