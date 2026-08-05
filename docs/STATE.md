@@ -1,21 +1,34 @@
 ## Goal
-BUILD issue #625 (2608-DEV-625, branch `dev/2608-DEV-625`): replace the two JS-side
-count-then-decide guest-invite rate limits with ONE atomic `SECURITY DEFINER` RPC
-(`consume_rate_limit`) over a self-pruning `rate_limit_events` ledger, so a parallel burst is
-actually capped instead of every caller reading the same stale count.
+BUILD issue #694 (2608-DEV-694, branch `dev/2608-DEV-694`): record the removal of the out-of-band
+`price_checker` DB role as a guarded, idempotent migration, so a change made by hand on DEV becomes
+versioned and visible to code review.
 
 ## Now
-PR #693 is OPEN and NOT a draft (the user marked it ready_for_review at 2026-08-04 14:46Z from the
-GitHub UI). All 9 CI checks green. CodeRabbit's single pass returned 3 inline comments; all 3 are
-applied and pushed as one batched commit. Awaiting CodeRabbit's re-review, then merge.
+The role is ALREADY GONE from DEV — revoked and dropped out of band on 2026-08-05, because the
+credential was live and `docs/STATE.md` on the PUBLIC repo had already published the role name, the
+DEV project ref, and the full grant inventory (merged to `main` in `13af882`). Verified after the
+drop: 0 rows in each of `pg_roles`, `pg_default_acl`, the `role_table_grants` view and
+`pg_namespace.nspacl`; 41 tables intact; the four stock roles untouched; a second run of the same
+block succeeded as a no-op. `supabase/migrations/20260805000000_2608_chore_694_drop_price_checker_role.sql`
+is the durable record of that change; it is a no-op on prod, where the role never existed.
 
 ## Next
-1. Confirm CodeRabbit's incremental re-review is clean and all 3 threads are resolved.
-2. Merge #693 — needs the user's explicit go-ahead.
-3. Post-merge: drop the `docs/CLAIMS.md` #625 row, close #625.
-4. PROD TAIL, in this order: approve #677's pending `migrate-prod` run FIRST (it has never landed),
-   then #625's. Smoke-check `https://www.teamenjoyvd.com`.
-5. ONLY after #625's migration is confirmed applied on prod: open + action the issue to delete the
+1. `/code-review` the diff (migration -> escalate per BUILD.md), then ASK the user before any push.
+2. Push `dev/2608-DEV-694`, open the PR, CI green + Vercel preview READY.
+3. Post-merge: prune the `docs/CLAIMS.md` #694 row, close #694. Confirm the gated `migrate-prod`
+   run no-ops (the `IF EXISTS` guard) and that prod still reports zero `price_checker` rows.
+4. Clean the dead credential out of the sibling repo `D:\react\teamenjoyvd\priceChecker` — `.env`
+   (`DATABASE_URL`) and `scratch/test-db-conn.ts:5-7`. Nothing was ever committed there (`scratch/`
+   is untracked, `git log --all -S<password>` is empty) so this is local-disk hygiene, not a leak.
+   The same password is reused in `scratch/test-ssl.ts:4` against a DIFFERENT Supabase project —
+   rotate it there independently.
+
+## Next — CARRIED FROM #625 (merged as #693, `13af882`, 2026-08-05T00:10:39Z)
+1. PROD TAIL: #677's `migrate-prod` already landed (see Facts, corrected 2026-08-05) — #625's run
+   still needs approval. Smoke-check `https://www.teamenjoyvd.com` after it applies. #694's
+   migration queues BEHIND it (`concurrency: group: migrate-prod, cancel-in-progress: false`),
+   which is harmless since #694 is a prod no-op.
+2. ONLY after #625's migration is confirmed applied on prod: open + action the issue to delete the
    `PGRST202`/`42883` fallback from `lib/rate-limit.ts`. It CANNOT be removed at GCR time — between
    merge and migrate-prod approval, prod runs the new code against a schema with no
    `consume_rate_limit`, and the guards fail closed on a public flow.
@@ -39,12 +52,17 @@ applied and pushed as one batched commit. Awaiting CodeRabbit's re-review, then 
    user before any push.
 
 ## Constraints
-- Never push to `main`; `dev/2608-DEV-625` only. The branch has NO upstream configured
-  (`git rev-parse --abbrev-ref @{u}` -> fatal), so a bare `git push` cannot hit main.
+- Never push to `main`; `dev/2608-DEV-694` only. `git checkout -b ... origin/main` SET origin/main
+  as the upstream; it was unset immediately (`git branch --unset-upstream`), so
+  `git rev-parse --abbrev-ref @{u}` -> fatal again and a bare `git push` cannot hit main.
+  Re-check this after every branch cut — the tracking default is the trap, not the push.
 - No `git push` unless the user asks for a push in THIS conversation, quoted beside the command.
-  GRANTED 2026-08-04, verbatim: "draft PR, commit everything necessary". Scope: commit the #625
-  work, push `dev/2608-DEV-625`, open the PR AS A DRAFT. Does NOT cover marking the PR ready for
-  review or merging — ask again for both.
+  The 2026-08-04 grant ("draft PR, commit everything necessary") was scoped to the #625 work and
+  is SPENT — it does NOT carry to #694. Ask again.
+- User decision 2026-08-05, verbatim: "Keep the full writeup, mark it RESOLVED" — do not condense
+  the `price_checker` forensic detail below; it stays as a record.
+- User decision 2026-08-05: drop the role on DEV immediately rather than waiting for the migration
+  to land, because the credential was live and already publicly named.
 - Never weaken a check to make it pass.
 - Fold the `docs/CLAIMS.md` row removal + `docs/STATE.md` updates into the merging PR — NEVER a
   standalone cleanup PR.
@@ -147,7 +165,21 @@ applied and pushed as one batched commit. Awaiting CodeRabbit's re-review, then 
 - At GCR: open a follow-up issue to REMOVE the transitional `PGRST202`/`42883` fallback from
   `lib/rate-limit.ts` once `consume_rate_limit` is live in prod. The fallback is dead weight after
   that and silently re-opens the race if it ever fires.
-- OPEN — the `price_checker` DB role. A dormant, unversioned LOGIN credential on DEV only.
+- RESOLVED 2026-08-05 (#694) — the `price_checker` DB role. DROPPED from DEV, with all its grants
+  and its default-privileges entries, and recorded in
+  `supabase/migrations/20260805000000_2608_chore_694_drop_price_checker_role.sql`. Post-drop
+  verification: 0 rows in each of `pg_roles`, `pg_default_acl`, the `role_table_grants` view and
+  `pg_namespace.nspacl`; 41 tables intact; stock roles untouched; the block re-ran as a no-op.
+  OWNERSHIP, resolved during the #694 investigation: it belonged to the sibling PRIVATE repo
+  `teamenjoyvd/amway-price-checker` (`D:\react\teamenjoyvd\priceChecker`), whose `.env` pointed
+  `DATABASE_URL` at this project as `price_checker`. The integration was NEVER FUNCTIONAL — that
+  scraper's tables (`master_products`, `source_products`, `product_links`, `substitutions`,
+  `virtual_carts`, `virtual_cart_items`) do not exist in this schema, so the role backed a
+  connection string that could not work. That is what made it safe to drop. `DROP OWNED BY` was
+  NOT usable: it requires membership in the target role, and Supabase's `postgres` is not
+  superuser — the privileges were enumerable and confined to `public`, so explicit REVOKEs did it.
+  The original finding, kept verbatim as the record:
+- OPEN (superseded by the RESOLVED entry above) — a dormant, unversioned LOGIN credential on DEV only.
   DEV-ONLY: the user confirmed 2026-08-04 it does NOT exist on prod. On DEV `iymwxdewcpvpjgzewtzk`
   it is a LOGIN role WITH A PASSWORD SET (`pg_authid.rolpassword is not null`), not superuser,
   `rolbypassrls = false`, no role memberships, owns 0 objects, no password expiry, no connection
@@ -178,11 +210,19 @@ applied and pushed as one batched commit. Awaiting CodeRabbit's re-review, then 
   DECIDE: revoke it (`DROP ROLE price_checker` + drop the default-privileges entry) or, if the tool
   is wanted, recreate it in a migration with least-privilege grants so it stops being invisible.
   Either way it is a separate ticket, not #625.
-- CARRIED FROM #677, NOT DONE — the prod tail. PR #689 is merged (`5311a9c` on `main`) but the
-  post-merge sequence was never executed: approve the gated `migrate-prod` run (GitHub Actions,
-  `production` environment, manual approval — #677 HAS a migration), confirm it applied,
-  smoke-check `https://www.teamenjoyvd.com`, then close issue #677. #625 ALSO has a migration, so
-  its gated run will queue behind the same approval.
+  DECIDED 2026-08-05: revoked and dropped. "Recreate with least-privilege grants" was rejected —
+  there was nothing in this schema to grant it. If the scraper is resumed it gets its own project.
+- CORRECTED 2026-08-05 (was stale): #677's `migrate-prod` run is NOT pending — it already ran and
+  succeeded. Verified via prod `execute_sql`: `supabase_migrations.schema_migrations` head is
+  `20260801000000` (exactly #677's migration version). Workflow run `30747682503` (triggered by
+  PR #689's merge commit, 2026-08-02T12:22:21Z) — both jobs `success`, "Apply migrations to
+  production" completed 12:31:47Z. So #677 is fully done end-to-end; issue #677 itself is CLOSED.
+  Remaining smoke-check (`https://www.teamenjoyvd.com`) was never explicitly re-confirmed post-#677
+  but the app has been live and used since. What's still true: #625's migration
+  (`20260804000000`/`20260804000100`) has NOT been applied to prod yet (not in the ledger head) —
+  its `migrate-prod` run is the one still to approve. Runs serialize in merge order
+  (`concurrency: group: migrate-prod, cancel-in-progress: false`), so any migration-carrying PR that
+  merges before #625's approval queues behind it, not ahead.
 - CARRIED FROM #677, NEVER VERIFIED: admin guest link/unlink has NO automated coverage and has
   never been exercised against a real database. Do it by hand: `/admin/payments` -> Guest links ->
   pick a member -> Link -> Unlink.
