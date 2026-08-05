@@ -1627,6 +1627,24 @@ export type Database = {
           },
         ]
       }
+      rate_limit_events: {
+        Row: {
+          bucket_key: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          bucket_key: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          bucket_key?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: []
+      }
       role_change_audit: {
         Row: {
           changed_at: string
@@ -2277,6 +2295,10 @@ export type Database = {
           root_abo_number: string
           rows: Json
         }[]
+      }
+      consume_rate_limit: {
+        Args: { p_key: string; p_max: number; p_window_ms: number }
+        Returns: boolean
       }
       dissolve_partnership: {
         Args: { p_changed_by: string; p_profile_id: string }
