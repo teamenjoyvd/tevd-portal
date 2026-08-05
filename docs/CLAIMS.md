@@ -6,4 +6,4 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
-| #694 | `dev/2608-DEV-694` | `supabase/migrations/20260805000000_2608_chore_694_drop_price_checker_role.sql` (new) · `docs/STATE.md` · `docs/CLAIMS.md` — **migration: yes** (no-op on prod; guarded by `IF EXISTS`) | 2026-08-05 |
+

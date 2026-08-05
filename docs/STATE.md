@@ -24,14 +24,14 @@ is the durable record of that change; it is a no-op on prod, where the role neve
    rotate it there independently.
 
 ## Next — CARRIED FROM #625 (merged as #693, `13af882`, 2026-08-05T00:10:39Z)
-1. PROD TAIL: #677's `migrate-prod` already landed (see Facts, corrected 2026-08-05) — #625's run
-   still needs approval. Smoke-check `https://www.teamenjoyvd.com` after it applies. #694's
-   migration queues BEHIND it (`concurrency: group: migrate-prod, cancel-in-progress: false`),
-   which is harmless since #694 is a prod no-op.
-2. ONLY after #625's migration is confirmed applied on prod: open + action the issue to delete the
-   `PGRST202`/`42883` fallback from `lib/rate-limit.ts`. It CANNOT be removed at GCR time — between
-   merge and migrate-prod approval, prod runs the new code against a schema with no
-   `consume_rate_limit`, and the guards fail closed on a public flow.
+1. PROD TAIL — DONE 2026-08-05. `migrate-prod` run `30962459502` (2026-08-05T00:10:42Z, from #693's
+   merge) succeeded. Verified on prod: `supabase_migrations.schema_migrations` head is
+   `20260804000100` (#625's second migration) and `public.consume_rate_limit` exists. Still worth a
+   manual smoke-check of `https://www.teamenjoyvd.com`.
+2. NOW UNBLOCKED (was gated on step 1): open + action the issue to delete the `PGRST202`/`42883`
+   fallback from `lib/rate-limit.ts`. `consume_rate_limit` is confirmed live on prod, so the
+   fallback is dead weight that silently re-opens the race if it ever fires. This was the ONLY
+   reason it survived GCR.
 
 ## Next (original build order, all done)
 1. Step 1: write `supabase/migrations/20260804000000_2608_feat_625_atomic_rate_limits.sql`
