@@ -58,7 +58,9 @@ is the durable record of that change; it is a no-op on prod, where the role neve
   Re-check this after every branch cut — the tracking default is the trap, not the push.
 - No `git push` unless the user asks for a push in THIS conversation, quoted beside the command.
   The 2026-08-04 grant ("draft PR, commit everything necessary") was scoped to the #625 work and
-  is SPENT — it does NOT carry to #694. Ask again.
+  is SPENT — it does NOT carry to #694.
+  GRANTED 2026-08-05, verbatim: "push and draft PR". Scope: push `dev/2608-DEV-694` and open the
+  PR AS A DRAFT. Does NOT cover marking it ready for review or merging — ask again for both.
 - User decision 2026-08-05, verbatim: "Keep the full writeup, mark it RESOLVED" — do not condense
   the `price_checker` forensic detail below; it stays as a record.
 - User decision 2026-08-05: drop the role on DEV immediately rather than waiting for the migration
