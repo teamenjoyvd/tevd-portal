@@ -1,37 +1,37 @@
 ## Goal
-BUILD issue #694 (2608-DEV-694, branch `dev/2608-DEV-694`): record the removal of the out-of-band
-`price_checker` DB role as a guarded, idempotent migration, so a change made by hand on DEV becomes
-versioned and visible to code review.
+BUILD issue #696 (2608-DEV-696, branch `dev/2608-DEV-696`): remove the transitional
+`PGRST202`/`42883` fallback from `lib/rate-limit.ts`, so every RPC error fails closed and the racy
+pre-#625 count path is gone for good.
 
 ## Now
-The role is ALREADY GONE from DEV — revoked and dropped out of band on 2026-08-05, because the
-credential was live and `docs/STATE.md` on the PUBLIC repo had already published the role name, the
-DEV project ref, and the full grant inventory (merged to `main` in `13af882`). Verified after the
-drop: 0 rows in each of `pg_roles`, `pg_default_acl`, the `role_table_grants` view and
-`pg_namespace.nspacl`; 41 tables intact; the four stock roles untouched; a second run of the same
-block succeeded as a no-op. `supabase/migrations/20260805000000_2608_chore_694_drop_price_checker_role.sql`
-is the durable record of that change; it is a no-op on prod, where the role never existed.
+Code + tests done and green locally. `lib/rate-limit.ts` loses `legacyEmailCap`,
+`legacyRegistrationThrottle`, `MISSING_FUNCTION_CODES`, `isMissingFunction` and the `Outcome`
+union; `consumeSlot` now returns a plain `Promise<boolean>` and denies on ANY error. Net −144/+28.
+The 4 fallback tests are replaced by 2 asserting the INVERSE (PGRST202 / 42883 now deny) — the old
+suite asserted `true` for the same PGRST202 input, so the new assertions genuinely fail against the
+old implementation. `buildClient`'s `from` seam is kept but now THROWS, so any reintroduced table
+read fails the suite loudly instead of passing quietly once the seam is gone.
 
 ## Next
-1. `/code-review` the diff (migration -> escalate per BUILD.md), then ASK the user before any push.
-2. Push `dev/2608-DEV-694`, open the PR, CI green + Vercel preview READY.
-3. Post-merge: prune the `docs/CLAIMS.md` #694 row, close #694. Confirm the gated `migrate-prod`
-   run no-ops (the `IF EXISTS` guard) and that prod still reports zero `price_checker` rows.
-4. Clean the dead credential out of the sibling repo `D:\react\teamenjoyvd\priceChecker` — `.env`
-   (`DATABASE_URL`) and `scratch/test-db-conn.ts:5-7`. Nothing was ever committed there (`scratch/`
-   is untracked, `git log --all -S<password>` is empty) so this is local-disk hygiene, not a leak.
-   The same password is reused in `scratch/test-ssl.ts:4` against a DIFFERENT Supabase project —
-   rotate it there independently.
+1. `/code-review` the diff, then ASK the user before any push.
+2. Push `dev/2608-DEV-696`, open the PR, CI green + Vercel preview READY.
+3. Post-merge: prune the `docs/CLAIMS.md` #696 row, close #696. NO migration in this ticket, so
+   there is no `migrate-prod` tail.
 
-## Next — CARRIED FROM #625 (merged as #693, `13af882`, 2026-08-05T00:10:39Z)
+## Done — #694 (merged as #695, `7234846`)
+The `price_checker` role was dropped from DEV and recorded in
+`supabase/migrations/20260805000000_2608_chore_694_drop_price_checker_role.sql`. Sibling-repo
+cleanup applied 2026-08-05: `priceChecker/.env`, `scratch/test-db-conn.ts` and root `test-ssl.ts`
+scrubbed, and `.gitignore` extended to cover the credential-bearing one-off scripts (they were
+untracked but NOT ignored). STILL OUTSTANDING, user-owned: rotate the `postgres` superuser password
+of Supabase project `isthoadgyqdmjmapvpzj`, which `test-ssl.ts` had hard-coded in plaintext.
+
+## Done — CARRIED FROM #625 (merged as #693, `13af882`, 2026-08-05T00:10:39Z)
 1. PROD TAIL — DONE 2026-08-05. `migrate-prod` run `30962459502` (2026-08-05T00:10:42Z, from #693's
    merge) succeeded. Verified on prod: `supabase_migrations.schema_migrations` head is
    `20260804000100` (#625's second migration) and `public.consume_rate_limit` exists. Still worth a
    manual smoke-check of `https://www.teamenjoyvd.com`.
-2. NOW UNBLOCKED (was gated on step 1): open + action the issue to delete the `PGRST202`/`42883`
-   fallback from `lib/rate-limit.ts`. `consume_rate_limit` is confirmed live on prod, so the
-   fallback is dead weight that silently re-opens the race if it ever fires. This was the ONLY
-   reason it survived GCR.
+2. The fallback deletion it was gating is this ticket, #696.
 
 ## Next (original build order, all done)
 1. Step 1: write `supabase/migrations/20260804000000_2608_feat_625_atomic_rate_limits.sql`
@@ -164,9 +164,9 @@ is the durable record of that change; it is a no-op on prod, where the role neve
   the L8 flake logged during #688. The run was otherwise honest: `Running 21 tests using 2 workers`
   -> `20 passed`, `1 flaky`, **0 skipped**, so this was NOT the vacuous green tracked as #679.
   #625 touches rate limiting only; that spec asserts payment attribution labels.
-- At GCR: open a follow-up issue to REMOVE the transitional `PGRST202`/`42883` fallback from
-  `lib/rate-limit.ts` once `consume_rate_limit` is live in prod. The fallback is dead weight after
-  that and silently re-opens the race if it ever fires.
+- DONE 2026-08-05 (#696) — the transitional `PGRST202`/`42883` fallback is REMOVED from
+  `lib/rate-limit.ts`. `consume_rate_limit` was confirmed live on prod first (ledger head
+  `20260804000100`, function present). Every RPC error now fails closed with no special-cased codes.
 - RESOLVED 2026-08-05 (#694) — the `price_checker` DB role. DROPPED from DEV, with all its grants
   and its default-privileges entries, and recorded in
   `supabase/migrations/20260805000000_2608_chore_694_drop_price_checker_role.sql`. Post-drop

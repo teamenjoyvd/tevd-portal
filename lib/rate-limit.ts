@@ -14,14 +14,6 @@ import { createServiceClient } from '@/lib/supabase/service'
 
 const RPC = 'consume_rate_limit'
 
-// PostgREST reports an unresolvable function as PGRST202; Postgres' own
-// undefined_function is 42883. Nothing else falls back — see legacy* below.
-const MISSING_FUNCTION_CODES = new Set(['PGRST202', '42883'])
-
-function isMissingFunction(error: { code?: string | null } | null): boolean {
-  return error?.code != null && MISSING_FUNCTION_CODES.has(error.code)
-}
-
 /**
  * A bucket key embeds the recipient's email address, so it must never reach a
  * log. This yields the scope plus a short digest — enough to correlate repeated
@@ -31,10 +23,7 @@ function keyDigest(key: string): string {
   return createHash('sha256').update(key).digest('hex').slice(0, 12)
 }
 
-/** `true`/`false` = the RPC decided; `'rpc-missing'` = it isn't deployed yet. */
-type Outcome = boolean | 'rpc-missing'
-
-async function consumeSlot(key: string, scope: string, windowMs: number, max: number): Promise<Outcome> {
+async function consumeSlot(key: string, scope: string, windowMs: number, max: number): Promise<boolean> {
   const supabase = createServiceClient()
 
   const { data, error } = await supabase.rpc(RPC, {
@@ -44,9 +33,11 @@ async function consumeSlot(key: string, scope: string, windowMs: number, max: nu
   })
 
   if (error) {
-    if (isMissingFunction(error)) return 'rpc-missing'
-    // Fail closed: a broken guard must not silently unblock the abuse it is
-    // meant to enforce.
+    // Fail closed, with no exceptions: a broken guard must not silently unblock
+    // the abuse it is meant to enforce. 2608-DEV-696 removed the transitional
+    // PGRST202/42883 fallback to the pre-625 count path — that path was racy by
+    // construction, so treating "function missing" as a reason to use it would
+    // re-open the exact burst this guard exists to stop.
     console.error('consume_rate_limit failed, denying', { scope, key: keyDigest(key), error })
     return false
   }
@@ -78,9 +69,7 @@ export async function consumeEmailCap({
   const scoped = template != null
   const key = scoped ? `email:${recipient}:${template}` : `email:${recipient}`
 
-  const outcome = await consumeSlot(key, scoped ? 'email+template' : 'email', windowMs, max)
-  if (outcome !== 'rpc-missing') return outcome
-  return legacyEmailCap({ recipient, template, windowMs, max })
+  return consumeSlot(key, scoped ? 'email+template' : 'email', windowMs, max)
 }
 
 // -- Registration throttle ----------------------------------------------------
@@ -103,69 +92,5 @@ export async function consumeRegistrationSlot({
   const byLink = shareLinkId !== null
   const key = byLink ? `guest-reg:link:${shareLinkId}` : `guest-reg:event:${eventId}`
 
-  const outcome = await consumeSlot(key, byLink ? 'guest-reg:link' : 'guest-reg:event', windowMs, max)
-  if (outcome !== 'rpc-missing') return outcome
-  return legacyRegistrationThrottle({ shareLinkId, eventId, windowMs, max })
-}
-
-// -- Transitional fallback (remove once the RPC is live in production) --------
-// Vercel deploys on merge while `migrate-prod` waits for manual approval, so
-// production briefly runs this code against a schema with no
-// `consume_rate_limit`. Both guards fail CLOSED, which on a public flow would
-// deny every guest registration and every guest email. These two functions are
-// the pre-2608-DEV-625 count-based implementations, kept verbatim to cover that
-// window only — they are racy, which is the whole point of the rework, so they
-// run for the missing-function codes above and for nothing else.
-// Removal is tracked by the follow-up issue opened at GCR.
-
-async function legacyEmailCap({ recipient, template, windowMs, max }: EmailCapArgs): Promise<boolean> {
-  const supabase = createServiceClient()
-  const windowStart = new Date(Date.now() - windowMs).toISOString()
-  // Same explicit null check as consumeEmailCap — the two paths must scope
-  // identically, or the fallback would count a different bucket.
-  const scoped = template != null
-
-  let query = supabase
-    .from('notification_delivery_log')
-    .select('id', { count: 'exact', head: true })
-    .eq('channel', 'email')
-    .eq('recipient', recipient)
-    .gte('created_at', windowStart)
-
-  if (scoped) query = query.eq('template', template)
-
-  const { count, error } = await query
-  if (error) {
-    console.error('legacyEmailCap query failed, denying', {
-      scope: scoped ? 'email+template' : 'email',
-      key:   keyDigest(scoped ? `email:${recipient}:${template}` : `email:${recipient}`),
-      error,
-    })
-    return false
-  }
-  return (count ?? 0) < max
-}
-
-async function legacyRegistrationThrottle({
-  shareLinkId,
-  eventId,
-  windowMs,
-  max,
-}: RegistrationSlotArgs): Promise<boolean> {
-  const supabase = createServiceClient()
-  const windowStart = new Date(Date.now() - windowMs).toISOString()
-
-  let query = supabase
-    .from('guest_registrations')
-    .select('id', { count: 'exact', head: true })
-    .gte('created_at', windowStart)
-
-  query = shareLinkId !== null ? query.eq('share_link_id', shareLinkId) : query.eq('event_id', eventId)
-
-  const { count, error } = await query
-  if (error) {
-    console.error('legacyRegistrationThrottle query failed, denying', { shareLinkId, eventId, error })
-    return false
-  }
-  return (count ?? 0) < max
+  return consumeSlot(key, byLink ? 'guest-reg:link' : 'guest-reg:event', windowMs, max)
 }

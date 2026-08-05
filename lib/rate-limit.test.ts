@@ -5,8 +5,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 //    unchanged to the consume_rate_limit RPC;
 //  - the RPC's boolean is the answer, and anything that is not an explicit
 //    `true` denies (fail closed);
-//  - only the "function is not deployed" codes fall back to the pre-625
-//    count-based path — every other RPC error denies without falling back.
+//  - EVERY RPC error denies, with no special-cased codes. 2608-DEV-696 removed
+//    the transitional PGRST202/42883 fallback to the pre-625 count path, so
+//    there is no longer any error that reaches a table read.
 
 // -- Seams --------------------------------------------------------------------
 
@@ -18,34 +19,19 @@ vi.mock('@/lib/supabase/service', () => ({
 
 type RpcResult = { data: boolean | null; error: { code?: string | null; message?: string } | null }
 
-/** Thenable chain accepting any sequence of .eq()/.gte(), resolving to { count }. */
-function countChain(count: number, error: { message: string } | null = null) {
-  const chain: Record<string, unknown> = {
-    eq:  () => chain,
-    gte: () => chain,
-    then: (resolve: (v: { count: number | null; error: unknown }) => void) =>
-      resolve({ count: error ? null : count, error }),
-  }
-  return chain
-}
-
 /**
- * `rpc` answers with `rpcResult`; `from` serves the legacy count path, so a
- * single client covers both the RPC branch and the fallback branch.
+ * `rpc` answers with `rpcResult`. There is deliberately no working `from` seam:
+ * 2608-DEV-696 removed the legacy count path, so ANY table read from these
+ * guards is a regression. Throwing here keeps that guarantee actively asserted
+ * — a reintroduced fallback fails the suite loudly instead of quietly passing
+ * because the seam went away with it.
  */
-function buildClient(opts: {
-  rpcResult: RpcResult
-  count?: number
-  countError?: { message: string } | null
-}) {
+function buildClient(opts: { rpcResult: RpcResult }) {
   const rpcSpy = vi.fn(() => Promise.resolve(opts.rpcResult))
   const client = {
     rpc: rpcSpy,
     from: (table: string) => {
-      if (table === 'notification_delivery_log' || table === 'guest_registrations') {
-        return { select: () => countChain(opts.count ?? 0, opts.countError ?? null) }
-      }
-      throw new Error(`unexpected table ${table}`)
+      throw new Error(`unexpected table read: ${table} — the guards must not query tables`)
     },
   }
   return { client, rpcSpy }
@@ -164,11 +150,9 @@ describe('consumeRegistrationSlot', () => {
 // -- Fail closed --------------------------------------------------------------
 
 describe('fail-closed behaviour', () => {
-  it('denies on an arbitrary RPC error without consulting the legacy count path', async () => {
+  it('denies on an arbitrary RPC error without reading any table', async () => {
     const { client } = buildClient({
       rpcResult: { data: null, error: { code: '57014', message: 'canceling statement due to statement timeout' } },
-      // A count low enough to ALLOW — proving the fallback was not taken.
-      count: 0,
     })
     mockCreateServiceClient.mockReturnValue(client)
     const { consumeEmailCap } = await import('@/lib/rate-limit')
@@ -204,7 +188,6 @@ describe('fail-closed behaviour', () => {
   it('denies when the RPC error carries no code at all', async () => {
     const { client } = buildClient({
       rpcResult: { data: null, error: { message: 'network unreachable' } },
-      count: 0,
     })
     mockCreateServiceClient.mockReturnValue(client)
     const { consumeEmailCap } = await import('@/lib/rate-limit')
@@ -214,27 +197,17 @@ describe('fail-closed behaviour', () => {
   })
 })
 
-// -- Transitional fallback ----------------------------------------------------
-// Covers the window where Vercel has deployed this code but the gated
-// migrate-prod run has not yet created the function.
+// -- Missing RPC is no longer special -----------------------------------------
+// These codes USED to divert to the pre-625 count path (removed in
+// 2608-DEV-696). They are asserted explicitly, rather than folded into the
+// generic error case above, because reintroducing a fallback would be a silent
+// regression on a public abuse surface: the count path is racy by construction,
+// which is the whole reason #625 replaced it.
 
-describe('missing-RPC fallback', () => {
-  it('PGRST202 falls back to the count path and allows when under the cap', async () => {
+describe('missing-RPC codes deny like any other error', () => {
+  it('PGRST202 denies instead of falling back to a count', async () => {
     const { client } = buildClient({
       rpcResult: { data: null, error: { code: 'PGRST202', message: 'Could not find the function' } },
-      count: 2,
-    })
-    mockCreateServiceClient.mockReturnValue(client)
-    const { consumeEmailCap } = await import('@/lib/rate-limit')
-
-    await expect(consumeEmailCap({ recipient: 'jane@example.com', windowMs: HOUR, max: 3 }))
-      .resolves.toBe(true)
-  })
-
-  it('PGRST202 falls back and denies once the count has reached the cap', async () => {
-    const { client } = buildClient({
-      rpcResult: { data: null, error: { code: 'PGRST202', message: 'Could not find the function' } },
-      count: 3,
     })
     mockCreateServiceClient.mockReturnValue(client)
     const { consumeEmailCap } = await import('@/lib/rate-limit')
@@ -243,28 +216,14 @@ describe('missing-RPC fallback', () => {
       .resolves.toBe(false)
   })
 
-  it('42883 falls back for the registration throttle too', async () => {
+  it('42883 denies for the registration throttle too', async () => {
     const { client } = buildClient({
       rpcResult: { data: null, error: { code: '42883', message: 'function does not exist' } },
-      count: 29,
     })
     mockCreateServiceClient.mockReturnValue(client)
     const { consumeRegistrationSlot } = await import('@/lib/rate-limit')
 
     await expect(consumeRegistrationSlot({ shareLinkId: 'link-1', eventId: 'event-1', windowMs: HOUR, max: 30 }))
-      .resolves.toBe(true)
-  })
-
-  it('denies when the fallback count query itself errors', async () => {
-    const { client } = buildClient({
-      rpcResult: { data: null, error: { code: 'PGRST202', message: 'Could not find the function' } },
-      count: 0,
-      countError: { message: 'relation does not exist' },
-    })
-    mockCreateServiceClient.mockReturnValue(client)
-    const { consumeEmailCap } = await import('@/lib/rate-limit')
-
-    await expect(consumeEmailCap({ recipient: 'jane@example.com', windowMs: HOUR, max: 3 }))
       .resolves.toBe(false)
   })
 })
