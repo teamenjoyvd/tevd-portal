@@ -95,37 +95,51 @@ test.describe('home page without WebGL', () => {
     ).toHaveLength(0)
   })
 
-  test('expanding the tile does not overflow the viewport', async ({ page }, testInfo) => {
+  test('neither tile state overflows the viewport', async ({ page }, testInfo) => {
     const viewport = testInfo.project.use.viewport
     test.skip(viewport == null, 'needs a fixed viewport to assert against')
+
+    const scrollWidth = () =>
+      page.evaluate(() => document.scrollingElement?.scrollWidth ?? 0)
+
+    const expectNoOverflow = async (state: string) => {
+      const width = await scrollWidth()
+      expect(
+        width,
+        `horizontal overflow on / with the location tile ${state}: ${width}px at ${viewport!.width}px`,
+      ).toBeLessThanOrEqual(viewport!.width)
+    }
 
     await page.goto('/')
     // networkidle genuinely never fires on the Vercel preview (persistent background
     // network activity), unlike localhost — confirmed by CI job "390px smoke vs preview"
-    // failing here on dev/2608-DEV-698 once this catch was removed. The width assertions
-    // below are the real synchronization point; this call is best-effort only.
+    // failing here on dev/2608-DEV-698 once this catch was removed. The coordinates
+    // assertions below are the real synchronization point; this call is best-effort only.
     await page.waitForLoadState('networkidle', { timeout: 10_000 }).catch(() => {})
 
-    const widthBefore = await page.evaluate(
-      () => document.scrollingElement?.scrollWidth ?? 0,
-    )
-    expect(
-      widthBefore,
-      `horizontal overflow on / before expanding: ${widthBefore}px at ${viewport!.width}px`,
-    ).toBeLessThanOrEqual(viewport!.width)
-
     const tile = page.getByRole('button', { name: CITY }).first()
+    // Scoped to the tile, not the page: both the desktop and mobile branches of
+    // app/(dashboard)/page.tsx are in the DOM and both now render the coordinates,
+    // so a page-level .first() would resolve to the display:none branch. The role
+    // locator above already picks the visible one — hidden subtrees are not in the
+    // accessibility tree.
+    const coords = tile.getByText(COORDS)
     await expect(tile).toBeVisible()
-    await tile.click()
-    // The coordinates line only renders in the expanded state.
-    await expect(page.getByText(COORDS).first()).toBeVisible()
 
-    const widthAfter = await page.evaluate(
-      () => document.scrollingElement?.scrollWidth ?? 0,
-    )
-    expect(
-      widthAfter,
-      `horizontal overflow on / after expanding: ${widthAfter}px at ${viewport!.width}px`,
-    ).toBeLessThanOrEqual(viewport!.width)
+    // The tile ships expanded, and the coordinates line renders in that state only.
+    // Waiting on it also lets the size spring settle before each width read.
+    await expect(tile).toHaveAttribute('aria-expanded', 'true')
+    await expect(coords).toBeVisible()
+    await expectNoOverflow('expanded on load')
+
+    await tile.click()
+    await expect(tile).toHaveAttribute('aria-expanded', 'false')
+    await expect(coords).toBeHidden()
+    await expectNoOverflow('collapsed')
+
+    await tile.click()
+    await expect(tile).toHaveAttribute('aria-expanded', 'true')
+    await expect(coords).toBeVisible()
+    await expectNoOverflow('expanded again')
   })
 })

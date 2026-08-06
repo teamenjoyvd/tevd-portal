@@ -1,49 +1,41 @@
 ## Goal
-BUILD issue #698 (2608-DEV-698, branch `dev/2608-DEV-698`): remove Mapbox GL from the app entirely
-and render the home page's Location tile with a self-contained DOM/SVG component, so no WebGL
-failure can reach the dashboard error boundary.
+BUILD issue #700 (2608-DEV-700, branch `dev/2608-DEV-700`): follow-up on the Location tile shipped
+by #698/PR #699 — give expand/collapse a real size animation, remove the "LIVE" status pill, and
+make **expanded** the state the tile loads in (a tap swaps it).
 
 ## Now
-PR #699 ready for review (not draft), GCR complete, **all CI checks green and the Vercel preview
-READY**, mergeStateStatus CLEAN. Mapbox is gone: the CDN loader, the `NEXT_PUBLIC_MAPBOX_TOKEN` env
-var, the `.mapboxgl-ctrl-*` CSS suppression, the orphaned `AboutMapTile*` pair, and the `ssr:false`
-`LocationTileLazy` wrapper. `components/ui/expand-map.tsx` (adapted from 21st.dev
-`jatin-yadav05/expand-map`) draws the card in SVG and cannot fail. `framer-motion@^12.43.0` is a new
-dependency.
-
-GCR ran against CodeRabbit's 4-comment review (`0eb1076`, `2c28bdd`):
-- Applied: reduced-motion honored for every effect in `LocationMap`, not just pointer tilt.
-- Applied: explicit `=== true`/`=== false` boolean comparisons in `expand-map.tsx` JSX conditions.
-- Applied: `e2e/home-no-webgl.spec.ts` WebGL shim rewritten as a type-preserving `Proxy`, no `any`.
-- REVERTED after CI proved it wrong: CodeRabbit suggested removing the empty catch on
-  `waitForLoadState('networkidle')` in the overflow test. Doing so broke the "390px smoke vs
-  preview" job — that check passed on `f0a9d4d` (with the catch) and failed on `0eb1076` (without
-  it): `networkidle` never fires against the real Vercel preview's background network activity,
-  unlike localhost. Restored in `2c28bdd` with a comment explaining why; that review thread is
-  left UNRESOLVED with a reply stating the reason, per GCR's skipped-comment rule.
-- 3 of 4 threads resolved via GraphQL; the 4th (above) deliberately left open for human follow-up.
+Edits applied on `dev/2608-DEV-700` (cut from `origin/main` at `dacca8b`, upstream unset):
+- `components/ui/expand-map.tsx` — the inner card's `width`/`height` are plain inline values
+  (68%/64% collapsed, 100% expanded) with a CSS `transition-[width,height] duration-500` on a
+  back-out easing that overshoots slightly; root became a centring flex container. See
+  `## Failed attempts` for why this is NOT a framer animation. `isExpanded` defaults to `true`. The
+  status pill (dot + "LIVE") and the hover hint are gone, along with the `liveLabel`/`expandHint`
+  props and the now-unused `parchment()` helper. Three `initial={false}` changes remove hydration
+  mismatches that the expanded-by-default state exposed.
+- `LocationTile.tsx` no longer passes the two removed props; `home.loc.live` / `home.loc.expand`
+  deleted from `lib/i18n/domains/home.ts`.
+- `e2e/home-no-webgl.spec.ts` third test rewritten — it clicked once and expected the coordinates to
+  APPEAR, which the inverted default turns into a collapse. It now asserts no horizontal overflow in
+  all three states (expanded on load -> collapsed -> expanded again), driving off `aria-expanded`.
 
 ## Next
-1. Merge when ready — CI green, preview READY, mergeStateStatus CLEAN, 3/4 threads resolved (see
-   `## Now`). ASK the user before merging.
-2. Post-merge: prune the `docs/CLAIMS.md` #698 row, close #698, and ask the user to delete
-   `NEXT_PUBLIC_MAPBOX_TOKEN` from the Vercel project (all scopes) — out-of-band, not a code change.
+1. ASK the user before any push or PR — no push grant exists for this branch.
+2. Decide with the user how much the reduced-motion setting matters (see `## Open items`).
 
 ## Handover — start the follow-up session with this
 ```
-GCR is done (see ## Now). Start the follow-up session by confirming with the user whether to merge
-PR #699 (branch dev/2608-DEV-698, issue #698) — CI green, preview READY, mergeStateStatus CLEAN.
+Branch dev/2608-DEV-700 (issue #700) carries the LocationMap follow-up: size spring, LIVE pill
+removed, expanded by default. Re-run lint/check-types/build and the home-no-webgl spec on both
+projects, then ask the user before pushing.
 ```
 
 ## Constraints
-- Never push to `main`; `dev/2608-DEV-698` only. `git checkout -b dev/2608-DEV-698 origin/main` SET
+- Never push to `main`; `dev/2608-DEV-700` only. `git checkout -b dev/2608-DEV-700 origin/main` SET
   origin/main as the upstream; it was unset immediately (`git branch --unset-upstream`), so
   `git rev-parse --abbrev-ref @{u}` -> fatal and a bare `git push` cannot hit main. Re-check after
   every branch cut — the tracking default is the trap, not the push.
 - No `git push` unless the user asks for a push in THIS conversation, quoted beside the command.
-  GRANTED 2026-08-06, verbatim: "Open a draft PR since change like any other must go through the
-  standard procedure." Scope: push `dev/2608-DEV-698` and open the PR AS A DRAFT. Does NOT cover
-  marking it ready for review or merging — ask again for both.
+  NOT GRANTED for `dev/2608-DEV-700` — the 2026-08-06 grant was scoped to `dev/2608-DEV-698`.
 - Never weaken a check to make it pass.
 - Fold the `docs/CLAIMS.md` row removal + `docs/STATE.md` updates into the merging PR — NEVER a
   standalone cleanup PR.
@@ -52,6 +44,40 @@ PR #699 (branch dev/2608-DEV-698, issue #698) — CI green, preview READY, merge
 - NEVER paste an absolute Windows path into a tracked file. Tailwind v4 scans every source file
   (including .md) for utility candidates; a backslash + hex digits parses as a CSS unicode escape
   and kills `npm run build` with `Invalid code point <n>` pointed at `app/globals.css:1:1`.
+
+## Failed attempts
+- ATTEMPT 1 [L1] (#700, size animation): supplied the card's size through framer-motion's `animate`
+  prop (`animate={{width: isExpanded ? '100%' : '68%', ...}}`) -> framer received the prop (React
+  fiber confirms `animate: {"width":"68%","height":"64%"}`) but emitted a DOM `style` of only
+  `{transformStyle, transform}`. `animate` is not scraped into the initially-rendered style, so the
+  element had NO width/height at all and shrank to its content: 185x103 inside a 295x220 tile, with
+  "expanded" differing from "collapsed" only by the extra coordinates line. Fixed by driving the
+  size as MotionValues in `style` instead — those framer always renders, SSR included.
+- ATTEMPT 2 [L1] (#700, size animation): `useSpring(1, SIZE_SPRING)` + `expansion.jump(target)` on
+  the reduced-motion path -> the size rendered ONE TOGGLE BEHIND the state (click to collapse ->
+  still 100%; click to expand -> 68%). `MotionValue.jump()` calls `updateAndNotify` and
+  `stopPassiveEffect()` without scheduling framer's DOM render.
+- ATTEMPT 3 [L2] (#700, size animation): kept `useSpring` but swapped its options to
+  `{type:'tween', duration:0}` under reduced motion and always called `.set()` -> the size froze at
+  100% and never moved. L2 hypothesis, read out of the installed source rather than guessed:
+  `attachFollow` (which backs `useSpring`) constructs `new JSAnimation(...)` DIRECTLY
+  (`motion-dom/dist/es/value/follow-value.mjs:70`), bypassing the zero-duration branch at
+  `motion-dom/dist/es/animation/interfaces/motion-value.mjs:64-96` that applies the final keyframe
+  via `frame.update`. A zero-duration tween through `useSpring` therefore emits no update at all.
+- ATTEMPT 4 [L3] (#700, size animation): `useMotionValue(1)` + `animate(expansion, target, ...)` in
+  an effect -> still frozen at 100%. INSTRUMENTATION (this is the L3 evidence): a MutationObserver
+  on the card's `style` attribute recorded **0 mutations** across a full toggle, and the attribute
+  kept its un-normalized SSR form (`width:100%` — framer's client writes come back spaced, as seen
+  in ATTEMPT 2). The console explains why: framer logs "You have Reduced Motion enabled on your
+  device. Animations may not appear as expected", and React reports a hydration mismatch in this
+  subtree (`style={{opacity:1}}` vs `style={{opacity:"0"}}`, `strokeDasharray "1 1"` vs `"0 1"`)
+  with "This won't be patched up".
+- RESOLUTION [L4] (#700, size animation): abandoned the framer path for the size entirely and drove
+  width/height as plain inline values with a CSS `transition-[width,height]`, which is the idiom the
+  rest of this repo already uses. No MotionValue, no reduced-motion special case (`motion-reduce:`
+  handles it), and the value is identical on server and client. `AnimatePresence initial={false}`
+  was added at the same time — with expanded as the default state the entrance animation ran during
+  hydration, which is what produced the mismatch above.
 
 ## Decisions
 - DECISION (user, 2026-08-06): drop Mapbox rather than guard it. A `mapboxgl.supported()` check plus
@@ -63,9 +89,10 @@ PR #699 (branch dev/2608-DEV-698, issue #698) — CI green, preview READY, merge
   identical. Loss of real geography accepted. The alternative offered (expanded state showing a
   Mapbox Static Images `<img>`, no WebGL) was declined.
 - DECISION (user, 2026-08-06): `framer-motion` added rather than porting the animations to CSS.
-- DECISION (2026-08-06): the component takes its strings as props (`location`, `coordinates`,
-  `liveLabel`, `expandHint`) rather than calling `t()` itself, so `components/ui/*` stays
-  i18n-agnostic like the rest of that directory. `LocationTile` supplies the translations.
+- DECISION (2026-08-06): the component takes its strings as props (`location`, `coordinates`)
+  rather than calling `t()` itself, so `components/ui/*` stays i18n-agnostic like the rest of that
+  directory. `LocationTile` supplies the translations. (`liveLabel` and `expandHint` were props too
+  until #700 removed the pill and the hint.)
 - DECISION (2026-08-06): ADR-003 marked **Superseded**, not deleted — its record stays. Its stated
   mitigation ("map tiles are non-critical UI — their failure degrades gracefully") was never true;
   nothing caught the constructor. That sentence is why the bug shipped.
@@ -74,6 +101,17 @@ PR #699 (branch dev/2608-DEV-698, issue #698) — CI green, preview READY, merge
   pixels, which overflows the 358px content box at a 390px viewport and clips inside a fixed bento
   grid row. It fills its container instead and expansion is a cross-fade. (2) All colours mapped to
   brand tokens.
+- DECISION (user, 2026-08-06, #700): deviation (1) above was REVISED, not reverted. The user
+  reported the cross-fade reads as an instant state flip and asked for the upstream motion back.
+  Upstream verbatim is still unavailable (registry needs auth) and its fixed pixel sizes still do
+  not fit, so the size spring was rebuilt in PERCENTAGES: the card springs between 68%/64% and
+  100% of its tile. The user picked this over literal upstream pixels (which would have grown the
+  desktop bento row and everything sharing it) and over a scale-only cross-fade.
+- DECISION (2026-08-06, #700): both ends of the size animation are percentages on purpose.
+  `node_modules/motion-dom/dist/es/animation/keyframes/DOMKeyframesResolver.mjs:68-87` returns early
+  when the two keyframes share a value type, but sends a px <-> % pair down the measurement path
+  (`needsMeasurement = true`), resolving the target off the element's bounding box. Same-unit
+  keyframes also cannot overflow the tile at 390px, which keeps the overflow spec honest.
 
 ## Facts
 - BUILD BASELINE, captured 2026-08-06 before any edit: `npm run check-types` -> clean.
@@ -127,6 +165,24 @@ PR #699 (branch dev/2608-DEV-698, issue #698) — CI green, preview READY, merge
   cycle.
 - `prefers-reduced-motion` gates the mouse-tilt only (via `useReducedMotion`); the entrance
   animations still run.
+- BUILD BASELINE for #700, captured before any edit on `dev/2608-DEV-700`: `npm run check-types`
+  -> clean. Note `npm install` was required first — the branch before it predated
+  `framer-motion@^12.43.0`, so `node_modules` had no copy of it.
+- VERIFICATION for #700, on `dev/2608-DEV-700` with a wiped `.next`: `npm run verify` -> exit 0
+  (lint 0 errors / 468 warnings, same count as before the change; `tsc --noEmit` clean; 27 files /
+  358 tests passed; build compiled in 93s).
+  `npx playwright test --project=mobile-390 --project=desktop e2e/home-no-webgl.spec.ts` -> 6
+  passed. `e2e/mobile-smoke.spec.ts` on both projects -> 16 passed.
+  MOTION PROOF (throwaway probe, `test.use({ reducedMotion: 'no-preference' })`, deleted after):
+  sampling the card width per animation frame across a collapse gave
+  `100, 100, 71, 69.4, 67, 66.2, 65.6, 65.2, 65, 64.9, 65, 65.3, 66.3, 67, 67.8, 68, 68...` —
+  it interpolates, overshoots past the 68% target, and settles. `transitionProperty` reads
+  `"width, height"` there and `"none"` on a reduced-motion device.
+- #700 e2e trap: the coordinates locator had to be scoped to the tile
+  (`tile.getByText(COORDS)`), not the page. Both the desktop and mobile branches of
+  `app/(dashboard)/page.tsx` are in the DOM and BOTH now render the coordinates on load, so a
+  page-level `.first()` resolves to the `display:none` branch and `toBeVisible()` fails. The role
+  locator does not have this problem — hidden subtrees are not in the accessibility tree.
 - Worktrees do NOT inherit gitignored env files. `.env.local` / `.env.development.local` had to be
   copied in from the main repo for the dev server to boot (`supabaseUrl is required` otherwise), and
   were deleted again at handover. `.env.local` points at PROD; `.env.development.local` supplies the
@@ -146,6 +202,14 @@ PR #699 (branch dev/2608-DEV-698, issue #698) — CI green, preview READY, merge
   `testMatch`) — no config change was needed.
 
 ## Open items
+- OPEN, needs a user decision (#700): **this machine has `prefers-reduced-motion: reduce` set.**
+  Confirmed twice — `matchMedia('(prefers-reduced-motion: reduce)').matches` is `true` in the user's
+  Chrome, and framer logs "You have Reduced Motion enabled on your device". That is very likely the
+  real reason the tile "had no animation" in the original report: every transition in this component
+  is gated on it, so the toggle was an instant state flip regardless of what was coded. The new size
+  transition is gated the same way (`motion-reduce:transition-none`) and was proven to animate only
+  with `reducedMotion: 'no-preference'`. Options: leave it (correct and accessible; the user sees no
+  motion until they change the OS/browser setting), or exempt the size change from the gate.
 - PR was marked ready for review before the GCR session started (CodeRabbit's 4-comment review at
   11:04 required it, since draft PRs get skipped). One review thread deliberately left unresolved —
   see `## Now`.

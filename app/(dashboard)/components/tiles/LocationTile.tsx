@@ -29,8 +29,6 @@ export default function LocationTile({
         className="absolute inset-0"
         location={t('home.loc.city')}
         coordinates={SOFIA_COORDS}
-        liveLabel={t('home.loc.live')}
-        expandHint={t('home.loc.expand')}
       />
     </BentoCard>
   )

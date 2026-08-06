@@ -10,13 +10,18 @@
  * draws its "map" in SVG, so it has no renderer to fail.
  *
  * Two deliberate deviations from upstream:
- *   1. No width/height animation. Upstream animates 240x140 -> 360x280 in fixed
- *      pixels, which overflows the 358px content box at a 390px viewport and
- *      clips inside a fixed bento grid row. This fills its container instead and
- *      expansion is a cross-fade.
+ *   1. The size animation is a CSS transition in percentages, not a framer
+ *      animation in pixels. Upstream springs 240x140 -> 360x280 in fixed pixels;
+ *      360px overflows the 358px content box at a 390px viewport and 280px is
+ *      taller than the bento row. The card transitions between
+ *      COLLAPSED_WIDTH_PCT/COLLAPSED_HEIGHT_PCT and 100% of its tile instead, on
+ *      a back-out easing that overshoots slightly so it still reads as a spring.
+ *      The tile's footprint never changes and nothing overflows.
  *   2. Colours come from the brand tokens in styles/brand-tokens.css. Upstream
  *      targets stock shadcn base tokens (--foreground, --muted, --background),
  *      none of which this project defines.
+ *
+ * Expanded is the default state; a click or Enter/Space collapses it.
  *
  * Strings are props, not translations — the component stays i18n-agnostic like
  * the rest of components/ui. Callers pass translated text.
@@ -43,7 +48,6 @@ const MOSS = 'var(--brand-moss)'
 const ACCENT = 'var(--brand-sienna)'
 const ACCENT_RGB = '224, 122, 95'
 
-const parchment = (alpha: number) => `rgba(250, 248, 243, ${alpha})`
 const stone = (alpha: number) => `rgba(138, 133, 119, ${alpha})`
 
 // Skyline blocks: [top, left|right, width, height, fill alpha, entrance delay].
@@ -67,25 +71,25 @@ const BUILDINGS: {
 const H_STREETS = [20, 50, 80]
 const V_STREETS = [15, 45, 55, 85]
 
+// Collapsed size, as a percentage share of the tile. Percentages, not pixels, so
+// no state can overflow the tile and the card stays responsive.
+const COLLAPSED_WIDTH_PCT = 68
+const COLLAPSED_HEIGHT_PCT = 64
+
 interface LocationMapProps {
   location?: string
   coordinates?: string
-  /** Text of the status pill. */
-  liveLabel?: string
-  /** Hover affordance shown while collapsed. */
-  expandHint?: string
   className?: string
 }
 
 export function LocationMap({
   location = 'Sofia, Bulgaria',
   coordinates = '42.6977° N, 23.3219° E',
-  liveLabel = 'Live',
-  expandHint = 'Click to expand',
   className,
 }: LocationMapProps) {
   const [isHovered, setIsHovered] = useState(false)
-  const [isExpanded, setIsExpanded] = useState(false)
+  // Expanded on load; a click or Enter/Space swaps it.
+  const [isExpanded, setIsExpanded] = useState(true)
   const containerRef = useRef<HTMLDivElement>(null)
   // The <pattern> id must be unique: the home page mounts this tile twice
   // (desktop + mobile branches of app/(dashboard)/page.tsx are both in the DOM).
@@ -134,7 +138,10 @@ export function LocationMap({
       tabIndex={0}
       aria-expanded={isExpanded}
       aria-label={location}
-      className={cn('relative h-full w-full cursor-pointer select-none', className)}
+      className={cn(
+        'relative flex h-full w-full cursor-pointer items-center justify-center select-none',
+        className,
+      )}
       style={{ perspective: 1000 }}
       onMouseMove={handleMouseMove}
       onMouseEnter={() => setIsHovered(true)}
@@ -142,9 +149,22 @@ export function LocationMap({
       onClick={toggle}
       onKeyDown={handleKeyDown}
     >
+      {/* The size is a plain inline value with a CSS transition, NOT a framer
+          animation. Routed through framer it never reached the DOM: `animate`
+          is not scraped into the first render, and every MotionValue variant
+          was silently defeated by the device's reduced-motion setting (framer
+          logs "Animations may not appear as expected"). A CSS transition is
+          also identical on the server and the client, and `motion-reduce`
+          honours the same preference without a second code path. */}
       <motion.div
-        className="relative h-full w-full overflow-hidden rounded-2xl"
+        className={cn(
+          'relative overflow-hidden rounded-2xl',
+          'transition-[width,height] duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]',
+          'motion-reduce:transition-none',
+        )}
         style={{
+          width: isExpanded === true ? '100%' : `${COLLAPSED_WIDTH_PCT}%`,
+          height: isExpanded === true ? '100%' : `${COLLAPSED_HEIGHT_PCT}%`,
           rotateX: springRotateX,
           rotateY: springRotateY,
           transformStyle: 'preserve-3d',
@@ -158,7 +178,11 @@ export function LocationMap({
           }}
         />
 
-        <AnimatePresence>
+        {/* initial={false}: expanded is the mount state, so without this the
+            entrance animation runs during hydration and React reports a
+            mismatch it refuses to patch (server opacity:0 vs client opacity:1,
+            strokeDasharray "0 1" vs "1 1"). Toggling still animates. */}
+        <AnimatePresence initial={false}>
           {isExpanded === true && (
             <motion.div
               className="pointer-events-none absolute inset-0"
@@ -326,24 +350,6 @@ export function LocationMap({
                 <line x1="15" x2="15" y1="6" y2="21" />
               </motion.svg>
             </motion.div>
-
-            {/* Status indicator */}
-            <motion.div
-              className="flex items-center gap-1.5 rounded-full px-2 py-1 backdrop-blur-sm"
-              animate={{
-                scale: isHovered === true ? 1.05 : 1,
-                backgroundColor: isHovered === true ? parchment(0.12) : parchment(0.08),
-              }}
-              transition={reduceMotion ? instant : { duration: 0.2 }}
-            >
-              <div className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: ACCENT }} />
-              <span
-                className="text-[10px] font-medium tracking-wide uppercase"
-                style={{ color: STONE }}
-              >
-                {liveLabel}
-              </span>
-            </motion.div>
           </div>
 
           {/* Bottom section */}
@@ -359,7 +365,10 @@ export function LocationMap({
               {location}
             </motion.p>
 
-            <AnimatePresence>
+            {/* initial={false} for the same reason as the map layer above: the
+                coordinates render on mount now, so an entrance animation here
+                is a hydration mismatch. */}
+            <AnimatePresence initial={false}>
               {isExpanded === true && (
                 <motion.p
                   className="font-mono text-xs"
@@ -374,33 +383,23 @@ export function LocationMap({
               )}
             </AnimatePresence>
 
-            {/* Animated underline */}
+            {/* Animated underline. initial={false} unconditionally: a
+                reduceMotion-dependent `initial` cannot survive SSR, because
+                useReducedMotion() is false on the server and true in a browser
+                that asks for reduced motion, so the two render different
+                transforms. It animates on state changes either way. */}
             <motion.div
               className="h-px"
               style={{
                 originX: 0,
                 backgroundImage: `linear-gradient(to right, rgba(${ACCENT_RGB}, 0.5), rgba(${ACCENT_RGB}, 0.3), transparent)`,
               }}
-              initial={reduceMotion ? false : { scaleX: 0 }}
+              initial={false}
               animate={{ scaleX: isHovered === true || isExpanded === true ? 1 : 0.3 }}
               transition={reduceMotion ? instant : { duration: 0.4, ease: 'easeOut' }}
             />
           </div>
         </div>
-
-        {/* Click hint — kept inside the card; the tile clips overflow */}
-        <motion.p
-          className="absolute right-4 bottom-1.5 z-10 text-[10px] whitespace-nowrap"
-          style={{ color: STONE }}
-          initial={reduceMotion ? false : { opacity: 0 }}
-          animate={{
-            opacity: isHovered === true && isExpanded === false ? 1 : 0,
-            y: isHovered === true ? 0 : 4,
-          }}
-          transition={reduceMotion ? instant : { duration: 0.2 }}
-        >
-          {expandHint}
-        </motion.p>
       </motion.div>
     </motion.div>
   )
