@@ -91,6 +91,8 @@ export function LocationMap({
   // (desktop + mobile branches of app/(dashboard)/page.tsx are both in the DOM).
   const gridId = useId()
   const prefersReducedMotion = useReducedMotion()
+  const reduceMotion = prefersReducedMotion === true
+  const instant = { duration: 0 }
 
   const mouseX = useMotionValue(0)
   const mouseY = useMotionValue(0)
@@ -157,13 +159,13 @@ export function LocationMap({
         />
 
         <AnimatePresence>
-          {isExpanded && (
+          {isExpanded === true && (
             <motion.div
               className="pointer-events-none absolute inset-0"
-              initial={{ opacity: 0 }}
+              initial={reduceMotion ? false : { opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.4, delay: 0.1 }}
+              transition={reduceMotion ? instant : { duration: 0.4, delay: 0.1 }}
             >
               <div className="absolute inset-0" style={{ backgroundColor: MOSS }} />
 
@@ -172,32 +174,32 @@ export function LocationMap({
                 <motion.line
                   x1="0%" y1="35%" x2="100%" y2="35%"
                   stroke={PARCHMENT} strokeOpacity={0.25} strokeWidth="4"
-                  initial={{ pathLength: 0 }}
+                  initial={reduceMotion ? false : { pathLength: 0 }}
                   animate={{ pathLength: 1 }}
-                  transition={{ duration: 0.8, delay: 0.2 }}
+                  transition={reduceMotion ? instant : { duration: 0.8, delay: 0.2 }}
                 />
                 <motion.line
                   x1="0%" y1="65%" x2="100%" y2="65%"
                   stroke={PARCHMENT} strokeOpacity={0.25} strokeWidth="4"
-                  initial={{ pathLength: 0 }}
+                  initial={reduceMotion ? false : { pathLength: 0 }}
                   animate={{ pathLength: 1 }}
-                  transition={{ duration: 0.8, delay: 0.3 }}
+                  transition={reduceMotion ? instant : { duration: 0.8, delay: 0.3 }}
                 />
 
                 {/* Vertical main roads */}
                 <motion.line
                   x1="30%" y1="0%" x2="30%" y2="100%"
                   stroke={PARCHMENT} strokeOpacity={0.2} strokeWidth="3"
-                  initial={{ pathLength: 0 }}
+                  initial={reduceMotion ? false : { pathLength: 0 }}
                   animate={{ pathLength: 1 }}
-                  transition={{ duration: 0.6, delay: 0.4 }}
+                  transition={reduceMotion ? instant : { duration: 0.6, delay: 0.4 }}
                 />
                 <motion.line
                   x1="70%" y1="0%" x2="70%" y2="100%"
                   stroke={PARCHMENT} strokeOpacity={0.2} strokeWidth="3"
-                  initial={{ pathLength: 0 }}
+                  initial={reduceMotion ? false : { pathLength: 0 }}
                   animate={{ pathLength: 1 }}
-                  transition={{ duration: 0.6, delay: 0.5 }}
+                  transition={reduceMotion ? instant : { duration: 0.6, delay: 0.5 }}
                 />
 
                 {/* Secondary streets */}
@@ -206,9 +208,9 @@ export function LocationMap({
                     key={`h-${y}`}
                     x1="0%" y1={`${y}%`} x2="100%" y2={`${y}%`}
                     stroke={PARCHMENT} strokeOpacity={0.1} strokeWidth="1.5"
-                    initial={{ pathLength: 0 }}
+                    initial={reduceMotion ? false : { pathLength: 0 }}
                     animate={{ pathLength: 1 }}
-                    transition={{ duration: 0.5, delay: 0.6 + i * 0.1 }}
+                    transition={reduceMotion ? instant : { duration: 0.5, delay: 0.6 + i * 0.1 }}
                   />
                 ))}
                 {V_STREETS.map((x, i) => (
@@ -216,9 +218,9 @@ export function LocationMap({
                     key={`v-${x}`}
                     x1={`${x}%`} y1="0%" x2={`${x}%`} y2="100%"
                     stroke={PARCHMENT} strokeOpacity={0.1} strokeWidth="1.5"
-                    initial={{ pathLength: 0 }}
+                    initial={reduceMotion ? false : { pathLength: 0 }}
                     animate={{ pathLength: 1 }}
-                    transition={{ duration: 0.5, delay: 0.7 + i * 0.1 }}
+                    transition={reduceMotion ? instant : { duration: 0.5, delay: 0.7 + i * 0.1 }}
                   />
                 ))}
               </svg>
@@ -236,18 +238,22 @@ export function LocationMap({
                     backgroundColor: stone(b.alpha),
                     borderColor: stone(b.alpha * 0.65),
                   }}
-                  initial={{ opacity: 0, scale: 0.8 }}
+                  initial={reduceMotion ? false : { opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.4, delay: b.delay }}
+                  transition={reduceMotion ? instant : { duration: 0.4, delay: b.delay }}
                 />
               ))}
 
               {/* Pin */}
               <motion.div
                 className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
-                initial={{ scale: 0, y: -20 }}
+                initial={reduceMotion ? false : { scale: 0, y: -20 }}
                 animate={{ scale: 1, y: 0 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 20, delay: 0.3 }}
+                transition={
+                  reduceMotion
+                    ? instant
+                    : { type: 'spring', stiffness: 400, damping: 20, delay: 0.3 }
+                }
               >
                 <svg
                   width="32"
@@ -277,8 +283,8 @@ export function LocationMap({
         {/* Grid pattern — collapsed state only */}
         <motion.div
           className="absolute inset-0"
-          animate={{ opacity: isExpanded ? 0 : 0.06 }}
-          transition={{ duration: 0.3 }}
+          animate={{ opacity: isExpanded === true ? 0 : 0.06 }}
+          transition={reduceMotion ? instant : { duration: 0.3 }}
         >
           <svg width="100%" height="100%" className="absolute inset-0">
             <defs>
@@ -295,8 +301,8 @@ export function LocationMap({
           {/* Top section */}
           <div className="flex items-start justify-between">
             <motion.div
-              animate={{ opacity: isExpanded ? 0 : 1 }}
-              transition={{ duration: 0.3 }}
+              animate={{ opacity: isExpanded === true ? 0 : 1 }}
+              transition={reduceMotion ? instant : { duration: 0.3 }}
             >
               <motion.svg
                 width="18"
@@ -308,11 +314,12 @@ export function LocationMap({
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 animate={{
-                  filter: isHovered
-                    ? `drop-shadow(0 0 8px rgba(${ACCENT_RGB}, 0.6))`
-                    : `drop-shadow(0 0 4px rgba(${ACCENT_RGB}, 0.3))`,
+                  filter:
+                    isHovered === true
+                      ? `drop-shadow(0 0 8px rgba(${ACCENT_RGB}, 0.6))`
+                      : `drop-shadow(0 0 4px rgba(${ACCENT_RGB}, 0.3))`,
                 }}
-                transition={{ duration: 0.3 }}
+                transition={reduceMotion ? instant : { duration: 0.3 }}
               >
                 <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21" />
                 <line x1="9" x2="9" y1="3" y2="18" />
@@ -324,10 +331,10 @@ export function LocationMap({
             <motion.div
               className="flex items-center gap-1.5 rounded-full px-2 py-1 backdrop-blur-sm"
               animate={{
-                scale: isHovered ? 1.05 : 1,
-                backgroundColor: isHovered ? parchment(0.12) : parchment(0.08),
+                scale: isHovered === true ? 1.05 : 1,
+                backgroundColor: isHovered === true ? parchment(0.12) : parchment(0.08),
               }}
-              transition={{ duration: 0.2 }}
+              transition={reduceMotion ? instant : { duration: 0.2 }}
             >
               <div className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: ACCENT }} />
               <span
@@ -344,21 +351,23 @@ export function LocationMap({
             <motion.p
               className="font-body text-sm font-semibold tracking-tight"
               style={{ color: PARCHMENT }}
-              animate={{ x: isHovered ? 4 : 0 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+              animate={{ x: isHovered === true ? 4 : 0 }}
+              transition={
+                reduceMotion ? instant : { type: 'spring', stiffness: 400, damping: 25 }
+              }
             >
               {location}
             </motion.p>
 
             <AnimatePresence>
-              {isExpanded && (
+              {isExpanded === true && (
                 <motion.p
                   className="font-mono text-xs"
                   style={{ color: STONE }}
-                  initial={{ opacity: 0, y: -10, height: 0 }}
+                  initial={reduceMotion ? false : { opacity: 0, y: -10, height: 0 }}
                   animate={{ opacity: 1, y: 0, height: 'auto' }}
                   exit={{ opacity: 0, y: -10, height: 0 }}
-                  transition={{ duration: 0.25 }}
+                  transition={reduceMotion ? instant : { duration: 0.25 }}
                 >
                   {coordinates}
                 </motion.p>
@@ -372,9 +381,9 @@ export function LocationMap({
                 originX: 0,
                 backgroundImage: `linear-gradient(to right, rgba(${ACCENT_RGB}, 0.5), rgba(${ACCENT_RGB}, 0.3), transparent)`,
               }}
-              initial={{ scaleX: 0 }}
-              animate={{ scaleX: isHovered || isExpanded ? 1 : 0.3 }}
-              transition={{ duration: 0.4, ease: 'easeOut' }}
+              initial={reduceMotion ? false : { scaleX: 0 }}
+              animate={{ scaleX: isHovered === true || isExpanded === true ? 1 : 0.3 }}
+              transition={reduceMotion ? instant : { duration: 0.4, ease: 'easeOut' }}
             />
           </div>
         </div>
@@ -383,12 +392,12 @@ export function LocationMap({
         <motion.p
           className="absolute right-4 bottom-1.5 z-10 text-[10px] whitespace-nowrap"
           style={{ color: STONE }}
-          initial={{ opacity: 0 }}
+          initial={reduceMotion ? false : { opacity: 0 }}
           animate={{
-            opacity: isHovered && !isExpanded ? 1 : 0,
-            y: isHovered ? 0 : 4,
+            opacity: isHovered === true && isExpanded === false ? 1 : 0,
+            y: isHovered === true ? 0 : 4,
           }}
-          transition={{ duration: 0.2 }}
+          transition={reduceMotion ? instant : { duration: 0.2 }}
         >
           {expandHint}
         </motion.p>

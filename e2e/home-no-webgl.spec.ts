@@ -32,16 +32,13 @@ test.describe('home page without WebGL', () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => {
       const orig = HTMLCanvasElement.prototype.getContext
-      HTMLCanvasElement.prototype.getContext = function (
-        this: HTMLCanvasElement,
-        type: string,
-        ...rest: unknown[]
-      ) {
-        if (typeof type === 'string' && type.includes('webgl')) return null
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (orig as any).call(this, type, ...rest)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any
+      HTMLCanvasElement.prototype.getContext = new Proxy(orig, {
+        apply(target, thisArg, args: Parameters<typeof orig>) {
+          const [type] = args
+          if (typeof type === 'string' && type.includes('webgl') === true) return null
+          return Reflect.apply(target, thisArg, args)
+        },
+      })
     })
   })
 
@@ -103,7 +100,7 @@ test.describe('home page without WebGL', () => {
     test.skip(viewport == null, 'needs a fixed viewport to assert against')
 
     await page.goto('/')
-    await page.waitForLoadState('networkidle', { timeout: 10_000 }).catch(() => {})
+    await page.waitForLoadState('networkidle', { timeout: 10_000 })
 
     const widthBefore = await page.evaluate(
       () => document.scrollingElement?.scrollWidth ?? 0,
