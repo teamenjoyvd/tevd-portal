@@ -35,7 +35,10 @@ projects, then ask the user before pushing.
   `git rev-parse --abbrev-ref @{u}` -> fatal and a bare `git push` cannot hit main. Re-check after
   every branch cut — the tracking default is the trap, not the push.
 - No `git push` unless the user asks for a push in THIS conversation, quoted beside the command.
-  NOT GRANTED for `dev/2608-DEV-700` — the 2026-08-06 grant was scoped to `dev/2608-DEV-698`.
+  GRANTED 2026-08-06 for `dev/2608-DEV-700`, verbatim: "push and open draft PR". Scope: push this
+  branch and open the PR AS A DRAFT. Does NOT cover marking it ready for review or merging — ask
+  again for both. (The earlier 2026-08-06 grant was scoped to `dev/2608-DEV-698` and did not
+  carry over.)
 - Never weaken a check to make it pass.
 - Fold the `docs/CLAIMS.md` row removal + `docs/STATE.md` updates into the merging PR — NEVER a
   standalone cleanup PR.
