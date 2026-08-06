@@ -4,7 +4,7 @@ and render the home page's Location tile with a self-contained DOM/SVG component
 failure can reach the dashboard error boundary.
 
 ## Now
-Code complete, verified locally, draft PR open. Net −362/+93 across 19 files plus two new files.
+Code complete, DRAFT PR #699 open, **all CI checks green and the Vercel preview READY**. Net −362/+93 across 19 files plus two new files.
 Mapbox is gone: the CDN loader, the `NEXT_PUBLIC_MAPBOX_TOKEN` env var, the `.mapboxgl-ctrl-*` CSS
 suppression, the orphaned `AboutMapTile*` pair, and the `ssr:false` `LocationTileLazy` wrapper.
 `components/ui/expand-map.tsx` (adapted from 21st.dev `jatin-yadav05/expand-map`) draws the card in
@@ -126,12 +126,23 @@ against production — it is recorded under Facts.
   copied in from the main repo for the dev server to boot (`supabaseUrl is required` otherwise), and
   were deleted again at handover. `.env.local` points at PROD; `.env.development.local` supplies the
   DEV Supabase and wins under Next's precedence.
+- CI ON PR #699, all green: Lint, Type Check, Test, Build, Security Audit, Replay migrations,
+  Vercel (deployment completed). `390px smoke vs preview` ran the mobile-390 project against the
+  REAL preview and the new spec passed there — `home-no-webgl.spec.ts` lines 48 / 75 / 101 all ✓,
+  13 passed in 1.6m. `Authenticated E2E (Clerk)` GENUINELY RAN this time (`Running 21 tests using
+  2 workers` -> `20 passed (2.2m)`), so this was NOT the vacuous 6-second green tracked as #679 —
+  still worth re-confirming on the next run rather than trusting the tick.
+- Running the spec against the preview from a dev machine FAILS with "landed off the app origin" —
+  that is the guard working, not a defect. Vercel deployment protection redirects to vercel.com
+  without `VERCEL_AUTOMATION_BYPASS_SECRET`, which only CI has. Verify preview behaviour by reading
+  the `390px smoke vs preview` job log, not by running it locally.
 - E2E coverage lives in `e2e/home-no-webgl.spec.ts`. It is collected by the `mobile-390` and
   `desktop` projects (both use `testIgnore`) and excluded from `authenticated` (which uses
   `testMatch`) — no config change was needed.
 
 ## Open items
-- NOT YET DONE: Vercel preview READY + CI green. The PR is a DRAFT.
+- The PR is a DRAFT, so CodeRabbit skipped its review ("Review skipped: draft pull request"). Bot
+  review only starts when the PR is marked ready — which needs the user's go-ahead.
 - NOTED (not done): `app/(dashboard)/page.tsx:138,216` — `LocationTile` mounts twice at every
   viewport because the desktop branch is CSS-hidden rather than conditionally rendered. Cheap now
   that the tile is pure DOM, but still a duplicated subtree on every load.
