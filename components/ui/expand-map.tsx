@@ -23,6 +23,17 @@
  *
  * Expanded is the default state; a click or Enter/Space collapses it.
  *
+ * REDUCED MOTION: this tile deliberately does NOT honour
+ * `prefers-reduced-motion` (product decision, 2026-08-06, #700). It used to,
+ * via `transition={reduceMotion ? instant : …}` on every animated prop — but
+ * `instant` is `{ duration: 0 }`, which keeps the state change and removes only
+ * the smoothing. The 4px hover nudge on the location name therefore teleported
+ * rather than easing, and the whole card read as a hard on/off. If this is ever
+ * reinstated, suppress the movement itself (x: 0, no scale/size change), never
+ * merely zero the duration. The repo-wide guard in app/globals.css is scoped to
+ * .skeleton-shimmer / .bento-tile / .interactive-lift, none of which this
+ * component carries, so it does not re-disable these transitions.
+ *
  * Strings are props, not translations — the component stays i18n-agnostic like
  * the rest of components/ui. Callers pass translated text.
  */
@@ -34,7 +45,6 @@ import {
   AnimatePresence,
   motion,
   useMotionValue,
-  useReducedMotion,
   useSpring,
   useTransform,
 } from 'framer-motion'
@@ -94,9 +104,6 @@ export function LocationMap({
   // The <pattern> id must be unique: the home page mounts this tile twice
   // (desktop + mobile branches of app/(dashboard)/page.tsx are both in the DOM).
   const gridId = useId()
-  const prefersReducedMotion = useReducedMotion()
-  const reduceMotion = prefersReducedMotion === true
-  const instant = { duration: 0 }
 
   const mouseX = useMotionValue(0)
   const mouseY = useMotionValue(0)
@@ -108,7 +115,6 @@ export function LocationMap({
   const springRotateY = useSpring(rotateY, { stiffness: 300, damping: 30 })
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (prefersReducedMotion === true) return
     if (!containerRef.current) return
     const rect = containerRef.current.getBoundingClientRect()
     const centerX = rect.left + rect.width / 2
@@ -152,15 +158,14 @@ export function LocationMap({
       {/* The size is a plain inline value with a CSS transition, NOT a framer
           animation. Routed through framer it never reached the DOM: `animate`
           is not scraped into the first render, and every MotionValue variant
-          was silently defeated by the device's reduced-motion setting (framer
-          logs "Animations may not appear as expected"). A CSS transition is
-          also identical on the server and the client, and `motion-reduce`
-          honours the same preference without a second code path. */}
+          was defeated by the device's reduced-motion setting. A CSS transition
+          is also identical on the server and the client.
+          No `motion-reduce:` variant here — see the reduced-motion note in the
+          file header for why this tile animates unconditionally. */}
       <motion.div
         className={cn(
           'relative overflow-hidden rounded-2xl',
           'transition-[width,height] duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]',
-          'motion-reduce:transition-none',
         )}
         style={{
           width: isExpanded === true ? '100%' : `${COLLAPSED_WIDTH_PCT}%`,
@@ -186,10 +191,10 @@ export function LocationMap({
           {isExpanded === true && (
             <motion.div
               className="pointer-events-none absolute inset-0"
-              initial={reduceMotion ? false : { opacity: 0 }}
+              initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={reduceMotion ? instant : { duration: 0.4, delay: 0.1 }}
+              transition={{ duration: 0.4, delay: 0.1 }}
             >
               <div className="absolute inset-0" style={{ backgroundColor: MOSS }} />
 
@@ -198,32 +203,32 @@ export function LocationMap({
                 <motion.line
                   x1="0%" y1="35%" x2="100%" y2="35%"
                   stroke={PARCHMENT} strokeOpacity={0.25} strokeWidth="4"
-                  initial={reduceMotion ? false : { pathLength: 0 }}
+                  initial={{ pathLength: 0 }}
                   animate={{ pathLength: 1 }}
-                  transition={reduceMotion ? instant : { duration: 0.8, delay: 0.2 }}
+                  transition={{ duration: 0.8, delay: 0.2 }}
                 />
                 <motion.line
                   x1="0%" y1="65%" x2="100%" y2="65%"
                   stroke={PARCHMENT} strokeOpacity={0.25} strokeWidth="4"
-                  initial={reduceMotion ? false : { pathLength: 0 }}
+                  initial={{ pathLength: 0 }}
                   animate={{ pathLength: 1 }}
-                  transition={reduceMotion ? instant : { duration: 0.8, delay: 0.3 }}
+                  transition={{ duration: 0.8, delay: 0.3 }}
                 />
 
                 {/* Vertical main roads */}
                 <motion.line
                   x1="30%" y1="0%" x2="30%" y2="100%"
                   stroke={PARCHMENT} strokeOpacity={0.2} strokeWidth="3"
-                  initial={reduceMotion ? false : { pathLength: 0 }}
+                  initial={{ pathLength: 0 }}
                   animate={{ pathLength: 1 }}
-                  transition={reduceMotion ? instant : { duration: 0.6, delay: 0.4 }}
+                  transition={{ duration: 0.6, delay: 0.4 }}
                 />
                 <motion.line
                   x1="70%" y1="0%" x2="70%" y2="100%"
                   stroke={PARCHMENT} strokeOpacity={0.2} strokeWidth="3"
-                  initial={reduceMotion ? false : { pathLength: 0 }}
+                  initial={{ pathLength: 0 }}
                   animate={{ pathLength: 1 }}
-                  transition={reduceMotion ? instant : { duration: 0.6, delay: 0.5 }}
+                  transition={{ duration: 0.6, delay: 0.5 }}
                 />
 
                 {/* Secondary streets */}
@@ -232,9 +237,9 @@ export function LocationMap({
                     key={`h-${y}`}
                     x1="0%" y1={`${y}%`} x2="100%" y2={`${y}%`}
                     stroke={PARCHMENT} strokeOpacity={0.1} strokeWidth="1.5"
-                    initial={reduceMotion ? false : { pathLength: 0 }}
+                    initial={{ pathLength: 0 }}
                     animate={{ pathLength: 1 }}
-                    transition={reduceMotion ? instant : { duration: 0.5, delay: 0.6 + i * 0.1 }}
+                    transition={{ duration: 0.5, delay: 0.6 + i * 0.1 }}
                   />
                 ))}
                 {V_STREETS.map((x, i) => (
@@ -242,9 +247,9 @@ export function LocationMap({
                     key={`v-${x}`}
                     x1={`${x}%`} y1="0%" x2={`${x}%`} y2="100%"
                     stroke={PARCHMENT} strokeOpacity={0.1} strokeWidth="1.5"
-                    initial={reduceMotion ? false : { pathLength: 0 }}
+                    initial={{ pathLength: 0 }}
                     animate={{ pathLength: 1 }}
-                    transition={reduceMotion ? instant : { duration: 0.5, delay: 0.7 + i * 0.1 }}
+                    transition={{ duration: 0.5, delay: 0.7 + i * 0.1 }}
                   />
                 ))}
               </svg>
@@ -262,22 +267,18 @@ export function LocationMap({
                     backgroundColor: stone(b.alpha),
                     borderColor: stone(b.alpha * 0.65),
                   }}
-                  initial={reduceMotion ? false : { opacity: 0, scale: 0.8 }}
+                  initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  transition={reduceMotion ? instant : { duration: 0.4, delay: b.delay }}
+                  transition={{ duration: 0.4, delay: b.delay }}
                 />
               ))}
 
               {/* Pin */}
               <motion.div
                 className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
-                initial={reduceMotion ? false : { scale: 0, y: -20 }}
+                initial={{ scale: 0, y: -20 }}
                 animate={{ scale: 1, y: 0 }}
-                transition={
-                  reduceMotion
-                    ? instant
-                    : { type: 'spring', stiffness: 400, damping: 20, delay: 0.3 }
-                }
+                transition={{ type: 'spring', stiffness: 400, damping: 20, delay: 0.3 }}
               >
                 <svg
                   width="32"
@@ -308,7 +309,7 @@ export function LocationMap({
         <motion.div
           className="absolute inset-0"
           animate={{ opacity: isExpanded === true ? 0 : 0.06 }}
-          transition={reduceMotion ? instant : { duration: 0.3 }}
+          transition={{ duration: 0.3 }}
         >
           <svg width="100%" height="100%" className="absolute inset-0">
             <defs>
@@ -326,7 +327,7 @@ export function LocationMap({
           <div className="flex items-start justify-between">
             <motion.div
               animate={{ opacity: isExpanded === true ? 0 : 1 }}
-              transition={reduceMotion ? instant : { duration: 0.3 }}
+              transition={{ duration: 0.3 }}
             >
               <motion.svg
                 width="18"
@@ -343,7 +344,7 @@ export function LocationMap({
                       ? `drop-shadow(0 0 8px rgba(${ACCENT_RGB}, 0.6))`
                       : `drop-shadow(0 0 4px rgba(${ACCENT_RGB}, 0.3))`,
                 }}
-                transition={reduceMotion ? instant : { duration: 0.3 }}
+                transition={{ duration: 0.3 }}
               >
                 <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21" />
                 <line x1="9" x2="9" y1="3" y2="18" />
@@ -358,9 +359,7 @@ export function LocationMap({
               className="font-body text-sm font-semibold tracking-tight"
               style={{ color: PARCHMENT }}
               animate={{ x: isHovered === true ? 4 : 0 }}
-              transition={
-                reduceMotion ? instant : { type: 'spring', stiffness: 400, damping: 25 }
-              }
+              transition={{ type: 'spring', stiffness: 400, damping: 25 }}
             >
               {location}
             </motion.p>
@@ -373,21 +372,19 @@ export function LocationMap({
                 <motion.p
                   className="font-mono text-xs"
                   style={{ color: STONE }}
-                  initial={reduceMotion ? false : { opacity: 0, y: -10, height: 0 }}
+                  initial={{ opacity: 0, y: -10, height: 0 }}
                   animate={{ opacity: 1, y: 0, height: 'auto' }}
                   exit={{ opacity: 0, y: -10, height: 0 }}
-                  transition={reduceMotion ? instant : { duration: 0.25 }}
+                  transition={{ duration: 0.25 }}
                 >
                   {coordinates}
                 </motion.p>
               )}
             </AnimatePresence>
 
-            {/* Animated underline. initial={false} unconditionally: a
-                reduceMotion-dependent `initial` cannot survive SSR, because
-                useReducedMotion() is false on the server and true in a browser
-                that asks for reduced motion, so the two render different
-                transforms. It animates on state changes either way. */}
+            {/* Animated underline. initial={false}: the underline renders on
+                mount, so an entrance animation here is a hydration mismatch.
+                It animates on state changes either way. */}
             <motion.div
               className="h-px"
               style={{
@@ -396,7 +393,7 @@ export function LocationMap({
               }}
               initial={false}
               animate={{ scaleX: isHovered === true || isExpanded === true ? 1 : 0.3 }}
-              transition={reduceMotion ? instant : { duration: 0.4, ease: 'easeOut' }}
+              transition={{ duration: 0.4, ease: 'easeOut' }}
             />
           </div>
         </div>

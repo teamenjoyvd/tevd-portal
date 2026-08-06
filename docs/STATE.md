@@ -19,8 +19,10 @@ Edits applied on `dev/2608-DEV-700` (cut from `origin/main` at `dacca8b`, upstre
   all three states (expanded on load -> collapsed -> expanded again), driving off `aria-expanded`.
 
 ## Next
-1. ASK the user before any push or PR — no push grant exists for this branch.
-2. Decide with the user how much the reduced-motion setting matters (see `## Open items`).
+1. CI on PR #701 has never executed — every job died in "Set up job" or timed out queued during the
+   2026-08-06 GitHub Actions major outage (`cancelled`, `steps=0`). Re-run once Actions recovers.
+   `390px smoke vs preview`, `Replay migrations` and `Security Audit` DID run and passed.
+2. PR is a DRAFT. Ask the user before marking it ready for review or merging.
 
 ## Handover — start the follow-up session with this
 ```
@@ -110,6 +112,15 @@ projects, then ask the user before pushing.
   not fit, so the size spring was rebuilt in PERCENTAGES: the card springs between 68%/64% and
   100% of its tile. The user picked this over literal upstream pixels (which would have grown the
   desktop bento row and everything sharing it) and over a scale-only cross-fade.
+- DECISION (user, 2026-08-06, #700): `components/ui/expand-map.tsx` deliberately does NOT honour
+  `prefers-reduced-motion`. Trade-off accepted knowingly, on a small decorative tile, after the
+  alternatives (honour it properly / split by motion type / user turns the OS setting off) were put
+  to the user. NOT a precedent for the rest of the repo.
+- BUG this uncovered, worth remembering repo-wide: the old pattern
+  `transition={reduceMotion ? instant : …}` with `instant = { duration: 0 }` is WRONG. It keeps the
+  state change and removes only the smoothing, so a 4px hover nudge teleports instead of easing —
+  which is what the user reported as "the text jumps on mouse over". Reduced motion must suppress
+  the MOVEMENT (x: 0, no size/scale change), never merely zero the duration.
 - DECISION (2026-08-06, #700): both ends of the size animation are percentages on purpose.
   `node_modules/motion-dom/dist/es/animation/keyframes/DOMKeyframesResolver.mjs:68-87` returns early
   when the two keyframes share a value type, but sends a px <-> % pair down the measurement path
@@ -166,8 +177,18 @@ projects, then ask the user before pushing.
   an Enter/Space handler. The e2e spec locates the tile by that role+name — deliberately NOT
   `getByText('Sofia, Bulgaria')`, which also matches the AboutTile paragraph and cost one debugging
   cycle.
-- `prefers-reduced-motion` gates the mouse-tilt only (via `useReducedMotion`); the entrance
-  animations still run.
+- `useReducedMotion` is no longer imported by `expand-map.tsx` at all (#700). The repo-wide guard in
+  `app/globals.css:100` is scoped to `.skeleton-shimmer`, `.bento-tile` and `.interactive-lift` —
+  NOT a universal `*` selector — and the Location tile carries none of those classes, so removing
+  the component-level gate was sufficient and `docs/design/DESIGN-SYSTEM.md`'s reduced-motion rule
+  did not need changing.
+- MOTION PROOF under emulated reduced motion (throwaway probe, `page.emulateMedia({ reducedMotion:
+  'reduce' })`, deleted after): size `100 -> 95.3 -> 87.1 -> 80.3 -> 75 -> 71 -> 67 -> 64.9`
+  (overshoot) `-> 67.8 -> 68`; hover nudge transform `0 -> 0.019 -> 0.72 -> 1.66 -> 2.52 -> 3.16 ->
+  4.11 -> 4.32` (spring overshoot) `-> 3.98`, i.e. 20+ distinct values where a teleport shows two.
+  NOTE for future probes: `test.use({ reducedMotion })` did NOT reach the page — use
+  `page.emulateMedia()`. And a synthetic `mouseenter` does not trigger React's hover (React derives
+  enter/leave from mouseover/mouseout) — drive it with a real `locator.hover()`.
 - BUILD BASELINE for #700, captured before any edit on `dev/2608-DEV-700`: `npm run check-types`
   -> clean. Note `npm install` was required first — the branch before it predated
   `framer-motion@^12.43.0`, so `node_modules` had no copy of it.
@@ -205,14 +226,12 @@ projects, then ask the user before pushing.
   `testMatch`) — no config change was needed.
 
 ## Open items
-- OPEN, needs a user decision (#700): **this machine has `prefers-reduced-motion: reduce` set.**
-  Confirmed twice — `matchMedia('(prefers-reduced-motion: reduce)').matches` is `true` in the user's
-  Chrome, and framer logs "You have Reduced Motion enabled on your device". That is very likely the
-  real reason the tile "had no animation" in the original report: every transition in this component
-  is gated on it, so the toggle was an instant state flip regardless of what was coded. The new size
-  transition is gated the same way (`motion-reduce:transition-none`) and was proven to animate only
-  with `reducedMotion: 'no-preference'`. Options: leave it (correct and accessible; the user sees no
-  motion until they change the OS/browser setting), or exempt the size change from the gate.
+- RESOLVED (#700, user decision 2026-08-06): the reduced-motion gate is GONE from
+  `components/ui/expand-map.tsx`. This machine has `prefers-reduced-motion: reduce` set — confirmed
+  twice (`matchMedia(...).matches === true`, plus framer logging "You have Reduced Motion enabled on
+  your device") — and that, not the code, was the real reason the tile "had no animation": all 20+
+  transitions were gated on it. Asked the user to choose between honouring it properly, splitting by
+  motion type, or animating regardless; they chose **animate regardless**. See `## Decisions`.
 - PR was marked ready for review before the GCR session started (CodeRabbit's 4-comment review at
   11:04 required it, since draft PRs get skipped). One review thread deliberately left unresolved —
   see `## Now`.
