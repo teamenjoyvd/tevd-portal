@@ -11,7 +11,7 @@
 |----|----------|------|--------|
 | ADR-001 | ltree for LOS hierarchy over recursive CTEs | 2026-03 | Active |
 | ADR-002 | Service role for all server DB access (no JWT client) | 2026-03 | Active |
-| ADR-003 | Mapbox as CDN-only integration (no npm) | 2026-03 | Active |
+| ADR-003 | Mapbox as CDN-only integration (no npm) | 2026-03 | Superseded 2026-08 |
 | ADR-004 | Dual-approval payment model (no payment processor) | 2026-03 | Active |
 | ADR-005 | Clerk as identity provider with manual Supabase metadata sync | 2026-03 | Active |
 | ADR-006 | proxy.ts as the sole middleware file (never middleware.ts) | 2026-03 | Active |
@@ -98,7 +98,23 @@ The Clerk JWT contains a `user_role` claim that Supabase RLS policies can read. 
 ## ADR-003 — Mapbox as CDN-Only Integration
 
 **Date:** 2026-03
-**Status:** Active
+**Status:** Superseded 2026-08 — Mapbox removed entirely.
+
+### Superseded by
+Mapbox GL JS constructs its renderer synchronously, and `new mapboxgl.Map()`
+throws `Failed to initialize WebGL` where no GPU context is available (privacy
+browsers with fingerprinting protection, GPU blocklists, low-power mobile
+contexts). In `LocationTile` that call sat inside a `useEffect`, so the throw
+unwound to `app/(dashboard)/error.tsx` and one decorative tile blanked the whole
+home page in production.
+
+The "degrades gracefully" mitigation below was never true: nothing caught the
+constructor. The tile was decorative anyway (non-interactive, fixed zoom), so
+the integration was dropped rather than guarded — `components/ui/expand-map.tsx`
+draws the card in SVG. No CDN script, no token, no renderer to fail. The
+`NEXT_PUBLIC_MAPBOX_TOKEN` env var is retired.
+
+The record below is kept as written.
 
 ### Context
 The application needs interactive maps on `/about` and `/profile`. Mapbox GL JS is the chosen library. It can be installed via npm or loaded via CDN script tag.
@@ -554,12 +570,12 @@ Existing hand-rolled components (`Drawer.tsx`, `UserDropdown`, `UserPopup`, `Not
 
 **Risks:**
 - shadcn components inject CSS variables into `globals.css` on install if not carefully reviewed — must be checked against `brand-tokens.css` after each `add`
-- Radix portals render outside the React tree, which can cause z-index conflicts with the Mapbox map canvas on pages that have both
+- Radix portals render outside the React tree, which can cause z-index conflicts with heavily layered tiles on pages that have both
 - The Tailwind v4 / shadcn CSS variable system has a known friction point: shadcn expects `--background`, `--foreground`, etc., which may conflict with existing `--bg-global`, `--text-primary` tokens
 
 **Mitigations:**
 - After every `npx shadcn@latest add`, review the diff in `globals.css` before committing — revert any injected `@layer base` blocks that conflict with `brand-tokens.css`
-- Z-index conflict with Mapbox: use `style={{ zIndex: 50 }}` on the portal container if a shadcn overlay appears behind the map canvas
+- Z-index conflict: use `style={{ zIndex: 50 }}` on the portal container if a shadcn overlay appears behind a stacked tile layer
 - CSS variable naming conflict: shadcn components in `components/ui/` can be edited post-install to reference project tokens (`var(--bg-card)` instead of `var(--card)`) — this is expected and permitted
 
 ---

@@ -11,7 +11,7 @@ Run Lighthouse from an incognito window on the production URL to avoid extension
 
 | Page | Notes |
 |---|---|
-| `/about` | Mapbox GL JS deferred via `AboutMapTileDynamic` (`next/dynamic`, `ssr: false`). Chunk loads after hydration. |
+| `/` | Location tile renders `components/ui/expand-map.tsx` (SVG + framer-motion), server-rendered. Replaced the Mapbox CDN script 2026-08 — these numbers predate that and need a re-measure. |
 | `/guides` | Server-prefetched via `lib/server/guides.ts`. TanStack `initialDataUpdatedAt` set at render time; avoids immediate refetch. |
 | `/trips` | `initialData` from RSC. Profile + payments fetched client-side after Clerk resolves. |
 

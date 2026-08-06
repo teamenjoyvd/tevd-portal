@@ -20,7 +20,7 @@ Production: <https://www.teamenjoyvd.com> (Vercel).
 
 ```bash
 npm ci
-cp .env.example .env.local               # Clerk/Mapbox/etc. values (ask a maintainer)
+cp .env.example .env.local               # Clerk/Resend/etc. values (ask a maintainer)
 cp .env.example .env.development.local   # Supabase values only — point at the DEV project
 npm run dev                              # http://localhost:3000
 npm run check:env                        # confirms vars + which Supabase project dev targets

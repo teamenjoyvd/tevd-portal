@@ -127,7 +127,7 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
       FontSizeTile.tsx
       GuidesTile.tsx
       LinksGuidesTile.tsx
-      LocationTileLazy.tsx
+      LocationTile.tsx             # 'use client', renders ui/expand-map
       ProfileTile.tsx
       SocialsTile.tsx
       ThemeTile.tsx
@@ -213,7 +213,6 @@ Operations payments tab: Log Payment Drawer with `<optgroup>` entity select; mem
     /socials/route.ts
     /webhooks/clerk/route.ts
 /components
-  /about/AboutMapTile.tsx
   /bento/BentoCard.tsx
   /bento/BentoGrid.tsx
   /bento/tiles/LocationTile.tsx
@@ -611,7 +610,6 @@ Period selector order: AGENDA → DAY → WEEK → MONTH
 | `NEXT_PUBLIC_SUPABASE_URL` | ✅ |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅ |
 | `SUPABASE_SERVICE_ROLE_KEY` | ✅ server-only |
-| `NEXT_PUBLIC_MAPBOX_TOKEN` | ✅ `pk.` prefix |
 | `ICAL_TOKEN_SECRET` | ✅ |
 | `NEXT_PUBLIC_APP_URL` | ⚠️ **Conflicting values found in source docs as of 2026-06-20** — `https://www.teamenjoyvd.com` in one prior copy of this reference, `https://tevd-portal.vercel.app` in another. Not resolved here; check the actual Vercel project env vars before relying on either value. |
 | `RESEND_API_KEY` | ✅ |

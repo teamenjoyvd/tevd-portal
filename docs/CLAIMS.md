@@ -6,5 +6,5 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
-| #696 | `dev/2608-DEV-696` | `lib/rate-limit.ts` · `lib/rate-limit.test.ts` — **migration: no** | 2026-08-05 |
+| #698 | `dev/2608-DEV-698` | `components/ui/expand-map.tsx` · `app/(dashboard)/components/tiles/LocationTile.tsx` · `app/(dashboard)/about/components/AboutMapTile*.tsx` (deleted) · `app/globals.css` · `e2e/home-no-webgl.spec.ts` · `NEXT_PUBLIC_MAPBOX_TOKEN` sweep across `.env.example`, `ci.yml`, docs — **migration: no** | 2026-08-06 |
 
