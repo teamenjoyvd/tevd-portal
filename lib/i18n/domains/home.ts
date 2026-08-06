@@ -21,6 +21,10 @@ export const home = {
   'home.about.aboutLink':    { en: 'About us →',           bg: 'За нас →'                },
   // ProfileTile
   'home.profile.there':      { en: 'there',                bg: 'приятел'                 },
+  // LocationTile
+  'home.loc.city':           { en: 'Sofia, Bulgaria',      bg: 'София, България'         },
+  'home.loc.live':           { en: 'Live',                 bg: 'На живо'                 },
+  'home.loc.expand':         { en: 'Click to expand',      bg: 'Натисни за детайли'      },
   // SocialsTile
   'home.socials.comingSoon': { en: 'Social feed coming soon.', bg: 'Социалните публикации идват скоро.' },
   'home.socials.viewPost':   { en: 'View post →',          bg: 'Виж публикацията →'      },

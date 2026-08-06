@@ -24,7 +24,7 @@ Local dev runs against the **hosted Supabase dev project** `iymwxdewcpvpjgzewtzk
 **One-time setup**
 
 1. Supabase CLI (`scoop install supabase` or `npm i -g supabase`), logged in (`supabase login`) with access to the `tevd-portal-dev` project.
-2. Create `.env.development.local` in the repo root (gitignored; loaded by `next dev` with **higher priority than `.env.local`**, so Clerk/Mapbox values stay inherited):
+2. Create `.env.development.local` in the repo root (gitignored; loaded by `next dev` with **higher priority than `.env.local`**, so Clerk values stay inherited):
 
    ```bash
    NEXT_PUBLIC_SUPABASE_URL=https://iymwxdewcpvpjgzewtzk.supabase.co

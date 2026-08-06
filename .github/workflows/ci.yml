@@ -65,7 +65,6 @@ jobs:
       NEXT_PUBLIC_SUPABASE_URL: "https://placeholder.supabase.co"
       NEXT_PUBLIC_SUPABASE_ANON_KEY: "placeholder"
       NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: "pk_test_placeholder"
-      NEXT_PUBLIC_MAPBOX_TOKEN: "pk.placeholder"
       NEXT_PUBLIC_APP_URL: "https://placeholder.tevd.app"
       SUPABASE_SERVICE_ROLE_KEY: "placeholder"
       CLERK_SECRET_KEY: "placeholder"
@@ -160,7 +159,6 @@ jobs:
         env:
           CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
-          NEXT_PUBLIC_MAPBOX_TOKEN: "pk.placeholder"
           NEXT_PUBLIC_APP_URL: "http://localhost:3000"
           ICAL_TOKEN_SECRET: "0000000000000000000000000000000000000000000000000000000000000000"
       - uses: actions/upload-artifact@v4

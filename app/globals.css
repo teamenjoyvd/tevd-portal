@@ -132,10 +132,6 @@ body {
   animation: none;
 }
 
-/* ── Mapbox UI suppression ── */
-.mapboxgl-ctrl-logo { display: none !important; }
-.mapboxgl-ctrl-attrib { display: none !important; }
-
 /* ── Page transitions — View Transitions API — SEQ283 ── */
 /* Root: scale-fade — old page scales out, new page scales in */
 @keyframes vt-scale-out {

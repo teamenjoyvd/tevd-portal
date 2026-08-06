@@ -1,284 +1,173 @@
 ## Goal
-BUILD issue #696 (2608-DEV-696, branch `dev/2608-DEV-696`): remove the transitional
-`PGRST202`/`42883` fallback from `lib/rate-limit.ts`, so every RPC error fails closed and the racy
-pre-#625 count path is gone for good.
+BUILD issue #698 (2608-DEV-698, branch `dev/2608-DEV-698`): remove Mapbox GL from the app entirely
+and render the home page's Location tile with a self-contained DOM/SVG component, so no WebGL
+failure can reach the dashboard error boundary.
 
 ## Now
-Code + tests done and green locally. `lib/rate-limit.ts` loses `legacyEmailCap`,
-`legacyRegistrationThrottle`, `MISSING_FUNCTION_CODES`, `isMissingFunction` and the `Outcome`
-union; `consumeSlot` now returns a plain `Promise<boolean>` and denies on ANY error. Net −144/+28.
-The 4 fallback tests are replaced by 2 asserting the INVERSE (PGRST202 / 42883 now deny) — the old
-suite asserted `true` for the same PGRST202 input, so the new assertions genuinely fail against the
-old implementation. `buildClient`'s `from` seam is kept but now THROWS, so any reintroduced table
-read fails the suite loudly instead of passing quietly once the seam is gone.
+Code complete, verified locally, draft PR open. Net −362/+93 across 19 files plus two new files.
+Mapbox is gone: the CDN loader, the `NEXT_PUBLIC_MAPBOX_TOKEN` env var, the `.mapboxgl-ctrl-*` CSS
+suppression, the orphaned `AboutMapTile*` pair, and the `ssr:false` `LocationTileLazy` wrapper.
+`components/ui/expand-map.tsx` (adapted from 21st.dev `jatin-yadav05/expand-map`) draws the card in
+SVG and cannot fail. `framer-motion@^12.43.0` is a new dependency.
 
 ## Next
-1. `/code-review` the diff, then ASK the user before any push.
-2. Push `dev/2608-DEV-696`, open the PR, CI green + Vercel preview READY.
-3. Post-merge: prune the `docs/CLAIMS.md` #696 row, close #696. NO migration in this ticket, so
-   there is no `migrate-prod` tail.
+1. `/code-review` the diff in a fresh session (see `## Handover` below).
+2. Address findings, then mark the PR ready for review — ASK the user first.
+3. Vercel preview READY + CI green before Done.
+4. Post-merge: prune the `docs/CLAIMS.md` #698 row, close #698, and ask the user to delete
+   `NEXT_PUBLIC_MAPBOX_TOKEN` from the Vercel project (all scopes) — out-of-band, not a code change.
 
-## Done — #694 (merged as #695, `7234846`)
-The `price_checker` role was dropped from DEV and recorded in
-`supabase/migrations/20260805000000_2608_chore_694_drop_price_checker_role.sql`. Sibling-repo
-cleanup applied 2026-08-05: `priceChecker/.env`, `scratch/test-db-conn.ts` and root `test-ssl.ts`
-scrubbed, and `.gitignore` extended to cover the credential-bearing one-off scripts (they were
-untracked but NOT ignored). STILL OUTSTANDING, user-owned: rotate the `postgres` superuser password
-of Supabase project `isthoadgyqdmjmapvpzj`, which `test-ssl.ts` had hard-coded in plaintext.
-
-## Done — CARRIED FROM #625 (merged as #693, `13af882`, 2026-08-05T00:10:39Z)
-1. PROD TAIL — DONE 2026-08-05. `migrate-prod` run `30962459502` (2026-08-05T00:10:42Z, from #693's
-   merge) succeeded. Verified on prod: `supabase_migrations.schema_migrations` head is
-   `20260804000100` (#625's second migration) and `public.consume_rate_limit` exists. Still worth a
-   manual smoke-check of `https://www.teamenjoyvd.com`.
-2. The fallback deletion it was gating is this ticket, #696.
-
-## Next (original build order, all done)
-1. Step 1: write `supabase/migrations/20260804000000_2608_feat_625_atomic_rate_limits.sql`
-   (table + RPC + grants + nightly cron sweep + `-- ROLLBACK:` header). Check: file reads back
-   clean; real check is step 5's `supabase db push`.
-2. Step 2: rewrite `lib/rate-limit.ts` — `checkEmailCap` -> `consumeEmailCap`,
-   `checkRegistrationThrottle` -> `consumeRegistrationSlot`, both calling the RPC, both
-   fail-closed, plus the transitional `PGRST202`/`42883` fallback to the old count path.
-   Check: `npm run check-types`.
-3. Step 3: REFERENCE SWEEP + call sites — `lib/actions/guest-registration.ts:12,112,192,278,287`
-   and `lib/notifications/guest-event-changes.ts:12,99,138`. Check: `npm run check-types`.
-4. Step 4: tests — new `lib/rate-limit.test.ts`; switch `guest-registration.test.ts` and
-   `guest-event-changes.test.ts` to module-mock the new export names. Check:
-   `npx vitest run lib/rate-limit lib/actions/guest-registration.test.ts lib/notifications/guest-event-changes.test.ts`.
-5. Step 5: `supabase db push` to DEV, regenerate `types/supabase.ts`, run the 40-parallel
-   concurrency proof (exactly 30 true), `npm run lint` + `npm run build`.
-6. `/code-review low` on the diff (auth/RLS/migration -> escalate per BUILD.md), then ASK the
-   user before any push.
+## Handover — start the follow-up session with this
+```
+/code-review PR #699 (branch dev/2608-DEV-698, issue #698): Mapbox GL removed from the app and the
+home page Location tile replaced with components/ui/expand-map.tsx, a DOM/SVG card adapted from
+21st.dev jatin-yadav05/expand-map. Read docs/STATE.md first — it carries the verified facts, the
+retheme rationale, and the two deliberate deviations from upstream. Focus on: (1) the brand-token
+retheme in expand-map.tsx, since the upstream component targets shadcn base tokens this project
+does not define and a missed substitution renders invisible rather than erroring; (2) whether
+e2e/home-no-webgl.spec.ts actually guards both failure shapes documented in #698; (3) the
+NEXT_PUBLIC_MAPBOX_TOKEN reference sweep for anything left live. Do not re-run the red-proof
+against production — it is recorded under Facts.
+```
 
 ## Constraints
-- Never push to `main`; `dev/2608-DEV-694` only. `git checkout -b ... origin/main` SET origin/main
-  as the upstream; it was unset immediately (`git branch --unset-upstream`), so
-  `git rev-parse --abbrev-ref @{u}` -> fatal again and a bare `git push` cannot hit main.
-  Re-check this after every branch cut — the tracking default is the trap, not the push.
+- Never push to `main`; `dev/2608-DEV-698` only. `git checkout -b dev/2608-DEV-698 origin/main` SET
+  origin/main as the upstream; it was unset immediately (`git branch --unset-upstream`), so
+  `git rev-parse --abbrev-ref @{u}` -> fatal and a bare `git push` cannot hit main. Re-check after
+  every branch cut — the tracking default is the trap, not the push.
 - No `git push` unless the user asks for a push in THIS conversation, quoted beside the command.
-  The 2026-08-04 grant ("draft PR, commit everything necessary") was scoped to the #625 work and
-  is SPENT — it does NOT carry to #694.
-  GRANTED 2026-08-05, verbatim: "push and draft PR". Scope: push `dev/2608-DEV-694` and open the
-  PR AS A DRAFT. Does NOT cover marking it ready for review or merging — ask again for both.
-- User decision 2026-08-05, verbatim: "Keep the full writeup, mark it RESOLVED" — do not condense
-  the `price_checker` forensic detail below; it stays as a record.
-- User decision 2026-08-05: drop the role on DEV immediately rather than waiting for the migration
-  to land, because the credential was live and already publicly named.
+  GRANTED 2026-08-06, verbatim: "Open a draft PR since change like any other must go through the
+  standard procedure." Scope: push `dev/2608-DEV-698` and open the PR AS A DRAFT. Does NOT cover
+  marking it ready for review or merging — ask again for both.
 - Never weaken a check to make it pass.
-- User instruction 2026-08-05, verbatim: "drop the topic about the password rotation". Do not
-  raise it again in any form.
 - Fold the `docs/CLAIMS.md` row removal + `docs/STATE.md` updates into the merging PR — NEVER a
   standalone cleanup PR.
 - Change only what the DoD requires; log other findings as `NOTED (not done): <thing> <file:line>`.
 - Ask before editing `docs/guardrails/PROJECT.md`.
-- Issue-stated: preserve existing scoping exactly — email+template for the 3/h resend cap, email
-  alone for the 10/day cap, `share_link_id` else `event_id` for the 30/h throttle — and preserve
-  fail-closed-on-error.
-- Issue-stated `NOTED (not done)`: the two `consumeEmailCap` calls in `resendGuestLink` keep their
-  current order (daily cap second, so a daily-blocked recipient burns an hourly slot). Do NOT
-  reorder — the tests deliberately assert that order.
-- No RLS policy is written on `rate_limit_events` at all (deny-by-default, service-role only), so
-  the Pattern A / `auth.jwt()` trap is avoided by construction.
-
-## Decisions
-- DECISION (PLAN 2026-08-04): ledger + advisory lock, NOT a fixed-window counter table. A counter
-  keyed by `(key, bucket)` turns the sliding window into a fixed one and lets a burst straddling a
-  bucket boundary pass `2 x max`; the current guards are sliding and the issue requires preserving
-  them.
-- DECISION (PLAN 2026-08-04): the counting source moves off `notification_delivery_log` /
-  `guest_registrations` onto the new ledger — that move is what makes check-and-act one statement.
-  Two intended behavior changes follow (see Facts).
-- DECISION (PLAN 2026-08-04): rename `check*` -> `consume*` is mandatory, not cosmetic. Calling a
-  consuming operation `check` invites a double-call that burns two slots.
-- DECISION (PLAN 2026-08-04): ship the migration and the code in ONE PR with a `PGRST202` fallback,
-  rather than a migration-only PR followed by a code-only PR. Vercel deploys on merge while
-  `migrate-prod` waits for manual approval, so prod would briefly run new code against a schema
-  with no `consume_rate_limit` — and these guards fail CLOSED, which would deny every guest
-  registration and guest email on a public flow. The fallback closes that window; the two-PR
-  alternative costs a second full CI/preview cycle.
-- DECISION (BUILD 2026-08-04): `guest-registration.test.ts` and `guest-event-changes.test.ts`
-  module-mock `@/lib/rate-limit` (prior art: `guest-event-changes.test.ts:17-19` already does),
-  rather than driving the caps through the Supabase client fixture. The RPC no longer issues a
-  count query, so the fixtures' `notification_delivery_log` branches and their count-call-index
-  bookkeeping (`buildCapacityClient` assumes the throttle count runs BEFORE the capacity count)
-  would otherwise all be wrong. Key/window/max assertions live in the new `lib/rate-limit.test.ts`.
-
-## Facts
-- BUILD BASELINE, captured 2026-08-04 before any edit:
-  `npx vitest run lib/actions/guest-registration.test.ts lib/notifications/guest-event-changes.test.ts`
-  -> `Test Files 2 passed (2)`, `Tests 33 passed (33)`. Green, despite the old STATE.md's
-  "guest-registration.test.ts is flaky" note.
-- Branch `dev/2608-DEV-625` @ `b39773e`, clean, NO upstream configured.
-- DEV Supabase project ref `iymwxdewcpvpjgzewtzk`. Migrations: `supabase db push`. Types:
-  `supabase gen types typescript --project-id iymwxdewcpvpjgzewtzk > types/supabase.ts` — run the
-  redirect through Git Bash, NOT PowerShell `Out-File -Encoding utf8` (CRLF+BOM rewrites ~3100 lines).
-- Migration filename counter: `supabase/migrations/` has no `20260804*` file (last is
-  `20260801000000`), so today starts at `000000`.
-- Two INTENDED behavior changes, both stated in the issue: (1) the registration throttle now counts
-  SUBMISSIONS, not distinct registrants — `guest_registrations` is upserted on `(event_id, email)`,
-  so a re-submitting guest never incremented the old count, which is exactly why a scripted burst
-  slid under it; (2) a slot is consumed at check time, not send time, so a later
-  `sendTransactionalEmail` failure (`lib/actions/guest-registration.ts:221`) spends the slot anyway.
-- Key symbols: guards -> `lib/rate-limit.ts:7,44`; call sites ->
-  `lib/actions/guest-registration.ts:112,192,278,287` and
-  `lib/notifications/guest-event-changes.ts:99,138`; limits ->
-  `guest-registration.ts:44-47,246-248`, `guest-event-changes.ts:20-21`.
-- Structural prior art: `supabase/migrations/20260714000000_2607_feat_claim_los_submissions.sql`
-  (SECURITY DEFINER + `auth.role()` guard + REVOKE/GRANT), `20260705000900_notification_cron.sql`
-  (pg_cron unschedule-then-schedule), `20260801000000_2607_feat_677_pay_guests.sql`
-  (`-- ROLLBACK:` header + table style).
-- If `npm run build` dies with `Fatal process out of memory: Zone`, first response is `rm -rf .next`
-  — the OS, not the V8 heap, is the limit. Do NOT raise `--max-old-space-size`.
 - NEVER paste an absolute Windows path into a tracked file. Tailwind v4 scans every source file
   (including .md) for utility candidates; a backslash + hex digits parses as a CSS unicode escape
   and kills `npm run build` with `Invalid code point <n>` pointed at `app/globals.css:1:1`.
-- E2E coverage for #625: none, by design — server-side abuse guard, no UI surface, nothing renders
-  differently at 390px. Verification is vitest + the DEV concurrency proof.
 
-## Done
-- CLAIM #625 (2026-08-04) — RESULT: complete. Issue #625 carries `## Design Checklist` 4/4 and
-  `## Branch`; `docs/CLAIMS.md` row committed at `b39773e` (which also pruned the merged #690 row).
-- PLAN #625 (2026-08-04) — RESULT: READY. Verdict, DoD, affected files, gotchas and the two
-  behavior-change notes are in the issue body.
-- BUILD #625 steps 1-5 (2026-08-04) — RESULT: code-complete and verified.
-  `npx vitest run lib/rate-limit.test.ts lib/actions/guest-registration.test.ts lib/notifications/guest-event-changes.test.ts`
-  -> 3 files / 45 tests passed (baseline was 2 / 33; +12 in the new `lib/rate-limit.test.ts`).
-  `npm run check-types` -> clean. `npm run lint` -> 0 errors, 475 warnings (baseline 476, all
-  pre-existing); `npx eslint` on all six changed TS files -> zero output. `npm run build` -> success.
-  Migration applied to DEV via `supabase db push`; `types/supabase.ts` regenerated (+22 lines only,
-  no CRLF/BOM rewrite) carrying `rate_limit_events` and `consume_rate_limit`.
-- CONCURRENCY PROOF #625 (2026-08-04) — RESULT: PASSED, stronger than the DoD asked.
-  Driven by 40 pg_cron jobs on a '10 seconds' schedule against key `test:cronproof-1`,
-  `consume_rate_limit(key, 3600000, 30)`: 5 rounds x EXACTLY 40 callers firing in the same second
-  (`date_trunc('second', start_time)` buckets: 11:49:24, :34, :44, :54, 11:50:04), 200 runs across
-  200 distinct backends, 0 job failures — and `rate_limit_events` held EXACTLY 30 rows for the key.
-  Over-issue would have shown as >30. Object-level guards verified on DEV in the same session:
-  `rls_enabled=true`, `policy_count=0`, function `prosecdef=true`, function ACL
-  `postgres=X | service_role=X` (no PUBLIC/anon/authenticated), table ACL free of anon/authenticated,
-  and `rate-limit-events-sweep @ 15 3 * * *` scheduled. All proof jobs unscheduled and all proof
-  rows deleted afterwards (`remaining_jobs=0`, `total_rows=0`).
+## Decisions
+- DECISION (user, 2026-08-06): drop Mapbox rather than guard it. A `mapboxgl.supported()` check plus
+  try/catch would have fixed the crash in ~15 lines, but the tile is decorative (non-interactive,
+  fixed zoom 12, attribution hidden) and the machinery — WebGL renderer, CDN script, public API
+  token — is disproportionate. Removing it deletes the failure mode instead of catching it.
+- DECISION (user, 2026-08-06): the replacement is decorative. `LocationMap` renders SVG "streets" at
+  fixed percentages and six absolutely-positioned "buildings"; Sofia and San Francisco look
+  identical. Loss of real geography accepted. The alternative offered (expanded state showing a
+  Mapbox Static Images `<img>`, no WebGL) was declined.
+- DECISION (user, 2026-08-06): `framer-motion` added rather than porting the animations to CSS.
+- DECISION (2026-08-06): the component takes its strings as props (`location`, `coordinates`,
+  `liveLabel`, `expandHint`) rather than calling `t()` itself, so `components/ui/*` stays
+  i18n-agnostic like the rest of that directory. `LocationTile` supplies the translations.
+- DECISION (2026-08-06): ADR-003 marked **Superseded**, not deleted — its record stays. Its stated
+  mitigation ("map tiles are non-critical UI — their failure degrades gracefully") was never true;
+  nothing caught the constructor. That sentence is why the bug shipped.
+- DECISION (2026-08-06): two deliberate deviations from the upstream component, both documented in
+  the file header. (1) No width/height animation: upstream animates 240x140 -> 360x280 in fixed
+  pixels, which overflows the 358px content box at a 390px viewport and clips inside a fixed bento
+  grid row. It fills its container instead and expansion is a cross-fade. (2) All colours mapped to
+  brand tokens.
+
+## Facts
+- BUILD BASELINE, captured 2026-08-06 before any edit: `npm run check-types` -> clean.
+- VERIFICATION, after the fix, all on `dev/2608-DEV-698`:
+  `npm run check-types` -> clean. `npx eslint` on the changed files -> zero output.
+  `npm run lint` -> 0 errors, 463 warnings (all pre-existing). `npm test` -> 27 files / 358 tests
+  passed. `npm run build` -> success.
+  `npx playwright test --project=mobile-390 --project=desktop e2e/home-no-webgl.spec.ts` -> 6 passed.
+  `e2e/mobile-smoke.spec.ts` on both projects -> 16 passed.
+- RED PROOF, 2026-08-06 — the guard was proven to fail before the fix by pointing it at live
+  production, which still runs the old code: `BASE_URL=https://www.teamenjoyvd.com npx playwright
+  test --project=mobile-390 e2e/home-no-webgl.spec.ts` -> 3 failed. No git stashing was involved.
+- THE DIAGNOSIS THAT CHANGED MID-TASK, and the reason the spec has two tests: a COLD LOAD DOES NOT
+  CRASH. On first paint the Mapbox throw happens inside the CDN `script.onload` handler, escapes
+  uncaught, and the tile just stays blank — Playwright's page snapshot of production confirms the
+  tile container and its "Sofia, Bulgaria" pill still render. The reported error screen needs a
+  RE-MOUNT: `window.mapboxgl` already set, so the effect takes its
+  `if ((window as any).mapboxgl) initMap()` branch and throws synchronously inside the `useEffect`,
+  which React unwinds to `app/(dashboard)/error.tsx`. Reproduced by hand on
+  `https://www.teamenjoyvd.com` with `HTMLCanvasElement.prototype.getContext` patched to return null
+  for webgl, then `/` -> `/about` -> `/`. A guard that only covers the cold load passes against the
+  broken code — the first draft of the spec did exactly that.
+- LAYOUT TRAP, found and fixed during visual verification: `h-full` on the component root did NOT
+  fill the tile. `BentoCard` sets `min-height: 200`, not `height`, and a percentage height does not
+  resolve against an auto-height parent — the tile rendered ~100px tall. `LocationTile` now passes
+  `className="absolute inset-0"`, which is what the old Mapbox container did (`LocationTile.tsx:144`
+  before this change).
+- The `<pattern id>` in the grid overlay uses `useId()`. The home page mounts this tile TWICE at
+  every viewport — `app/(dashboard)/page.tsx:138` (desktop, inside a CSS-only `hidden md:block`,
+  which does not unmount) and `:216` (mobile) — so a literal id would duplicate in the DOM.
+- The 21st.dev registry endpoint (`https://21st.dev/r/jatin-yadav05/expand-map`) returns
+  `{"error":"Authentication required"}`, so `npx shadcn@latest add <that URL>` cannot fetch it. The
+  source was pasted in by the user. The component's compiled source is also readable without auth
+  from `cdn.21st.dev/jatin-yadav05/expand-map/default/bundle.*.html`, which is how its behaviour was
+  confirmed before any code was written.
+- Retheme mapping (upstream -> this repo), since the upstream targets stock shadcn base tokens and
+  grep confirms this project defines NONE of `--foreground`, `--background`, `--muted`,
+  `--muted-foreground`, `--border`: `bg-background`/`fill-background` -> `--brand-moss`;
+  `bg-muted` -> `--brand-moss`; `stroke-foreground/*` -> `--brand-parchment` + explicit
+  `strokeOpacity`; `bg-muted-foreground/*` -> `rgba(138,133,119,a)`; `text-foreground` ->
+  `--brand-parchment`; `text-muted-foreground` -> `--brand-stone`; `bg-foreground/5` and the inline
+  `hsl(var(--foreground) / 0.05)` -> `rgba(250,248,243,0.08)` (the `hsl(var(…))` form is invalid
+  here and resolves transparent); emerald `#34D399` -> `--brand-sienna`. Dark mode then works for
+  free via `[data-theme="dark"]` in `styles/brand-tokens.css:77`. This follows the existing
+  `docs/ai/GOTCHAS.md` rule "shadcn CSS vars: edit vended source in components/ui/ to use project
+  tokens, not shadcn defaults".
+- Accessibility added over upstream: the root was a bare `<div>` with `onClick`, unreachable by
+  keyboard. It is now `role="button" tabIndex={0}` with `aria-expanded`, `aria-label={location}` and
+  an Enter/Space handler. The e2e spec locates the tile by that role+name — deliberately NOT
+  `getByText('Sofia, Bulgaria')`, which also matches the AboutTile paragraph and cost one debugging
+  cycle.
+- `prefers-reduced-motion` gates the mouse-tilt only (via `useReducedMotion`); the entrance
+  animations still run.
+- Worktrees do NOT inherit gitignored env files. `.env.local` / `.env.development.local` had to be
+  copied in from the main repo for the dev server to boot (`supabaseUrl is required` otherwise), and
+  were deleted again at handover. `.env.local` points at PROD; `.env.development.local` supplies the
+  DEV Supabase and wins under Next's precedence.
+- E2E coverage lives in `e2e/home-no-webgl.spec.ts`. It is collected by the `mobile-390` and
+  `desktop` projects (both use `testIgnore`) and excluded from `authenticated` (which uses
+  `testMatch`) — no config change was needed.
 
 ## Open items
-- FLAKE, seen once on PR #693's CI, NOT caused by #625: `e2e/payments-on-behalf.spec.ts:169`
-  ("L3: a row someone else paid for me is labelled with the payer") failed a `toBeVisible()` at
-  36.3s then passed on retry #1 in 6.2s — a cold-server timing profile, same file and same shape as
-  the L8 flake logged during #688. The run was otherwise honest: `Running 21 tests using 2 workers`
-  -> `20 passed`, `1 flaky`, **0 skipped**, so this was NOT the vacuous green tracked as #679.
-  #625 touches rate limiting only; that spec asserts payment attribution labels.
-- DONE 2026-08-05 (#696) — the transitional `PGRST202`/`42883` fallback is REMOVED from
-  `lib/rate-limit.ts`. `consume_rate_limit` was confirmed live on prod first (ledger head
-  `20260804000100`, function present). Every RPC error now fails closed with no special-cased codes.
-- RESOLVED 2026-08-05 (#694) — the `price_checker` DB role. DROPPED from DEV, with all its grants
-  and its default-privileges entries, and recorded in
-  `supabase/migrations/20260805000000_2608_chore_694_drop_price_checker_role.sql`. Post-drop
-  verification: 0 rows in each of `pg_roles`, `pg_default_acl`, the `role_table_grants` view and
-  `pg_namespace.nspacl`; 41 tables intact; stock roles untouched; the block re-ran as a no-op.
-  OWNERSHIP, resolved during the #694 investigation: it belonged to the sibling PRIVATE repo
-  `teamenjoyvd/amway-price-checker` (`D:\react\teamenjoyvd\priceChecker`), whose `.env` pointed
-  `DATABASE_URL` at this project as `price_checker`. The integration was NEVER FUNCTIONAL — that
-  scraper's tables (`master_products`, `source_products`, `product_links`, `substitutions`,
-  `virtual_carts`, `virtual_cart_items`) do not exist in this schema, so the role backed a
-  connection string that could not work. That is what made it safe to drop. `DROP OWNED BY` was
-  NOT usable: it requires membership in the target role, and Supabase's `postgres` is not
-  superuser — the privileges were enumerable and confined to `public`, so explicit REVOKEs did it.
-  The original finding, kept verbatim as the record:
-- OPEN (superseded by the RESOLVED entry above) — a dormant, unversioned LOGIN credential on DEV only.
-  DEV-ONLY: the user confirmed 2026-08-04 it does NOT exist on prod. On DEV `iymwxdewcpvpjgzewtzk`
-  it is a LOGIN role WITH A PASSWORD SET (`pg_authid.rolpassword is not null`), not superuser,
-  `rolbypassrls = false`, no role memberships, owns 0 objects, no password expiry, no connection
-  limit. It is the ONLY non-Supabase-standard role on the project (the others —
-  `cli_login_postgres`, `supabase_etl_admin`, `supabase_functions_admin`,
-  `supabase_privileged_role` — are all stock).
-  IT HAS BEEN USED, EXACTLY ONCE, AND NEVER SINCE. `pg_stat_statements` holds 4 statements for its
-  `userid`, and `stats_since` dates every one of them to **2026-07-29**:
-    11:09:04.100 — `select b.oid, b.typarray from pg_catalog.pg_type a left join ... where
-                    a.typcategory = $1 group by b.oid, b.typarray order by b.oid`  (2 calls)
-    11:09:04.169 — `SELECT current_user, current_database(), current_schemas($1)`  (1 call)
-    11:09:04.231 — `SELECT table_schema,table_name FROM information_schema.tables
-                    WHERE table_name IN ($1,$2)`                                    (1 call)
-    11:13:34.884 — `SELECT datname FROM pg_database WHERE datistemplate=$1`         (1 call)
-  That is a client-library/GUI CONNECTION HANDSHAKE, not application traffic: type-catalog
-  bootstrap, identity probe, an existence check for two specific named tables, then a
-  list-databases 4.5 minutes later. Zero queries against any business table, ever. So: someone
-  pointed a tool at the DEV database as this role on 2026-07-29, it introspected, and it was never
-  used again. Literals are normalised to $1/$2 so WHICH two tables it looked for is not recoverable.
-  Grants: `arwdDxtm` on ALL 41 public tables. Old tables came from an explicit
-  `GRANT ALL ON ALL TABLES IN SCHEMA public`; NEW tables (including `rate_limit_events`) come from
-  an `ALTER DEFAULT PRIVILEGES IN SCHEMA public` rule owned by `postgres` that lists it beside
-  anon/authenticated/service_role for both TABLES and SEQUENCES — so every table this repo will
-  ever create is auto-granted to it.
-  NOT a #625 regression; #625 merely inherits the default-privileges rule, and RLS (enabled, zero
-  policies, `rolbypassrls = false`) still blocks it from `rate_limit_events`. It CAN read every
-  pre-existing table whose RLS policies admit it.
-  DECIDE: revoke it (`DROP ROLE price_checker` + drop the default-privileges entry) or, if the tool
-  is wanted, recreate it in a migration with least-privilege grants so it stops being invisible.
-  Either way it is a separate ticket, not #625.
-  DECIDED 2026-08-05: revoked and dropped. "Recreate with least-privilege grants" was rejected —
-  there was nothing in this schema to grant it. If the scraper is resumed it gets its own project.
-- CORRECTED 2026-08-05 (was stale): #677's `migrate-prod` run is NOT pending — it already ran and
-  succeeded. Verified via prod `execute_sql`: `supabase_migrations.schema_migrations` head is
-  `20260801000000` (exactly #677's migration version). Workflow run `30747682503` (triggered by
-  PR #689's merge commit, 2026-08-02T12:22:21Z) — both jobs `success`, "Apply migrations to
-  production" completed 12:31:47Z. So #677 is fully done end-to-end; issue #677 itself is CLOSED.
-  Remaining smoke-check (`https://www.teamenjoyvd.com`) was never explicitly re-confirmed post-#677
-  but the app has been live and used since. What's still true: #625's migration
-  (`20260804000000`/`20260804000100`) has NOT been applied to prod yet (not in the ledger head) —
-  its `migrate-prod` run is the one still to approve. Runs serialize in merge order
-  (`concurrency: group: migrate-prod, cancel-in-progress: false`), so any migration-carrying PR that
-  merges before #625's approval queues behind it, not ahead.
-- CARRIED FROM #677, NEVER VERIFIED: admin guest link/unlink has NO automated coverage and has
-  never been exercised against a real database. Do it by hand: `/admin/payments` -> Guest links ->
-  pick a member -> Link -> Unlink.
+- NOT YET DONE: Vercel preview READY + CI green. The PR is a DRAFT.
+- NOTED (not done): `app/(dashboard)/page.tsx:138,216` — `LocationTile` mounts twice at every
+  viewport because the desktop branch is CSS-hidden rather than conditionally rendered. Cheap now
+  that the tile is pure DOM, but still a duplicated subtree on every load.
+- NOTED (not done): no `app/global-error.tsx` exists, so a throw in the root layout has no boundary
+  at all — the same class of single-point-of-failure as this bug.
+- NOTED (not done): `docs/perf/BASELINE.md` numbers predate the removal of the ~900KB Mapbox CDN
+  script and need a re-measure. The row was updated to say so.
+- OUT OF BAND, user-owned, after merge: delete `NEXT_PUBLIC_MAPBOX_TOKEN` from the Vercel project
+  (all scopes).
+- CARRIED: the CI check `Authenticated E2E (Clerk)` has historically gone green in seconds WITHOUT
+  running the specs (tracked as #679). Never treat a green tick as proof; confirm 0 skipped.
+- CARRIED FROM #677, NEVER VERIFIED: admin guest link/unlink has no automated coverage and has never
+  been exercised against a real database. `/admin/payments` -> Guest links -> pick a member -> Link
+  -> Unlink.
 - CARRIED FROM #677: DEV fixtures still present and uncleaned — `seed_676_*` (7 profiles, ABOs
   6760001-6760004) and a `payment_guests` row named `E2E Guest Nadia`. Both still needed by the
   authenticated E2E.
 - CARRIED FROM #676, UNMEASURED: does PROD have `payments` rows? If yes, `/profile` was crashing in
   production for every such user between 2026-07-27 (`570d587`, #670) and the #676 merge. One
   read-only query answers it: `select count(*), count(distinct profile_id) from payments`.
-- NOTED (not done): `app/(dashboard)/profile/components/PaymentsSection.tsx:30`
+- CARRIED, NOTED (not done): `app/(dashboard)/profile/components/PaymentsSection.tsx:30`
   `pendingGroupsIPaidFor` filters `paid_by_profile_id !== myProfileId` directly rather than through
   `payerOf`, so a legacy pending group with a NULL `paid_by_profile_id` is not offered a withdraw
   card.
-- NOTED (not done): `app/(dashboard)/profile/components/shared.tsx:103` gates the cancelled-trip
-  info marker on `payable_items?.item_type === 'trip'`, always false for a real trip payment (its
-  `payable_items` is NULL). Same file `:131-133` renders `proof_url` as an `href` although it is a
-  private-bucket storage KEY, not a URL (`lib/payments/proof.ts:1-10`).
-- The CI check `Authenticated E2E (Clerk)` has historically gone green in seconds WITHOUT running
-  the specs (tracked as #679). Never treat a green tick as proof: confirm the run reports 0 skipped.
+- CARRIED, NOTED (not done): `app/(dashboard)/profile/components/shared.tsx:103` gates the
+  cancelled-trip info marker on `payable_items?.item_type === 'trip'`, always false for a real trip
+  payment (its `payable_items` is NULL). Same file `:131-133` renders `proof_url` as an `href`
+  although it is a private-bucket storage KEY, not a URL (`lib/payments/proof.ts:1-10`).
+- CARRIED FLAKE, not caused by this work: `e2e/payments-on-behalf.spec.ts:169` failed a
+  `toBeVisible()` at 36.3s then passed on retry — a cold-server timing profile, same shape as the L8
+  flake logged during #688.
 
-## Done (GCR)
-- GCR PR #693 (2026-08-04) — RESULT: all 3 CodeRabbit inline comments applied in ONE batch.
-  (1) MAJOR/security, `lib/rate-limit.ts:40` — the failure log wrote the whole bucket key, which
-  embeds the recipient email (CWE-532). Now logs `{ scope, key: keyDigest(key) }` — a 12-char
-  SHA-256 prefix — so repeated failures for one recipient still correlate without recording who.
-  Backed by a regression test PROVEN RED first: reverting the fix gave
-  `AssertionError: expected '["consume_rate_limit failed, denying"…' not to contain 'jane@example.com'`.
-  (2) MINOR/correctness, `lib/rate-limit.ts:66,90` — truthiness checks on `template` / `shareLinkId`,
-  a direct CLAUDE.md iron-rule violation. Now `template != null` / `shareLinkId !== null`. The SAME
-  defect class was folded in for the two legacy fallback functions, which must scope identically or
-  the fallback would count a different bucket than the RPC path.
-  (3) MAJOR/performance, migration — `idx_rate_limit_events_key_created` leads with `bucket_key` and
-  cannot serve the nightly sweep's global `created_at` predicate; since `bucket_key` is composed
-  from a public form's email field, an abuser can mint unlimited distinct keys whose rows only the
-  sweep ever collects. Added `idx_rate_limit_events_created_at` in a SEPARATE migration
-  (`20260804000100`) rather than editing `20260804000000`, which is already applied on DEV — both
-  ship in the same PR so prod applies them together. Verified on DEV: all 3 indexes present.
-  Re-verified after the fixes: 45 tests -> 46 (13 in `lib/rate-limit.test.ts`), `tsc --noEmit`
-  clean, `npx eslint` on the changed files silent.
-
-## Failed attempts
-Both are about the PROOF HARNESS only — no attempt failed against the migration or the TS code.
-- ATTEMPT 1 [L1]: ran 40 parallel `supabase db query --linked` after `cd`-ing to the script's own
-  directory -> all 41 invocations returned
-  `{"code":"LegacyProjectNotLinkedError","message":"Cannot find project ref"}`. The CLI resolves
-  the ref from `<cwd>/supabase/.temp/project-ref`. Fix: `supabase --workdir <repo> ...`.
-- ATTEMPT 2 [L1]: same 40-process shape with `--workdir` -> only 25 of 40 sessions ever returned a
-  verdict; the other 15 hung for 12+ minutes with empty output files. The Management API will not
-  serve 40 simultaneous sessions. Structural change (D7), not a third retry: drive the callers from
-  INSIDE Postgres with pg_cron background workers and read the verdict off the ledger row count.
-  That is the run recorded under Done.
-- ATTEMPT 3 [L1]: put `cron.schedule` x40, `pg_sleep(20)` and the measurement in ONE `-f` file ->
-  `job_runs = 0`. The Management API runs a file as a single transaction, so the `cron.job` inserts
-  were invisible to the pg_cron scheduler until COMMIT — which happened after the sleep. Fix: split
-  scheduling and measurement into separate calls/transactions.
+## Done
+- #696 (merged as #697, `dab0677`) — the transitional `PGRST202`/`42883` fallback removed from
+  `lib/rate-limit.ts`; every RPC error now fails closed. Its `docs/CLAIMS.md` row is pruned here.
+- #694 (merged as #695, `7234846`) — `price_checker` DB role dropped from DEV. STILL OUTSTANDING,
+  user-owned: rotate the `postgres` superuser password of Supabase project `isthoadgyqdmjmapvpzj`.
+- #625 (merged as #693, `13af882`) — atomic check-then-act guest-invite rate limits; prod migration
+  applied, ledger head `20260804000100`.

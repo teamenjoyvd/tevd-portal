@@ -125,9 +125,8 @@ settings. Applied via `@media (prefers-reduced-motion: reduce)` guard in
   and no `@custom-variant dark` remaps it. `dark:*` utility classes silently
   never fire. Use CSS custom properties with a `[data-theme="dark"] { ... }`
   override block instead (see `styles/brand-tokens.css` for the pattern), or
-  read `data-theme` at runtime for JS-driven values (see `LocationTile.tsx`'s
-  `useTheme()` / `AboutMapTile.tsx`'s `MutationObserver`, both of which already
-  do this correctly for Mapbox dark-style switching).
+  read `data-theme` at runtime for JS-driven values (`lib/hooks/useTheme.ts`
+  exposes it; `ThemeTile.tsx` is the reference consumer).
 - **Legacy bare token names** (`--forest`, `--crimson`, `--sienna`, `--stone`,
   defined in `app/globals.css`) are a deliberate back-compat layer for older
   calendar components (`FilterControls.tsx`, `MonthView.tsx`, `AgendaView.tsx`,
