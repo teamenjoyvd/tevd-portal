@@ -4,30 +4,35 @@ and render the home page's Location tile with a self-contained DOM/SVG component
 failure can reach the dashboard error boundary.
 
 ## Now
-Code complete, DRAFT PR #699 open, **all CI checks green and the Vercel preview READY**. Net −362/+93 across 19 files plus two new files.
-Mapbox is gone: the CDN loader, the `NEXT_PUBLIC_MAPBOX_TOKEN` env var, the `.mapboxgl-ctrl-*` CSS
-suppression, the orphaned `AboutMapTile*` pair, and the `ssr:false` `LocationTileLazy` wrapper.
-`components/ui/expand-map.tsx` (adapted from 21st.dev `jatin-yadav05/expand-map`) draws the card in
-SVG and cannot fail. `framer-motion@^12.43.0` is a new dependency.
+PR #699 ready for review (not draft), GCR complete, **all CI checks green and the Vercel preview
+READY**, mergeStateStatus CLEAN. Mapbox is gone: the CDN loader, the `NEXT_PUBLIC_MAPBOX_TOKEN` env
+var, the `.mapboxgl-ctrl-*` CSS suppression, the orphaned `AboutMapTile*` pair, and the `ssr:false`
+`LocationTileLazy` wrapper. `components/ui/expand-map.tsx` (adapted from 21st.dev
+`jatin-yadav05/expand-map`) draws the card in SVG and cannot fail. `framer-motion@^12.43.0` is a new
+dependency.
+
+GCR ran against CodeRabbit's 4-comment review (`0eb1076`, `2c28bdd`):
+- Applied: reduced-motion honored for every effect in `LocationMap`, not just pointer tilt.
+- Applied: explicit `=== true`/`=== false` boolean comparisons in `expand-map.tsx` JSX conditions.
+- Applied: `e2e/home-no-webgl.spec.ts` WebGL shim rewritten as a type-preserving `Proxy`, no `any`.
+- REVERTED after CI proved it wrong: CodeRabbit suggested removing the empty catch on
+  `waitForLoadState('networkidle')` in the overflow test. Doing so broke the "390px smoke vs
+  preview" job — that check passed on `f0a9d4d` (with the catch) and failed on `0eb1076` (without
+  it): `networkidle` never fires against the real Vercel preview's background network activity,
+  unlike localhost. Restored in `2c28bdd` with a comment explaining why; that review thread is
+  left UNRESOLVED with a reply stating the reason, per GCR's skipped-comment rule.
+- 3 of 4 threads resolved via GraphQL; the 4th (above) deliberately left open for human follow-up.
 
 ## Next
-1. `/code-review` the diff in a fresh session (see `## Handover` below).
-2. Address findings, then mark the PR ready for review — ASK the user first.
-3. Vercel preview READY + CI green before Done.
-4. Post-merge: prune the `docs/CLAIMS.md` #698 row, close #698, and ask the user to delete
+1. Merge when ready — CI green, preview READY, mergeStateStatus CLEAN, 3/4 threads resolved (see
+   `## Now`). ASK the user before merging.
+2. Post-merge: prune the `docs/CLAIMS.md` #698 row, close #698, and ask the user to delete
    `NEXT_PUBLIC_MAPBOX_TOKEN` from the Vercel project (all scopes) — out-of-band, not a code change.
 
 ## Handover — start the follow-up session with this
 ```
-/code-review PR #699 (branch dev/2608-DEV-698, issue #698): Mapbox GL removed from the app and the
-home page Location tile replaced with components/ui/expand-map.tsx, a DOM/SVG card adapted from
-21st.dev jatin-yadav05/expand-map. Read docs/STATE.md first — it carries the verified facts, the
-retheme rationale, and the two deliberate deviations from upstream. Focus on: (1) the brand-token
-retheme in expand-map.tsx, since the upstream component targets shadcn base tokens this project
-does not define and a missed substitution renders invisible rather than erroring; (2) whether
-e2e/home-no-webgl.spec.ts actually guards both failure shapes documented in #698; (3) the
-NEXT_PUBLIC_MAPBOX_TOKEN reference sweep for anything left live. Do not re-run the red-proof
-against production — it is recorded under Facts.
+GCR is done (see ## Now). Start the follow-up session by confirming with the user whether to merge
+PR #699 (branch dev/2608-DEV-698, issue #698) — CI green, preview READY, mergeStateStatus CLEAN.
 ```
 
 ## Constraints
@@ -141,8 +146,9 @@ against production — it is recorded under Facts.
   `testMatch`) — no config change was needed.
 
 ## Open items
-- The PR is a DRAFT, so CodeRabbit skipped its review ("Review skipped: draft pull request"). Bot
-  review only starts when the PR is marked ready — which needs the user's go-ahead.
+- PR was marked ready for review before the GCR session started (CodeRabbit's 4-comment review at
+  11:04 required it, since draft PRs get skipped). One review thread deliberately left unresolved —
+  see `## Now`.
 - NOTED (not done): `app/(dashboard)/page.tsx:138,216` — `LocationTile` mounts twice at every
   viewport because the desktop branch is CSS-hidden rather than conditionally rendered. Cheap now
   that the tile is pure DOM, but still a duplicated subtree on every load.
