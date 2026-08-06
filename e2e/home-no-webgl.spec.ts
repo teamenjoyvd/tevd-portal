@@ -100,7 +100,11 @@ test.describe('home page without WebGL', () => {
     test.skip(viewport == null, 'needs a fixed viewport to assert against')
 
     await page.goto('/')
-    await page.waitForLoadState('networkidle', { timeout: 10_000 })
+    // networkidle genuinely never fires on the Vercel preview (persistent background
+    // network activity), unlike localhost — confirmed by CI job "390px smoke vs preview"
+    // failing here on dev/2608-DEV-698 once this catch was removed. The width assertions
+    // below are the real synchronization point; this call is best-effort only.
+    await page.waitForLoadState('networkidle', { timeout: 10_000 }).catch(() => {})
 
     const widthBefore = await page.evaluate(
       () => document.scrollingElement?.scrollWidth ?? 0,
