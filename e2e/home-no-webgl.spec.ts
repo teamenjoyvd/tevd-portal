@@ -95,37 +95,74 @@ test.describe('home page without WebGL', () => {
     ).toHaveLength(0)
   })
 
-  test('expanding the tile does not overflow the viewport', async ({ page }, testInfo) => {
+  test('neither tile state overflows the viewport', async ({ page }, testInfo) => {
     const viewport = testInfo.project.use.viewport
     test.skip(viewport == null, 'needs a fixed viewport to assert against')
+
+    // The card animates its width/height over 500ms on a back-out easing. Reading
+    // scrollWidth at an arbitrary point in that window makes the assertion
+    // non-deterministic, so settle first: poll the card's box until it stops
+    // changing. Returns the widest scrollWidth seen WHILE it was moving, so the
+    // transient is covered too — the easing overshoots its target by design, and
+    // a future tweak to it must not be able to push the card past its tile
+    // unnoticed.
+    const settleAndPeak = () =>
+      page.evaluate(async () => {
+        const tileEl = [...document.querySelectorAll('[role="button"][aria-expanded]')].filter(
+          (e) => (e as HTMLElement).offsetParent !== null,
+        )[0] as HTMLElement
+        const card = tileEl.firstElementChild as HTMLElement
+        let peak = document.scrollingElement?.scrollWidth ?? 0
+        let last = -1
+        let stable = 0
+        // ~2s ceiling; the transition is 500ms.
+        for (let i = 0; i < 120 && stable < 3; i++) {
+          await new Promise((r) => requestAnimationFrame(() => r(null)))
+          peak = Math.max(peak, document.scrollingElement?.scrollWidth ?? 0)
+          const w = Math.round(card.getBoundingClientRect().width * 100)
+          stable = w === last ? stable + 1 : 0
+          last = w
+        }
+        return peak
+      })
+
+    const expectNoOverflow = async (state: string) => {
+      const peak = await settleAndPeak()
+      expect(
+        peak,
+        `horizontal overflow on / with the location tile ${state} (widest during + after the size transition): ${peak}px at ${viewport!.width}px`,
+      ).toBeLessThanOrEqual(viewport!.width)
+    }
 
     await page.goto('/')
     // networkidle genuinely never fires on the Vercel preview (persistent background
     // network activity), unlike localhost — confirmed by CI job "390px smoke vs preview"
-    // failing here on dev/2608-DEV-698 once this catch was removed. The width assertions
-    // below are the real synchronization point; this call is best-effort only.
+    // failing here on dev/2608-DEV-698 once this catch was removed. The coordinates
+    // assertions below are the real synchronization point; this call is best-effort only.
     await page.waitForLoadState('networkidle', { timeout: 10_000 }).catch(() => {})
 
-    const widthBefore = await page.evaluate(
-      () => document.scrollingElement?.scrollWidth ?? 0,
-    )
-    expect(
-      widthBefore,
-      `horizontal overflow on / before expanding: ${widthBefore}px at ${viewport!.width}px`,
-    ).toBeLessThanOrEqual(viewport!.width)
-
     const tile = page.getByRole('button', { name: CITY }).first()
+    // Scoped to the tile, not the page: both the desktop and mobile branches of
+    // app/(dashboard)/page.tsx are in the DOM and both now render the coordinates,
+    // so a page-level .first() would resolve to the display:none branch. The role
+    // locator above already picks the visible one — hidden subtrees are not in the
+    // accessibility tree.
+    const coords = tile.getByText(COORDS)
     await expect(tile).toBeVisible()
-    await tile.click()
-    // The coordinates line only renders in the expanded state.
-    await expect(page.getByText(COORDS).first()).toBeVisible()
 
-    const widthAfter = await page.evaluate(
-      () => document.scrollingElement?.scrollWidth ?? 0,
-    )
-    expect(
-      widthAfter,
-      `horizontal overflow on / after expanding: ${widthAfter}px at ${viewport!.width}px`,
-    ).toBeLessThanOrEqual(viewport!.width)
+    // The tile ships expanded, and the coordinates line renders in that state only.
+    await expect(tile).toHaveAttribute('aria-expanded', 'true')
+    await expect(coords).toBeVisible()
+    await expectNoOverflow('expanded on load')
+
+    await tile.click()
+    await expect(tile).toHaveAttribute('aria-expanded', 'false')
+    await expect(coords).toBeHidden()
+    await expectNoOverflow('collapsed')
+
+    await tile.click()
+    await expect(tile).toHaveAttribute('aria-expanded', 'true')
+    await expect(coords).toBeVisible()
+    await expectNoOverflow('expanded again')
   })
 })

@@ -10,13 +10,29 @@
  * draws its "map" in SVG, so it has no renderer to fail.
  *
  * Two deliberate deviations from upstream:
- *   1. No width/height animation. Upstream animates 240x140 -> 360x280 in fixed
- *      pixels, which overflows the 358px content box at a 390px viewport and
- *      clips inside a fixed bento grid row. This fills its container instead and
- *      expansion is a cross-fade.
+ *   1. The size animation is a CSS transition in percentages, not a framer
+ *      animation in pixels. Upstream springs 240x140 -> 360x280 in fixed pixels;
+ *      360px overflows the 358px content box at a 390px viewport and 280px is
+ *      taller than the bento row. The card transitions between
+ *      COLLAPSED_WIDTH_PCT/COLLAPSED_HEIGHT_PCT and 100% of its tile instead, on
+ *      a back-out easing that overshoots slightly so it still reads as a spring.
+ *      The tile's footprint never changes and nothing overflows.
  *   2. Colours come from the brand tokens in styles/brand-tokens.css. Upstream
  *      targets stock shadcn base tokens (--foreground, --muted, --background),
  *      none of which this project defines.
+ *
+ * Expanded is the default state; a click or Enter/Space collapses it.
+ *
+ * REDUCED MOTION: this tile deliberately does NOT honour
+ * `prefers-reduced-motion` (product decision, 2026-08-06, #700). It used to,
+ * via `transition={reduceMotion ? instant : …}` on every animated prop — but
+ * `instant` is `{ duration: 0 }`, which keeps the state change and removes only
+ * the smoothing. The 4px hover nudge on the location name therefore teleported
+ * rather than easing, and the whole card read as a hard on/off. If this is ever
+ * reinstated, suppress the movement itself (x: 0, no scale/size change), never
+ * merely zero the duration. The repo-wide guard in app/globals.css is scoped to
+ * .skeleton-shimmer / .bento-tile / .interactive-lift, none of which this
+ * component carries, so it does not re-disable these transitions.
  *
  * Strings are props, not translations — the component stays i18n-agnostic like
  * the rest of components/ui. Callers pass translated text.
@@ -29,7 +45,6 @@ import {
   AnimatePresence,
   motion,
   useMotionValue,
-  useReducedMotion,
   useSpring,
   useTransform,
 } from 'framer-motion'
@@ -43,7 +58,6 @@ const MOSS = 'var(--brand-moss)'
 const ACCENT = 'var(--brand-sienna)'
 const ACCENT_RGB = '224, 122, 95'
 
-const parchment = (alpha: number) => `rgba(250, 248, 243, ${alpha})`
 const stone = (alpha: number) => `rgba(138, 133, 119, ${alpha})`
 
 // Skyline blocks: [top, left|right, width, height, fill alpha, entrance delay].
@@ -67,32 +81,29 @@ const BUILDINGS: {
 const H_STREETS = [20, 50, 80]
 const V_STREETS = [15, 45, 55, 85]
 
+// Collapsed size, as a percentage share of the tile. Percentages, not pixels, so
+// no state can overflow the tile and the card stays responsive.
+const COLLAPSED_WIDTH_PCT = 68
+const COLLAPSED_HEIGHT_PCT = 64
+
 interface LocationMapProps {
   location?: string
   coordinates?: string
-  /** Text of the status pill. */
-  liveLabel?: string
-  /** Hover affordance shown while collapsed. */
-  expandHint?: string
   className?: string
 }
 
 export function LocationMap({
   location = 'Sofia, Bulgaria',
   coordinates = '42.6977° N, 23.3219° E',
-  liveLabel = 'Live',
-  expandHint = 'Click to expand',
   className,
 }: LocationMapProps) {
   const [isHovered, setIsHovered] = useState(false)
-  const [isExpanded, setIsExpanded] = useState(false)
+  // Expanded on load; a click or Enter/Space swaps it.
+  const [isExpanded, setIsExpanded] = useState(true)
   const containerRef = useRef<HTMLDivElement>(null)
   // The <pattern> id must be unique: the home page mounts this tile twice
   // (desktop + mobile branches of app/(dashboard)/page.tsx are both in the DOM).
   const gridId = useId()
-  const prefersReducedMotion = useReducedMotion()
-  const reduceMotion = prefersReducedMotion === true
-  const instant = { duration: 0 }
 
   const mouseX = useMotionValue(0)
   const mouseY = useMotionValue(0)
@@ -104,7 +115,6 @@ export function LocationMap({
   const springRotateY = useSpring(rotateY, { stiffness: 300, damping: 30 })
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (prefersReducedMotion === true) return
     if (!containerRef.current) return
     const rect = containerRef.current.getBoundingClientRect()
     const centerX = rect.left + rect.width / 2
@@ -134,7 +144,10 @@ export function LocationMap({
       tabIndex={0}
       aria-expanded={isExpanded}
       aria-label={location}
-      className={cn('relative h-full w-full cursor-pointer select-none', className)}
+      className={cn(
+        'relative flex h-full w-full cursor-pointer items-center justify-center select-none',
+        className,
+      )}
       style={{ perspective: 1000 }}
       onMouseMove={handleMouseMove}
       onMouseEnter={() => setIsHovered(true)}
@@ -142,9 +155,21 @@ export function LocationMap({
       onClick={toggle}
       onKeyDown={handleKeyDown}
     >
+      {/* The size is a plain inline value with a CSS transition, NOT a framer
+          animation. Routed through framer it never reached the DOM: `animate`
+          is not scraped into the first render, and every MotionValue variant
+          was defeated by the device's reduced-motion setting. A CSS transition
+          is also identical on the server and the client.
+          No `motion-reduce:` variant here — see the reduced-motion note in the
+          file header for why this tile animates unconditionally. */}
       <motion.div
-        className="relative h-full w-full overflow-hidden rounded-2xl"
+        className={cn(
+          'relative overflow-hidden rounded-2xl',
+          'transition-[width,height] duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]',
+        )}
         style={{
+          width: isExpanded === true ? '100%' : `${COLLAPSED_WIDTH_PCT}%`,
+          height: isExpanded === true ? '100%' : `${COLLAPSED_HEIGHT_PCT}%`,
           rotateX: springRotateX,
           rotateY: springRotateY,
           transformStyle: 'preserve-3d',
@@ -158,14 +183,18 @@ export function LocationMap({
           }}
         />
 
-        <AnimatePresence>
+        {/* initial={false}: expanded is the mount state, so without this the
+            entrance animation runs during hydration and React reports a
+            mismatch it refuses to patch (server opacity:0 vs client opacity:1,
+            strokeDasharray "0 1" vs "1 1"). Toggling still animates. */}
+        <AnimatePresence initial={false}>
           {isExpanded === true && (
             <motion.div
               className="pointer-events-none absolute inset-0"
-              initial={reduceMotion ? false : { opacity: 0 }}
+              initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={reduceMotion ? instant : { duration: 0.4, delay: 0.1 }}
+              transition={{ duration: 0.4, delay: 0.1 }}
             >
               <div className="absolute inset-0" style={{ backgroundColor: MOSS }} />
 
@@ -174,32 +203,32 @@ export function LocationMap({
                 <motion.line
                   x1="0%" y1="35%" x2="100%" y2="35%"
                   stroke={PARCHMENT} strokeOpacity={0.25} strokeWidth="4"
-                  initial={reduceMotion ? false : { pathLength: 0 }}
+                  initial={{ pathLength: 0 }}
                   animate={{ pathLength: 1 }}
-                  transition={reduceMotion ? instant : { duration: 0.8, delay: 0.2 }}
+                  transition={{ duration: 0.8, delay: 0.2 }}
                 />
                 <motion.line
                   x1="0%" y1="65%" x2="100%" y2="65%"
                   stroke={PARCHMENT} strokeOpacity={0.25} strokeWidth="4"
-                  initial={reduceMotion ? false : { pathLength: 0 }}
+                  initial={{ pathLength: 0 }}
                   animate={{ pathLength: 1 }}
-                  transition={reduceMotion ? instant : { duration: 0.8, delay: 0.3 }}
+                  transition={{ duration: 0.8, delay: 0.3 }}
                 />
 
                 {/* Vertical main roads */}
                 <motion.line
                   x1="30%" y1="0%" x2="30%" y2="100%"
                   stroke={PARCHMENT} strokeOpacity={0.2} strokeWidth="3"
-                  initial={reduceMotion ? false : { pathLength: 0 }}
+                  initial={{ pathLength: 0 }}
                   animate={{ pathLength: 1 }}
-                  transition={reduceMotion ? instant : { duration: 0.6, delay: 0.4 }}
+                  transition={{ duration: 0.6, delay: 0.4 }}
                 />
                 <motion.line
                   x1="70%" y1="0%" x2="70%" y2="100%"
                   stroke={PARCHMENT} strokeOpacity={0.2} strokeWidth="3"
-                  initial={reduceMotion ? false : { pathLength: 0 }}
+                  initial={{ pathLength: 0 }}
                   animate={{ pathLength: 1 }}
-                  transition={reduceMotion ? instant : { duration: 0.6, delay: 0.5 }}
+                  transition={{ duration: 0.6, delay: 0.5 }}
                 />
 
                 {/* Secondary streets */}
@@ -208,9 +237,9 @@ export function LocationMap({
                     key={`h-${y}`}
                     x1="0%" y1={`${y}%`} x2="100%" y2={`${y}%`}
                     stroke={PARCHMENT} strokeOpacity={0.1} strokeWidth="1.5"
-                    initial={reduceMotion ? false : { pathLength: 0 }}
+                    initial={{ pathLength: 0 }}
                     animate={{ pathLength: 1 }}
-                    transition={reduceMotion ? instant : { duration: 0.5, delay: 0.6 + i * 0.1 }}
+                    transition={{ duration: 0.5, delay: 0.6 + i * 0.1 }}
                   />
                 ))}
                 {V_STREETS.map((x, i) => (
@@ -218,9 +247,9 @@ export function LocationMap({
                     key={`v-${x}`}
                     x1={`${x}%`} y1="0%" x2={`${x}%`} y2="100%"
                     stroke={PARCHMENT} strokeOpacity={0.1} strokeWidth="1.5"
-                    initial={reduceMotion ? false : { pathLength: 0 }}
+                    initial={{ pathLength: 0 }}
                     animate={{ pathLength: 1 }}
-                    transition={reduceMotion ? instant : { duration: 0.5, delay: 0.7 + i * 0.1 }}
+                    transition={{ duration: 0.5, delay: 0.7 + i * 0.1 }}
                   />
                 ))}
               </svg>
@@ -238,22 +267,18 @@ export function LocationMap({
                     backgroundColor: stone(b.alpha),
                     borderColor: stone(b.alpha * 0.65),
                   }}
-                  initial={reduceMotion ? false : { opacity: 0, scale: 0.8 }}
+                  initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  transition={reduceMotion ? instant : { duration: 0.4, delay: b.delay }}
+                  transition={{ duration: 0.4, delay: b.delay }}
                 />
               ))}
 
               {/* Pin */}
               <motion.div
                 className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
-                initial={reduceMotion ? false : { scale: 0, y: -20 }}
+                initial={{ scale: 0, y: -20 }}
                 animate={{ scale: 1, y: 0 }}
-                transition={
-                  reduceMotion
-                    ? instant
-                    : { type: 'spring', stiffness: 400, damping: 20, delay: 0.3 }
-                }
+                transition={{ type: 'spring', stiffness: 400, damping: 20, delay: 0.3 }}
               >
                 <svg
                   width="32"
@@ -284,7 +309,7 @@ export function LocationMap({
         <motion.div
           className="absolute inset-0"
           animate={{ opacity: isExpanded === true ? 0 : 0.06 }}
-          transition={reduceMotion ? instant : { duration: 0.3 }}
+          transition={{ duration: 0.3 }}
         >
           <svg width="100%" height="100%" className="absolute inset-0">
             <defs>
@@ -302,7 +327,7 @@ export function LocationMap({
           <div className="flex items-start justify-between">
             <motion.div
               animate={{ opacity: isExpanded === true ? 0 : 1 }}
-              transition={reduceMotion ? instant : { duration: 0.3 }}
+              transition={{ duration: 0.3 }}
             >
               <motion.svg
                 width="18"
@@ -319,30 +344,12 @@ export function LocationMap({
                       ? `drop-shadow(0 0 8px rgba(${ACCENT_RGB}, 0.6))`
                       : `drop-shadow(0 0 4px rgba(${ACCENT_RGB}, 0.3))`,
                 }}
-                transition={reduceMotion ? instant : { duration: 0.3 }}
+                transition={{ duration: 0.3 }}
               >
                 <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21" />
                 <line x1="9" x2="9" y1="3" y2="18" />
                 <line x1="15" x2="15" y1="6" y2="21" />
               </motion.svg>
-            </motion.div>
-
-            {/* Status indicator */}
-            <motion.div
-              className="flex items-center gap-1.5 rounded-full px-2 py-1 backdrop-blur-sm"
-              animate={{
-                scale: isHovered === true ? 1.05 : 1,
-                backgroundColor: isHovered === true ? parchment(0.12) : parchment(0.08),
-              }}
-              transition={reduceMotion ? instant : { duration: 0.2 }}
-            >
-              <div className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: ACCENT }} />
-              <span
-                className="text-[10px] font-medium tracking-wide uppercase"
-                style={{ color: STONE }}
-              >
-                {liveLabel}
-              </span>
             </motion.div>
           </div>
 
@@ -352,55 +359,44 @@ export function LocationMap({
               className="font-body text-sm font-semibold tracking-tight"
               style={{ color: PARCHMENT }}
               animate={{ x: isHovered === true ? 4 : 0 }}
-              transition={
-                reduceMotion ? instant : { type: 'spring', stiffness: 400, damping: 25 }
-              }
+              transition={{ type: 'spring', stiffness: 400, damping: 25 }}
             >
               {location}
             </motion.p>
 
-            <AnimatePresence>
+            {/* initial={false} for the same reason as the map layer above: the
+                coordinates render on mount now, so an entrance animation here
+                is a hydration mismatch. */}
+            <AnimatePresence initial={false}>
               {isExpanded === true && (
                 <motion.p
                   className="font-mono text-xs"
                   style={{ color: STONE }}
-                  initial={reduceMotion ? false : { opacity: 0, y: -10, height: 0 }}
+                  initial={{ opacity: 0, y: -10, height: 0 }}
                   animate={{ opacity: 1, y: 0, height: 'auto' }}
                   exit={{ opacity: 0, y: -10, height: 0 }}
-                  transition={reduceMotion ? instant : { duration: 0.25 }}
+                  transition={{ duration: 0.25 }}
                 >
                   {coordinates}
                 </motion.p>
               )}
             </AnimatePresence>
 
-            {/* Animated underline */}
+            {/* Animated underline. initial={false}: the underline renders on
+                mount, so an entrance animation here is a hydration mismatch.
+                It animates on state changes either way. */}
             <motion.div
               className="h-px"
               style={{
                 originX: 0,
                 backgroundImage: `linear-gradient(to right, rgba(${ACCENT_RGB}, 0.5), rgba(${ACCENT_RGB}, 0.3), transparent)`,
               }}
-              initial={reduceMotion ? false : { scaleX: 0 }}
+              initial={false}
               animate={{ scaleX: isHovered === true || isExpanded === true ? 1 : 0.3 }}
-              transition={reduceMotion ? instant : { duration: 0.4, ease: 'easeOut' }}
+              transition={{ duration: 0.4, ease: 'easeOut' }}
             />
           </div>
         </div>
-
-        {/* Click hint — kept inside the card; the tile clips overflow */}
-        <motion.p
-          className="absolute right-4 bottom-1.5 z-10 text-[10px] whitespace-nowrap"
-          style={{ color: STONE }}
-          initial={reduceMotion ? false : { opacity: 0 }}
-          animate={{
-            opacity: isHovered === true && isExpanded === false ? 1 : 0,
-            y: isHovered === true ? 0 : 4,
-          }}
-          transition={reduceMotion ? instant : { duration: 0.2 }}
-        >
-          {expandHint}
-        </motion.p>
       </motion.div>
     </motion.div>
   )
