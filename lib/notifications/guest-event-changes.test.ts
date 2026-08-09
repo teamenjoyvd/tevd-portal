@@ -74,7 +74,7 @@ describe('diffEventFields', () => {
 
 // -- notifyGuestsOfEventUpdate --------------------------------------------------
 
-function buildClient(opts: { title?: string; regs?: { email: string; name: string; lang: string }[] }) {
+function buildClient(opts: { title?: string; regs?: { email: string | null; name: string; lang: string }[] }) {
   const event = { title: opts.title ?? 'Trip Kickoff' }
   const regs = opts.regs ?? [{ email: 'jane@example.com', name: 'Jane Guest', lang: 'en' }]
   return {
@@ -87,7 +87,11 @@ function buildClient(opts: { title?: string; regs?: { email: string; name: strin
           select: () => ({
             eq: () => ({
               is: () => ({
-                gt: () => Promise.resolve({ data: regs, error: null }),
+                // Mirrors the real chain since 2608-DEV-705: the expiry filter
+                // is `.or('expires_at.is.null,expires_at.gt.<now>')`, not
+                // `.gt(...)`, so member rows (expires_at NULL) are not treated
+                // as expired.
+                or: () => Promise.resolve({ data: regs, error: null }),
               }),
             }),
           }),
@@ -120,6 +124,27 @@ describe('notifyGuestsOfEventUpdate', () => {
 
     expect(sentEmails.map(e => e.to).sort()).toEqual(['a@example.com', 'b@example.com'])
     expect(sentEmails.every(e => e.template === 'guest_event_updated')).toBe(true)
+  })
+
+  it('skips member registrations, whose email is NULL (2608-DEV-705)', async () => {
+    // Member rows now come back from the widened expires_at filter. Their
+    // address lives on profiles, not here — delivering to them is
+    // 2608-DEV-707's job. This helper must drop them, never mail `null`.
+    mockCreateServiceClient.mockReturnValue(buildClient({
+      regs: [
+        { email: 'guest@example.com', name: 'Guest', lang: 'en' },
+        { email: null, name: 'Member', lang: 'bg' },
+      ],
+    }))
+    const { notifyGuestsOfEventUpdate } = await import('@/lib/notifications/guest-event-changes')
+
+    notifyGuestsOfEventUpdate('event-1', [{ field: 'start_time', oldValue: 'old', newValue: 'new' }])
+    // notifyGuestsOfEventUpdate is fire-and-forget: it returns before its `then`
+    // chain awaits sendTransactionalEmail. Poll rather than sleep a fixed 10ms,
+    // which can observe sentEmails before the mail mock resolves.
+    await vi.waitFor(() => expect(sentEmails).toHaveLength(1))
+
+    expect(sentEmails.map(e => e.to)).toEqual(['guest@example.com'])
   })
 
   it('skips a recipient over the daily email cap', async () => {

@@ -12,7 +12,9 @@ export interface EventShareFilters {
 export interface EventShareGuest {
   id: string
   name: string
-  email: string
+  // NULL for member registrations (guest_registrations.profile_id IS NOT NULL,
+  // 2608-DEV-705). `name` is always present, so the filter below is safe.
+  email: string | null
   status: string
   attended_at: string | null
   cancelled_at: string | null

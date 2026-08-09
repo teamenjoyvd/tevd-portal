@@ -71,20 +71,30 @@ async function resolveActiveRecipients(eventId: string): Promise<{ eventTitle: s
 
   if (!event) return null
 
+  // Member registrations (2608-DEV-705) carry expires_at NULL, so a bare
+  // `.gt('expires_at', …)` drops them silently — they are never "active".
+  const now = new Date().toISOString()
   const { data: regs } = await supabase
     .from('guest_registrations')
     .select('email, name, lang')
     .eq('event_id', eventId)
     .is('cancelled_at', null)
-    .gt('expires_at', new Date().toISOString())
+    .or(`expires_at.is.null,expires_at.gt.${now}`)
 
   return {
     eventTitle: event.title,
-    recipients: (regs ?? []).map(r => ({
-      email: r.email,
-      name:  r.name,
-      lang:  r.lang === 'bg' ? 'bg' : 'en',
-    })),
+    // Member rows have email NULL — their address lives on profiles, and
+    // delivering to them is 2608-DEV-707's job, not this helper's. Drop them
+    // here rather than handing `null` to sendTransactionalEmail.
+    recipients: (regs ?? []).flatMap(r =>
+      r.email === null
+        ? []
+        : [{
+            email: r.email,
+            name:  r.name,
+            lang:  (r.lang === 'bg' ? 'bg' : 'en') as Lang,
+          }],
+    ),
   }
 }
 

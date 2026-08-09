@@ -48,12 +48,24 @@ export async function GET(req: Request): Promise<Response> {
   const eventIds = (data ?? []).map(ev => ev.id)
   const countByEventId = new Map<string, number>()
   if (eventIds.length > 0) {
+    // Member registrations (2608-DEV-705) carry expires_at NULL, so the
+    // is.null branch is what keeps them in scope as ACTIVE registrations.
+    //
+    // They are then excluded again by the email filter, and that is deliberate:
+    // this count feeds `admin.calendar.confirm.guestWarning` — "{{count}}
+    // registered guest(s) will be notified." — and the notification paths drop
+    // null-email rows because member delivery is deferred to 2608-DEV-707.
+    // Counting a recipient who will not be mailed would make the dialog lie.
+    // When #707 makes members notifiable, delete the .not() line and the count
+    // becomes correct again on its own.
+    const nowIso = new Date().toISOString()
     const { data: regs, error: regsError } = await supabase
       .from('guest_registrations')
       .select('event_id')
       .in('event_id', eventIds)
       .is('cancelled_at', null)
-      .gt('expires_at', new Date().toISOString())
+      .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
+      .not('email', 'is', null)
     if (regsError) console.error('Failed to fetch guest_registration_count, defaulting to 0:', regsError)
     for (const r of regs ?? []) {
       countByEventId.set(r.event_id, (countByEventId.get(r.event_id) ?? 0) + 1)

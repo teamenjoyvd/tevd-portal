@@ -137,7 +137,18 @@ export async function registerGuest(
   // never reuse the old token (DoD: re-register clears cancelled_at + refreshes
   // token), so force the upsert branch below.
   const reactivating = existing != null && existing.cancelled_at != null
-  const reusable = existing != null && !reactivating && new Date(existing.expires_at).getTime() > now
+  // Member rows (2608-DEV-705) carry token/expires_at NULL. They can never
+  // surface here — `existing` is looked up by `.eq('email', …)` and a member row
+  // has email NULL — but the explicit null checks are what let the compiler see
+  // it, and they carry the reuse decision: a row with no token or no expiry is
+  // not a link worth resending. Load-bearing, not defensive padding.
+  const existingToken = existing?.token ?? null
+  const reusable =
+    existing != null
+    && !reactivating
+    && existingToken !== null
+    && existing.expires_at !== null
+    && new Date(existing.expires_at).getTime() > now
 
   // Capacity applies only when this submission adds a new active registrant
   // (brand-new guest, or a cancelled guest reactivating) — an already-active
@@ -156,7 +167,7 @@ export async function registerGuest(
 
   let token: string
   if (reusable) {
-    token = existing.token
+    token = existingToken
     // Preserve first-touch attribution: only overwrite share_link_id when this
     // registration arrived through a share link. A direct re-registration
     // (no token) must not null out a prior sharer's attribution.
@@ -306,6 +317,12 @@ export async function resendGuestLink(eventId: string, email: string): Promise<R
     .eq('id', reg.id)
 
   const lang: Lang = reg.lang === 'bg' ? 'bg' : 'en'
+  // `reg` was looked up by `.eq('email', …)` above, which never matches a member
+  // row (2608-DEV-705 member rows have email NULL), so this is a guest row by
+  // construction and `reg.token` is non-null despite the column now being
+  // nullable. Note this interpolation would NOT fail the build if that ever
+  // stopped holding — a null token stringifies to "null" in the URL rather than
+  // raising — so the invariant is the only thing protecting the link.
   const magicLink = `${await getBaseUrl()}/events/${eventId}/join?token=${reg.token}`
 
   const html = await renderEmailTemplate(

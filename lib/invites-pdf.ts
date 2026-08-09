@@ -24,7 +24,8 @@ function fmtDateTime(d: string | null): string {
 type GuestRow = {
   id: string
   name: string
-  email: string
+  // NULL for member registrations (2608-DEV-705)
+  email: string | null
   status: string
   attended_at: string | null
   cancelled_at: string | null
@@ -101,7 +102,7 @@ export function generateInvitesPdf(links: ShareLink[], memberName: string): void
         head: [['Name', 'Email', 'Status', 'Registered', 'Attended']],
         body: guests.map(g => [
           g.name,
-          g.email,
+          g.email ?? '',
           g.attended_at !== null ? 'attended' : g.cancelled_at !== null ? 'cancelled' : g.status === 'confirmed' ? 'confirmed' : link.revoked_at !== null ? 'cancelled' : 'pending',
           fmt(g.created_at),
           fmt(g.attended_at),
