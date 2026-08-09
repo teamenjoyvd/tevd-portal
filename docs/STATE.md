@@ -34,10 +34,15 @@ Three follow-ups from #704 remain **unclaimed**:
   are unreachable) and no `consumeEmailCap`.
 
 ## Next
-1. **DECISION PENDING (user):** mark PR #716 ready for review. CI is green and the preview is
-   deployed; the only reason it is still a draft is that marking it ready burns the single
-   CodeRabbit pass, and the user asked for a draft. Fix all CodeRabbit findings in ONE batched push
-   — the local `docs/STATE.md` commit below is deliberately UNPUSHED so it rides along with them.
+**#705 IS NOT DONE.** The PR is open and unmerged; the schema change has NOT reached production.
+The remaining tail, in order — none of it optional:
+1. Confirm CI is green on the GCR commit and CodeRabbit's re-review raises nothing new.
+2. Merge PR #716.
+3. **Approve the gated `migrate-prod` run** (Actions → `production` environment). This PR contains a
+   migration, so it will NOT auto-skip the way #704's did. Confirm it applied cleanly.
+4. Smoke-check `https://www.teamenjoyvd.com`.
+5. Remove the #705 row from `docs/CLAIMS.md` and close issue #705 — **only after step 4**.
+   `Merged` and `Done` are different states (docs/ai/GCR.md step 7).
 2. **Prod tail after merge:** this PR CONTAINS A MIGRATION, so `Migrate Prod` will NOT auto-skip —
    approve the gated `production` run in Actions and confirm it applied, then smoke-check
    `https://www.teamenjoyvd.com`. "Merged" is not "Done".
@@ -138,6 +143,26 @@ Three follow-ups from #704 remain **unclaimed**:
   `mergeStateStatus: CLEAN`, `mergeable: MERGEABLE`.
 
 ## Open items
+- GCR on PR #716 done 2026-08-09 — CodeRabbit posted 3 actionable + 1 nitpick. Applied 3, skipped 1:
+  - APPLIED (Major): the admin `guest_registration_count` now also filters `email IS NOT NULL`.
+    The count feeds `admin.calendar.confirm.guestWarning` — "{{count}} registered guest(s) will be
+    notified." — and member rows are dropped by the notification paths, so counting them made the
+    dialog overstate the audience. **This partly contradicts #705's own DoD**, which said the `.or`
+    widening was needed because the count "silently under-counts". That premise only holds once
+    members are notifiable; until #707, count and delivery must agree. Delete the `.not()` line when
+    #707 lands.
+  - APPLIED (Minor): `vi.waitFor` replaces a fixed `setTimeout(10)` in the new null-email test —
+    `notifyGuestsOfEventUpdate` is fire-and-forget and returns before the mail mock resolves.
+  - APPLIED (nitpick): two new cases pin the nullable reuse branches (null token, null expiry both
+    take the upsert path and never resend `null`).
+  - SKIPPED (Major, `CREATE INDEX CONCURRENTLY`): would break the build. Postgres forbids
+    `CONCURRENTLY` inside a transaction block and the Supabase CLI wraps each migration file in one,
+    so `db push` and the `migrations-check.yml` replay would both fail. The cost it avoids is also
+    near zero here: prod `guest_registrations` is **70 rows / 136 kB**, and no migration in this
+    repo has ever used `CONCURRENTLY`.
+- NOTED (not done): the three pre-existing tests in `lib/notifications/guest-event-changes.test.ts`
+  still use `await new Promise(r => setTimeout(r, 10))` and carry the same race the reviewer flagged.
+  Only the test this ticket added was converted to `vi.waitFor`; converting the rest is unrelated churn.
 - CI on PR #716 (draft), all green, `mergeStateStatus: CLEAN`: Type Check, Replay migrations from
   scratch (2m22s — the new migration replays cleanly onto an empty DB), 390px smoke vs preview,
   Lint, Test, Build, Security Audit, Authenticated E2E (Clerk), Vercel ("Deployment has completed").

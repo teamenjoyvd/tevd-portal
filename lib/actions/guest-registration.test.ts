@@ -157,6 +157,43 @@ describe('registerGuest — token reuse', () => {
     expect(upsertSpy).toHaveBeenCalledTimes(1)
     expect(updateSpy).not.toHaveBeenCalled()
   })
+
+  // token and expires_at became nullable in 2608-DEV-705 so the table can hold
+  // member registrations. Neither shape can reach this lookup in production —
+  // it keys on `.eq('email', …)` and member rows have email NULL — but the
+  // reuse test now depends on those null checks, so pin the behaviour: a row
+  // with nothing to resend must take the upsert path, never resend `null`.
+  it('mints a fresh token when the prior registration has a null token', async () => {
+    const { client, updateSpy, upsertSpy } = buildClient({
+      token: null,
+      expires_at: new Date(Date.now() + 24 * HOUR).toISOString(),
+    })
+    mockCreateServiceClient.mockReturnValue(client)
+    const { registerGuest } = await import('@/lib/actions/guest-registration')
+
+    const res = await registerGuest({ success: false }, form())
+
+    expect(res.success).toBe(true)
+    expect(upsertSpy).toHaveBeenCalledTimes(1)
+    expect(updateSpy).not.toHaveBeenCalled()
+    expect(capturedMagicLink).not.toContain('null')
+  })
+
+  it('mints a fresh token when the prior registration has a null expiry', async () => {
+    const { client, updateSpy, upsertSpy } = buildClient({
+      token: 'existing-token-abc',
+      expires_at: null,
+    })
+    mockCreateServiceClient.mockReturnValue(client)
+    const { registerGuest } = await import('@/lib/actions/guest-registration')
+
+    const res = await registerGuest({ success: false }, form())
+
+    expect(res.success).toBe(true)
+    expect(upsertSpy).toHaveBeenCalledTimes(1)
+    expect(updateSpy).not.toHaveBeenCalled()
+    expect(capturedMagicLink).not.toContain('existing-token-abc')
+  })
 })
 
 describe('registerGuest — base URL', () => {

@@ -139,7 +139,10 @@ describe('notifyGuestsOfEventUpdate', () => {
     const { notifyGuestsOfEventUpdate } = await import('@/lib/notifications/guest-event-changes')
 
     notifyGuestsOfEventUpdate('event-1', [{ field: 'start_time', oldValue: 'old', newValue: 'new' }])
-    await new Promise(r => setTimeout(r, 10))
+    // notifyGuestsOfEventUpdate is fire-and-forget: it returns before its `then`
+    // chain awaits sendTransactionalEmail. Poll rather than sleep a fixed 10ms,
+    // which can observe sentEmails before the mail mock resolves.
+    await vi.waitFor(() => expect(sentEmails).toHaveLength(1))
 
     expect(sentEmails.map(e => e.to)).toEqual(['guest@example.com'])
   })
