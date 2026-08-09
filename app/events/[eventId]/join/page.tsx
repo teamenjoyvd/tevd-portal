@@ -108,14 +108,18 @@ export default async function GuestJoinPage({ params, searchParams }: Props) {
   if (new Date(reg.expires_at) < new Date()) return <InvalidState eventId={eventId} reason="expired" lang={lang} />
 
   // Stamp attendance + confirm status — idempotent, only writes when not already set
-  await supabase
+  const { data: stamped } = await supabase
     .from('guest_registrations')
     .update({ attended_at: new Date().toISOString(), status: 'confirmed' })
     .eq('id', reg.id)
     .is('attended_at', null)
+    .select('id')
 
-  // Notify sharer — fire-and-forget, must not block render
-  if (reg.share_link_id) {
+  // Notify sharer — fire-and-forget, must not block render. Gated on the
+  // update having actually stamped a row: this page is a GET, so a refresh,
+  // a revisit or a mail-client link prefetch re-renders it, and an ungated
+  // call mails the sharer once per view (2608-DEV-704).
+  if (reg.share_link_id && stamped && stamped.length > 0) {
     notifySharerOfAttendance(reg.share_link_id, reg.name)
   }
 
