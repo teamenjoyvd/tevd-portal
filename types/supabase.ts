@@ -431,43 +431,46 @@ export type Database = {
           attended_at: string | null
           cancelled_at: string | null
           created_at: string
-          email: string
+          email: string | null
           event_id: string
-          expires_at: string
+          expires_at: string | null
           id: string
           lang: string
           name: string
+          profile_id: string | null
           share_link_id: string | null
           status: Database["public"]["Enums"]["guest_registration_status"]
-          token: string
+          token: string | null
         }
         Insert: {
           attended_at?: string | null
           cancelled_at?: string | null
           created_at?: string
-          email: string
+          email?: string | null
           event_id: string
-          expires_at: string
+          expires_at?: string | null
           id?: string
           lang?: string
           name: string
+          profile_id?: string | null
           share_link_id?: string | null
           status?: Database["public"]["Enums"]["guest_registration_status"]
-          token: string
+          token?: string | null
         }
         Update: {
           attended_at?: string | null
           cancelled_at?: string | null
           created_at?: string
-          email?: string
+          email?: string | null
           event_id?: string
-          expires_at?: string
+          expires_at?: string | null
           id?: string
           lang?: string
           name?: string
+          profile_id?: string | null
           share_link_id?: string | null
           status?: Database["public"]["Enums"]["guest_registration_status"]
-          token?: string
+          token?: string | null
         }
         Relationships: [
           {
@@ -483,6 +486,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_roles_history"
             referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "guest_registrations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "member_roles_history"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "guest_registrations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "guest_registrations_share_link_id_fkey"

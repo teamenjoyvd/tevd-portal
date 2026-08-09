@@ -105,7 +105,13 @@ export default async function GuestJoinPage({ params, searchParams }: Props) {
   if (!reg)                                  return <InvalidState eventId={eventId} reason="invalid" lang={lang} />
   if (reg.event_id !== eventId)              return <InvalidState eventId={eventId} reason="invalid" lang={lang} />
   if (reg.cancelled_at !== null)             return <InvalidState eventId={eventId} reason="cancelled" lang={lang} />
-  if (new Date(reg.expires_at) < new Date()) return <InvalidState eventId={eventId} reason="expired" lang={lang} />
+  // expires_at is NULL for member registrations (2608-DEV-705), which never
+  // expire. A member row cannot reach this page anyway — `reg` is looked up by
+  // `.eq('token', …)` and member rows have no token — but "no expiry" must read
+  // as "not expired", never as "expired at epoch 0".
+  if (reg.expires_at !== null && new Date(reg.expires_at) < new Date()) {
+    return <InvalidState eventId={eventId} reason="expired" lang={lang} />
+  }
 
   // Stamp attendance + confirm status — idempotent, only writes when not already set
   const { data: stamped } = await supabase
