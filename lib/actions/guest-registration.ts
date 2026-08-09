@@ -317,9 +317,12 @@ export async function resendGuestLink(eventId: string, email: string): Promise<R
     .eq('id', reg.id)
 
   const lang: Lang = reg.lang === 'bg' ? 'bg' : 'en'
-  // Same as the resend branch above: `reg` was looked up by token, so it is a
-  // guest row by construction and `reg.token` is non-null despite the column
-  // being nullable since 2608-DEV-705.
+  // `reg` was looked up by `.eq('email', …)` above, which never matches a member
+  // row (2608-DEV-705 member rows have email NULL), so this is a guest row by
+  // construction and `reg.token` is non-null despite the column now being
+  // nullable. Note this interpolation would NOT fail the build if that ever
+  // stopped holding — a null token stringifies to "null" in the URL rather than
+  // raising — so the invariant is the only thing protecting the link.
   const magicLink = `${await getBaseUrl()}/events/${eventId}/join?token=${reg.token}`
 
   const html = await renderEmailTemplate(

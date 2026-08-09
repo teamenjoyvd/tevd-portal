@@ -4,23 +4,25 @@
 committed locally as `ba038f1`; **nothing is pushed**. #704 is DONE and merged as `a418cab`.
 
 ## Now
-Two DoD items are **BLOCKED on a permission**, not on design:
-- The migration `supabase/migrations/20260809000000_2608_feat_705_member_event_registrations.sql`
-  is written and committed but **NOT applied to DEV**. `supabase db push --linked` (twice, with and
-  without piped stdin) and MCP `apply_migration` against DEV were all refused by the Claude Code
-  permission classifier. Routing the DDL through `execute_sql` was deliberately NOT attempted —
-  GOTCHAS "Supabase DDL" forbids it.
-- Therefore `types/supabase.ts` is **not regenerated** (`supabase gen types typescript --project-id
-  iymwxdewcpvpjgzewtzk > types/supabase.ts`), and the by-hand CSV/PDF check with a member row in the
-  data cannot run either — there is no member row to make.
+Migration **applied to DEV** 2026-08-09 via MCP `apply_migration` (the user approved it after
+`supabase db push` and the MCP call were both refused by the permission classifier).
+`types/supabase.ts` regenerated from DEV. `tsc --noEmit` clean, `npx vitest run` 29 files / 376 tests
+(baseline 28/370), eslint 0 errors on every changed file.
 
-Everything else in the DoD is done and verified against the CURRENT (pre-migration) types:
-`tsc --noEmit` clean, `npx vitest run` 29 files / 376 tests passed (baseline 28/370), eslint on the
-11 changed files 0 errors.
+**LEDGER TRAP, worth remembering:** MCP `apply_migration` stamps its OWN wall-clock version
+(`20260809164601`), not the version of your migration FILE (`20260809000000`). Left alone, the next
+`supabase db push` re-applies the file and fails on an already-existing column. Repaired both ways:
+`supabase migration repair --status applied 20260809000000` and
+`--status reverted 20260809164601`. `supabase migration list --linked` now shows local == remote.
+Always check `supabase_migrations.schema_migrations` after an MCP apply.
 
-DEV ledger note: `20260805000000` (#694, drop price_checker) is **also pending on DEV** — pre-existing
-drift, not caused by this ticket. It replays as a no-op (`IF EXISTS` guard; `price_checker` returns 0
-rows on DEV), so a future `db push` will apply both harmlessly.
+DEV ledger note: `20260805000000` (#694, drop price_checker) is **still pending on DEV** —
+pre-existing drift, not from this ticket. It replays as a no-op (`IF EXISTS` guard; `price_checker`
+returns 0 rows on DEV).
+
+Regenerating the types surfaced **three compile errors the stale types had hidden**, two at sites
+#705's sweep table never listed and one at the line the issue explicitly said needed no change
+(`token = existing.token`). See Decisions.
 
 Three follow-ups from #704 remain **unclaimed**:
 - **#713** `bug` `priority:high` — guest registration half-succeeds and 500s when `getBaseUrl()`
@@ -32,16 +34,16 @@ Three follow-ups from #704 remain **unclaimed**:
   are unreachable) and no `consumeEmailCap`.
 
 ## Next
-1. **Unblock the #705 migration.** Grant the permission (a Bash allow-rule for `supabase db push`,
-   or approve MCP `apply_migration` against DEV `iymwxdewcpvpjgzewtzk`), then:
-   `supabase db push --linked` -> `supabase gen types typescript --project-id iymwxdewcpvpjgzewtzk >
-   types/supabase.ts` -> `npm run check-types` -> re-run `npx vitest run`. If MCP applies it, reconcile
-   with `supabase migration repair --status applied` before the next push.
-2. Then verify the last DoD row by hand: insert a member row on DEV
-   (`profile_id` set, `email`/`token`/`expires_at` NULL) and pull the CSV export + invites PDF —
-   those two throw rather than degrade, which is why the DoD calls them out.
-3. `/code-review low` on the branch diff, then push + draft PR (**push needs an explicit ask**).
-4. `docs/CLAIMS.md` already carries the #705 row and the #704 row is already pruned — done in `f61cc2e`.
+1. Wait for CI green + Vercel Preview READY on the #705 draft PR, then mark it ready for review for
+   the single CodeRabbit pass and fix all findings in ONE batched push.
+2. **Prod tail after merge:** this PR CONTAINS A MIGRATION, so `Migrate Prod` will NOT auto-skip —
+   approve the gated `production` run in Actions and confirm it applied, then smoke-check
+   `https://www.teamenjoyvd.com`. "Merged" is not "Done".
+3. Remaining DoD nuance: the CSV export and invites PDF were verified at the data + type level
+   (member row returned with `email` NULL; both call sites compile-checked against `string | null`)
+   but NOT clicked through a browser session — that needs an authenticated Clerk session as the
+   sharer. Recreate a fixture with the insert in the #705 transcript if you want the visual check.
+4. Then #706 (T4) is what actually writes `profile_id`; #713 is still the highest-value bug.
 
 ## Constraints
 - Never push to `main`. Cut `dev/[YYMM]-DEV-[GH#]` from `origin/main`; `git checkout -b <branch>
@@ -62,6 +64,20 @@ Three follow-ups from #704 remain **unclaimed**:
   and kills `npm run build` with `Invalid code point <n>` pointed at `app/globals.css:1:1`.
 
 ## Decisions
+- DECISION (#705): the `.or('expires_at.is.null,…')` widening the issue prescribed is incomplete on
+  its own — it pulls member rows into the two notification resolvers, and those rows have `email`
+  NULL, so the recipient handed to `sendTransactionalEmail` would be `null`. Both resolvers now drop
+  null-email rows via `flatMap` with a pointer to #707, where member delivery actually belongs. No
+  member rows exist yet, so this is prophylactic; it would have been live wrong the moment T4 landed.
+- DECISION (#705): #705's claim that `lib/actions/guest-registration.ts` needed **no change** at the
+  token sites was wrong — `token = existing.token` is a hard compile error once the column is
+  nullable. Fixed by hoisting the token into its own const, because TypeScript's aliased-condition
+  narrowing reaches the `existing` reference but not the `existing.token` property. The null checks
+  also carry real meaning: a row with no token or no expiry is not a link worth resending.
+- DECISION (#705): `app/events/[eventId]/join/page.tsx` treats a NULL `expires_at` as **not expired**
+  rather than expired. A member row cannot reach that page (lookup is by token), but the alternative
+  reading — `new Date(null)` → epoch 0 → always expired — is the silent-failure shape this repo keeps
+  getting bitten by.
 - DECISION (#704): the attendance notification in `app/events/[eventId]/join/page.tsx` is now gated
   on the `attended_at` update actually stamping a row (`.select('id')` + length check), not merely
   on `share_link_id` being present. The join page is a GET: a refresh, a revisit, or a mail-client
@@ -120,6 +136,13 @@ Three follow-ups from #704 remain **unclaimed**:
   `mergeStateStatus: CLEAN`, `mergeable: MERGEABLE`.
 
 ## Open items
+- NOTED (not done), raised by `/code-review low` on #705 and deliberately deferred: in
+  `app/api/admin/calendar/[id]/route.ts` DELETE, the widened `expires_at.is.null` filter now SELECTS
+  member registrants and then `flatMap` drops every one of them, so hard-deleting an event will be
+  **silently non-notifying for members** while guests still get their cancellation mail. Harmless
+  today (zero member rows until #706 writes `profile_id`) but it must be closed by **#707**, which
+  owns member notification delivery. The only site where the widened filter changes live behavior
+  today is the count in `app/api/admin/calendar/route.ts`.
 - RESOLVED 2026-08-09: the 10 PRODUCTION `notification_delivery_log` rows with
   `recipient = 'delivered@resend.dev'` are deleted. Supabase MCP `execute_sql` performed it
   (`deleted: 10`; table went 87 -> 77 rows, `sink_rows` 0). Note for future sessions: MCP
