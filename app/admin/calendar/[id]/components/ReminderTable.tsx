@@ -24,7 +24,9 @@ type Reminder = {
   sent_at: string | null
   status: string
   registration_id: string | null
-  guest_registrations: { name: string; email: string } | null
+  // email is NULL for member registrations (2608-DEV-705); the render sites
+  // already fall back to '—' via `?.email ?? '—'`.
+  guest_registrations: { name: string; email: string | null } | null
 }
 
 import { StatusPill } from '@/components/admin/StatusPill'

@@ -156,6 +156,11 @@ export async function registerGuest(
 
   let token: string
   if (reusable) {
+    // `token` is nullable since 2608-DEV-705, but not here: `existing` was
+    // fetched by `.eq('email', …)`, which never matches a member row (their
+    // email is NULL). Do not "fix" this with a null guard — a null token
+    // reaching this branch would be a real invariant violation, not a case
+    // to swallow.
     token = existing.token
     // Preserve first-touch attribution: only overwrite share_link_id when this
     // registration arrived through a share link. A direct re-registration
@@ -306,6 +311,9 @@ export async function resendGuestLink(eventId: string, email: string): Promise<R
     .eq('id', reg.id)
 
   const lang: Lang = reg.lang === 'bg' ? 'bg' : 'en'
+  // Same as the resend branch above: `reg` was looked up by token, so it is a
+  // guest row by construction and `reg.token` is non-null despite the column
+  // being nullable since 2608-DEV-705.
   const magicLink = `${await getBaseUrl()}/events/${eventId}/join?token=${reg.token}`
 
   const html = await renderEmailTemplate(

@@ -48,12 +48,16 @@ export async function GET(req: Request): Promise<Response> {
   const eventIds = (data ?? []).map(ev => ev.id)
   const countByEventId = new Map<string, number>()
   if (eventIds.length > 0) {
+    // Member registrations (2608-DEV-705) carry expires_at NULL; without the
+    // is.null branch they never reach the count and the "N registered guests
+    // will be notified" confirm copy silently under-reports.
+    const nowIso = new Date().toISOString()
     const { data: regs, error: regsError } = await supabase
       .from('guest_registrations')
       .select('event_id')
       .in('event_id', eventIds)
       .is('cancelled_at', null)
-      .gt('expires_at', new Date().toISOString())
+      .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
     if (regsError) console.error('Failed to fetch guest_registration_count, defaulting to 0:', regsError)
     for (const r of regs ?? []) {
       countByEventId.set(r.event_id, (countByEventId.get(r.event_id) ?? 0) + 1)

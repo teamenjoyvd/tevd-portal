@@ -27,7 +27,8 @@ import { StatusBadge } from './StatusBadge'
 type GuestRow = InviteGuestRow & {
   id:         string
   name:       string
-  email:      string
+  // NULL for member registrations (2608-DEV-705) — rendered as '—'
+  email:      string | null
   created_at: string
 }
 
@@ -365,7 +366,7 @@ export function InvitesSection() {
                             return (
                               <tr key={g.id} style={{ borderTop: '1px solid var(--border-default)' }}>
                                 <td className="px-4 py-2 font-medium" style={{ color: 'var(--text-primary)' }}>{g.name}</td>
-                                <td className="px-4 py-2" style={{ color: 'var(--text-secondary)' }}>{g.email}</td>
+                                <td className="px-4 py-2" style={{ color: 'var(--text-secondary)' }}>{g.email ?? '—'}</td>
                                 <td className="px-4 py-2">
                                   <StatusBadge status={s} className="px-2 py-0.5 rounded-full text-[10px] font-semibold">{s}</StatusBadge>
                                 </td>
@@ -388,7 +389,7 @@ export function InvitesSection() {
                               <p className="text-xs font-medium truncate" style={{ color: 'var(--text-primary)' }}>{g.name}</p>
                               <StatusBadge status={s} className="px-2 py-0.5 rounded-full text-[10px] font-semibold shrink-0">{s}</StatusBadge>
                             </div>
-                            <p className="text-[11px] truncate" style={{ color: 'var(--text-secondary)' }}>{g.email}</p>
+                            <p className="text-[11px] truncate" style={{ color: 'var(--text-secondary)' }}>{g.email ?? '—'}</p>
                             <p className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>
                               {t('profile.invites.col.registered')} {fmt(g.created_at)}
                               {' · '}

@@ -62,7 +62,7 @@ export async function GET(req: NextRequest): Promise<Response> {
           eventTitle, eventDate, link.share_method, `"${sharedAt}"`,
           String(link.click_count),
           `"${g.name.replace(/"/g, '""')}"`,
-          `"${g.email.replace(/"/g, '""')}"`,
+          `"${(g.email ?? '').replace(/"/g, '""')}"`,
           gStatus,
           `"${attendedAt}"`,
         ].join(','))

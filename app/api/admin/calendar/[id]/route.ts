@@ -113,12 +113,15 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     .single()
   if (eventRowError) console.error('Failed to fetch event title before delete, skipping guest cancel-notify:', eventRowError)
 
+  // Member registrations (2608-DEV-705) carry expires_at NULL — `.gt` alone
+  // would treat them as expired and skip them.
+  const nowIso = new Date().toISOString()
   const { data: regs, error: regsError } = await supabase
     .from('guest_registrations')
     .select('email, name, lang')
     .eq('event_id', id)
     .is('cancelled_at', null)
-    .gt('expires_at', new Date().toISOString())
+    .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
   if (regsError) console.error('Failed to fetch active registrants before delete, skipping guest cancel-notify:', regsError)
 
   const { error } = await supabase.from('calendar_events').delete().eq('id', id)
@@ -127,7 +130,12 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   if (eventRow && regs && regs.length > 0) {
     notifyGuestsOfEventCancellation(
       eventRow.title,
-      regs.map(r => ({ email: r.email, name: r.name, lang: r.lang === 'bg' ? 'bg' : 'en' })),
+      // Member rows have email NULL — notifying them is 2608-DEV-707's job.
+      regs.flatMap(r =>
+        r.email === null
+          ? []
+          : [{ email: r.email, name: r.name, lang: (r.lang === 'bg' ? 'bg' : 'en') as 'bg' | 'en' }],
+      ),
     )
   }
 

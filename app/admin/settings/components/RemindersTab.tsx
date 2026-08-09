@@ -34,7 +34,9 @@ type ReminderRow = {
   sent_at: string | null
   status: string
   calendar_events: { id: string; title: string; start_time: string; reminders_enabled: boolean } | null
-  guest_registrations: { name: string; email: string } | null
+  // email is NULL for member registrations (2608-DEV-705); the render sites
+  // already fall back via `?.email ?? …`.
+  guest_registrations: { name: string; email: string | null } | null
 }
 
 type EventGroup = {
