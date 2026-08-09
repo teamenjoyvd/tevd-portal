@@ -40,7 +40,37 @@ Deno.serve(async (req: Request) => {
   for (const item of claimed) {
     let resendId: string | null = null
     let errorMsg: string | null = null
-    const recipient = item.payload.email || 'unknown'
+    const recipient: string | undefined = item.payload.email
+
+    // No recipient in the payload — never attempt a send to a placeholder
+    // string (Resend 422s on it), skip straight to the failure path instead.
+    if (!recipient) {
+      errorMsg = 'Missing recipient email in payload'
+      errors.push(`Email failed for item ${item.id}: ${errorMsg}`)
+
+      const attempts = item.attempts || 1
+      const maxAttempts = item.max_attempts || 3
+      const nextStatus = attempts >= maxAttempts ? 'permanently_failed' : 'failed'
+      const backoffMs = 1000 * Math.pow(2, attempts)
+      const nextSendAt = new Date(Date.now() + backoffMs).toISOString()
+
+      await sb
+        .from('notification_queue')
+        .update({ status: nextStatus, attempts, last_error: errorMsg, send_at: nextSendAt })
+        .eq('id', item.id)
+
+      await sb.from('notification_delivery_log').insert({
+        queue_id: item.id,
+        channel: 'email',
+        template: item.type,
+        recipient: 'unknown',
+        status: 'failed',
+        error: errorMsg,
+        payload: item.payload,
+      })
+
+      continue
+    }
 
     let reminderLang: 'en' | 'bg' = 'en'
 
@@ -62,17 +92,18 @@ Deno.serve(async (req: Request) => {
         const name = item.payload.name || 'Guest'
 
         // Guest's stored language preference (2607-DEV-589) + cancellation guard
-        // (2607-DEV-590): a self-cancelled guest must not get a reminder — the
-        // schedule trigger only fires on INSERT/UPDATE OF status,email,name, so
-        // cancelling (which only touches cancelled_at) does not clear the
-        // already-queued rows. Skip here instead. Reminders are keyed by
-        // recipient email + event, matching guest_registrations' unique pair.
-        if (recipient !== 'unknown') {
+        // (2607-DEV-590): a self-cancelled guest (or member — 2608-DEV-706)
+        // must not get a reminder — the schedule trigger only fires on INSERT/
+        // UPDATE OF status,email,name, so cancelling (which only touches
+        // cancelled_at) does not clear the already-queued rows. Skip here
+        // instead. Keyed by registration_id, not recipient email: member rows
+        // have email NULL, so an email-keyed lookup silently never matched them
+        // and a cancelled member kept receiving reminders (2608-DEV-706).
+        if (item.registration_id) {
           const { data: guestReg } = await sb
             .from('guest_registrations')
             .select('lang, cancelled_at')
-            .eq('event_id', eventId)
-            .eq('email', recipient)
+            .eq('id', item.registration_id)
             .maybeSingle()
           if (guestReg?.lang === 'bg') reminderLang = 'bg'
           if (guestReg?.cancelled_at != null) {

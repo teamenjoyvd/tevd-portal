@@ -30,6 +30,13 @@ const baseURL = process.env.BASE_URL ?? 'http://localhost:3000'
 // every request — see vercelBypassSetup() in e2e/global-setup.ts for why.
 const bypassSecret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET
 
+// Specs that need Clerk auth + local Supabase, routed to the 'authenticated'
+// project and excluded from 'mobile-390'/'desktop' (which run against a live
+// Vercel Preview with no Clerk secrets, so clerk.signIn() fails outright).
+// Named once so a new authenticated spec can't be added to one list and
+// silently omitted from the other two.
+const AUTHENTICATED_SPECS = /(admin-auth|admin-mobile-auth|los-submission-auth|profile-bento-auth|payments-on-behalf|payments-guest|member-attend-auth)\.spec\.ts/
+
 export default defineConfig({
   testDir: './e2e',
   timeout: 60_000,
@@ -61,7 +68,7 @@ export default defineConfig({
       // payments-guest.spec.ts joined that list for exactly this failure: it
       // was collected here on its first CI run and died on "The Clerk Frontend
       // API URL is required to bypass bot protection".
-      testIgnore: /(admin-auth|admin-mobile-auth|los-submission-auth|profile-bento-auth|payments-on-behalf|payments-guest)\.spec\.ts/,
+      testIgnore: AUTHENTICATED_SPECS,
       use: {
         ...devices['iPhone 12'],
         browserName: 'chromium',
@@ -75,14 +82,14 @@ export default defineConfig({
       // running it a second time on 'desktop' would just duplicate the sign-in.
       // admin-mobile-auth.spec.ts is 390px-only and Clerk-authenticated, so it
       // has no business on a 1280px unauthenticated project either.
-      testIgnore: /(admin-auth|admin-mobile-auth|los-submission-auth|profile-bento-auth|payments-on-behalf|payments-guest)\.spec\.ts/,
+      testIgnore: AUTHENTICATED_SPECS,
       use: { viewport: { width: 1280, height: 800 } },
     },
     {
       // Authenticated coverage (issue #560) — requires local Supabase +
       // npm run e2e:seed-clerk. Never target a preview/prod-DB deployment.
       name: 'authenticated',
-      testMatch: /(admin-auth|admin-mobile-auth|los-submission-auth|profile-bento-auth|payments-on-behalf|payments-guest)\.spec\.ts/,
+      testMatch: AUTHENTICATED_SPECS,
       use: { viewport: { width: 1280, height: 800 } },
     },
   ],

@@ -1,5 +1,6 @@
 # REF.md — teamenjoyVD Portal Reference
-> Last updated: 2026-07-12 — absorbed the archived CONTEXT doc's CI section as §12; removed a phantom guest-event-registration route entry from §4/§6.
+> Last updated: 2026-08-09 — added `/api/events/[id]` and `/api/events/[id]/attend` rows to §6 (2608-DEV-706).
+> Prior: 2026-07-12 — absorbed the archived CONTEXT doc's CI section as §12; removed a phantom guest-event-registration route entry from §4/§6.
 > Read on demand at GATHER only. Never read at SSU.
 > Pull only the sections the ticket needs.
 
@@ -444,6 +445,8 @@ Normalised UNION ALL over `profiles_audit` + `role_change_audit`. Columns: `prof
 | `/api/trips/[id]/messages` | GET | Read-only trip bulletin (admin-authored; no author shown to members) |
 | `/api/trips/[id]/payments` | GET | |
 | `/api/calendar` | GET | Role-filtered; no `?month` → agenda from today. Never returns `meeting_url` (2608-DEV-703 / D8) — the gated detail endpoint `/api/events/[id]` serves it |
+| `/api/events/[id]` | GET | Event detail + role_slots. `meeting_url` gated via `canSeeMeetingUrl` (`lib/server/meeting-url-visibility.ts`, D3, 2608-DEV-706): guest never, admin always, else only with an active registration on an `allow_guest_registration` event. Response also carries `caller_registration` (the caller's own active `guest_registrations` row, or null) so the popup renders attend state without a second round-trip. |
+| `/api/events/[id]/attend` | POST, DELETE | 2608-DEV-706 (D1 one-tap attend). POST body `{ share?: string }` — member self-registers via `lib/server/member-registration.ts` `attendEvent` (adopt-or-insert per D9, no self-attribution, no email). DELETE soft-cancels via `cancelMemberRegistration`. 403 for `role === 'guest'`; single path segment under `/api/events/:id` so it stays Clerk-protected by the existing `lib/public-routes.ts` allowlist entry. |
 | `/api/calendar/feed.ics` | GET | iCal feed; `?token=` JWT auth; emits LOCATION + URL + CATEGORIES. `URL` is the portal event page (`/calendar?event=<id>`), never `meeting_url` (2608-DEV-703 / D8) |
 | `/api/calendar/feed-token` | GET, POST | Issue/regenerate iCal subscription token |
 | `/api/guides` | GET | Published, access_roles respected |
