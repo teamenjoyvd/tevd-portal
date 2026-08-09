@@ -6,5 +6,5 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
-| #704 | `dev/2608-DEV-704` | `lib/notifications/share-events.ts`, `lib/notifications/share-events.test.ts` (new) — **migration: no** | 2026-08-09 |
+| #705 | `dev/2608-DEV-705` | `supabase/migrations/20260809000000_2608_feat_705_member_event_registrations.sql` (new), `types/supabase.ts` (regen), `lib/server/event-shares.ts` + `.test.ts` (new), `lib/invites-pdf.ts`, `lib/notifications/guest-event-changes.ts`, `lib/actions/guest-registration.ts` (comment only), `app/api/profile/event-shares/export/route.ts`, `app/api/admin/calendar/route.ts`, `app/api/admin/calendar/[id]/route.ts`, `app/api/admin/calendar/[id]/reminders/route.ts`, `app/admin/calendar/[id]/page.tsx`, `app/admin/settings/page.tsx`, `app/(dashboard)/profile/components/InvitesSection.tsx` — **migration: yes** | 2026-08-09 |
 
