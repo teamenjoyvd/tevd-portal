@@ -34,8 +34,10 @@ Three follow-ups from #704 remain **unclaimed**:
   are unreachable) and no `consumeEmailCap`.
 
 ## Next
-1. Wait for CI green + Vercel Preview READY on the #705 draft PR, then mark it ready for review for
-   the single CodeRabbit pass and fix all findings in ONE batched push.
+1. **DECISION PENDING (user):** mark PR #716 ready for review. CI is green and the preview is
+   deployed; the only reason it is still a draft is that marking it ready burns the single
+   CodeRabbit pass, and the user asked for a draft. Fix all CodeRabbit findings in ONE batched push
+   — the local `docs/STATE.md` commit below is deliberately UNPUSHED so it rides along with them.
 2. **Prod tail after merge:** this PR CONTAINS A MIGRATION, so `Migrate Prod` will NOT auto-skip —
    approve the gated `production` run in Actions and confirm it applied, then smoke-check
    `https://www.teamenjoyvd.com`. "Merged" is not "Done".
@@ -136,6 +138,20 @@ Three follow-ups from #704 remain **unclaimed**:
   `mergeStateStatus: CLEAN`, `mergeable: MERGEABLE`.
 
 ## Open items
+- CI on PR #716 (draft), all green, `mergeStateStatus: CLEAN`: Type Check, Replay migrations from
+  scratch (2m22s — the new migration replays cleanly onto an empty DB), 390px smoke vs preview,
+  Lint, Test, Build, Security Audit, Authenticated E2E (Clerk), Vercel ("Deployment has completed").
+  CodeRabbit reports `Review skipped: draft pull request`, as designed.
+- **The #679 vacuous-green check was performed and PASSED for real this time:** the E2E job ran
+  5m34s and its log shows `Running 21 tests using 2 workers` → `1 flaky` + `20 passed (2.4m)`.
+  Not a skip-on-missing-secrets.
+- CARRIED FLAKE RECURRED, third sighting, still not caused by the work in flight:
+  `e2e/payments-on-behalf.spec.ts:169` (`L3: a row someone else paid for me is labelled with the
+  payer`) failed `toBeVisible()` at **36.3s** then passed on retry #1 in 6.4s. Identical file, line
+  and duration to the occurrence logged during #704. PR #716 touches **zero** payments files
+  (`git diff --name-only main...dev/2608-DEV-705 | grep -i payment` → no hits), so the cause is the
+  cold-server timing profile, not the diff. This has now burned time in three separate sessions and
+  deserves its own issue: raise the first-assertion timeout for that spec or warm the route.
 - NOTED (not done), raised by `/code-review low` on #705 and deliberately deferred: in
   `app/api/admin/calendar/[id]/route.ts` DELETE, the widened `expires_at.is.null` filter now SELECTS
   member registrants and then `flatMap` drops every one of them, so hard-deleting an event will be
