@@ -1,31 +1,28 @@
 ## Goal
-BUILD issue #703 (2608-DEV-703, branch `dev/2608-DEV-703`), first child of epic #702: stop shipping
-`calendar_events.meeting_url` in the role-scoped calendar list projection and the ICS feed; point
-both at the portal event page instead (epic decision D8).
+BUILD issue #704 (2608-DEV-704, branch `dev/2608-DEV-704`), sibling child of epic #702: the sharer
+notification path never sends, because `resolveShareLinkContext` selected a `profiles.email` column
+that does not exist. Unblocks #702's inviter-attribution requirement (D4).
 
 ## Now
-PR #711 (`dev/2608-DEV-703`) is open and marked ready for review (not draft). CodeRabbit's one
-review pass found 1 actionable comment (Major) + 1 nitpick; both applied in commit `10e5fe0`:
-`app/api/calendar/feed.ics/route.ts` now hashes `portalUrl` into the ETag alongside `events`/
-`calendarName`; `e2e/guest-invite.spec.ts`'s anonymous-payload test now seeds its own guest-visible
-event (with `meeting_url` set) instead of skipping when the DB has none. The ETag review thread is
-resolved. Pushed to `origin/dev/2608-DEV-703`. CI is all green and the PR is
-`mergeStateStatus: CLEAN` / `mergeable: MERGEABLE`. Not yet merged.
+PLAN and CLAIM are complete and the fix is committed locally on `dev/2608-DEV-704` (`6708d16`),
+branch pushed. `lib/notifications/share-events.ts` selects `contact_email`, the `as unknown as`
+casts are gone so the generated types now police the column names, the PostgREST error is logged
+instead of discarded, and `lib/notifications/share-events.test.ts` is new (8 tests). No PR yet.
 
 ## Next
-1. Merge PR #711.
-2. Post-merge tail (per `docs/ai/GCR.md` step 7): remove the `dev/2608-DEV-703` row from
-   `docs/CLAIMS.md`; no migrations in this PR, so the prod-migration gate is skipped; smoke-check
-   `https://www.teamenjoyvd.com`; close issue #703.
+1. Apply any `/code-review low` findings, then open PR #704 as a DRAFT (CodeRabbit skips drafts).
+2. Wait for CI green + Vercel preview READY, then do the DEV end-to-end check the DoD requires:
+   register through a share link, join, cancel; expect three `notification_delivery_log` rows
+   (`share_guest_registered` / `share_guest_attended` / `share_guest_cancelled`, `status = 'sent'`).
+3. Mark ready for review -> one CodeRabbit pass -> batch the fixes into ONE push.
 
 ## Constraints
-- Never push to `main`; `dev/2608-DEV-703` only. `git checkout -b dev/2608-DEV-703 origin/main` SET
-  origin/main as the upstream; it was unset immediately (`git branch --unset-upstream`), so
-  `git rev-parse --abbrev-ref @{u}` -> fatal and a bare `git push` cannot hit main. Re-check after
+- Never push to `main`; `dev/2608-DEV-704` only. `git checkout -b dev/2608-DEV-704 origin/main` SET
+  origin/main as the upstream — the same trap as last session. Closed here by `git push -u`, which
+  repointed it: `git rev-parse --abbrev-ref @{u}` -> `origin/dev/2608-DEV-704`. Re-check after
   every branch cut — the tracking default is the trap, not the push.
-- `git push` to `dev/2608-DEV-703` was granted in conversation on 2026-08-09 ("push to PR so it's
-  merge-ready") — used for commit `10e5fe0` and the `docs/STATE.md` prune commit. Re-ask for any
-  push after this session ends.
+- `git push` to `dev/2608-DEV-704` was granted in conversation on 2026-08-09 ("Do the needful for
+  dev/2608-DEV-704 and continue"). Re-ask for any push after this session ends.
 - Never weaken a check to make it pass.
 - Fold the `docs/CLAIMS.md` row removal + `docs/STATE.md` updates into the merging PR — NEVER a
   standalone cleanup PR.
@@ -45,6 +42,14 @@ resolved. Pushed to `origin/dev/2608-DEV-703`. CI is all green and the PR is
   failed query instead of turning a 200 into a 500.
 
 ## Facts
+- VERIFICATION for #704, commit `6708d16`: `npm run check-types` -> clean. `npx vitest run` -> 28
+  files / 370 tests passed (was 27/362 before the new file). `npm run lint` -> 0 errors, 468
+  pre-existing warnings, none in `lib/notifications/share-events*`. `/code-review low` -> no
+  findings. NOT yet verified: the DoD's DEV end-to-end send.
+- PROOF the new drift guard works (#704): temporarily restoring `email` in the select makes
+  `tsc --noEmit` fail with `SelectQueryError<"column 'email' does not exist on 'profiles'.">`.
+  The original bug was compile-visible the whole time — the `as unknown as` casts suppressed it.
+  Treat an `as unknown as` over a PostgREST result as a defect, not a convenience.
 - VERIFICATION for the #703 CodeRabbit fixes, commit `10e5fe0`: `npx tsc --noEmit` -> clean.
   `npx vitest run lib/server/calendar.test.ts` -> 14 passed. `npx eslint` on
   `app/api/calendar/feed.ics/route.ts` and `e2e/guest-invite.spec.ts` -> exit 0.
@@ -89,6 +94,9 @@ resolved. Pushed to `origin/dev/2608-DEV-703`. CI is all green and the PR is
 None currently open for #703.
 
 ## Done
+- #703 (merged as #711, 2026-08-09) — `meeting_url` scoped out of the calendar list projection and
+  the ICS feed. Its `docs/CLAIMS.md` row is pruned here. Issue #703 is still OPEN on GitHub although
+  the user reports GCR ran and completed; left alone rather than closed from this session.
 - #700 (merged as #701, 2026-08-07) — `LocationMap` size transition rebuilt on plain inline
   width/height + a CSS `transition-[width,height]` after four framer-motion approaches
   (`animate` prop, `useSpring`+`jump()`, zero-duration tween, `animate()` in an effect) all failed to
