@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test'
+import { test, expect, type Locator, type Page } from '@playwright/test'
 import { clerk } from '@clerk/testing/playwright'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { randomUUID } from 'crypto'
@@ -78,9 +78,17 @@ function skipIfUnseeded() {
   )
 }
 
+// CalendarClient renders both the mobile and desktop DOM trees at once (one
+// hidden via CSS per breakpoint, not unmounted) — see e2e/calendar.spec.ts.
+// Every grid-event query must be scoped to the visible tree, or `.first()`
+// can lock onto the CSS-hidden twin and time out waiting for it to show.
+function visible(page: Page, locator: Locator): Locator {
+  return locator.and(page.locator(':visible'))
+}
+
 async function openEventPopup(page: Page) {
   await page.goto('/calendar')
-  const eventButton = page.locator('[role="row"] button', { hasText: EVENT_TITLE }).first()
+  const eventButton = visible(page, page.locator('[role="row"] button', { hasText: EVENT_TITLE })).first()
   await expect(eventButton, `seeded event "${EVENT_TITLE}" not visible on the current month view`).toBeVisible({ timeout: 15_000 })
   await eventButton.click()
   await expect(page.getByRole('dialog')).toBeVisible()
