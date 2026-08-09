@@ -28,25 +28,35 @@ async function resolveShareLinkContext(
 ): Promise<ShareLinkContext | null> {
   const supabase = createServiceClient()
 
-  const { data } = await supabase
+  // `contact_email` — `profiles` has no `email` column. The previous name was
+  // rejected by PostgREST, so every notification below silently no-opped
+  // (2608-DEV-704). The embeds need no FK hint: event_share_links has exactly
+  // one FK to each of profiles and calendar_events.
+  const { data, error } = await supabase
     .from('event_share_links')
     .select(`
       lang,
-      profile:profiles ( first_name, last_name, email ),
+      profile:profiles ( first_name, last_name, contact_email ),
       event:calendar_events ( title )
     `)
     .eq('id', shareLinkId)
     .single()
 
+  if (error) {
+    console.error('Failed to resolve share link context:', error.message)
+    return null
+  }
   if (!data) return null
 
-  const profile = data.profile as unknown as { first_name: string; last_name: string; email: string } | null
-  const event   = data.event   as unknown as { title: string } | null
+  // Deliberately uncast: the generated Database types check these column names
+  // at compile time, so a future rename fails `npm run check-types` instead of
+  // silently resolving to null at runtime.
+  const { profile, event } = data
 
-  if (!profile?.email || !event?.title) return null
+  if (!profile?.contact_email || !event?.title) return null
 
   return {
-    sharerEmail: profile.email,
+    sharerEmail: profile.contact_email,
     sharerName:  `${profile.first_name} ${profile.last_name}`.trim(),
     eventTitle:  event.title,
     guestName,
