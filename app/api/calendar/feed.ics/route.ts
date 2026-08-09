@@ -3,6 +3,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import ical from 'ical-generator'
 import { listEventsForRole, toVEventInput } from '@/lib/server/calendar'
 import { verifyIcalToken, IcalTokenConfigError } from '@/lib/server/icalToken'
+import { getBaseUrl } from '@/lib/utils/base-url'
 
 const FEED_WINDOW_PAST_DAYS = 90
 const FEED_WINDOW_FUTURE_DAYS = 365
@@ -54,13 +55,19 @@ export async function GET(req: Request) {
   // Falls back to an empty feed on a query error rather than surfacing a 500,
   // matching the prior inline query's behavior (errors were not checked there either).
   let events: Awaited<ReturnType<typeof listEventsForRole>> = []
+  // Absolute portal link for each VEVENT's url/Details line (2608-DEV-703).
+  // getBaseUrl() throws on a missing NEXT_PUBLIC_APP_URL, so it is resolved
+  // INSIDE this try: a misconfigured env must degrade to the same empty feed
+  // as a failed query, not turn a 200 into a 500.
+  let portalUrl = ''
   try {
+    portalUrl = await getBaseUrl()
     const now = Date.now()
     const from = new Date(now - FEED_WINDOW_PAST_DAYS * 86400000).toISOString()
     const to = new Date(now + FEED_WINDOW_FUTURE_DAYS * 86400000).toISOString()
     events = await listEventsForRole({ role: profile.role, from, to, limit: FEED_LIMIT })
   } catch (err) {
-    console.error('feed.ics: listEventsForRole failed', err)
+    console.error('feed.ics: could not build the event list', err)
   }
 
   // Use member's custom display name if set; fall back to default.
@@ -75,7 +82,8 @@ export async function GET(req: Request) {
   // would change the ETag on every request even when the underlying data hasn't,
   // permanently defeating If-None-Match. Computed before building/serializing the
   // calendar so a conditional-GET hit short-circuits that work entirely.
-  const etag = `W/"${createHash('sha1').update(JSON.stringify(events ?? []) + calendarName).digest('hex')}"`
+  const etagInput = JSON.stringify({ events: events ?? [], calendarName, portalUrl })
+  const etag = `W/"${createHash('sha1').update(etagInput).digest('hex')}"`
 
   if (matchesIfNoneMatch(req.headers.get('if-none-match'), etag)) {
     return new Response(null, {
@@ -95,7 +103,7 @@ export async function GET(req: Request) {
   })
 
   for (const event of events ?? []) {
-    calendar.createEvent(toVEventInput(event))
+    calendar.createEvent(toVEventInput(event, portalUrl))
   }
 
   return new Response(calendar.toString(), {

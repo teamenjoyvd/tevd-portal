@@ -7,27 +7,43 @@ import type { CalendarListEvent } from '@/types/calendar'
 import { icsAllDayRange } from '@/lib/calendar-dates'
 import type { ICalEventData } from 'ical-generator'
 
+// meeting_url is deliberately absent (2608-DEV-703, epic #702 decision D8).
+// /api/calendar is on the public allowlist and resolves sessionless callers to
+// role 'guest', so anything selected here reaches anonymous visitors. The link
+// is served only by the gated detail endpoint, app/api/events/[id]/route.ts.
 const LIST_COLUMNS =
-  'id, title, description, start_time, end_time, category, event_type, week_number, access_roles, is_all_day, location, meeting_url'
+  'id, title, description, start_time, end_time, category, event_type, week_number, access_roles, is_all_day, location'
+
+/** Deep link to a single event in the portal calendar (app/(dashboard)/calendar/page.tsx reads ?event=). */
+function portalEventUrl(portalUrl: string, eventId: string): string {
+  return `${portalUrl}/calendar?event=${encodeURIComponent(eventId)}`
+}
 
 /**
  * Composes the ICS VEVENT description: the event's own description plus
- * human-readable Location/Meeting link/Category lines. Google Calendar
+ * human-readable Location/Details/Category lines. Google Calendar
  * (Android) and iOS Calendar don't surface the structured LOCATION/URL/
  * CATEGORIES properties in their event view, so this appends the same info
  * as plain text — kept alongside the structured properties for clients that
  * do read them. Extracted from feed.ics/route.ts so the composed format can
  * be snapshot-tested without mocking auth/DB (Phase 1c format, #597).
+ *
+ * `portalUrl` is passed in rather than resolved here: getBaseUrl() is async and
+ * throws on a missing NEXT_PUBLIC_APP_URL, which would make this function async
+ * and drag auth/env mocking into its snapshot tests. The caller owns that.
  */
-export function buildEventDescription(event: {
-  description: string | null
-  location: string | null
-  meeting_url: string | null
-  category: string | null
-}): string | undefined {
+export function buildEventDescription(
+  event: {
+    id: string
+    description: string | null
+    location: string | null
+    category: string | null
+  },
+  portalUrl: string,
+): string | undefined {
   const detailLines = [
     event.location != null && event.location !== '' ? `Location: ${event.location}` : undefined,
-    event.meeting_url != null && event.meeting_url !== '' ? `Meeting link: ${event.meeting_url}` : undefined,
+    `Details: ${portalEventUrl(portalUrl, event.id)}`,
     event.category != null && event.category !== '' ? `Category: ${event.category}` : undefined,
   ].filter((line): line is string => line !== undefined)
   const baseDescription = event.description != null && event.description !== '' ? event.description : undefined
@@ -46,18 +62,20 @@ export function buildEventDescription(event: {
  * per RFC 5545 §3.8.2.2); timed events pass start_time/end_time straight
  * through — they're already +00 UTC strings from Supabase.
  */
-export function toVEventInput(event: {
-  id: string
-  title: string
-  description: string | null
-  location: string | null
-  meeting_url: string | null
-  category: string | null
-  is_all_day: boolean
-  start_time: string
-  end_time: string
-}): ICalEventData {
-  const description = buildEventDescription(event)
+export function toVEventInput(
+  event: {
+    id: string
+    title: string
+    description: string | null
+    location: string | null
+    category: string | null
+    is_all_day: boolean
+    start_time: string
+    end_time: string
+  },
+  portalUrl: string,
+): ICalEventData {
+  const description = buildEventDescription(event, portalUrl)
   const { start, end } = event.is_all_day
     ? icsAllDayRange(event.start_time, event.end_time)
     : { start: new Date(event.start_time), end: new Date(event.end_time) }
@@ -70,7 +88,9 @@ export function toVEventInput(event: {
     start,
     end,
     location: event.location != null && event.location !== '' ? event.location : undefined,
-    url: event.meeting_url != null && event.meeting_url !== '' ? event.meeting_url : undefined,
+    // Points at the portal, never the meeting link (D8) — a single feed
+    // subscription would otherwise hand out every link for a year.
+    url: portalEventUrl(portalUrl, event.id),
     categories: event.category != null ? [{ name: event.category }] : undefined,
   }
 }
