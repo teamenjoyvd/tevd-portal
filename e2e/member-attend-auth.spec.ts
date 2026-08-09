@@ -23,7 +23,7 @@ const MEETING_URL = `https://meet.example.com/e2e-${TEST_RUN_ID}`
 function svc(): SupabaseClient | null {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!url || !key) return null
+  if (url === undefined || url === '' || key === undefined || key === '') return null
   return createClient(url, key)
 }
 
@@ -47,7 +47,7 @@ test.beforeAll(async () => {
   memberProfileId = profile.id
 
   const now = Date.now()
-  const { data: event } = await sb
+  const { data: event, error: insertError } = await sb
     .from('calendar_events')
     .insert({
       title: EVENT_TITLE,
@@ -60,7 +60,13 @@ test.beforeAll(async () => {
     .select('id')
     .single()
 
-  eventId = event?.id ?? null
+  // Skipping is reserved for missing credentials or an intentionally-absent
+  // seeded member (skipIfUnseeded, below) — a DB/schema/permission failure
+  // here must fail loudly, not silently masquerade as "unseeded".
+  if (insertError || !event) {
+    throw new Error(`Failed to seed event for member-attend-auth: ${insertError?.message ?? 'no row returned'}`)
+  }
+  eventId = event.id
 })
 
 test.afterAll(async () => {

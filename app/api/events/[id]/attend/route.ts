@@ -27,6 +27,12 @@ export async function POST(
   if (ctx.response) return ctx.response
   const { supabase, profile } = ctx
 
+  // PGRST116 = PostgREST's "no row for .single()" — a genuinely absent
+  // profile. Any other error is a real DB/lookup failure and must not be
+  // reported to the caller as a 404.
+  if (ctx.error && ctx.error.code !== 'PGRST116') {
+    return Response.json({ error: 'Profile lookup failed' }, { status: 500 })
+  }
   if (!profile) return Response.json({ error: 'Profile not found' }, { status: 404 })
   if (profile.role === 'guest') return Response.json({ error: 'Guests cannot use member attend' }, { status: 403 })
 
@@ -59,6 +65,12 @@ export async function DELETE(
   if (ctx.response) return ctx.response
   const { supabase, profile } = ctx
 
+  // PGRST116 = PostgREST's "no row for .single()" — a genuinely absent
+  // profile. Any other error is a real DB/lookup failure and must not be
+  // reported to the caller as a 404.
+  if (ctx.error && ctx.error.code !== 'PGRST116') {
+    return Response.json({ error: 'Profile lookup failed' }, { status: 500 })
+  }
   if (!profile) return Response.json({ error: 'Profile not found' }, { status: 404 })
   if (profile.role === 'guest') return Response.json({ error: 'Guests cannot use member attend' }, { status: 403 })
 

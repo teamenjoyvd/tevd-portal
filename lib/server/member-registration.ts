@@ -1,6 +1,20 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { notifySharerOfRegistration, notifySharerOfCancellation } from '@/lib/notifications/share-events'
 
+// Click-credit is a metric, not part of the registration contract — an RPC
+// failure here must not turn an already-committed registration into an
+// error response for the caller.
+async function creditShareLink(
+  supabase: SupabaseClient,
+  shareLinkId: string | null,
+  profileName: string
+): Promise<void> {
+  if (!shareLinkId) return
+  const { error } = await supabase.rpc('increment_share_link_click', { link_id: shareLinkId })
+  if (error) console.error('Failed to increment share link click:', error)
+  notifySharerOfRegistration(shareLinkId, profileName)
+}
+
 // -- Attend -------------------------------------------------------------------
 // D1 one-tap attend + D9 adopt-don't-duplicate, for an authenticated member.
 // Mirrors lib/actions/guest-registration.ts step for step, with three
@@ -36,8 +50,8 @@ export async function attendEvent(
     .eq('id', eventId)
     .single()
 
-  if (eventError || !event)            return { success: false, error: 'Event not found.' }
-  if (!event.allow_guest_registration) return { success: false, error: 'Registration is not available for this event.' }
+  if (eventError || !event)                    return { success: false, error: 'Event not found.' }
+  if (event.allow_guest_registration !== true) return { success: false, error: 'Registration is not available for this event.' }
   if (new Date(event.end_time).getTime() < Date.now())
     return { success: false, error: 'This event has already ended.' }
 
@@ -99,20 +113,23 @@ export async function attendEvent(
       .eq('id', existing.id)
     if (updateError) return { success: false, error: 'Could not attend. Please try again.' }
 
-    if (shareLinkId) await supabase.rpc('increment_share_link_click', { link_id: shareLinkId })
-    if (shareLinkId) notifySharerOfRegistration(shareLinkId, profileName)
+    await creditShareLink(supabase, shareLinkId, profileName)
     return { success: true, registrationId: existing.id }
   }
 
   // D9 adopt-or-insert: a guest row on this event whose email matches the
   // caller's contact_email is converted in place instead of inserting a
   // second row for the same human. Skipped when contact_email is null.
+  // profile_id IS NULL guards against reassigning a row someone else already
+  // claimed — matching on email alone would let a caller take over another
+  // member's active registration by sharing their contact_email.
   if (contactEmail) {
     const { data: guestRow } = await supabase
       .from('guest_registrations')
       .select('id')
       .eq('event_id', eventId)
       .eq('email', contactEmail)
+      .is('profile_id', null)
       .maybeSingle()
 
     if (guestRow) {
@@ -131,8 +148,7 @@ export async function attendEvent(
         .eq('id', guestRow.id)
       if (adoptError) return { success: false, error: 'Could not attend. Please try again.' }
 
-      if (shareLinkId) await supabase.rpc('increment_share_link_click', { link_id: shareLinkId })
-      if (shareLinkId) notifySharerOfRegistration(shareLinkId, profileName)
+      await creditShareLink(supabase, shareLinkId, profileName)
       return { success: true, registrationId: guestRow.id }
     }
   }
@@ -150,14 +166,16 @@ export async function attendEvent(
     .single()
   if (insertError || !inserted) return { success: false, error: 'Could not attend. Please try again.' }
 
-  if (shareLinkId) await supabase.rpc('increment_share_link_click', { link_id: shareLinkId })
-  if (shareLinkId) notifySharerOfRegistration(shareLinkId, profileName)
+  await creditShareLink(supabase, shareLinkId, profileName)
   return { success: true, registrationId: inserted.id }
 }
 
 // -- Cancel ---------------------------------------------------------------------
 // Soft-cancel only, idempotent — matches
-// lib/actions/guest-registration.ts cancelGuestRegistration.
+// lib/actions/guest-registration.ts cancelGuestRegistration. Deliberately no
+// end_time check (unlike attendEvent): cancelling attendance to an event that
+// already happened is a legitimate "actually I didn't go" correction, not an
+// action that needs blocking.
 
 export type CancelMemberResult =
   | { success: true }
@@ -187,7 +205,7 @@ export async function cancelMemberRegistration(
 
   if (error) return { success: false, error: 'Could not cancel. Please try again.' }
 
-  if (reg.share_link_id) notifySharerOfCancellation(reg.share_link_id, reg.name)
+  if (reg.share_link_id) notifySharerOfCancellation(reg.share_link_id, reg.name ?? 'A member')
 
   return { success: true }
 }

@@ -196,6 +196,27 @@ describe('attendEvent', () => {
     })
   })
 
+  it('does not adopt a guest row that already belongs to another profile', async () => {
+    const db = makeDb()
+    seedEvent(db)
+    db.guest_registrations.push({
+      id: 'other-reg', event_id: EVENT_ID, profile_id: 'someone-else', name: 'Someone Else',
+      email: 'ivan@example.com', status: 'confirmed', cancelled_at: null, share_link_id: null,
+    })
+    const client = buildClient(db)
+
+    const result = await attendEvent(client, {
+      eventId: EVENT_ID, profileId: PROFILE_ID, profileRole: 'member',
+      profileName: 'Ivan Petrov', contactEmail: 'ivan@example.com',
+    })
+
+    expect(result.success).toBe(true)
+    expect(db.guest_registrations.find(r => r.id === 'other-reg')).toMatchObject({
+      profile_id: 'someone-else',
+    })
+    expect(db.guest_registrations).toHaveLength(2)
+  })
+
   it('rejects when the event is at capacity', async () => {
     const db = makeDb()
     seedEvent(db, { guest_capacity: 1 })
@@ -304,6 +325,20 @@ describe('attendEvent', () => {
     })
 
     expect(result).toEqual({ success: false, error: 'This event has already ended.' })
+    expect(db.guest_registrations).toHaveLength(0)
+  })
+
+  it('rejects an event that is not open for registration', async () => {
+    const db = makeDb()
+    seedEvent(db, { allow_guest_registration: false })
+    const client = buildClient(db)
+
+    const result = await attendEvent(client, {
+      eventId: EVENT_ID, profileId: PROFILE_ID, profileRole: 'member',
+      profileName: 'Ivan Petrov', contactEmail: null,
+    })
+
+    expect(result).toEqual({ success: false, error: 'Registration is not available for this event.' })
     expect(db.guest_registrations).toHaveLength(0)
   })
 })
