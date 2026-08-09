@@ -160,6 +160,15 @@ The remaining tail, in order — none of it optional:
     so `db push` and the `migrations-check.yml` replay would both fail. The cost it avoids is also
     near zero here: prod `guest_registrations` is **70 rows / 136 kB**, and no migration in this
     repo has ever used `CONCURRENTLY`.
+  - **CORRECTION:** the intent was to leave that thread UNRESOLVED for human follow-up, and it is
+    now RESOLVED — not by any call this session made (only the other three were resolved here).
+    CodeRabbit appears to auto-resolve a thread once it accepts a reply. Net effect: the one
+    deliberately-skipped finding no longer shows as pending anywhere on the PR. Re-open it manually
+    if you want it visible at merge time.
+- **CodeRabbit did NOT review the round-2 commit** (`a06a795`): its check reads `pass` but with the
+  reason `Review rate limited`. Green-by-skip, the same shape as the #679 trap — do not read it as
+  approval. Round 2 is test-only (assertion strengthening + a `vi.fn` generic), and `tsc`, the full
+  suite and eslint all cover it, but no bot has looked at it.
 - GCR round 2 on #716: CodeRabbit accepted the `CONCURRENTLY` skip verbatim ("incompatible with the
   transactional Supabase migration workflow used by this repository") and raised ONE new Minor on
   the tests added in round 1 — `not.toContain('null')` is a weak assertion. Fixed: both null-branch
@@ -178,7 +187,11 @@ The remaining tail, in order — none of it optional:
 - **The #679 vacuous-green check was performed and PASSED for real this time:** the E2E job ran
   5m34s and its log shows `Running 21 tests using 2 workers` → `1 flaky` + `20 passed (2.4m)`.
   Not a skip-on-missing-secrets.
-- CARRIED FLAKE RECURRED, third sighting, still not caused by the work in flight:
+- CARRIED FLAKE, now **four** sightings and stable in shape: `e2e/payments-on-behalf.spec.ts:169`
+  failed `toBeVisible()` at 36.3s (CI run 1) and 35.5s (CI run 3), passing on retry both times. The
+  ~35-36s clustering is the tell — it is hitting a fixed timeout on a cold route, not random
+  jitter. FILE AN ISSUE: raise that spec's first-assertion timeout or warm the route before asserting.
+- Earlier note on the same flake, third sighting, still not caused by the work in flight:
   `e2e/payments-on-behalf.spec.ts:169` (`L3: a row someone else paid for me is labelled with the
   payer`) failed `toBeVisible()` at **36.3s** then passed on retry #1 in 6.4s. Identical file, line
   and duration to the occurrence logged during #704. PR #716 touches **zero** payments files
