@@ -82,7 +82,8 @@ export async function GET(req: Request) {
   // would change the ETag on every request even when the underlying data hasn't,
   // permanently defeating If-None-Match. Computed before building/serializing the
   // calendar so a conditional-GET hit short-circuits that work entirely.
-  const etag = `W/"${createHash('sha1').update(JSON.stringify(events ?? []) + calendarName).digest('hex')}"`
+  const etagInput = JSON.stringify({ events: events ?? [], calendarName, portalUrl })
+  const etag = `W/"${createHash('sha1').update(etagInput).digest('hex')}"`
 
   if (matchesIfNoneMatch(req.headers.get('if-none-match'), etag)) {
     return new Response(null, {
