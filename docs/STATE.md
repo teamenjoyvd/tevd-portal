@@ -58,6 +58,13 @@ instead of discarded, and `lib/notifications/share-events.test.ts` is new (8 tes
   `mergeStateStatus: CLEAN`, `mergeable: MERGEABLE`.
 
 ## Open items
+- NOTED (not done), found while verifying #704 against DEV: **12 of 68 active `event_share_links`
+  (18%) belong to a sharer whose `profiles.contact_email` is NULL** — 7 of 24 DEV profiles have no
+  contact_email at all. Those links still silently no-op after the #704 fix, because the resolver
+  correctly guards on a null address. Deserves its own issue: either fall back to the Clerk primary
+  email or require `contact_email` before a share link can be minted. Out of #704's DoD.
+- FACT (#704, DEV probe 2026-08-09): `notification_delivery_log` contains **zero** `share_guest_%`
+  rows of any age — independent confirmation the sharer notification path has never once sent.
 - NOTED (not done): `app/(dashboard)/page.tsx:138,216` — `LocationTile` mounts twice at every
   viewport because the desktop branch is CSS-hidden rather than conditionally rendered. Cheap now
   that the tile is pure DOM, but still a duplicated subtree on every load.
