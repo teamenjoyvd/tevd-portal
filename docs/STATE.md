@@ -4,37 +4,46 @@ CLAIM was already complete on session start: branch `dev/2608-DEV-706` existed w
 `692638a` (claim row registered), on top of `78c67f7` (#705, merged) and `a418cab` (#704, merged).
 
 ## Now
-All 9 implementation pieces from the issue DoD are coded and locally green. `/code-review medium`
-(escalated from `low` per BUILD.md — touches auth + a migration) ran and returned 4 findings; 2 fixed
-(EventPopupShell "attend for link" hint now also requires `caller_registration === null` so it can't
-show next to the "Attending" badge; EventPopup.tsx's split `apiClient`/`ApiError` imports merged), 2
-left as-is (deliver-email-notifications' missing-recipient branch mirrors the pre-existing catch
-block's `attempts = item.attempts || 1` pattern verbatim — not a regression; member-registration.ts's
-read-then-write capacity check has the same race as the pre-existing guest path in
-guest-registration.ts, which the issue explicitly said to mirror — fixing it would be scope creep
-beyond #706's DoD). Re-verified after fixes: `tsc --noEmit` clean, `eslint` unchanged (0 errors, 468
-warnings), `vitest run` still 31 files / 397 tests. Not yet pushed — no push grant given in this
-conversation (CLAUDE.md: "Push grants are per-conversation... Re-ask").
+All 9 implementation pieces from the issue DoD are coded and pushed. PR **#717** open against `main`
+from `dev/2608-DEV-706`, commits `e0e1cf5` (feature) + `5e82ac5` (E2E fix, below). `/code-review
+medium` (escalated from `low` — touches auth + a migration) ran pre-push and returned 4 findings; 2
+fixed (EventPopupShell "attend for link" hint now also requires `caller_registration === null` so it
+can't show next to the "Attending" badge; EventPopup.tsx's split `apiClient`/`ApiError` imports
+merged), 2 left as-is and tracked as **#718** (below).
+
+First CI run: `Authenticated E2E (Clerk)` failed — `member-attend-auth.spec.ts`'s `openEventPopup`
+used `page.locator('[role="row"] button', {hasText: EVENT_TITLE}).first()` unscoped. `CalendarClient`
+renders both mobile (`md:hidden`) and desktop (`hidden md:block`) DOM trees at once, mobile first in
+DOM order — at the `authenticated` project's 1280px viewport `.first()` locked onto the CSS-hidden
+mobile button and timed out for the full 15s, every time. Not app-code, a test bug: `e2e/calendar.spec.ts`
+already hit this and carries a `visible()` (`locator.and(page.locator(':visible'))`) helper with a
+comment explaining it — `member-attend-auth.spec.ts` just didn't reuse it. Fixed in `5e82ac5` by
+adding the same helper and scoping the event-button locator. Second CI run: all checks green
+(Build, Lint, Type Check, Test, Security Audit, Replay migrations from scratch, 390px smoke,
+Authenticated E2E). Migration `20260809000100_2608_feat_706_member_reminder_recipient.sql` is now
+verified against a real Postgres via the replay job — first real verification, since local
+Supabase/Docker was unreachable this session (see Facts).
+
+Filed **#718** `[2608-DEV-718]` `bug` for the capacity-check race left as-is in the code review
+(`member-registration.ts:78-86` mirrors the same read-then-write TOCTOU race already in
+`guest-registration.ts` — no DB-level guard on `guest_capacity`). Scoped as a follow-up covering both
+call sites together via one atomic DB-side check, not a #706 fix.
+
+User is marking PR #717 ready for review now (out of draft) to get CodeRabbit moving.
 
 ## Next
-1. Ask the user for a push grant scoped to `dev/2608-DEV-706`, then push and open the PR as **draft**
-   (triggers CI + Vercel Preview; CodeRabbit skips drafts).
-2. Wait CI green + preview READY. The migration adds a "Replay migrations from scratch" job — this
-   session could NOT verify the migration against a live/local DB (Docker Desktop engine present but
-   daemon not reachable — `supabase status` failed to inspect container health), so this CI job is
-   the first real verification of `20260809000100_2608_feat_706_member_reminder_recipient.sql`.
-3. Verify DoD point-by-point (below) once CI is green, including 390px and the "Authenticated E2E"
-   job actually running `member-attend-auth.spec.ts` (not a #679-style green-by-skip).
-4. Mark PR ready for review -> one CodeRabbit pass -> batch-fix -> merge -> approve the gated
-   `migrate-prod` run (this PR HAS a migration, will not auto-skip) -> smoke-check
-   `https://www.teamenjoyvd.com` -> remove the #706 row from `docs/CLAIMS.md` -> close #706.
+1. Wait for CodeRabbit's pass on #717 now that it's out of draft -> batch-fix any findings.
+2. Verify DoD point-by-point (below).
+3. Merge -> approve the gated `migrate-prod` run (this PR HAS a migration, will not auto-skip) ->
+   smoke-check `https://www.teamenjoyvd.com` -> remove the #706 row from `docs/CLAIMS.md` -> close #706.
+4. #718 is unclaimed — not part of this ticket's finish line.
 
 ## Constraints
-- Never push without an explicit grant in this conversation; the 2026-08-09 grant on #704 does not
-  carry over.
-- Never apply migrations to a hosted Supabase project (DEV or prod) without asking first — this
-  session verified the migration only by inspection (mirrored `20260706000300`'s exact structure),
-  not by execution.
+- Never push without an explicit grant in this conversation; the push grant used for `e0e1cf5`/
+  `5e82ac5` on #706 does not carry over to other tickets or later sessions.
+- Never apply migrations to a hosted Supabase project (DEV or prod) without asking first. The
+  migration is now replay-verified in CI (see Now/Facts) but that is CI's ephemeral Postgres, not
+  DEV/prod — still ask before the gated `migrate-prod` approval on merge.
 - Fold `docs/CLAIMS.md` row removal + `docs/STATE.md` updates into the merging PR, never a standalone
   cleanup PR.
 - `.env.local` holds PRODUCTION Supabase credentials; `.env.development.local` holds the safe local
@@ -112,9 +121,17 @@ conversation (CLAUDE.md: "Push grants are per-conversation... Re-ask").
   owns closing the `expires_at.is.null` widened-filter gap noted against
   `app/api/admin/calendar/[id]/route.ts` DELETE), #710 (renegotiates `guest_capacity` counting one
   human = one seat under D10), #713/#714/#715 (pre-existing, from #704's session).
+- **#718** `[2608-DEV-718]` `bug` (filed this session, unclaimed): capacity check TOCTOU race, same
+  shape in `guest-registration.ts` and `member-registration.ts:78-86` — no DB-level guard on
+  `guest_capacity`. Fix needs to cover both call sites in one atomic DB-side check together, not
+  patch one and leave the other. Not #706's DoD; do not fix inline in #706.
 
 ## Failed attempts
-None for #706 yet — `/code-review medium` result pending.
+- First CI run on #717: `Authenticated E2E (Clerk)` failed, `member-attend-auth.spec.ts:84` —
+  `openEventPopup`'s event-button locator wasn't scoped to `:visible`, so `.first()` locked onto
+  `CalendarClient`'s CSS-hidden mobile-tree DOM twin at the authenticated project's 1280px viewport.
+  Fixed in `5e82ac5` by adding the `visible()` helper `e2e/calendar.spec.ts` already uses for the
+  same reason. Second run: green. Root-caused and fixed same session — no dangling failure.
 
 ## Done
 - #705 (merged as #716, 2026-08-09, `78c67f7`) and #704 (merged as #712, `a418cab`) — both confirmed
