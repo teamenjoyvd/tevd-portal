@@ -6,5 +6,5 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
-| #703 | `dev/2608-DEV-703` | `lib/server/calendar.ts`, `types/calendar.ts`, `app/api/calendar/feed.ics/route.ts`, `lib/server/calendar.test.ts`, `e2e/guest-invite.spec.ts` — **migration: no** | 2026-08-09 |
+| #704 | `dev/2608-DEV-704` | `lib/notifications/share-events.ts`, `lib/notifications/share-events.test.ts` (new) — **migration: no** | 2026-08-09 |
 
