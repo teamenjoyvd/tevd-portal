@@ -2,6 +2,7 @@ import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { createClient } from '@/lib/supabase/server'
 import { getCallerProfile } from '@/lib/supabase/guards'
+import { canSeeMeetingUrl } from '@/lib/server/meeting-url-visibility'
 
 export async function GET(
   _req: Request,
@@ -17,7 +18,7 @@ export async function GET(
       .from('calendar_events').select('*').eq('id', id).single()
     if (error?.code === 'PGRST116') return Response.json({ error: 'Not found' }, { status: 404 })
     if (error) return Response.json({ error: error.message }, { status: 500 })
-    return Response.json({ ...event, meeting_url: null, role_slots: [] })
+    return Response.json({ ...event, meeting_url: null, role_slots: [], caller_registration: null })
   }
 
   const supabase = createServiceClient()
@@ -35,7 +36,7 @@ export async function GET(
 
   // Guests never see role section
   if (callerProfile.role === 'guest') {
-    return Response.json({ ...event, meeting_url: null, role_slots: [] })
+    return Response.json({ ...event, meeting_url: null, role_slots: [], caller_registration: null })
   }
 
   // Fetch all slots for this event
@@ -97,7 +98,29 @@ export async function GET(
     }
   })
 
-  const meeting_url = event.meeting_url
+  // Caller's own active registration — looked up only when the event is open
+  // for guest sharing (the only case the gate below can restrict visibility),
+  // and folded into this response so the popup can render attend state
+  // without a second round-trip.
+  let caller_registration: { id: string; status: string } | null = null
+  if (event.allow_guest_registration === true) {
+    const { data: reg } = await supabase
+      .from('guest_registrations')
+      .select('id, status')
+      .eq('event_id', id)
+      .eq('profile_id', callerProfile.id)
+      .is('cancelled_at', null)
+      .maybeSingle()
+    caller_registration = reg ?? null
+  }
 
-  return Response.json({ ...event, meeting_url, role_slots })
+  const meeting_url = canSeeMeetingUrl({
+    role: callerProfile.role,
+    allowGuestRegistration: event.allow_guest_registration === true,
+    hasActiveRegistration: caller_registration !== null,
+  })
+    ? event.meeting_url
+    : null
+
+  return Response.json({ ...event, meeting_url, role_slots, caller_registration })
 }

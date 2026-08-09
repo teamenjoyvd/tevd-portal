@@ -28,6 +28,11 @@ export type GuestRegistration = {
   sharer_name: string | null
 }
 
+export type CallerRegistration = {
+  id: string
+  status: string
+}
+
 export type EventDetail = {
   id: string
   title: string
@@ -42,4 +47,5 @@ export type EventDetail = {
   event_type: 'in-person' | 'online' | 'hybrid' | null
   week_number: number
   role_slots: RoleSlot[]
+  caller_registration: CallerRegistration | null
 }

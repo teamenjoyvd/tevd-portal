@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dialog'
 import type { TranslationKey } from '@/lib/i18n'
 import type { EventDetail } from './types'
+import AttendSection from './AttendSection'
 
 const RANGE_DAY_MONTH_FMT = new Intl.DateTimeFormat('bg-BG', { day: '2-digit', month: '2-digit', timeZone: TZ })
 const RANGE_FULL_FMT = new Intl.DateTimeFormat('bg-BG', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: TZ })
@@ -55,6 +56,11 @@ type Props = {
   onShare: () => void
   onQrShare: () => void
   downloadQr: () => void
+  isAdmin: boolean
+  isEventEnded: boolean
+  attendPending: boolean
+  onAttend: () => void
+  onCancelAttend: () => void
   t: (key: TranslationKey) => string
   children: ReactNode
 }
@@ -62,6 +68,7 @@ type Props = {
 export default function EventPopupShell({
   event, isLoading, onClose, isGuest, showMeta,
   shareLoading, shareCopied, qrLoading, qrDataUrl, onQrDismiss, onShare, onQrShare, downloadQr,
+  isAdmin, isEventEnded, attendPending, onAttend, onCancelAttend,
   t, children,
 }: Props) {
   const eventTypeStyle = event?.event_type ? EVENT_TYPE_STYLES[event.event_type] : null
@@ -146,6 +153,29 @@ export default function EventPopupShell({
                     className="truncate hover:underline" style={{ color: 'var(--brand-teal)' }}>
                     {event.meeting_url}
                   </a>
+                </div>
+              )}
+              {/* Gated (D3): the API already nulled meeting_url for a non-attending
+                  non-admin caller on an event open for guest sharing — this hint
+                  is the only surface that explains why the link is missing. Also
+                  requires no active registration: an already-attending member on
+                  an event with no meeting_url configured at all must not be told
+                  to attend for a link that will never appear. */}
+              {!isGuest && !isAdmin && !event.meeting_url && event.allow_guest_registration && event.caller_registration === null && (
+                <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
+                  {t('cal.attendForLink')}
+                </p>
+              )}
+              {event.allow_guest_registration && !isGuest && !isAdmin && (
+                <div className="mt-3">
+                  <AttendSection
+                    isRegistered={event.caller_registration !== null}
+                    isEnded={isEventEnded}
+                    isPending={attendPending}
+                    onAttend={onAttend}
+                    onCancelAttend={onCancelAttend}
+                    t={t}
+                  />
                 </div>
               )}
               {event.allow_guest_registration && !isGuest && (

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useLanguage } from '@/lib/hooks/useLanguage'
-import { apiClient } from '@/lib/apiClient'
+import { apiClient, ApiError } from '@/lib/apiClient'
 import QRCode from 'qrcode'
 import { toast } from 'sonner'
 import EventPopupShell from './popup/EventPopupShell'
@@ -43,6 +43,8 @@ export default function EventPopup({
   const isClosed = !isAdmin && !!event &&
     Date.now() >= new Date(event.start_time).getTime() - 15 * 60 * 1000
 
+  const isEventEnded = !!event && Date.now() >= new Date(event.end_time).getTime()
+
   const requestMutation = useMutation({
     mutationFn: (role_label: string) =>
       apiClient(`/api/events/${eventId}/request-role`, {
@@ -56,6 +58,32 @@ export default function EventPopup({
     mutationFn: (request_id: string) =>
       apiClient(`/api/events/${eventId}/request-role`, { method: 'DELETE' }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['event', eventId] }),
+  })
+
+  const attendMutation = useMutation({
+    mutationFn: () => apiClient(`/api/events/${eventId}/attend`, { method: 'POST', body: JSON.stringify({}) }),
+    onSuccess: () => {
+      toast.success(t('cal.attendSuccess'))
+      qc.invalidateQueries({ queryKey: ['event', eventId] })
+      qc.invalidateQueries({ queryKey: ['event-registrations', eventId] })
+    },
+    onError: (err: unknown) => {
+      const message = err instanceof ApiError ? err.message : ''
+      const key = message.includes('capacity') ? 'cal.attendFull'
+        : message.includes('already ended') ? 'cal.attendClosed'
+        : 'cal.attendError'
+      toast.error(t(key))
+    },
+  })
+
+  const cancelAttendMutation = useMutation({
+    mutationFn: () => apiClient(`/api/events/${eventId}/attend`, { method: 'DELETE' }),
+    onSuccess: () => {
+      toast.success(t('cal.cancelAttendSuccess'))
+      qc.invalidateQueries({ queryKey: ['event', eventId] })
+      qc.invalidateQueries({ queryKey: ['event-registrations', eventId] })
+    },
+    onError: () => toast.error(t('cal.cancelAttendError')),
   })
 
   async function handleShare() {
@@ -130,6 +158,11 @@ export default function EventPopup({
       onShare={handleShare}
       onQrShare={handleQrShare}
       downloadQr={downloadQr}
+      isAdmin={isAdmin}
+      isEventEnded={isEventEnded}
+      attendPending={attendMutation.isPending || cancelAttendMutation.isPending}
+      onAttend={() => attendMutation.mutate()}
+      onCancelAttend={() => cancelAttendMutation.mutate()}
       t={t}
     >
       {isGuest ? (
