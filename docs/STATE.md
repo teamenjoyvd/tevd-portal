@@ -1,46 +1,48 @@
 ## Goal
-BUILD issue #700 (2608-DEV-700, branch `dev/2608-DEV-700`): follow-up on the Location tile shipped
-by #698/PR #699 — give expand/collapse a real size animation, remove the "LIVE" status pill, and
-make **expanded** the state the tile loads in (a tap swaps it).
+BUILD issue #703 (2608-DEV-703, branch `dev/2608-DEV-703`), first child of epic #702: stop shipping
+`calendar_events.meeting_url` in the role-scoped calendar list projection and the ICS feed; point
+both at the portal event page instead (epic decision D8).
 
 ## Now
-Edits applied on `dev/2608-DEV-700` (cut from `origin/main` at `dacca8b`, upstream unset):
-- `components/ui/expand-map.tsx` — the inner card's `width`/`height` are plain inline values
-  (68%/64% collapsed, 100% expanded) with a CSS `transition-[width,height] duration-500` on a
-  back-out easing that overshoots slightly; root became a centring flex container. See
-  `## Failed attempts` for why this is NOT a framer animation. `isExpanded` defaults to `true`. The
-  status pill (dot + "LIVE") and the hover hint are gone, along with the `liveLabel`/`expandHint`
-  props and the now-unused `parchment()` helper. Three `initial={false}` changes remove hydration
-  mismatches that the expanded-by-default state exposed.
-- `LocationTile.tsx` no longer passes the two removed props; `home.loc.live` / `home.loc.expand`
-  deleted from `lib/i18n/domains/home.ts`.
-- `e2e/home-no-webgl.spec.ts` third test rewritten — it clicked once and expected the coordinates to
-  APPEAR, which the inverted default turns into a collapse. It now asserts no horizontal overflow in
-  all three states (expanded on load -> collapsed -> expanded again), driving off `aria-expanded`.
+All edits applied and verified on `dev/2608-DEV-703` (cut from `origin/main` at `435c58f`, upstream
+unset). NOT pushed — no push authorization in this conversation.
+- `lib/server/calendar.ts` — `meeting_url` dropped from `LIST_COLUMNS`. New module-local
+  `portalEventUrl(portalUrl, eventId)` builds `<portal>/calendar?event=<encoded id>`.
+  `buildEventDescription(event, portalUrl)` and `toVEventInput(event, portalUrl)` both gained a
+  second parameter and lost `meeting_url` from their param types; the VEVENT `url` and the
+  plain-text `Meeting link:` line are now the portal pointer (`Details: …`).
+- `types/calendar.ts` — `'meeting_url'` removed from the `CalendarListEvent` pick.
+- `app/api/calendar/feed.ics/route.ts` — resolves `await getBaseUrl()` INSIDE the existing try that
+  already degrades to an empty feed, so a missing `NEXT_PUBLIC_APP_URL` cannot turn a 200 into a 500.
+- `lib/server/calendar.test.ts` — 6 snapshots updated, +4 tests (URL-encoding, stale `meeting_url`
+  on the row ignored, VEVENT `url` is the portal, and a `listEventsForRole` projection guard that
+  asserts the full `select()` column list).
+- `e2e/guest-invite.spec.ts` — new non-serial describe asserting the anonymous `/api/calendar`
+  payload carries no `meeting_url`, skipping loudly rather than passing vacuously on an empty list.
+- `docs/ai/REF.md` — the two calendar rows in the routes table no longer claim the ICS `URL` is the
+  meeting link.
 
 ## Next
-1. CI on PR #701 has never executed — every job died in "Set up job" or timed out queued during the
-   2026-08-06 GitHub Actions major outage (`cancelled`, `steps=0`). Re-run once Actions recovers.
-   `390px smoke vs preview`, `Replay migrations` and `Security Audit` DID run and passed.
-2. PR is a DRAFT. Ask the user before marking it ready for review or merging.
+1. Address any `/code-review low` findings locally.
+2. Ask the user before pushing `dev/2608-DEV-703` and opening the draft PR.
+3. PR body must carry `Closes #703`; announce the ICS downgrade (phone-calendar users lose one-tap
+   join on every event, gated or not — issue #703 "Announce the ICS change").
 
 ## Handover — start the follow-up session with this
 ```
-Branch dev/2608-DEV-700 (issue #700) carries the LocationMap follow-up: size spring, LIVE pill
-removed, expanded by default. Re-run lint/check-types/build and the home-no-webgl spec on both
-projects, then ask the user before pushing.
+Branch dev/2608-DEV-703 (issue #703, child of epic #702) removes meeting_url from the calendar list
+projection and the ICS feed. npm run verify is green (362 tests). Nothing is pushed. Ask the user
+before pushing / opening the PR.
 ```
 
 ## Constraints
-- Never push to `main`; `dev/2608-DEV-700` only. `git checkout -b dev/2608-DEV-700 origin/main` SET
+- Never push to `main`; `dev/2608-DEV-703` only. `git checkout -b dev/2608-DEV-703 origin/main` SET
   origin/main as the upstream; it was unset immediately (`git branch --unset-upstream`), so
   `git rev-parse --abbrev-ref @{u}` -> fatal and a bare `git push` cannot hit main. Re-check after
   every branch cut — the tracking default is the trap, not the push.
 - No `git push` unless the user asks for a push in THIS conversation, quoted beside the command.
-  GRANTED 2026-08-06 for `dev/2608-DEV-700`, verbatim: "push and open draft PR". Scope: push this
-  branch and open the PR AS A DRAFT. Does NOT cover marking it ready for review or merging — ask
-  again for both. (The earlier 2026-08-06 grant was scoped to `dev/2608-DEV-698` and did not
-  carry over.)
+  NOT GRANTED for `dev/2608-DEV-703` as of 2026-08-09. (The 2026-08-06 grants were scoped to
+  `dev/2608-DEV-698` and `dev/2608-DEV-700` and did not carry over.)
 - Never weaken a check to make it pass.
 - Fold the `docs/CLAIMS.md` row removal + `docs/STATE.md` updates into the merging PR — NEVER a
   standalone cleanup PR.

@@ -18,7 +18,6 @@ export type CalendarListEvent = Pick<
   | 'access_roles'
   | 'is_all_day'
   | 'location'
-  | 'meeting_url'
 >
 
 /** Full row shape for single-event detail consumers. */

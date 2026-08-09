@@ -443,8 +443,8 @@ Normalised UNION ALL over `profiles_audit` + `role_change_audit`. Columns: `prof
 | `/api/trips` | GET, POST | GET: role-filtered list (unauthenticated → guest). POST: admin-only create |
 | `/api/trips/[id]/messages` | GET | Read-only trip bulletin (admin-authored; no author shown to members) |
 | `/api/trips/[id]/payments` | GET | |
-| `/api/calendar` | GET | Role-filtered; no `?month` → agenda from today |
-| `/api/calendar/feed.ics` | GET | iCal feed; `?token=` JWT auth; emits LOCATION + URL + CATEGORIES |
+| `/api/calendar` | GET | Role-filtered; no `?month` → agenda from today. Never returns `meeting_url` (2608-DEV-703 / D8) — the gated detail endpoint `/api/events/[id]` serves it |
+| `/api/calendar/feed.ics` | GET | iCal feed; `?token=` JWT auth; emits LOCATION + URL + CATEGORIES. `URL` is the portal event page (`/calendar?event=<id>`), never `meeting_url` (2608-DEV-703 / D8) |
 | `/api/calendar/feed-token` | GET, POST | Issue/regenerate iCal subscription token |
 | `/api/guides` | GET | Published, access_roles respected |
 | `/api/links` | GET | Active links, role-filtered |

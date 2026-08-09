@@ -215,3 +215,34 @@ test.describe('390px viewport', () => {
     ).toBeLessThanOrEqual(390)
   })
 })
+
+// -- anonymous list payload carries no meeting link ---------------------------
+
+// 2608-DEV-703 / epic #702 D8. /api/calendar is on the public allowlist
+// (lib/public-routes.ts) and resolves sessionless callers to role 'guest', so
+// this is exactly the payload an anonymous visitor receives. Runs outside the
+// serial chain above and needs neither the fixture nor service credentials.
+test.describe('anonymous /api/calendar payload', () => {
+  test.describe.configure({ mode: 'default' })
+
+  test('never carries meeting_url', async ({ request }) => {
+    const res = await request.get('/api/calendar')
+    expect(res.ok(), `GET /api/calendar returned ${res.status()}`).toBe(true)
+
+    const events = (await res.json()) as Array<Record<string, unknown>>
+    expect(Array.isArray(events)).toBe(true)
+
+    // An empty list would pass the key assertion vacuously — make that visible
+    // as a skip rather than a green tick on a DB with no guest-visible events.
+    test.skip(
+      events.length === 0,
+      'no guest-visible calendar events in this DB — the meeting_url assertion would pass vacuously',
+    )
+
+    const leaking = events.filter(e => 'meeting_url' in e)
+    expect(
+      leaking,
+      `meeting_url present on ${leaking.length}/${events.length} events in the anonymous payload`,
+    ).toEqual([])
+  })
+})
