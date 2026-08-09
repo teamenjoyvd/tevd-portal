@@ -55,7 +55,11 @@ function buildClient(existing: Row) {
   const updateSpy = vi.fn(() => ({
     eq: () => ({ eq: () => Promise.resolve({ error: null }) }),
   }))
-  const upsertSpy = vi.fn(() => Promise.resolve({ error: null }))
+  // Payload typed so tests can assert on the row actually written (e.g. the
+  // freshly minted token), not only on call counts.
+  const upsertSpy = vi.fn<
+    (row: Record<string, unknown>, opts?: Record<string, unknown>) => Promise<{ error: null }>
+  >(() => Promise.resolve({ error: null }))
 
   const event = {
     id: 'e',
@@ -176,7 +180,11 @@ describe('registerGuest — token reuse', () => {
     expect(res.success).toBe(true)
     expect(upsertSpy).toHaveBeenCalledTimes(1)
     expect(updateSpy).not.toHaveBeenCalled()
-    expect(capturedMagicLink).not.toContain('null')
+    // Assert the link carries the token actually minted, not merely "not null" —
+    // a link built from a stale or empty token would pass the weaker check.
+    const minted = (upsertSpy.mock.calls[0][0] as { token: string }).token
+    expect(minted).toMatch(/^[0-9a-f]{64}$/)
+    expect(capturedMagicLink).toContain(minted)
   })
 
   it('mints a fresh token when the prior registration has a null expiry', async () => {
@@ -192,7 +200,10 @@ describe('registerGuest — token reuse', () => {
     expect(res.success).toBe(true)
     expect(upsertSpy).toHaveBeenCalledTimes(1)
     expect(updateSpy).not.toHaveBeenCalled()
-    expect(capturedMagicLink).not.toContain('existing-token-abc')
+    const minted = (upsertSpy.mock.calls[0][0] as { token: string }).token
+    expect(minted).toMatch(/^[0-9a-f]{64}$/)
+    expect(minted).not.toBe('existing-token-abc')
+    expect(capturedMagicLink).toContain(minted)
   })
 })
 

@@ -160,6 +160,14 @@ The remaining tail, in order — none of it optional:
     so `db push` and the `migrations-check.yml` replay would both fail. The cost it avoids is also
     near zero here: prod `guest_registrations` is **70 rows / 136 kB**, and no migration in this
     repo has ever used `CONCURRENTLY`.
+- GCR round 2 on #716: CodeRabbit accepted the `CONCURRENTLY` skip verbatim ("incompatible with the
+  transactional Supabase migration workflow used by this repository") and raised ONE new Minor on
+  the tests added in round 1 — `not.toContain('null')` is a weak assertion. Fixed: both null-branch
+  tests now read the token out of `upsertSpy.mock.calls[0][0]`, assert it matches `/^[0-9a-f]{64}$/`,
+  and assert the magic link contains that exact value. `buildClient`'s `upsertSpy` is now typed via
+  `vi.fn<…>()` so `mock.calls` is not the empty tuple; the two sibling harnesses
+  (`buildCapacityClient`, `buildAbuseClient`) were deliberately left alone — they assert call counts
+  only.
 - NOTED (not done): the three pre-existing tests in `lib/notifications/guest-event-changes.test.ts`
   still use `await new Promise(r => setTimeout(r, 10))` and carry the same race the reviewer flagged.
   Only the test this ticket added was converted to `vi.waitFor`; converting the rest is unrelated churn.
