@@ -4,22 +4,27 @@ D1 in epic #702: a signed-in member opening someone's `?share=` link gets one-ta
 inviter credited, never the guest name+email form.
 
 ## Now
-CLAIM complete, BUILD not started. Branch `dev/2608-DEV-708` exists, cut from `main` @ `067250c`,
-with `327327c` (claim row registered + #707's row pruned) and the session-state commit on top.
-Working tree otherwise clean — no application code written yet.
+BUILD complete and committed as `bce3c28` (5 files, +571/-3): i18n keys, `MemberAttendPanel.tsx`,
+`register/page.tsx` wiring, `playwright.config.ts:38`, `e2e/member-share-register-auth.spec.ts`.
+Static gates all green (see Facts). `/code-review low` returned three findings, all dispositioned
+without code change — one rejected on the real prop type, one logged below as NOTED, one rejected as
+consistent with `EventPopup.tsx:76-78`. Not yet pushed.
 
 ## Next
-1. SHAPE/GATHER per `docs/ai/BUILD.md`; re-read `docs/ai/GOTCHAS.md` in full.
-2. Implement in this order: i18n keys -> `MemberAttendPanel.tsx` -> `register/page.tsx` wiring ->
-   `playwright.config.ts:38` -> `e2e/member-share-register-auth.spec.ts`.
-3. `npx vitest run`, `npx tsc --noEmit`, `npx eslint .`, then
-   `npx playwright test --list --project=authenticated e2e/member-share-register-auth.spec.ts`.
-4. `/code-review low` on the diff — `git add -N` any new untracked files FIRST, or they carry no
-   hunks and are silently skipped (that happened on #707).
-5. Push -> draft PR (CodeRabbit skips drafts) -> CI green + Vercel Preview READY -> verify DoD on
-   the preview at 390px -> ready for review -> batch-fix CodeRabbit findings in ONE commit.
-6. After merge: GCR post-merge tail — remove the #708 row from `docs/CLAIMS.md`, smoke-check
+1. Push `dev/2608-DEV-708` -> draft PR (CodeRabbit skips drafts), body carries `Closes #708` and the
+   Session State block.
+2. CI green + Vercel Preview READY — confirm the Authenticated E2E job actually ran its steps rather
+   than skipping on missing secrets (green-by-skip does not count).
+3. Verify the DoD on the preview at 390px: signed-in member sees the panel and no name/email inputs;
+   logged-out visitor on the same URL still gets the guest form.
+4. Ready for review -> batch-fix CodeRabbit findings in ONE commit.
+5. After merge: GCR post-merge tail — remove the #708 row from `docs/CLAIMS.md`, smoke-check
    production, close #708. No migration, so `Migrate Prod` will auto-skip.
+
+## Not run locally
+`e2e/member-share-register-auth.spec.ts` is COLLECTED but NOT EXECUTED — the `authenticated` project
+needs local Supabase + `npm run e2e:seed-clerk`. It also needs a second named profile to act as the
+inviter; `skipIfUnseeded` covers its absence, so watch for a silent skip in CI rather than a pass.
 
 ## Constraints
 - Never push without an explicit grant in this conversation. The grant used for `dev/2608-DEV-708`
@@ -56,11 +61,18 @@ Working tree otherwise clean — no application code written yet.
 - Server-side member identity pattern to copy: `app/events/[eventId]/join/page.tsx:165-174`
   (`auth()` -> `profiles` by `clerk_id`). Works because `/events/(.*)` is in `PUBLIC_ROUTE_PATTERNS`
   (`lib/public-routes.ts:29`).
-- BASELINE at `067250c` (recorded during #707, files unchanged since): `npx vitest run` -> 32 files /
-  417 tests passed. `npx tsc --noEmit` -> clean. `npx eslint .` -> 0 errors, 468 warnings.
+- BASELINE re-measured 2026-08-10 before the #708 edits: `npx vitest run` -> 32 files / **420** tests
+  passed (#707's note of 417 was stale). `npx tsc --noEmit` -> clean. `npx eslint .` -> 0 errors, 468
+  warnings. After the #708 commit: all three identical, and
+  `npx playwright test --list --project=authenticated e2e/member-share-register-auth.spec.ts` ->
+  `Total: 4 tests in 1 file`, with 0 hits under `--project=desktop --project=mobile-390`.
 - Production smoke 2026-08-10: `https://www.teamenjoyvd.com` 200, `/sign-in` 200.
 
 ## Done
+- #708 BUILD — RESULT: `bce3c28`, 5 files, +571/-3. All six issue corrections honoured: reused the
+  attend route (no `lib/actions/member-registration.ts`), one `playwright.config.ts` edit, server-
+  rendered attending state, link-not-redirect to `/join`, `first_name + last_name` for the sharer.
+  Deviation logged: 571 lines vs the ~260 estimate (2.2x), no unplanned file or kind of change.
 - #708 PLAN + CLAIM — RESULT: verdict READY; issue body rewritten with six corrections against
   current `main`, Design Checklist 4/4, `## Branch dev/2608-DEV-708`; `blocked` label cleared.
 - #707 closed — RESULT: merged as PR #719 (`067250c`), no migration, `Migrate Prod` auto-skipped (8s).
@@ -71,10 +83,16 @@ Working tree otherwise clean — no application code written yet.
   dependencies have all merged.
 
 ## Open items
+- NOTED (not done, found during #708): a signed-in member blocked by a FULL event still gets
+  `ResendLinkForm` — the guest magic-link resend — at `app/events/[eventId]/register/page.tsx:162`
+  and `:209`. Wrong flow for a portal identity, but it is the pre-existing blocked branch and
+  outside #708's DoD, which only required that a full event not block an already-active member.
 - NOTED (not done): `app/events/[eventId]/join/components/JoinActions.tsx:30-39` (`downloadIcs`)
   still has the detached-anchor + synchronous-`revokeObjectURL` pattern fixed in
   `AddToCalendarMenu.tsx` — same latent no-file-downloaded bug in Firefox/Safari. #707 had to leave
   `JoinActions` behaviour unchanged; fold it in here if this page adopts `AddToCalendarMenu`.
+  STILL OPEN after #708: the register page adopted `AddToCalendarMenu` (already carrying the fixed
+  pattern), but `JoinActions` lives on the join page and was not touched. Needs its own ticket.
 - **#718** `[2608-DEV-718]` `bug` (unclaimed): capacity-check TOCTOU race, same shape in
   `guest-registration.ts` and `member-registration.ts` — no DB-level guard on `guest_capacity`.
   Needs one atomic DB-side check covering both call sites. Not #708's DoD.
