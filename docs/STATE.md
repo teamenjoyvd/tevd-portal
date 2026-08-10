@@ -4,18 +4,17 @@ request auto-creates/adopts an active `guest_registrations` row for the holder; 
 counting excludes approved role holders.
 
 ## Now
-Steps 1-4 of 5 done and green locally. Step 5: `/code-review low`, then ASK before applying the
-migration to hosted DEV, then draft PR + authenticated E2E.
+#710 is **PR #725** at `c97e836`. All 11 CI checks green, Vercel preview READY, DoD verified
+point-by-point. Marking it ready for review, which triggers the single CodeRabbit pass.
 
 ## Next
-1. `/code-review low` on the branch diff; fix findings locally.
-2. ASK the user before applying
-   `20260811000000_2608_feat_710_approve_role_creates_registration.sql` to hosted DEV
-   (`iymwxdewcpvpjgzewtzk`), then verify by SQL: approve creates one active row; approving twice is
-   idempotent; a self-cancelled holder reactivates; a holder who already registered as a guest ends
-   with exactly ONE row.
-3. ASK for a push grant, then push and open a DRAFT PR (`Closes #710`); confirm CI + Vercel preview.
-4. Authenticated E2E (`e2e/member-attend-auth.spec.ts` covers the changed capacity path).
+1. Apply CodeRabbit's findings as ONE batched commit (each push re-triggers an incremental review;
+   drip-fed fixes burn quota). Wrong findings: reply on the thread and resolve, do not churn code.
+3. Merge, then approve the gated `Migrate Prod` run promptly and confirm the prod ledger head
+   advances to `20260811000000`. The RPC ships on merge; until the gate is approved, approving a
+   role request will NOT create a registration row in prod.
+4. Smoke-check `https://www.teamenjoyvd.com`. The `docs/CLAIMS.md` #710 row is pruned by the NEXT
+   ticket's CLAIM commit, matching how `cdadc1d` pruned #709 — never a standalone cleanup PR.
 
 ## Constraints
 - Never push without an explicit grant in this conversation. Grants from earlier tickets/sessions do
@@ -60,6 +59,15 @@ migration to hosted DEV, then draft PR + authenticated E2E.
 - Production smoke 2026-08-10: `https://www.teamenjoyvd.com` 200, `/sign-in` 200.
 
 ## Done
+- #710 CI on `c97e836` — RESULT: all 11 checks green. `Replay migrations from scratch` 2m27s (the
+  migration DoD item). `Authenticated E2E (Clerk)` 6m13s and it REALLY RAN, not a green-by-skip:
+  the job log shows `Running 34 tests using 2 workers` -> `34 passed (3.0m)`. `390px smoke vs
+  preview` 2m27s. Vercel preview READY. CodeRabbit correctly skipped (draft).
+- #710 Registrations-tab DoD verified on hosted DEV — RESULT: after approval,
+  `get_event_registrations_for_viewer(event, admin_viewer)` returns exactly 1 row,
+  `registrant='Tab Host'`, `is_member=t`, `email` NULL, `status=confirmed`, `profile_id` set. NOTE
+  the RPC's column is `registrant`, NOT `name` — a `rec.name` reference fails with
+  "record has no field name".
 - #710 RPC verified on hosted DEV (`iymwxdewcpvpjgzewtzk`) — RESULT: **7/7 scenarios pass**, run as
   one rolled-up DO block with `request.jwt.claims` set to `{"role":"service_role"}` to satisfy the
   RPC's internal guard, with all scratch rows deleted afterwards (re-checked: 0 left). S1 approval
