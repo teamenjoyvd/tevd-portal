@@ -1,18 +1,23 @@
 ## Goal
-BUILD issue #708 (2608-DEV-708) — recognised member on the share/register page. Second half of
-D1 in epic #702: a signed-in member opening someone's `?share=` link gets one-tap Attend with the
-inviter credited, never the guest name+email form.
+PLAN + CLAIM issue #709 (2608-DEV-709) — tiered Registrations tab (upline visibility), D5 of
+epic #702. ADMIN sees every registration; CORE sees its own inclusive ltree subtree (downline
+sign-ups + guests those downlines invited); MEMBER sees own sign-up + own share-link guests;
+unattributed guests stay admin-only.
 
 ## Now
-PR #720 is ready-for-review (no longer draft) against `main`, MERGEABLE. CodeRabbit's single pass
-ran (review `4896845966`): 3 inline + 4 nitpicks. GCR applied 5 of 7 in one commit; B and E
-declined with replies and left unresolved for human follow-up. Awaiting merge.
+#709 CLAIM complete on `dev/2608-DEV-709` (commit `379b889`, `docs/CLAIMS.md` only, unpushed).
+Issue body rewritten against `main@a11b89d` with seven corrections; Design Checklist 4/4;
+`## Branch` present. #708 is done — PR #720 merged 2026-08-10T15:06Z, issue auto-closed, epic
+checklist ticked, claim row pruned. No BUILD work has started on #709.
 
 ## Next
-1. Merge #720 once the post-GCR checks are green (11/11) — the merge decision is a human call.
-2. After merge: GCR post-merge tail — remove the #708 row from `docs/CLAIMS.md`, smoke-check
-   production, close #708. No migration, so `Migrate Prod` will auto-skip.
-3. Offer a ticket for the declined finding E (machine-readable attend error code) — see Open items.
+1. BUILD #709 in the five numbered steps named in the issue (migration + types → route + delete →
+   client rename + tab → i18n → seed + e2e), each ending with its own check.
+2. #709 carries a migration: apply to hosted DEV only, and ask before applying anywhere.
+   Post-merge, approve the gated `Migrate Prod` run promptly — the route ships on merge while the
+   function waits for the gate, so the tab 500s until it is approved.
+3. Still unticketed: the machine-readable attend error code (declined CodeRabbit finding E on
+   #720) and the `JoinActions` download-anchor pattern — both under Open items.
 
 ## Not covered by any test (#708)
 - DoD "member with `role = 'guest'` falls through to the guest form" is IMPLEMENTED
@@ -64,7 +69,30 @@ declined with replies and left unresolved for human follow-up. Awaiting merge.
   `Total: 4 tests in 1 file`, with 0 hits under `--project=desktop --project=mobile-390`.
 - Production smoke 2026-08-10: `https://www.teamenjoyvd.com` 200, `/sign-in` 200.
 
+## Facts (#709)
+- `EventPopup.tsx` is at `app/(dashboard)/calendar/components/`, NOT in `popup/` — the issue's
+  original `popup/EventPopup.tsx` path was wrong. `adminTab` `:31`, `showMeta` `:148` (not `:116`).
+- `showMeta` gates far more than the meta block: `AttendSection` (`EventPopupShell.tsx:169-185`),
+  the share/QR buttons (`:186-214`) and the `cal.attendForLink` hint (`:164`) all sit inside it.
+  Extending it to core/member hides the Attend button while the Registrations tab is open.
+- No `core` Clerk fixture exists — `scripts/seed-clerk-test-users.js:81-82` seeds `member` + `admin`
+  only, plus a profile-only downline under the member. Do NOT flip the shared member fixture's role
+  in-spec: `playwright.config.ts` sets no `workers`, so files parallelize and `payments-on-behalf` /
+  `profile-bento-auth` share that fixture. Seed a CORE at its own disjoint root instead.
+- Sole consumer of `app/api/admin/events/[id]/registrations/route.ts` is `CoreAdminActions.tsx:15`;
+  sole importer of the `GuestRegistration` type is the same file. Both safe to delete/rename.
+- `email IS NULL` for member rows is enforced by `guest_registrations_guest_xor_member_chk`
+  (`…705….sql:53-57`) — no masking logic needed, just don't COALESCE it back.
+- BASELINE 2026-08-10 on `main@a11b89d`: `npx tsc --noEmit` clean. vitest/eslint carried from the
+  #708 run on the same tree (32 files / 420 passed; 0 errors, 468 warnings).
+
 ## Done
+- #709 PLAN + CLAIM — RESULT: verdict READY; issue body rewritten with seven corrections (five
+  path/line drift, two real gaps — C6 showMeta scope, C7 missing CORE e2e fixture); Design
+  Checklist 4/4; `## Branch dev/2608-DEV-709`; claim row committed at `379b889` with the merged
+  #708 row pruned in the same commit.
+- #708 closed — RESULT: merged as PR #720 (`a11b89d`), no migration, `Migrate Prod` auto-skips.
+  Epic #702 checklist ticked; claim row removed.
 - #708 GCR (PR #720) — RESULT: 5 findings applied in one commit, 2 declined. Applied: empty
   `memberName` no longer renders a dangling "Signed in as " (`MemberAttendPanel.tsx`); the attend
   button keeps its accessible name with `aria-busy` instead of swapping the label for '…'; the
