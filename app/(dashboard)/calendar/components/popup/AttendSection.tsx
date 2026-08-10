@@ -11,8 +11,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { Check } from 'lucide-react'
+import { Check, Video } from 'lucide-react'
 import type { TranslationKey } from '@/lib/i18n'
+import AddToCalendarMenu from '@/components/AddToCalendarMenu'
 
 type Props = {
   isRegistered: boolean
@@ -21,9 +22,18 @@ type Props = {
   onAttend: () => void
   onCancelAttend: () => void
   t: (key: TranslationKey) => string
+  /** Event data for the attending-state CTA row (2608-DEV-707). */
+  eventId: string
+  title: string
+  startTime: string
+  endTime: string
+  meetingUrl: string | null
 }
 
-export default function AttendSection({ isRegistered, isEnded, isPending, onAttend, onCancelAttend, t }: Props) {
+export default function AttendSection({
+  isRegistered, isEnded, isPending, onAttend, onCancelAttend, t,
+  eventId, title, startTime, endTime, meetingUrl,
+}: Props) {
   if (isEnded) {
     return (
       <button
@@ -38,6 +48,7 @@ export default function AttendSection({ isRegistered, isEnded, isPending, onAtte
 
   if (isRegistered) {
     return (
+      <div className="space-y-2.5">
       <div className="flex items-center gap-3">
         <span
           className="flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full"
@@ -67,6 +78,37 @@ export default function AttendSection({ isRegistered, isEnded, isPending, onAtte
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+      </div>
+
+        {/* Attending-state CTA row (2608-DEV-707). The "Join meeting" link goes
+            to /events/[id]/join, which STAMPS attendance — deliberately not the
+            same thing as the raw meeting_url shown above it, which just opens
+            the call. The caption is what tells the two apart. */}
+        <div className="flex items-center gap-4 flex-wrap">
+          <a
+            href={`/events/${eventId}/join`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex flex-col"
+            style={{ color: 'var(--brand-teal)' }}
+          >
+            <span className="flex items-center gap-1.5 text-xs font-semibold hover:opacity-70 transition-opacity">
+              <Video size={12} />
+              {t('event.join.joinMeeting')}
+            </span>
+            <span className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>
+              {t('cal.joinRecordsAttendance')}
+            </span>
+          </a>
+          {startTime !== '' && endTime !== '' && (
+            <AddToCalendarMenu
+              title={title}
+              startTime={startTime}
+              endTime={endTime}
+              meetingUrl={meetingUrl}
+            />
+          )}
+        </div>
       </div>
     )
   }

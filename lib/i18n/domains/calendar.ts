@@ -38,4 +38,7 @@ export const calendar = {
   'cal.cancelAttendDesc':   { en: 'You can attend again later if you change your mind.', bg: 'Можете да се регистрирате отново по-късно, ако размислите.' },
   'cal.cancelAttendSuccess': { en: 'Your attendance was cancelled.', bg: 'Присъствието ви бе отказано.' },
   'cal.cancelAttendError':  { en: 'Could not cancel. Please try again.', bg: 'Отказът не бе успешен. Опитайте отново.' },
+  // 2608-DEV-707 — the attending-state CTA row
+  'cal.joinRecordsAttendance': { en: 'Records your attendance',     bg: 'Отбелязва присъствието ви'      },
+  'cal.attendSuccessEmailed':  { en: "You're attending. Confirmation sent to your email.", bg: 'Ще присъствате. Изпратихме потвърждение на имейла ви.' },
 } as const

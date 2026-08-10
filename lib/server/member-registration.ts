@@ -1,5 +1,110 @@
+import * as React from 'react'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { notifySharerOfRegistration, notifySharerOfCancellation } from '@/lib/notifications/share-events'
+import { sendTransactionalEmail } from '@/lib/email/send'
+import { renderEmailTemplate } from '@/lib/email/templates/render'
+import { MemberEventConfirmationEmail } from '@/lib/email/templates/MemberEventConfirmationEmail'
+import { buildGoogleCalUrl, buildOutlookUrl } from '@/lib/calendar-links'
+import { getBaseUrl } from '@/lib/utils/base-url'
+import { consumeEmailCap } from '@/lib/rate-limit'
+import { formatLongDate, formatLongDateEn, formatTime } from '@/lib/format'
+
+type Lang = 'en' | 'bg'
+
+// Same recipient-wide daily bucket the guest flow consumes
+// (lib/actions/guest-registration.ts:46-47) — one cap per human, not one per
+// template. Values are duplicated rather than imported because that module is
+// 'use server', which may only export async functions.
+const MEMBER_EMAIL_DAILY_CAP = 10
+const MEMBER_EMAIL_DAILY_WINDOW_MS = 24 * 60 * 60 * 1000
+
+const CONFIRMATION_TEMPLATE = 'member_event_confirmation'
+
+// Module-local, matching lib/actions/guest-registration.ts:20-24 — email
+// subjects are not UI strings and deliberately stay out of lib/i18n.
+function getMemberConfirmationSubject(lang: Lang, eventTitle: string): string {
+  return lang === 'bg'
+    ? `Присъствието ви е потвърдено: ${eventTitle}`
+    : `You're attending: ${eventTitle}`
+}
+
+type ConfirmationEvent = {
+  title: string
+  start_time: string
+  end_time: string
+  meeting_url: string | null
+}
+
+/**
+ * Member attendance confirmation (D4). Sent only where attendEvent creates or
+ * reactivates a registration — never on the already-active idempotent return,
+ * consistent with 2608-DEV-706's decision not to re-notify the sharer there.
+ *
+ * Never throws and never fails the attend: the registration is already
+ * committed by the time this runs, so a missing NEXT_PUBLIC_APP_URL, a Resend
+ * outage or a render error must not turn a successful attend into an error
+ * response (the failure mode #713 describes on the guest path).
+ *
+ * Returns whether an email actually went out, so the caller's success copy can
+ * avoid claiming one was sent.
+ */
+async function sendMemberConfirmation(
+  contactEmail: string | null,
+  eventId: string,
+  event: ConfirmationEvent,
+  profileName: string,
+  lang: Lang,
+): Promise<boolean> {
+  // No address on file — skip silently. Attending is still a success.
+  if (contactEmail === null || contactEmail === '') return false
+
+  try {
+    // The slot is spent here, not at send time — a failed send still counted.
+    // Deliberate, and the same rule the guest path follows
+    // (lib/actions/guest-registration.ts:204-206, 2608-DEV-625): the cap exists
+    // to bound attempts, and retry-until-success would otherwise be uncapped.
+    const withinDailyCap = await consumeEmailCap({
+      recipient: contactEmail,
+      windowMs: MEMBER_EMAIL_DAILY_WINDOW_MS,
+      max: MEMBER_EMAIL_DAILY_CAP,
+    })
+    if (!withinDailyCap) return false
+
+    const baseUrl = await getBaseUrl()
+    // No token: a member records attendance by authenticating, so this URL is
+    // safe in an inbox.
+    const joinUrl = `${baseUrl}/events/${eventId}/join`
+
+    const html = await renderEmailTemplate(
+      React.createElement(MemberEventConfirmationEmail, {
+        name: profileName,
+        eventTitle: event.title,
+        // formatLongDate is bg-BG by contract, so an en email would otherwise
+        // carry a Bulgarian weekday (2608-DEV-707 review). formatTime is 24h
+        // digits in both locales and needs no twin.
+        eventDateLabel: `${lang === 'bg' ? formatLongDate(event.start_time) : formatLongDateEn(event.start_time)}, ${formatTime(event.start_time)} – ${formatTime(event.end_time)}`,
+        meetingUrl: event.meeting_url,
+        joinUrl,
+        googleCalUrl: buildGoogleCalUrl(event.title, event.start_time, event.end_time, event.meeting_url),
+        outlookUrl: buildOutlookUrl(event.title, event.start_time, event.end_time, event.meeting_url),
+        lang,
+      }),
+    )
+
+    const result = await sendTransactionalEmail({
+      to: contactEmail,
+      subject: getMemberConfirmationSubject(lang, event.title),
+      html,
+      template: CONFIRMATION_TEMPLATE,
+      meta: { eventId, name: profileName },
+    })
+
+    return result.sent
+  } catch (err) {
+    console.error('Failed to send member attendance confirmation:', err)
+    return false
+  }
+}
 
 // Click-credit is a metric, not part of the registration contract — an RPC
 // failure here must not turn an already-committed registration into an
@@ -24,7 +129,8 @@ async function creditShareLink(
 // upsert.
 
 export type AttendMemberResult =
-  | { success: true; registrationId: string }
+  /** `emailed` is false whenever no confirmation went out — no contact_email, over cap, or a send failure. */
+  | { success: true; registrationId: string; emailed: boolean }
   | { success: false; error: string }
 
 export type AttendMemberParams = {
@@ -34,19 +140,24 @@ export type AttendMemberParams = {
   profileName: string
   contactEmail: string | null
   shareToken?: string
+  /**
+   * Confirmation-email language. `profiles` has no `lang` column, so the
+   * caller resolves it (getLangFromCookies) and passes it down.
+   */
+  lang?: Lang
 }
 
 export async function attendEvent(
   supabase: SupabaseClient,
   params: AttendMemberParams
 ): Promise<AttendMemberResult> {
-  const { eventId, profileId, profileRole, profileName, contactEmail, shareToken } = params
+  const { eventId, profileId, profileRole, profileName, contactEmail, shareToken, lang = 'en' } = params
 
   if (profileRole === 'guest') return { success: false, error: 'Guests cannot use member attend.' }
 
   const { data: event, error: eventError } = await supabase
     .from('calendar_events')
-    .select('id, allow_guest_registration, end_time, guest_capacity')
+    .select('id, title, allow_guest_registration, start_time, end_time, guest_capacity, meeting_url')
     .eq('id', eventId)
     .single()
 
@@ -82,7 +193,7 @@ export async function attendEvent(
   // Already active — idempotent no-op success. No re-notify: a repeat tap on
   // an already-attending member is not a new registration event.
   if (existing && existing.cancelled_at === null) {
-    return { success: true, registrationId: existing.id }
+    return { success: true, registrationId: existing.id, emailed: false }
   }
 
   // Capacity applies only when this call adds a new active registrant (brand
@@ -114,7 +225,8 @@ export async function attendEvent(
     if (updateError) return { success: false, error: 'Could not attend. Please try again.' }
 
     await creditShareLink(supabase, shareLinkId, profileName)
-    return { success: true, registrationId: existing.id }
+    const emailed = await sendMemberConfirmation(contactEmail, eventId, event, profileName, lang)
+    return { success: true, registrationId: existing.id, emailed }
   }
 
   // D9 adopt-or-insert: a guest row on this event whose email matches the
@@ -149,7 +261,8 @@ export async function attendEvent(
       if (adoptError) return { success: false, error: 'Could not attend. Please try again.' }
 
       await creditShareLink(supabase, shareLinkId, profileName)
-      return { success: true, registrationId: guestRow.id }
+      const emailed = await sendMemberConfirmation(contactEmail, eventId, event, profileName, lang)
+      return { success: true, registrationId: guestRow.id, emailed }
     }
   }
 
@@ -167,7 +280,8 @@ export async function attendEvent(
   if (insertError || !inserted) return { success: false, error: 'Could not attend. Please try again.' }
 
   await creditShareLink(supabase, shareLinkId, profileName)
-  return { success: true, registrationId: inserted.id }
+  const emailed = await sendMemberConfirmation(contactEmail, eventId, event, profileName, lang)
+  return { success: true, registrationId: inserted.id, emailed }
 }
 
 // -- Cancel ---------------------------------------------------------------------

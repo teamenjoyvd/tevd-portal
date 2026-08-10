@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { NextRequest } from 'next/server'
 import { withProfile } from '@/lib/supabase/with-profile'
 import { attendEvent, cancelMemberRegistration } from '@/lib/server/member-registration'
+import { getLangFromCookies } from '@/lib/utils/lang-cookie'
 
 type AttendProfile = {
   id: string
@@ -42,6 +43,10 @@ export async function POST(
 
   const profileName = `${profile.first_name ?? ''} ${profile.last_name ?? ''}`.trim()
 
+  // `profiles` has no lang column — the confirmation email follows the UI
+  // language the caller is currently browsing in (2608-DEV-707).
+  const lang = await getLangFromCookies()
+
   const result = await attendEvent(supabase, {
     eventId: id,
     profileId: profile.id,
@@ -49,10 +54,13 @@ export async function POST(
     profileName,
     contactEmail: profile.contact_email,
     shareToken: parsed.data.share,
+    lang,
   })
 
   if (!result.success) return Response.json({ error: result.error }, { status: 400 })
-  return Response.json({ registrationId: result.registrationId })
+  // `emailed` drives the client's success copy: it must not claim a
+  // confirmation was sent when there was no contact_email to send it to.
+  return Response.json({ registrationId: result.registrationId, emailed: result.emailed })
 }
 
 export async function DELETE(

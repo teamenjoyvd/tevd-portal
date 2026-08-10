@@ -72,6 +72,17 @@ export function calDay(iso: string): string {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', timeZone: TZ })
 }
 
+/** Wednesday, 18 March 2026 — English twin of formatLongDate, for en emails */
+export function formatLongDateEn(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-GB', {
+    weekday: 'long',
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+    timeZone: TZ,
+  })
+}
+
 /** 18 Mar 2026 — medium English date for admin/member-facing UI */
 export function formatDateMediumEn(iso: string): string {
   return new Date(iso).toLocaleDateString('en-GB', {

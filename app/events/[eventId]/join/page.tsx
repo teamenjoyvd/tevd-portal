@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { JoinActions } from './components/JoinActions'
 import { CancelActions } from './components/CancelActions'
@@ -86,56 +87,123 @@ function InvalidState({ eventId, reason, lang }: { eventId: string; reason: 'mis
 
 // -- Page ----------------------------------------------------------------------
 
+type JoinedEvent = {
+  title:       string
+  meeting_url: string | null
+  start_time:  string
+  end_time:    string
+} | null
+
 export default async function GuestJoinPage({ params, searchParams }: Props) {
   const { eventId } = await params
   const { token }   = await searchParams
 
   const lang = await getLangFromCookies()
 
-  if (!token) return <InvalidState eventId={eventId} reason="missing" lang={lang} />
-
   const supabase = createServiceClient()
 
-  const { data: reg } = await supabase
-    .from('guest_registrations')
-    .select('id, name, event_id, expires_at, share_link_id, cancelled_at, calendar_events(title, meeting_url, start_time, end_time)')
-    .eq('token', token)
-    .single()
+  // Resolved by whichever branch below owns this request: the guest magic
+  // link, or the token-free member URL.
+  let registrantName: string
+  let event: JoinedEvent
 
-  if (!reg)                                  return <InvalidState eventId={eventId} reason="invalid" lang={lang} />
-  if (reg.event_id !== eventId)              return <InvalidState eventId={eventId} reason="invalid" lang={lang} />
-  if (reg.cancelled_at !== null)             return <InvalidState eventId={eventId} reason="cancelled" lang={lang} />
-  // expires_at is NULL for member registrations (2608-DEV-705), which never
-  // expire. A member row cannot reach this page anyway — `reg` is looked up by
-  // `.eq('token', …)` and member rows have no token — but "no expiry" must read
-  // as "not expired", never as "expired at epoch 0".
-  if (reg.expires_at !== null && new Date(reg.expires_at) < new Date()) {
-    return <InvalidState eventId={eventId} reason="expired" lang={lang} />
+  // `?token=` is a supplied-but-empty token, not an absent one: it belongs in
+  // the guest branch, where it resolves to InvalidState, never in the member
+  // branch (2608-DEV-707 review).
+  if (token !== undefined) {
+    const { data: reg } = await supabase
+      .from('guest_registrations')
+      .select('id, name, event_id, expires_at, share_link_id, cancelled_at, calendar_events(title, meeting_url, start_time, end_time)')
+      .eq('token', token)
+      .single()
+
+    if (!reg)                                  return <InvalidState eventId={eventId} reason="invalid" lang={lang} />
+    if (reg.event_id !== eventId)              return <InvalidState eventId={eventId} reason="invalid" lang={lang} />
+    if (reg.cancelled_at !== null)             return <InvalidState eventId={eventId} reason="cancelled" lang={lang} />
+    // expires_at is NULL for member registrations (2608-DEV-705), which never
+    // expire. A member row cannot reach this branch anyway — `reg` is looked up
+    // by `.eq('token', …)` and member rows have no token — but "no expiry" must
+    // read as "not expired", never as "expired at epoch 0".
+    if (reg.expires_at !== null && new Date(reg.expires_at) < new Date()) {
+      return <InvalidState eventId={eventId} reason="expired" lang={lang} />
+    }
+
+    // Stamp attendance + confirm status — idempotent, only writes when not already set
+    const { data: stamped, error: stampError } = await supabase
+      .from('guest_registrations')
+      .update({ attended_at: new Date().toISOString(), status: 'confirmed' })
+      .eq('id', reg.id)
+      .is('attended_at', null)
+      .select('id')
+
+    // A failed stamp is logged, never swallowed and never fatal: the guest's
+    // registration is already valid and verified above, so denying them the
+    // meeting link over an attendance-tracking write is the worse failure
+    // (2608-DEV-707 review). `stamped` is undefined on error, which already
+    // gates the notify below.
+    if (stampError) console.error('Failed to stamp guest attendance:', stampError)
+
+    // Notify sharer — fire-and-forget, must not block render. Gated on the
+    // update having actually stamped a row: this page is a GET, so a refresh,
+    // a revisit or a mail-client link prefetch re-renders it, and an ungated
+    // call mails the sharer once per view (2608-DEV-704).
+    if (reg.share_link_id && stamped && stamped.length > 0) {
+      notifySharerOfAttendance(reg.share_link_id, reg.name)
+    }
+
+    registrantName = reg.name
+    // Narrow joined relation -- PostgREST returns object for to-one FK
+    event = reg.calendar_events as unknown as JoinedEvent
+  } else {
+    // -- Member path (2608-DEV-707) ------------------------------------------
+    // The canonical, token-free attendance URL: same screen, same idempotent
+    // stamp, same sharer notification as the guest magic link — the member
+    // authenticates through Clerk instead of carrying a token. `/events/(.*)`
+    // is in PUBLIC_ROUTE_PATTERNS, so clerkMiddleware runs without protecting:
+    // `auth()` yields a null userId for an anonymous visitor, who falls through
+    // to the same InvalidState the token-less URL always rendered.
+    const { userId } = await auth()
+    if (!userId) return <InvalidState eventId={eventId} reason="missing" lang={lang} />
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('clerk_id', userId)
+      .maybeSingle()
+
+    if (!profile) return <InvalidState eventId={eventId} reason="missing" lang={lang} />
+
+    const { data: reg } = await supabase
+      .from('guest_registrations')
+      .select('id, name, share_link_id, calendar_events(title, meeting_url, start_time, end_time)')
+      .eq('event_id', eventId)
+      .eq('profile_id', profile.id)
+      .is('cancelled_at', null)
+      .maybeSingle()
+
+    // No active member registration — indistinguishable, from here, from any
+    // other token-less visit.
+    if (!reg) return <InvalidState eventId={eventId} reason="missing" lang={lang} />
+
+    // No expiry check: member rows carry expires_at NULL by construction
+    // (2608-DEV-705) — there is nothing to expire.
+    const { data: stamped, error: stampError } = await supabase
+      .from('guest_registrations')
+      .update({ attended_at: new Date().toISOString(), status: 'confirmed' })
+      .eq('id', reg.id)
+      .is('attended_at', null)
+      .select('id')
+
+    // Same rule as the guest branch above: logged, non-fatal.
+    if (stampError) console.error('Failed to stamp member attendance:', stampError)
+
+    if (reg.share_link_id && stamped && stamped.length > 0) {
+      notifySharerOfAttendance(reg.share_link_id, reg.name)
+    }
+
+    registrantName = reg.name
+    event = reg.calendar_events as unknown as JoinedEvent
   }
-
-  // Stamp attendance + confirm status — idempotent, only writes when not already set
-  const { data: stamped } = await supabase
-    .from('guest_registrations')
-    .update({ attended_at: new Date().toISOString(), status: 'confirmed' })
-    .eq('id', reg.id)
-    .is('attended_at', null)
-    .select('id')
-
-  // Notify sharer — fire-and-forget, must not block render. Gated on the
-  // update having actually stamped a row: this page is a GET, so a refresh,
-  // a revisit or a mail-client link prefetch re-renders it, and an ungated
-  // call mails the sharer once per view (2608-DEV-704).
-  if (reg.share_link_id && stamped && stamped.length > 0) {
-    notifySharerOfAttendance(reg.share_link_id, reg.name)
-  }
-
-  // Narrow joined relation -- PostgREST returns object for to-one FK
-  const event = reg.calendar_events as unknown as {
-    title:       string
-    meeting_url: string | null
-    start_time:  string
-    end_time:    string
-  } | null
 
   const actionProps = {
     eventId,
@@ -165,7 +233,7 @@ export default async function GuestJoinPage({ params, searchParams }: Props) {
               {event?.title}
             </h1>
             <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
-              {t('event.join.hiClick', lang).replace('{name}', reg.name)}
+              {t('event.join.hiClick', lang).replace('{name}', registrantName)}
             </p>
             {event?.meeting_url ? (
               <a
@@ -183,7 +251,9 @@ export default async function GuestJoinPage({ params, searchParams }: Props) {
               </p>
             )}
             <JoinActions {...actionProps} />
-            <CancelActions token={token} />
+            {/* Guest self-service cancel is token-driven. A member cancels from
+                the calendar popup instead, so this is omitted on that branch. */}
+            {token !== undefined && <CancelActions token={token} />}
           </div>
         </div>
       </div>
@@ -205,7 +275,7 @@ export default async function GuestJoinPage({ params, searchParams }: Props) {
             {event?.title}
           </h1>
           <p className="text-sm mb-5" style={{ color: 'var(--text-secondary)' }}>
-            {t('event.join.hiTap', lang).replace('{name}', reg.name)}
+            {t('event.join.hiTap', lang).replace('{name}', registrantName)}
           </p>
           {event?.meeting_url ? (
             <a
@@ -223,7 +293,7 @@ export default async function GuestJoinPage({ params, searchParams }: Props) {
             </p>
           )}
           <JoinActions {...actionProps} />
-          <CancelActions token={token} />
+          {token !== undefined && <CancelActions token={token} />}
         </div>
       </div>
     </>

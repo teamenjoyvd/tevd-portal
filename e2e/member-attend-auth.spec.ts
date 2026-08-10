@@ -92,6 +92,25 @@ function visible(page: Page, locator: Locator): Locator {
   return locator.and(page.locator(':visible'))
 }
 
+/**
+ * Put the member in the "attending" state without going through the UI.
+ * Deletes first: `guest_registrations_event_profile_uniq` (event_id, profile_id)
+ * makes a bare insert fail once an earlier test in this file has registered
+ * this member — a soft cancel leaves the row in place.
+ */
+async function seedMemberRegistration() {
+  await sb!.from('guest_registrations').delete().eq('event_id', eventId!).eq('profile_id', memberProfileId!)
+  const { error } = await sb!
+    .from('guest_registrations')
+    .insert({
+      event_id: eventId!,
+      profile_id: memberProfileId!,
+      name: 'E2E Member',
+      status: 'confirmed',
+    })
+  if (error) throw new Error(`Failed to seed member registration: ${error.message}`)
+}
+
 async function openEventPopup(page: Page) {
   await page.goto('/calendar')
   const eventButton = visible(page, page.locator('[role="row"] button', { hasText: EVENT_TITLE })).first()
@@ -143,5 +162,81 @@ test.describe('member one-tap attend @auth', () => {
       .eq('profile_id', memberProfileId!)
       .single()
     expect(afterCancel?.cancelled_at).not.toBeNull()
+  })
+})
+
+// -- D4: token-free member join + attendance stamp (2608-DEV-707) --------------
+
+test.describe('member token-free join @auth', () => {
+  test('/events/[id]/join with no token stamps attended_at exactly once', async ({ page }) => {
+    skipIfUnseeded()
+
+    // Seeded directly rather than through the popup: this test is about the
+    // join route, and the attend loop itself is already covered above.
+    await seedMemberRegistration()
+
+    await page.goto('/')
+    await clerk.signIn({ page, emailAddress: MEMBER_EMAIL })
+
+    // No ?token= — the member is resolved through Clerk instead.
+    await page.goto(`/events/${eventId}/join`)
+    await expect(page.getByRole('heading', { name: EVENT_TITLE })).toBeVisible({ timeout: 15_000 })
+    await expect(page.locator(`a[href="${MEETING_URL}"]`).first()).toBeVisible()
+
+    const { data: firstVisit } = await sb!
+      .from('guest_registrations')
+      .select('attended_at, status')
+      .eq('event_id', eventId!)
+      .eq('profile_id', memberProfileId!)
+      .single()
+    expect(firstVisit?.attended_at).not.toBeNull()
+    expect(firstVisit?.status).toBe('confirmed')
+
+    // Idempotent: a reload (or a mail-client prefetch) must not re-stamp.
+    await page.reload()
+    await expect(page.getByRole('heading', { name: EVENT_TITLE })).toBeVisible()
+
+    const { data: secondVisit } = await sb!
+      .from('guest_registrations')
+      .select('attended_at')
+      .eq('event_id', eventId!)
+      .eq('profile_id', memberProfileId!)
+      .single()
+    expect(secondVisit?.attended_at).toBe(firstVisit?.attended_at)
+  })
+
+  test('anonymous visitor with no token still gets the invalid-link screen', async ({ page }) => {
+    skipIfUnseeded()
+
+    await page.goto(`/events/${eventId}/join`)
+    await expect(page.getByText(/this link is invalid/i).first()).toBeVisible({ timeout: 15_000 })
+  })
+})
+
+// -- D4: the popup's attending-state CTA row at 390px ---------------------------
+
+test.describe('attending CTA row at 390px @auth', () => {
+  test.use({ viewport: { width: 390, height: 844 } })
+
+  test('Join meeting + Add to calendar render inside the popup', async ({ page }) => {
+    skipIfUnseeded()
+
+    await seedMemberRegistration()
+
+    await page.goto('/')
+    await clerk.signIn({ page, emailAddress: MEMBER_EMAIL })
+    await openEventPopup(page)
+
+    const joinCta = page.getByRole('link', { name: /join meeting/i })
+    await expect(joinCta).toBeVisible({ timeout: 15_000 })
+    await expect(joinCta).toHaveAttribute('href', `/events/${eventId}/join`)
+    await expect(page.getByText(/records your attendance/i)).toBeVisible()
+
+    // The dropdown is portaled to the body — assert it actually opens above the
+    // dialog rather than merely existing in the DOM.
+    await page.getByRole('button', { name: /add to calendar/i }).click()
+    await expect(page.getByRole('menuitem', { name: /google calendar/i })).toBeVisible()
+    await expect(page.getByRole('menuitem', { name: /outlook/i })).toBeVisible()
+    await expect(page.getByRole('menuitem', { name: /\.ics/i })).toBeVisible()
   })
 })

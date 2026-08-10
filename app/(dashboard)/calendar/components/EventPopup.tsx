@@ -61,9 +61,13 @@ export default function EventPopup({
   })
 
   const attendMutation = useMutation({
-    mutationFn: () => apiClient(`/api/events/${eventId}/attend`, { method: 'POST', body: JSON.stringify({}) }),
-    onSuccess: () => {
-      toast.success(t('cal.attendSuccess'))
+    mutationFn: () => apiClient<{ registrationId: string; emailed: boolean }>(
+      `/api/events/${eventId}/attend`, { method: 'POST', body: JSON.stringify({}) },
+    ),
+    onSuccess: (data) => {
+      // Only promise an email when one actually went out (2608-DEV-707) — a
+      // member with no contact_email attends successfully and silently.
+      toast.success(t(data.emailed === true ? 'cal.attendSuccessEmailed' : 'cal.attendSuccess'))
       qc.invalidateQueries({ queryKey: ['event', eventId] })
       qc.invalidateQueries({ queryKey: ['event-registrations', eventId] })
     },
