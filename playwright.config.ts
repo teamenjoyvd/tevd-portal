@@ -35,7 +35,7 @@ const bypassSecret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET
 // Vercel Preview with no Clerk secrets, so clerk.signIn() fails outright).
 // Named once so a new authenticated spec can't be added to one list and
 // silently omitted from the other two.
-const AUTHENTICATED_SPECS = /(admin-auth|admin-mobile-auth|los-submission-auth|profile-bento-auth|payments-on-behalf|payments-guest|member-attend-auth|member-share-register-auth)\.spec\.ts/
+const AUTHENTICATED_SPECS = /(admin-auth|admin-mobile-auth|los-submission-auth|profile-bento-auth|payments-on-behalf|payments-guest|member-attend-auth|member-share-register-auth|event-registrations-auth)\.spec\.ts/
 
 export default defineConfig({
   testDir: './e2e',

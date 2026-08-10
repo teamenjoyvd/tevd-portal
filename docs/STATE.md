@@ -1,18 +1,22 @@
 ## Goal
-BUILD issue #708 (2608-DEV-708) — recognised member on the share/register page. Second half of
-D1 in epic #702: a signed-in member opening someone's `?share=` link gets one-tap Attend with the
-inviter credited, never the guest name+email form.
+PLAN + CLAIM issue #709 (2608-DEV-709) — tiered Registrations tab (upline visibility), D5 of
+epic #702. ADMIN sees every registration; CORE sees its own inclusive ltree subtree (downline
+sign-ups + guests those downlines invited); MEMBER sees own sign-up + own share-link guests;
+unattributed guests stay admin-only.
 
 ## Now
-PR #720 is ready-for-review (no longer draft) against `main`, MERGEABLE. CodeRabbit's single pass
-ran (review `4896845966`): 3 inline + 4 nitpicks. GCR applied 5 of 7 in one commit; B and E
-declined with replies and left unresolved for human follow-up. Awaiting merge.
+#709 is PR #721, open, GCR pass COMPLETE and pushed. `df358dd` applied CodeRabbit's 2 Major
+findings + 3 of 4 nitpicks; `a058abb` fixed the e2e fallout from the ARIA nitpick. All 11 CI
+checks green on `a058abb` (Authenticated E2E: 34 passed, the 4 registrations specs with real
+timings). Both inline threads resolved; the nitpick dispositions are PR comment 5245750751.
+Skipped the e2e-coverage nitpick — see Decisions. Next action: merge.
 
 ## Next
-1. Merge #720 once the post-GCR checks are green (11/11) — the merge decision is a human call.
-2. After merge: GCR post-merge tail — remove the #708 row from `docs/CLAIMS.md`, smoke-check
-   production, close #708. No migration, so `Migrate Prod` will auto-skip.
-3. Offer a ticket for the declined finding E (machine-readable attend error code) — see Open items.
+1. Merge PR #721.
+2. Post-merge, approve the gated `Migrate Prod` run promptly — the route ships on merge while
+   `get_event_registrations_for_viewer` waits for the gate, so the tab 500s until it is approved.
+   Verify the prod ledger head actually advances to `20260810000000`.
+3. Fold the `docs/CLAIMS.md` #709 row removal into the merging PR — never a standalone PR.
 
 ## Not covered by any test (#708)
 - DoD "member with `role = 'guest'` falls through to the guest form" is IMPLEMENTED
@@ -32,6 +36,10 @@ declined with replies and left unresolved for human follow-up. Awaiting merge.
   stack. Run `npm run check:env` before any command touching a hosted DB.
 
 ## Decisions
+- DECISION (#709 GCR): skipped CodeRabbit's e2e-coverage nitpick (co-owner downline, ABO-less
+  downline, guest 403). No guest-role Clerk fixture exists — `scripts/seed-clerk-test-users.js`
+  seeds only member/admin/core — so all three cases need new Clerk users, new env vars and new
+  seed legs. That is a feature-sized change, not a review fix; it belongs in its own ticket.
 - DECISION (#708): no `lib/actions/member-registration.ts`. `app/api/events/[id]/attend/route.ts`
   already resolves identity server-side via `withProfile`, 403s `role === 'guest'`, accepts
   `{ share }`, and delegates to `attendEvent` — the panel `fetch`es it and calls `router.refresh()`.
@@ -64,7 +72,43 @@ declined with replies and left unresolved for human follow-up. Awaiting merge.
   `Total: 4 tests in 1 file`, with 0 hits under `--project=desktop --project=mobile-390`.
 - Production smoke 2026-08-10: `https://www.teamenjoyvd.com` 200, `/sign-in` 200.
 
+## Facts (#709)
+- `EventPopup.tsx` is at `app/(dashboard)/calendar/components/`, NOT in `popup/` — the issue's
+  original `popup/EventPopup.tsx` path was wrong. `adminTab` `:31`, `showMeta` `:148` (not `:116`).
+- `showMeta` gates far more than the meta block: `AttendSection` (`EventPopupShell.tsx:169-185`),
+  the share/QR buttons (`:186-214`) and the `cal.attendForLink` hint (`:164`) all sit inside it.
+  Extending it to core/member hides the Attend button while the Registrations tab is open.
+- No `core` Clerk fixture exists — `scripts/seed-clerk-test-users.js:81-82` seeds `member` + `admin`
+  only, plus a profile-only downline under the member. Do NOT flip the shared member fixture's role
+  in-spec: `playwright.config.ts` sets no `workers`, so files parallelize and `payments-on-behalf` /
+  `profile-bento-auth` share that fixture. Seed a CORE at its own disjoint root instead.
+- Sole consumer of `app/api/admin/events/[id]/registrations/route.ts` is `CoreAdminActions.tsx:15`;
+  sole importer of the `GuestRegistration` type is the same file. Both safe to delete/rename.
+- `email IS NULL` for member rows is enforced by `guest_registrations_guest_xor_member_chk`
+  (`…705….sql:53-57`) — no masking logic needed, just don't COALESCE it back.
+- BASELINE 2026-08-10 on `main@a11b89d`: `npx tsc --noEmit` clean. vitest/eslint carried from the
+  #708 run on the same tree (32 files / 420 passed; 0 errors, 468 warnings).
+
 ## Done
+- #709 BUILD — RESULT: 14 files, +897/-287. Verified locally: `npx tsc --noEmit` clean;
+  `npx eslint .` 0 errors / 465 warnings (baseline 468 — the deleted admin route carried 3);
+  `npx vitest run` 32 files / 420 passed; `npx playwright test --project=authenticated
+  e2e/event-registrations-auth.spec.ts` -> **4 passed (34.0s)**, real timings, none skipped;
+  full `--project=authenticated --workers=1` -> 28 passed. The 6 reds in that full run were
+  `profile-bento-auth` (5) + `payments-on-behalf` L3, all caused by the local dev server dying
+  mid-run (exit 127, twice) — `profile-bento-auth` ran 5/5 GREEN on this same tree minutes
+  earlier, and `payments-guest` passed in isolation (10.5s).
+- #709 migration applied to hosted DEV — RESULT: `get_event_registrations_for_viewer` live on
+  `iymwxdewcpvpjgzewtzk` via MCP `apply_migration`; `routine_privileges` -> postgres +
+  service_role only; DEV ledger row corrected from the MCP-generated `20260810154654` to the
+  file version `20260810000000`. `types/supabase.ts` regenerated — diff was exactly the new
+  RPC, no other drift.
+- #709 PLAN + CLAIM — RESULT: verdict READY; issue body rewritten with seven corrections (five
+  path/line drift, two real gaps — C6 showMeta scope, C7 missing CORE e2e fixture); Design
+  Checklist 4/4; `## Branch dev/2608-DEV-709`; claim row committed at `379b889` with the merged
+  #708 row pruned in the same commit.
+- #708 closed — RESULT: merged as PR #720 (`a11b89d`), no migration, `Migrate Prod` auto-skips.
+  Epic #702 checklist ticked; claim row removed.
 - #708 GCR (PR #720) — RESULT: 5 findings applied in one commit, 2 declined. Applied: empty
   `memberName` no longer renders a dangling "Signed in as " (`MemberAttendPanel.tsx`); the attend
   button keeps its accessible name with `aria-busy` instead of swapping the label for '…'; the
@@ -92,6 +136,16 @@ declined with replies and left unresolved for human follow-up. Awaiting merge.
   dependencies have all merged.
 
 ## Open items
+- NOTED (not done, found during #709): the DEV ledger has NO `20260809000100` row (#706
+  `fn_schedule_guest_reminders_record`), though prod does. Function-body-only, so
+  `types/supabase.ts` is unaffected, but hosted DEV may be running the pre-#706 body.
+- NOTED (not done, local env only): `GET /api/calendar/feed-token` 500s locally with
+  "NEXT_PUBLIC_APP_URL is not set" (`lib/utils/base-url.ts:12`). Pre-existing local env gap,
+  unrelated to #709.
+- NOTED (not done): `e2e/profile-bento-auth.spec.ts:72` ("reset layout") fails when the shared
+  DEV member profile carries leftover collapse state (`{payments:false}`) from an interrupted
+  run — it passes once a completed run resets it. Order/state-dependent, not a code defect;
+  worth its own ticket to make the spec seed its own starting layout.
 - NOTED (not done, declined CodeRabbit finding on #720, needs its own ticket): client error copy is
   selected by matching ENGLISH server text. `MemberAttendPanel.tsx:73-78` does
   `raw.includes('capacity')` / `raw.includes('already ended')`, and
@@ -124,6 +178,19 @@ declined with replies and left unresolved for human follow-up. Awaiting merge.
   the pre-#705 column list.
 
 ## Failed attempts
+- ATTEMPT 1 [L1] (#709 GCR): applied CodeRabbit's ARIA nitpick — `role="tab"` on the tab-bar
+  buttons — without touching the spec -> all 4 `event-registrations-auth` specs timed out on
+  `locator.click` (CI run 31430426705, 4 failed / 30 passed). CAUSE: an explicit `role="tab"`
+  OVERRIDES `<button>`'s implicit ARIA role, so `openRegistrationsTab`'s
+  `getByRole('button', { name: /registrations/i })` matched nothing. Fixed in `a058abb` by moving
+  the single call site to `getByRole('tab', …)`. Lesson: adding an explicit ARIA role to an
+  element is a REFERENCE SWEEP trigger for `getByRole` locators, not just for symbol renames.
+- ATTEMPT 1 [L1] (#709 e2e): swapped bare `getByText(name)` for `data-testid`-scoped locators
+  (`registration-row` / `registration-name`) -> 3 of 4 green, but the 390px case still failed:
+  `getByTestId('registration-row').filter({ hasText: 'E2E Core Downline' })` resolved to 2 elements
+  (`event-registrations-auth.spec.ts:278`). CAUSE unchanged and now proven at row level: as ADMIN
+  the core downline appears BOTH as a registrant row and inside the `via <sharer>` line of the guest
+  it invited, so `hasText` on the row is as ambiguous as it was on the page.
 - ATTEMPT 1 [L1] (#708 e2e): the 390px case asserted the panel with
   `getByText(/signed in as/i).first()` -> `expect(locator).toBeVisible() failed` in CI at
   `member-share-register-auth.spec.ts:168`, twice (initial + retry #1). CAUSE: `.first()` is DOM

@@ -77,9 +77,30 @@ const ADMIN_EMAIL = process.env.E2E_CLERK_ADMIN_EMAIL || 'e2e-admin-tevd-portal@
 // rejects NULL, so a blank string would otherwise be inserted as a real value.
 const MEMBER_ABO = process.env.E2E_CLERK_MEMBER_ABO ?? 'E2E-MEMBER-0001'
 
+// The CORE fixture (2608-DEV-709): a real Clerk sign-in identity with
+// role 'core', planted at ITS OWN root with its own profile-only downline.
+//
+// Deliberately NOT "flip the shared member fixture's role to core inside the
+// spec". That would work — app/(dashboard)/calendar/page.tsx reads role from
+// the DB, not Clerk metadata — but playwright.config.ts sets no `workers`, so
+// specs parallelize by file and payments-on-behalf / profile-bento-auth share
+// the member fixture; a mid-run role flip is a cross-worker race.
+//
+// Disjoint roots also buy the "an unrelated branch is not listed" assertion for
+// free: the CORE leg and the MEMBER leg never intersect, so the member's
+// downline must be absent from the core's registrations roster.
+const CORE_EMAIL = process.env.E2E_CLERK_CORE_EMAIL ?? 'e2e-core-tevd-portal@example.com'
+const CORE_ABO = process.env.E2E_CLERK_CORE_ABO ?? 'E2E-CORE-0001'
+
+// Same synthetic-clerk_id reasoning as DOWNLINE_CLERK_ID below: this profile
+// exists only to be SEEN in a roster, never to sign in.
+const CORE_DOWNLINE_CLERK_ID = 'seed_e2e_core_downline_tevd_portal'
+const CORE_DOWNLINE_ABO = process.env.E2E_CLERK_CORE_DOWNLINE_ABO ?? 'E2E-CORE-DOWNLINE-0001'
+
 const TEST_USERS = [
   { email: MEMBER_EMAIL, role: 'member', firstName: 'E2E', lastName: 'Member', aboNumber: MEMBER_ABO },
   { email: ADMIN_EMAIL, role: 'admin', firstName: 'E2E', lastName: 'Admin', aboNumber: null },
+  { email: CORE_EMAIL, role: 'core', firstName: 'E2E', lastName: 'Core', aboNumber: CORE_ABO },
 ]
 
 // The downline fixture. Same reserved-value reasoning and the same
@@ -375,30 +396,40 @@ async function main() {
     process.exitCode = 1
     return
   }
-  if (MEMBER_ABO.trim() === '') {
-    console.error(
-      'seed-clerk-test-users: E2E_CLERK_MEMBER_ABO is set but empty. Unset it to use the ' +
-        'default fixture value, or give it a real reserved value — a blank abo_number would ' +
-        'satisfy the NOT NULL trigger and be stored as a real one.',
-    )
-    process.exitCode = 1
-    return
+  // Two failure modes, stated once for the ABO set as a whole now that #709
+  // added a third leg (this supersedes the per-variable MEMBER_ABO /
+  // DOWNLINE_ABO checks that used to sit here). Blank first, then uniqueness:
+  // profiles.abo_number is UNIQUE across ALL of them, not just the
+  // member/downline pair.
+  const ABO_FIXTURES = [
+    ['E2E_CLERK_MEMBER_ABO', MEMBER_ABO],
+    ['E2E_CLERK_DOWNLINE_ABO', DOWNLINE_ABO],
+    ['E2E_CLERK_CORE_ABO', CORE_ABO],
+    ['E2E_CLERK_CORE_DOWNLINE_ABO', CORE_DOWNLINE_ABO],
+  ]
+  for (const [name, value] of ABO_FIXTURES) {
+    if (value.trim() === '') {
+      console.error(
+        `seed-clerk-test-users: ${name} is set but empty. Unset it to use the default ` +
+          'fixture value, or give it a real reserved value — a blank abo_number would ' +
+          'satisfy the NOT NULL trigger and be stored as a real one.',
+      )
+      process.exitCode = 1
+      return
+    }
   }
-  if (DOWNLINE_ABO.trim() === '') {
-    console.error(
-      'seed-clerk-test-users: E2E_CLERK_DOWNLINE_ABO is set but empty. Same reason as ' +
-        'E2E_CLERK_MEMBER_ABO above — unset it or give it a real reserved value.',
-    )
-    process.exitCode = 1
-    return
-  }
-  if (DOWNLINE_ABO === MEMBER_ABO) {
-    console.error(
-      'seed-clerk-test-users: E2E_CLERK_DOWNLINE_ABO equals E2E_CLERK_MEMBER_ABO. ' +
-        'profiles.abo_number is UNIQUE, so the two fixtures cannot share one.',
-    )
-    process.exitCode = 1
-    return
+  const seenAbo = new Map()
+  for (const [name, value] of ABO_FIXTURES) {
+    const firstHolder = seenAbo.get(value)
+    if (firstHolder !== undefined) {
+      console.error(
+        `seed-clerk-test-users: ${name} equals ${firstHolder} ("${value}"). ` +
+          'profiles.abo_number is UNIQUE, so no two fixtures may share one.',
+      )
+      process.exitCode = 1
+      return
+    }
+    seenAbo.set(value, name)
   }
 
   const clerk = createClerkClient({ secretKey })
@@ -434,6 +465,29 @@ async function main() {
   })
   await ensureTreeNode(supabase, downlineProfileId, DOWNLINE_ABO, MEMBER_ABO, DOWNLINE_CLERK_ID)
   console.log(`seed-clerk-test-users: downline ready — ${DOWNLINE_ABO} under ${MEMBER_ABO}`)
+
+  // ── core leg (e2e/event-registrations-auth.spec.ts, 2608-DEV-709) ───────────
+  // Its own root, disjoint from the member's leg — see CORE_EMAIL above. The
+  // core must be planted before its downline can be hung off it by ABO.
+  const coreProfileId = profileIdByRole.core
+  const corePlanted = await ensureTreeNode(supabase, coreProfileId, CORE_ABO, null, CORE_EMAIL)
+  console.log(
+    corePlanted
+      ? `seed-clerk-test-users: core tree node planted at root (${CORE_ABO})`
+      : 'seed-clerk-test-users: core already has a tree node — left as is',
+  )
+
+  const coreDownlineProfileId = await upsertProfile(supabase, CORE_DOWNLINE_CLERK_ID, {
+    role: 'member',
+    firstName: 'E2E Core',
+    lastName: 'Downline',
+    // contact_email only; no Clerk user sits behind it. The registrations spec
+    // signs in as the CORE and asserts this profile's sign-up is visible.
+    email: 'e2e-core-downline-tevd-portal@example.com',
+    aboNumber: CORE_DOWNLINE_ABO,
+  })
+  await ensureTreeNode(supabase, coreDownlineProfileId, CORE_DOWNLINE_ABO, CORE_ABO, CORE_DOWNLINE_CLERK_ID)
+  console.log(`seed-clerk-test-users: core downline ready — ${CORE_DOWNLINE_ABO} under ${CORE_ABO}`)
 
   // Names which of the three outcomes happened: the spec skips unless this row
   // is active and EUR, so "repaired" is the line that explains a run that used
