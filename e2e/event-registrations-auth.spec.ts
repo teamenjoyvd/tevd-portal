@@ -216,7 +216,11 @@ async function openRegistrationsTab(page: Page) {
 
   const dialog = page.getByRole('dialog')
   await expect(dialog).toBeVisible()
-  await dialog.getByRole('button', { name: /registrations/i }).click()
+  // role="tab", not "button": EventActionsTabs sets an explicit role="tab" on
+  // these, which overrides <button>'s implicit one, so getByRole('button')
+  // matches nothing. This locator doubles as the assertion that the tab
+  // semantics are present.
+  await dialog.getByRole('tab', { name: /registrations/i }).click()
   return dialog
 }
 
