@@ -1,6 +1,7 @@
 import { request } from '@playwright/test'
 import { clerkSetup } from '@clerk/testing/playwright'
 import path from 'node:path'
+import { isSafeSupabaseTarget, DEV_PROJECT_REF } from '../scripts/lib/safe-supabase-target'
 
 // Written by globalSetup, consumed as storageState in playwright.config.ts.
 export const VERCEL_BYPASS_STATE = path.join(__dirname, '.vercel-bypass-state.json')
@@ -43,7 +44,40 @@ async function vercelBypassSetup() {
  * (bad key, network, clerkSetup's own production-key guard) is rethrown —
  * that indicates a real misconfiguration, not an absent optional feature.
  */
+/**
+ * Refuse to run while a service-role key points at anything but local or the
+ * hosted DEV project (2608-DEV-722).
+ *
+ * The authenticated specs WRITE rows through the service client, and they read
+ * NEXT_PUBLIC_SUPABASE_URL from whatever the shell exports. `.env.local` holds
+ * PRODUCTION credentials, so a shell that simply forgot the DEV exports would
+ * seed events and registrations into prod. The key's presence is the precise
+ * trigger: a run that cannot write cannot cause this.
+ *
+ * Same guard the seed scripts already use, so there is one definition of
+ * "a safe write target" rather than a second copy to drift.
+ */
+function assertSafeSupabaseTarget() {
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
+  if (isSafeSupabaseTarget(url)) return
+  throw new Error(
+    `Refusing to run: SUPABASE_SERVICE_ROLE_KEY is set while NEXT_PUBLIC_SUPABASE_URL is "${url}", ` +
+      `which is neither a local instance nor the hosted DEV project (${DEV_PROJECT_REF}). ` +
+      'The authenticated specs write rows — this would have written them to production. ' +
+      'Export the DEV URL and key before running.',
+  )
+}
+
+// No "is the server up?" preflight here, deliberately: Playwright starts
+// config.webServer BEFORE globalSetup, so by the time this runs the server is
+// either up or the run has already died on the webServer timeout. Measured
+// 2026-08-10 — a run with no server spent 2m06s inside webServer and never
+// reached this file. The absent-server case is owned by webServer.timeout in
+// playwright.config.ts; the died-mid-run case by e2e/server-watchdog-reporter.ts.
+
 export default async function globalSetup() {
+  assertSafeSupabaseTarget()
   await vercelBypassSetup()
   try {
     await clerkSetup()
