@@ -4,12 +4,20 @@ request auto-creates/adopts an active `guest_registrations` row for the holder; 
 counting excludes approved role holders.
 
 ## Now
-#710 is **PR #725**, ready for review. CodeRabbit's single Major finding is fixed and pushed as one
-batched commit; re-verified on hosted DEV. Waiting on the re-review + CI, then it is merge-ready.
+#710 is **PR #725 at `a667742`, MERGE-READY**: all 11 CI checks green, Vercel preview READY,
+CodeRabbit's single finding fixed + thread resolved, PR Session State = DONE. BUILD is complete.
+Merging needs the user.
 
 ## Next
-1. Confirm CI green on the fix commit and reply/resolve the CodeRabbit thread.
-2. Merge PR #725 (needs the user).
+1. Merge PR #725 (needs the user).
+2. IMMEDIATELY after merge, approve the gated `Migrate Prod` run (GitHub Actions -> `production`
+   environment gate) and confirm the prod ledger head advances to `20260811000000`. The route ships
+   on merge while the RPC waits for the gate, so until it is approved, approving a role request in
+   PRODUCTION silently creates no registration row.
+3. Smoke-check `https://www.teamenjoyvd.com`, tick #710 on epic #702, close the issue. "Merged" and
+   "Done" are different states — #710 closes only after the prod tail completes.
+4. The `docs/CLAIMS.md` #710 row is pruned by the NEXT ticket's CLAIM commit, matching how `cdadc1d`
+   pruned #709 — never a standalone cleanup PR.
 3. Merge, then approve the gated `Migrate Prod` run promptly and confirm the prod ledger head
    advances to `20260811000000`. The RPC ships on merge; until the gate is approved, approving a
    role request will NOT create a registration row in prod.
