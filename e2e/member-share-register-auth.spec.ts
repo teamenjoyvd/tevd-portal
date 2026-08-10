@@ -21,6 +21,7 @@ const TEST_RUN_ID = randomUUID().slice(0, 8)
 const EVENT_TITLE = `E2E Member Share Register ${TEST_RUN_ID}`
 const INVITER_TOKEN = `e2e-inviter-${TEST_RUN_ID}`
 const OWN_TOKEN = `e2e-own-${TEST_RUN_ID}`
+const MEETING_URL = `https://meet.example.com/e2e-share-${TEST_RUN_ID}`
 
 function svc(): SupabaseClient | null {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -76,6 +77,7 @@ test.beforeAll(async () => {
       end_time: new Date(now + 7200_000).toISOString(),
       week_number: 1,
       allow_guest_registration: true,
+      meeting_url: MEETING_URL,
     })
     .select('id')
     .single()
@@ -184,10 +186,19 @@ test.describe('recognised member on the share/register page @auth', () => {
     await expectMemberPanel(page)
     await expect(visible(page, page.getByText(new RegExp(`invited by ${inviterName}`, 'i')))).toBeVisible()
 
+    // D3: the meeting link is not in the payload of someone with no active row.
+    // toHaveCount(0) over the WHOLE page, not the visible subtree — a link
+    // hidden in the other breakpoint's block would still be a leak.
+    await expect(page.locator(`a[href="${MEETING_URL}"]`)).toHaveCount(0)
+
     await attendButton(page).click()
 
     // The attending state renders from the server after router.refresh().
     await expect(attendingBadge(page)).toBeVisible({ timeout: 15_000 })
+
+    // ...and only then does the server put meeting_url in the payload.
+    await expect(visible(page, page.locator(`a[href="${MEETING_URL}"]`))).toBeVisible()
+    await expect(visible(page, page.getByRole('button', { name: /add to calendar/i }))).toBeVisible()
 
     const row = await registrationRow()
     expect(row?.share_link_id).toBe(inviterLinkId)
@@ -210,6 +221,32 @@ test.describe('recognised member on the share/register page @auth', () => {
     const row = await registrationRow()
     expect(row?.share_link_id).toBeNull()
     expect(ownLinkId).not.toBeNull()
+  })
+
+  test('a full event does not block a member who already has an active row', async ({ page }) => {
+    skipIfUnseeded()
+    await clearRegistration()
+
+    await signInAsMember(page)
+    await page.goto(`/events/${eventId}/register?share=${INVITER_TOKEN}`)
+    await attendButton(page).click()
+    await expect(attendingBadge(page)).toBeVisible({ timeout: 15_000 })
+
+    try {
+      // Capacity 1 with exactly this member's row active -> the page's
+      // eventFull count is met. They are re-opening their own link, not
+      // consuming a new seat, so the capacity block must not appear.
+      const { error } = await sb!.from('calendar_events').update({ guest_capacity: 1 }).eq('id', eventId!)
+      if (error) throw new Error(`Failed to cap the event: ${error.message}`)
+
+      await page.reload()
+      await expect(attendingBadge(page)).toBeVisible({ timeout: 15_000 })
+      await expect(page.getByText(/reached its guest capacity/i)).toHaveCount(0)
+    } finally {
+      // Restored even on failure — the other tests in this file share the event
+      // and would otherwise inherit a capacity that blocks them.
+      await sb!.from('calendar_events').update({ guest_capacity: null }).eq('id', eventId!)
+    }
   })
 
   test('logged-out visitor on the same URL still gets the guest form', async ({ page }) => {
