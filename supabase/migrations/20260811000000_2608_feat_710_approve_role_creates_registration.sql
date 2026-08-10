@@ -87,6 +87,15 @@ BEGIN
   -- .toLowerCase()), so someone who signed up as Ivan@Example.com against a
   -- contact_email of ivan@example.com would otherwise miss the adopt and get a
   -- SECOND row — the exact outcome this block exists to prevent.
+  --
+  -- ...but the pre-existing UNIQUE (event_id, email) is CASE-SENSITIVE, so
+  -- Ivan@Example.com and ivan@example.com can both exist as separate guest rows
+  -- on one event. A bare LOWER() predicate would match BOTH and try to give
+  -- them the same (event_id, profile_id), violating
+  -- guest_registrations_event_profile_uniq. Hence the scalar subquery: adopt
+  -- exactly ONE row, oldest first, id as a deterministic tie-break. Any further
+  -- case-variant rows stay as orphan guest rows — visible and fixable, unlike a
+  -- failed approval.
   UPDATE public.guest_registrations gr
      SET profile_id   = v_profile_id,
          email        = NULL,
@@ -95,10 +104,16 @@ BEGIN
          cancelled_at = NULL,
          status       = 'confirmed'
     FROM public.profiles p
-   WHERE p.id            = v_profile_id
-     AND gr.event_id     = v_event_id
-     AND gr.profile_id   IS NULL
-     AND LOWER(gr.email) = LOWER(p.contact_email)
+   WHERE p.id  = v_profile_id
+     AND gr.id = (
+           SELECT g.id
+             FROM public.guest_registrations g
+            WHERE g.event_id     = v_event_id
+              AND g.profile_id   IS NULL
+              AND LOWER(g.email) = LOWER(p.contact_email)
+            ORDER BY g.created_at, g.id
+            LIMIT 1
+         )
      AND NOT EXISTS (
        SELECT 1 FROM public.guest_registrations g2
         WHERE g2.event_id   = v_event_id

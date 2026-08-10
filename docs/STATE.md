@@ -4,12 +4,12 @@ request auto-creates/adopts an active `guest_registrations` row for the holder; 
 counting excludes approved role holders.
 
 ## Now
-#710 is **PR #725** at `c97e836`. All 11 CI checks green, Vercel preview READY, DoD verified
-point-by-point. Marking it ready for review, which triggers the single CodeRabbit pass.
+#710 is **PR #725**, ready for review. CodeRabbit's single Major finding is fixed and pushed as one
+batched commit; re-verified on hosted DEV. Waiting on the re-review + CI, then it is merge-ready.
 
 ## Next
-1. Apply CodeRabbit's findings as ONE batched commit (each push re-triggers an incremental review;
-   drip-fed fixes burn quota). Wrong findings: reply on the thread and resolve, do not churn code.
+1. Confirm CI green on the fix commit and reply/resolve the CodeRabbit thread.
+2. Merge PR #725 (needs the user).
 3. Merge, then approve the gated `Migrate Prod` run promptly and confirm the prod ledger head
    advances to `20260811000000`. The RPC ships on merge; until the gate is approved, approving a
    role request will NOT create a registration row in prod.
@@ -59,6 +59,18 @@ point-by-point. Marking it ready for review, which triggers the single CodeRabbi
 - Production smoke 2026-08-10: `https://www.teamenjoyvd.com` 200, `/sign-in` 200.
 
 ## Done
+- #710 GCR (CodeRabbit on PR #725) — RESULT: 1 actionable finding, Major, VALID, and it was a defect
+  in my OWN review fix. The pre-existing `UNIQUE (event_id, email)` is CASE-SENSITIVE, so
+  `Ivan@Example.com` and `ivan@example.com` can both exist as guest rows on one event; the bare
+  `LOWER(gr.email) = LOWER(p.contact_email)` predicate matched BOTH and tried to give them the same
+  `(event_id, profile_id)` -> `guest_registrations_event_profile_uniq` violation -> the whole
+  approval RAISEs. Fixed by adopting exactly one row via a scalar subquery
+  (`ORDER BY g.created_at, g.id LIMIT 1`); further case-variants stay as orphan guest rows.
+  LESSON: the `NOT EXISTS` guard only covers a PRE-EXISTING member row, never multiple matches
+  inside the same UPDATE — a set-returning predicate under a unique index needs its own LIMIT.
+  Re-verified on hosted DEV 3/3: S4 plain adopt unchanged (same id, `created_at` preserved), S6
+  single case-mismatched row still adopted, S7 two case-variant rows -> no exception, oldest
+  adopted, 1 orphan left.
 - #710 CI on `c97e836` — RESULT: all 11 checks green. `Replay migrations from scratch` 2m27s (the
   migration DoD item). `Authenticated E2E (Clerk)` 6m13s and it REALLY RAN, not a green-by-skip:
   the job log shows `Running 34 tests using 2 workers` -> `34 passed (3.0m)`. `390px smoke vs
