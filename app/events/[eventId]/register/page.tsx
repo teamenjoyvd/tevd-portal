@@ -48,7 +48,7 @@ export default async function GuestRegisterPage({ params, searchParams }: Props)
   // hint — the multi-FK `payments` trap in docs/ai/GOTCHAS.md does not apply.
   let shareLinkRevoked = false
   let sharerName: string | null = null
-  if (share) {
+  if (share !== undefined && share !== '') {
     const { data: shareLink } = await supabase
       .from('event_share_links')
       .select('revoked_at, profile:profiles(first_name, last_name)')
@@ -135,6 +135,23 @@ export default async function GuestRegisterPage({ params, searchParams }: Props)
     ? t('event.register.full', lang)
     : null
 
+  // Built once and rendered in BOTH layout blocks below: the desktop and mobile
+  // trees are separate DOM, so a second inline copy of these props would have to
+  // be kept in step by hand, and only the 390px e2e case would catch the drift.
+  const memberPanel = member === null ? null : (
+    <MemberAttendPanel
+      eventId={event.id}
+      meetingUrl={meetingUrl}
+      eventTitle={event.title}
+      startTime={event.start_time}
+      endTime={event.end_time}
+      memberName={memberName}
+      sharerName={sharerName}
+      shareToken={share}
+      isAttending={isAttending}
+    />
+  )
+
   return (
     <>
       {/* ── Desktop ────────────────────────────────────────────────────────── */}
@@ -161,18 +178,8 @@ export default async function GuestRegisterPage({ params, searchParams }: Props)
                 <p className="text-sm text-center" style={{ color: 'var(--text-secondary)' }}>{blockedMessage}</p>
                 <ResendLinkForm eventId={event.id} />
               </>
-            ) : member !== null ? (
-              <MemberAttendPanel
-                eventId={event.id}
-                meetingUrl={meetingUrl}
-                eventTitle={event.title}
-                startTime={event.start_time}
-                endTime={event.end_time}
-                memberName={memberName}
-                sharerName={sharerName}
-                shareToken={share}
-                isAttending={isAttending}
-              />
+            ) : memberPanel !== null ? (
+              memberPanel
             ) : (
               <>
                 <p className="text-sm font-semibold mb-5" style={{ color: 'var(--text-primary)' }}>
@@ -208,18 +215,8 @@ export default async function GuestRegisterPage({ params, searchParams }: Props)
               <p className="text-sm text-center" style={{ color: 'var(--text-secondary)' }}>{blockedMessage}</p>
               <ResendLinkForm eventId={event.id} />
             </>
-          ) : member !== null ? (
-            <MemberAttendPanel
-              eventId={event.id}
-              meetingUrl={meetingUrl}
-              eventTitle={event.title}
-              startTime={event.start_time}
-              endTime={event.end_time}
-              memberName={memberName}
-              sharerName={sharerName}
-              shareToken={share}
-              isAttending={isAttending}
-            />
+          ) : memberPanel !== null ? (
+            memberPanel
           ) : (
             <>
               <p className="text-sm font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>

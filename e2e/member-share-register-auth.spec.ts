@@ -184,7 +184,10 @@ test.describe('recognised member on the share/register page @auth', () => {
     await page.goto(`/events/${eventId}/register?share=${INVITER_TOKEN}`)
 
     await expectMemberPanel(page)
-    await expect(visible(page, page.getByText(new RegExp(`invited by ${inviterName}`, 'i')))).toBeVisible()
+    // String, not a RegExp: inviterName comes from an arbitrary profiles row, and
+    // a metacharacter in it would change the pattern (or throw). getByText's
+    // default `exact: false` is already a case-insensitive substring match.
+    await expect(visible(page, page.getByText(`Invited by ${inviterName}`, { exact: false }))).toBeVisible()
 
     // D3: the meeting link is not in the payload of someone with no active row.
     // toHaveCount(0) over the WHOLE page, not the visible subtree — a link

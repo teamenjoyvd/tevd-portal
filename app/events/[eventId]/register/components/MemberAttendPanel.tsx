@@ -106,9 +106,14 @@ export function MemberAttendPanel({
   return (
     <div className="space-y-4">
       <div>
-        <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-          {t('event.register.signedInAs').replace('{name}', memberName)}
-        </p>
+        {/* `first_name`/`last_name` are both nullable, so page.tsx can hand us an
+            empty string. "Signed in as " with nothing after it is worse than no
+            identity line at all — the panel itself already proves recognition. */}
+        {memberName !== '' && (
+          <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+            {t('event.register.signedInAs').replace('{name}', memberName)}
+          </p>
+        )}
         {sharerName !== null && (
           <p className="text-sm mt-0.5" style={{ color: 'var(--text-secondary)' }}>
             {t('event.register.invitedBy').replace('{name}', sharerName)}
@@ -199,10 +204,14 @@ export function MemberAttendPanel({
           type="button"
           onClick={attend}
           disabled={isPending}
+          aria-busy={isPending}
           className="w-full rounded-xl py-3.5 text-sm font-semibold text-white disabled:opacity-60 transition-opacity"
           style={{ backgroundColor: '#1a3c2e', minHeight: 44 }}
         >
-          {isPending ? '…' : t('event.register.attendOneTap')}
+          {/* Label kept while pending: swapping it for '…' takes the button's
+              accessible name away mid-request. disabled + disabled:opacity-60
+              already carry the visual cue, aria-busy carries it to AT. */}
+          {t('event.register.attendOneTap')}
         </button>
       )}
 

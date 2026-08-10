@@ -4,18 +4,15 @@ D1 in epic #702: a signed-in member opening someone's `?share=` link gets one-ta
 inviter credited, never the guest name+email form.
 
 ## Now
-BUILD complete and pushed. Draft PR #720 open against `main` at `c2071dd`, ALL 11 checks green.
-Commits: `bce3c28` (feature, 5 files +571/-3), `4fa90dd` (state), `5d6e07b` (e2e locator fix),
-`c2071dd` (e2e coverage for the capacity carve-out + gated meeting link).
-Authenticated E2E genuinely executed — `Running 30 tests`, `30 passed (2.6m)`, all 5 of the new
-cases with real timings, so `skipIfUnseeded` did not silently skip. Still a DRAFT: not flipped to
-ready-for-review, because that fires the single CodeRabbit pass and is the merge decision.
+PR #720 is ready-for-review (no longer draft) against `main`, MERGEABLE. CodeRabbit's single pass
+ran (review `4896845966`): 3 inline + 4 nitpicks. GCR applied 5 of 7 in one commit; B and E
+declined with replies and left unresolved for human follow-up. Awaiting merge.
 
 ## Next
-1. Decide whether to mark #720 ready for review (fires CodeRabbit's one pass) — needs a human call.
-2. Batch-fix any CodeRabbit findings in ONE commit; reply-and-resolve wrong ones rather than churn.
-3. After merge: GCR post-merge tail — remove the #708 row from `docs/CLAIMS.md`, smoke-check
+1. Merge #720 once the post-GCR checks are green (11/11) — the merge decision is a human call.
+2. After merge: GCR post-merge tail — remove the #708 row from `docs/CLAIMS.md`, smoke-check
    production, close #708. No migration, so `Migrate Prod` will auto-skip.
+3. Offer a ticket for the declined finding E (machine-readable attend error code) — see Open items.
 
 ## Not covered by any test (#708)
 - DoD "member with `role = 'guest'` falls through to the guest form" is IMPLEMENTED
@@ -68,6 +65,15 @@ ready-for-review, because that fires the single CodeRabbit pass and is the merge
 - Production smoke 2026-08-10: `https://www.teamenjoyvd.com` 200, `/sign-in` 200.
 
 ## Done
+- #708 GCR (PR #720) — RESULT: 5 findings applied in one commit, 2 declined. Applied: empty
+  `memberName` no longer renders a dangling "Signed in as " (`MemberAttendPanel.tsx`); the attend
+  button keeps its accessible name with `aria-busy` instead of swapping the label for '…'; the
+  duplicated 9-prop `MemberAttendPanel` call is hoisted to one `memberPanel` const used by both
+  layout blocks; `if (share)` -> `share !== undefined && share !== ''`; the e2e "Invited by"
+  assertion uses `getByText(string, { exact: false })` instead of a RegExp built from a DB name.
+  Verified: `tsc --noEmit` clean, `eslint` 0 errors, `vitest run` 32 files / 420 passed,
+  `playwright --project=authenticated member-share-register-auth` -> `5 passed (6.1m)` against
+  hosted DEV, real timings.
 - #708 BUILD — RESULT: draft PR #720 at `c2071dd`, all 11 checks green, Authenticated E2E 30 passed
   (5 new cases, none skipped). DoD verified by test: one-tap panel with no name/email inputs,
   `share_link_id` = inviter's link, own link -> null, logged-out guest form unchanged, full event
@@ -86,6 +92,19 @@ ready-for-review, because that fires the single CodeRabbit pass and is the merge
   dependencies have all merged.
 
 ## Open items
+- NOTED (not done, declined CodeRabbit finding on #720, needs its own ticket): client error copy is
+  selected by matching ENGLISH server text. `MemberAttendPanel.tsx:73-78` does
+  `raw.includes('capacity')` / `raw.includes('already ended')`, and
+  `app/(dashboard)/calendar/components/EventPopup.tsx:76-78` does the identical thing — 2 call
+  sites onto the same route. A real fix needs a machine-readable discriminator: a `code` on
+  `attendEvent`'s failure result (`lib/server/member-registration.ts`), passed through
+  `app/api/events/[id]/attend/route.ts`, and surfaced on `ApiError` (`lib/apiClient.ts:13`, which
+  today carries only `status` and `message`). Out of #708's DoD; localizing or rewording those
+  server strings silently breaks both consumers.
+- CodeRabbit's "run member-share-register-auth serially" finding (#720) was DISPROVED, not
+  deferred: `playwright.config.ts` never sets `fullyParallel`, so Playwright 1.61 parallelizes by
+  FILE. Both `describe` blocks live in one spec file, so all 5 tests already share one worker in
+  declaration order — confirmed by `Running 5 tests using 1 worker`. Do not "fix" this later.
 - NOTED (not done, found during #708): a signed-in member blocked by a FULL event still gets
   `ResendLinkForm` — the guest magic-link resend — at `app/events/[eventId]/register/page.tsx:162`
   and `:209`. Wrong flow for a portal identity, but it is the pre-existing blocked branch and
