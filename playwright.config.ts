@@ -41,7 +41,15 @@ export default defineConfig({
   testDir: './e2e',
   timeout: 60_000,
   retries: process.env.CI ? 1 : 0,
-  reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
+  // Locally, stop after 3. Once a run starts cascading it is almost always the
+  // environment (a dead dev server, missing seed data), and grinding through
+  // the remaining specs at 60s each buys nothing but a slower, more confusing
+  // report — see e2e/server-watchdog-reporter.ts. CI keeps running everything:
+  // there, the full picture is the point. (2608-DEV-722)
+  maxFailures: process.env.CI ? 0 : 3,
+  reporter: process.env.CI
+    ? [['list'], ['html', { open: 'never' }]]
+    : [['list'], ['./e2e/server-watchdog-reporter.ts']],
   // Only the 'authenticated' project needs this; it no-ops when Clerk env
   // vars aren't configured (see e2e/global-setup.ts), so mobile-390/desktop
   // runs everywhere else (including preview-smoke.yml) are unaffected.
@@ -99,6 +107,13 @@ export default defineConfig({
         command: 'npm run dev',
         url: 'http://localhost:3000',
         reuseExistingServer: true,
-        timeout: 120_000,
+        // 300s, not 120s (2608-DEV-722). Measured 2026-08-10: with no server
+        // running, a cold Turbopack boot on this repo exceeded the 120s ceiling
+        // and the whole run died with "Timed out waiting 120000ms from
+        // config.webServer" after 2m06s — which is why starting `npm run dev`
+        // by hand had become a required, undocumented step. A warm server is
+        // still reused instantly (reuseExistingServer), so this costs nothing
+        // on the common path; it only buys a cold start the time it needs.
+        timeout: 300_000,
       },
 })

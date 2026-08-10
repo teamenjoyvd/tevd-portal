@@ -76,10 +76,21 @@ test.describe('desktop bento grid — drag, collapse, layout persistence', () =>
     // Wait for the reset to actually land, rather than assuming 800ms is
     // enough. Previously this asserted on `bento_order: []` and compared
     // indexOf -1 < -1, which reported a race as a logic failure.
+    //
+    // The predicate must include the CLEARED COLLAPSE MAP (2608-DEV-723).
+    // Polling bento_order alone was satisfied by the state that existed BEFORE
+    // the click — any profile with a saved order already contains
+    // PERSONAL_DETAILS — so the poll returned instantly and the assertion below
+    // read pre-reset prefs. Whenever an earlier run had left a bento collapsed
+    // (e.g. it was interrupted), this failed with `{ payments: false }` against
+    // an expected `{}`, which reads exactly like a product regression and is
+    // not one. Both halves of "reset" must be observed before asserting either.
     await expectPersisted(
       page,
-      prefs => (prefs.bento_order ?? []).includes(BENTO_IDS.PERSONAL_DETAILS),
-      'reset layout should persist bento_order',
+      prefs =>
+        (prefs.bento_order ?? []).includes(BENTO_IDS.PERSONAL_DETAILS) &&
+        Object.keys(prefs.bento_collapsed ?? {}).length === 0,
+      'reset layout should persist bento_order and clear bento_collapsed',
     )
 
     const prefs = await getPersistedUiPrefs(page)
