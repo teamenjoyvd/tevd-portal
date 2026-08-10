@@ -53,11 +53,21 @@ export async function GET(req: Request): Promise<Response> {
     //
     // They are then excluded again by the email filter, and that is deliberate:
     // this count feeds `admin.calendar.confirm.guestWarning` — "{{count}}
-    // registered guest(s) will be notified." — and the notification paths drop
-    // null-email rows because member delivery is deferred to 2608-DEV-707.
-    // Counting a recipient who will not be mailed would make the dialog lie.
-    // When #707 makes members notifiable, delete the .not() line and the count
-    // becomes correct again on its own.
+    // registered guest(s) will be notified." — and
+    // lib/notifications/guest-event-changes.ts:86-97 still drops null-email
+    // rows from event-change emails. Counting a recipient who will not be
+    // mailed would make the dialog lie.
+    //
+    // This is deliberately NOT routed through
+    // lib/server/event-capacity.ts#countAttendeesForCapacity (2608-DEV-710
+    // correction A): this is a "who gets mailed" number, not a capacity count.
+    // Approved role holders are already excluded here for free — a D2 approval
+    // row is a member row with email NULL — while the helper would ADD every
+    // member attendee to a total that nobody actually mails.
+    //
+    // Making the two numbers agree requires member delivery on event-change
+    // emails; that is separate work, adjacent to #713. Delete the .not() line
+    // then, and the count becomes correct again on its own.
     const nowIso = new Date().toISOString()
     const { data: regs, error: regsError } = await supabase
       .from('guest_registrations')

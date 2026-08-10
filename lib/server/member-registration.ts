@@ -7,6 +7,7 @@ import { MemberEventConfirmationEmail } from '@/lib/email/templates/MemberEventC
 import { buildGoogleCalUrl, buildOutlookUrl } from '@/lib/calendar-links'
 import { getBaseUrl } from '@/lib/utils/base-url'
 import { consumeEmailCap } from '@/lib/rate-limit'
+import { countAttendeesForCapacity } from '@/lib/server/event-capacity'
 import { formatLongDate, formatLongDateEn, formatTime } from '@/lib/format'
 
 type Lang = 'en' | 'bg'
@@ -201,12 +202,10 @@ export async function attendEvent(
   // member (handled above).
   const addsActiveRegistrant = existing == null || existing.cancelled_at !== null
   if (addsActiveRegistrant && event.guest_capacity != null) {
-    const { count } = await supabase
-      .from('guest_registrations')
-      .select('id', { count: 'exact', head: true })
-      .eq('event_id', eventId)
-      .is('cancelled_at', null)
-    if ((count ?? 0) >= event.guest_capacity) {
+    // Approved role holders are excluded (2608-DEV-710 D10) — see
+    // lib/server/event-capacity.ts.
+    const attendees = await countAttendeesForCapacity(supabase, eventId)
+    if (attendees >= event.guest_capacity) {
       return { success: false, error: 'This event has reached its guest capacity.' }
     }
   }
