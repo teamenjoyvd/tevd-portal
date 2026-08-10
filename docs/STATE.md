@@ -5,14 +5,14 @@ sign-ups + guests those downlines invited); MEMBER sees own sign-up + own share-
 unattributed guests stay admin-only.
 
 ## Now
-#709 is PR #721, open, all 11 CI checks green on `8dd55ba`. GCR pass done: CodeRabbit's 2 Major
-findings + 3 of 4 nitpicks applied in a local UNPUSHED commit on `dev/2608-DEV-709`
-(5 files, ~40/-35). Skipped the e2e-coverage nitpick — see Decisions. Next action: push, then
-resolve the review threads.
+#709 is PR #721, open, GCR pass COMPLETE and pushed. `df358dd` applied CodeRabbit's 2 Major
+findings + 3 of 4 nitpicks; `a058abb` fixed the e2e fallout from the ARIA nitpick. All 11 CI
+checks green on `a058abb` (Authenticated E2E: 34 passed, the 4 registrations specs with real
+timings). Both inline threads resolved; the nitpick dispositions are PR comment 5245750751.
+Skipped the e2e-coverage nitpick — see Decisions. Next action: merge.
 
 ## Next
-1. Push `dev/2608-DEV-709` (needs an explicit grant), then resolve the two CodeRabbit inline
-   threads via GraphQL and reply on the skipped e2e nitpick.
+1. Merge PR #721.
 2. Post-merge, approve the gated `Migrate Prod` run promptly — the route ships on merge while
    `get_event_registrations_for_viewer` waits for the gate, so the tab 500s until it is approved.
    Verify the prod ledger head actually advances to `20260810000000`.
@@ -178,6 +178,13 @@ resolve the review threads.
   the pre-#705 column list.
 
 ## Failed attempts
+- ATTEMPT 1 [L1] (#709 GCR): applied CodeRabbit's ARIA nitpick — `role="tab"` on the tab-bar
+  buttons — without touching the spec -> all 4 `event-registrations-auth` specs timed out on
+  `locator.click` (CI run 31430426705, 4 failed / 30 passed). CAUSE: an explicit `role="tab"`
+  OVERRIDES `<button>`'s implicit ARIA role, so `openRegistrationsTab`'s
+  `getByRole('button', { name: /registrations/i })` matched nothing. Fixed in `a058abb` by moving
+  the single call site to `getByRole('tab', …)`. Lesson: adding an explicit ARIA role to an
+  element is a REFERENCE SWEEP trigger for `getByRole` locators, not just for symbol renames.
 - ATTEMPT 1 [L1] (#709 e2e): swapped bare `getByText(name)` for `data-testid`-scoped locators
   (`registration-row` / `registration-name`) -> 3 of 4 green, but the 390px case still failed:
   `getByTestId('registration-row').filter({ hasText: 'E2E Core Downline' })` resolved to 2 elements
