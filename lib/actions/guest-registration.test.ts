@@ -386,9 +386,9 @@ describe('resendGuestLink — rate cap', () => {
 // -- registerGuest — capacity (2607-DEV-590) ----------------------------------
 
 // Flexible thenable that resolves to { data: rows } after any sequence of
-// .eq()/.is() — the shape countAttendeesForCapacity awaits on both of its
-// queries (2608-DEV-710). Distinct from countChain above, which resolves to a
-// head:true { count }.
+// .eq()/.is() — the shape countAttendeesForCapacity awaits on its
+// event_role_requests read (2608-DEV-710). Distinct from countChain above,
+// which resolves to a head:true { count }.
 function rowsChain(rows: Array<Record<string, unknown>>) {
   const chain: {
     eq: () => typeof chain
@@ -398,6 +398,25 @@ function rowsChain(rows: Array<Record<string, unknown>>) {
     eq: () => chain,
     is: () => chain,
     then: (resolve) => resolve({ data: rows, error: null }),
+  }
+  return chain
+}
+
+// The two head:true exact counts countAttendeesForCapacity runs against
+// guest_registrations. They are told apart by .in(): only the role-holder
+// subtraction filters on profile_id.
+function capacityCountChain(activeCount: number, roleHolderActiveCount: number) {
+  let scopedToRoleHolders = false
+  const chain: {
+    eq: () => typeof chain
+    is: () => typeof chain
+    in: () => typeof chain
+    then: (resolve: (v: { count: number; error: null }) => void) => void
+  } = {
+    eq: () => chain,
+    is: () => chain,
+    in: () => { scopedToRoleHolders = true; return chain },
+    then: (resolve) => resolve({ count: scopedToRoleHolders ? roleHolderActiveCount : activeCount, error: null }),
   }
   return chain
 }
@@ -420,12 +439,9 @@ function buildCapacityClient(opts: {
     end_time: new Date(Date.now() + 24 * HOUR).toISOString(),
     guest_capacity: opts.guestCapacity,
   }
+  // `roleHolderCount` of the `activeCount` active rows are member rows owned by
+  // an approved role holder; the rest are plain guests.
   const roleHolderCount = opts.roleHolderCount ?? 0
-  // The first `roleHolderCount` active rows are member rows owned by an
-  // approved role holder; the rest are plain guests (profile_id NULL).
-  const activeRegistrations = Array.from({ length: opts.activeCount }, (_, i) => ({
-    profile_id: i < roleHolderCount ? `role-holder-${i}` : null,
-  }))
   const approvedRoleRows = Array.from({ length: roleHolderCount }, (_, i) => ({
     profile_id: `role-holder-${i}`,
   }))
@@ -441,12 +457,13 @@ function buildCapacityClient(opts: {
         return { select: () => rowsChain(approvedRoleRows) }
       }
       if (table === 'guest_registrations') {
-        // Two different reads land here: the capacity headcount asks for
-        // 'profile_id' and awaits a row list; the token-reuse lookup asks for
-        // token/expires_at/… and ends in .maybeSingle().
+        // Two different reads land here: the capacity headcount is a
+        // head:true exact count (twice — total, then role holders only, which
+        // is the call that adds .in()), and the token-reuse lookup ends in
+        // .maybeSingle().
         return {
-          select: (cols: string) => {
-            if (cols === 'profile_id') return rowsChain(activeRegistrations)
+          select: (_cols: string, sel?: { count?: string; head?: boolean }) => {
+            if (sel?.count) return capacityCountChain(opts.activeCount, roleHolderCount)
             return { eq: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: opts.existing ?? null, error: null }) }) }) }
           },
           update: updateSpy,

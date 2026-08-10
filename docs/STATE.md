@@ -60,7 +60,27 @@ migration to hosted DEV, then draft PR + authenticated E2E.
 - Production smoke 2026-08-10: `https://www.teamenjoyvd.com` 200, `/sign-in` 200.
 
 ## Done
-- #710 BUILD (code complete, DB-unverified) — RESULT: 7 files. New
+- #710 RPC verified on hosted DEV (`iymwxdewcpvpjgzewtzk`) — RESULT: **7/7 scenarios pass**, run as
+  one rolled-up DO block with `request.jwt.claims` set to `{"role":"service_role"}` to satisfy the
+  RPC's internal guard, with all scratch rows deleted afterwards (re-checked: 0 left). S1 approval
+  creates one `confirmed`, `cancelled_at` NULL, `email` NULL row named from the profile; S1 return
+  shape still has all 7 top-level keys; S2 double approval -> 1 row, same id; S3 self-cancelled
+  holder reactivates; S4 an existing guest row is adopted in place (same id, `created_at`
+  preserved, email/token/expires_at NULL) -> exactly ONE row; S5 guest row + member row does NOT
+  raise (the NOT EXISTS guard); S6 a case-mismatched guest email IS adopted (the LOWER fix).
+  Ledger version corrected from the MCP-generated `20260810222333` to the file version
+  `20260811000000`.
+- #710 `/code-review medium` — RESULT: 5 findings, 2 in this diff and both FIXED, 3 out of scope
+  (they live in files already merged to `main` via #721/#724 — logged under Open items).
+  Fixed 1 (medium): `countAttendeesForCapacity` counted fetched rows, but
+  `supabase/config.toml:14` sets `max_rows = 1000` — which caps rows returned and never applied to
+  the `count: 'exact'` query it replaced — so an event with `guest_capacity >= 1000` would have
+  stopped enforcing capacity. Now two head:true exact counts (total, minus role holders via
+  `.in()`). Fixed 2 (low): the adopt step matched `gr.email = p.contact_email` case-sensitively;
+  `registerGuest` stores the address verbatim (`z.string().email()`, no `.toLowerCase()`), so a
+  case-mismatched signup would have produced the duplicate row the block exists to prevent. Now
+  `LOWER(...) = LOWER(...)`, proved by S6.
+- #710 BUILD (code complete) — RESULT: 7 files. New
   `20260811000000_2608_feat_710_approve_role_creates_registration.sql` (RPC body verbatim from
   `20260512000300` + adopt-then-insert) and new `lib/server/event-capacity.ts`
   (`countAttendeesForCapacity`); all 3 capacity call sites routed through it; comment-only update at
@@ -82,6 +102,27 @@ migration to hosted DEV, then draft PR + authenticated E2E.
 - #722 closed — RESULT: merged as PR #724 (`ef0c3e1`), E2E aborts on a dead dev server.
 
 ## Open items
+- NOTED (not done, same-class defect found by `/code-review medium` on #710): the case-sensitive
+  email match fixed in the #710 RPC also exists in TypeScript at
+  `lib/server/member-registration.ts:239` — `.eq('email', contactEmail)` in `attendEvent`'s D9
+  adopt step. Same failure: a member who signed up as `Ivan@Example.com` is not adopted and gets a
+  second row. 2 instances of the class total; 1 fixed here (the RPC), 1 left because it is outside
+  #710's DoD. Fixing it needs either a citext/lower() index or a `.ilike()` lookup — its own ticket.
+- NOTED (not done, out of #710's scope — merged in #721): `EventPopup.tsx:156`'s
+  `showMeta = activeTab !== 'registrations'` now applies to EVERY role, and
+  `EventPopupShell.tsx:169-214` puts `AttendSection` + the share/QR buttons inside that gate. A
+  member who opens the Registrations tab loses the Attend button with no affordance explaining why.
+  Previously unreachable, since members had no tab bar at all — so this is a new regression, not a
+  carried one.
+- NOTED (not done, out of #710's scope — merged in #724): `e2e/server-watchdog-reporter.ts:57`
+  calls `process.exit(1)`, which skips Playwright's `test.afterAll`. If the dev server dies during
+  `e2e/event-registrations-auth.spec.ts`, its cleanup (`:164-171`) never runs and the seeded event,
+  share links and registrations are orphaned in the shared DEV project.
+- NOTED (not done, out of #710's scope — merged in #721): `types/supabase.ts:2370` types the
+  `get_event_registrations_for_viewer` returns `email`, `profile_id`, `sharer_name`, `attended_at`
+  and `cancelled_at` as non-nullable `string`, but all five are NULL in normal operation. The
+  current caller casts to `EventRegistration` (correctly nullable); the next caller that trusts the
+  generated type dereferences a null with no compiler warning.
 - NOTED (not done, found during #709): the DEV ledger has NO `20260809000100` row (#706
   `fn_schedule_guest_reminders_record`), though prod does. Function-body-only, so
   `types/supabase.ts` is unaffected, but hosted DEV may be running the pre-#706 body. This matters

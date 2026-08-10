@@ -83,6 +83,9 @@ class FakeQuery {
   update(data: Row) { this.mode = 'update'; this.writeData = data; return this }
   eq(col: string, val: unknown) { this.filters.push(r => r[col] === val); return this }
   is(col: string, val: null) { this.filters.push(r => (r[col] ?? null) === val); return this }
+  // 2608-DEV-710: countAttendeesForCapacity subtracts role holders with
+  // .in('profile_id', […]).
+  in(col: string, vals: unknown[]) { this.filters.push(r => vals.includes(r[col])); return this }
 
   private matches() { return this.table.filter(r => this.filters.every(f => f(r))) }
 

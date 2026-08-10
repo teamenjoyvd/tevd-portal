@@ -14,10 +14,15 @@ import type { SupabaseClient } from '@supabase/supabase-js'
  * because that module is `'use server'` — anything exported from it becomes a
  * server-action endpoint.
  *
- * Two round trips with the filtering done in TypeScript: PostgREST cannot
- * express `profile_id NOT IN (SELECT …)`, and `.or('profile_id.is.null,…')`
- * would be a single query that the unit-test fakes cannot drive (their query
- * builders implement `eq`/`is` only).
+ * Three round trips, because PostgREST cannot express
+ * `profile_id NOT IN (SELECT …)` in one query: read the approved holders, then
+ * subtract their active registrations from the total.
+ *
+ * Both registration reads are `count: 'exact', head: true` rather than a row
+ * fetch counted in TypeScript. That is load-bearing: `supabase/config.toml:14`
+ * sets `max_rows = 1000`, which caps rows RETURNED but never applied to a count
+ * query. Counting fetched rows would silently saturate at 1000, so an event
+ * with `guest_capacity >= 1000` would stop enforcing capacity entirely.
  *
  * Note: this moves the existing read-then-write capacity shape, it does not
  * close the TOCTOU race tracked by #718 — there is still no DB-level guard on
@@ -45,10 +50,10 @@ export async function countAttendeesForCapacity(
       .filter((id): id is string => id !== null),
   )
 
-  // 2. Active registrations on this event.
-  const { data: regRows, error: regError } = await supabase
+  // 2. All active registrations on this event.
+  const { count: totalActive, error: regError } = await supabase
     .from('guest_registrations')
-    .select('profile_id')
+    .select('id', { count: 'exact', head: true })
     .eq('event_id', eventId)
     .is('cancelled_at', null)
 
@@ -60,8 +65,24 @@ export async function countAttendeesForCapacity(
     return 0
   }
 
-  return (regRows ?? []).filter(r => {
-    const profileId = (r as { profile_id: string | null }).profile_id
-    return profileId === null || !roleHolderIds.has(profileId)
-  }).length
+  const total = totalActive ?? 0
+  if (roleHolderIds.size === 0) return total
+
+  // 3. How many of those belong to an approved role holder. Bounded by the
+  // event's role slots, so the .in() list stays small.
+  const { count: roleHolderActive, error: roleRegError } = await supabase
+    .from('guest_registrations')
+    .select('id', { count: 'exact', head: true })
+    .eq('event_id', eventId)
+    .is('cancelled_at', null)
+    .in('profile_id', Array.from(roleHolderIds))
+
+  // Subtracting nothing is the strict answer — it can only over-count, never
+  // let an over-capacity registration through.
+  if (roleRegError) {
+    console.error('Failed to count role-holder registrations for capacity:', roleRegError)
+    return total
+  }
+
+  return Math.max(0, total - (roleHolderActive ?? 0))
 }

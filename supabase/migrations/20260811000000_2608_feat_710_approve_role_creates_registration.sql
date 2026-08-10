@@ -81,6 +81,12 @@ BEGIN
   -- when it found no member row: without it, a holder carrying BOTH a guest row
   -- and a member row on this event would collide on
   -- guest_registrations_event_profile_uniq and the approval would RAISE.
+  --
+  -- The match is LOWER()-folded: registerGuest stores the address verbatim
+  -- (lib/actions/guest-registration.ts:37 is z.string().email() with no
+  -- .toLowerCase()), so someone who signed up as Ivan@Example.com against a
+  -- contact_email of ivan@example.com would otherwise miss the adopt and get a
+  -- SECOND row — the exact outcome this block exists to prevent.
   UPDATE public.guest_registrations gr
      SET profile_id   = v_profile_id,
          email        = NULL,
@@ -89,10 +95,10 @@ BEGIN
          cancelled_at = NULL,
          status       = 'confirmed'
     FROM public.profiles p
-   WHERE p.id           = v_profile_id
-     AND gr.event_id    = v_event_id
-     AND gr.profile_id  IS NULL
-     AND gr.email       = p.contact_email
+   WHERE p.id            = v_profile_id
+     AND gr.event_id     = v_event_id
+     AND gr.profile_id   IS NULL
+     AND LOWER(gr.email) = LOWER(p.contact_email)
      AND NOT EXISTS (
        SELECT 1 FROM public.guest_registrations g2
         WHERE g2.event_id   = v_event_id
