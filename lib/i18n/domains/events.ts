@@ -66,6 +66,13 @@ export const events = {
   'event.register.linkNoLongerActive': { en: 'This share link is no longer active.',                bg: 'Тази връзка за споделяне вече не е активна.'                     },
   'event.register.full':           { en: 'This event has reached its guest capacity.',               bg: 'Това събитие достигна максималния брой гости.'                   },
 
+  // register — recognised member panel (2608-DEV-708)
+  'event.register.signedInAs':      { en: 'Signed in as {name}',        bg: 'Влезли сте като {name}'         },
+  'event.register.attendOneTap':    { en: 'Attend this event',          bg: 'Присъствам на събитието'        },
+  'event.register.invitedBy':       { en: 'Invited by {name}',          bg: 'Поканени от {name}'             },
+  'event.register.attendingAlready': { en: "You're attending this event.", bg: 'Ще присъствате на това събитие.' },
+  'event.register.attendError':     { en: 'Could not attend. Please try again.', bg: 'Записването не бе успешно. Моля, опитайте отново.' },
+
   // register/components/RegisterForm
   'event.register.checkInbox':     { en: 'Check your inbox',                                         bg: 'Проверете пощата си'                                            },
   'event.register.sentLink':       { en: "We've sent your access link. The link expires after the event ends.", bg: 'Изпратихме ви връзка за достъп. Тя изтича след края на събитието.' },

@@ -1,6 +1,8 @@
 import { notFound } from 'next/navigation'
+import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { RegisterForm } from './components/RegisterForm'
+import { MemberAttendPanel } from './components/MemberAttendPanel'
 import { ResendLinkForm } from '../components/ResendLinkForm'
 import { t } from '@/lib/i18n'
 import { getLangFromCookies } from '@/lib/utils/lang-cookie'
@@ -9,6 +11,10 @@ type Props = {
   params:       Promise<{ eventId: string }>
   searchParams: Promise<{ share?: string }>
 }
+
+type SharerProfile = { first_name: string | null; last_name: string | null } | null
+
+type MemberIdentity = { id: string; first_name: string | null; last_name: string | null }
 
 export default async function GuestRegisterPage({ params, searchParams }: Props) {
   const { eventId }  = await params
@@ -37,26 +43,95 @@ export default async function GuestRegisterPage({ params, searchParams }: Props)
     eventFull = (count ?? 0) >= event.guest_capacity
   }
 
+  // `event_share_links` has exactly ONE FK to `profiles`
+  // (20260504000001_event_share_links.sql:7), so this embed needs no PostgREST
+  // hint — the multi-FK `payments` trap in docs/ai/GOTCHAS.md does not apply.
   let shareLinkRevoked = false
+  let sharerName: string | null = null
   if (share) {
     const { data: shareLink } = await supabase
       .from('event_share_links')
-      .select('revoked_at')
+      .select('revoked_at, profile:profiles(first_name, last_name)')
       .eq('token', share)
       .eq('event_id', eventId)
       .single()
     shareLinkRevoked = !!shareLink?.revoked_at
+
+    // Attribution is only shown for a live link — a revoked one credits nobody.
+    if (shareLink && !shareLink.revoked_at) {
+      // Narrow joined relation -- PostgREST returns object for to-one FK
+      const sharer = shareLink.profile as unknown as SharerProfile
+      // Convention: first_name + ' ' + last_name (lib/notifications/share-events.ts:60).
+      const name = `${sharer?.first_name ?? ''} ${sharer?.last_name ?? ''}`.trim()
+      sharerName = name === '' ? null : name
+    }
   }
+
+  // -- Member path (2608-DEV-708) ---------------------------------------------
+  // `/events/(.*)` is in PUBLIC_ROUTE_PATTERNS (lib/public-routes.ts:29), but
+  // clerkMiddleware still resolves a session on a public route — the join
+  // page's member branch relies on exactly this (join/page.tsx:165-174).
+  // Anonymous visitors get a null userId and fall through to the guest form.
+  const { userId } = await auth()
+
+  let member: MemberIdentity | null = null
+  if (userId) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('id, role, first_name, last_name')
+      .eq('clerk_id', userId)
+      .maybeSingle()
+
+    // role 'guest' has no portal identity worth using here, and the attend
+    // route would 403 them anyway (api/events/[id]/attend/route.ts:38) — they
+    // fall through to the unchanged guest form.
+    if (profile && profile.role !== 'guest') {
+      member = { id: profile.id, first_name: profile.first_name, last_name: profile.last_name }
+    }
+  }
+
+  let isAttending = false
+  let meetingUrl: string | null = null
+  if (member) {
+    const { data: registration } = await supabase
+      .from('guest_registrations')
+      .select('id')
+      .eq('event_id', eventId)
+      .eq('profile_id', member.id)
+      .is('cancelled_at', null)
+      .maybeSingle()
+    isAttending = registration != null
+
+    // D3: meeting_url is fetched ONLY behind an active registration, so it is
+    // never in this page's payload for someone who has not attended. That is
+    // also why the panel re-renders from the server after a successful attend
+    // instead of flipping client state.
+    if (isAttending) {
+      const { data: gated } = await supabase
+        .from('calendar_events')
+        .select('meeting_url')
+        .eq('id', eventId)
+        .single()
+      meetingUrl = gated?.meeting_url ?? null
+    }
+  }
+
+  const memberName = member === null
+    ? ''
+    : `${member.first_name ?? ''} ${member.last_name ?? ''}`.trim()
 
   const dateLabel = new Date(event.start_time).toLocaleDateString('en-GB', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
   })
 
+  // A member re-opening their own link is not consuming a new seat, so a full
+  // event must not block them once they already hold an active row. Ended and
+  // revoked-link still block everyone: a revoked link attributes nothing.
   const blockedMessage = eventEnded
     ? t('event.register.eventEnded', lang)
     : shareLinkRevoked
     ? t('event.register.linkNoLongerActive', lang)
-    : eventFull
+    : eventFull && !isAttending
     ? t('event.register.full', lang)
     : null
 
@@ -86,6 +161,18 @@ export default async function GuestRegisterPage({ params, searchParams }: Props)
                 <p className="text-sm text-center" style={{ color: 'var(--text-secondary)' }}>{blockedMessage}</p>
                 <ResendLinkForm eventId={event.id} />
               </>
+            ) : member !== null ? (
+              <MemberAttendPanel
+                eventId={event.id}
+                meetingUrl={meetingUrl}
+                eventTitle={event.title}
+                startTime={event.start_time}
+                endTime={event.end_time}
+                memberName={memberName}
+                sharerName={sharerName}
+                shareToken={share}
+                isAttending={isAttending}
+              />
             ) : (
               <>
                 <p className="text-sm font-semibold mb-5" style={{ color: 'var(--text-primary)' }}>
@@ -121,6 +208,18 @@ export default async function GuestRegisterPage({ params, searchParams }: Props)
               <p className="text-sm text-center" style={{ color: 'var(--text-secondary)' }}>{blockedMessage}</p>
               <ResendLinkForm eventId={event.id} />
             </>
+          ) : member !== null ? (
+            <MemberAttendPanel
+              eventId={event.id}
+              meetingUrl={meetingUrl}
+              eventTitle={event.title}
+              startTime={event.start_time}
+              endTime={event.end_time}
+              memberName={memberName}
+              sharerName={sharerName}
+              shareToken={share}
+              isAttending={isAttending}
+            />
           ) : (
             <>
               <p className="text-sm font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
