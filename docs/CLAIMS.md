@@ -6,5 +6,5 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
-| #708 | `dev/2608-DEV-708` | `app/events/[eventId]/register/page.tsx`, `app/events/[eventId]/register/components/MemberAttendPanel.tsx` (new), `lib/i18n/domains/events.ts`, `playwright.config.ts`, `e2e/member-share-register-auth.spec.ts` (new) — **migration: no** | 2026-08-10 |
+| #709 | `dev/2608-DEV-709` | `supabase/migrations/20260810000000_2608_feat_709_event_registrations_visibility_rpc.sql` (new), `app/api/events/[id]/registrations/route.ts` (new), `app/api/admin/events/[id]/registrations/route.ts` (delete), `app/(dashboard)/calendar/components/EventPopup.tsx`, `app/(dashboard)/calendar/components/popup/{CoreAdminActions.tsx→EventActionsTabs.tsx,RegistrationsTab.tsx,types.ts}`, `lib/i18n/domains/calendar.ts`, `types/supabase.ts`, `scripts/seed-clerk-test-users.js`, `playwright.config.ts`, `e2e/event-registrations-auth.spec.ts` (new) — **migration: yes** | 2026-08-10 |
 
