@@ -45,10 +45,16 @@ export default function EventActionsTabs({
 
   return (
     <>
-      <div className="px-4 pt-3 pb-0 flex gap-1 border-b border-black/5">
+      {/* Same bare role="tablist" as app/admin/components/LangTabs.tsx:14 —
+          the tab labels are the accessible name, no separate aria-label. */}
+      <div role="tablist" className="px-4 pt-3 pb-0 flex gap-1 border-b border-black/5">
         {(['roles', 'registrations'] as const).map(tab => (
           <button
             key={tab}
+            role="tab"
+            id={`event-tab-${tab}`}
+            aria-selected={activeTab === tab}
+            aria-controls={`event-tabpanel-${tab}`}
             onClick={() => setActiveTab(tab)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-t-lg text-xs font-semibold transition-colors"
             style={{
@@ -64,7 +70,8 @@ export default function EventActionsTabs({
       </div>
 
       {activeTab === 'roles' && (
-        role === 'admin' ? (
+        <div role="tabpanel" id="event-tabpanel-roles" aria-labelledby="event-tab-roles">
+        {role === 'admin' ? (
           <div className="px-4 py-3 border-b border-black/5">
             <p className="text-[10px] font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
               {t('event.roles')}
@@ -116,11 +123,14 @@ export default function EventActionsTabs({
             cancelMutation={cancelMutation}
             t={t}
           />
-        )
+        )}
+        </div>
       )}
 
       {activeTab === 'registrations' && (
-        <RegistrationsTab eventId={eventId} t={t} />
+        <div role="tabpanel" id="event-tabpanel-registrations" aria-labelledby="event-tab-registrations">
+          <RegistrationsTab eventId={eventId} t={t} />
+        </div>
       )}
     </>
   )

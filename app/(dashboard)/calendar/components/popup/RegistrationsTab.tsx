@@ -23,7 +23,7 @@ type Props = {
  * by get_event_registrations_for_viewer, so this component never filters.
  */
 export default function RegistrationsTab({ eventId, t }: Props) {
-  const { data, isLoading } = useQuery<{ registrations: EventRegistration[] }>({
+  const { data, isLoading, isError } = useQuery<{ registrations: EventRegistration[] }>({
     queryKey: ['event-registrations', eventId],
     queryFn: () => apiClient(`/api/events/${eventId}/registrations`),
   })
@@ -34,6 +34,17 @@ export default function RegistrationsTab({ eventId, t }: Props) {
         {[...Array(3)].map((_, i) => (
           <div key={i} className="h-10 rounded-lg animate-pulse" style={{ backgroundColor: 'rgba(0,0,0,0.06)' }} />
         ))}
+      </div>
+    )
+  }
+
+  // A failed fetch must not read as "nobody registered". The 403 branch is
+  // reachable in normal use (the route rejects the guest role), so `data`
+  // being undefined is not evidence of an empty roster.
+  if (isError) {
+    return (
+      <div className="px-4 py-6 text-center">
+        <p className="text-xs" style={{ color: 'var(--brand-crimson)' }}>{t('cal.reg.error')}</p>
       </div>
     )
   }

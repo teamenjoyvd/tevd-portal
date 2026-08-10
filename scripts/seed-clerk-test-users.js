@@ -89,7 +89,7 @@ const MEMBER_ABO = process.env.E2E_CLERK_MEMBER_ABO ?? 'E2E-MEMBER-0001'
 // Disjoint roots also buy the "an unrelated branch is not listed" assertion for
 // free: the CORE leg and the MEMBER leg never intersect, so the member's
 // downline must be absent from the core's registrations roster.
-const CORE_EMAIL = process.env.E2E_CLERK_CORE_EMAIL || 'e2e-core-tevd-portal@example.com'
+const CORE_EMAIL = process.env.E2E_CLERK_CORE_EMAIL ?? 'e2e-core-tevd-portal@example.com'
 const CORE_ABO = process.env.E2E_CLERK_CORE_ABO ?? 'E2E-CORE-0001'
 
 // Same synthetic-clerk_id reasoning as DOWNLINE_CLERK_ID below: this profile
@@ -396,34 +396,10 @@ async function main() {
     process.exitCode = 1
     return
   }
-  if (MEMBER_ABO.trim() === '') {
-    console.error(
-      'seed-clerk-test-users: E2E_CLERK_MEMBER_ABO is set but empty. Unset it to use the ' +
-        'default fixture value, or give it a real reserved value — a blank abo_number would ' +
-        'satisfy the NOT NULL trigger and be stored as a real one.',
-    )
-    process.exitCode = 1
-    return
-  }
-  if (DOWNLINE_ABO.trim() === '') {
-    console.error(
-      'seed-clerk-test-users: E2E_CLERK_DOWNLINE_ABO is set but empty. Same reason as ' +
-        'E2E_CLERK_MEMBER_ABO above — unset it or give it a real reserved value.',
-    )
-    process.exitCode = 1
-    return
-  }
-  if (DOWNLINE_ABO === MEMBER_ABO) {
-    console.error(
-      'seed-clerk-test-users: E2E_CLERK_DOWNLINE_ABO equals E2E_CLERK_MEMBER_ABO. ' +
-        'profiles.abo_number is UNIQUE, so the two fixtures cannot share one.',
-    )
-    process.exitCode = 1
-    return
-  }
-  // Same two failure modes as the four checks above, stated once for the ABO
-  // set as a whole now that #709 added a third leg. Blank first, then
-  // uniqueness: profiles.abo_number is UNIQUE across ALL of them, not just the
+  // Two failure modes, stated once for the ABO set as a whole now that #709
+  // added a third leg (this supersedes the per-variable MEMBER_ABO /
+  // DOWNLINE_ABO checks that used to sit here). Blank first, then uniqueness:
+  // profiles.abo_number is UNIQUE across ALL of them, not just the
   // member/downline pair.
   const ABO_FIXTURES = [
     ['E2E_CLERK_MEMBER_ABO', MEMBER_ABO],

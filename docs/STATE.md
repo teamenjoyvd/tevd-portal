@@ -5,19 +5,18 @@ sign-ups + guests those downlines invited); MEMBER sees own sign-up + own share-
 unattributed guests stay admin-only.
 
 ## Now
-#709 BUILD complete and locally verified on `dev/2608-DEV-709`, 14 files, +897/-287, committed
-locally and UNPUSHED. Migration already applied to hosted DEV (user-approved 2026-08-10).
-Next action: push the branch and open the DRAFT PR.
+#709 is PR #721, open, all 11 CI checks green on `8dd55ba`. GCR pass done: CodeRabbit's 2 Major
+findings + 3 of 4 nitpicks applied in a local UNPUSHED commit on `dev/2608-DEV-709`
+(5 files, ~40/-35). Skipped the e2e-coverage nitpick — see Decisions. Next action: push, then
+resolve the review threads.
 
 ## Next
-1. Push `dev/2608-DEV-709`; open the PR as a DRAFT (CodeRabbit skips drafts); add
-   `Closes #709` and the Session State block.
-2. Confirm Vercel Preview READY + CI green, then mark ready for review for the single
-   CodeRabbit pass.
-3. Post-merge, approve the gated `Migrate Prod` run promptly — the route ships on merge while
+1. Push `dev/2608-DEV-709` (needs an explicit grant), then resolve the two CodeRabbit inline
+   threads via GraphQL and reply on the skipped e2e nitpick.
+2. Post-merge, approve the gated `Migrate Prod` run promptly — the route ships on merge while
    `get_event_registrations_for_viewer` waits for the gate, so the tab 500s until it is approved.
    Verify the prod ledger head actually advances to `20260810000000`.
-4. Fold the `docs/CLAIMS.md` #709 row removal into the merging PR — never a standalone PR.
+3. Fold the `docs/CLAIMS.md` #709 row removal into the merging PR — never a standalone PR.
 
 ## Not covered by any test (#708)
 - DoD "member with `role = 'guest'` falls through to the guest form" is IMPLEMENTED
@@ -37,6 +36,10 @@ Next action: push the branch and open the DRAFT PR.
   stack. Run `npm run check:env` before any command touching a hosted DB.
 
 ## Decisions
+- DECISION (#709 GCR): skipped CodeRabbit's e2e-coverage nitpick (co-owner downline, ABO-less
+  downline, guest 403). No guest-role Clerk fixture exists — `scripts/seed-clerk-test-users.js`
+  seeds only member/admin/core — so all three cases need new Clerk users, new env vars and new
+  seed legs. That is a feature-sized change, not a review fix; it belongs in its own ticket.
 - DECISION (#708): no `lib/actions/member-registration.ts`. `app/api/events/[id]/attend/route.ts`
   already resolves identity server-side via `withProfile`, 403s `role === 'guest'`, accepts
   `{ share }`, and delegates to `attendEvent` — the panel `fetch`es it and calls `router.refresh()`.

@@ -47,7 +47,14 @@ export async function GET(
     p_viewer: profile.id,
   })
 
-  if (error) return Response.json({ error: error.message }, { status: 500 })
+  // error.message is Postgres' own text — function names, column names, and
+  // for a malformed `id` the literal "invalid input syntax for type uuid".
+  // Log it, return the same shape of generic string the profile-lookup
+  // failure above already returns.
+  if (error) {
+    console.error('[events/registrations] RPC failed:', { eventId: id, code: error.code, message: error.message })
+    return Response.json({ error: 'Failed to load registrations' }, { status: 500 })
+  }
 
   // Same envelope key as the admin route this replaces, so the client query
   // shape is unchanged.

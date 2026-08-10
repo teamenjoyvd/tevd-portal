@@ -47,6 +47,7 @@ export const calendar = {
   'cal.tab.roles':          { en: 'Roles',                    bg: 'Роли'                          },
   'cal.tab.registrations':  { en: 'Registrations',            bg: 'Регистрации'                   },
   'cal.reg.empty':          { en: 'No registrations yet.',    bg: 'Все още няма регистрации.'     },
+  'cal.reg.error':          { en: 'Could not load registrations.', bg: 'Регистрациите не можаха да бъдат заредени.' },
   'cal.reg.member':         { en: 'Member',                   bg: 'Член'                          },
   'cal.reg.status.pending':   { en: 'Pending',                bg: 'Изчакваща'                     },
   'cal.reg.status.confirmed': { en: 'Confirmed',              bg: 'Потвърдена'                    },
