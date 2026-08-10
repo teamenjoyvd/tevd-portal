@@ -165,7 +165,10 @@ function attendingBadge(page: Page): Locator {
 
 /** The panel and the guest form are mutually exclusive — assert both halves. */
 async function expectMemberPanel(page: Page) {
-  await expect(page.getByText(/signed in as/i).first()).toBeVisible({ timeout: 15_000 })
+  // visible(), not .first(): .first() is DOM order, and the desktop block is
+  // rendered before the mobile one, so at 390px .first() locks onto the
+  // CSS-hidden desktop copy and waits out the timeout.
+  await expect(visible(page, page.getByText(/signed in as/i))).toBeVisible({ timeout: 15_000 })
   await expect(page.locator('input#name')).toHaveCount(0)
   await expect(page.locator('input#email')).toHaveCount(0)
 }
