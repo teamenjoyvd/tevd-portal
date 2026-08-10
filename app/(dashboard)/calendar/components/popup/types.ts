@@ -18,12 +18,20 @@ export type RoleSlot = {
   caller_request: CallerRequest | null
 }
 
-export type GuestRegistration = {
+// One row of /api/events/[id]/registrations — the shape returned by
+// get_event_registrations_for_viewer (2608-DEV-709). Covers members and
+// guests alike; `is_member` says which.
+export type EventRegistration = {
   id: string
-  name: string
-  email: string
+  registrant: string
+  // NULL on member rows, and enforced there by
+  // guest_registrations_guest_xor_member_chk rather than by any masking code.
+  email: string | null
+  profile_id: string | null
+  is_member: boolean
   status: string
   attended_at: string | null
+  cancelled_at: string | null
   created_at: string
   sharer_name: string | null
 }

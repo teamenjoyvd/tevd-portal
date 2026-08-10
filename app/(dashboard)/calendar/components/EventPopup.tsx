@@ -8,8 +8,7 @@ import QRCode from 'qrcode'
 import { toast } from 'sonner'
 import EventPopupShell from './popup/EventPopupShell'
 import GuestActions from './popup/GuestActions'
-import MemberActions from './popup/MemberActions'
-import CoreAdminActions from './popup/CoreAdminActions'
+import EventActionsTabs from './popup/EventActionsTabs'
 import type { EventDetail } from './popup/types'
 
 type Props = {
@@ -28,7 +27,7 @@ export default function EventPopup({
   const [shareLoading, setShareLoading] = useState(false)
   const [qrLoading, setQrLoading]       = useState(false)
   const [qrDataUrl, setQrDataUrl]       = useState<string | null>(null)
-  const [adminTab, setAdminTab]         = useState<'roles' | 'registrations'>('roles')
+  const [activeTab, setActiveTab]       = useState<'roles' | 'registrations'>('roles')
 
   const { data: event, isLoading } = useQuery<EventDetail>({
     queryKey: ['event', eventId],
@@ -38,6 +37,10 @@ export default function EventPopup({
   const isAdmin        = userRole === 'admin'
   const canRequestRole = !!userRole && userRole !== 'guest'
   const isGuest        = userRole === 'guest' || userRole === null
+  // null == guest/anonymous, who get no tabs at all. Everyone else gets the
+  // tabbed actions, including plain members since 2608-DEV-709.
+  const actionsRole: 'admin' | 'core' | 'member' | null =
+    userRole === 'guest' || userRole === null ? null : userRole
 
   // Role requests close 15 minutes before start. Admins always see full UI.
   const isClosed = !isAdmin && !!event &&
@@ -145,7 +148,12 @@ export default function EventPopup({
     a.remove()
   }
 
-  const showMeta = !(isAdmin && adminTab === 'registrations')
+  // Keys off the tab alone, for every role (2608-DEV-709 C6). showMeta gates
+  // more than the date/share meta — AttendSection, the share/QR buttons and
+  // the attendForLink hint all sit inside it (EventPopupShell.tsx:164-214) —
+  // so a core/member with the Registrations tab open also loses the Attend
+  // button until they switch back. Accepted: `roles` is the default tab.
+  const showMeta = activeTab !== 'registrations'
 
   return (
     <EventPopupShell
@@ -169,49 +177,19 @@ export default function EventPopup({
       onCancelAttend={() => cancelAttendMutation.mutate()}
       t={t}
     >
-      {isGuest ? (
+      {actionsRole === null ? (
         <GuestActions />
-      ) : isAdmin ? (
-        event && (
-          <CoreAdminActions
-            role="admin"
-            event={event}
-            isLoading={isLoading}
-            eventId={eventId}
-            adminTab={adminTab}
-            setAdminTab={setAdminTab}
-            isClosed={isClosed}
-            canRequestRole={canRequestRole}
-            profileNameMissing={profileNameMissing}
-            requestMutation={requestMutation}
-            cancelMutation={cancelMutation}
-            t={t}
-          />
-        )
-      ) : userRole === 'core' ? (
-        event && (
-          <CoreAdminActions
-            role="core"
-            event={event}
-            isLoading={isLoading}
-            eventId={eventId}
-            adminTab={adminTab}
-            setAdminTab={setAdminTab}
-            isClosed={isClosed}
-            canRequestRole={canRequestRole}
-            profileNameMissing={profileNameMissing}
-            requestMutation={requestMutation}
-            cancelMutation={cancelMutation}
-            t={t}
-          />
-        )
       ) : (
         event && (
-          <MemberActions
+          <EventActionsTabs
+            role={actionsRole}
             event={event}
             isLoading={isLoading}
-            canRequestRole={canRequestRole}
+            eventId={eventId}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
             isClosed={isClosed}
+            canRequestRole={canRequestRole}
             profileNameMissing={profileNameMissing}
             requestMutation={requestMutation}
             cancelMutation={cancelMutation}

@@ -2367,6 +2367,21 @@ export type Database = {
         Returns: undefined
       }
       get_core_ancestors: { Args: { p_profile_id: string }; Returns: string[] }
+      get_event_registrations_for_viewer: {
+        Args: { p_event_id: string; p_viewer: string }
+        Returns: {
+          attended_at: string
+          cancelled_at: string
+          created_at: string
+          email: string
+          id: string
+          is_member: boolean
+          profile_id: string
+          registrant: string
+          sharer_name: string
+          status: string
+        }[]
+      }
       get_event_years: {
         Args: never
         Returns: {

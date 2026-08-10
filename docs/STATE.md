@@ -5,19 +5,19 @@ sign-ups + guests those downlines invited); MEMBER sees own sign-up + own share-
 unattributed guests stay admin-only.
 
 ## Now
-#709 CLAIM complete on `dev/2608-DEV-709` (commit `379b889`, `docs/CLAIMS.md` only, unpushed).
-Issue body rewritten against `main@a11b89d` with seven corrections; Design Checklist 4/4;
-`## Branch` present. #708 is done — PR #720 merged 2026-08-10T15:06Z, issue auto-closed, epic
-checklist ticked, claim row pruned. No BUILD work has started on #709.
+#709 BUILD complete and locally verified on `dev/2608-DEV-709`, 14 files, +897/-287, committed
+locally and UNPUSHED. Migration already applied to hosted DEV (user-approved 2026-08-10).
+Next action: push the branch and open the DRAFT PR.
 
 ## Next
-1. BUILD #709 in the five numbered steps named in the issue (migration + types → route + delete →
-   client rename + tab → i18n → seed + e2e), each ending with its own check.
-2. #709 carries a migration: apply to hosted DEV only, and ask before applying anywhere.
-   Post-merge, approve the gated `Migrate Prod` run promptly — the route ships on merge while the
-   function waits for the gate, so the tab 500s until it is approved.
-3. Still unticketed: the machine-readable attend error code (declined CodeRabbit finding E on
-   #720) and the `JoinActions` download-anchor pattern — both under Open items.
+1. Push `dev/2608-DEV-709`; open the PR as a DRAFT (CodeRabbit skips drafts); add
+   `Closes #709` and the Session State block.
+2. Confirm Vercel Preview READY + CI green, then mark ready for review for the single
+   CodeRabbit pass.
+3. Post-merge, approve the gated `Migrate Prod` run promptly — the route ships on merge while
+   `get_event_registrations_for_viewer` waits for the gate, so the tab 500s until it is approved.
+   Verify the prod ledger head actually advances to `20260810000000`.
+4. Fold the `docs/CLAIMS.md` #709 row removal into the merging PR — never a standalone PR.
 
 ## Not covered by any test (#708)
 - DoD "member with `role = 'guest'` falls through to the guest form" is IMPLEMENTED
@@ -87,6 +87,19 @@ checklist ticked, claim row pruned. No BUILD work has started on #709.
   #708 run on the same tree (32 files / 420 passed; 0 errors, 468 warnings).
 
 ## Done
+- #709 BUILD — RESULT: 14 files, +897/-287. Verified locally: `npx tsc --noEmit` clean;
+  `npx eslint .` 0 errors / 465 warnings (baseline 468 — the deleted admin route carried 3);
+  `npx vitest run` 32 files / 420 passed; `npx playwright test --project=authenticated
+  e2e/event-registrations-auth.spec.ts` -> **4 passed (34.0s)**, real timings, none skipped;
+  full `--project=authenticated --workers=1` -> 28 passed. The 6 reds in that full run were
+  `profile-bento-auth` (5) + `payments-on-behalf` L3, all caused by the local dev server dying
+  mid-run (exit 127, twice) — `profile-bento-auth` ran 5/5 GREEN on this same tree minutes
+  earlier, and `payments-guest` passed in isolation (10.5s).
+- #709 migration applied to hosted DEV — RESULT: `get_event_registrations_for_viewer` live on
+  `iymwxdewcpvpjgzewtzk` via MCP `apply_migration`; `routine_privileges` -> postgres +
+  service_role only; DEV ledger row corrected from the MCP-generated `20260810154654` to the
+  file version `20260810000000`. `types/supabase.ts` regenerated — diff was exactly the new
+  RPC, no other drift.
 - #709 PLAN + CLAIM — RESULT: verdict READY; issue body rewritten with seven corrections (five
   path/line drift, two real gaps — C6 showMeta scope, C7 missing CORE e2e fixture); Design
   Checklist 4/4; `## Branch dev/2608-DEV-709`; claim row committed at `379b889` with the merged
@@ -120,6 +133,16 @@ checklist ticked, claim row pruned. No BUILD work has started on #709.
   dependencies have all merged.
 
 ## Open items
+- NOTED (not done, found during #709): the DEV ledger has NO `20260809000100` row (#706
+  `fn_schedule_guest_reminders_record`), though prod does. Function-body-only, so
+  `types/supabase.ts` is unaffected, but hosted DEV may be running the pre-#706 body.
+- NOTED (not done, local env only): `GET /api/calendar/feed-token` 500s locally with
+  "NEXT_PUBLIC_APP_URL is not set" (`lib/utils/base-url.ts:12`). Pre-existing local env gap,
+  unrelated to #709.
+- NOTED (not done): `e2e/profile-bento-auth.spec.ts:72` ("reset layout") fails when the shared
+  DEV member profile carries leftover collapse state (`{payments:false}`) from an interrupted
+  run — it passes once a completed run resets it. Order/state-dependent, not a code defect;
+  worth its own ticket to make the spec seed its own starting layout.
 - NOTED (not done, declined CodeRabbit finding on #720, needs its own ticket): client error copy is
   selected by matching ENGLISH server text. `MemberAttendPanel.tsx:73-78` does
   `raw.includes('capacity')` / `raw.includes('already ended')`, and
@@ -152,6 +175,12 @@ checklist ticked, claim row pruned. No BUILD work has started on #709.
   the pre-#705 column list.
 
 ## Failed attempts
+- ATTEMPT 1 [L1] (#709 e2e): swapped bare `getByText(name)` for `data-testid`-scoped locators
+  (`registration-row` / `registration-name`) -> 3 of 4 green, but the 390px case still failed:
+  `getByTestId('registration-row').filter({ hasText: 'E2E Core Downline' })` resolved to 2 elements
+  (`event-registrations-auth.spec.ts:278`). CAUSE unchanged and now proven at row level: as ADMIN
+  the core downline appears BOTH as a registrant row and inside the `via <sharer>` line of the guest
+  it invited, so `hasText` on the row is as ambiguous as it was on the page.
 - ATTEMPT 1 [L1] (#708 e2e): the 390px case asserted the panel with
   `getByText(/signed in as/i).first()` -> `expect(locator).toBeVisible() failed` in CI at
   `member-share-register-auth.spec.ts:168`, twice (initial + retry #1). CAUSE: `.first()` is DOM

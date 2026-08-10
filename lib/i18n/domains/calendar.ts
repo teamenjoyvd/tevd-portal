@@ -41,4 +41,15 @@ export const calendar = {
   // 2608-DEV-707 — the attending-state CTA row
   'cal.joinRecordsAttendance': { en: 'Records your attendance',     bg: 'Отбелязва присъствието ви'      },
   'cal.attendSuccessEmailed':  { en: "You're attending. Confirmation sent to your email.", bg: 'Ще присъствате. Изпратихме потвърждение на имейла ви.' },
+  // 2608-DEV-709 — the tiered Registrations tab. "via"/"Direct" are NOT
+  // duplicated here: profile.invites.via / profile.invites.direct already carry
+  // them and keys are globally unique (lib/i18n/index.ts).
+  'cal.tab.roles':          { en: 'Roles',                    bg: 'Роли'                          },
+  'cal.tab.registrations':  { en: 'Registrations',            bg: 'Регистрации'                   },
+  'cal.reg.empty':          { en: 'No registrations yet.',    bg: 'Все още няма регистрации.'     },
+  'cal.reg.member':         { en: 'Member',                   bg: 'Член'                          },
+  'cal.reg.status.pending':   { en: 'Pending',                bg: 'Изчакваща'                     },
+  'cal.reg.status.confirmed': { en: 'Confirmed',              bg: 'Потвърдена'                    },
+  'cal.reg.status.attended':  { en: 'Attended',               bg: 'Присъствал'                    },
+  'cal.reg.status.cancelled': { en: 'Cancelled',              bg: 'Отказана'                      },
 } as const
