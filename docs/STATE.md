@@ -4,27 +4,26 @@ D1 in epic #702: a signed-in member opening someone's `?share=` link gets one-ta
 inviter credited, never the guest name+email form.
 
 ## Now
-BUILD complete and committed as `bce3c28` (5 files, +571/-3): i18n keys, `MemberAttendPanel.tsx`,
-`register/page.tsx` wiring, `playwright.config.ts:38`, `e2e/member-share-register-auth.spec.ts`.
-Static gates all green (see Facts). `/code-review low` returned three findings, all dispositioned
-without code change — one rejected on the real prop type, one logged below as NOTED, one rejected as
-consistent with `EventPopup.tsx:76-78`. Not yet pushed.
+BUILD complete and pushed. Draft PR #720 open against `main` at `c2071dd`, ALL 11 checks green.
+Commits: `bce3c28` (feature, 5 files +571/-3), `4fa90dd` (state), `5d6e07b` (e2e locator fix),
+`c2071dd` (e2e coverage for the capacity carve-out + gated meeting link).
+Authenticated E2E genuinely executed — `Running 30 tests`, `30 passed (2.6m)`, all 5 of the new
+cases with real timings, so `skipIfUnseeded` did not silently skip. Still a DRAFT: not flipped to
+ready-for-review, because that fires the single CodeRabbit pass and is the merge decision.
 
 ## Next
-1. Push `dev/2608-DEV-708` -> draft PR (CodeRabbit skips drafts), body carries `Closes #708` and the
-   Session State block.
-2. CI green + Vercel Preview READY — confirm the Authenticated E2E job actually ran its steps rather
-   than skipping on missing secrets (green-by-skip does not count).
-3. Verify the DoD on the preview at 390px: signed-in member sees the panel and no name/email inputs;
-   logged-out visitor on the same URL still gets the guest form.
-4. Ready for review -> batch-fix CodeRabbit findings in ONE commit.
-5. After merge: GCR post-merge tail — remove the #708 row from `docs/CLAIMS.md`, smoke-check
+1. Decide whether to mark #720 ready for review (fires CodeRabbit's one pass) — needs a human call.
+2. Batch-fix any CodeRabbit findings in ONE commit; reply-and-resolve wrong ones rather than churn.
+3. After merge: GCR post-merge tail — remove the #708 row from `docs/CLAIMS.md`, smoke-check
    production, close #708. No migration, so `Migrate Prod` will auto-skip.
 
-## Not run locally
-`e2e/member-share-register-auth.spec.ts` is COLLECTED but NOT EXECUTED — the `authenticated` project
-needs local Supabase + `npm run e2e:seed-clerk`. It also needs a second named profile to act as the
-inviter; `skipIfUnseeded` covers its absence, so watch for a silent skip in CI rather than a pass.
+## Not covered by any test (#708)
+- DoD "member with `role = 'guest'` falls through to the guest form" is IMPLEMENTED
+  (`register/page.tsx`, role check) but UNVERIFIED — covering it needs a guest-role profile with a
+  live Clerk session, which the seed script does not provide.
+- The panel's cancel path (AlertDialog -> DELETE -> back to the Attend button) is implemented and
+  mirrors `AttendSection.tsx`, but no e2e case exercises it here; `member-attend-auth.spec.ts`
+  covers the same route from the calendar popup.
 
 ## Constraints
 - Never push without an explicit grant in this conversation. The grant used for `dev/2608-DEV-708`
@@ -69,6 +68,10 @@ inviter; `skipIfUnseeded` covers its absence, so watch for a silent skip in CI r
 - Production smoke 2026-08-10: `https://www.teamenjoyvd.com` 200, `/sign-in` 200.
 
 ## Done
+- #708 BUILD — RESULT: draft PR #720 at `c2071dd`, all 11 checks green, Authenticated E2E 30 passed
+  (5 new cases, none skipped). DoD verified by test: one-tap panel with no name/email inputs,
+  `share_link_id` = inviter's link, own link -> null, logged-out guest form unchanged, full event
+  does not block an active member, meeting link absent before / present after attending, 390px.
 - #708 BUILD — RESULT: `bce3c28`, 5 files, +571/-3. All six issue corrections honoured: reused the
   attend route (no `lib/actions/member-registration.ts`), one `playwright.config.ts` edit, server-
   rendered attending state, link-not-redirect to `/join`, `first_name + last_name` for the sharer.
@@ -102,4 +105,9 @@ inviter; `skipIfUnseeded` covers its absence, so watch for a silent skip in CI r
   the pre-#705 column list.
 
 ## Failed attempts
-- None this session.
+- ATTEMPT 1 [L1] (#708 e2e): the 390px case asserted the panel with
+  `getByText(/signed in as/i).first()` -> `expect(locator).toBeVisible() failed` in CI at
+  `member-share-register-auth.spec.ts:168`, twice (initial + retry #1). CAUSE: `.first()` is DOM
+  order and `page.tsx` renders the desktop block (`hidden md:flex`) before the mobile one, so at
+  390px it locked onto the CSS-hidden desktop copy. Fixed in `5d6e07b` with the `visible()` scope
+  that `member-attend-auth.spec.ts:88-93` already documents. Green on re-run.
