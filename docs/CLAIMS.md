@@ -6,5 +6,5 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
-| #707 | `dev/2608-DEV-707` | `lib/calendar-links.ts` + `.test.ts` (new), `components/AddToCalendarMenu.tsx` (new), `lib/email/templates/MemberEventConfirmationEmail.tsx` (new), `app/events/[eventId]/join/page.tsx`, `app/events/[eventId]/join/components/JoinActions.tsx`, `lib/server/member-registration.ts` + `.test.ts`, `app/api/events/[id]/attend/route.ts`, `app/(dashboard)/calendar/components/popup/AttendSection.tsx`, `app/(dashboard)/calendar/components/popup/EventPopupShell.tsx`, `e2e/member-attend-auth.spec.ts` — **migration: no** | 2026-08-10 |
+| #708 | `dev/2608-DEV-708` | `app/events/[eventId]/register/page.tsx`, `app/events/[eventId]/register/components/MemberAttendPanel.tsx` (new), `lib/i18n/domains/events.ts`, `playwright.config.ts`, `e2e/member-share-register-auth.spec.ts` (new) — **migration: no** | 2026-08-10 |
 
