@@ -175,6 +175,11 @@ export default function EventPopupShell({
                     onAttend={onAttend}
                     onCancelAttend={onCancelAttend}
                     t={t}
+                    eventId={event.id}
+                    title={event.title}
+                    startTime={event.start_time}
+                    endTime={event.end_time}
+                    meetingUrl={event.meeting_url}
                   />
                 </div>
               )}

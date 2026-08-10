@@ -14,6 +14,35 @@ vi.mock('@/lib/notifications/share-events', () => ({
   notifySharerOfCancellation: (...args: unknown[]) => notifySharerOfCancellation(...args),
 }))
 
+// -- Confirmation-email seam (2608-DEV-707) -------------------------------------
+// The dispatch chain is mocked at its edges — cap, render, send — so the tests
+// assert WHICH branches send and with what, never real delivery. The template
+// component itself is left real: React.createElement on it is what would catch
+// a prop rename.
+
+type SendPayload = { to: string; subject: string; html: string; template: string; meta?: Record<string, unknown> }
+type CapArgs = { recipient: string; template?: string; windowMs: number; max: number }
+
+// Declared by signature rather than by implementation so `.mock.calls[0][0]` is
+// typed; the implementations are (re)set in beforeEach.
+const sendTransactionalEmail = vi.fn<(payload: SendPayload) => Promise<{ sent: boolean }>>()
+const renderEmailTemplate = vi.fn<(element: unknown) => Promise<string>>()
+const consumeEmailCap = vi.fn<(args: CapArgs) => Promise<boolean>>()
+const getBaseUrl = vi.fn<() => Promise<string>>()
+
+vi.mock('@/lib/email/send', () => ({
+  sendTransactionalEmail: (payload: SendPayload) => sendTransactionalEmail(payload),
+}))
+vi.mock('@/lib/email/templates/render', () => ({
+  renderEmailTemplate: (element: unknown) => renderEmailTemplate(element),
+}))
+vi.mock('@/lib/rate-limit', () => ({
+  consumeEmailCap: (args: CapArgs) => consumeEmailCap(args),
+}))
+vi.mock('@/lib/utils/base-url', () => ({
+  getBaseUrl: () => getBaseUrl(),
+}))
+
 // -- Fake DB ----------------------------------------------------------------
 // A minimal in-memory stand-in for the PostgREST query builder, generalized
 // beyond event-shares.test.ts's read-only thenable to also support insert/
@@ -103,9 +132,12 @@ const PAST = new Date(Date.now() - 3600_000).toISOString()
 function seedEvent(db: Db, over: Partial<Row> = {}) {
   db.calendar_events.push({
     id: EVENT_ID,
+    title: 'N21 Weekly',
     allow_guest_registration: true,
+    start_time: FUTURE,
     end_time: FUTURE,
     guest_capacity: null,
+    meeting_url: 'https://meet.example.com/n21',
     ...over,
   })
 }
@@ -113,6 +145,14 @@ function seedEvent(db: Db, over: Partial<Row> = {}) {
 beforeEach(() => {
   notifySharerOfRegistration.mockClear()
   notifySharerOfCancellation.mockClear()
+  sendTransactionalEmail.mockClear()
+  renderEmailTemplate.mockClear()
+  consumeEmailCap.mockClear()
+  getBaseUrl.mockClear()
+  sendTransactionalEmail.mockResolvedValue({ sent: true })
+  renderEmailTemplate.mockResolvedValue('<html>rendered</html>')
+  consumeEmailCap.mockResolvedValue(true)
+  getBaseUrl.mockResolvedValue('https://portal.example.com')
 })
 
 // -- attendEvent ----------------------------------------------------------------
@@ -149,7 +189,7 @@ describe('attendEvent', () => {
       profileName: 'Ivan Petrov', contactEmail: null,
     })
 
-    expect(result).toEqual({ success: true, registrationId: 'reg-1' })
+    expect(result).toEqual({ success: true, registrationId: 'reg-1', emailed: false })
     expect(db.guest_registrations).toHaveLength(1)
     expect(notifySharerOfRegistration).not.toHaveBeenCalled()
   })
@@ -168,7 +208,7 @@ describe('attendEvent', () => {
       profileName: 'New Name', contactEmail: null,
     })
 
-    expect(result).toEqual({ success: true, registrationId: 'reg-1' })
+    expect(result).toEqual({ success: true, registrationId: 'reg-1', emailed: false })
     expect(db.guest_registrations).toHaveLength(1)
     expect(db.guest_registrations[0]).toMatchObject({ cancelled_at: null, name: 'New Name', status: 'confirmed' })
   })
@@ -188,7 +228,7 @@ describe('attendEvent', () => {
       profileName: 'Ivan Petrov', contactEmail: 'ivan@example.com',
     })
 
-    expect(result).toEqual({ success: true, registrationId: 'guest-reg-1' })
+    expect(result).toEqual({ success: true, registrationId: 'guest-reg-1', emailed: true })
     expect(db.guest_registrations).toHaveLength(1)
     expect(db.guest_registrations[0]).toMatchObject({
       profile_id: PROFILE_ID, email: null, token: null, expires_at: null,
@@ -249,7 +289,7 @@ describe('attendEvent', () => {
       profileName: 'Ivan Petrov', contactEmail: null,
     })
 
-    expect(result).toEqual({ success: true, registrationId: 'reg-1' })
+    expect(result).toEqual({ success: true, registrationId: 'reg-1', emailed: false })
   })
 
   it('attributes a valid share token to a different member', async () => {
@@ -340,6 +380,127 @@ describe('attendEvent', () => {
 
     expect(result).toEqual({ success: false, error: 'Registration is not available for this event.' })
     expect(db.guest_registrations).toHaveLength(0)
+  })
+})
+
+// -- Confirmation email (2608-DEV-707) ------------------------------------------
+
+describe('attendEvent — confirmation email', () => {
+  const EMAIL = 'ivan@example.com'
+
+  function attend(client: SupabaseClient, over: Partial<Parameters<typeof attendEvent>[1]> = {}) {
+    return attendEvent(client, {
+      eventId: EVENT_ID, profileId: PROFILE_ID, profileRole: 'member',
+      profileName: 'Ivan Petrov', contactEmail: EMAIL,
+      ...over,
+    })
+  }
+
+  it('sends a token-free join URL on a fresh attend', async () => {
+    const db = makeDb()
+    seedEvent(db)
+    const result = await attend(buildClient(db))
+
+    expect(result).toMatchObject({ success: true, emailed: true })
+    expect(sendTransactionalEmail).toHaveBeenCalledTimes(1)
+
+    const payload = sendTransactionalEmail.mock.calls[0][0] as unknown as {
+      to: string; subject: string; template: string
+    }
+    expect(payload.to).toBe(EMAIL)
+    expect(payload.template).toBe('member_event_confirmation')
+    expect(payload.subject).toBe("You're attending: N21 Weekly")
+
+    const props = (renderEmailTemplate.mock.calls[0][0] as unknown as { props: Record<string, unknown> }).props
+    expect(props.joinUrl).toBe(`https://portal.example.com/events/${EVENT_ID}/join`)
+    expect(props.joinUrl).not.toContain('token')
+    expect(props.lang).toBe('en')
+  })
+
+  it('renders the bg subject and passes lang through', async () => {
+    const db = makeDb()
+    seedEvent(db)
+    await attend(buildClient(db), { lang: 'bg' })
+
+    const payload = sendTransactionalEmail.mock.calls[0][0] as unknown as { subject: string }
+    expect(payload.subject).toBe('Присъствието ви е потвърдено: N21 Weekly')
+    const props = (renderEmailTemplate.mock.calls[0][0] as unknown as { props: Record<string, unknown> }).props
+    expect(props.lang).toBe('bg')
+  })
+
+  it('sends on a reactivated registration', async () => {
+    const db = makeDb()
+    seedEvent(db)
+    db.guest_registrations.push({
+      id: 'reg-1', event_id: EVENT_ID, profile_id: PROFILE_ID, name: 'Ivan Petrov',
+      status: 'confirmed', cancelled_at: '2026-08-01T00:00:00.000Z', share_link_id: null,
+    })
+
+    const result = await attend(buildClient(db))
+    expect(result).toMatchObject({ emailed: true })
+    expect(sendTransactionalEmail).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not re-send on an already-active idempotent attend', async () => {
+    const db = makeDb()
+    seedEvent(db)
+    db.guest_registrations.push({
+      id: 'reg-1', event_id: EVENT_ID, profile_id: PROFILE_ID, name: 'Ivan Petrov',
+      status: 'confirmed', cancelled_at: null, share_link_id: null,
+    })
+
+    const result = await attend(buildClient(db))
+    expect(result).toEqual({ success: true, registrationId: 'reg-1', emailed: false })
+    expect(sendTransactionalEmail).not.toHaveBeenCalled()
+  })
+
+  it('skips the send silently when contact_email is null — attend still succeeds', async () => {
+    const db = makeDb()
+    seedEvent(db)
+
+    const result = await attend(buildClient(db), { contactEmail: null })
+
+    expect(result).toMatchObject({ success: true, emailed: false })
+    expect(sendTransactionalEmail).not.toHaveBeenCalled()
+    expect(consumeEmailCap).not.toHaveBeenCalled()
+    expect(db.guest_registrations).toHaveLength(1)
+  })
+
+  it('skips the send when the recipient is over the daily cap', async () => {
+    const db = makeDb()
+    seedEvent(db)
+    consumeEmailCap.mockResolvedValue(false)
+
+    const result = await attend(buildClient(db))
+
+    expect(result).toMatchObject({ success: true, emailed: false })
+    expect(sendTransactionalEmail).not.toHaveBeenCalled()
+    expect(db.guest_registrations).toHaveLength(1)
+  })
+
+  it('reports emailed:false but still succeeds when the send fails', async () => {
+    const db = makeDb()
+    seedEvent(db)
+    sendTransactionalEmail.mockResolvedValue({ sent: false })
+
+    const result = await attend(buildClient(db))
+
+    expect(result).toMatchObject({ success: true, emailed: false })
+    expect(db.guest_registrations).toHaveLength(1)
+  })
+
+  it('never fails the attend when the link builder throws (#713 shape)', async () => {
+    const db = makeDb()
+    seedEvent(db)
+    getBaseUrl.mockRejectedValue(new Error('NEXT_PUBLIC_APP_URL is not set.'))
+
+    const result = await attend(buildClient(db))
+
+    // The registration is already committed at this point — a broken base URL
+    // must not turn it into an error response for the caller.
+    expect(result).toMatchObject({ success: true, emailed: false })
+    expect(db.guest_registrations).toHaveLength(1)
+    expect(sendTransactionalEmail).not.toHaveBeenCalled()
   })
 })
 
