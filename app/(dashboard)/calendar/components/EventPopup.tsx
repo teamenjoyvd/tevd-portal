@@ -67,7 +67,7 @@ export default function EventPopup({
     onSuccess: (data) => {
       // Only promise an email when one actually went out (2608-DEV-707) — a
       // member with no contact_email attends successfully and silently.
-      toast.success(t(data.emailed ? 'cal.attendSuccessEmailed' : 'cal.attendSuccess'))
+      toast.success(t(data.emailed === true ? 'cal.attendSuccessEmailed' : 'cal.attendSuccess'))
       qc.invalidateQueries({ queryKey: ['event', eventId] })
       qc.invalidateQueries({ queryKey: ['event-registrations', eventId] })
     },

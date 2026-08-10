@@ -107,7 +107,10 @@ export default async function GuestJoinPage({ params, searchParams }: Props) {
   let registrantName: string
   let event: JoinedEvent
 
-  if (token) {
+  // `?token=` is a supplied-but-empty token, not an absent one: it belongs in
+  // the guest branch, where it resolves to InvalidState, never in the member
+  // branch (2608-DEV-707 review).
+  if (token !== undefined) {
     const { data: reg } = await supabase
       .from('guest_registrations')
       .select('id, name, event_id, expires_at, share_link_id, cancelled_at, calendar_events(title, meeting_url, start_time, end_time)')
@@ -126,12 +129,19 @@ export default async function GuestJoinPage({ params, searchParams }: Props) {
     }
 
     // Stamp attendance + confirm status — idempotent, only writes when not already set
-    const { data: stamped } = await supabase
+    const { data: stamped, error: stampError } = await supabase
       .from('guest_registrations')
       .update({ attended_at: new Date().toISOString(), status: 'confirmed' })
       .eq('id', reg.id)
       .is('attended_at', null)
       .select('id')
+
+    // A failed stamp is logged, never swallowed and never fatal: the guest's
+    // registration is already valid and verified above, so denying them the
+    // meeting link over an attendance-tracking write is the worse failure
+    // (2608-DEV-707 review). `stamped` is undefined on error, which already
+    // gates the notify below.
+    if (stampError) console.error('Failed to stamp guest attendance:', stampError)
 
     // Notify sharer — fire-and-forget, must not block render. Gated on the
     // update having actually stamped a row: this page is a GET, so a refresh,
@@ -177,12 +187,15 @@ export default async function GuestJoinPage({ params, searchParams }: Props) {
 
     // No expiry check: member rows carry expires_at NULL by construction
     // (2608-DEV-705) — there is nothing to expire.
-    const { data: stamped } = await supabase
+    const { data: stamped, error: stampError } = await supabase
       .from('guest_registrations')
       .update({ attended_at: new Date().toISOString(), status: 'confirmed' })
       .eq('id', reg.id)
       .is('attended_at', null)
       .select('id')
+
+    // Same rule as the guest branch above: logged, non-fatal.
+    if (stampError) console.error('Failed to stamp member attendance:', stampError)
 
     if (reg.share_link_id && stamped && stamped.length > 0) {
       notifySharerOfAttendance(reg.share_link_id, reg.name)
@@ -240,7 +253,7 @@ export default async function GuestJoinPage({ params, searchParams }: Props) {
             <JoinActions {...actionProps} />
             {/* Guest self-service cancel is token-driven. A member cancels from
                 the calendar popup instead, so this is omitted on that branch. */}
-            {token && <CancelActions token={token} />}
+            {token !== undefined && <CancelActions token={token} />}
           </div>
         </div>
       </div>
@@ -280,7 +293,7 @@ export default async function GuestJoinPage({ params, searchParams }: Props) {
             </p>
           )}
           <JoinActions {...actionProps} />
-          {token && <CancelActions token={token} />}
+          {token !== undefined && <CancelActions token={token} />}
         </div>
       </div>
     </>

@@ -7,7 +7,7 @@ import { MemberEventConfirmationEmail } from '@/lib/email/templates/MemberEventC
 import { buildGoogleCalUrl, buildOutlookUrl } from '@/lib/calendar-links'
 import { getBaseUrl } from '@/lib/utils/base-url'
 import { consumeEmailCap } from '@/lib/rate-limit'
-import { formatLongDate, formatTime } from '@/lib/format'
+import { formatLongDate, formatLongDateEn, formatTime } from '@/lib/format'
 
 type Lang = 'en' | 'bg'
 
@@ -79,7 +79,10 @@ async function sendMemberConfirmation(
       React.createElement(MemberEventConfirmationEmail, {
         name: profileName,
         eventTitle: event.title,
-        eventDateLabel: `${formatLongDate(event.start_time)}, ${formatTime(event.start_time)} – ${formatTime(event.end_time)}`,
+        // formatLongDate is bg-BG by contract, so an en email would otherwise
+        // carry a Bulgarian weekday (2608-DEV-707 review). formatTime is 24h
+        // digits in both locales and needs no twin.
+        eventDateLabel: `${lang === 'bg' ? formatLongDate(event.start_time) : formatLongDateEn(event.start_time)}, ${formatTime(event.start_time)} – ${formatTime(event.end_time)}`,
         meetingUrl: event.meeting_url,
         joinUrl,
         googleCalUrl: buildGoogleCalUrl(event.title, event.start_time, event.end_time, event.meeting_url),

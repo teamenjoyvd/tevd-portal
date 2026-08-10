@@ -58,7 +58,10 @@ export default function AddToCalendarMenu({
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `${title.replace(/[^a-z0-9]+/gi, '-').toLowerCase() || 'event'}.ics`
+    // A title of only punctuation slugs to '' — an empty basename, not a falsy
+    // value to be ||'d away.
+    const slug = title.replace(/[^a-z0-9]+/gi, '-').toLowerCase()
+    a.download = `${slug === '' ? 'event' : slug}.ics`
     // Appended before clicking, and revoked on the next tick: a detached anchor
     // plus a synchronous revoke drops the blob before the download starts in
     // Firefox/Safari, producing no file at all. Matches downloadQr's

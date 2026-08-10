@@ -28,6 +28,16 @@ describe('toGcalDate', () => {
   it('handles an ISO string with no millis', () => {
     expect(toGcalDate('2026-04-11T10:00:00Z')).toBe('20260411T100000Z')
   })
+
+  // PostgREST serializes timestamptz with an offset, not a Z — the shape the
+  // builders actually receive from a calendar_events row (2608-DEV-707 review).
+  it('converts a non-UTC offset to the UTC instant', () => {
+    expect(toGcalDate('2026-04-11T13:00:00+03:00')).toBe('20260411T100000Z')
+  })
+
+  it('converts a +00:00 offset to the Z form', () => {
+    expect(toGcalDate('2026-04-11T10:00:00+00:00')).toBe('20260411T100000Z')
+  })
 })
 
 describe('buildGoogleCalUrl', () => {
@@ -95,6 +105,12 @@ describe('buildIcsContent', () => {
     expect(ics).not.toContain('LOCATION:')
     expect(ics).not.toContain('DESCRIPTION:')
     expect(ics.split('\r\n')).toHaveLength(9)
+  })
+
+  it('treats an empty location the same as a null one', () => {
+    expect(buildIcsContent(TITLE, START, END, '')).toBe(buildIcsContent(TITLE, START, END, null))
+    expect(buildGoogleCalUrl(TITLE, START, END, '')).toBe(buildGoogleCalUrl(TITLE, START, END, null))
+    expect(buildOutlookUrl(TITLE, START, END, '')).toBe(buildOutlookUrl(TITLE, START, END, null))
   })
 
   it('escapes backslashes, commas, semicolons and newlines in the summary', () => {

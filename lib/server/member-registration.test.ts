@@ -415,6 +415,10 @@ describe('attendEvent — confirmation email', () => {
     expect(props.joinUrl).toBe(`https://portal.example.com/events/${EVENT_ID}/join`)
     expect(props.joinUrl).not.toContain('token')
     expect(props.lang).toBe('en')
+    // The label is built off a moving FUTURE fixture, so the assertion is on the
+    // locale of the rendering, not on one date: an en email must not carry the
+    // bg-BG weekday formatLongDate would give it (2608-DEV-707 review).
+    expect(props.eventDateLabel).toMatch(/^[A-Z][a-z]+day, \d{2} [A-Z][a-z]+ \d{4}, \d{2}:\d{2} – \d{2}:\d{2}$/)
   })
 
   it('renders the bg subject and passes lang through', async () => {
@@ -426,6 +430,8 @@ describe('attendEvent — confirmation email', () => {
     expect(payload.subject).toBe('Присъствието ви е потвърдено: N21 Weekly')
     const props = (renderEmailTemplate.mock.calls[0][0] as unknown as { props: Record<string, unknown> }).props
     expect(props.lang).toBe('bg')
+    // Cyrillic weekday — the bg branch still goes through formatLongDate.
+    expect(props.eventDateLabel).toMatch(/^[а-я]+, \d{2}\.\d{2}\.\d{4} г\., \d{2}:\d{2} – \d{2}:\d{2}$/)
   })
 
   it('sends on a reactivated registration', async () => {

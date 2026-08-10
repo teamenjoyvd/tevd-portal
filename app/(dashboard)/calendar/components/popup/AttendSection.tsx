@@ -100,7 +100,7 @@ export default function AttendSection({
               {t('cal.joinRecordsAttendance')}
             </span>
           </a>
-          {startTime && endTime && (
+          {startTime !== '' && endTime !== '' && (
             <AddToCalendarMenu
               title={title}
               startTime={startTime}
