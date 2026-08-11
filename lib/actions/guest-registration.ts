@@ -94,6 +94,22 @@ export async function registerGuest(
   if (new Date(event.end_time).getTime() < Date.now())
     return { success: false, error: 'This event has already ended.' }
 
+  // Resolve the absolute base URL BEFORE the first side effect (2608-DEV-713).
+  // getBaseUrl() throws on a misconfigured environment, and everything below
+  // this point is irreversible: the throttle slot, the upsert, the click count,
+  // the daily email cap. Resolved down at the magic-link line instead, a broken
+  // environment registered the guest, spent their cap, and then 500'd on the
+  // link they never received — a half-success invisible to guest and admin
+  // alike. Failing here returns the same "could not send" error with nothing
+  // committed, so a retry after the fix is clean.
+  let baseUrl: string
+  try {
+    baseUrl = await getBaseUrl()
+  } catch (err) {
+    console.error('registerGuest: could not resolve the app base URL', err)
+    return { success: false, error: 'Could not send access link. Please try again.' }
+  }
+
   // Resolve share token → share_link_id (null-safe). A revoked link must not
   // attribute a new registration — treat it the same as no token.
   let shareLinkId: string | null = null
@@ -211,7 +227,7 @@ export async function registerGuest(
 
   if (withinDailyCap) {
     // Build magic link from the resolved app base URL
-    const magicLink = `${await getBaseUrl()}/events/${eventId}/join?token=${token}`
+    const magicLink = `${baseUrl}/events/${eventId}/join?token=${token}`
 
     const html = await renderEmailTemplate(
       React.createElement(GuestEventMagicLinkEmail, {
@@ -278,6 +294,19 @@ export async function resendGuestLink(eventId: string, email: string): Promise<R
   if (!event || !event.allow_guest_registration) return NEUTRAL_RESULT
   if (new Date(event.end_time).getTime() < Date.now()) return NEUTRAL_RESULT
 
+  // Same rule as registerGuest (2608-DEV-713): resolve before the first side
+  // effect — the two cap consumptions and the expires_at refresh below. The
+  // neutral result is the correct failure here; this path must stay
+  // non-enumerable, and returning early on a broken environment makes it MORE
+  // uniform, not less (no cap is spent, no expiry moves, no 500 leaks).
+  let baseUrl: string
+  try {
+    baseUrl = await getBaseUrl()
+  } catch (err) {
+    console.error('resendGuestLink: could not resolve the app base URL', err)
+    return NEUTRAL_RESULT
+  }
+
   const { data: reg } = await supabase
     .from('guest_registrations')
     .select('id, name, token, lang')
@@ -322,7 +351,7 @@ export async function resendGuestLink(eventId: string, email: string): Promise<R
   // nullable. Note this interpolation would NOT fail the build if that ever
   // stopped holding — a null token stringifies to "null" in the URL rather than
   // raising — so the invariant is the only thing protecting the link.
-  const magicLink = `${await getBaseUrl()}/events/${eventId}/join?token=${reg.token}`
+  const magicLink = `${baseUrl}/events/${eventId}/join?token=${reg.token}`
 
   const html = await renderEmailTemplate(
     React.createElement(GuestEventMagicLinkEmail, {
