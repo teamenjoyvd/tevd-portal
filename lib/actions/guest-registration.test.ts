@@ -385,7 +385,53 @@ describe('resendGuestLink — rate cap', () => {
 
 // -- registerGuest — capacity (2607-DEV-590) ----------------------------------
 
-function buildCapacityClient(opts: { guestCapacity: number | null; activeCount: number; existing?: Row }) {
+// Flexible thenable that resolves to { data: rows } after any sequence of
+// .eq()/.is() — the shape countAttendeesForCapacity awaits on its
+// event_role_requests read (2608-DEV-710). Distinct from countChain above,
+// which resolves to a head:true { count }.
+function rowsChain(rows: Array<Record<string, unknown>>) {
+  const chain: {
+    eq: () => typeof chain
+    is: () => typeof chain
+    then: (resolve: (v: { data: Array<Record<string, unknown>>; error: null }) => void) => void
+  } = {
+    eq: () => chain,
+    is: () => chain,
+    then: (resolve) => resolve({ data: rows, error: null }),
+  }
+  return chain
+}
+
+// The two head:true exact counts countAttendeesForCapacity runs against
+// guest_registrations. They are told apart by .in(): only the role-holder
+// subtraction filters on profile_id.
+function capacityCountChain(activeCount: number, roleHolderActiveCount: number) {
+  let scopedToRoleHolders = false
+  const chain: {
+    eq: () => typeof chain
+    is: () => typeof chain
+    in: () => typeof chain
+    then: (resolve: (v: { count: number; error: null }) => void) => void
+  } = {
+    eq: () => chain,
+    is: () => chain,
+    in: () => { scopedToRoleHolders = true; return chain },
+    then: (resolve) => resolve({ count: scopedToRoleHolders ? roleHolderActiveCount : activeCount, error: null }),
+  }
+  return chain
+}
+
+function buildCapacityClient(opts: {
+  guestCapacity: number | null
+  activeCount: number
+  existing?: Row
+  /**
+   * How many of the `activeCount` active registrations belong to a profile
+   * holding an APPROVED role on this event. 2608-DEV-710 (D10) excludes them
+   * from the capacity headcount — they are staff, not attendees.
+   */
+  roleHolderCount?: number
+}) {
   const event = {
     id: 'e',
     title: 'Trip Kickoff',
@@ -393,6 +439,13 @@ function buildCapacityClient(opts: { guestCapacity: number | null; activeCount: 
     end_time: new Date(Date.now() + 24 * HOUR).toISOString(),
     guest_capacity: opts.guestCapacity,
   }
+  // `roleHolderCount` of the `activeCount` active rows are member rows owned by
+  // an approved role holder; the rest are plain guests.
+  const roleHolderCount = opts.roleHolderCount ?? 0
+  const approvedRoleRows = Array.from({ length: roleHolderCount }, (_, i) => ({
+    profile_id: `role-holder-${i}`,
+  }))
+
   const upsertSpy = vi.fn(() => Promise.resolve({ error: null }))
   const updateSpy = vi.fn(() => ({ eq: () => ({ eq: () => Promise.resolve({ error: null }) }) }))
   const client = {
@@ -400,12 +453,17 @@ function buildCapacityClient(opts: { guestCapacity: number | null; activeCount: 
       if (table === 'calendar_events') {
         return { select: () => ({ eq: () => ({ single: () => Promise.resolve({ data: event, error: null }) }) }) }
       }
+      if (table === 'event_role_requests') {
+        return { select: () => rowsChain(approvedRoleRows) }
+      }
       if (table === 'guest_registrations') {
+        // Two different reads land here: the capacity headcount is a
+        // head:true exact count (twice — total, then role holders only, which
+        // is the call that adds .in()), and the token-reuse lookup ends in
+        // .maybeSingle().
         return {
           select: (_cols: string, sel?: { count?: string; head?: boolean }) => {
-            // The capacity count is now the ONLY count query registerGuest
-            // runs — the throttle became an RPC in 2608-DEV-625.
-            if (sel?.count) return countChain(opts.activeCount)
+            if (sel?.count) return capacityCountChain(opts.activeCount, roleHolderCount)
             return { eq: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: opts.existing ?? null, error: null }) }) }) }
           },
           update: updateSpy,
@@ -456,6 +514,38 @@ describe('registerGuest — capacity boundary', () => {
 
     expect(res.success).toBe(true)
     expect(updateSpy).toHaveBeenCalledTimes(1)
+  })
+
+  // 2608-DEV-710 (D10)
+  it('does not count approved role holders toward capacity', async () => {
+    const { client, upsertSpy } = buildCapacityClient({
+      guestCapacity: 2,
+      activeCount: 2,       // would be exactly full under the old count…
+      roleHolderCount: 2,   // …but both rows are approved staff, so 0 seats are taken
+    })
+    mockCreateServiceClient.mockReturnValue(client)
+    const { registerGuest } = await import('@/lib/actions/guest-registration')
+
+    const res = await registerGuest({ success: false }, form())
+
+    expect(res.success).toBe(true)
+    expect(upsertSpy).toHaveBeenCalledTimes(1)
+  })
+
+  it('still blocks at exactly guest_capacity non-role registrations', async () => {
+    const { client, upsertSpy } = buildCapacityClient({
+      guestCapacity: 2,
+      activeCount: 3,
+      roleHolderCount: 1, // 2 real attendees remain — capacity is reached
+    })
+    mockCreateServiceClient.mockReturnValue(client)
+    const { registerGuest } = await import('@/lib/actions/guest-registration')
+
+    const res = await registerGuest({ success: false }, form())
+
+    expect(res.success).toBe(false)
+    expect(res.error).toMatch(/capacity/i)
+    expect(upsertSpy).not.toHaveBeenCalled()
   })
 })
 

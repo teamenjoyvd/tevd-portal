@@ -56,6 +56,9 @@ function makeDb() {
     calendar_events: [] as Row[],
     event_share_links: [] as Row[],
     guest_registrations: [] as Row[],
+    // 2608-DEV-710 (D10): countAttendeesForCapacity reads approved role
+    // holders out of here and subtracts them from the capacity headcount.
+    event_role_requests: [] as Row[],
   }
 }
 
@@ -80,6 +83,9 @@ class FakeQuery {
   update(data: Row) { this.mode = 'update'; this.writeData = data; return this }
   eq(col: string, val: unknown) { this.filters.push(r => r[col] === val); return this }
   is(col: string, val: null) { this.filters.push(r => (r[col] ?? null) === val); return this }
+  // 2608-DEV-710: countAttendeesForCapacity subtracts role holders with
+  // .in('profile_id', […]).
+  in(col: string, vals: unknown[]) { this.filters.push(r => vals.includes(r[col])); return this }
 
   private matches() { return this.table.filter(r => this.filters.every(f => f(r))) }
 
@@ -273,6 +279,29 @@ describe('attendEvent', () => {
 
     expect(result).toEqual({ success: false, error: 'This event has reached its guest capacity.' })
     expect(db.guest_registrations).toHaveLength(1)
+  })
+
+  // 2608-DEV-710 (D10)
+  it('does not count an approved role holder toward capacity', async () => {
+    const db = makeDb()
+    seedEvent(db, { guest_capacity: 1 })
+    db.guest_registrations.push({
+      id: 'host-reg', event_id: EVENT_ID, profile_id: 'the-host', name: 'The Host',
+      status: 'confirmed', cancelled_at: null, share_link_id: null,
+    })
+    db.event_role_requests.push({
+      id: 'req-1', event_id: EVENT_ID, profile_id: 'the-host', role_label: 'HOST', status: 'approved',
+    })
+    const client = buildClient(db)
+
+    const result = await attendEvent(client, {
+      eventId: EVENT_ID, profileId: PROFILE_ID, profileRole: 'member',
+      profileName: 'Ivan Petrov', contactEmail: null,
+    })
+
+    // The one existing row belongs to approved staff, so the seat is free.
+    expect(result.success).toBe(true)
+    expect(db.guest_registrations).toHaveLength(2)
   })
 
   it('skips the capacity check for an already-active member even when the event is full', async () => {

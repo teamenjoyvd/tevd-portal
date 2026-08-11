@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { countAttendeesForCapacity } from '@/lib/server/event-capacity'
 import { RegisterForm } from './components/RegisterForm'
 import { MemberAttendPanel } from './components/MemberAttendPanel'
 import { ResendLinkForm } from '../components/ResendLinkForm'
@@ -33,14 +34,13 @@ export default async function GuestRegisterPage({ params, searchParams }: Props)
 
   const eventEnded = new Date(event.end_time) < new Date()
 
+  // Shares countAttendeesForCapacity with registerGuest and attendEvent so the
+  // page and the actions can never disagree about whether the event is full —
+  // approved role holders are excluded from both (2608-DEV-710 D10).
   let eventFull = false
   if (event.guest_capacity != null) {
-    const { count } = await supabase
-      .from('guest_registrations')
-      .select('id', { count: 'exact', head: true })
-      .eq('event_id', eventId)
-      .is('cancelled_at', null)
-    eventFull = (count ?? 0) >= event.guest_capacity
+    const attendees = await countAttendeesForCapacity(supabase, eventId)
+    eventFull = attendees >= event.guest_capacity
   }
 
   // `event_share_links` has exactly ONE FK to `profiles`

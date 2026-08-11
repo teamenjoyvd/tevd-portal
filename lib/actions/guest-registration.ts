@@ -10,6 +10,7 @@ import { GuestEventMagicLinkEmail } from '@/lib/email/templates/GuestEventMagicL
 import { notifySharerOfRegistration, notifySharerOfCancellation } from '@/lib/notifications/share-events'
 import { getBaseUrl } from '@/lib/utils/base-url'
 import { consumeEmailCap, consumeRegistrationSlot } from '@/lib/rate-limit'
+import { countAttendeesForCapacity } from '@/lib/server/event-capacity'
 
 // -- Types --------------------------------------------------------------------
 
@@ -155,12 +156,10 @@ export async function registerGuest(
   // guest resubmitting the form is not growing the headcount.
   const addsActiveGuest = existing == null || reactivating
   if (addsActiveGuest && event.guest_capacity != null) {
-    const { count } = await supabase
-      .from('guest_registrations')
-      .select('id', { count: 'exact', head: true })
-      .eq('event_id', eventId)
-      .is('cancelled_at', null)
-    if ((count ?? 0) >= event.guest_capacity) {
+    // Approved role holders are excluded (2608-DEV-710 D10) — see
+    // lib/server/event-capacity.ts.
+    const attendees = await countAttendeesForCapacity(supabase, eventId)
+    if (attendees >= event.guest_capacity) {
       return { success: false, error: getEventFullMessage(lang) }
     }
   }
