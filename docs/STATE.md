@@ -3,8 +3,10 @@ PLAN + CLAIM + BUILD issue #718 (2608-DEV-718) on branch `dev/2608-DEV-718` — 
 check-then-write race: nothing in the DB backs the cap, so concurrent registrations overbook it.
 
 ## Now
-#718 is **implemented locally, not yet applied to DEV, not pushed.** CLAIM row at `d259b46`
-(which also pruned the merged #715 row). The fix is a `BEFORE INSERT OR UPDATE` trigger on
+#718 is **pushed and open as PR #732**, CI green on `0e64f9a` (11/11 checks, Vercel preview READY),
+`MERGEABLE` / `CLEAN`, not a draft. CodeRabbit's one pass left three findings — all three are now
+dispositioned (see `## Decisions`); one produced a real change to the migration, two were declined
+with evidence. GCR has not run. The fix is a `BEFORE INSERT OR UPDATE` trigger on
 `guest_registrations` — `20260811000100_2608_fix_718_guest_capacity_trigger.sql` — rather than the
 RPC the issue suggested, because #710 added a fourth writer inside `approve_event_role_request` and
 a trigger sits under all of them. Both server paths map its SQLSTATE `P0718` back onto the friendly
@@ -23,7 +25,14 @@ B won the advisory lock and committed at `.123`, A blocked ~79ms on that lock, r
 committed row and raised P0718 at `.1266`. Exactly 1 active row against `guest_capacity = 1`. That
 blocking signature is the fresh-snapshot-after-lock property the whole fix depends on.
 
-**Open gate: push permission.** Three commits are local; the user has not granted a push.
+**Open gate 1: push permission** for the review-fix commits made after `0e64f9a`.
+**Open gate 2: DEV re-apply.** The migration file was edited after `supabase db push` recorded
+version `20260811000100` in the DEV ledger, so `db push` will now SKIP it and hosted DEV is running
+the pre-review function body. The file and DEV diverge until the new body is applied by hand
+(`CREATE OR REPLACE FUNCTION` is idempotent — the trigger itself does not need recreating). The
+divergence is only the `OLD.profile_id IS NOT DISTINCT FROM NEW.profile_id` condition, which no
+current writer can reach, so nothing on DEV behaves differently in the meantime. Prod has never
+seen this migration, so the prod path is unaffected — it will apply the corrected file.
 
 #715 is **merged**: PR #731 (`ddaa2e5`), no migration, no prod gate. #714 merged (`c6ba2f2`).
 #713 merged (`2f82d80`). #710 fully DONE — prod ledger head `20260811000000`.
@@ -39,10 +48,16 @@ blocking signature is the fresh-snapshot-after-lock property the whole fix depen
    spec that caps an event, `e2e/member-share-register-auth.spec.ts:229-253`, writes no registration
    while capped (it only reloads a read-only page), and `calendar_events` updates do not fire the
    trigger.
-4. `/code-review low` (escalate to `/security-review` — this is a migration + RLS-adjacent change),
-   fix findings locally, THEN ask before pushing.
-5. Draft PR -> CI green + preview READY -> ready for review -> one CodeRabbit pass -> merge.
-6. After merge: approve the gated `migrate-prod` run — **#718 ships a migration**, unlike the last
+4. DONE — reviewed, pushed, PR #732 opened and marked ready; CI green, preview READY.
+5. DONE — CodeRabbit's single pass returned three findings; all three answered on the thread and
+   fixed-or-declined in one batch (2026-08-12).
+6. **Push the review-fix commits** (needs a grant), then confirm CI stays green — the
+   `Replay migrations from scratch` job is what validates the edited trigger body from zero.
+7. **Re-apply the trigger function to DEV by hand** (needs a grant — hosted-DB constraint). `db push`
+   will not do it: the version is already in the DEV ledger. See `## Now`, Open gate 2.
+8. Resolve the three CodeRabbit threads, then merge -> GCR (claim row already pruned in this PR's
+   own commits, so GCR is issue-close + branch cleanup only).
+9. After merge: approve the gated `migrate-prod` run — **#718 ships a migration**, unlike the last
    four tickets. Prod ledger head should move `20260811000000` -> `20260811000100`.
 7. Still open from #715: five call sites silently skip on a null `contact_email`
    (`lib/abo/verifyAbo.ts:226`, both spouse-link routes, `app/api/admin/members/verify/[id]/route.ts:99`,
@@ -84,6 +99,31 @@ blocking signature is the fresh-snapshot-after-lock property the whole fix depen
   is computed over every row rather than an RLS-filtered view, which could under-count. EXECUTE is
   deliberately not revoked — trigger-function privileges are checked at CREATE TRIGGER time, and
   revoking would risk the write paths for no gain.
+- DECISION (#718, from REVIEW): CodeRabbit's 🟠 "enforce capacity when an active row changes
+  exemption status" is **unreachable today but was fixed anyway**. The overbooking it describes
+  needs an UPDATE moving `profile_id` off an approved role holder on an already-active row; every
+  writer that sets `profile_id` requires the pre-image to be NULL
+  (`member-registration.ts:255` `.is('profile_id', null)`, `20260811000000:112`
+  `g.profile_id IS NULL`), and `registerGuest`'s upsert never names the column — NULL -> non-NULL
+  only moves a row toward exempt, which under-counts and cannot overbook. Accepted anyway because
+  the trigger's whole premise is surviving a writer nobody has written yet: the early return now
+  also requires `OLD.profile_id IS NOT DISTINCT FROM NEW.profile_id`. Safe for the adopt paths that
+  do fall through — `gr.id <> NEW.id` excludes the row's own already-counted seat, so adopting the
+  last guest on an exactly-full event still passes.
+- DECISION (#718, from REVIEW): CodeRabbit's 🟠 "localize the member capacity error" is **DECLINED —
+  the proposed fix is a regression.** `CAPACITY_ERROR` is not new (`git diff origin/main` shows the
+  same English string at `:218` before this PR); it is a server->client protocol matched by
+  `MemberAttendPanel.tsx:75` and `EventPopup.tsx:79` via `raw.includes('capacity')`. Returning
+  Bulgarian when `lang === 'bg'` makes BOTH matchers miss and fall through to the generic attend
+  error — strictly worse for the Bulgarian user the finding is about. The same finding was declined
+  on #720 for the same reason; the real fix is the machine-readable `code` already logged under
+  Open items, now filed as **#733** `[2608-DEV-733]`.
+- DECISION (#718, from REVIEW): CodeRabbit's 🟡 test-fidelity finding was **correct and taken**.
+  `member-registration.test.ts`'s ADOPT P0718 test seeded `cancelled_at: null`, and the trigger
+  returns at `:79` for an active same-event pre-image, so it asserted on a rejection the database
+  cannot produce. Now seeds a cancelled row — the one adoption shape that genuinely re-seats a
+  registrant, since the adopt lookup does not filter on `cancelled_at`
+  (`member-registration.ts:250-256`).
 - DECISION (#715, from PLAN): sharer notifications are **notifications, not transactional mail** —
   they now dispatch through `sendNotificationEmail`, so `email_config.enabled` and the per-template
   toggle both apply. The sharer did not request each message. Consequence accepted: flipping the
@@ -181,6 +221,31 @@ blocking signature is the fresh-snapshot-after-lock property the whole fix depen
   attempts` against `loved-mole-75.clerk.accounts.dev`. No assertion ever ran. The run took 18m25s
   because 60s timeout x retry x ~10 tests, vs a 6m baseline. Re-run of the SAME commit passed in
   5m50s. Clerk's dev FAPI was transiently down; do not "fix" this in the specs.
+- FIXED (2026-08-12, in PR #732) — a DIFFERENT flake from the one above, and a real spec defect:
+  `payments-on-behalf.spec.ts:169` went red on run 31532749854 with 30s of "element(s) not found"
+  for a button that only exists on `/profile`. Cause: `clerk.signIn()` resolves on
+  `waitForFunction(() => window.Clerk?.user !== null)` (@clerk/testing 2.2.7) — an in-memory CLIENT
+  signal — while `proxy.ts:14-21` authorises `/profile` SERVER-side from the session cookie and
+  answers `NextResponse.redirect('/sign-in')` when it cannot resolve a userId. A `goto` on the next
+  line can be decided against a cookie the browser has not finished writing, and the test then fails
+  naming the missing element rather than the redirect that actually happened. Fixed by
+  `e2e/auth-helpers.ts` (`gotoProtected` re-navigates until the path sticks — a retry loop, not
+  `expect.poll`, because a cold Turbopack compile can make a SUCCESSFUL goto take ~80s and a poll
+  deadline would abort it). Both payments specs adopted it; they were byte-identical and carried the
+  identical bug.
+- NOTED (not done, out of #718's scope, FILED as **#734** `[2608-DEV-734]`): seven other e2e specs still do
+  `clerk.signIn()` followed by a navigation without waiting for the server to honour the session —
+  `profile-bento-auth.spec.ts:34-35` (`/profile`, the same shape as the two fixed specs),
+  `member-attend-auth.spec.ts:127,179,227`, `event-registrations-auth.spec.ts:232,250,268,287`,
+  `admin-auth.spec.ts:24`, `admin-mobile-auth.spec.ts:57`, `member-share-register-auth.spec.ts:150`,
+  `los-submission-auth.spec.ts:41`. Deliberately NOT converted inside #718 — an unrelated
+  cross-cutting e2e change does not belong in a capacity-trigger PR, and `profile-bento-auth` in
+  particular has its own diagnosed cause in #727 (401 eviction after `page.reload()`) that this
+  helper would mask rather than fix.
+- CI (2026-08-12, in PR #732): the authenticated-E2E artifact upload was gated on `failure()`, but
+  `retries: 1` means a flaky spec passes on attempt 2 and the JOB goes green — throwing away the
+  trace for the one run with something to explain, which is exactly what happened to the flake
+  above. Now `!cancelled()` with `if-no-files-found: ignore`.
 - NOTED (not done, out of #713's scope): `app/api/calendar/feed-token/route.ts:21,45,81` and
   `app/api/profile/spouse-link/route.ts:138` still `await getBaseUrl()` unguarded. Neither commits
   irreversible state first, so neither has the #713 half-success shape — they just 500 on a
@@ -220,7 +285,8 @@ blocking signature is the fresh-snapshot-after-lock property the whole fix depen
 - NOTED (not done, found during #709): the DEV ledger has NO `20260809000100` row (#706
   `fn_schedule_guest_reminders_record`), though prod does. Function-body-only, so
   `types/supabase.ts` is unaffected, but hosted DEV may be running the pre-#706 body.
-- NOTED (not done, declined CodeRabbit finding on #720, needs its own ticket): client error copy is
+- NOTED (FILED 2026-08-12 as **#733** `[2608-DEV-733]`; declined CodeRabbit finding on #720 AND
+  again on #732): client error copy is
   selected by matching ENGLISH server text — `MemberAttendPanel.tsx:73-78` and
   `app/(dashboard)/calendar/components/EventPopup.tsx:76-78` both do `raw.includes('capacity')`.
   A real fix needs a machine-readable `code` on `attendEvent`'s failure result, through
