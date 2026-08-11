@@ -6,5 +6,5 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
-| #715 | `dev/2608-DEV-715` | `lib/notifications/share-events.ts`, `lib/notifications/share-events.test.ts`, `app/admin/settings/components/EmailSettingsPanel.tsx`, `lib/i18n/domains/admin/content.ts` — **migration: no** | 2026-08-11 |
+| #718 | `dev/2608-DEV-718` | `supabase/migrations/20260812000000_2608_fix_718_guest_capacity_trigger.sql`, `lib/server/event-capacity.ts`, `lib/actions/guest-registration.ts`, `lib/server/member-registration.ts` (+ both `.test.ts`) — **migration: yes** | 2026-08-11 |
 
