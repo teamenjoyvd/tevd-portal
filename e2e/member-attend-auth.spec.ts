@@ -98,8 +98,12 @@ function visible(page: Page, locator: Locator): Locator {
  * makes a bare insert fail once an earlier test in this file has registered
  * this member — a soft cancel leaves the row in place.
  */
-async function seedMemberRegistration() {
+async function clearMemberRegistration() {
   await sb!.from('guest_registrations').delete().eq('event_id', eventId!).eq('profile_id', memberProfileId!)
+}
+
+async function seedMemberRegistration() {
+  await clearMemberRegistration()
   const { error } = await sb!
     .from('guest_registrations')
     .insert({
@@ -210,6 +214,50 @@ test.describe('member token-free join @auth', () => {
 
     await page.goto(`/events/${eventId}/join`)
     await expect(page.getByText(/this link is invalid/i).first()).toBeVisible({ timeout: 15_000 })
+  })
+})
+
+// -- 2608-DEV-726: the action row is not tab-scoped ----------------------------
+
+test.describe('popup actions survive the Registrations tab @auth', () => {
+  test.use({ viewport: { width: 390, height: 844 } })
+
+  test('Attend and Share stay visible while the Registrations tab is open', async ({ page }) => {
+    skipIfUnseeded()
+
+    // The regression is about a member who has NOT attended yet: they open the
+    // roster to see who is coming, and then cannot get back to the button.
+    await clearMemberRegistration()
+
+    await page.goto('/')
+    await clerk.signIn({ page, emailAddress: MEMBER_EMAIL })
+    await openEventPopup(page)
+
+    const dialog = page.getByRole('dialog')
+    const attend = dialog.getByRole('button', { name: /^attend$/i })
+    const share = dialog.getByRole('button', { name: /share event/i })
+    await expect(attend).toBeVisible({ timeout: 15_000 })
+    await expect(share).toBeVisible()
+
+    // role="tab", not "button": EventActionsTabs sets an explicit role="tab" on
+    // these, which overrides <button>'s implicit one, so getByRole('button')
+    // matches nothing.
+    await dialog.getByRole('tab', { name: /registrations/i }).click()
+    await expect(dialog.getByRole('tabpanel')).toBeVisible()
+
+    // Before 2608-DEV-726 both vanished with the meta block, leaving the tab
+    // with no way to attend and no affordance explaining why.
+    await expect(attend).toBeVisible()
+    await expect(share).toBeVisible()
+
+    // The meta itself IS still tab-scoped — this asserts the gate was split,
+    // not simply deleted.
+    await expect(dialog.getByText(/attend to see the meeting link/i)).toHaveCount(0)
+
+    // html { overflow-x: hidden } clips visually without shrinking scrollWidth,
+    // so this still detects a real 390px overflow from the extra row.
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
+    expect(overflow).toBeLessThanOrEqual(0)
   })
 })
 
