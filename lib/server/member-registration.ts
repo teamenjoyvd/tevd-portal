@@ -7,7 +7,7 @@ import { MemberEventConfirmationEmail } from '@/lib/email/templates/MemberEventC
 import { buildGoogleCalUrl, buildOutlookUrl } from '@/lib/calendar-links'
 import { getBaseUrl } from '@/lib/utils/base-url'
 import { consumeEmailCap } from '@/lib/rate-limit'
-import { countAttendeesForCapacity } from '@/lib/server/event-capacity'
+import { countAttendeesForCapacity, isCapacityViolation } from '@/lib/server/event-capacity'
 import { formatLongDate, formatLongDateEn, formatTime } from '@/lib/format'
 
 type Lang = 'en' | 'bg'
@@ -134,6 +134,18 @@ export type AttendMemberResult =
   | { success: true; registrationId: string; emailed: boolean }
   | { success: false; error: string }
 
+// Shared by all three writes below. The capacity check earlier in attendEvent is
+// the fast path; trg_enforce_event_guest_capacity (2608-DEV-718) is what holds
+// the line when two attends race near the limit, and losing that race is "the
+// event is full" — not a transient failure worth retrying. English-only, like
+// every other string in this module: the caller localizes.
+const CAPACITY_ERROR = 'This event has reached its guest capacity.'
+const WRITE_ERROR = 'Could not attend. Please try again.'
+
+function attendWriteError(error: { code?: string } | null): { success: false; error: string } {
+  return { success: false, error: isCapacityViolation(error) ? CAPACITY_ERROR : WRITE_ERROR }
+}
+
 export type AttendMemberParams = {
   eventId: string
   profileId: string
@@ -206,7 +218,7 @@ export async function attendEvent(
     // lib/server/event-capacity.ts.
     const attendees = await countAttendeesForCapacity(supabase, eventId)
     if (attendees >= event.guest_capacity) {
-      return { success: false, error: 'This event has reached its guest capacity.' }
+      return { success: false, error: CAPACITY_ERROR }
     }
   }
 
@@ -221,7 +233,7 @@ export async function attendEvent(
         share_link_id: shareLinkId ?? existing.share_link_id,
       })
       .eq('id', existing.id)
-    if (updateError) return { success: false, error: 'Could not attend. Please try again.' }
+    if (updateError) return attendWriteError(updateError)
 
     await creditShareLink(supabase, shareLinkId, profileName)
     const emailed = await sendMemberConfirmation(contactEmail, eventId, event, profileName, lang)
@@ -257,7 +269,7 @@ export async function attendEvent(
           share_link_id: shareLinkId ?? undefined,
         })
         .eq('id', guestRow.id)
-      if (adoptError) return { success: false, error: 'Could not attend. Please try again.' }
+      if (adoptError) return attendWriteError(adoptError)
 
       await creditShareLink(supabase, shareLinkId, profileName)
       const emailed = await sendMemberConfirmation(contactEmail, eventId, event, profileName, lang)
@@ -276,7 +288,9 @@ export async function attendEvent(
     })
     .select('id')
     .single()
-  if (insertError || !inserted) return { success: false, error: 'Could not attend. Please try again.' }
+  // `!inserted` with no error is not a capacity refusal — attendWriteError falls
+  // through to the generic copy on a null error, which is the right answer.
+  if (insertError || !inserted) return attendWriteError(insertError)
 
   await creditShareLink(supabase, shareLinkId, profileName)
   const emailed = await sendMemberConfirmation(contactEmail, eventId, event, profileName, lang)

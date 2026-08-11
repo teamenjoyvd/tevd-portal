@@ -1,30 +1,48 @@
 ## Goal
-PLAN + CLAIM + BUILD issue #715 (2608-DEV-715) on branch `dev/2608-DEV-715` — sharer share-link
-notifications skip every sharer with no `contact_email`, and are capped by nothing.
+PLAN + CLAIM + BUILD issue #718 (2608-DEV-718) on branch `dev/2608-DEV-718` — `guest_capacity` has a
+check-then-write race: nothing in the DB backs the cap, so concurrent registrations overbook it.
 
 ## Now
-#715 is **open as PR #731, ready for review, all 11 checks green** (CLAIM row at `b455e27`, branch
-rebased onto `c6ba2f2`). `/code-review low` fixed the cap-before-gates defect at `4dd255a`. The one
-CodeRabbit pass is done: 2 comments, 1 applied (truthiness -> explicit comparisons), 1 rejected as a
-phantom (claimed duplicate declarations that do not exist in the file). Open gate: merge.
+#718 is **implemented locally, not yet applied to DEV, not pushed.** CLAIM row at `d259b46`
+(which also pruned the merged #715 row). The fix is a `BEFORE INSERT OR UPDATE` trigger on
+`guest_registrations` — `20260811000100_2608_fix_718_guest_capacity_trigger.sql` — rather than the
+RPC the issue suggested, because #710 added a fourth writer inside `approve_event_role_request` and
+a trigger sits under all of them. Both server paths map its SQLSTATE `P0718` back onto the friendly
+"event is full" copy via `isCapacityViolation()`.
 
-#714 is **merged**: PR #729 (`c6ba2f2`). No migration, so no prod gate. Its `docs/CLAIMS.md` row was
-pruned by #715's CLAIM commit (`b455e27`), matching how `e20e072` pruned #713.
+Verified so far: `npx vitest run lib/actions/guest-registration.test.ts
+lib/server/member-registration.test.ts` -> 64 passed (baseline was 56). The 5 new P0718 tests were
+proven red first by breaking `CAPACITY_VIOLATION_CODE`. `npx tsc --noEmit` is clean outside `.next/`.
 
-#713 is **merged**: PR #728 (`2f82d80`). #710 is **fully DONE**: PR #725 merged (`17fd786`), gated
-`Migrate Prod` run 31471066200 succeeded, prod ledger head `20260811000000`, production smoke 200/200.
-Epic #702 updated — all ten children merged, feature scope complete.
+**Open gate: the migration has never run.** It needs `supabase db push` against DEV plus a real
+two-connection concurrency proof, and the user must approve any hosted-DB write first.
+
+#715 is **merged**: PR #731 (`ddaa2e5`), no migration, no prod gate. #714 merged (`c6ba2f2`).
+#713 merged (`2f82d80`). #710 fully DONE — prod ledger head `20260811000000`.
 
 ## Next
-1. Resolve any `/code-review low` findings on the #715 diff.
-2. DONE — pushed, draft PR #731 open. Wait for CI green + Vercel preview READY.
-3. Mark ready → one CodeRabbit pass → fix all findings in ONE batched push.
-4. Merge. No migration in #715, so there is no prod gate to approve afterwards — just a smoke check.
-5. The `docs/CLAIMS.md` #715 row is pruned by the NEXT ticket's CLAIM commit, matching how `b455e27`
-   pruned #714 and `e20e072` pruned #713 — never a standalone cleanup PR.
-6. File the deferred follow-up: five other call sites silently skip on a null `contact_email`
+1. Ask, then `npm run check:env` -> `supabase db push` to DEV.
+2. DB-level verification on DEV: (a) a 3rd insert against `guest_capacity = 2` raises P0718;
+   (b) an approved role holder is still seated on a full event; (c) `guest_capacity IS NULL` is
+   unaffected; (d) the join-page `attended_at` update on an already-active row on a FULL event still
+   succeeds; (e) two overlapping transactions on a `guest_capacity = 1` event leave exactly 1 row.
+3. Confirm the e2e fixture events in `e2e/event-registrations-auth.spec.ts:97-104` and
+   `e2e/member-attend-auth.spec.ts:104` have `guest_capacity IS NULL` — they insert registrations
+   directly and now pass through the trigger.
+4. `/code-review low` (escalate to `/security-review` — this is a migration + RLS-adjacent change),
+   fix findings locally, THEN ask before pushing.
+5. Draft PR -> CI green + preview READY -> ready for review -> one CodeRabbit pass -> merge.
+6. After merge: approve the gated `migrate-prod` run — **#718 ships a migration**, unlike the last
+   four tickets. Prod ledger head should move `20260811000000` -> `20260811000100`.
+7. Still open from #715: five call sites silently skip on a null `contact_email`
    (`lib/abo/verifyAbo.ts:226`, both spouse-link routes, `app/api/admin/members/verify/[id]/route.ts:99`,
    `lib/server/member-registration.ts`) — a shared `resolveProfileEmail()` would fix all six.
+
+## Open items
+- `.next/dev/types/validator.ts:566` references `app/api/admin/events/[id]/registrations/route.js`,
+  a route that no longer exists, so `npx tsc --noEmit` exits non-zero on a clean tree. Proven
+  pre-existing by stashing (2026-08-11). Stale build artifact, not a source defect; out of #718's
+  scope.
 
 ## Constraints
 - Never push without an explicit grant in this conversation. Grants from earlier tickets/sessions do
@@ -36,6 +54,26 @@ Epic #702 updated — all ten children merged, feature scope complete.
   Run `npm run check:env` before any command touching a hosted DB.
 
 ## Decisions
+- DECISION (#718, from PLAN): a **trigger, not the RPC the issue proposed**. #718 was filed before
+  #710, which added a fourth writer of active registrations inside `approve_event_role_request`
+  (`20260811000000:99-142`) — an RPC would have to absorb the guest token-reuse decision, the member
+  adopt-or-insert branch, and re-entry from another PL/pgSQL function. A trigger sits under all of
+  them plus the e2e/seed direct inserts, and cannot be defeated by forgetting to call it, which is
+  what the issue actually asked for.
+- DECISION (#718, from BUILD): the app-level `countAttendeesForCapacity()` checks **stay**. They are
+  the fast path that produces the localized "event is full" copy; the trigger is the backstop for
+  the window they cannot cover. Cost accepted: the "who occupies a seat" rule (approved role holders
+  exempt) now exists in two places and must be changed in both — flagged in `docs/ai/GOTCHAS.md`.
+- DECISION (#718, from BUILD): custom SQLSTATE **`P0718`**, not a 23xxx integrity code.
+  `guest_registrations` carries real CHECK and UNIQUE constraints, so matching a shared class would
+  report an unrelated violation to a guest as "event is full".
+- DECISION (#718, from BUILD): the trigger function is `SECURITY DEFINER` with **no internal
+  `auth.role()` guard**, departing from the `docs/ai/GOTCHAS.md` "Trusted RPC" rule. That rule
+  guards directly-callable functions; Postgres refuses to invoke a `trigger`-returning function
+  outside a trigger context, so there is no caller to authorize. DEFINER is used only so the count
+  is computed over every row rather than an RLS-filtered view, which could under-count. EXECUTE is
+  deliberately not revoked — trigger-function privileges are checked at CREATE TRIGGER time, and
+  revoking would risk the write paths for no gain.
 - DECISION (#715, from PLAN): sharer notifications are **notifications, not transactional mail** —
   they now dispatch through `sendNotificationEmail`, so `email_config.enabled` and the per-template
   toggle both apply. The sharer did not request each message. Consequence accepted: flipping the

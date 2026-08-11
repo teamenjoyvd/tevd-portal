@@ -497,6 +497,13 @@ function buildCapacityClient(opts: {
    * from the capacity headcount — they are staff, not attendees.
    */
   roleHolderCount?: number
+  /**
+   * 2608-DEV-718: what the upsert comes back with. Non-null simulates
+   * trg_enforce_event_guest_capacity rejecting the write — the case the JS
+   * pre-check above cannot see, because the seat was taken between its count
+   * and this write.
+   */
+  upsertError?: { code: string } | null
 }) {
   const event = {
     id: 'e',
@@ -512,7 +519,7 @@ function buildCapacityClient(opts: {
     profile_id: `role-holder-${i}`,
   }))
 
-  const upsertSpy = vi.fn(() => Promise.resolve({ error: null }))
+  const upsertSpy = vi.fn(() => Promise.resolve({ error: opts.upsertError ?? null }))
   const updateSpy = vi.fn(() => ({ eq: () => ({ eq: () => Promise.resolve({ error: null }) }) }))
   const client = {
     from: (table: string) => {
@@ -612,6 +619,62 @@ describe('registerGuest — capacity boundary', () => {
     expect(res.success).toBe(false)
     expect(res.error).toMatch(/capacity/i)
     expect(upsertSpy).not.toHaveBeenCalled()
+  })
+})
+
+// -- registerGuest — the DB backstop (2608-DEV-718) ---------------------------
+// The pre-check above is a read-then-write: two submissions can both count a
+// free seat and both proceed. trg_enforce_event_guest_capacity refuses the
+// loser's write with SQLSTATE P0718; these assert the guest is told the event
+// is full rather than being invited to retry something that cannot succeed.
+
+describe('registerGuest — capacity race lost at the DB (2608-DEV-718)', () => {
+  it('reports the event as full when the upsert is rejected with P0718', async () => {
+    const { client, upsertSpy } = buildCapacityClient({
+      guestCapacity: 2,
+      activeCount: 1, // the pre-check sees a free seat and lets the write through…
+      upsertError: { code: 'P0718' }, // …but a concurrent registration took it first
+    })
+    mockCreateServiceClient.mockReturnValue(client)
+    const { registerGuest } = await import('@/lib/actions/guest-registration')
+
+    const res = await registerGuest({ success: false }, form())
+
+    expect(upsertSpy).toHaveBeenCalledTimes(1)
+    expect(res.success).toBe(false)
+    expect(res.error).toMatch(/capacity/i)
+    expect(res.error).not.toMatch(/try again/i)
+  })
+
+  it('localizes the full-event message on a P0718 rejection', async () => {
+    const { client } = buildCapacityClient({
+      guestCapacity: 2,
+      activeCount: 1,
+      upsertError: { code: 'P0718' },
+    })
+    mockCreateServiceClient.mockReturnValue(client)
+    const { registerGuest } = await import('@/lib/actions/guest-registration')
+
+    const fd = form()
+    fd.set('lang', 'bg')
+    const res = await registerGuest({ success: false }, fd)
+
+    expect(res.error).toBe('Това събитие достигна максималния брой гости.')
+  })
+
+  it('keeps the generic retry copy for a write failure that is NOT a capacity refusal', async () => {
+    const { client } = buildCapacityClient({
+      guestCapacity: 2,
+      activeCount: 1,
+      upsertError: { code: '23505' }, // e.g. the event+email unique index
+    })
+    mockCreateServiceClient.mockReturnValue(client)
+    const { registerGuest } = await import('@/lib/actions/guest-registration')
+
+    const res = await registerGuest({ success: false }, form())
+
+    expect(res.success).toBe(false)
+    expect(res.error).toBe('Registration failed. Please try again.')
   })
 })
 
