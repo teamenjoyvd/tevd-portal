@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
-import { clerk } from '@clerk/testing/playwright'
+import { signInAndGoto } from './auth-helpers'
 
 /**
  * End-to-end coverage for paying on behalf of an ad-hoc guest (2607-DEV-677):
@@ -33,9 +33,10 @@ const GUEST_EMAIL = 'e2e-guest-nadia@example.com'
 test.use({ viewport: { width: 390, height: 844 } })
 
 async function signInAndOpenProfile(page: Page) {
-  await page.goto('/')
-  await clerk.signIn({ page, emailAddress: MEMBER_EMAIL })
-  await page.goto('/profile')
+  // Same server-vs-client session race as payments-on-behalf.spec.ts — this
+  // helper was byte-identical to that one and carried the identical bug.
+  // See e2e/auth-helpers.ts.
+  await signInAndGoto(page, MEMBER_EMAIL, '/profile')
   await expect(page.getByRole('button', { name: /submit payment/i }).first()).toBeVisible({ timeout: 30_000 })
 }
 
