@@ -17,6 +17,12 @@ const TEMPLATES = [
   { id: 'doc_expiry' },
   { id: 'abo_verification_result' },
   { id: 'trip_registration_status' },
+  // Share-link sharer notifications (2608-DEV-715). Absent keys already pass
+  // the gate in lib/email/send.ts (it compares === false), so these need no
+  // seed row — the first toggle writes the key.
+  { id: 'share_guest_registered' },
+  { id: 'share_guest_attended' },
+  { id: 'share_guest_cancelled' },
 ]
 
 export function EmailSettingsPanel({ initialConfig }: { initialConfig: EmailConfig }) {

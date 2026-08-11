@@ -34,6 +34,9 @@ export const adminContent = {
   'admin.settings.emailPanel.template.doc_expiry': { en: 'Document Expiry Warnings', bg: 'Предупреждения за изтичащи документи' },
   'admin.settings.emailPanel.template.abo_verification_result': { en: 'ABO Verification Results', bg: 'Резултати от СБА верификация' },
   'admin.settings.emailPanel.template.trip_registration_status': { en: 'Trip Registration Updates', bg: 'Обновяване на регистрация за пътуване' },
+  'admin.settings.emailPanel.template.share_guest_registered': { en: 'Share Link: Guest Registered', bg: 'Връзка за споделяне: регистриран гост' },
+  'admin.settings.emailPanel.template.share_guest_attended': { en: 'Share Link: Guest Joined', bg: 'Връзка за споделяне: гостът се присъедини' },
+  'admin.settings.emailPanel.template.share_guest_cancelled': { en: 'Share Link: Guest Cancelled', bg: 'Връзка за споделяне: гостът се отказа' },
 
   // -- Content: page --
   'admin.content.page.heading': { en: 'Content', bg: 'Съдържание' },
