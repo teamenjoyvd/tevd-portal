@@ -98,7 +98,9 @@ async function resolveShareLinkContext(
   // silently resolving to null at runtime.
   const { profile, event } = data
 
-  if (!profile || !event?.title) return null
+  // Explicit absence checks, not truthiness: `title` is a string, and `''` must
+  // read as "no title to name in the subject line" deliberately, not by accident.
+  if (profile == null || event?.title == null || event.title === '') return null
 
   const sharerEmail = await resolveSharerEmail(profile)
   if (sharerEmail === null) return null
@@ -127,7 +129,10 @@ async function sendShareNotification(payload: SendEmailPayload): Promise<void> {
   // read is a 60s-cached single row (lib/email/send.ts), so the double check is
   // effectively free.
   const config = await getEmailConfig()
-  if (!config.enabled) return
+  // `!== true`, not `!`: `enabled` is typed boolean but arrives from a JSONB
+  // column via an `as EmailConfig` cast (lib/email/send.ts:35), so a malformed
+  // row could hold `"true"` or `1`. A master kill switch fails closed.
+  if (config.enabled !== true) return
   if (config.notification_types[payload.template] === false) return
 
   const withinDailyCap = await consumeEmailCap({

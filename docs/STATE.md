@@ -3,10 +3,10 @@ PLAN + CLAIM + BUILD issue #715 (2608-DEV-715) on branch `dev/2608-DEV-715` — 
 notifications skip every sharer with no `contact_email`, and are capped by nothing.
 
 ## Now
-#715 is **pushed and open as DRAFT PR #731** (head `4dd255a`, CLAIM row at `b455e27`, branch rebased
-onto `c6ba2f2`). `/code-review low` is done — its one finding (cap spent before the admin gates) is
-fixed at `4dd255a`. Open gate: CI green + Vercel preview READY, then mark ready for one CodeRabbit
-pass.
+#715 is **open as PR #731, ready for review, all 11 checks green** (CLAIM row at `b455e27`, branch
+rebased onto `c6ba2f2`). `/code-review low` fixed the cap-before-gates defect at `4dd255a`. The one
+CodeRabbit pass is done: 2 comments, 1 applied (truthiness -> explicit comparisons), 1 rejected as a
+phantom (claimed duplicate declarations that do not exist in the file). Open gate: merge.
 
 #714 is **merged**: PR #729 (`c6ba2f2`). No migration, so no prod gate. Its `docs/CLAIMS.md` row was
 pruned by #715's CLAIM commit (`b455e27`), matching how `e20e072` pruned #713.
@@ -121,6 +121,18 @@ Epic #702 updated — all ten children merged, feature scope complete.
 - #722 closed — RESULT: merged as PR #724 (`ef0c3e1`), E2E aborts on a dead dev server.
 
 ## Open items
+- NOTED (not done, same-class defect, out of #715's scope): `lib/email/send.ts:129` still reads
+  `if (!config.enabled) return` — the exact check #715 tightened to `!== true` at
+  `share-events.ts:135`. `enabled` is typed `boolean` but comes from a JSONB column through an
+  `as EmailConfig` cast (`send.ts:35`), so a malformed row holding `"true"` or `1` makes the master
+  kill switch fail OPEN there. Repo-wide sweep found exactly one remaining instance (the two
+  `EmailSettingsPanel.tsx` hits are display-only toggles). One-line fix, needs its own ticket.
+- FLAKE (2026-08-11, PR #731, not a spec defect): the `Authenticated E2E (Clerk)` job failed with 21
+  tests red across `payments-guest`, `payments-on-behalf`, `profile-bento-auth` and the 390px share
+  specs — every one at `clerk.signIn()`, with 5x `[Clerk Testing] FAPI request failed after 4
+  attempts` against `loved-mole-75.clerk.accounts.dev`. No assertion ever ran. The run took 18m25s
+  because 60s timeout x retry x ~10 tests, vs a 6m baseline. Re-run of the SAME commit passed in
+  5m50s. Clerk's dev FAPI was transiently down; do not "fix" this in the specs.
 - NOTED (not done, out of #713's scope): `app/api/calendar/feed-token/route.ts:21,45,81` and
   `app/api/profile/spouse-link/route.ts:138` still `await getBaseUrl()` unguarded. Neither commits
   irreversible state first, so neither has the #713 half-success shape — they just 500 on a
