@@ -6,5 +6,5 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
-| #710 | `dev/2608-DEV-710` | `supabase/migrations/20260811000000_2608_feat_710_approve_role_creates_registration.sql` (new), `lib/server/event-capacity.ts` (new), `lib/actions/guest-registration.ts`, `lib/server/member-registration.ts`, `app/events/[eventId]/register/page.tsx`, `lib/actions/guest-registration.test.ts`, `lib/server/member-registration.test.ts`, `app/api/admin/calendar/route.ts` (comment only) — **migration: yes** | 2026-08-11 |
+| #713 | `dev/2608-DEV-713` | `lib/actions/guest-registration.ts`, `lib/actions/guest-registration.test.ts`, `lib/utils/base-url.ts`, `lib/utils/base-url.test.ts`, `.env.example` (comment only) — **migration: no** | 2026-08-11 |
 
