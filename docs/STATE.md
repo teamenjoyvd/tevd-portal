@@ -1,26 +1,30 @@
 ## Goal
-PLAN + CLAIM + BUILD issue #714 (2608-DEV-714) on branch `dev/2608-DEV-714` — docs mislabel the
-prod Supabase ref and contradict each other on what preview deployments target.
+PLAN + CLAIM + BUILD issue #715 (2608-DEV-715) on branch `dev/2608-DEV-715` — sharer share-link
+notifications skip every sharer with no `contact_email`, and are capped by nothing.
 
 ## Now
-#714 is **BUILD-complete and committed locally at `da36500`, not pushed**. `/code-review low` is the
-open gate, then push + draft PR — the push needs an explicit grant in this conversation.
+#715 is **open as PR #731, ready for review, all 11 checks green** (CLAIM row at `b455e27`, branch
+rebased onto `c6ba2f2`). `/code-review low` fixed the cap-before-gates defect at `4dd255a`. The one
+CodeRabbit pass is done: 2 comments, 1 applied (truthiness -> explicit comparisons), 1 rejected as a
+phantom (claimed duplicate declarations that do not exist in the file). Open gate: merge.
 
-#713 is **merged**: PR #728 (`2f82d80`). No migration, so no prod gate. Its `docs/CLAIMS.md` row was
-pruned by #714's CLAIM commit (`e20e072`), matching how `f8f3a3f` pruned #710.
+#714 is **merged**: PR #729 (`c6ba2f2`). No migration, so no prod gate. Its `docs/CLAIMS.md` row was
+pruned by #715's CLAIM commit (`b455e27`), matching how `e20e072` pruned #713.
 
-#710 is **fully DONE**: PR #725 merged (`17fd786`), the gated `Migrate Prod` run 31471066200
-succeeded, prod ledger head advanced to `20260811000000`, production smoke `/` 200 + `/sign-in` 200,
-issue closed. Epic #702 updated — all ten children merged, feature scope complete.
+#713 is **merged**: PR #728 (`2f82d80`). #710 is **fully DONE**: PR #725 merged (`17fd786`), gated
+`Migrate Prod` run 31471066200 succeeded, prod ledger head `20260811000000`, production smoke 200/200.
+Epic #702 updated — all ten children merged, feature scope complete.
 
 ## Next
-1. Resolve any `/code-review low` findings on the #714 diff.
-2. Push `dev/2608-DEV-714` and open the PR as a DRAFT (CodeRabbit skips drafts); wait for CI green +
-   Vercel preview READY. **Needs an explicit push grant.**
+1. Resolve any `/code-review low` findings on the #715 diff.
+2. DONE — pushed, draft PR #731 open. Wait for CI green + Vercel preview READY.
 3. Mark ready → one CodeRabbit pass → fix all findings in ONE batched push.
-4. Merge. No migration in #714, so there is no prod gate to approve afterwards — just a smoke check.
-5. The `docs/CLAIMS.md` #714 row is pruned by the NEXT ticket's CLAIM commit, matching how `e20e072`
-   pruned #713 and `f8f3a3f` pruned #710 — never a standalone cleanup PR.
+4. Merge. No migration in #715, so there is no prod gate to approve afterwards — just a smoke check.
+5. The `docs/CLAIMS.md` #715 row is pruned by the NEXT ticket's CLAIM commit, matching how `b455e27`
+   pruned #714 and `e20e072` pruned #713 — never a standalone cleanup PR.
+6. File the deferred follow-up: five other call sites silently skip on a null `contact_email`
+   (`lib/abo/verifyAbo.ts:226`, both spouse-link routes, `app/api/admin/members/verify/[id]/route.ts:99`,
+   `lib/server/member-registration.ts`) — a shared `resolveProfileEmail()` would fix all six.
 
 ## Constraints
 - Never push without an explicit grant in this conversation. Grants from earlier tickets/sessions do
@@ -32,6 +36,21 @@ issue closed. Epic #702 updated — all ten children merged, feature scope compl
   Run `npm run check:env` before any command touching a hosted DB.
 
 ## Decisions
+- DECISION (#715, from PLAN): sharer notifications are **notifications, not transactional mail** —
+  they now dispatch through `sendNotificationEmail`, so `email_config.enabled` and the per-template
+  toggle both apply. The sharer did not request each message. Consequence accepted: flipping the
+  master switch off silences sharer mail too. Guest magic links stay transactional.
+- DECISION (#715, from PLAN): fallback order is `contact_email` → **Clerk primary email**, not the
+  issue's option 2 (require `contact_email` before minting a share link). `contact_email` is a
+  preference and may be deliberately blank; Clerk's primary is the verified backstop. Profiles with
+  no `clerk_id` (admin-created spouse/co-owner rows) keep the silent skip — no address exists.
+- DECISION (#715, from PLAN): the cap bucket is **template-scoped**, unlike
+  `guest-event-changes.ts`'s recipient-wide bucket — a registration burst through a viral link must
+  not consume the budget that would otherwise deliver the cancellation notice. 10 per 24h.
+- DECISION (#715, from BUILD): **no migration.** Keys absent from
+  `notification_config.email_settings.notification_types` already pass the gate
+  (`lib/email/send.ts:131` compares `=== false`), so the three admin toggles need no seed row — the
+  panel writes the key on first toggle.
 - DECISION (#713, from PLAN): the issue's **option 1** (resolve before any write), not option 2
   (degrade after). The `feed.ics` precedent at `:59-64` degrades *after* the point of no return
   because a feed has nothing to commit; `registerGuest` does. Hoisting is strictly better: the guest
@@ -65,6 +84,17 @@ issue closed. Epic #702 updated — all ten children merged, feature scope compl
 - Production smoke 2026-08-11: `https://www.teamenjoyvd.com` 200, `/sign-in` 200.
 
 ## Done
+- #715 PLAN + CLAIM + BUILD (code complete, `6a3b29f` + the review fix) — RESULT: 6 files.
+  `lib/notifications/share-events.ts` gained `resolveSharerEmail` (contact_email → Clerk primary,
+  Clerk failure caught) and `sendShareNotification` (admin gates, then a template-scoped 10/24h
+  `consumeEmailCap`, then `sendNotificationEmail`); `EmailSettingsPanel.tsx` + `i18n/domains/admin/
+  content.ts` expose the three toggles; `lib/email/send.ts` JSDoc lists the new caller. `/code-review
+  low` found one real defect — the cap was spent BEFORE the gates, so a disabled template burned the
+  sharer's daily budget; fixed by re-checking `getEmailConfig()` ahead of `consumeEmailCap`, covered
+  by two new tests. Verified: `npx vitest run` -> 32 files / **443 passed** (baseline 441 on this
+  branch's parent + 2); `npx tsc --noEmit` -> only the pre-existing stale `.next` error;
+  `npx eslint` on the changed files -> clean.
+- #714 CLOSED — RESULT: merged as PR #729 (`c6ba2f2`), no migration, no prod gate.
 - #713 BUILD (code complete, `a97a7df`) — RESULT: 5 files. `lib/utils/base-url.ts` gained a
   `normalizeHost` helper + the preview/development Vercel fallback; `lib/actions/guest-registration.ts`
   hoists the resolve above every side effect in BOTH `registerGuest` and `resendGuestLink`;
@@ -91,6 +121,18 @@ issue closed. Epic #702 updated — all ten children merged, feature scope compl
 - #722 closed — RESULT: merged as PR #724 (`ef0c3e1`), E2E aborts on a dead dev server.
 
 ## Open items
+- NOTED (not done, same-class defect, out of #715's scope): `lib/email/send.ts:129` still reads
+  `if (!config.enabled) return` — the exact check #715 tightened to `!== true` at
+  `share-events.ts:135`. `enabled` is typed `boolean` but comes from a JSONB column through an
+  `as EmailConfig` cast (`send.ts:35`), so a malformed row holding `"true"` or `1` makes the master
+  kill switch fail OPEN there. Repo-wide sweep found exactly one remaining instance (the two
+  `EmailSettingsPanel.tsx` hits are display-only toggles). One-line fix, needs its own ticket.
+- FLAKE (2026-08-11, PR #731, not a spec defect): the `Authenticated E2E (Clerk)` job failed with 21
+  tests red across `payments-guest`, `payments-on-behalf`, `profile-bento-auth` and the 390px share
+  specs — every one at `clerk.signIn()`, with 5x `[Clerk Testing] FAPI request failed after 4
+  attempts` against `loved-mole-75.clerk.accounts.dev`. No assertion ever ran. The run took 18m25s
+  because 60s timeout x retry x ~10 tests, vs a 6m baseline. Re-run of the SAME commit passed in
+  5m50s. Clerk's dev FAPI was transiently down; do not "fix" this in the specs.
 - NOTED (not done, out of #713's scope): `app/api/calendar/feed-token/route.ts:21,45,81` and
   `app/api/profile/spouse-link/route.ts:138` still `await getBaseUrl()` unguarded. Neither commits
   irreversible state first, so neither has the #713 half-success shape — they just 500 on a

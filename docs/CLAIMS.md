@@ -6,5 +6,5 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
-| #714 | `dev/2608-DEV-714` | `CLAUDE.md` (Constants table), `README.md`, `.env.example` (comment only), `docs/ai/BUILD.md` — **migration: no** | 2026-08-11 |
+| #715 | `dev/2608-DEV-715` | `lib/notifications/share-events.ts`, `lib/notifications/share-events.test.ts`, `app/admin/settings/components/EmailSettingsPanel.tsx`, `lib/i18n/domains/admin/content.ts` — **migration: no** | 2026-08-11 |
 

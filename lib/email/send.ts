@@ -120,6 +120,7 @@ async function _dispatch(
  * - `app/api/admin/members/verify/[id]/route.ts`
  * - `app/api/admin/event-role-requests/[id]/route.ts`
  * - `app/api/profile/payments/route.ts`
+ * - `lib/notifications/share-events.ts` (static import, via `sendShareNotification`)
  */
 export async function sendNotificationEmail(payload: SendEmailPayload): Promise<void> {
   const config = await getEmailConfig()
