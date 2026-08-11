@@ -26,9 +26,10 @@ two-connection concurrency proof, and the user must approve any hosted-DB write 
    (b) an approved role holder is still seated on a full event; (c) `guest_capacity IS NULL` is
    unaffected; (d) the join-page `attended_at` update on an already-active row on a FULL event still
    succeeds; (e) two overlapping transactions on a `guest_capacity = 1` event leave exactly 1 row.
-3. Confirm the e2e fixture events in `e2e/event-registrations-auth.spec.ts:97-104` and
-   `e2e/member-attend-auth.spec.ts:104` have `guest_capacity IS NULL` — they insert registrations
-   directly and now pass through the trigger.
+3. DONE — no e2e impact. Every fixture creator omits `guest_capacity` (NULL = unlimited). The one
+   spec that caps an event, `e2e/member-share-register-auth.spec.ts:229-253`, writes no registration
+   while capped (it only reloads a read-only page), and `calendar_events` updates do not fire the
+   trigger.
 4. `/code-review low` (escalate to `/security-review` — this is a migration + RLS-adjacent change),
    fix findings locally, THEN ask before pushing.
 5. Draft PR -> CI green + preview READY -> ready for review -> one CodeRabbit pass -> merge.

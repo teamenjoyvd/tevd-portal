@@ -6,5 +6,5 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
-| #718 | `dev/2608-DEV-718` | `supabase/migrations/20260812000000_2608_fix_718_guest_capacity_trigger.sql`, `lib/server/event-capacity.ts`, `lib/actions/guest-registration.ts`, `lib/server/member-registration.ts` (+ both `.test.ts`) — **migration: yes** | 2026-08-11 |
+| #718 | `dev/2608-DEV-718` | `supabase/migrations/20260811000100_2608_fix_718_guest_capacity_trigger.sql`, `lib/server/event-capacity.ts`, `lib/actions/guest-registration.ts`, `lib/server/member-registration.ts` (+ both `.test.ts`) — **migration: yes** | 2026-08-11 |
 
