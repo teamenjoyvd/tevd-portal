@@ -5,7 +5,7 @@
 import * as React from 'react'
 import { clerkClient } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { sendNotificationEmail, type SendEmailPayload } from '@/lib/email/send'
+import { getEmailConfig, sendNotificationEmail, type SendEmailPayload } from '@/lib/email/send'
 import { consumeEmailCap } from '@/lib/rate-limit'
 import { renderEmailTemplate } from '@/lib/email/templates/render'
 import { ShareGuestRegisteredEmail } from '@/lib/email/templates/ShareGuestRegisteredEmail'
@@ -119,6 +119,17 @@ async function resolveShareLinkContext(
  * magic links stay on `sendTransactionalEmail` — there the email IS the feature.
  */
 async function sendShareNotification(payload: SendEmailPayload): Promise<void> {
+  // The admin gates are re-checked HERE, ahead of the cap, even though
+  // sendNotificationEmail checks them again: consumeEmailCap SPENDS a slot on
+  // every allowed call, so gating afterwards would let a disabled template burn
+  // the sharer's whole daily budget on mail that was never sent — re-enabling
+  // the toggle would then deliver nothing until the window rolled. The config
+  // read is a 60s-cached single row (lib/email/send.ts), so the double check is
+  // effectively free.
+  const config = await getEmailConfig()
+  if (!config.enabled) return
+  if (config.notification_types[payload.template] === false) return
+
   const withinDailyCap = await consumeEmailCap({
     recipient: payload.to,
     template:  payload.template,

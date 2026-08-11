@@ -1,26 +1,30 @@
 ## Goal
-PLAN + CLAIM + BUILD issue #714 (2608-DEV-714) on branch `dev/2608-DEV-714` — docs mislabel the
-prod Supabase ref and contradict each other on what preview deployments target.
+PLAN + CLAIM + BUILD issue #715 (2608-DEV-715) on branch `dev/2608-DEV-715` — sharer share-link
+notifications skip every sharer with no `contact_email`, and are capped by nothing.
 
 ## Now
-#714 is **BUILD-complete and committed locally at `da36500`, not pushed**. `/code-review low` is the
-open gate, then push + draft PR — the push needs an explicit grant in this conversation.
+#715 is **BUILD-complete and committed locally at `6a3b29f`, not pushed** (CLAIM row at `b455e27`,
+branch rebased onto `c6ba2f2`). `/code-review low` is the open gate, then push + draft PR — the push
+needs an explicit grant in this conversation.
 
-#713 is **merged**: PR #728 (`2f82d80`). No migration, so no prod gate. Its `docs/CLAIMS.md` row was
-pruned by #714's CLAIM commit (`e20e072`), matching how `f8f3a3f` pruned #710.
+#714 is **merged**: PR #729 (`c6ba2f2`). No migration, so no prod gate. Its `docs/CLAIMS.md` row was
+pruned by #715's CLAIM commit (`b455e27`), matching how `e20e072` pruned #713.
 
-#710 is **fully DONE**: PR #725 merged (`17fd786`), the gated `Migrate Prod` run 31471066200
-succeeded, prod ledger head advanced to `20260811000000`, production smoke `/` 200 + `/sign-in` 200,
-issue closed. Epic #702 updated — all ten children merged, feature scope complete.
+#713 is **merged**: PR #728 (`2f82d80`). #710 is **fully DONE**: PR #725 merged (`17fd786`), gated
+`Migrate Prod` run 31471066200 succeeded, prod ledger head `20260811000000`, production smoke 200/200.
+Epic #702 updated — all ten children merged, feature scope complete.
 
 ## Next
-1. Resolve any `/code-review low` findings on the #714 diff.
-2. Push `dev/2608-DEV-714` and open the PR as a DRAFT (CodeRabbit skips drafts); wait for CI green +
+1. Resolve any `/code-review low` findings on the #715 diff.
+2. Push `dev/2608-DEV-715` and open the PR as a DRAFT (CodeRabbit skips drafts); wait for CI green +
    Vercel preview READY. **Needs an explicit push grant.**
 3. Mark ready → one CodeRabbit pass → fix all findings in ONE batched push.
-4. Merge. No migration in #714, so there is no prod gate to approve afterwards — just a smoke check.
-5. The `docs/CLAIMS.md` #714 row is pruned by the NEXT ticket's CLAIM commit, matching how `e20e072`
-   pruned #713 and `f8f3a3f` pruned #710 — never a standalone cleanup PR.
+4. Merge. No migration in #715, so there is no prod gate to approve afterwards — just a smoke check.
+5. The `docs/CLAIMS.md` #715 row is pruned by the NEXT ticket's CLAIM commit, matching how `b455e27`
+   pruned #714 and `e20e072` pruned #713 — never a standalone cleanup PR.
+6. File the deferred follow-up: five other call sites silently skip on a null `contact_email`
+   (`lib/abo/verifyAbo.ts:226`, both spouse-link routes, `app/api/admin/members/verify/[id]/route.ts:99`,
+   `lib/server/member-registration.ts`) — a shared `resolveProfileEmail()` would fix all six.
 
 ## Constraints
 - Never push without an explicit grant in this conversation. Grants from earlier tickets/sessions do
@@ -32,6 +36,21 @@ issue closed. Epic #702 updated — all ten children merged, feature scope compl
   Run `npm run check:env` before any command touching a hosted DB.
 
 ## Decisions
+- DECISION (#715, from PLAN): sharer notifications are **notifications, not transactional mail** —
+  they now dispatch through `sendNotificationEmail`, so `email_config.enabled` and the per-template
+  toggle both apply. The sharer did not request each message. Consequence accepted: flipping the
+  master switch off silences sharer mail too. Guest magic links stay transactional.
+- DECISION (#715, from PLAN): fallback order is `contact_email` → **Clerk primary email**, not the
+  issue's option 2 (require `contact_email` before minting a share link). `contact_email` is a
+  preference and may be deliberately blank; Clerk's primary is the verified backstop. Profiles with
+  no `clerk_id` (admin-created spouse/co-owner rows) keep the silent skip — no address exists.
+- DECISION (#715, from PLAN): the cap bucket is **template-scoped**, unlike
+  `guest-event-changes.ts`'s recipient-wide bucket — a registration burst through a viral link must
+  not consume the budget that would otherwise deliver the cancellation notice. 10 per 24h.
+- DECISION (#715, from BUILD): **no migration.** Keys absent from
+  `notification_config.email_settings.notification_types` already pass the gate
+  (`lib/email/send.ts:131` compares `=== false`), so the three admin toggles need no seed row — the
+  panel writes the key on first toggle.
 - DECISION (#713, from PLAN): the issue's **option 1** (resolve before any write), not option 2
   (degrade after). The `feed.ics` precedent at `:59-64` degrades *after* the point of no return
   because a feed has nothing to commit; `registerGuest` does. Hoisting is strictly better: the guest
@@ -65,6 +84,17 @@ issue closed. Epic #702 updated — all ten children merged, feature scope compl
 - Production smoke 2026-08-11: `https://www.teamenjoyvd.com` 200, `/sign-in` 200.
 
 ## Done
+- #715 PLAN + CLAIM + BUILD (code complete, `6a3b29f` + the review fix) — RESULT: 6 files.
+  `lib/notifications/share-events.ts` gained `resolveSharerEmail` (contact_email → Clerk primary,
+  Clerk failure caught) and `sendShareNotification` (admin gates, then a template-scoped 10/24h
+  `consumeEmailCap`, then `sendNotificationEmail`); `EmailSettingsPanel.tsx` + `i18n/domains/admin/
+  content.ts` expose the three toggles; `lib/email/send.ts` JSDoc lists the new caller. `/code-review
+  low` found one real defect — the cap was spent BEFORE the gates, so a disabled template burned the
+  sharer's daily budget; fixed by re-checking `getEmailConfig()` ahead of `consumeEmailCap`, covered
+  by two new tests. Verified: `npx vitest run` -> 32 files / **443 passed** (baseline 441 on this
+  branch's parent + 2); `npx tsc --noEmit` -> only the pre-existing stale `.next` error;
+  `npx eslint` on the changed files -> clean.
+- #714 CLOSED — RESULT: merged as PR #729 (`c6ba2f2`), no migration, no prod gate.
 - #713 BUILD (code complete, `a97a7df`) — RESULT: 5 files. `lib/utils/base-url.ts` gained a
   `normalizeHost` helper + the preview/development Vercel fallback; `lib/actions/guest-registration.ts`
   hoists the resolve above every side effect in BOTH `registerGuest` and `resendGuestLink`;
