@@ -161,9 +161,17 @@ jobs:
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
           NEXT_PUBLIC_APP_URL: "http://localhost:3000"
           ICAL_TOKEN_SECRET: "0000000000000000000000000000000000000000000000000000000000000000"
+      # !cancelled(), NOT failure(): retries: 1 means a flaky spec passes on the
+      # second attempt and the JOB succeeds, so a failure()-gated upload throws
+      # away the retained trace for the one run that had something to explain.
+      # That is exactly what happened to the payments-on-behalf L3 flake on run
+      # 31532749854 — first attempt red, retry green, job green, no artifact,
+      # nothing left to diagnose from. Uploading on success costs one small
+      # artifact per run and is the only record a flake ever leaves.
       - uses: actions/upload-artifact@v4
-        if: failure() && steps.check.outputs.ready == 'true'
+        if: '!cancelled() && steps.check.outputs.ready == ''true'''
         with:
           name: playwright-report-authenticated
           path: playwright-report/
           retention-days: 7
+          if-no-files-found: ignore

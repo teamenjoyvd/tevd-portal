@@ -10,7 +10,7 @@ import { GuestEventMagicLinkEmail } from '@/lib/email/templates/GuestEventMagicL
 import { notifySharerOfRegistration, notifySharerOfCancellation } from '@/lib/notifications/share-events'
 import { getBaseUrl } from '@/lib/utils/base-url'
 import { consumeEmailCap, consumeRegistrationSlot } from '@/lib/rate-limit'
-import { countAttendeesForCapacity } from '@/lib/server/event-capacity'
+import { countAttendeesForCapacity, isCapacityViolation } from '@/lib/server/event-capacity'
 
 // -- Types --------------------------------------------------------------------
 
@@ -205,7 +205,16 @@ export async function registerGuest(
         { event_id: eventId, email, name, lang, token, expires_at: expiresAt, cancelled_at: null, share_link_id: shareLinkId ?? existing?.share_link_id ?? null },
         { onConflict: 'event_id,email', ignoreDuplicates: false },
       )
-    if (upsertError) return { success: false, error: 'Registration failed. Please try again.' }
+    // The capacity check above is the fast path; trg_enforce_event_guest_capacity
+    // (2608-DEV-718) is what actually holds the line when two submissions race
+    // near the limit. Losing that race is "the event is full", not a transient
+    // failure — telling this guest to try again would be telling them to retry
+    // something that can never succeed.
+    if (upsertError) {
+      return isCapacityViolation(upsertError)
+        ? { success: false, error: getEventFullMessage(lang) }
+        : { success: false, error: 'Registration failed. Please try again.' }
+    }
   }
 
   // Atomically increment click_count on the share link

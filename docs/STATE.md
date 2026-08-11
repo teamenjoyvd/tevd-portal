@@ -1,30 +1,85 @@
 ## Goal
-PLAN + CLAIM + BUILD issue #715 (2608-DEV-715) on branch `dev/2608-DEV-715` — sharer share-link
-notifications skip every sharer with no `contact_email`, and are capped by nothing.
+PLAN + CLAIM + BUILD issue #718 (2608-DEV-718) on branch `dev/2608-DEV-718` — `guest_capacity` has a
+check-then-write race: nothing in the DB backs the cap, so concurrent registrations overbook it.
 
 ## Now
-#715 is **open as PR #731, ready for review, all 11 checks green** (CLAIM row at `b455e27`, branch
-rebased onto `c6ba2f2`). `/code-review low` fixed the cap-before-gates defect at `4dd255a`. The one
-CodeRabbit pass is done: 2 comments, 1 applied (truthiness -> explicit comparisons), 1 rejected as a
-phantom (claimed duplicate declarations that do not exist in the file). Open gate: merge.
+#718 is **pushed and open as PR #732**, CI green on `0e64f9a` (11/11 checks, Vercel preview READY),
+`MERGEABLE` / `CLEAN`, not a draft. CodeRabbit's one pass left three findings — all three are now
+dispositioned (see `## Decisions`); one produced a real change to the migration, two were declined
+with evidence. GCR has not run. The fix is a `BEFORE INSERT OR UPDATE` trigger on
+`guest_registrations` — `20260811000100_2608_fix_718_guest_capacity_trigger.sql` — rather than the
+RPC the issue suggested, because #710 added a fourth writer inside `approve_event_role_request` and
+a trigger sits under all of them. Both server paths map its SQLSTATE `P0718` back onto the friendly
+"event is full" copy via `isCapacityViolation()`.
 
-#714 is **merged**: PR #729 (`c6ba2f2`). No migration, so no prod gate. Its `docs/CLAIMS.md` row was
-pruned by #715's CLAIM commit (`b455e27`), matching how `e20e072` pruned #713.
+Verified so far: `npx vitest run lib/actions/guest-registration.test.ts
+lib/server/member-registration.test.ts` -> 64 passed (baseline was 56). The 5 new P0718 tests were
+proven red first by breaking `CAPACITY_VIOLATION_CODE`. `npx tsc --noEmit` is clean outside `.next/`.
 
-#713 is **merged**: PR #728 (`2f82d80`). #710 is **fully DONE**: PR #725 merged (`17fd786`), gated
-`Migrate Prod` run 31471066200 succeeded, prod ledger head `20260811000000`, production smoke 200/200.
-Epic #702 updated — all ten children merged, feature scope complete.
+**The race is proven closed on DEV.** `supabase db push --linked` applied `20260811000100` (and two
+already-merged migrations DEV was missing, `20260805000000` + `20260809000100`). Eight serial
+behaviour checks pass. The concurrency proof came from **two pg_cron workers** scheduled on the same
+tick, not from two client connections: the MCP serializes its calls, so a parallel-call attempt
+returned `blocked_for=5ms` and proved nothing. Under pg_cron the two workers started 0.6ms apart —
+B won the advisory lock and committed at `.123`, A blocked ~79ms on that lock, re-counted, saw B's
+committed row and raised P0718 at `.1266`. Exactly 1 active row against `guest_capacity = 1`. That
+blocking signature is the fresh-snapshot-after-lock property the whole fix depends on.
+
+Both review gates are CLOSED (2026-08-12). Pushed `0e64f9a..16cac3b` on an explicit grant; CI green
+again on `16cac3b` (11/11, `Replay migrations from scratch` 2m15s — which is what proves the edited
+PL/pgSQL is valid from an EMPTY database, not merely as an in-place `CREATE OR REPLACE`).
+`Authenticated E2E (Clerk)` came back in **6m7s vs 13m1s** on the previous run, consistent with the
+sign-in race no longer burning a retry cycle. All three CodeRabbit threads resolved; its re-review
+added nothing.
+
+**DEV was re-applied by hand** and matches the file. `db push` could not do it — the version was
+already in the DEV ledger, so it skips — the new body went in as `CREATE OR REPLACE FUNCTION` via
+the Supabase MCP against `iymwxdewcpvpjgzewtzk`, trigger untouched (`has_new_guard=true`,
+`trigger_count=1`). **Reusable technique:** a probe that must leave no trace can run its whole
+fixture set inside one `DO $$ … $$` block and end with `RAISE EXCEPTION` carrying the results in the
+message — the raise rolls every fixture back, and the MCP surfaces the message as the error string.
+Verified 0 probe events / 0 probe registrations afterwards.
+
+**Open gate: merge + prod.** #718 ships a migration, so merging arms the gated `migrate-prod` run.
+
+#715 is **merged**: PR #731 (`ddaa2e5`), no migration, no prod gate. #714 merged (`c6ba2f2`).
+#713 merged (`2f82d80`). #710 fully DONE — prod ledger head `20260811000000`.
 
 ## Next
-1. Resolve any `/code-review low` findings on the #715 diff.
-2. DONE — pushed, draft PR #731 open. Wait for CI green + Vercel preview READY.
-3. Mark ready → one CodeRabbit pass → fix all findings in ONE batched push.
-4. Merge. No migration in #715, so there is no prod gate to approve afterwards — just a smoke check.
-5. The `docs/CLAIMS.md` #715 row is pruned by the NEXT ticket's CLAIM commit, matching how `b455e27`
-   pruned #714 and `e20e072` pruned #713 — never a standalone cleanup PR.
-6. File the deferred follow-up: five other call sites silently skip on a null `contact_email`
+1. DONE — applied to DEV.
+2. DONE — all eight serial checks plus the pg_cron concurrency proof pass; every fixture rolled back
+   or deleted, DEV left clean (0 probe events, 0 probe registrations, 0 leftover cron jobs).
+   **Reusable technique:** when two truly concurrent transactions are needed against a hosted DB and
+   no DB password is at hand, schedule two `cron.schedule(...)` jobs on the same tick and read the
+   outcome out of `cron.job_run_details` — the MCP cannot do it, it serializes its calls.
+3. DONE — no e2e impact. Every fixture creator omits `guest_capacity` (NULL = unlimited). The one
+   spec that caps an event, `e2e/member-share-register-auth.spec.ts:229-253`, writes no registration
+   while capped (it only reloads a read-only page), and `calendar_events` updates do not fire the
+   trigger.
+4. DONE — reviewed, pushed, PR #732 opened and marked ready; CI green, preview READY.
+5. DONE — CodeRabbit's single pass returned three findings; all three answered on the thread and
+   fixed-or-declined in one batch (2026-08-12).
+6. DONE — pushed `16cac3b`; CI green 11/11 including `Replay migrations from scratch`.
+7. DONE — DEV re-applied by hand and behaviour-probed (edit-active ALLOWED, adopt-active ALLOWED,
+   new-seat-on-full REFUSED P0718), DEV left clean.
+8. DONE — all three CodeRabbit threads resolved; one correction posted where its verifier read the
+   pre-push revision and reported the fix missing.
+9. **Merge** -> GCR. The claim row is already pruned in this PR's own commits, so GCR is
+   issue-close (#718) + branch cleanup only.
+10. After merge: approve the gated `migrate-prod` run — **#718 ships a migration**, unlike the last
+   four tickets. Prod ledger head should move `20260811000000` -> `20260811000100`. Then smoke
+   `https://www.teamenjoyvd.com`.
+11. Follow-ups filed and unclaimed: **#733** (machine-readable failure code, retires the English
+   error-text matching) and **#734** (seven e2e specs still carrying the sign-in race).
+7. Still open from #715: five call sites silently skip on a null `contact_email`
    (`lib/abo/verifyAbo.ts:226`, both spouse-link routes, `app/api/admin/members/verify/[id]/route.ts:99`,
    `lib/server/member-registration.ts`) — a shared `resolveProfileEmail()` would fix all six.
+
+## Open items
+- `.next/dev/types/validator.ts:566` references `app/api/admin/events/[id]/registrations/route.js`,
+  a route that no longer exists, so `npx tsc --noEmit` exits non-zero on a clean tree. Proven
+  pre-existing by stashing (2026-08-11). Stale build artifact, not a source defect; out of #718's
+  scope.
 
 ## Constraints
 - Never push without an explicit grant in this conversation. Grants from earlier tickets/sessions do
@@ -36,6 +91,51 @@ Epic #702 updated — all ten children merged, feature scope complete.
   Run `npm run check:env` before any command touching a hosted DB.
 
 ## Decisions
+- DECISION (#718, from PLAN): a **trigger, not the RPC the issue proposed**. #718 was filed before
+  #710, which added a fourth writer of active registrations inside `approve_event_role_request`
+  (`20260811000000:99-142`) — an RPC would have to absorb the guest token-reuse decision, the member
+  adopt-or-insert branch, and re-entry from another PL/pgSQL function. A trigger sits under all of
+  them plus the e2e/seed direct inserts, and cannot be defeated by forgetting to call it, which is
+  what the issue actually asked for.
+- DECISION (#718, from BUILD): the app-level `countAttendeesForCapacity()` checks **stay**. They are
+  the fast path that produces the localized "event is full" copy; the trigger is the backstop for
+  the window they cannot cover. Cost accepted: the "who occupies a seat" rule (approved role holders
+  exempt) now exists in two places and must be changed in both — flagged in `docs/ai/GOTCHAS.md`.
+- DECISION (#718, from BUILD): custom SQLSTATE **`P0718`**, not a 23xxx integrity code.
+  `guest_registrations` carries real CHECK and UNIQUE constraints, so matching a shared class would
+  report an unrelated violation to a guest as "event is full".
+- DECISION (#718, from BUILD): the trigger function is `SECURITY DEFINER` with **no internal
+  `auth.role()` guard**, departing from the `docs/ai/GOTCHAS.md` "Trusted RPC" rule. That rule
+  guards directly-callable functions; Postgres refuses to invoke a `trigger`-returning function
+  outside a trigger context, so there is no caller to authorize. DEFINER is used only so the count
+  is computed over every row rather than an RLS-filtered view, which could under-count. EXECUTE is
+  deliberately not revoked — trigger-function privileges are checked at CREATE TRIGGER time, and
+  revoking would risk the write paths for no gain.
+- DECISION (#718, from REVIEW): CodeRabbit's 🟠 "enforce capacity when an active row changes
+  exemption status" is **unreachable today but was fixed anyway**. The overbooking it describes
+  needs an UPDATE moving `profile_id` off an approved role holder on an already-active row; every
+  writer that sets `profile_id` requires the pre-image to be NULL
+  (`member-registration.ts:255` `.is('profile_id', null)`, `20260811000000:112`
+  `g.profile_id IS NULL`), and `registerGuest`'s upsert never names the column — NULL -> non-NULL
+  only moves a row toward exempt, which under-counts and cannot overbook. Accepted anyway because
+  the trigger's whole premise is surviving a writer nobody has written yet: the early return now
+  also requires `OLD.profile_id IS NOT DISTINCT FROM NEW.profile_id`. Safe for the adopt paths that
+  do fall through — `gr.id <> NEW.id` excludes the row's own already-counted seat, so adopting the
+  last guest on an exactly-full event still passes.
+- DECISION (#718, from REVIEW): CodeRabbit's 🟠 "localize the member capacity error" is **DECLINED —
+  the proposed fix is a regression.** `CAPACITY_ERROR` is not new (`git diff origin/main` shows the
+  same English string at `:218` before this PR); it is a server->client protocol matched by
+  `MemberAttendPanel.tsx:75` and `EventPopup.tsx:79` via `raw.includes('capacity')`. Returning
+  Bulgarian when `lang === 'bg'` makes BOTH matchers miss and fall through to the generic attend
+  error — strictly worse for the Bulgarian user the finding is about. The same finding was declined
+  on #720 for the same reason; the real fix is the machine-readable `code` already logged under
+  Open items, now filed as **#733** `[2608-DEV-733]`.
+- DECISION (#718, from REVIEW): CodeRabbit's 🟡 test-fidelity finding was **correct and taken**.
+  `member-registration.test.ts`'s ADOPT P0718 test seeded `cancelled_at: null`, and the trigger
+  returns at `:79` for an active same-event pre-image, so it asserted on a rejection the database
+  cannot produce. Now seeds a cancelled row — the one adoption shape that genuinely re-seats a
+  registrant, since the adopt lookup does not filter on `cancelled_at`
+  (`member-registration.ts:250-256`).
 - DECISION (#715, from PLAN): sharer notifications are **notifications, not transactional mail** —
   they now dispatch through `sendNotificationEmail`, so `email_config.enabled` and the per-template
   toggle both apply. The sharer did not request each message. Consequence accepted: flipping the
@@ -133,6 +233,31 @@ Epic #702 updated — all ten children merged, feature scope complete.
   attempts` against `loved-mole-75.clerk.accounts.dev`. No assertion ever ran. The run took 18m25s
   because 60s timeout x retry x ~10 tests, vs a 6m baseline. Re-run of the SAME commit passed in
   5m50s. Clerk's dev FAPI was transiently down; do not "fix" this in the specs.
+- FIXED (2026-08-12, in PR #732) — a DIFFERENT flake from the one above, and a real spec defect:
+  `payments-on-behalf.spec.ts:169` went red on run 31532749854 with 30s of "element(s) not found"
+  for a button that only exists on `/profile`. Cause: `clerk.signIn()` resolves on
+  `waitForFunction(() => window.Clerk?.user !== null)` (@clerk/testing 2.2.7) — an in-memory CLIENT
+  signal — while `proxy.ts:14-21` authorises `/profile` SERVER-side from the session cookie and
+  answers `NextResponse.redirect('/sign-in')` when it cannot resolve a userId. A `goto` on the next
+  line can be decided against a cookie the browser has not finished writing, and the test then fails
+  naming the missing element rather than the redirect that actually happened. Fixed by
+  `e2e/auth-helpers.ts` (`gotoProtected` re-navigates until the path sticks — a retry loop, not
+  `expect.poll`, because a cold Turbopack compile can make a SUCCESSFUL goto take ~80s and a poll
+  deadline would abort it). Both payments specs adopted it; they were byte-identical and carried the
+  identical bug.
+- NOTED (not done, out of #718's scope, FILED as **#734** `[2608-DEV-734]`): seven other e2e specs still do
+  `clerk.signIn()` followed by a navigation without waiting for the server to honour the session —
+  `profile-bento-auth.spec.ts:34-35` (`/profile`, the same shape as the two fixed specs),
+  `member-attend-auth.spec.ts:127,179,227`, `event-registrations-auth.spec.ts:232,250,268,287`,
+  `admin-auth.spec.ts:24`, `admin-mobile-auth.spec.ts:57`, `member-share-register-auth.spec.ts:150`,
+  `los-submission-auth.spec.ts:41`. Deliberately NOT converted inside #718 — an unrelated
+  cross-cutting e2e change does not belong in a capacity-trigger PR, and `profile-bento-auth` in
+  particular has its own diagnosed cause in #727 (401 eviction after `page.reload()`) that this
+  helper would mask rather than fix.
+- CI (2026-08-12, in PR #732): the authenticated-E2E artifact upload was gated on `failure()`, but
+  `retries: 1` means a flaky spec passes on attempt 2 and the JOB goes green — throwing away the
+  trace for the one run with something to explain, which is exactly what happened to the flake
+  above. Now `!cancelled()` with `if-no-files-found: ignore`.
 - NOTED (not done, out of #713's scope): `app/api/calendar/feed-token/route.ts:21,45,81` and
   `app/api/profile/spouse-link/route.ts:138` still `await getBaseUrl()` unguarded. Neither commits
   irreversible state first, so neither has the #713 half-success shape — they just 500 on a
@@ -172,7 +297,8 @@ Epic #702 updated — all ten children merged, feature scope complete.
 - NOTED (not done, found during #709): the DEV ledger has NO `20260809000100` row (#706
   `fn_schedule_guest_reminders_record`), though prod does. Function-body-only, so
   `types/supabase.ts` is unaffected, but hosted DEV may be running the pre-#706 body.
-- NOTED (not done, declined CodeRabbit finding on #720, needs its own ticket): client error copy is
+- NOTED (FILED 2026-08-12 as **#733** `[2608-DEV-733]`; declined CodeRabbit finding on #720 AND
+  again on #732): client error copy is
   selected by matching ENGLISH server text — `MemberAttendPanel.tsx:73-78` and
   `app/(dashboard)/calendar/components/EventPopup.tsx:76-78` both do `raw.includes('capacity')`.
   A real fix needs a machine-readable `code` on `attendEvent`'s failure result, through

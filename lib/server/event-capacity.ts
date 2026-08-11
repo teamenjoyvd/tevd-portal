@@ -24,9 +24,14 @@ import type { SupabaseClient } from '@supabase/supabase-js'
  * query. Counting fetched rows would silently saturate at 1000, so an event
  * with `guest_capacity >= 1000` would stop enforcing capacity entirely.
  *
- * Note: this moves the existing read-then-write capacity shape, it does not
- * close the TOCTOU race tracked by #718 — there is still no DB-level guard on
- * `guest_capacity`.
+ * Since 2608-DEV-718 this is the FAST PATH, not the enforcement point. It runs
+ * before the write to produce the friendly localized "event is full" copy, but
+ * it is still a read-then-write and cannot close the window between the two.
+ * The hard guard is `trg_enforce_event_guest_capacity`
+ * (20260811000100_2608_fix_718_guest_capacity_trigger.sql), which repeats this
+ * count under an advisory lock inside the writing transaction. Keep the two
+ * definitions of "who occupies a seat" in step — the role-holder exclusion
+ * below is mirrored in the trigger body.
  */
 export async function countAttendeesForCapacity(
   supabase: SupabaseClient,
@@ -85,4 +90,22 @@ export async function countAttendeesForCapacity(
   }
 
   return Math.max(0, total - (roleHolderActive ?? 0))
+}
+
+/**
+ * 2608-DEV-718 — did this write fail because the event is full?
+ *
+ * `trg_enforce_event_guest_capacity` raises SQLSTATE `P0718` and nothing else
+ * does. Deliberately NOT one of the 23xxx integrity codes: `guest_registrations`
+ * carries real CHECK and UNIQUE constraints of its own, so matching a shared
+ * class would report an unrelated violation to the guest as "event is full".
+ *
+ * Every write that can seat a registrant must route its error through this, or
+ * a genuine capacity refusal reaches the user as "Registration failed. Please
+ * try again." — copy that invites a retry which can never succeed.
+ */
+export const CAPACITY_VIOLATION_CODE = 'P0718'
+
+export function isCapacityViolation(error: { code?: string } | null | undefined): boolean {
+  return error?.code === CAPACITY_VIOLATION_CODE
 }

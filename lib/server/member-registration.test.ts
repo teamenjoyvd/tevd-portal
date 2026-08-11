@@ -71,8 +71,14 @@ class FakeQuery {
   private wantCount = false
   private nextId: () => string
 
-  constructor(private table: Row[], nextId: () => string) {
+  // 2608-DEV-718: when set, every write against this table comes back as a
+  // failure instead of committing — how trg_enforce_event_guest_capacity
+  // surfaces to the client on a lost capacity race.
+  private writeError: { code: string } | null
+
+  constructor(private table: Row[], nextId: () => string, writeError: { code: string } | null = null) {
     this.nextId = nextId
+    this.writeError = writeError
   }
 
   select(_cols: string, opts?: { count?: string; head?: boolean }) {
@@ -91,6 +97,7 @@ class FakeQuery {
 
   async single() {
     if (this.mode === 'insert') {
+      if (this.writeError) return { data: null, error: this.writeError }
       const row: Row = { id: this.nextId(), cancelled_at: null, share_link_id: null, ...this.writeData }
       this.table.push(row)
       return { data: row, error: null }
@@ -107,8 +114,12 @@ class FakeQuery {
 
   // Awaited directly (no .single()/.maybeSingle()) — update-without-select and
   // the head:true capacity count both land here.
-  then(resolve: (v: { data: Row[] | null; error: null; count?: number }) => unknown) {
+  then(resolve: (v: { data: Row[] | null; error: { code: string } | null; count?: number }) => unknown) {
     if (this.mode === 'update') {
+      if (this.writeError) {
+        resolve({ data: null, error: this.writeError })
+        return
+      }
       const rows = this.matches()
       rows.forEach(r => Object.assign(r, this.writeData))
       resolve({ data: rows, error: null, count: rows.length })
@@ -119,11 +130,18 @@ class FakeQuery {
   }
 }
 
-function buildClient(db: Db, rpc = vi.fn().mockResolvedValue({ data: null, error: null })) {
+function buildClient(
+  db: Db,
+  rpc = vi.fn().mockResolvedValue({ data: null, error: null }),
+  // 2608-DEV-718: applied to guest_registrations only — the sole table
+  // attendEvent writes, and the one the capacity trigger sits on.
+  writeError: { code: string } | null = null,
+) {
   let seq = 0
   const nextId = () => `gen-${++seq}`
   return {
-    from: (table: keyof Db) => new FakeQuery(db[table], nextId),
+    from: (table: keyof Db) =>
+      new FakeQuery(db[table], nextId, table === 'guest_registrations' ? writeError : null),
     rpc,
   } as unknown as SupabaseClient
 }
@@ -409,6 +427,103 @@ describe('attendEvent', () => {
 
     expect(result).toEqual({ success: false, error: 'Registration is not available for this event.' })
     expect(db.guest_registrations).toHaveLength(0)
+  })
+})
+
+// -- attendEvent — the DB backstop (2608-DEV-718) -----------------------------
+// attendEvent's capacity check is a read-then-write, so two attends can both
+// count a free seat and both proceed. trg_enforce_event_guest_capacity refuses
+// the loser's write with SQLSTATE P0718. All THREE writes are covered here:
+// insert, reactivate and adopt each seat a registrant, so each can lose.
+
+describe('attendEvent — capacity race lost at the DB (2608-DEV-718)', () => {
+  const P0718 = { code: 'P0718' }
+  const FULL = 'This event has reached its guest capacity.'
+
+  it('reports the event as full when the INSERT is rejected with P0718', async () => {
+    const db = makeDb()
+    seedEvent(db, { guest_capacity: 2 }) // pre-check sees a free seat…
+    const client = buildClient(db, undefined, P0718) // …the trigger disagrees
+
+    const result = await attendEvent(client, {
+      eventId: EVENT_ID, profileId: PROFILE_ID, profileRole: 'member',
+      profileName: 'Ivan Petrov', contactEmail: null,
+    })
+
+    expect(result).toEqual({ success: false, error: FULL })
+  })
+
+  it('reports the event as full when the REACTIVATE update is rejected with P0718', async () => {
+    const db = makeDb()
+    seedEvent(db, { guest_capacity: 2 })
+    db.guest_registrations.push({
+      id: 'reg-1', event_id: EVENT_ID, profile_id: PROFILE_ID, name: 'Old Name',
+      status: 'confirmed', cancelled_at: '2026-08-01T00:00:00.000Z', share_link_id: null,
+    })
+    const client = buildClient(db, undefined, P0718)
+
+    const result = await attendEvent(client, {
+      eventId: EVENT_ID, profileId: PROFILE_ID, profileRole: 'member',
+      profileName: 'New Name', contactEmail: null,
+    })
+
+    expect(result).toEqual({ success: false, error: FULL })
+  })
+
+  it('reports the event as full when the ADOPT update is rejected with P0718', async () => {
+    const db = makeDb()
+    seedEvent(db, { guest_capacity: 2 })
+    // CANCELLED, not active — and that is load-bearing, not incidental. The
+    // trigger returns early for any UPDATE whose pre-image is already active on
+    // the same event (20260811000100:79-83): such a row is being edited, not
+    // seated, so it can never raise P0718. Seeding an active row here would
+    // therefore assert on a rejection the database cannot produce. A cancelled
+    // row is the one adoption shape that re-seats a registrant — the adopt
+    // lookup does not filter on cancelled_at (member-registration.ts:250-256),
+    // so it is found, and the update's cancelled_at = null makes it occupy a
+    // seat again, which is exactly what the capacity check refuses.
+    db.guest_registrations.push({
+      id: 'guest-reg-1', event_id: EVENT_ID, profile_id: null, name: 'Ivan (guest)',
+      email: 'ivan@example.com', token: 'tok123', expires_at: FUTURE,
+      status: 'pending', cancelled_at: '2026-08-01T00:00:00.000Z', share_link_id: null,
+    })
+    const client = buildClient(db, undefined, P0718)
+
+    const result = await attendEvent(client, {
+      eventId: EVENT_ID, profileId: PROFILE_ID, profileRole: 'member',
+      profileName: 'Ivan Petrov', contactEmail: 'ivan@example.com',
+    })
+
+    expect(result).toEqual({ success: false, error: FULL })
+  })
+
+  it('keeps the generic retry copy for a write failure that is NOT a capacity refusal', async () => {
+    const db = makeDb()
+    seedEvent(db, { guest_capacity: 2 })
+    const client = buildClient(db, undefined, { code: '23505' })
+
+    const result = await attendEvent(client, {
+      eventId: EVENT_ID, profileId: PROFILE_ID, profileRole: 'member',
+      profileName: 'Ivan Petrov', contactEmail: null,
+    })
+
+    expect(result).toEqual({ success: false, error: 'Could not attend. Please try again.' })
+  })
+
+  it('does not send a confirmation or credit the sharer when the write was refused', async () => {
+    const db = makeDb()
+    seedEvent(db, { guest_capacity: 2 })
+    db.event_share_links.push({ id: 'link-1', token: 'share-tok', event_id: EVENT_ID, profile_id: 'other', revoked_at: null })
+    const client = buildClient(db, undefined, P0718)
+
+    const result = await attendEvent(client, {
+      eventId: EVENT_ID, profileId: PROFILE_ID, profileRole: 'member',
+      profileName: 'Ivan Petrov', contactEmail: 'ivan@example.com', shareToken: 'share-tok',
+    })
+
+    expect(result.success).toBe(false)
+    expect(sendTransactionalEmail).not.toHaveBeenCalled()
+    expect(notifySharerOfRegistration).not.toHaveBeenCalled()
   })
 })
 

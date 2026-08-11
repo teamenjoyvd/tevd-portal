@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
-import { clerk } from '@clerk/testing/playwright'
+import { signInAndGoto } from './auth-helpers'
 
 /**
  * End-to-end coverage for paying on behalf of others (2607-DEV-676):
@@ -30,9 +30,10 @@ const MEMBER_EMAIL = process.env.E2E_CLERK_MEMBER_EMAIL ?? 'e2e-member-tevd-port
 test.use({ viewport: { width: 390, height: 844 } })
 
 async function signInAndOpenProfile(page: Page) {
-  await page.goto('/')
-  await clerk.signIn({ page, emailAddress: MEMBER_EMAIL })
-  await page.goto('/profile')
+  // signInAndGoto, not signIn + goto: the session has to be live SERVER-side
+  // before /profile will render at all, and clerk.signIn() only proves it
+  // client-side. See e2e/auth-helpers.ts for the full account.
+  await signInAndGoto(page, MEMBER_EMAIL, '/profile')
   await expect(page.getByRole('button', { name: /submit payment/i }).first()).toBeVisible({ timeout: 30_000 })
 }
 
