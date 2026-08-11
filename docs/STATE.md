@@ -14,18 +14,27 @@ Verified so far: `npx vitest run lib/actions/guest-registration.test.ts
 lib/server/member-registration.test.ts` -> 64 passed (baseline was 56). The 5 new P0718 tests were
 proven red first by breaking `CAPACITY_VIOLATION_CODE`. `npx tsc --noEmit` is clean outside `.next/`.
 
-**Open gate: the migration has never run.** It needs `supabase db push` against DEV plus a real
-two-connection concurrency proof, and the user must approve any hosted-DB write first.
+**The race is proven closed on DEV.** `supabase db push --linked` applied `20260811000100` (and two
+already-merged migrations DEV was missing, `20260805000000` + `20260809000100`). Eight serial
+behaviour checks pass. The concurrency proof came from **two pg_cron workers** scheduled on the same
+tick, not from two client connections: the MCP serializes its calls, so a parallel-call attempt
+returned `blocked_for=5ms` and proved nothing. Under pg_cron the two workers started 0.6ms apart —
+B won the advisory lock and committed at `.123`, A blocked ~79ms on that lock, re-counted, saw B's
+committed row and raised P0718 at `.1266`. Exactly 1 active row against `guest_capacity = 1`. That
+blocking signature is the fresh-snapshot-after-lock property the whole fix depends on.
+
+**Open gate: push permission.** Three commits are local; the user has not granted a push.
 
 #715 is **merged**: PR #731 (`ddaa2e5`), no migration, no prod gate. #714 merged (`c6ba2f2`).
 #713 merged (`2f82d80`). #710 fully DONE — prod ledger head `20260811000000`.
 
 ## Next
-1. Ask, then `npm run check:env` -> `supabase db push` to DEV.
-2. DB-level verification on DEV: (a) a 3rd insert against `guest_capacity = 2` raises P0718;
-   (b) an approved role holder is still seated on a full event; (c) `guest_capacity IS NULL` is
-   unaffected; (d) the join-page `attended_at` update on an already-active row on a FULL event still
-   succeeds; (e) two overlapping transactions on a `guest_capacity = 1` event leave exactly 1 row.
+1. DONE — applied to DEV.
+2. DONE — all eight serial checks plus the pg_cron concurrency proof pass; every fixture rolled back
+   or deleted, DEV left clean (0 probe events, 0 probe registrations, 0 leftover cron jobs).
+   **Reusable technique:** when two truly concurrent transactions are needed against a hosted DB and
+   no DB password is at hand, schedule two `cron.schedule(...)` jobs on the same tick and read the
+   outcome out of `cron.job_run_details` — the MCP cannot do it, it serializes its calls.
 3. DONE — no e2e impact. Every fixture creator omits `guest_capacity` (NULL = unlimited). The one
    spec that caps an event, `e2e/member-share-register-auth.spec.ts:229-253`, writes no registration
    while capped (it only reloads a read-only page), and `calendar_events` updates do not fire the
