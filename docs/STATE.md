@@ -3,9 +3,10 @@ PLAN + CLAIM + BUILD issue #715 (2608-DEV-715) on branch `dev/2608-DEV-715` — 
 notifications skip every sharer with no `contact_email`, and are capped by nothing.
 
 ## Now
-#715 is **BUILD-complete and committed locally at `6a3b29f`, not pushed** (CLAIM row at `b455e27`,
-branch rebased onto `c6ba2f2`). `/code-review low` is the open gate, then push + draft PR — the push
-needs an explicit grant in this conversation.
+#715 is **pushed and open as DRAFT PR #731** (head `4dd255a`, CLAIM row at `b455e27`, branch rebased
+onto `c6ba2f2`). `/code-review low` is done — its one finding (cap spent before the admin gates) is
+fixed at `4dd255a`. Open gate: CI green + Vercel preview READY, then mark ready for one CodeRabbit
+pass.
 
 #714 is **merged**: PR #729 (`c6ba2f2`). No migration, so no prod gate. Its `docs/CLAIMS.md` row was
 pruned by #715's CLAIM commit (`b455e27`), matching how `e20e072` pruned #713.
@@ -16,8 +17,7 @@ Epic #702 updated — all ten children merged, feature scope complete.
 
 ## Next
 1. Resolve any `/code-review low` findings on the #715 diff.
-2. Push `dev/2608-DEV-715` and open the PR as a DRAFT (CodeRabbit skips drafts); wait for CI green +
-   Vercel preview READY. **Needs an explicit push grant.**
+2. DONE — pushed, draft PR #731 open. Wait for CI green + Vercel preview READY.
 3. Mark ready → one CodeRabbit pass → fix all findings in ONE batched push.
 4. Merge. No migration in #715, so there is no prod gate to approve afterwards — just a smoke check.
 5. The `docs/CLAIMS.md` #715 row is pruned by the NEXT ticket's CLAIM commit, matching how `b455e27`
