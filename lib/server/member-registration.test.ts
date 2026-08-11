@@ -473,10 +473,19 @@ describe('attendEvent — capacity race lost at the DB (2608-DEV-718)', () => {
   it('reports the event as full when the ADOPT update is rejected with P0718', async () => {
     const db = makeDb()
     seedEvent(db, { guest_capacity: 2 })
+    // CANCELLED, not active — and that is load-bearing, not incidental. The
+    // trigger returns early for any UPDATE whose pre-image is already active on
+    // the same event (20260811000100:79-83): such a row is being edited, not
+    // seated, so it can never raise P0718. Seeding an active row here would
+    // therefore assert on a rejection the database cannot produce. A cancelled
+    // row is the one adoption shape that re-seats a registrant — the adopt
+    // lookup does not filter on cancelled_at (member-registration.ts:250-256),
+    // so it is found, and the update's cancelled_at = null makes it occupy a
+    // seat again, which is exactly what the capacity check refuses.
     db.guest_registrations.push({
       id: 'guest-reg-1', event_id: EVENT_ID, profile_id: null, name: 'Ivan (guest)',
       email: 'ivan@example.com', token: 'tok123', expires_at: FUTURE,
-      status: 'pending', cancelled_at: null, share_link_id: null,
+      status: 'pending', cancelled_at: '2026-08-01T00:00:00.000Z', share_link_id: null,
     })
     const client = buildClient(db, undefined, P0718)
 

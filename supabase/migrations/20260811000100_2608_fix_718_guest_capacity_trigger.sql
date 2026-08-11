@@ -76,9 +76,33 @@ BEGIN
   -- form's name/attribution refresh, and registerGuest's upsert re-writing
   -- cancelled_at = NULL over an already-NULL value all land here and must not
   -- be refused on a full event.
+  --
+  -- ...but "already active" is not the same as "already counted". The count
+  -- below excludes approved role holders, so an active row's seat is occupied
+  -- or exempt depending on its profile_id. An UPDATE that moved profile_id from
+  -- an approved holder to anyone else would flip the row from exempt to
+  -- occupied — growing the headcount by one — while still satisfying the two
+  -- conditions above and returning here unchecked (CodeRabbit, PR #732).
+  --
+  -- No writer in this repo can do that today: every write that sets profile_id
+  -- requires the pre-image to be NULL (lib/server/member-registration.ts:255
+  -- `.is('profile_id', null)`, 20260811000000:112 `g.profile_id IS NULL`), and
+  -- registerGuest's upsert never names the column at all. NULL -> non-NULL only
+  -- ever moves a row toward exempt, which under-counts and cannot overbook.
+  -- The third condition is therefore unreachable as written — and that is
+  -- exactly why it belongs here. This trigger exists so the cap survives a
+  -- writer nobody has written yet; leaving the gap open because the current
+  -- four callers happen to avoid it would rest the guarantee on the same
+  -- audit-every-caller discipline the trigger was built to replace.
+  --
+  -- Any profile_id change on an active row falls through to the full check
+  -- instead. That is safe for the adopt paths that do reach it: `gr.id <>
+  -- NEW.id` excludes the row's own already-counted seat from v_active, so
+  -- adopting the last guest on an exactly-full event still passes.
   IF TG_OP = 'UPDATE'
      AND OLD.cancelled_at IS NULL
-     AND OLD.event_id = NEW.event_id THEN
+     AND OLD.event_id = NEW.event_id
+     AND OLD.profile_id IS NOT DISTINCT FROM NEW.profile_id THEN
     RETURN NEW;
   END IF;
 
