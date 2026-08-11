@@ -1,23 +1,26 @@
 ## Goal
-PLAN + BUILD issue #713 (2608-DEV-713) on branch `dev/2608-DEV-713` — guest registration
-half-succeeds and 500s when `getBaseUrl()` throws. Update epic #702. Close out #710.
+PLAN + CLAIM + BUILD issue #714 (2608-DEV-714) on branch `dev/2608-DEV-714` — docs mislabel the
+prod Supabase ref and contradict each other on what preview deployments target.
 
 ## Now
-#713 is **BUILD-complete and committed locally at `a97a7df`, not pushed**. `/code-review low` is the
+#714 is **BUILD-complete and committed locally at `da36500`, not pushed**. `/code-review low` is the
 open gate, then push + draft PR — the push needs an explicit grant in this conversation.
+
+#713 is **merged**: PR #728 (`2f82d80`). No migration, so no prod gate. Its `docs/CLAIMS.md` row was
+pruned by #714's CLAIM commit (`e20e072`), matching how `f8f3a3f` pruned #710.
 
 #710 is **fully DONE**: PR #725 merged (`17fd786`), the gated `Migrate Prod` run 31471066200
 succeeded, prod ledger head advanced to `20260811000000`, production smoke `/` 200 + `/sign-in` 200,
 issue closed. Epic #702 updated — all ten children merged, feature scope complete.
 
 ## Next
-1. Resolve any `/code-review low` findings on the #713 diff.
-2. Push `dev/2608-DEV-713` and open the PR as a DRAFT (CodeRabbit skips drafts); wait for CI green +
+1. Resolve any `/code-review low` findings on the #714 diff.
+2. Push `dev/2608-DEV-714` and open the PR as a DRAFT (CodeRabbit skips drafts); wait for CI green +
    Vercel preview READY. **Needs an explicit push grant.**
 3. Mark ready → one CodeRabbit pass → fix all findings in ONE batched push.
-4. Merge. No migration in #713, so there is no prod gate to approve afterwards — just a smoke check.
-5. The `docs/CLAIMS.md` #713 row is pruned by the NEXT ticket's CLAIM commit, matching how `f8f3a3f`
-   pruned #710 and `cdadc1d` pruned #709 — never a standalone cleanup PR.
+4. Merge. No migration in #714, so there is no prod gate to approve afterwards — just a smoke check.
+5. The `docs/CLAIMS.md` #714 row is pruned by the NEXT ticket's CLAIM commit, matching how `e20e072`
+   pruned #713 and `f8f3a3f` pruned #710 — never a standalone cleanup PR.
 
 ## Constraints
 - Never push without an explicit grant in this conversation. Grants from earlier tickets/sessions do

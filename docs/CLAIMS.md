@@ -6,5 +6,5 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
-| #713 | `dev/2608-DEV-713` | `lib/actions/guest-registration.ts`, `lib/actions/guest-registration.test.ts`, `lib/utils/base-url.ts`, `lib/utils/base-url.test.ts`, `.env.example` (comment only) — **migration: no** | 2026-08-11 |
+| #714 | `dev/2608-DEV-714` | `CLAUDE.md` (Constants table), `README.md`, `.env.example` (comment only), `docs/ai/BUILD.md` — **migration: no** | 2026-08-11 |
 

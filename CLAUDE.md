@@ -38,9 +38,10 @@ Row matched: write `TRIGGER: <event> -> <doc>`; your next tool call is Read on t
 |---|---|
 | Repo | `teamenjoyvd/tevd-portal` |
 | Branch | `main` |
-| Supabase project | `ynykjpnetfwqzdnsgkkg` |
+| Supabase project — **PROD** | `ynykjpnetfwqzdnsgkkg` — live member data. Never target it from local dev, a preview, a seed script, or an e2e run. |
+| Supabase project — **DEV** | `iymwxdewcpvpjgzewtzk` — what local dev and Vercel previews use. This is the one you write to. |
 | Production URL | `https://www.teamenjoyvd.com` |
-Never ask the user to confirm these.
+Never ask the user to confirm these. The two refs are NOT interchangeable — `scripts/check-env.js` (`DEV_PROJECT_REF` / `PROD_PROJECT_REF`) is authoritative, and `npm run check:env` prints which one the current environment resolves to. Run it before any command that touches hosted data.
 
 **Hard Constraints**
 Violation = immediate stop, no exceptions.
