@@ -26,7 +26,7 @@ npm run dev                              # http://localhost:3000
 npm run check:env                        # confirms vars + which Supabase project dev targets
 ```
 
-`.env.development.local` overrides `.env.local` for local dev and should point `NEXT_PUBLIC_SUPABASE_URL`/`NEXT_PUBLIC_SUPABASE_ANON_KEY`/`SUPABASE_SERVICE_ROLE_KEY` at the hosted **DEV** Supabase project (`iymwxdewcpvpjgzewtzk`), never prod. `npm run check:env` confirms the target. Vercel preview URLs still hit the **production** Supabase project — treat preview testing as navigation-only. Details: [docs/DEV_WORKFLOW.md](docs/DEV_WORKFLOW.md).
+`.env.development.local` overrides `.env.local` for local dev and should point `NEXT_PUBLIC_SUPABASE_URL`/`NEXT_PUBLIC_SUPABASE_ANON_KEY`/`SUPABASE_SERVICE_ROLE_KEY` at the hosted **DEV** Supabase project (`iymwxdewcpvpjgzewtzk`), never prod. `npm run check:env` confirms the target. Vercel **preview** deployments also hit the DEV project (Pre-Production-scoped env vars in the Vercel dashboard, since 2026-07-16), so preview writes land in the shared DEV database — same etiquette as local dev, not navigation-only. Only the Production environment carries prod credentials. Details: [docs/DEV_WORKFLOW.md](docs/DEV_WORKFLOW.md).
 
 ## Where things live
 
@@ -42,7 +42,7 @@ npm run check:env                        # confirms vars + which Supabase projec
 
 - Never push to `main` — work lands via `dev/[YYMM]-DEV-[GH#]` branches and PRs (format: [docs/guardrails/PROJECT.md](docs/guardrails/PROJECT.md#id-format))
 - Every new UI surface must render correctly at **390px** (mobile-first)
-- Never write data to Supabase from a preview URL or local dev while they target production
+- Never write data to the **PROD** Supabase project (`ynykjpnetfwqzdnsgkkg`) from local dev, a preview, or a script — `.env.local` alone holds prod credentials, so keep `.env.development.local` pointed at DEV and run `npm run check:env` before anything that touches hosted data
 - `SUPABASE_SERVICE_ROLE_KEY` is server-only; RLS policies use Pattern-A helpers only
 
 Full list: `## Project` → Hard Constraints in [CLAUDE.md](CLAUDE.md).
