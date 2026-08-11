@@ -5,7 +5,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 //    (UPDATE name/share_link_id) rather than minting a fresh token; an expired
 //    or absent one mints a new token via upsert.
 //  - base URL: the magic link is built from getBaseUrl() (NEXT_PUBLIC_APP_URL
-//    first), not the raw request host.
+//    first), not the raw request host; and since 2608-DEV-713 it is resolved
+//    before any write, so an environment that cannot produce one commits
+//    nothing rather than half-registering the guest.
 
 // -- Seams --------------------------------------------------------------------
 
@@ -115,6 +117,12 @@ beforeEach(() => {
   mockConsumeEmailCap.mockResolvedValue(true)
   mockConsumeRegistrationSlot.mockResolvedValue(true)
   process.env.NEXT_PUBLIC_APP_URL = 'https://portal.example'
+  // getBaseUrl's Vercel fallback (2608-DEV-713) resolves from the ambient
+  // environment. Cleared here so the "base URL unresolvable" tests below cannot
+  // be silently masked by VERCEL_* vars on whatever machine runs the suite.
+  delete process.env.VERCEL_ENV
+  delete process.env.VERCEL_BRANCH_URL
+  delete process.env.VERCEL_URL
 })
 
 describe('registerGuest — token reuse', () => {
@@ -217,6 +225,45 @@ describe('registerGuest — base URL', () => {
 
     expect(capturedMagicLink.startsWith('https://portal.example/events/')).toBe(true)
     expect(capturedMagicLink).not.toContain('req-host.example')
+  })
+
+  // 2608-DEV-713. The base URL is resolved BEFORE the first side effect, so an
+  // environment that cannot produce one fails clean instead of registering the
+  // guest, spending their daily email cap, and then 500ing on the link they
+  // never receive. Asserting the absence of each write is the whole point of
+  // the test — a success/failure assertion alone would still pass if the row
+  // were committed.
+  it('commits nothing when the base URL cannot be resolved', async () => {
+    delete process.env.NEXT_PUBLIC_APP_URL
+    const { client, updateSpy, upsertSpy } = buildClient(null)
+    mockCreateServiceClient.mockReturnValue(client)
+    const sendModule = await import('@/lib/email/send')
+    const { registerGuest } = await import('@/lib/actions/guest-registration')
+
+    const res = await registerGuest({ success: false }, form())
+
+    expect(res).toEqual({ success: false, error: 'Could not send access link. Please try again.' })
+    expect(upsertSpy).not.toHaveBeenCalled()
+    expect(updateSpy).not.toHaveBeenCalled()
+    expect(mockConsumeRegistrationSlot).not.toHaveBeenCalled()
+    expect(mockConsumeEmailCap).not.toHaveBeenCalled()
+    expect(client.rpc).not.toHaveBeenCalled()
+    expect(sendModule.sendTransactionalEmail).not.toHaveBeenCalled()
+  })
+
+  it('uses the Vercel branch URL when NEXT_PUBLIC_APP_URL is missing on a preview', async () => {
+    delete process.env.NEXT_PUBLIC_APP_URL
+    process.env.VERCEL_ENV = 'preview'
+    process.env.VERCEL_BRANCH_URL = 'site-git-my-branch.vercel.app'
+    const { client, upsertSpy } = buildClient(null)
+    mockCreateServiceClient.mockReturnValue(client)
+    const { registerGuest } = await import('@/lib/actions/guest-registration')
+
+    const res = await registerGuest({ success: false }, form())
+
+    expect(res.success).toBe(true)
+    expect(upsertSpy).toHaveBeenCalledTimes(1)
+    expect(capturedMagicLink.startsWith('https://site-git-my-branch.vercel.app/events/')).toBe(true)
   })
 })
 
@@ -380,6 +427,25 @@ describe('resendGuestLink — rate cap', () => {
     const res = await resendGuestLink('123e4567-e89b-12d3-a456-426614174000', 'jane@example.com')
     expect(sendModule.sendTransactionalEmail).not.toHaveBeenCalled()
     expect(res).toEqual({ success: true })
+  })
+})
+
+describe('resendGuestLink — base URL (2608-DEV-713)', () => {
+  it('spends no cap and moves no expiry when the base URL cannot be resolved', async () => {
+    delete process.env.NEXT_PUBLIC_APP_URL
+    const { client, updateSpy } = buildResendClient({})
+    mockCreateServiceClient.mockReturnValue(client)
+    const sendModule = await import('@/lib/email/send')
+    const { resendGuestLink } = await import('@/lib/actions/guest-registration')
+
+    const res = await resendGuestLink('123e4567-e89b-12d3-a456-426614174000', 'jane@example.com')
+
+    // Still neutral — this path must never become enumerable, not even by
+    // failing differently for a registered vs an unregistered address.
+    expect(res).toEqual({ success: true })
+    expect(mockConsumeEmailCap).not.toHaveBeenCalled()
+    expect(updateSpy).not.toHaveBeenCalled()
+    expect(sendModule.sendTransactionalEmail).not.toHaveBeenCalled()
   })
 })
 
