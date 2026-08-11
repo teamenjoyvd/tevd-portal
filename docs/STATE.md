@@ -25,14 +25,22 @@ B won the advisory lock and committed at `.123`, A blocked ~79ms on that lock, r
 committed row and raised P0718 at `.1266`. Exactly 1 active row against `guest_capacity = 1`. That
 blocking signature is the fresh-snapshot-after-lock property the whole fix depends on.
 
-**Open gate 1: push permission** for the review-fix commits made after `0e64f9a`.
-**Open gate 2: DEV re-apply.** The migration file was edited after `supabase db push` recorded
-version `20260811000100` in the DEV ledger, so `db push` will now SKIP it and hosted DEV is running
-the pre-review function body. The file and DEV diverge until the new body is applied by hand
-(`CREATE OR REPLACE FUNCTION` is idempotent — the trigger itself does not need recreating). The
-divergence is only the `OLD.profile_id IS NOT DISTINCT FROM NEW.profile_id` condition, which no
-current writer can reach, so nothing on DEV behaves differently in the meantime. Prod has never
-seen this migration, so the prod path is unaffected — it will apply the corrected file.
+Both review gates are CLOSED (2026-08-12). Pushed `0e64f9a..16cac3b` on an explicit grant; CI green
+again on `16cac3b` (11/11, `Replay migrations from scratch` 2m15s — which is what proves the edited
+PL/pgSQL is valid from an EMPTY database, not merely as an in-place `CREATE OR REPLACE`).
+`Authenticated E2E (Clerk)` came back in **6m7s vs 13m1s** on the previous run, consistent with the
+sign-in race no longer burning a retry cycle. All three CodeRabbit threads resolved; its re-review
+added nothing.
+
+**DEV was re-applied by hand** and matches the file. `db push` could not do it — the version was
+already in the DEV ledger, so it skips — the new body went in as `CREATE OR REPLACE FUNCTION` via
+the Supabase MCP against `iymwxdewcpvpjgzewtzk`, trigger untouched (`has_new_guard=true`,
+`trigger_count=1`). **Reusable technique:** a probe that must leave no trace can run its whole
+fixture set inside one `DO $$ … $$` block and end with `RAISE EXCEPTION` carrying the results in the
+message — the raise rolls every fixture back, and the MCP surfaces the message as the error string.
+Verified 0 probe events / 0 probe registrations afterwards.
+
+**Open gate: merge + prod.** #718 ships a migration, so merging arms the gated `migrate-prod` run.
 
 #715 is **merged**: PR #731 (`ddaa2e5`), no migration, no prod gate. #714 merged (`c6ba2f2`).
 #713 merged (`2f82d80`). #710 fully DONE — prod ledger head `20260811000000`.
@@ -51,14 +59,18 @@ seen this migration, so the prod path is unaffected — it will apply the correc
 4. DONE — reviewed, pushed, PR #732 opened and marked ready; CI green, preview READY.
 5. DONE — CodeRabbit's single pass returned three findings; all three answered on the thread and
    fixed-or-declined in one batch (2026-08-12).
-6. **Push the review-fix commits** (needs a grant), then confirm CI stays green — the
-   `Replay migrations from scratch` job is what validates the edited trigger body from zero.
-7. **Re-apply the trigger function to DEV by hand** (needs a grant — hosted-DB constraint). `db push`
-   will not do it: the version is already in the DEV ledger. See `## Now`, Open gate 2.
-8. Resolve the three CodeRabbit threads, then merge -> GCR (claim row already pruned in this PR's
-   own commits, so GCR is issue-close + branch cleanup only).
-9. After merge: approve the gated `migrate-prod` run — **#718 ships a migration**, unlike the last
-   four tickets. Prod ledger head should move `20260811000000` -> `20260811000100`.
+6. DONE — pushed `16cac3b`; CI green 11/11 including `Replay migrations from scratch`.
+7. DONE — DEV re-applied by hand and behaviour-probed (edit-active ALLOWED, adopt-active ALLOWED,
+   new-seat-on-full REFUSED P0718), DEV left clean.
+8. DONE — all three CodeRabbit threads resolved; one correction posted where its verifier read the
+   pre-push revision and reported the fix missing.
+9. **Merge** -> GCR. The claim row is already pruned in this PR's own commits, so GCR is
+   issue-close (#718) + branch cleanup only.
+10. After merge: approve the gated `migrate-prod` run — **#718 ships a migration**, unlike the last
+   four tickets. Prod ledger head should move `20260811000000` -> `20260811000100`. Then smoke
+   `https://www.teamenjoyvd.com`.
+11. Follow-ups filed and unclaimed: **#733** (machine-readable failure code, retires the English
+   error-text matching) and **#734** (seven e2e specs still carrying the sign-in race).
 7. Still open from #715: five call sites silently skip on a null `contact_email`
    (`lib/abo/verifyAbo.ts:226`, both spouse-link routes, `app/api/admin/members/verify/[id]/route.ts:99`,
    `lib/server/member-registration.ts`) — a shared `resolveProfileEmail()` would fix all six.
