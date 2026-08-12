@@ -98,8 +98,20 @@ function visible(page: Page, locator: Locator): Locator {
  * makes a bare insert fail once an earlier test in this file has registered
  * this member — a soft cancel leaves the row in place.
  */
+async function clearMemberRegistration() {
+  const { error } = await sb!
+    .from('guest_registrations')
+    .delete()
+    .eq('event_id', eventId!)
+    .eq('profile_id', memberProfileId!)
+  // Fail loudly, like the insert below: a silent cleanup failure leaves the
+  // member registered, and the caller then fails much later on a missing
+  // Attend button — a symptom that looks nothing like its cause.
+  if (error) throw new Error(`Failed to clear member registration: ${error.message}`)
+}
+
 async function seedMemberRegistration() {
-  await sb!.from('guest_registrations').delete().eq('event_id', eventId!).eq('profile_id', memberProfileId!)
+  await clearMemberRegistration()
   const { error } = await sb!
     .from('guest_registrations')
     .insert({
@@ -116,7 +128,15 @@ async function openEventPopup(page: Page) {
   const eventButton = visible(page, page.locator('[role="row"] button', { hasText: EVENT_TITLE })).first()
   await expect(eventButton, `seeded event "${EVENT_TITLE}" not visible on the current month view`).toBeVisible({ timeout: 15_000 })
   await eventButton.click()
-  await expect(page.getByRole('dialog')).toBeVisible()
+  const dialog = page.getByRole('dialog')
+  await expect(dialog).toBeVisible()
+  // The dialog turns visible BEFORE the event detail resolves: EventPopupShell
+  // renders '…' placeholders for the category and title while isLoading. On a
+  // cold dev server that fetch can outlast a caller's 5s default expect
+  // timeout, so a caller asserting on popup CONTENT races the loading state
+  // (observed 2026-08-12: the failure snapshot was literally `dialog: text: …`).
+  // Waiting for the real title here fixes it once for every caller.
+  await expect(dialog).toContainText(EVENT_TITLE, { timeout: 15_000 })
 }
 
 test.describe('member one-tap attend @auth', () => {
@@ -210,6 +230,50 @@ test.describe('member token-free join @auth', () => {
 
     await page.goto(`/events/${eventId}/join`)
     await expect(page.getByText(/this link is invalid/i).first()).toBeVisible({ timeout: 15_000 })
+  })
+})
+
+// -- 2608-DEV-726: the action row is not tab-scoped ----------------------------
+
+test.describe('popup actions survive the Registrations tab @auth', () => {
+  test.use({ viewport: { width: 390, height: 844 } })
+
+  test('Attend and Share stay visible while the Registrations tab is open', async ({ page }) => {
+    skipIfUnseeded()
+
+    // The regression is about a member who has NOT attended yet: they open the
+    // roster to see who is coming, and then cannot get back to the button.
+    await clearMemberRegistration()
+
+    await page.goto('/')
+    await clerk.signIn({ page, emailAddress: MEMBER_EMAIL })
+    await openEventPopup(page)
+
+    const dialog = page.getByRole('dialog')
+    const attend = dialog.getByRole('button', { name: /^attend$/i })
+    const share = dialog.getByRole('button', { name: /share event/i })
+    await expect(attend).toBeVisible({ timeout: 15_000 })
+    await expect(share).toBeVisible()
+
+    // role="tab", not "button": EventActionsTabs sets an explicit role="tab" on
+    // these, which overrides <button>'s implicit one, so getByRole('button')
+    // matches nothing.
+    await dialog.getByRole('tab', { name: /registrations/i }).click()
+    await expect(dialog.getByRole('tabpanel')).toBeVisible()
+
+    // Before 2608-DEV-726 both vanished with the meta block, leaving the tab
+    // with no way to attend and no affordance explaining why.
+    await expect(attend).toBeVisible()
+    await expect(share).toBeVisible()
+
+    // The meta itself IS still tab-scoped — this asserts the gate was split,
+    // not simply deleted.
+    await expect(dialog.getByText(/attend to see the meeting link/i)).toHaveCount(0)
+
+    // html { overflow-x: hidden } clips visually without shrinking scrollWidth,
+    // so this still detects a real 390px overflow from the extra row.
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
+    expect(overflow).toBeLessThanOrEqual(0)
   })
 })
 

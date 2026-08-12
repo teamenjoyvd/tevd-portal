@@ -73,6 +73,11 @@ export default function EventPopupShell({
 }: Props) {
   const eventTypeStyle = event?.event_type ? EVENT_TYPE_STYLES[event.event_type] : null
 
+  // The action row (Attend for non-admins, plus Share/QR) is deliberately NOT
+  // tab-scoped — see the comment on the body block below. 2608-DEV-726.
+  const showActions =
+    event !== undefined && event.allow_guest_registration === true && isGuest === false
+
   return (
     <>
       {/* Header */}
@@ -117,103 +122,117 @@ export default function EventPopupShell({
               <div key={i} className="h-6 rounded animate-pulse" style={{ backgroundColor: 'rgba(0,0,0,0.06)' }} />
             ))}
           </div>
-        ) : event && showMeta ? (
+        ) : event ? (
           <>
-            <div className="px-4 py-3 border-b border-black/5">
-              <div className="flex items-center gap-2 text-xs mb-1" style={{ color: 'var(--text-primary)' }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-                  stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect width="18" height="18" x="3" y="4" rx="2"/>
-                  <line x1="16" x2="16" y1="2" y2="6"/>
-                  <line x1="8" x2="8" y1="2" y2="6"/>
-                  <line x1="3" x2="21" y1="10" y2="10"/>
-                </svg>
-                <span className="font-medium">
-                  {event.is_all_day ? formatAllDayRange(event.start_time, event.end_time) : formatLongDate(event.start_time)}
-                </span>
+            {/* `showMeta` gates the META only (2608-DEV-726). The action row is
+                deliberately outside that gate: a member who opens the
+                Registrations tab to see who is coming must keep the Attend,
+                Share and QR controls, which #721 made reachable-then-hidden by
+                giving members the tab bar. Both halves stay inside ONE bordered
+                container so the Roles tab renders exactly as before — a sibling
+                block would add a second divider to a screen that has no bug. */}
+            {(showMeta || showActions) && (
+              <div className="px-4 py-3 border-b border-black/5">
+                {showMeta && (
+                  <>
+                    <div className="flex items-center gap-2 text-xs mb-1" style={{ color: 'var(--text-primary)' }}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                        stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect width="18" height="18" x="3" y="4" rx="2"/>
+                        <line x1="16" x2="16" y1="2" y2="6"/>
+                        <line x1="8" x2="8" y1="2" y2="6"/>
+                        <line x1="3" x2="21" y1="10" y2="10"/>
+                      </svg>
+                      <span className="font-medium">
+                        {event.is_all_day ? formatAllDayRange(event.start_time, event.end_time) : formatLongDate(event.start_time)}
+                      </span>
+                    </div>
+                    {!event.is_all_day && (
+                      <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                          stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="10"/>
+                          <polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                        <span>{formatTime(event.start_time)} – {formatTime(event.end_time)}</span>
+                      </div>
+                    )}
+                    {!isGuest && event.meeting_url && (
+                      <div className="flex items-center gap-2 text-xs mt-1">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                          stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                        </svg>
+                        <a href={event.meeting_url} target="_blank" rel="noopener noreferrer"
+                          className="truncate hover:underline" style={{ color: 'var(--brand-teal)' }}>
+                          {event.meeting_url}
+                        </a>
+                      </div>
+                    )}
+                    {/* Gated (D3): the API already nulled meeting_url for a non-attending
+                        non-admin caller on an event open for guest sharing — this hint
+                        is the only surface that explains why the link is missing. Also
+                        requires no active registration: an already-attending member on
+                        an event with no meeting_url configured at all must not be told
+                        to attend for a link that will never appear. Stays tab-scoped
+                        with the meta: it explains an absent meeting_url, which is meta. */}
+                    {!isGuest && !isAdmin && !event.meeting_url && event.allow_guest_registration && event.caller_registration === null && (
+                      <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
+                        {t('cal.attendForLink')}
+                      </p>
+                    )}
+                  </>
+                )}
+                {showActions && (
+                  <div className={showMeta ? 'mt-3 space-y-3' : 'space-y-3'}>
+                    {!isAdmin && (
+                      <AttendSection
+                        isRegistered={event.caller_registration !== null}
+                        isEnded={isEventEnded}
+                        isPending={attendPending}
+                        onAttend={onAttend}
+                        onCancelAttend={onCancelAttend}
+                        t={t}
+                        eventId={event.id}
+                        title={event.title}
+                        startTime={event.start_time}
+                        endTime={event.end_time}
+                        meetingUrl={event.meeting_url}
+                      />
+                    )}
+                    <div className="flex items-center gap-4">
+                      <button
+                        onClick={onShare}
+                        disabled={shareLoading}
+                        className="flex items-center gap-1.5 text-xs font-medium hover:opacity-70 transition-opacity disabled:opacity-40"
+                        style={{ color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                          stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="18" cy="5" r="3"/>
+                          <circle cx="6" cy="12" r="3"/>
+                          <circle cx="18" cy="19" r="3"/>
+                          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+                          <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                        </svg>
+                        {shareLoading ? '…' : shareCopied ? t('cal.linkCopied') : t('cal.shareEvent')}
+                      </button>
+                      <button
+                        onClick={onQrShare}
+                        disabled={qrLoading}
+                        className="flex items-center gap-1.5 text-xs font-medium hover:opacity-70 transition-opacity disabled:opacity-40"
+                        style={{ color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                      >
+                        <QrCode size={12} />
+                        {qrLoading ? '…' : t('cal.qrShare')}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
-              {!event.is_all_day && (
-                <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-                    stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10"/>
-                    <polyline points="12 6 12 12 16 14"/>
-                  </svg>
-                  <span>{formatTime(event.start_time)} – {formatTime(event.end_time)}</span>
-                </div>
-              )}
-              {!isGuest && event.meeting_url && (
-                <div className="flex items-center gap-2 text-xs mt-1">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-                    stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
-                  </svg>
-                  <a href={event.meeting_url} target="_blank" rel="noopener noreferrer"
-                    className="truncate hover:underline" style={{ color: 'var(--brand-teal)' }}>
-                    {event.meeting_url}
-                  </a>
-                </div>
-              )}
-              {/* Gated (D3): the API already nulled meeting_url for a non-attending
-                  non-admin caller on an event open for guest sharing — this hint
-                  is the only surface that explains why the link is missing. Also
-                  requires no active registration: an already-attending member on
-                  an event with no meeting_url configured at all must not be told
-                  to attend for a link that will never appear. */}
-              {!isGuest && !isAdmin && !event.meeting_url && event.allow_guest_registration && event.caller_registration === null && (
-                <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
-                  {t('cal.attendForLink')}
-                </p>
-              )}
-              {event.allow_guest_registration && !isGuest && !isAdmin && (
-                <div className="mt-3">
-                  <AttendSection
-                    isRegistered={event.caller_registration !== null}
-                    isEnded={isEventEnded}
-                    isPending={attendPending}
-                    onAttend={onAttend}
-                    onCancelAttend={onCancelAttend}
-                    t={t}
-                    eventId={event.id}
-                    title={event.title}
-                    startTime={event.start_time}
-                    endTime={event.end_time}
-                    meetingUrl={event.meeting_url}
-                  />
-                </div>
-              )}
-              {event.allow_guest_registration && !isGuest && (
-                <div className="mt-3 flex items-center gap-4">
-                  <button
-                    onClick={onShare}
-                    disabled={shareLoading}
-                    className="flex items-center gap-1.5 text-xs font-medium hover:opacity-70 transition-opacity disabled:opacity-40"
-                    style={{ color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
-                      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="18" cy="5" r="3"/>
-                      <circle cx="6" cy="12" r="3"/>
-                      <circle cx="18" cy="19" r="3"/>
-                      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
-                      <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-                    </svg>
-                    {shareLoading ? '…' : shareCopied ? t('cal.linkCopied') : t('cal.shareEvent')}
-                  </button>
-                  <button
-                    onClick={onQrShare}
-                    disabled={qrLoading}
-                    className="flex items-center gap-1.5 text-xs font-medium hover:opacity-70 transition-opacity disabled:opacity-40"
-                    style={{ color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                  >
-                    <QrCode size={12} />
-                    {qrLoading ? '…' : t('cal.qrShare')}
-                  </button>
-                </div>
-              )}
-            </div>
-            {event.description && event.description !== event.meeting_url && (
+            )}
+            {showMeta && event.description && event.description !== event.meeting_url && (
               <div className="px-4 py-3">
                 <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{event.description}</p>
               </div>

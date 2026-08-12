@@ -148,11 +148,10 @@ export default function EventPopup({
     a.remove()
   }
 
-  // Keys off the tab alone, for every role (2608-DEV-709 C6). showMeta gates
-  // more than the date/share meta — AttendSection, the share/QR buttons and
-  // the attendForLink hint all sit inside it (EventPopupShell.tsx:164-214) —
-  // so a core/member with the Registrations tab open also loses the Attend
-  // button until they switch back. Accepted: `roles` is the default tab.
+  // Keys off the tab alone, for every role (2608-DEV-709 C6). Since
+  // 2608-DEV-726 it gates the date/time/link meta and the description ONLY —
+  // AttendSection and the share/QR buttons render on both tabs, so opening
+  // Registrations no longer takes the primary action off the screen.
   const showMeta = activeTab !== 'registrations'
 
   return (
