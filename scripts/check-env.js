@@ -20,7 +20,8 @@
  *
  *   dev/seed path    `next dev`, seed-*.js, Playwright  -> .env.development.local wins
  *   production mode  `next build`, `next start`         -> .env.development.local is
- *                                                          NOT read; .env.local wins
+ *                                                          NOT read; .env.production.local
+ *                                                          wins if present, else .env.local
  *
  * With the layout this repo recommends (DEV in .env.development.local, PROD in
  * .env.local) those two answers are DIFFERENT PROJECTS, and the old single line

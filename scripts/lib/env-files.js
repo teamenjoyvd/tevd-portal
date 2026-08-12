@@ -19,7 +19,8 @@
  *
  * The consequence that matters: `next dev` and the seed scripts read
  * `.env.development.local`, but `next build` / `next start` (NODE_ENV=production)
- * do NOT — they fall through to `.env.local`. A box configured the recommended
+ * do NOT — they check `.env.production.local` first and fall through to
+ * `.env.local` only when it's absent. A box configured the recommended
  * way therefore targets DEV in development and PROD in production mode, from the
  * same working tree. `scripts/check-env.js` reports both.
  *

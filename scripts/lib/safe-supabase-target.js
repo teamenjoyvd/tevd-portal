@@ -44,7 +44,9 @@ function classifySupabaseTarget(url) {
   } catch {
     return 'UNKNOWN'
   }
-  if (parsed.hostname === '127.0.0.1' || parsed.hostname === 'localhost') return 'LOCAL'
+  if (parsed.hostname === '127.0.0.1' || parsed.hostname === 'localhost') {
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? 'LOCAL' : 'UNKNOWN'
+  }
   if (parsed.protocol !== 'https:') return 'UNKNOWN'
   if (parsed.hostname === `${DEV_PROJECT_REF}.supabase.co`) return 'DEV'
   if (parsed.hostname === `${PROD_PROJECT_REF}.supabase.co`) return 'PROD'

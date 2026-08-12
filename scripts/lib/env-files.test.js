@@ -165,6 +165,10 @@ describe('classifySupabaseTarget', () => {
     expect(classifySupabaseTarget(`http://${PROD_REF}.supabase.co`)).toBe('UNKNOWN')
   })
 
+  it('rejects localhost on a non-http(s) protocol', () => {
+    expect(classifySupabaseTarget('ftp://localhost')).toBe('UNKNOWN')
+  })
+
   it('distinguishes unset from unparseable', () => {
     expect(classifySupabaseTarget('')).toBe('UNSET')
     expect(classifySupabaseTarget(undefined)).toBe('UNSET')
