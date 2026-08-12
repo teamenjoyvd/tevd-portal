@@ -7,4 +7,5 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
 | #726 | `dev/2608-DEV-726` | `app/(dashboard)/calendar/components/popup/EventPopupShell.tsx`, `app/(dashboard)/calendar/components/EventPopup.tsx` (comment only), `e2e/member-attend-auth.spec.ts` — **migration: no** | 2026-08-12 |
+| #734 | `dev/2608-DEV-734` | `e2e/` sign-in call sites only: `profile-bento-auth`, `member-attend-auth`, `event-registrations-auth`, `admin-auth`, `admin-mobile-auth`, `member-share-register-auth`, `los-submission-auth` — **migration: no** | 2026-08-12 |
 
