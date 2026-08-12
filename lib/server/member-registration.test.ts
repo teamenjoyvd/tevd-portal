@@ -135,7 +135,10 @@ function buildClient(
   rpc = vi.fn().mockResolvedValue({ data: null, error: null }),
   // 2608-DEV-718: applied to guest_registrations only — the sole table
   // attendEvent writes, and the one the capacity trigger sits on.
-  writeError: { code: string } | null = null,
+  // `message` is optional and never read by the code under test — it exists so
+  // a case can prove the failure code is derived from the SQLSTATE rather than
+  // from the sentence (2608-DEV-733), which is how a real PostgrestError looks.
+  writeError: { code: string; message?: string } | null = null,
 ) {
   let seq = 0
   const nextId = () => `gen-${++seq}`
@@ -295,7 +298,7 @@ describe('attendEvent', () => {
       profileName: 'Ivan Petrov', contactEmail: null,
     })
 
-    expect(result).toEqual({ success: false, error: 'This event has reached its guest capacity.' })
+    expect(result).toEqual({ success: false, code: 'event_full', error: 'This event has reached its guest capacity.' })
     expect(db.guest_registrations).toHaveLength(1)
   })
 
@@ -397,7 +400,7 @@ describe('attendEvent', () => {
       profileName: 'Guest Person', contactEmail: null,
     })
 
-    expect(result).toEqual({ success: false, error: 'Guests cannot use member attend.' })
+    expect(result).toEqual({ success: false, code: 'guest_role', error: 'Guests cannot use member attend.' })
     expect(db.guest_registrations).toHaveLength(0)
   })
 
@@ -411,7 +414,7 @@ describe('attendEvent', () => {
       profileName: 'Ivan Petrov', contactEmail: null,
     })
 
-    expect(result).toEqual({ success: false, error: 'This event has already ended.' })
+    expect(result).toEqual({ success: false, code: 'event_ended', error: 'This event has already ended.' })
     expect(db.guest_registrations).toHaveLength(0)
   })
 
@@ -425,7 +428,7 @@ describe('attendEvent', () => {
       profileName: 'Ivan Petrov', contactEmail: null,
     })
 
-    expect(result).toEqual({ success: false, error: 'Registration is not available for this event.' })
+    expect(result).toEqual({ success: false, code: 'not_open', error: 'Registration is not available for this event.' })
     expect(db.guest_registrations).toHaveLength(0)
   })
 })
@@ -450,7 +453,7 @@ describe('attendEvent — capacity race lost at the DB (2608-DEV-718)', () => {
       profileName: 'Ivan Petrov', contactEmail: null,
     })
 
-    expect(result).toEqual({ success: false, error: FULL })
+    expect(result).toEqual({ success: false, code: 'event_full', error: FULL })
   })
 
   it('reports the event as full when the REACTIVATE update is rejected with P0718', async () => {
@@ -467,7 +470,7 @@ describe('attendEvent — capacity race lost at the DB (2608-DEV-718)', () => {
       profileName: 'New Name', contactEmail: null,
     })
 
-    expect(result).toEqual({ success: false, error: FULL })
+    expect(result).toEqual({ success: false, code: 'event_full', error: FULL })
   })
 
   it('reports the event as full when the ADOPT update is rejected with P0718', async () => {
@@ -494,7 +497,7 @@ describe('attendEvent — capacity race lost at the DB (2608-DEV-718)', () => {
       profileName: 'Ivan Petrov', contactEmail: 'ivan@example.com',
     })
 
-    expect(result).toEqual({ success: false, error: FULL })
+    expect(result).toEqual({ success: false, code: 'event_full', error: FULL })
   })
 
   it('keeps the generic retry copy for a write failure that is NOT a capacity refusal', async () => {
@@ -507,7 +510,29 @@ describe('attendEvent — capacity race lost at the DB (2608-DEV-718)', () => {
       profileName: 'Ivan Petrov', contactEmail: null,
     })
 
-    expect(result).toEqual({ success: false, error: 'Could not attend. Please try again.' })
+    expect(result).toEqual({ success: false, code: 'write_failed', error: 'Could not attend. Please try again.' })
+  })
+
+  // 2608-DEV-733. The client no longer reads the sentence, it switches on the
+  // code — so the code, not the copy, is what has to survive a reword. This
+  // asserts the derivation: a P0718 rejection carrying a completely different
+  // message still comes back as `event_full`, because the SQLSTATE is what
+  // isCapacityViolation() looks at.
+  it('derives code event_full from the SQLSTATE, not from the error message', async () => {
+    const db = makeDb()
+    seedEvent(db, { guest_capacity: 2 })
+    const client = buildClient(db, undefined, {
+      code: 'P0718',
+      message: 'event 00000000-0000-0000-0000-000000000000 is at capacity (2)',
+    })
+
+    const result = await attendEvent(client, {
+      eventId: EVENT_ID, profileId: PROFILE_ID, profileRole: 'member',
+      profileName: 'Ivan Petrov', contactEmail: null,
+    })
+
+    expect(result.success).toBe(false)
+    expect(result).toMatchObject({ code: 'event_full' })
   })
 
   it('does not send a confirmation or credit the sharer when the write was refused', async () => {
