@@ -12,32 +12,17 @@
  * (iymwxdewcpvpjgzewtzk) — this must never write to prod/preview Supabase.
  */
 
-const fs = require('fs')
-const path = require('path')
 const { createClient } = require('@supabase/supabase-js')
 const { randomBytes } = require('crypto')
 
-// Plain `node` does not auto-load env files — mirrors scripts/check-env.js.
-function loadEnvFile(filePath) {
-  if (!fs.existsSync(filePath)) return
-  const content = fs.readFileSync(filePath, 'utf8')
-  for (const line of content.split(/\r?\n/)) {
-    const match = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/)
-    if (match === null) continue
-    let value = match[2]
-    if (
-      (value.startsWith('"') && value.endsWith('"') && value.length >= 2) ||
-      (value.startsWith("'") && value.endsWith("'") && value.length >= 2)
-    ) {
-      value = value.slice(1, -1)
-    }
-    if (process.env[match[1]] === undefined) process.env[match[1]] = value
-  }
-}
+// Plain `node` does not auto-load env files. The order is Next.js's and lives in
+// exactly one place — see scripts/lib/env-files.js (2608-DEV-730). Seed scripts
+// are development tooling, so they load the development chain:
+// .env.development.local first, then .env.local, never overwriting an already-set var.
+const { loadEnvFiles } = require('./lib/env-files')
 
 const root = process.cwd()
-loadEnvFile(path.join(root, '.env.development.local'))
-loadEnvFile(path.join(root, '.env.local'))
+loadEnvFiles(root, 'development')
 
 const GUEST_EMAIL = process.env.E2E_GUEST_EMAIL || 'e2e-guest-tevd-portal@example.com'
 const GUEST_NAME = 'E2E Guest'

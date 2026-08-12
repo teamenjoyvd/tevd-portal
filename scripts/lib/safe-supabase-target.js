@@ -20,6 +20,38 @@
  */
 
 const DEV_PROJECT_REF = 'iymwxdewcpvpjgzewtzk'
+const PROD_PROJECT_REF = 'ynykjpnetfwqzdnsgkkg'
+
+/**
+ * Which project a NEXT_PUBLIC_SUPABASE_URL points at, for reporting:
+ * 'UNSET' | 'LOCAL' | 'DEV' | 'PROD' | 'UNKNOWN'.
+ *
+ * Same host-based matching as isSafeSupabaseTarget, for the same reason
+ * (2608-DEV-730): scripts/check-env.js classified with `url.includes(ref)`, so
+ * `https://<dev-ref>.supabase.co.evil.example` reported as "DEV — safe for local
+ * writes". Anything that is not exactly one of the three known hosts is UNKNOWN,
+ * and every caller treats UNKNOWN as unsafe.
+ *
+ * Deliberately NOT the same function as isSafeSupabaseTarget: that one answers
+ * "may this process write here?" (LOCAL and DEV only, no PROD arm), this one
+ * answers "what is this?" and must be able to say PROD out loud.
+ */
+function classifySupabaseTarget(url) {
+  if (url === undefined || url === null || url === '') return 'UNSET'
+  let parsed
+  try {
+    parsed = new URL(url)
+  } catch {
+    return 'UNKNOWN'
+  }
+  if (parsed.hostname === '127.0.0.1' || parsed.hostname === 'localhost') {
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? 'LOCAL' : 'UNKNOWN'
+  }
+  if (parsed.protocol !== 'https:') return 'UNKNOWN'
+  if (parsed.hostname === `${DEV_PROJECT_REF}.supabase.co`) return 'DEV'
+  if (parsed.hostname === `${PROD_PROJECT_REF}.supabase.co`) return 'PROD'
+  return 'UNKNOWN'
+}
 
 function isSafeSupabaseTarget(url) {
   let parsed
@@ -36,5 +68,7 @@ function isSafeSupabaseTarget(url) {
 
 module.exports = {
   DEV_PROJECT_REF,
+  PROD_PROJECT_REF,
+  classifySupabaseTarget,
   isSafeSupabaseTarget,
 }

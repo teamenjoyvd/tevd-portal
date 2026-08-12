@@ -41,7 +41,7 @@ Row matched: write `TRIGGER: <event> -> <doc>`; your next tool call is Read on t
 | Supabase project — **PROD** | `ynykjpnetfwqzdnsgkkg` — live member data. Never target it from local dev, a preview, a seed script, or an e2e run. |
 | Supabase project — **DEV** | `iymwxdewcpvpjgzewtzk` — what local dev and Vercel previews use. This is the one you write to. |
 | Production URL | `https://www.teamenjoyvd.com` |
-Never ask the user to confirm these. The two refs are NOT interchangeable — `scripts/check-env.js` (`DEV_PROJECT_REF` / `PROD_PROJECT_REF`) is authoritative, and `npm run check:env` prints which one the current environment resolves to. Run it before any command that touches hosted data.
+Never ask the user to confirm these. The two refs are NOT interchangeable — `scripts/lib/safe-supabase-target.js` (`DEV_PROJECT_REF` / `PROD_PROJECT_REF`, plus the host matching that decides which is which) is authoritative. Run `npm run check:env` before any command that touches hosted data: it prints TWO targets, the dev/seed one (`next dev`, `seed-*.js`, Playwright) and the production-mode one (`next build`, `next start`) — they can be different projects from the same working tree, so read the line for the command you are about to run.
 
 **Hard Constraints**
 Violation = immediate stop, no exceptions.
