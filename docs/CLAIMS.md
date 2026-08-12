@@ -6,5 +6,5 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
-| #734 | `dev/2608-DEV-734` | `e2e/` sign-in call sites only: `profile-bento-auth`, `member-attend-auth`, `event-registrations-auth`, `admin-auth`, `admin-mobile-auth`, `member-share-register-auth`, `los-submission-auth`, plus `e2e/auth-helpers.ts` — **migration: no** | 2026-08-12 |
+| #730 | `dev/2608-DEV-730` | env tooling only: `scripts/check-env.js`, `scripts/lib/env-files.js` (new), `scripts/lib/safe-supabase-target.js`, the four `scripts/seed-*.js` loaders, `playwright.config.ts` (comment), `.env.example`, `CLAUDE.md` — **migration: no** | 2026-08-12 |
 
