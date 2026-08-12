@@ -6,5 +6,5 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
-| #727 | `dev/2608-DEV-727` | `lib/apiClient.ts`, `lib/apiClient.test.ts` (new) — **migration: no** | 2026-08-12 |
+| #733 | `dev/2608-DEV-733` | `lib/server/member-registration.ts` (+ test), `app/api/events/[id]/attend/route.ts`, `lib/apiClient.ts` (`ApiError` only — **overlaps #727**, which owns the 401 branch), `app/events/[eventId]/register/components/MemberAttendPanel.tsx`, `app/(dashboard)/calendar/components/EventPopup.tsx` — **migration: no** | 2026-08-12 |
 
