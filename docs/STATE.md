@@ -3,21 +3,22 @@ Land PR #738 (issue #734, branch `dev/2608-DEV-734`): resolve its conflicts with
 `docs/STATE.md` + `docs/CLAIMS.md`, mark it ready so CodeRabbit runs, then apply GCR.
 
 ## Now
-PR #738 is the ONLY open PR. It sat `CONFLICTING` because #736 and #737 merged after it was cut;
-`origin/main` (`32791a9`) is merged into the branch. The only conflicts were `docs/STATE.md` and
-`docs/CLAIMS.md` — no `e2e/**` file conflicted. Before the merge commit, all 11 checks were green on
-`73d4412`, including `Authenticated E2E (Clerk)` (6m19s, a real run) and Vercel "Deployment has
-completed".
+PR #738 is the ONLY open PR and is READY TO MERGE. It sat `CONFLICTING` because #736 and #737
+merged after it was cut; `origin/main` (`32791a9`) is merged into the branch at `30c2744`. The only
+conflicts were `docs/STATE.md` and `docs/CLAIMS.md` — no `e2e/**` file conflicted. On `30c2744`:
+`MERGEABLE`, not a draft, 11/11 checks green (`Authenticated E2E (Clerk)` 5m49s, a real run) and
+Vercel "Deployment has completed".
+GCR is DONE and empty: CodeRabbit's first attempt returned "Review rate limited" (which says nothing
+about the code — the same non-review it gave #737); re-triggered with an `@coderabbitai review`
+comment after the limit reset, it reviewed all 8 `e2e/**` files and returned **"No actionable
+comments"** — verified by fetching `pulls/738/comments` (0) and `pulls/738/reviews` (0), not by the
+check status. `docs/**` is excluded from its review by `.coderabbit.yaml` path filters.
 
 ## Next
-1. Push the merge commit; wait for 11/11 + Vercel READY on the new head.
-2. Mark PR #738 ready for review — CodeRabbit reports "Review skipped: draft pull request" while it
-   is a draft.
-3. GCR PR #738: ALWAYS fetch `pulls/738/comments`, never trust the CodeRabbit CHECK status (it
-   posted 3 inline comments on #735 while the check said "skipped"). Fix findings in ONE batched
-   push.
-4. Merge PR #738; #734 auto-closes via "Closes #734". Its `docs/CLAIMS.md` row is pruned in the
-   merging PR itself, leaving the registry empty. **No migration in this ticket** — no prod gate.
+1. Merge PR #738; #734 auto-closes via "Closes #734". Its `docs/CLAIMS.md` row is pruned in this PR
+   itself, leaving the registry empty. **No migration in this ticket** — no prod gate, no
+   `migrate-prod` approval needed.
+2. Nothing else is in flight. The next ticket comes from the Open items below.
 
 ## Constraints
 - Never push without an explicit grant in this conversation. Grants from earlier tickets/sessions
