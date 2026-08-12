@@ -71,3 +71,55 @@ export async function signInAndGoto(page: Page, emailAddress: string, path: stri
   await clerk.signIn({ page, emailAddress })
   await gotoProtected(page, path)
 }
+
+/**
+ * Same race as gotoProtected, observed through the API instead of a navigation
+ * (2608-DEV-734).
+ *
+ * gotoProtected proves the server honours the session by landing on a protected
+ * PATH — which needs a protected page to navigate to. Two kinds of spec have
+ * none:
+ *
+ * - API-driven specs (los-submission-auth.spec.ts) that only ever call
+ *   `page.request.*`. A request issued before the cookie is live comes back 401
+ *   from proxy.ts:19, and the assertion then reports "expected 400, got 401" —
+ *   naming the status rather than the race that produced it.
+ * - Specs whose target page is PUBLIC (`/events/:id/register`,
+ *   `/events/:id/join`). clerkMiddleware runs there without protecting, so the
+ *   page always renders — just in its anonymous form, with the guest register
+ *   form or an invalid-link card instead of the member panel. There is no
+ *   redirect to detect.
+ *
+ * For both, the thing that has to become true is identical: proxy.ts can
+ * resolve a userId for this browser context. `/api/profile` is the cheapest
+ * honest probe of that. Any non-401 answer settles it — 404 from a session
+ * without a profiles row still proves Clerk resolved the user, which is the
+ * only question being asked here.
+ *
+ * `page.request` shares the browser context's cookie jar, so this observes the
+ * same session the page will use.
+ */
+export async function waitForServerSession(page: Page, attempts = 6): Promise<void> {
+  let status = 0
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    status = (await page.request.get('/api/profile')).status()
+    if (status !== 401) return
+
+    // Same reasoning as gotoProtected's backoff: the decision is made per
+    // request, so re-issuing is the only way to observe it change.
+    if (attempt < attempts) await page.waitForTimeout(250 * attempt)
+  }
+
+  expect(
+    status,
+    `/api/profile was still answering 401 after ${attempts} attempts, so proxy.ts ` +
+      `could not resolve a session for this context — the sign-in never reached the server`,
+  ).not.toBe(401)
+}
+
+/** clerk.signIn() + waitForServerSession, for specs with no protected page to land on. */
+export async function signInAndWaitForSession(page: Page, emailAddress: string): Promise<void> {
+  await page.goto('/')
+  await clerk.signIn({ page, emailAddress })
+  await waitForServerSession(page)
+}

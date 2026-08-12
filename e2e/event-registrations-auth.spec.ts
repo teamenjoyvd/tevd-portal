@@ -1,5 +1,6 @@
 import { test, expect, type Locator, type Page } from '@playwright/test'
 import { clerk } from '@clerk/testing/playwright'
+import { gotoProtected } from './auth-helpers'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { randomUUID } from 'crypto'
 
@@ -209,7 +210,11 @@ function rowOf(dialog: Locator, name: string): Locator {
 }
 
 async function openRegistrationsTab(page: Page) {
-  await page.goto('/calendar')
+  // gotoProtected, not page.goto: /calendar is authorised server-side and a
+  // goto right after clerk.signIn() can be decided against a cookie the browser
+  // has not finished writing, landing on /sign-in — where the event button
+  // below does not exist (2608-DEV-734, e2e/auth-helpers.ts).
+  await gotoProtected(page, '/calendar')
   const eventButton = visible(page, page.locator('[role="row"] button', { hasText: EVENT_TITLE })).first()
   await expect(eventButton, `seeded event "${EVENT_TITLE}" not visible on the current month view`).toBeVisible({ timeout: 15_000 })
   await eventButton.click()

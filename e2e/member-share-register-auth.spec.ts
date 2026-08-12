@@ -1,5 +1,5 @@
 import { test, expect, type Locator, type Page } from '@playwright/test'
-import { clerk } from '@clerk/testing/playwright'
+import { signInAndWaitForSession } from './auth-helpers'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { randomUUID } from 'crypto'
 
@@ -145,9 +145,17 @@ async function registrationRow() {
   return data
 }
 
+/**
+ * `/events/:id/register` is PUBLIC (`/events/(.*)` in PUBLIC_ROUTE_PATTERNS),
+ * so gotoProtected cannot help: proxy.ts never redirects it, and without a
+ * server-side session the page still renders — as the anonymous guest form
+ * (name/email inputs) instead of MemberAttendPanel. expectMemberPanel would
+ * then fail on "signed in as", naming the panel rather than the missing
+ * session. So the wait goes on the session itself, before the navigation
+ * (2608-DEV-734, e2e/auth-helpers.ts).
+ */
 async function signInAsMember(page: Page) {
-  await page.goto('/')
-  await clerk.signIn({ page, emailAddress: MEMBER_EMAIL })
+  await signInAndWaitForSession(page, MEMBER_EMAIL)
 }
 
 // The page renders BOTH layout blocks at once (one hidden per breakpoint via

@@ -1,104 +1,29 @@
 ## Goal
-GCR on PRs #736 (issue #727) and #737 (issue #733), then merge both.
+Land PR #738 (issue #734, branch `dev/2608-DEV-734`): resolve its conflicts with `main`, refresh
+`docs/STATE.md` + `docs/CLAIMS.md`, mark it ready so CodeRabbit runs, then apply GCR.
 
 ## Now
-GCR complete on both; **#736 is MERGED** as `01a00ee` and #727 auto-closed. **PR #737 is the last
-one open**, rebased onto that merge.
-- **#736 — no code change.** CodeRabbit's single (Critical) finding claimed `@clerk/nextjs` does
-  not export `getToken` and the test mock therefore hid a missing export. Disproved against the
-  installed package: `node_modules/@clerk/nextjs/dist/types/index.d.ts:16` re-exports it from
-  `@clerk/shared/getToken`, `typeof getToken === 'function'` at runtime, and its real signature
-  `(options?: GetTokenOptions) => Promise<string | null>` matches the mock. It is Clerk's own
-  documented non-hook entry point for exactly this use ("API interceptors, data fetching layers");
-  `useAuth()`/`useSession()` are hooks and cannot be called from a module-level fetch wrapper.
-  Replied with the evidence and left the thread OPEN for a human, per GCR step 6.
-- **#737 — applied** (`9ef73db`): explicit comparisons at both sites CodeRabbit named, plus the two
-  unflagged siblings of the same pattern in the same two files (the DELETE handler's
-  `CancelMemberResult` check, and the success-path `text ? JSON.parse(text) : {}`), so neither file
-  mixes both spellings. `message !== '' ? message : …` rather than `??` — `message` is always a
-  string, so `??` would never fire on the empty-string case the fallback exists for. Thread
-  resolved. All 11 checks green on `9ef73db`.
-- **The apiClient.ts overlap resolved itself.** #736 and #737 both rewrote that file; the rebase
-  auto-merged cleanly and the result carries BOTH — 736's `recoverFrom401` / single-flight refresh
-  AND 737's `code` plumbing and explicit comparisons. Verified post-rebase, not assumed:
-  `npx tsc --noEmit` clean, `npx vitest run lib/apiClient.test.ts lib/server/member-registration.test.ts`
-  -> **39 passed**. Merge order was deliberate: the larger rewrite (#736) first, so the ~8 lines of
-  #737 plumbing land on top rather than the reverse.
-- Note: CodeRabbit's re-review of `9ef73db` reported **"Review rate limited"**, so the incremental
-  pass did not actually run. The check is green but says nothing about this push.
-
-## Superseded — #726 (merged as `ff55ad2`, PR #735)
-PLAN, CLAIM and BUILD are complete. **PR #735 is open as a DRAFT**, `MERGEABLE`, with all 11
-checks green on `17bc5a7` — including `Authenticated E2E (Clerk)` in 6m5s (a real run, not the
-old vacuous skip) and `390px smoke vs preview` in 2m32s; Vercel reports "Deployment has
-completed". Branch pushed 2026-08-12 under an explicit grant.
-GCR run against PR #735 (2026-08-12): CodeRabbit posted 3 inline comments even though its CHECK
-reported "Review skipped: draft pull request" — never trust the check status, always fetch
-`pulls/N/comments`. 2 applied in full, 1 applied in part:
-- `EventPopupShell.tsx:78` explicit comparisons in `showActions` (Major) — APPLIED. Dropped
-  CodeRabbit's `event !== null`: the prop type is `EventDetail | undefined` and the value comes
-  from `useQuery`, whose `data` is never null.
-- `member-attend-auth.spec.ts` `clearMemberRegistration` now throws on the delete error (Minor) —
-  APPLIED, matching `seedMemberRegistration`.
-- `check-env.js` empty-value contract (Major) — APPLIED the resolver half: DEFINED wins at each
-  level, empty included, mirroring `@next/env` and `scripts/*`'s `loadEnvFile` (both assign only
-  when `=== undefined`). SKIPPED the "add regression cases" half: no `scripts/*.test.js` harness
-  exists and `check-env.js` runs side effects at require time incl. `process.exit`, so testing it
-  needs the resolver extracted into a module — a refactor, not a review fix. Needs its own ticket.
-Remaining before merge: the human 390px eyeball on BOTH tabs (the "no visual change on the Roles
-tab" claim is the one item no check covers), then mark ready -> one CodeRabbit pass (it skipped
-while the PR is a draft) -> fix findings in ONE batched push.
-- Issue #726 body now carries the PLAN, a file-path-level DoD, Affected Files, Gotchas, Migration &
-  Test Impact, `## Design Checklist` (4/4) and `## Branch dev/2608-DEV-726`.
-- `2d301e9` — claim row in `docs/CLAIMS.md` (migration: no). `caf0fc0` — the fix.
-- The fix: `EventPopupShell.tsx`'s outer branch became `event ? … : null`; `showMeta` now gates only
-  the date/time/`meeting_url`/`attendForLink` meta and the description. A new local
-  `showActions = !!event && event.allow_guest_registration && !isGuest` gates the action row, which
-  renders on BOTH tabs inside the SAME `px-4 py-3 border-b` container as the meta — so the Roles tab
-  is pixel-identical (a sibling block would have added a second divider). `!isAdmin` still gates
-  `AttendSection` alone. Spacing preserved: the group carries `space-y-3`, plus `mt-3` only when the
-  meta above it is shown.
-- `e2e/member-attend-auth.spec.ts` gained a 390px `@auth` test asserting Attend + Share stay visible
-  after clicking the Registrations tab, that the `attendForLink` hint is correctly GONE (proving the
-  gate was split, not deleted), and no 390px horizontal overflow. A `clearMemberRegistration()`
-  helper was extracted from `seedMemberRegistration()`, which now calls it.
-Verified: `npx tsc --noEmit` -> **clean, zero errors** (the long-standing stale
-`.next/dev/types/validator.ts:566` error is gone — `.next` has since been regenerated);
-`npx eslint` on the three changed files -> **0 errors / 1 warning**, identical to the baseline taken
-before the edits (`EventPopup.tsx:61` unused `request_id`, pre-existing).
-No unit test can cover this: `vitest.config.ts` includes only `lib|app/**/*.test.ts` +
-`scripts/**/*.test.js` under `environment: 'node'`, and the repo has no `*.test.tsx` at all.
-Component verification is e2e-only.
-Verified 2026-08-12, run LOCALLY against hosted DEV (`iymwxdewcpvpjgzewtzk`), not just CI:
-`npx playwright test --project=authenticated e2e/member-attend-auth.spec.ts` -> **5 passed (34.6s)**.
-The regression test was proven RED first — reverting only `EventPopupShell.tsx` to `2d301e9` and
-re-running it fails on `getByRole('dialog').getByRole('button', { name: /^attend$/i })`,
-"element(s) not found", which is the reported symptom exactly; restored from a byte-identical copy
-(`git status` clean afterwards) and re-run -> **1 passed**.
-`/code-review low` on the branch diff -> **zero findings**.
+PR #738 is the ONLY open PR and is READY TO MERGE. It sat `CONFLICTING` because #736 and #737
+merged after it was cut; `origin/main` (`32791a9`) is merged into the branch at `30c2744`. The only
+conflicts were `docs/STATE.md` and `docs/CLAIMS.md` — no `e2e/**` file conflicted. On `30c2744`:
+`MERGEABLE`, not a draft, 11/11 checks green (`Authenticated E2E (Clerk)` 5m49s, a real run) and
+Vercel "Deployment has completed".
+GCR is DONE and empty: CodeRabbit's first attempt returned "Review rate limited" (which says nothing
+about the code — the same non-review it gave #737); re-triggered with an `@coderabbitai review`
+comment after the limit reset, it reviewed all 8 `e2e/**` files and returned **"No actionable
+comments"** — verified by fetching `pulls/738/comments` (0) and `pulls/738/reviews` (0), not by the
+check status. `docs/**` is excluded from its review by `.coderabbit.yaml` path filters.
 
 ## Next
-1. ~~GCR #736~~ — DONE, finding rejected with evidence, thread left open. ~~Merge #736~~ — DONE,
-   `01a00ee`; #727 auto-closed via the PR's closing reference.
-2. ~~GCR #737~~ — DONE, `9ef73db`, thread resolved. ~~Rebase #737 onto the #736 merge~~ — DONE,
-   one conflict (`docs/CLAIMS.md`) resolved by hand; `lib/apiClient.ts` auto-merged and was
-   verified, not trusted.
-3. PR #737: wait for CI green + Vercel preview READY on the rebased head, then merge. **No
-   migration**, so no prod gate for this ticket.
-4. `docs/CLAIMS.md` is now EMPTY — the #726, #727 and #733 rows are all pruned in this PR's own
-   commits, per Constraints. Nothing else is in flight.
-6. **STILL OPEN FROM #718:** PR #732 merged as `4ac7228` and it SHIPPED A MIGRATION, so the gated
-   `migrate-prod` run is armed and unapproved. Prod ledger head must move
-   `20260811000000` -> `20260811000100`, then smoke `https://www.teamenjoyvd.com`. Until that runs,
-   prod has the app code that raises `P0718` but NOT the trigger that produces it — harmless (the
-   app-level check still guards) but the race is only closed on DEV.
-7. Follow-ups: **#727** MERGED (`01a00ee`), **#733** merging as PR #737. Still unclaimed: **#734**
-   (seven e2e specs with the sign-in race — branch `dev/2608-DEV-734` exists locally with two
-   commits, no PR, no claim row).
+1. Merge PR #738; #734 auto-closes via "Closes #734". Its `docs/CLAIMS.md` row is pruned in this PR
+   itself, leaving the registry empty. **No migration in this ticket** — no prod gate, no
+   `migrate-prod` approval needed.
+2. Nothing else is in flight. The next ticket comes from the Open items below.
 
 ## Constraints
-- Never push without an explicit grant in this conversation. Grants from earlier tickets/sessions do
-  not carry over.
+- Never push without an explicit grant in this conversation. Grants from earlier tickets/sessions
+  do not carry over. (This session's grant: "PR 738, resolve the conflicts … Mark ready to get
+  coderabbit to run and apply GCR once that happens".)
 - Never apply migrations to a hosted Supabase project (DEV or prod) without asking first.
 - Fold `docs/CLAIMS.md` row removal + `docs/STATE.md` updates into the merging PR, never a
   standalone cleanup PR.
@@ -106,119 +31,78 @@ re-running it fails on `getByRole('dialog').getByRole('button', { name: /^attend
   Run `npm run check:env` before any command touching a hosted DB.
 
 ## Decisions
-- DECISION (#726, from PLAN): take the issue's **first** suggested fix (un-scope the actions), not
-  the "compact footer on the Registrations tab" variant — the footer duplicates the action row's
-  render conditions in two places and drifts the moment either changes.
-- DECISION (#726, from PLAN): depart from the suggestion's *structure*. The actions stay inside the
-  existing bordered container and it is the META CONTENT that becomes conditional, rather than
-  lifting the actions into a sibling block. A sibling block adds a second `border-b` hairline to the
-  Roles tab, which has no bug. The container is skipped entirely when neither half has anything to
-  render, so an event with `allow_guest_registration = false` shows no empty 24px strip.
-- DECISION (#726, from PLAN): the `cal.attendForLink` hint STAYS tab-scoped with the meta, even
-  though the issue lists it among the things that disappear. It exists solely to explain an absent
-  `meeting_url` (`EventPopupShell.tsx` D3 comment), and `meeting_url` is meta.
-- DECISION (#726): `showMeta` keeps its name — the change makes the name accurate for the first
-  time. One consumer, one prop, unchanged signature, so no REFERENCE SWEEP is triggered.
+- DECISION (#734): `gotoProtected` covers protected PAGE navigations only. Two spec shapes have no
+  protected page to land on — API-only (`los-submission-auth`, and `admin-auth`'s `page.request`
+  cases) and PUBLIC target pages (`/events/:id/join`, `/events/:id/register`, both in
+  `PUBLIC_ROUTE_PATTERNS`). Both got `waitForServerSession()` in `e2e/auth-helpers.ts`: poll
+  `/api/profile` until it stops answering 401. Any non-401 settles it — a 404 still proves Clerk
+  resolved the user.
+- DECISION (#734): `profile-bento-auth` is converted because issue #734 lists it, but its known red
+  is #727's transient-401 eviction (fixed by PR #736) — a different bug on a different layer.
 
 ## Facts
-- `EventPopupShell` has exactly ONE consumer (`EventPopup.tsx:9`); `AttendSection` has exactly one
-  (`EventPopupShell.tsx:18`). There is no shared "popup action row" helper.
-- `EventActionsTabs.tsx:52-56` sets an explicit `role="tab"`, which OVERRIDES `<button>`'s implicit
-  role — `getByRole('button')` matches nothing there. Same trap as ATTEMPT 1 below.
-- `playwright.config.ts` never sets `fullyParallel`, so Playwright 1.61 parallelizes by FILE: tests
-  inside one spec run in declaration order in one worker, and DB state carries between them.
-- Authenticated e2e cannot run against `.env.local` — it holds PROD credentials. Use the DEV
-  override (`iymwxdewcpvpjgzewtzk`) documented in the no-local-Docker memory.
-- Production smoke 2026-08-11: `https://www.teamenjoyvd.com` 200, `/sign-in` 200.
+- Prod migration ledger head is `20260811000100`, verified 2026-08-12 against project
+  `ynykjpnetfwqzdnsgkkg` — #718's migration IS applied on prod. Do not re-raise it as pending.
+- `playwright.config.ts` never sets `fullyParallel`: Playwright parallelizes by FILE, so tests in
+  one spec share a worker and DB state in declaration order.
+- Authenticated e2e cannot run against `.env.local` (PROD credentials). Use the DEV override
+  (`iymwxdewcpvpjgzewtzk`). A cold dev server makes local authenticated runs untrustworthy — only a
+  warm-server run is evidence.
+- `getToken` IS exported from `@clerk/nextjs` v7.5.15 (re-export of `@clerk/shared/getToken`):
+  `node_modules/@clerk/nextjs/dist/types/index.d.ts:16`, and `require('@clerk/nextjs').getToken` is
+  a `function`. A `/code-review low` pass claimed otherwise and was wrong — do not re-litigate from
+  memory.
+- Every 401 the browser can receive from `app/api/**` is a PRE-side-effect auth guard (`proxy.ts:19`
+  plus `if (!userId) return 401` at the top of each handler, 40+ sites swept) — which is what makes
+  replaying a failed POST safe.
+- Baseline on this branch merged with `main` (`32791a9`): `npm test` 33 files / 461 tests passed,
+  `npx tsc --noEmit` clean — both run 2026-08-12 on the merge commit.
 
 ## Done
-- Two findings from the #726 verification pass, FIXED on this branch at the user's explicit
-  instruction (they are not #726 defects — flagged as scope-mixing when asked):
-  1. `e2e/member-attend-auth.spec.ts` `openEventPopup` now waits for the dialog to contain the real
-     event title, not merely to be visible. The dialog turns visible while `EventPopupShell` still
-     renders its `…` loading placeholders, so on a cold dev server a caller's 5s default expect
-     timeout could land on the loading state (observed: snapshot `dialog: text: …`). Uses the same
-     15s budget as the existing `eventButton` wait. NOT re-reproduced cold — a restart keeps
-     Turbopack's persistent cache — so the fix is targeted at the observed state, not a repro.
-  2. `scripts/check-env.js` `resolveValue` now resolves `process.env` BEFORE the two env files,
-     matching `@next/env` (which only fills a key absent from the initial `process.env` snapshot)
-     and `playwright.config.ts:10-20`. Empty is unset at every level; the file pair keeps Next's
-     relative order. Verified both branches: no exports -> `LOCAL stack (127.0.0.1)`; with the DEV
-     vars exported -> `DEV project (iymwxdewcpvpjgzewtzk) — safe for local writes`.
-- #726 PLAN + CLAIM — RESULT: verdict READY; issue body carries the DoD, affected files, gotchas and
-  the structural correction to the issue's own suggestion; Design Checklist 4/4;
-  `## Branch dev/2608-DEV-726`; claim row committed at `2d301e9` against an EMPTY claims table (no
-  overlap: zero in-flight rows, zero open PRs at claim time).
-- #726 BUILD (code complete, `caf0fc0`) — RESULT: 3 files, +117/-100 (most of it reindentation).
-  Verified as recorded under `## Now`: tsc clean, eslint at baseline, `/code-review low` zero
-  findings, and the authenticated e2e spec 5/5 green locally against DEV with the new test proven
-  red-then-green. Remaining gate is the PR itself (Vercel preview READY + CI green), which needs a
-  push grant — see `## Next` item 2.
-- #718 MERGED — RESULT: PR #732 -> `4ac7228`. `guest_capacity` is now DB-enforced by
-  `trg_enforce_event_guest_capacity` (SQLSTATE `P0718`) on DEV; the race was proven closed there
-  with two pg_cron workers on the same tick (B took the advisory lock and committed, A blocked
-  ~79ms, re-counted and raised). **Prod migration gate still unapproved — see `## Next` item 6.**
-- #715 merged (PR #731, `ddaa2e5`). #714 merged (`c6ba2f2`). #713 merged (`2f82d80`).
-  #710 fully DONE incl. prod, ledger head `20260811000000`. #709 (PR #721), #708 (PR #720),
-  #722 (PR #724) merged.
+- #734 BUILD — RESULT: all seven specs converted to `gotoProtected`/`signInAndGoto`, plus
+  `waitForServerSession` / `signInAndWaitForSession` in `e2e/auth-helpers.ts`. tsc + eslint clean,
+  `npx playwright test --list --project=authenticated` lists 35 tests in 9 files, `/code-review low`
+  clean. PR #738, 11/11 green on `73d4412` over two consecutive `Authenticated E2E` runs.
+- MERGED: #727 as PR #736 (`01a00ee`), #733 as PR #737 (`32791a9`), #726 as PR #735 (`ff55ad2`),
+  #718 as `4ac7228` (its prod migration is applied — see Facts). #715 (#731), #714, #713, #710,
+  #709, #708, #722 merged earlier.
 
 ## Open items
 - Still open from #715: five call sites silently skip on a null `contact_email`
   (`lib/abo/verifyAbo.ts:226`, both spouse-link routes,
   `app/api/admin/members/verify/[id]/route.ts:99`, `lib/server/member-registration.ts`) — a shared
   `resolveProfileEmail()` would fix all six.
-- NOTED (not done, same-class as #715): `lib/email/send.ts:129` still reads `if (!config.enabled)`,
-  the exact check #715 tightened to `!== true`. `enabled` comes from JSONB through an
-  `as EmailConfig` cast, so a row holding `"true"` or `1` makes the master kill switch fail OPEN.
-  Repo-wide sweep: exactly one remaining instance. One-line fix, needs its own ticket.
-- NOTED (not done, out of #713's scope): `app/api/calendar/feed-token/route.ts:21,45,81` and
+- NOTED (same-class as #715): `lib/email/send.ts:129` still reads `if (!config.enabled)`, the check
+  #715 tightened to `!== true`. `enabled` comes from JSONB through an `as EmailConfig` cast, so a row
+  holding `"true"` or `1` makes the master kill switch fail OPEN. Repo-wide sweep: exactly one
+  instance left. One-line fix, needs its own ticket.
+- NOTED (from #726 GCR): `scripts/check-env.js` has no regression tests — it runs side effects at
+  require time including `process.exit`, so testing it needs the resolver extracted into a module.
+- NOTED (same-class, from #710): the case-sensitive email match fixed in the #710 RPC also exists in
+  TypeScript at `lib/server/member-registration.ts` — `.eq('email', contactEmail)` in `attendEvent`'s
+  D9 adopt step. `Ivan@Example.com` is not adopted and gets a second row. Needs `citext`/`lower()`
+  or `.ilike()`.
+- NOTED: `app/api/calendar/feed-token/route.ts:21,45,81` and
   `app/api/profile/spouse-link/route.ts:138` still `await getBaseUrl()` unguarded. Neither commits
-  irreversible state first, so neither has the #713 half-success shape. No ticket filed.
-- NOTED (same-class, found on #710): the case-sensitive email match fixed in the #710 RPC also
-  exists in TypeScript at `lib/server/member-registration.ts:239` — `.eq('email', contactEmail)` in
-  `attendEvent`'s D9 adopt step. `Ivan@Example.com` is not adopted and gets a second row. Needs a
-  citext/lower() index or `.ilike()` — its own ticket.
-- NOTED (merged in #724): `e2e/server-watchdog-reporter.ts:57` calls `process.exit(1)`, skipping
-  Playwright's `test.afterAll`. If the dev server dies during `event-registrations-auth.spec.ts`,
-  its cleanup (`:164-171`) never runs and seeded rows are orphaned in the shared DEV project.
-- NOTED (merged in #721): `types/supabase.ts:2370` types five
-  `get_event_registrations_for_viewer` returns (`email`, `profile_id`, `sharer_name`,
-  `attended_at`, `cancelled_at`) as non-nullable `string`, but all five are NULL in normal
-  operation. The current caller casts correctly; the next one that trusts the generated type
-  dereferences a null with no compiler warning.
-- NOTED (found during #708): a signed-in member blocked by a FULL event still gets `ResendLinkForm`
-  — the guest magic-link resend — at `app/events/[eventId]/register/page.tsx:179` and `:216`.
-  Wrong flow for a portal identity; pre-existing blocked branch.
+  irreversible state first, so neither has #713's half-success shape. No ticket filed.
+- NOTED: `e2e/server-watchdog-reporter.ts:57` calls `process.exit(1)`, skipping Playwright's
+  `test.afterAll` — if the dev server dies during `event-registrations-auth.spec.ts`, its cleanup
+  never runs and seeded rows are orphaned in the shared DEV project.
+- NOTED: `types/supabase.ts:2370` types five `get_event_registrations_for_viewer` returns as
+  non-nullable `string` while all five are NULL in normal operation.
+- NOTED: a signed-in member blocked by a FULL event still gets `ResendLinkForm` (the guest
+  magic-link resend) at `app/events/[eventId]/register/page.tsx:179` and `:216` — wrong flow for a
+  portal identity.
 - NOTED: `app/events/[eventId]/join/components/JoinActions.tsx:30-39` (`downloadIcs`) still has the
-  detached-anchor + synchronous-`revokeObjectURL` pattern fixed in `AddToCalendarMenu.tsx` — same
-  latent no-file-downloaded bug in Firefox/Safari. Needs its own ticket.
-- NOTED: `docs/ai/REF.md` §6 Edge Functions table still lists `send-event-reminders` (does not
-  exist) and omits `deliver-email-notifications`; §5's `guest_registrations` row is still the
-  pre-#705 column list.
+  detached-anchor + synchronous-`revokeObjectURL` pattern fixed in `AddToCalendarMenu.tsx`.
+- NOTED: `docs/ai/REF.md` §6 Edge Functions table lists `send-event-reminders` (does not exist) and
+  omits `deliver-email-notifications`; §5's `guest_registrations` row is the pre-#705 column list.
 - FLAKE (not a spec defect): `Authenticated E2E (Clerk)` can fail wholesale at `clerk.signIn()` with
-  `[Clerk Testing] FAPI request failed after 4 attempts` against `loved-mole-75.clerk.accounts.dev`
-  — no assertion ever runs and the job takes ~3x baseline. Clerk's dev FAPI being transiently down.
-  Re-run the same commit; do not "fix" it in the specs.
-- CodeRabbit's "run member-share-register-auth serially" finding (#720) was DISPROVED, not deferred
-  — see the `fullyParallel` fact above. Do not "fix" this later.
-- CodeRabbit's "localize the member capacity error" was DECLINED TWICE (#720, #732): the client
-  selects copy by matching ENGLISH server text (`MemberAttendPanel.tsx:73-78`,
-  `EventPopup.tsx:76-78`, both `raw.includes('capacity')`), so returning Bulgarian makes BOTH
-  matchers miss. The real fix is #733's machine-readable `code`.
-
-## Facts (added 2026-08-12, GCR #735)
-- Killing a background task wrapper does NOT necessarily kill `next dev` — the node process can
-  survive holding the port, and losing its stdout pipe makes every write throw
-  `write EPIPE` as an uncaughtException, which kills Next's render WORKERS. The server then still
-  answers `/` from cache (a naive curl health check says 200) while every route needing a worker
-  500s with "Jest worker encountered 2 child process exceptions". Start it with stdout redirected
-  to a log file, and health-check a real route, not `/`.
-- Local authenticated e2e is NOT trustworthy on a cold server: a full run right after start gave
-  3 failures that all passed once warm. Only a warm-server run is evidence. A/B against a stash
-  proved this: stashed passed, restored ALSO passed, so the first A/B reading was itself noise.
+  `[Clerk Testing] FAPI request failed after 4 attempts` — Clerk's dev FAPI transiently down. Re-run
+  the same commit; do not "fix" it in the specs.
 
 ## Failed attempts
-- ATTEMPT 1 [L1] (#709 GCR): adding an explicit `role="tab"` to the tab-bar buttons broke all 4
+- ATTEMPT 1 [L1] (#709 GCR): adding an explicit `role="tab"` to the tab-bar buttons broke all four
   `event-registrations-auth` specs — an explicit ARIA role OVERRIDES `<button>`'s implicit role, so
   `getByRole('button', …)` matched nothing. Lesson: adding an ARIA role is a REFERENCE SWEEP trigger
   for `getByRole` locators, not just for symbol renames.

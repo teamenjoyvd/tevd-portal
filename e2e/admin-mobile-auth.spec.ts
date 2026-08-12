@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test'
 import { clerk } from '@clerk/testing/playwright'
+import { gotoProtected } from './auth-helpers'
 import { ADMIN_NAV } from '../lib/nav'
 
 /**
@@ -78,7 +79,12 @@ async function expectNoHorizontalOverflow(page: Page, label: string) {
  * selected (SettingsTabs renders `tab === t.value ? children : null`).
  */
 async function checkRouteAndItsTabs(page: Page, route: string, locale: string) {
-  await page.goto(route)
+  // gotoProtected, not page.goto: every admin route is authorised server-side,
+  // so a navigation issued before the session cookie is live bounces to
+  // /sign-in and fails the pathname assertion below as if the route itself had
+  // redirected (2608-DEV-734, e2e/auth-helpers.ts). The assertion stays — it
+  // still catches a genuine redirect, which is what it was written for.
+  await gotoProtected(page, route)
   // Exactly one main landmark: nesting a second one is invalid HTML (the bug
   // fixed on /admin/settings in 045b4e3), and a redirect away from the route
   // would otherwise still satisfy a `.first()` visibility wait.
