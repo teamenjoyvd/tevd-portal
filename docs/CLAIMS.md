@@ -6,5 +6,5 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
-| #726 | `dev/2608-DEV-726` | `app/(dashboard)/calendar/components/popup/EventPopupShell.tsx`, `app/(dashboard)/calendar/components/EventPopup.tsx` (comment only), `e2e/member-attend-auth.spec.ts` — **migration: no** | 2026-08-12 |
+| #727 | `dev/2608-DEV-727` | `lib/apiClient.ts`, `lib/apiClient.test.ts` (new) — **migration: no** | 2026-08-12 |
 
