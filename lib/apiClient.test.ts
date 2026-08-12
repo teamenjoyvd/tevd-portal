@@ -165,6 +165,25 @@ describe('apiClient non-401 behaviour is unchanged', () => {
     expect(getToken).not.toHaveBeenCalled()
   })
 
+  /**
+   * 2608-DEV-733: the client half of the machine-readable failure contract. The
+   * server half is covered in `lib/server/member-registration.test.ts`; this is
+   * the only place asserting the code actually survives the fetch wrapper and
+   * reaches the caller that switches on it.
+   */
+  it('carries a string `code` from the error body onto ApiError, and ignores a non-string one', async () => {
+    fetchMock
+      .mockResolvedValueOnce(json(400, { error: 'This event is full.', code: 'event_full' }))
+      .mockResolvedValueOnce(json(400, { error: 'This event is full.', code: 42 }))
+
+    const { apiClient } = await loadClient()
+
+    await expect(apiClient('/api/events/e1/attend', { method: 'POST', body: '{}' })).rejects
+      .toMatchObject({ status: 400, code: 'event_full' })
+    await expect(apiClient('/api/events/e1/attend', { method: 'POST', body: '{}' })).rejects
+      .toMatchObject({ status: 400, code: undefined })
+  })
+
   it('sets Content-Type for a JSON body but not for FormData', async () => {
     fetchMock.mockImplementation(alwaysJson(200, {}))
 
