@@ -58,7 +58,13 @@ function refreshSession(): Promise<string | null> {
   return refreshInFlight
 }
 
-/** Latched: the first caller navigates, the other four in the burst do not. */
+/**
+ * Latched: the first caller navigates, the other four in the burst do not.
+ *
+ * The latch is deliberately never reset. It is set only on the line before a
+ * full-page navigation, which discards this module along with the rest of the
+ * page; "no second navigation afterwards" is the point, not an oversight.
+ */
 function redirectToSignIn(): void {
   if (redirecting) return
   redirecting = true
@@ -107,6 +113,12 @@ export async function apiClient<T>(url: string, options?: RequestInit): Promise<
     // `if (!userId) return 401` at the top of each app/api handler), so the
     // rejected request wrote nothing. No call site passes a stream body, so
     // `init` is always re-sendable.
+    //
+    // Reusing the pre-refresh `headers` is correct here: this app authenticates
+    // by session COOKIE, which the browser attaches per request and which the
+    // refresh above has just rewritten. No call site sets an Authorization
+    // header (swept repo-wide: only Supabase edge functions do, server-side),
+    // so there is no stale token baked into `init` to resend.
     response = await fetch(url, init)
     if (response.status === 401) {
       // A fresh token still gets a 401: this one is real.
