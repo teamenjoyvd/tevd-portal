@@ -143,7 +143,7 @@ export async function apiClient<T>(url: string, options?: RequestInit): Promise<
     const text = await response.text().catch(() => '')
     let message = text
     let code: string | undefined
-    if (text) {
+    if (text !== '') {
       try {
         const json = JSON.parse(text)
         message = json?.error ?? json?.message ?? text
@@ -153,9 +153,9 @@ export async function apiClient<T>(url: string, options?: RequestInit): Promise<
         if (typeof json?.code === 'string') code = json.code
       } catch { /* ignore */ }
     }
-    throw new ApiError(response.status, message || `API Error: ${response.status}`, code)
+    throw new ApiError(response.status, message !== '' ? message : `API Error: ${response.status}`, code)
   }
 
   const text = await response.text()
-  return (text ? JSON.parse(text) : {}) as T
+  return (text !== '' ? JSON.parse(text) : {}) as T
 }

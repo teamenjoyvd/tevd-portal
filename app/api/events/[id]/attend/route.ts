@@ -60,7 +60,7 @@ export async function POST(
   // `code` is the contract the client selects its localized copy from
   // (2608-DEV-733); `error` stays the English developer/log string. Sending
   // both means a reworded sentence can no longer change what the member reads.
-  if (!result.success) return Response.json({ error: result.error, code: result.code }, { status: 400 })
+  if (result.success === false) return Response.json({ error: result.error, code: result.code }, { status: 400 })
   // `emailed` drives the client's success copy: it must not claim a
   // confirmation was sent when there was no contact_email to send it to.
   return Response.json({ registrationId: result.registrationId, emailed: result.emailed })
@@ -87,6 +87,6 @@ export async function DELETE(
 
   const result = await cancelMemberRegistration(supabase, { eventId: id, profileId: profile.id })
 
-  if (!result.success) return Response.json({ error: result.error }, { status: 400 })
+  if (result.success === false) return Response.json({ error: result.error }, { status: 400 })
   return Response.json({ success: true })
 }
