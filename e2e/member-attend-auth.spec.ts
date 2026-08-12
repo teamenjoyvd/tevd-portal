@@ -120,7 +120,15 @@ async function openEventPopup(page: Page) {
   const eventButton = visible(page, page.locator('[role="row"] button', { hasText: EVENT_TITLE })).first()
   await expect(eventButton, `seeded event "${EVENT_TITLE}" not visible on the current month view`).toBeVisible({ timeout: 15_000 })
   await eventButton.click()
-  await expect(page.getByRole('dialog')).toBeVisible()
+  const dialog = page.getByRole('dialog')
+  await expect(dialog).toBeVisible()
+  // The dialog turns visible BEFORE the event detail resolves: EventPopupShell
+  // renders '…' placeholders for the category and title while isLoading. On a
+  // cold dev server that fetch can outlast a caller's 5s default expect
+  // timeout, so a caller asserting on popup CONTENT races the loading state
+  // (observed 2026-08-12: the failure snapshot was literally `dialog: text: …`).
+  // Waiting for the real title here fixes it once for every caller.
+  await expect(dialog).toContainText(EVENT_TITLE, { timeout: 15_000 })
 }
 
 test.describe('member one-tap attend @auth', () => {

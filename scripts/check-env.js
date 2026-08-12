@@ -5,10 +5,11 @@
  * reading env files directly (plain `node` does not auto-load env files —
  * the PR #544 version checked process.env only and always failed).
  *
- * Sources, in order: .env.development.local values (if present, mirrors
- * Next.js precedence), then .env.local values, then process.env (CI/exported
- * shells). Empty values count as missing. Prints missing names only, never
- * values.
+ * Sources, in order: process.env (CI / an exported shell override), then
+ * .env.development.local, then .env.local — process.env outranks both because
+ * that is what @next/env and playwright.config.ts do at runtime, and the file
+ * pair keeps Next.js's relative order. Empty values count as missing. Prints
+ * missing names only, never values.
  *
  * Vars listed below a `# --- optional ---` line in .env.example only warn.
  *
@@ -71,9 +72,19 @@ const devLocalPath = path.join(root, '.env.development.local')
 const devLocalVars = fs.existsSync(devLocalPath) ? parseEnvFile(devLocalPath) : {}
 
 function resolveValue(name) {
+  // process.env FIRST — this MUST match how the app and the tests resolve env,
+  // or the script certifies a target nobody is actually using. @next/env only
+  // takes a file value when the key is absent from the initial process.env
+  // snapshot, and playwright.config.ts does the same ("if (process.env[m[1]]
+  // === undefined)"). Resolving files first made an exported override
+  // invisible: with the DEV project exported, this printed "LOCAL stack
+  // (127.0.0.1)" from a stale .env.development.local while the dev server and
+  // Playwright were correctly on DEV. Empty counts as unset at every level.
+  const exported = process.env[name]
+  if (exported !== undefined && exported !== '') return exported
   if (devLocalVars[name] !== undefined && devLocalVars[name].value !== '') return devLocalVars[name].value
   if (localVars[name] !== undefined && localVars[name].value !== '') return localVars[name].value
-  return process.env[name]
+  return undefined
 }
 
 function isMissing(name) {

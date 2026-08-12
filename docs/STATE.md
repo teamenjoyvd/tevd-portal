@@ -88,6 +88,19 @@ re-running it fails on `getByRole('dialog').getByRole('button', { name: /^attend
 - Production smoke 2026-08-11: `https://www.teamenjoyvd.com` 200, `/sign-in` 200.
 
 ## Done
+- Two findings from the #726 verification pass, FIXED on this branch at the user's explicit
+  instruction (they are not #726 defects — flagged as scope-mixing when asked):
+  1. `e2e/member-attend-auth.spec.ts` `openEventPopup` now waits for the dialog to contain the real
+     event title, not merely to be visible. The dialog turns visible while `EventPopupShell` still
+     renders its `…` loading placeholders, so on a cold dev server a caller's 5s default expect
+     timeout could land on the loading state (observed: snapshot `dialog: text: …`). Uses the same
+     15s budget as the existing `eventButton` wait. NOT re-reproduced cold — a restart keeps
+     Turbopack's persistent cache — so the fix is targeted at the observed state, not a repro.
+  2. `scripts/check-env.js` `resolveValue` now resolves `process.env` BEFORE the two env files,
+     matching `@next/env` (which only fills a key absent from the initial `process.env` snapshot)
+     and `playwright.config.ts:10-20`. Empty is unset at every level; the file pair keeps Next's
+     relative order. Verified both branches: no exports -> `LOCAL stack (127.0.0.1)`; with the DEV
+     vars exported -> `DEV project (iymwxdewcpvpjgzewtzk) — safe for local writes`.
 - #726 PLAN + CLAIM — RESULT: verdict READY; issue body carries the DoD, affected files, gotchas and
   the structural correction to the issue's own suggestion; Design Checklist 4/4;
   `## Branch dev/2608-DEV-726`; claim row committed at `2d301e9` against an EMPTY claims table (no
@@ -106,18 +119,6 @@ re-running it fails on `getByRole('dialog').getByRole('button', { name: /^attend
   #722 (PR #724) merged.
 
 ## Open items
-- FLAKE (not a spec defect, found 2026-08-12): `member-attend-auth.spec.ts:136` can fail on the
-  FIRST local run against a cold dev server — `openEventPopup` waits only for the dialog to be
-  visible, so the assertion's 5s default timeout can expire while the popup still shows its `…`
-  loading placeholder (the failure's DOM snapshot was literally `dialog: text: …`). Warm, it is
-  `3/3 pass isolated` and the whole file is 5/5. Warm the server (`curl localhost:3000/`) before
-  running, or hoist the wait into `openEventPopup`. Not touched here — out of #726's scope.
-- NOTED (not done, tooling): `scripts/check-env.js:73-77` resolves `.env.development.local` then
-  `.env.local` then `process.env` — files BEAT exported vars, the reverse of the runtime precedence
-  in `playwright.config.ts:10-20` and `@next/env`. So `npm run check:env` printed
-  "Supabase target: LOCAL stack (127.0.0.1)" during a session whose exported vars correctly pointed
-  the dev server and Playwright at DEV. The CLAUDE.md instruction to trust it before touching hosted
-  data is therefore wrong for the exported-override workflow. Needs its own ticket.
 - Still open from #715: five call sites silently skip on a null `contact_email`
   (`lib/abo/verifyAbo.ts:226`, both spouse-link routes,
   `app/api/admin/members/verify/[id]/route.ts:99`, `lib/server/member-registration.ts`) — a shared
