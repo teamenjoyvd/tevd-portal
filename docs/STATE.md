@@ -1,29 +1,31 @@
 ## Goal
-Land PR #738 (issue #734, branch `dev/2608-DEV-734`): resolve its conflicts with `main`, refresh
-`docs/STATE.md` + `docs/CLAIMS.md`, mark it ready so CodeRabbit runs, then apply GCR.
+#730 (branch `dev/2608-DEV-730`): make `npm run check:env` truthful about which Supabase project a
+command will actually reach, and define the `.env*` load order in exactly one module.
 
 ## Now
-PR #738 is the ONLY open PR and is READY TO MERGE. It sat `CONFLICTING` because #736 and #737
-merged after it was cut; `origin/main` (`32791a9`) is merged into the branch at `30c2744`. The only
-conflicts were `docs/STATE.md` and `docs/CLAIMS.md` — no `e2e/**` file conflicted. On `30c2744`:
-`MERGEABLE`, not a draft, 11/11 checks green (`Authenticated E2E (Clerk)` 5m49s, a real run) and
-Vercel "Deployment has completed".
-GCR is DONE and empty: CodeRabbit's first attempt returned "Review rate limited" (which says nothing
-about the code — the same non-review it gave #737); re-triggered with an `@coderabbitai review`
-comment after the limit reset, it reviewed all 8 `e2e/**` files and returned **"No actionable
-comments"** — verified by fetching `pulls/738/comments` (0) and `pulls/738/reviews` (0), not by the
-check status. `docs/**` is excluded from its review by `.coderabbit.yaml` path filters.
+BUILD is complete locally on `dev/2608-DEV-730`; nothing is pushed. #702 (the event-invite epic) was
+assessed and CLOSED the same session — all ten children and all six follow-ups were merged.
+
+`scripts/lib/env-files.js` is new and owns the Next.js chain (process.env, `.env.$(NODE_ENV).local`,
+`.env.local` except under test, `.env.$(NODE_ENV)`, `.env`). `check-env.js` now reports TWO Supabase
+targets — dev/seed and production-mode — because they are different projects from one working tree.
+The four `seed-*.js` scripts and `playwright.config.ts` all call the shared loader; their four
+copy-pasted loaders are gone. Target classification moved to `scripts/lib/safe-supabase-target.js`
+and matches on the parsed hostname, so `https://<dev-ref>.supabase.co.evil.example` is no longer
+reported as "DEV — safe for local writes".
 
 ## Next
-1. Merge PR #738; #734 auto-closes via "Closes #734". Its `docs/CLAIMS.md` row is pruned in this PR
-   itself, leaving the registry empty. **No migration in this ticket** — no prod gate, no
-   `migrate-prod` approval needed.
-2. Nothing else is in flight. The next ticket comes from the Open items below.
+1. Ask for a push grant, then push `dev/2608-DEV-730` and open the PR as a draft (**no migration** in
+   this ticket — no prod gate, no `migrate-prod` approval needed).
+2. `/code-review low` before the first push, then mark ready for CodeRabbit and apply GCR.
+3. `npm run verify` was NOT run locally on purpose: its `next build` step runs under
+   `NODE_ENV=production`, which on this box resolves `.env.local` = PROD — exactly what the new
+   warning describes. CI builds it on the PR instead.
 
 ## Constraints
 - Never push without an explicit grant in this conversation. Grants from earlier tickets/sessions
-  do not carry over. (This session's grant: "PR 738, resolve the conflicts … Mark ready to get
-  coderabbit to run and apply GCR once that happens".)
+  do not carry over. (No push grant in this session as of the #730 BUILD — "bring 730 to a
+  merge-able state" was not read as one.)
 - Never apply migrations to a hosted Supabase project (DEV or prod) without asking first.
 - Fold `docs/CLAIMS.md` row removal + `docs/STATE.md` updates into the merging PR, never a
   standalone cleanup PR.
@@ -55,10 +57,24 @@ check status. `docs/**` is excluded from its review by `.coderabbit.yaml` path f
 - Every 401 the browser can receive from `app/api/**` is a PRE-side-effect auth guard (`proxy.ts:19`
   plus `if (!userId) return 401` at the top of each handler, 40+ sites swept) — which is what makes
   replaying a failed POST safe.
-- Baseline on this branch merged with `main` (`32791a9`): `npm test` 33 files / 461 tests passed,
-  `npx tsc --noEmit` clean — both run 2026-08-12 on the merge commit.
+- Baseline on `main` (`0b482a1`) before #730: `npm test` 33 files / 461 tests, `npx tsc --noEmit`
+  clean. After #730: 34 files / 480 tests, tsc clean, `npm run lint` 0 errors (465 pre-existing
+  warnings) — 2026-08-12.
+- This box's `.env.development.local` points at the DEAD local stack (`127.0.0.1:54321`) and
+  `.env.local` at PROD. So `npm run check:env` reports `LOCAL stack` for the dev/seed path and
+  `PROD project` for production mode. That is the #730 warning working, not a misconfiguration
+  introduced by it — but any local command needing a live DB still needs the DEV override.
 
 ## Done
+- #702 CLOSED (epic, 2026-08-12) — assessment only, no code. All ten children (#703–#710) and all six
+  follow-ups (#713, #714, #715, #718, #726, #727) merged; body updated with the PR for each.
+- #730 BUILD — RESULT: `scripts/lib/env-files.js` (new, shared Next.js env chain) +
+  `scripts/lib/env-files.test.js` (19 tests); `check-env.js` dual-reports dev/seed vs production-mode
+  targets; `classifySupabaseTarget` moved to `scripts/lib/safe-supabase-target.js` with host matching;
+  four `seed-*.js` loaders and `playwright.config.ts` now call the shared loader. Verified:
+  `NODE_ENV=production npm run check:env` names the PROD project where it used to print
+  `LOCAL stack`; `npm test` 480 passed; tsc clean; lint 0 errors;
+  `npx playwright test --list` 73 tests in 14 files. NOT pushed.
 - #734 BUILD — RESULT: all seven specs converted to `gotoProtected`/`signInAndGoto`, plus
   `waitForServerSession` / `signInAndWaitForSession` in `e2e/auth-helpers.ts`. tsc + eslint clean,
   `npx playwright test --list --project=authenticated` lists 35 tests in 9 files, `/code-review low`
@@ -76,8 +92,11 @@ check status. `docs/**` is excluded from its review by `.coderabbit.yaml` path f
   #715 tightened to `!== true`. `enabled` comes from JSONB through an `as EmailConfig` cast, so a row
   holding `"true"` or `1` makes the master kill switch fail OPEN. Repo-wide sweep: exactly one
   instance left. One-line fix, needs its own ticket.
-- NOTED (from #726 GCR): `scripts/check-env.js` has no regression tests — it runs side effects at
-  require time including `process.exit`, so testing it needs the resolver extracted into a module.
+- RESOLVED by #730 (was NOTED from #726 GCR): `scripts/check-env.js` had no regression tests because
+  it runs side effects at require time. The resolver is now `scripts/lib/env-files.js` and
+  `scripts/lib/env-files.test.js` covers it — the repo's first `scripts/**/*.test.js`, a glob
+  `vitest.config.ts` already included. check-env's own top-level side effects are unchanged and
+  still untested directly.
 - NOTED (same-class, from #710): the case-sensitive email match fixed in the #710 RPC also exists in
   TypeScript at `lib/server/member-registration.ts` — `.eq('email', contactEmail)` in `attendEvent`'s
   D9 adopt step. `Ivan@Example.com` is not adopted and gets a second row. Needs `citext`/`lower()`

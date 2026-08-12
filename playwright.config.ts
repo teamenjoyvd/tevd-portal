@@ -1,23 +1,16 @@
 import { defineConfig, devices } from '@playwright/test'
-import fs from 'node:fs'
-import path from 'node:path'
+import { loadEnvFiles } from './scripts/lib/env-files'
 
 // Playwright's own process (globalSetup + tests) does not inherit Next's env
 // loading, so the authenticated project's Clerk/Supabase clients would see no
 // keys. Load env files in Next precedence (.env.development.local first, then
 // .env.local), never overwriting already-set vars. No-op when files are absent
 // (contributor machines / preview-smoke) — keeps other projects unaffected.
-for (const f of ['.env.development.local', '.env.local']) {
-  const p = path.join(process.cwd(), f)
-  if (!fs.existsSync(p)) continue
-  for (const line of fs.readFileSync(p, 'utf8').split(/\r?\n/)) {
-    const m = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/)
-    if (!m) continue
-    let v = m[2]
-    if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) v = v.slice(1, -1)
-    if (process.env[m[1]] === undefined) process.env[m[1]] = v
-  }
-}
+//
+// The order itself lives in scripts/lib/env-files.js (2608-DEV-730), shared with
+// check-env and every seed script, so Playwright cannot drift from what the app
+// and the seeds resolve.
+loadEnvFiles(process.cwd(), 'development')
 
 // BASE_URL set (e.g. the preview-smoke workflow pointing at a Vercel preview)
 // -> test that deployment and start no local server.

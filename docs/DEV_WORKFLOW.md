@@ -8,7 +8,7 @@ The single source for the dev process: local loop → verification → PR → pr
 |---|---|
 | `npm run dev` | Dev server with HMR at <http://localhost:3000> |
 | `npm run verify` | Local mirror of CI: lint → check-types → test → build, visible output |
-| `npm run check:env` | Validates env vars against `.env.example`'s required list; classifies the Supabase target as LOCAL/DEV/other |
+| `npm run check:env` | Validates env vars against `.env.example`'s required list; classifies the Supabase target as LOCAL/DEV/PROD/unrecognised **twice** — once for the dev/seed path (`next dev`, `seed-*.js`, Playwright) and once for production mode (`next build`, `next start`), which skip `.env.development.local` and can land on a different project |
 | `npm run test:mobile` | Playwright smoke at 390×844 against the local dev server |
 | `npm run test:e2e` | Full Playwright smoke (all projects) |
 | `npm run e2e:seed-clerk` | Seeds two Clerk test-instance users (member, admin) + matching local `profiles` rows — see "Authenticated E2E (Clerk)" below |
