@@ -75,9 +75,13 @@ export default function EventPopup({
       qc.invalidateQueries({ queryKey: ['event-registrations', eventId] })
     },
     onError: (err: unknown) => {
-      const message = err instanceof ApiError ? err.message : ''
-      const key = message.includes('capacity') ? 'cal.attendFull'
-        : message.includes('already ended') ? 'cal.attendClosed'
+      // Keys off the AttendFailureCode the route sends (2608-DEV-733), not off
+      // err.message — the message is English developer copy, so matching it
+      // meant any reword of the server string silently downgraded this toast to
+      // the generic error.
+      const code = err instanceof ApiError ? err.code : undefined
+      const key = code === 'event_full' ? 'cal.attendFull'
+        : code === 'event_ended' ? 'cal.attendClosed'
         : 'cal.attendError'
       toast.error(t(key))
     },

@@ -129,10 +129,35 @@ async function creditShareLink(
 // consumeRegistrationSlot exists for), and adopt-or-insert instead of a bare
 // upsert.
 
+/**
+ * 2608-DEV-733 — why a failure carries a CODE and not just a sentence.
+ *
+ * Both client surfaces used to pick their localized copy by matching the
+ * English text below (`raw.includes('capacity')`). That made this module's
+ * prose a wire protocol: rewording it broke the copy on two screens with no
+ * compiler error and no failing test, and returning a Bulgarian sentence
+ * instead — the fix reviewers kept reaching for — made BOTH matchers miss and
+ * fall through to the generic error.
+ *
+ * So the code is the contract and `error` stays what it always was: English,
+ * developer-facing, for logs. The user-visible message is still chosen by `t()`
+ * on the client.
+ *
+ * Every failure return carries one. A partial discriminant would leave the
+ * client guessing from text for the rest, which is the defect being removed.
+ */
+export type AttendFailureCode =
+  | 'guest_role'
+  | 'not_found'
+  | 'not_open'
+  | 'event_ended'
+  | 'event_full'
+  | 'write_failed'
+
 export type AttendMemberResult =
   /** `emailed` is false whenever no confirmation went out — no contact_email, over cap, or a send failure. */
   | { success: true; registrationId: string; emailed: boolean }
-  | { success: false; error: string }
+  | { success: false; code: AttendFailureCode; error: string }
 
 // Shared by all three writes below. The capacity check earlier in attendEvent is
 // the fast path; trg_enforce_event_guest_capacity (2608-DEV-718) is what holds
@@ -142,8 +167,12 @@ export type AttendMemberResult =
 const CAPACITY_ERROR = 'This event has reached its guest capacity.'
 const WRITE_ERROR = 'Could not attend. Please try again.'
 
-function attendWriteError(error: { code?: string } | null): { success: false; error: string } {
-  return { success: false, error: isCapacityViolation(error) ? CAPACITY_ERROR : WRITE_ERROR }
+// The code comes from the SQLSTATE, never from the sentence — isCapacityViolation
+// stays the single source of truth for "the event is full" (docs/ai/GOTCHAS.md).
+function attendWriteError(error: { code?: string } | null): { success: false; code: AttendFailureCode; error: string } {
+  return isCapacityViolation(error)
+    ? { success: false, code: 'event_full', error: CAPACITY_ERROR }
+    : { success: false, code: 'write_failed', error: WRITE_ERROR }
 }
 
 export type AttendMemberParams = {
@@ -166,7 +195,7 @@ export async function attendEvent(
 ): Promise<AttendMemberResult> {
   const { eventId, profileId, profileRole, profileName, contactEmail, shareToken, lang = 'en' } = params
 
-  if (profileRole === 'guest') return { success: false, error: 'Guests cannot use member attend.' }
+  if (profileRole === 'guest') return { success: false, code: 'guest_role', error: 'Guests cannot use member attend.' }
 
   const { data: event, error: eventError } = await supabase
     .from('calendar_events')
@@ -174,10 +203,10 @@ export async function attendEvent(
     .eq('id', eventId)
     .single()
 
-  if (eventError || !event)                    return { success: false, error: 'Event not found.' }
-  if (event.allow_guest_registration !== true) return { success: false, error: 'Registration is not available for this event.' }
+  if (eventError || !event)                    return { success: false, code: 'not_found', error: 'Event not found.' }
+  if (event.allow_guest_registration !== true) return { success: false, code: 'not_open', error: 'Registration is not available for this event.' }
   if (new Date(event.end_time).getTime() < Date.now())
-    return { success: false, error: 'This event has already ended.' }
+    return { success: false, code: 'event_ended', error: 'This event has already ended.' }
 
   // Resolve share token -> share_link_id, same revoked-link rule as the guest
   // path (lib/actions/guest-registration.ts:98-108). Self-attribution is
@@ -218,7 +247,7 @@ export async function attendEvent(
     // lib/server/event-capacity.ts.
     const attendees = await countAttendeesForCapacity(supabase, eventId)
     if (attendees >= event.guest_capacity) {
-      return { success: false, error: CAPACITY_ERROR }
+      return { success: false, code: 'event_full', error: CAPACITY_ERROR }
     }
   }
 

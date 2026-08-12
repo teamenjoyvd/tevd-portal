@@ -67,13 +67,18 @@ export function MemberAttendPanel({
   const [isPending, setIsPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // The route reports capacity and event-ended as plain 400s; map those two to
-  // the copy this page already uses for them, and everything else — network
-  // failure, 5xx, an unrecognised message — to the generic attend error.
+  // The route reports capacity and event-ended as plain 400s carrying an
+  // AttendFailureCode (2608-DEV-733); map those two to the copy this page
+  // already uses for them, and everything else — network failure, 5xx, a code
+  // with no dedicated copy — to the generic attend error.
+  //
+  // Switching on the CODE, never on err.message: the message is the server's
+  // English developer string, and matching it made a reword silently change
+  // what the member reads.
   function messageFor(err: unknown): string {
-    const raw = err instanceof ApiError ? err.message : ''
-    if (raw.includes('capacity')) return t('event.register.full')
-    if (raw.includes('already ended')) return t('event.register.eventEnded')
+    const code = err instanceof ApiError ? err.code : undefined
+    if (code === 'event_full') return t('event.register.full')
+    if (code === 'event_ended') return t('event.register.eventEnded')
     return t('event.register.attendError')
   }
 
