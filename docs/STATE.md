@@ -5,7 +5,13 @@ event meta, with nothing on screen explaining why. A regression from #721, which
 the tab bar that makes the state reachable.
 
 ## Now
-PLAN and CLAIM are complete; BUILD is code-complete and committed locally, **not pushed**.
+PLAN, CLAIM and BUILD are complete. **PR #735 is open as a DRAFT**, `MERGEABLE`, with all 11
+checks green on `17bc5a7` — including `Authenticated E2E (Clerk)` in 6m5s (a real run, not the
+old vacuous skip) and `390px smoke vs preview` in 2m32s; Vercel reports "Deployment has
+completed". Branch pushed 2026-08-12 under an explicit grant.
+Remaining before merge: the human 390px eyeball on BOTH tabs (the "no visual change on the Roles
+tab" claim is the one item no check covers), then mark ready -> one CodeRabbit pass (it skipped
+while the PR is a draft) -> fix findings in ONE batched push.
 - Issue #726 body now carries the PLAN, a file-path-level DoD, Affected Files, Gotchas, Migration &
   Test Impact, `## Design Checklist` (4/4) and `## Branch dev/2608-DEV-726`.
 - `2d301e9` — claim row in `docs/CLAIMS.md` (migration: no). `caf0fc0` — the fix.
@@ -37,10 +43,10 @@ re-running it fails on `getByRole('dialog').getByRole('button', { name: /^attend
 
 ## Next
 1. ~~`/code-review low` on the branch diff~~ — DONE, zero findings.
-2. **BLOCKED ON THE USER:** ask for a push grant, push `dev/2608-DEV-726`, open the PR **as a
-   draft** with `Closes #726`. Nothing else on this ticket can proceed without it.
-3. CI green + Vercel preview READY. Then eyeball the preview at 390px on both tabs — the DoD's
-   "no visual change on the Roles tab" claim is the one item no automated check covers.
+2. ~~push + open the draft PR~~ — DONE, PR #735.
+3. ~~CI green + Vercel preview READY~~ — DONE, 11/11 on `17bc5a7`. Still to do: eyeball the
+   preview at 390px on both tabs — the DoD's "no visual change on the Roles tab" claim is the one
+   item no automated check covers, and it needs a signed-in member so it cannot be automated here.
 4. Mark ready -> one CodeRabbit pass -> fix findings in ONE batched push.
 5. Merge -> GCR: prune the `#726` claim row (fold into this PR's own commits, per Constraints),
    close #726. **No migration**, so no prod gate for this ticket.
