@@ -6,5 +6,4 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
-| #727 | `dev/2608-DEV-727` | `lib/apiClient.ts`, `lib/apiClient.test.ts` (new) — **migration: no** | 2026-08-12 |
 

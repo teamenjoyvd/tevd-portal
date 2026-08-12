@@ -1,10 +1,33 @@
 ## Goal
-PLAN + CLAIM + BUILD issue #726 (`2608-DEV-726`) on branch `dev/2608-DEV-726` — a member who opens
-the calendar popup's **Registrations** tab loses the Attend button, the share/QR buttons and the
-event meta, with nothing on screen explaining why. A regression from #721, which gave plain members
-the tab bar that makes the state reachable.
+GCR on PRs #736 (issue #727) and #737 (issue #733), then merge both.
 
 ## Now
+GCR complete on both; **#736 is MERGED** as `01a00ee` and #727 auto-closed. **PR #737 is the last
+one open**, rebased onto that merge.
+- **#736 — no code change.** CodeRabbit's single (Critical) finding claimed `@clerk/nextjs` does
+  not export `getToken` and the test mock therefore hid a missing export. Disproved against the
+  installed package: `node_modules/@clerk/nextjs/dist/types/index.d.ts:16` re-exports it from
+  `@clerk/shared/getToken`, `typeof getToken === 'function'` at runtime, and its real signature
+  `(options?: GetTokenOptions) => Promise<string | null>` matches the mock. It is Clerk's own
+  documented non-hook entry point for exactly this use ("API interceptors, data fetching layers");
+  `useAuth()`/`useSession()` are hooks and cannot be called from a module-level fetch wrapper.
+  Replied with the evidence and left the thread OPEN for a human, per GCR step 6.
+- **#737 — applied** (`9ef73db`): explicit comparisons at both sites CodeRabbit named, plus the two
+  unflagged siblings of the same pattern in the same two files (the DELETE handler's
+  `CancelMemberResult` check, and the success-path `text ? JSON.parse(text) : {}`), so neither file
+  mixes both spellings. `message !== '' ? message : …` rather than `??` — `message` is always a
+  string, so `??` would never fire on the empty-string case the fallback exists for. Thread
+  resolved. All 11 checks green on `9ef73db`.
+- **The apiClient.ts overlap resolved itself.** #736 and #737 both rewrote that file; the rebase
+  auto-merged cleanly and the result carries BOTH — 736's `recoverFrom401` / single-flight refresh
+  AND 737's `code` plumbing and explicit comparisons. Verified post-rebase, not assumed:
+  `npx tsc --noEmit` clean, `npx vitest run lib/apiClient.test.ts lib/server/member-registration.test.ts`
+  -> **39 passed**. Merge order was deliberate: the larger rewrite (#736) first, so the ~8 lines of
+  #737 plumbing land on top rather than the reverse.
+- Note: CodeRabbit's re-review of `9ef73db` reported **"Review rate limited"**, so the incremental
+  pass did not actually run. The check is green but says nothing about this push.
+
+## Superseded — #726 (merged as `ff55ad2`, PR #735)
 PLAN, CLAIM and BUILD are complete. **PR #735 is open as a DRAFT**, `MERGEABLE`, with all 11
 checks green on `17bc5a7` — including `Authenticated E2E (Clerk)` in 6m5s (a real run, not the
 old vacuous skip) and `390px smoke vs preview` in 2m32s; Vercel reports "Deployment has
@@ -55,21 +78,23 @@ re-running it fails on `getByRole('dialog').getByRole('button', { name: /^attend
 `/code-review low` on the branch diff -> **zero findings**.
 
 ## Next
-1. ~~`/code-review low` on the branch diff~~ — DONE, zero findings.
-2. ~~push + open the draft PR~~ — DONE, PR #735.
-3. ~~CI green + Vercel preview READY~~ — DONE, 11/11 on `17bc5a7`. Still to do: eyeball the
-   preview at 390px on both tabs — the DoD's "no visual change on the Roles tab" claim is the one
-   item no automated check covers, and it needs a signed-in member so it cannot be automated here.
-4. Mark ready -> one CodeRabbit pass -> fix findings in ONE batched push.
-5. Merge -> GCR: prune the `#726` claim row (fold into this PR's own commits, per Constraints),
-   close #726. **No migration**, so no prod gate for this ticket.
+1. ~~GCR #736~~ — DONE, finding rejected with evidence, thread left open. ~~Merge #736~~ — DONE,
+   `01a00ee`; #727 auto-closed via the PR's closing reference.
+2. ~~GCR #737~~ — DONE, `9ef73db`, thread resolved. ~~Rebase #737 onto the #736 merge~~ — DONE,
+   one conflict (`docs/CLAIMS.md`) resolved by hand; `lib/apiClient.ts` auto-merged and was
+   verified, not trusted.
+3. PR #737: wait for CI green + Vercel preview READY on the rebased head, then merge. **No
+   migration**, so no prod gate for this ticket.
+4. `docs/CLAIMS.md` is now EMPTY — the #726, #727 and #733 rows are all pruned in this PR's own
+   commits, per Constraints. Nothing else is in flight.
 6. **STILL OPEN FROM #718:** PR #732 merged as `4ac7228` and it SHIPPED A MIGRATION, so the gated
    `migrate-prod` run is armed and unapproved. Prod ledger head must move
    `20260811000000` -> `20260811000100`, then smoke `https://www.teamenjoyvd.com`. Until that runs,
    prod has the app code that raises `P0718` but NOT the trigger that produces it — harmless (the
    app-level check still guards) but the race is only closed on DEV.
-7. Follow-ups filed and unclaimed: **#727** (401 eviction during Clerk token refresh, `priority:high`),
-   **#733** (machine-readable capacity failure code), **#734** (seven e2e specs with the sign-in race).
+7. Follow-ups: **#727** MERGED (`01a00ee`), **#733** merging as PR #737. Still unclaimed: **#734**
+   (seven e2e specs with the sign-in race — branch `dev/2608-DEV-734` exists locally with two
+   commits, no PR, no claim row).
 
 ## Constraints
 - Never push without an explicit grant in this conversation. Grants from earlier tickets/sessions do

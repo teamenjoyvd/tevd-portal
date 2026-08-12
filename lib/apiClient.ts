@@ -14,7 +14,14 @@
 import { getToken } from '@clerk/nextjs'
 
 export class ApiError extends Error {
-  constructor(public status: number, message: string) {
+  /**
+   * `code` is the machine-readable failure discriminant a route may send
+   * alongside its error string (2608-DEV-733), e.g. `event_full` from
+   * `/api/events/[id]/attend`. Optional because most routes send only a
+   * message; a client that needs to branch should switch on this and never on
+   * `message`, which is English developer copy and free to be reworded.
+   */
+  constructor(public status: number, message: string, public code?: string) {
     super(message)
     this.name = 'ApiError'
   }
@@ -135,15 +142,20 @@ export async function apiClient<T>(url: string, options?: RequestInit): Promise<
     }
     const text = await response.text().catch(() => '')
     let message = text
-    if (text) {
+    let code: string | undefined
+    if (text !== '') {
       try {
         const json = JSON.parse(text)
         message = json?.error ?? json?.message ?? text
+        // Only a string survives: a route sending a non-string `code` has no
+        // discriminant worth passing on, and a caller's switch would silently
+        // fall through on it either way.
+        if (typeof json?.code === 'string') code = json.code
       } catch { /* ignore */ }
     }
-    throw new ApiError(response.status, message || `API Error: ${response.status}`)
+    throw new ApiError(response.status, message !== '' ? message : `API Error: ${response.status}`, code)
   }
 
   const text = await response.text()
-  return (text ? JSON.parse(text) : {}) as T
+  return (text !== '' ? JSON.parse(text) : {}) as T
 }
