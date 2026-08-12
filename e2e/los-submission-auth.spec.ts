@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test'
 import { clerk } from '@clerk/testing/playwright'
+import { waitForServerSession } from './auth-helpers'
 import { createClerkClient } from '@clerk/backend'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
@@ -33,12 +34,21 @@ function row(abo: string, sponsor: string, extra: Record<string, string> = {}) {
   return { abo_number: abo, sponsor_abo_number: sponsor, name: `T${abo}`, abo_level: '3', bonus_percent: '3', ...extra }
 }
 
+/**
+ * Every case here drives `page.request.*` and never navigates to a protected
+ * page, so gotoProtected has nothing to land on (2608-DEV-734). The race is the
+ * same one though: a request issued before the session cookie is live comes
+ * back 401 from proxy.ts:19, and the assertion then reports "expected 400, got
+ * 401" — naming the status instead of the race. waitForServerSession is the
+ * same wait observed through the API.
+ */
 async function signInAs(page: Page, emailAddress: string) {
   await page.goto('/')
   // Tests switch users on the same page; Clerk refuses signIn while a session
   // is active, so sign out first (no-op / ignored when not signed in).
   await clerk.signOut({ page }).catch(() => {})
   await clerk.signIn({ page, emailAddress })
+  await waitForServerSession(page)
 }
 
 async function ensureUser(clerk: ReturnType<typeof createClerkClient>, email: string, role: string) {

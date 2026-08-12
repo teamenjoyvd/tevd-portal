@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
-import { clerk } from '@clerk/testing/playwright'
+import { signInAndGoto } from './auth-helpers'
 import { BENTO_IDS } from '../app/(dashboard)/profile/components/bento-registry'
 
 /**
@@ -30,9 +30,12 @@ const MEMBER_EMAIL = process.env.E2E_CLERK_MEMBER_EMAIL ?? 'e2e-member-tevd-port
 // state — see expectPersisted below.
 
 async function signInAndOpenProfile(page: Page) {
-  await page.goto('/')
-  await clerk.signIn({ page, emailAddress: MEMBER_EMAIL })
-  await page.goto('/profile')
+  // signInAndGoto, not signIn + goto: /profile is authorised on the SERVER, and
+  // clerk.signIn() only proves the browser holds a user (2608-DEV-734 — see
+  // e2e/auth-helpers.ts). NOTE this is not the fix for this spec's known red:
+  // that is #727's transient-401 eviction in lib/apiClient.ts, a different bug
+  // on a different layer, fixed separately.
+  await signInAndGoto(page, MEMBER_EMAIL, '/profile')
   // Waiting on `body` proved nothing: it is visible long before useProfile()
   // resolves, and Playwright's webServer runs `npm run dev`, so /profile is
   // compiled on demand and the first hit is slow. The layout controls are

@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
-import { clerk } from '@clerk/testing/playwright'
+import { signInAndWaitForSession } from './auth-helpers'
 
 /**
  * Authenticated coverage of proxy.ts's pass-through path plus the role
@@ -19,9 +19,18 @@ import { clerk } from '@clerk/testing/playwright'
 const MEMBER_EMAIL = process.env.E2E_CLERK_MEMBER_EMAIL ?? 'e2e-member-tevd-portal@example.com'
 const ADMIN_EMAIL = process.env.E2E_CLERK_ADMIN_EMAIL ?? 'e2e-admin-tevd-portal@example.com'
 
+/**
+ * Waits for the session rather than for a landing (2608-DEV-734).
+ *
+ * gotoProtected does not fit this suite: two of its tests assert on
+ * `page.request` responses and never navigate, and the other two navigate to
+ * /admin/members precisely to observe what happens — one of them EXPECTING to
+ * be bounced. A helper that retries until it lands on the path would fight both
+ * intentions. What all four need is only that the server can resolve the
+ * session before the assertion runs.
+ */
 async function signInAs(page: Page, emailAddress: string) {
-  await page.goto('/')
-  await clerk.signIn({ page, emailAddress })
+  await signInAndWaitForSession(page, emailAddress)
 }
 
 test.describe('member (non-admin) hitting admin surfaces', () => {

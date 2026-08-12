@@ -1,5 +1,6 @@
 import { test, expect, type Locator, type Page } from '@playwright/test'
 import { clerk } from '@clerk/testing/playwright'
+import { gotoProtected, signInAndWaitForSession } from './auth-helpers'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { randomUUID } from 'crypto'
 
@@ -124,7 +125,11 @@ async function seedMemberRegistration() {
 }
 
 async function openEventPopup(page: Page) {
-  await page.goto('/calendar')
+  // gotoProtected, not page.goto: /calendar is authorised server-side, and a
+  // goto issued right after clerk.signIn() can be decided against a cookie the
+  // browser has not finished writing — landing on /sign-in, where the event
+  // button below is simply absent (2608-DEV-734, e2e/auth-helpers.ts).
+  await gotoProtected(page, '/calendar')
   const eventButton = visible(page, page.locator('[role="row"] button', { hasText: EVENT_TITLE })).first()
   await expect(eventButton, `seeded event "${EVENT_TITLE}" not visible on the current month view`).toBeVisible({ timeout: 15_000 })
   await eventButton.click()
@@ -195,8 +200,13 @@ test.describe('member token-free join @auth', () => {
     // join route, and the attend loop itself is already covered above.
     await seedMemberRegistration()
 
-    await page.goto('/')
-    await clerk.signIn({ page, emailAddress: MEMBER_EMAIL })
+    // gotoProtected cannot be used for the navigation below: /events/(.*) is in
+    // PUBLIC_ROUTE_PATTERNS, so proxy.ts never redirects it and "did I land on
+    // the path" proves nothing. Without a server-side session the page still
+    // renders — as InvalidState reason="missing" (join/page.tsx:166), the same
+    // screen the anonymous test below asserts on. So the wait happens before
+    // the navigation, on the session itself (2608-DEV-734).
+    await signInAndWaitForSession(page, MEMBER_EMAIL)
 
     // No ?token= — the member is resolved through Clerk instead.
     await page.goto(`/events/${eventId}/join`)
