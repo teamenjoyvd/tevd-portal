@@ -11,6 +11,11 @@
  * pair keeps Next.js's relative order. Empty values count as missing. Prints
  * missing names only, never values.
  *
+ * Resolution contract: the FIRST source that DEFINES the key wins, even if its
+ * value is empty; only a wholly undefined key falls through to the next source.
+ * This mirrors @next/env and scripts/*'s loadEnvFile, both of which assign only
+ * when the key is `=== undefined`. An empty winner is then reported missing.
+ *
  * Vars listed below a `# --- optional ---` line in .env.example only warn.
  *
  * Also classifies NEXT_PUBLIC_SUPABASE_URL as LOCAL / DEV / anything else
@@ -80,10 +85,17 @@ function resolveValue(name) {
   // invisible: with the DEV project exported, this printed "LOCAL stack
   // (127.0.0.1)" from a stale .env.development.local while the dev server and
   // Playwright were correctly on DEV. Empty counts as unset at every level.
+  // DEFINED wins at each level, even when the value is empty — do not "skip
+  // the empty one and try the next source". Both @next/env and the seed
+  // scripts' loadEnvFile assign only when the key is `=== undefined`, so an
+  // exported KEY= (empty) shadows every file and the app really does receive
+  // ''. Falling through to the next source here would let check:env certify a
+  // value nobody will get, which is the one thing this script exists to
+  // prevent. An empty result reaches isMissing() and is reported missing.
   const exported = process.env[name]
-  if (exported !== undefined && exported !== '') return exported
-  if (devLocalVars[name] !== undefined && devLocalVars[name].value !== '') return devLocalVars[name].value
-  if (localVars[name] !== undefined && localVars[name].value !== '') return localVars[name].value
+  if (exported !== undefined) return exported
+  if (devLocalVars[name] !== undefined) return devLocalVars[name].value
+  if (localVars[name] !== undefined) return localVars[name].value
   return undefined
 }
 

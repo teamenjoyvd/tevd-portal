@@ -75,7 +75,8 @@ export default function EventPopupShell({
 
   // The action row (Attend for non-admins, plus Share/QR) is deliberately NOT
   // tab-scoped — see the comment on the body block below. 2608-DEV-726.
-  const showActions = !!event && event.allow_guest_registration && !isGuest
+  const showActions =
+    event !== undefined && event.allow_guest_registration === true && isGuest === false
 
   return (
     <>

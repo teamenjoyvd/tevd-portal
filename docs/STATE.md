@@ -9,6 +9,19 @@ PLAN, CLAIM and BUILD are complete. **PR #735 is open as a DRAFT**, `MERGEABLE`,
 checks green on `17bc5a7` — including `Authenticated E2E (Clerk)` in 6m5s (a real run, not the
 old vacuous skip) and `390px smoke vs preview` in 2m32s; Vercel reports "Deployment has
 completed". Branch pushed 2026-08-12 under an explicit grant.
+GCR run against PR #735 (2026-08-12): CodeRabbit posted 3 inline comments even though its CHECK
+reported "Review skipped: draft pull request" — never trust the check status, always fetch
+`pulls/N/comments`. 2 applied in full, 1 applied in part:
+- `EventPopupShell.tsx:78` explicit comparisons in `showActions` (Major) — APPLIED. Dropped
+  CodeRabbit's `event !== null`: the prop type is `EventDetail | undefined` and the value comes
+  from `useQuery`, whose `data` is never null.
+- `member-attend-auth.spec.ts` `clearMemberRegistration` now throws on the delete error (Minor) —
+  APPLIED, matching `seedMemberRegistration`.
+- `check-env.js` empty-value contract (Major) — APPLIED the resolver half: DEFINED wins at each
+  level, empty included, mirroring `@next/env` and `scripts/*`'s `loadEnvFile` (both assign only
+  when `=== undefined`). SKIPPED the "add regression cases" half: no `scripts/*.test.js` harness
+  exists and `check-env.js` runs side effects at require time incl. `process.exit`, so testing it
+  needs the resolver extracted into a module — a refactor, not a review fix. Needs its own ticket.
 Remaining before merge: the human 390px eyeball on BOTH tabs (the "no visual change on the Roles
 tab" claim is the one item no check covers), then mark ready -> one CodeRabbit pass (it skipped
 while the PR is a draft) -> fix findings in ONE batched push.
@@ -167,6 +180,17 @@ re-running it fails on `getByRole('dialog').getByRole('button', { name: /^attend
   selects copy by matching ENGLISH server text (`MemberAttendPanel.tsx:73-78`,
   `EventPopup.tsx:76-78`, both `raw.includes('capacity')`), so returning Bulgarian makes BOTH
   matchers miss. The real fix is #733's machine-readable `code`.
+
+## Facts (added 2026-08-12, GCR #735)
+- Killing a background task wrapper does NOT necessarily kill `next dev` — the node process can
+  survive holding the port, and losing its stdout pipe makes every write throw
+  `write EPIPE` as an uncaughtException, which kills Next's render WORKERS. The server then still
+  answers `/` from cache (a naive curl health check says 200) while every route needing a worker
+  500s with "Jest worker encountered 2 child process exceptions". Start it with stdout redirected
+  to a log file, and health-check a real route, not `/`.
+- Local authenticated e2e is NOT trustworthy on a cold server: a full run right after start gave
+  3 failures that all passed once warm. Only a warm-server run is evidence. A/B against a stash
+  proved this: stashed passed, restored ALSO passed, so the first A/B reading was itself noise.
 
 ## Failed attempts
 - ATTEMPT 1 [L1] (#709 GCR): adding an explicit `role="tab"` to the tab-bar buttons broke all 4

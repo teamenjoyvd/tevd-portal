@@ -99,7 +99,15 @@ function visible(page: Page, locator: Locator): Locator {
  * this member — a soft cancel leaves the row in place.
  */
 async function clearMemberRegistration() {
-  await sb!.from('guest_registrations').delete().eq('event_id', eventId!).eq('profile_id', memberProfileId!)
+  const { error } = await sb!
+    .from('guest_registrations')
+    .delete()
+    .eq('event_id', eventId!)
+    .eq('profile_id', memberProfileId!)
+  // Fail loudly, like the insert below: a silent cleanup failure leaves the
+  // member registered, and the caller then fails much later on a missing
+  // Attend button — a symptom that looks nothing like its cause.
+  if (error) throw new Error(`Failed to clear member registration: ${error.message}`)
 }
 
 async function seedMemberRegistration() {
