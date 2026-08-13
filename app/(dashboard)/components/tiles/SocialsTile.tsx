@@ -97,7 +97,11 @@ export default function SocialsTile({
       variant={post !== null && thumbnail === null ? 'forest' : 'default'}
       colSpan={colSpan}
       rowSpan={rowSpan}
-      className={post !== null ? 'bento-tile relative overflow-hidden p-0' : 'bento-tile flex flex-col'}
+      // min-h: in hero mode every child is absolutely positioned, so the card has
+      // no intrinsic height. Both current call sites impose one (mobile
+      // `minHeight: 200`, desktop grid row) — this keeps the tile from collapsing
+      // if a future one does not.
+      className={post !== null ? 'bento-tile relative overflow-hidden p-0 min-h-[200px]' : 'bento-tile flex flex-col'}
       style={{ animationDelay: '350ms', ...style }}
     >
       {isLoading && (
