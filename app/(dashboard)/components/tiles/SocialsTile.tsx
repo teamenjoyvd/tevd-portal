@@ -179,7 +179,7 @@ export default function SocialsTile({
           </div>
 
           <div className="absolute bottom-0 left-0 right-0 px-5 pb-5 z-10 pointer-events-none">
-            {post.caption ? (
+            {post.caption !== null && post.caption !== '' ? (
               <p
                 className="font-body text-sm leading-snug"
                 style={{
