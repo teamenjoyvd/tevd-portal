@@ -6,5 +6,4 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
-| #743 | `dev/2608-DEV-743` | Socials bento → image hero: `app/(dashboard)/components/tiles/SocialsTile.tsx`, `lib/i18n/domains/home.ts` (`home.socials.*` keys), `styles/brand-tokens.css` (**`--image-scrim` token pair only** — no radius, no colour-token edits) — **migration: no**. Does not touch `/api/socials` or `/api/socials/thumbnail`. | 2026-08-13 |
 

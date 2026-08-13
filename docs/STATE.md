@@ -4,7 +4,18 @@ full-bleed image hero, a sibling to the Trips tile it sits beside. No migration.
 
 ## Now
 
-**PR #748 is OPEN and ready for review**, head `d0b6921`, all checks green (including
+**PR #748 is ready to merge.** The CLAIMS row is already removed in this PR (never a standalone
+cleanup PR). After merge, the only remaining GCR work is closing #743 and deleting the DEV seed
+rows + storage objects listed below.
+
+`app/(dashboard)/components/tiles/SocialsTile.test.tsx` is the **repo's first component test suite**
+— 13 cases over the six seeded data shapes. Infra: `jsdom` + `@testing-library/react` (+ the
+`@testing-library/dom` peer, which RTL v16 does not bundle) as dev deps, `.tsx` added to the vitest
+include globs. Default environment stays `node`; component files opt into jsdom with a
+`// @vitest-environment jsdom` docblock. `tsconfig.json` already sets `jsx: react-jsx`, so esbuild
+transforms `.tsx` with no React plugin.
+
+Earlier state (kept for the record): head `d0b6921`, all checks green (including
 `390px smoke vs preview` and `Authenticated E2E (Clerk)`). CodeRabbit's one finding — truthiness on
 `post.caption` — is fixed and its thread is resolved. Its **re-review after that push was rate
 limited**, so the ready-state pass covers `9bc7010`, not `d0b6921`; the delta is a one-line
@@ -110,6 +121,13 @@ blanket ban with the doc updated in the same commit.
   in this session's scratchpad as `env.development.local.bak`.
 - The homepage `/` is a PUBLIC route (`lib/public-routes.ts:23`), so homepage visual checks need no
   Clerk session — just a dev server and Playwright.
+- `npm audit --omit=dev` reports moderate DOMPurify advisories via `jspdf@2.5.2` — **pre-existing**,
+  unrelated to the jsdom/RTL dev deps, and CI's Security Audit is a soft gate
+  (`npm audit --audit-level=high --omit=dev || true`, `.github/workflows/ci.yml:85`).
+- `social_posts_single_pinned` (UNIQUE partial index, `20260716000100:134`) allows exactly one
+  pinned row. The app never trips it: the admin PATCH routes pins through the atomic
+  `pin_social_post` RPC (`app/api/admin/social-posts/[id]/route.ts:31`, ISS-0171). Only bulk
+  inserts/updates from a script can hit it — drive selection by `sort_order` there.
 - Baseline on both branches: `npm test` 481 passed / 34 files, `npx tsc --noEmit` clean,
   `npm run lint` 0 errors / 465 pre-existing warnings.
 - Prod migration ledger head is `20260811000100`, verified 2026-08-12 against `ynykjpnetfwqzdnsgkkg`.
