@@ -49,8 +49,8 @@ export default function MemberActions({
                 </p>
                 <p className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>{myReq.role_label}</p>
               </div>
-              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                style={{ backgroundColor: 'rgba(255,255,255,0.6)', color: REQUEST_STATUS_STYLES[myReq.status].color }}>
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-xl"
+                style={{ backgroundColor: 'var(--bg-card-raised)', color: REQUEST_STATUS_STYLES[myReq.status].color }}>
                 {myReq.status}
               </span>
             </div>

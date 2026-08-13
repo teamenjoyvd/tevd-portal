@@ -22,7 +22,7 @@ function PopoverContent({
         style={{
           backgroundColor: 'var(--bg-global)',
           border: '1px solid var(--border-default)',
-          borderRadius: '16px',
+          borderRadius: 'var(--radius)',
           boxShadow: 'var(--shadow-modal)',
           outline: 'none',
           ...style,

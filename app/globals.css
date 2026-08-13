@@ -32,6 +32,18 @@
   --color-brand-oyster: #f0ede6;
   --color-brand-moss: #252b23;
   --color-brand-stone: #8a8577;
+
+  /* ── Corner radius — one value site-wide (#740 A4) ──
+     Overriding v4's built-in --radius-* scale normalises ~515 existing
+     rounded-md/lg/xl/2xl usages to the navbar's 16px without editing 120
+     files. Canonical source is --radius in styles/brand-tokens.css; these are
+     literals because @theme resolves at build time and cannot read it.
+     Deliberately NOT collapsed: --radius-sm (hairline chrome) and
+     rounded-full (circular affordances) — see DESIGN-SYSTEM.md § Rounding. */
+  --radius-md: 16px;   /* was 0.375rem */
+  --radius-lg: 16px;   /* was 0.5rem   */
+  --radius-xl: 16px;   /* was 0.75rem  */
+  --radius-2xl: 16px;  /* was 1rem — already correct, pinned for clarity */
 }
 
 :root {

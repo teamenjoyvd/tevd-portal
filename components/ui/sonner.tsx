@@ -11,7 +11,7 @@ function Toaster({ ...props }: ToasterProps) {
           backgroundColor: 'var(--bg-card)',
           color: 'var(--text-primary)',
           border: '1px solid var(--border-default)',
-          borderRadius: '8px',
+          borderRadius: 'var(--radius)',
         },
         classNames: {
           error:

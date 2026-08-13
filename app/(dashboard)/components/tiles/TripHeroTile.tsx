@@ -38,14 +38,23 @@ export default function TripHeroTile({ trip }: Props) {
           }}
         />
       )}
-      <div className="absolute top-0 left-0 right-0 flex items-start justify-end px-5 pt-5 z-10">
-        <Link href="/trips" className="font-body text-[11px] font-bold tracking-widest uppercase pill-link-parchment">
+      {/* Whole-tile navigation to THIS trip. A sibling overlay, not a wrapper:
+          wrapping the tile would nest the /trips pill inside this <a>. The
+          content overlays below are pointer-events-none so clicks reach it,
+          and the /trips pill sits above it at z-20 to win the hit test. */}
+      <Link
+        href={`/trips/${trip.id}`}
+        aria-label={trip.title}
+        className="absolute inset-0 z-10"
+      />
+      <div className="absolute top-0 left-0 right-0 flex items-start justify-end px-5 pt-5 z-20 pointer-events-none">
+        <Link href="/trips" className="font-body text-[11px] font-bold tracking-widest uppercase pill-link-parchment pointer-events-auto">
           {t('home.trips.tripsLink')}
         </Link>
       </div>
-      <div className="absolute bottom-0 left-0 right-0 px-5 pb-5 z-10">
+      <div className="absolute bottom-0 left-0 right-0 px-5 pb-5 z-10 pointer-events-none">
         <span
-          className="inline-block font-body text-[9px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-full mb-2"
+          className="inline-block font-body text-[9px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-xl mb-2"
           style={{ backgroundColor: 'rgba(255,255,255,0.18)', color: 'var(--brand-parchment)', opacity: 0.55 }}
         >
           {t('home.trips.nextTrip')}
@@ -58,7 +67,7 @@ export default function TripHeroTile({ trip }: Props) {
         </h3>
         <div className="flex items-center gap-2 mt-1">
           <span
-            className="font-body text-[11px] font-bold px-2.5 py-1 rounded-full"
+            className="font-body text-[11px] font-bold px-2.5 py-1 rounded-xl"
             style={{ backgroundColor: 'rgba(255,255,255,0.18)', color: 'var(--brand-parchment)' }}
           >
             {trip.destination}

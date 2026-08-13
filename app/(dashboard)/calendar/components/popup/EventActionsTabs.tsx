@@ -96,8 +96,8 @@ export default function EventActionsTabs({
                           {slot.status === 'contested' && (
                             <PendingPopover profiles={slot.pending_profiles} color={slotStyle.color} />
                           )}
-                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                            style={{ backgroundColor: 'rgba(255,255,255,0.55)', color: slotStyle.color }}>
+                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-xl"
+                            style={{ backgroundColor: 'var(--bg-card-raised)', color: slotStyle.color }}>
                             {t(`event.slot.${slot.status}` as `event.slot.${'open'|'contested'|'filled'}`)}
                           </span>
                         </div>

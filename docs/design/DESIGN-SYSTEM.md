@@ -59,6 +59,41 @@ utilities:
 `<body>` defaults to `font-body` (Montserrat). DM Sans was removed; the remaining
 fonts have real usage in the app.
 
+## Rounding
+
+**One radius, site-wide: 16px.** It is the navbar shell's radius (`Header.tsx`),
+and it is now canonical for every card, pill, badge, input, button and overlay
+surface. Before 2608-DEV-740 four scales coexisted (16 / 12 / 8 / 6px, plus 165
+`rounded-full`), which is why nothing looked like it belonged to one system.
+
+The value lives in exactly one place — `--radius` in `styles/brand-tokens.css`:
+
+| Layer | How it gets 16px |
+|---|---|
+| Tailwind utilities | `app/globals.css` `@theme` pins `--radius-md`, `--radius-lg`, `--radius-xl`, `--radius-2xl` to `16px`, so `rounded-md/lg/xl/2xl` are all the same radius. This normalises ~515 existing class usages without editing the files. |
+| `.card` and bento surfaces | `--bento-radius: var(--radius)` |
+| Inline `style` props (shadcn fork in `components/ui/`) | `borderRadius: 'var(--radius)'` |
+
+Because the four Tailwind steps are equal, **which one you type does not
+matter** — prefer `rounded-xl`. Never write a numeric radius (`10px`,
+`0.5rem`, `9999px`) in a component; use `var(--radius)` or a `rounded-*`
+utility.
+
+### The only exceptions
+
+- **`rounded-full`** — circular affordances *only*: avatars and logos
+  (`Footer.tsx`, `Header.tsx`), the calendar today-dot (`MonthView.tsx`),
+  progress tracks (`AttendeeView.tsx`), `ui/switch.tsx`, `ui/toggle.tsx`,
+  spinners, drag handles (`ui/vaul-drawer.tsx`), and dialog close buttons.
+  A status pill or badge is **not** one of these — those are `rounded-xl`.
+- **`rounded-sm`** (`--radius-sm`, 0.25rem) — deliberately left off the
+  collapse for hairline chrome. Not for cards or pills.
+- Tiptap **rendered content** styles in `globals.css` are author content, not
+  app chrome, and keep their own radii.
+
+To change the corner radius of the entire app, change `--radius` and the four
+`@theme` keys. There is no second place to look.
+
 ## Elevation Shadows
 
 Hierarchical shadow system for layering UI surfaces. All shadows are defined in

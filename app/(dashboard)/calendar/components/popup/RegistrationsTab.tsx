@@ -32,7 +32,7 @@ export default function RegistrationsTab({ eventId, t }: Props) {
     return (
       <div className="px-4 py-3 space-y-2">
         {[...Array(3)].map((_, i) => (
-          <div key={i} className="h-10 rounded-lg animate-pulse" style={{ backgroundColor: 'rgba(0,0,0,0.06)' }} />
+          <div key={i} className="h-10 rounded-lg animate-pulse" style={{ backgroundColor: 'var(--skeleton-base)' }} />
         ))}
       </div>
     )
@@ -73,7 +73,7 @@ export default function RegistrationsTab({ eventId, t }: Props) {
             // text locator is ambiguous by design of this list.
             data-testid="registration-row"
             className="rounded-lg p-2.5"
-            style={{ backgroundColor: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.05)' }}
+            style={{ backgroundColor: 'var(--bg-card-raised)', border: '1px solid var(--border-default)' }}
           >
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1 min-w-0">
@@ -81,8 +81,8 @@ export default function RegistrationsTab({ eventId, t }: Props) {
                   <p data-testid="registration-name" className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{r.registrant}</p>
                   {r.is_member && (
                     <span
-                      className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: 'rgba(61,64,91,0.08)', color: '#3d405b' }}
+                      className="text-[9px] font-semibold px-1.5 py-0.5 rounded-xl flex-shrink-0"
+                      style={{ backgroundColor: 'var(--status-info-bg)', color: 'var(--status-info-fg)' }}
                     >
                       {t('cal.reg.member')}
                     </span>
