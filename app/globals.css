@@ -60,6 +60,76 @@
   --radius-2xl: var(--radius-container);
 }
 
+/* ── Semantic tokens as Tailwind utilities (2608-DEV-741 C1) ──
+   Every semantic token in styles/brand-tokens.css is mapped into Tailwind's
+   colour scale here, so `bg-bg-card`, `text-text-primary`, `text-link`,
+   `hover:bg-hover-surface` and `ring-focus-ring` are ordinary utilities that
+   are theme-aware for free.
+
+   This exists to fix REACHABILITY, not capability. Using a token used to
+   require an inline style object while the wrong thing was one word
+   (`text-emerald-800`) — so the wrong thing won, 513 times. Now the correct
+   path is the shorter one.
+
+   `inline` is the shadcn/ui v4 convention: it emits the utility as
+   `var(--bg-card)` directly instead of routing through an intermediate
+   `--color-bg-card`. Opacity modifiers still work — v4 compiles
+   `bg-bg-card/50` to color-mix(in oklab, var(--bg-card) 50%, transparent).
+
+   Adding a token? Add it in BOTH :root and [data-theme="dark"] in
+   brand-tokens.css, then add its line here. */
+@theme inline {
+  /* Surfaces */
+  --color-bg-global:      var(--bg-global);
+  --color-bg-card:        var(--bg-card);
+  --color-bg-card-raised: var(--bg-card-raised);
+
+  /* Text */
+  --color-text-primary:   var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary:  var(--text-tertiary);
+  --color-text-nav:       var(--text-nav);
+
+  /* Borders */
+  --color-border-default: var(--border-default);
+  --color-border-hover:   var(--border-hover);
+  --color-nav-border:     var(--nav-border);
+
+  /* Interaction */
+  --color-link:           var(--link);
+  --color-link-hover:     var(--link-hover);
+  --color-on-accent:      var(--on-accent);
+  --color-overlay:        var(--overlay);
+  --color-hover-surface:  var(--hover-surface);
+  --color-focus-ring:     var(--focus-ring);
+  --color-skeleton-base:  var(--skeleton-base);
+
+  /* Status pairs */
+  --color-status-success-bg: var(--status-success-bg);
+  --color-status-success-fg: var(--status-success-fg);
+  --color-status-info-bg:    var(--status-info-bg);
+  --color-status-info-fg:    var(--status-info-fg);
+  --color-status-alert-bg:   var(--status-alert-bg);
+  --color-status-alert-fg:   var(--status-alert-fg);
+  --color-status-pending-bg: var(--status-pending-bg);
+  --color-status-pending-fg: var(--status-pending-fg);
+  --color-status-neutral-bg: var(--status-neutral-bg);
+  --color-status-neutral-fg: var(--status-neutral-fg);
+}
+
+/* ── The `dark:` variant, pointed at the real selector ──
+   This project sets data-theme on <html>; it does NOT use Tailwind's default
+   prefers-color-scheme dark variant. Leaving `dark:` unregistered did not
+   disable it — it wired it to the OS setting, so the five `dark:` classes
+   already in the tree fired on the wrong signal (an intermittent bug, which
+   is worse than an absent one). Registering it makes `dark:` honest.
+
+   The rule is now narrower, not looser: COLOUR goes through tokens; `dark:`
+   is only for the non-colour things a token cannot express — shadow
+   geometry, opacity, image filter, background-image gradients.
+   See docs/design/DESIGN-SYSTEM.md § Usage Rules. */
+@custom-variant dark (&:where([data-theme="dark"] *));
+
 :root {
   --forest:   #2d332a;
   --crimson:  #bc4749;

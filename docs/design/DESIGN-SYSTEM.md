@@ -43,6 +43,76 @@ their dark-mode overrides live in `styles/brand-tokens.css`. The dark
 `--bg-global-rgb` **must** stay `26, 31, 24` — the header backdrop `rgba()`
 depends on it.
 
+### Tokens are Tailwind utilities
+
+`app/globals.css` maps every semantic token into Tailwind's colour scale with
+`@theme inline`, so you do **not** need an inline `style` object to use one:
+
+| Instead of | Write |
+|---|---|
+| `style={{ backgroundColor: 'var(--bg-card)' }}` | `className="bg-bg-card"` |
+| `style={{ color: 'var(--text-primary)' }}` | `className="text-text-primary"` |
+| `style={{ color: 'var(--brand-teal)' }}` on a link | `className="text-link hover:text-link-hover"` |
+| `hover:bg-black/[0.04]` | `hover:bg-hover-surface` |
+| `rgba(255,255,255,0.9)` on a crimson fill | `text-on-accent` |
+
+These are theme-aware for free. Opacity modifiers work (`bg-bg-card/50`
+compiles to `color-mix(in oklab, var(--bg-card) 50%, transparent)`).
+
+Adding a token: define it in **both** `:root` and `[data-theme="dark"]` in
+`brand-tokens.css`, add one line to the `@theme inline` block, and record its
+contrast ratio in the table below.
+
+### Interaction tokens
+
+Added in 2608-DEV-741 because there was no token for "a link", "a hover",
+"text on a crimson fill" or "the dialog scrim" — so those were typed as colour
+literals 513 times, and every one of them is wrong in dark mode.
+
+| Token | Light | Dark | For |
+|---|---|---|---|
+| `--link` / `--link-hover` | `#356874` / `#2C5964` | `#6FAEBE` / `#93CBD8` | Text links |
+| `--on-accent` | parchment | parchment | Text/icons on a crimson / forest / teal fill |
+| `--overlay` | `rgba(26,31,24,.40)` | `rgba(0,0,0,.60)` | Dialog and sheet scrims |
+| `--hover-surface` | `rgba(45,51,42,.05)` | `rgba(250,248,243,.08)` | Hover tints |
+| `--focus-ring` | crimson | `#6FAEBE` | Focus rings |
+
+`color-scheme` is set alongside them (`light` on `:root`, `dark` on
+`[data-theme="dark"]`) so native scrollbars, `<select>` popups, date pickers
+and autofill backgrounds follow the app theme.
+
+### Contrast (WCAG 2.2 AA)
+
+Measured, not estimated. AA is 4.5:1 for body text and 3:1 for large text and
+UI components. Re-measure and update this table whenever a value changes.
+
+| Pair | Light | Dark | Bar | |
+|---|---|---|---|---|
+| `--text-primary` on `--bg-card` | 14.33 | 13.66 | 4.5 | pass |
+| `--text-secondary` on `--bg-card` | 5.99 | 6.72 | 4.5 | pass |
+| `--link` on `--bg-global` | 5.85 | 6.76 | 4.5 | pass |
+| `--link` on `--bg-card` | 5.31 | 5.85 | 4.5 | pass |
+| `--link-hover` on `--bg-card` | 6.60 | 8.13 | 4.5 | pass |
+| `--on-accent` on crimson / forest / teal | 4.78 / 12.22 / 4.73 | same | 4.5 | pass |
+| `--focus-ring` on `--bg-global` / `--bg-card` | 4.78 / 4.34 | 6.76 / 5.85 | 3.0 | pass |
+| `--status-success-fg` on `--bg-card` | 7.63 | 8.77 | 4.5 | pass |
+| `--status-info-fg` on `--bg-card` | 6.60 | 8.45 | 4.5 | pass |
+| `--status-alert-fg` on `--bg-card` | 6.10 | 6.79 | 4.5 | pass |
+| `--status-pending-fg` on `--bg-card` | 4.80 | 7.80 | 4.5 | pass |
+| `--status-neutral-fg` on `--bg-card` | 5.99 | 6.72 | 4.5 | pass |
+| **`--text-tertiary` on `--bg-card`** | **3.15** | **3.94** | 4.5 | **FAIL — open** |
+
+Two notes on why `--link` is not simply `var(--brand-teal)`:
+
+- `--brand-teal` is 3.34:1 on the dark page — the AA failure this ticket was
+  filed for.
+- It is *also* 4.29:1 on the **light** card, a failure nobody had noticed.
+  `--brand-teal` stays the brand **fill** colour; `--link` is for text.
+
+`--text-tertiary` fails in both themes and is never redefined for dark at all.
+Fixing it changes light-mode pixels, so it is deliberately **not** in the C1
+foundation change — it belongs to the contrast-audit phase.
+
 ## Typography
 
 Fonts load via `next/font/google` in `app/layout.tsx`, each exposing a CSS
@@ -195,14 +265,23 @@ settings. Applied via `@media (prefers-reduced-motion: reduce)` guard in
 
 ## Usage Rules
 
-- **Never use Tailwind's `dark:` variant for theme-conditional styling.** This
-  project toggles a `data-theme="dark"|"light"` attribute on `<html>`
-  (`lib/hooks/useTheme.ts`), not `prefers-color-scheme` or a `.dark` class —
-  and no `@custom-variant dark` remaps it. `dark:*` utility classes silently
-  never fire. Use CSS custom properties with a `[data-theme="dark"] { ... }`
-  override block instead (see `styles/brand-tokens.css` for the pattern), or
-  read `data-theme` at runtime for JS-driven values (`lib/hooks/useTheme.ts`
-  exposes it; `ThemeTile.tsx` is the reference consumer).
+- **Colour goes through tokens. `dark:` is only for what a token cannot
+  express.** *(Revised in 2608-DEV-741 — this rule previously banned `dark:`
+  outright.)*
+
+  `@custom-variant dark (&:where([data-theme="dark"] *))` is now registered in
+  `app/globals.css`, so `dark:` targets the app's own `data-theme` attribute.
+  The old blanket ban was aimed at a real bug but described it wrongly: an
+  unregistered `dark:` did not "silently never fire", it fired on the **OS**
+  setting — an intermittent bug, which is worse than an absent one.
+
+  So the rule is now narrower and enforceable, not looser:
+  - **Colour** — always a semantic token. Never `dark:text-white`, never a hex.
+  - **`dark:`** — only for non-colour properties a token cannot carry: shadow
+    geometry, `opacity`, image `filter`, `background-image` gradients.
+
+  For JS-driven values, read `data-theme` at runtime (`lib/hooks/useTheme.ts`;
+  `ThemeTile.tsx` is the reference consumer).
 - **Legacy bare token names** (`--forest`, `--crimson`, `--sienna`, `--stone`,
   defined in `app/globals.css`) are a deliberate back-compat layer for older
   calendar components (`FilterControls.tsx`, `MonthView.tsx`, `AgendaView.tsx`,
