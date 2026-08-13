@@ -89,6 +89,20 @@
   /* Dialog and sheet scrims. */
   --overlay:         rgba(26, 31, 24, 0.40);
 
+  /* Bottom-up scrim for text laid over a photo (image-hero tiles). Not
+     --overlay: that is a flat sheet over a KNOWN surface, this is a gradient
+     over an UNKNOWN photo, so it is sized for the worst case — a bright sky
+     under white text. The dark override goes further because the card around
+     it is dark: a scrim that reads as a soft fade in light mode reads as a
+     grey smear against --brand-void unless it lands harder at the bottom. */
+  --image-scrim: linear-gradient(
+    to top,
+    rgba(26, 31, 24, 0.82) 0%,
+    rgba(26, 31, 24, 0.55) 38%,
+    rgba(26, 31, 24, 0.10) 72%,
+    rgba(26, 31, 24, 0) 100%
+  );
+
   /* The single biggest source of dark-mode invisibility: hover:bg-black/[0.02-0.05]. */
   --hover-surface:   rgba(45, 51, 42, 0.05);
 
@@ -161,6 +175,13 @@ html { font-size: calc(var(--font-scale) * 16px); }
   /* Deeper than light: a 0.40 scrim over an already-dark page does not
      separate the dialog from what is behind it. */
   --overlay:         rgba(0, 0, 0, 0.60);
+  --image-scrim: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.88) 0%,
+    rgba(0, 0, 0, 0.65) 38%,
+    rgba(0, 0, 0, 0.18) 72%,
+    rgba(0, 0, 0, 0) 100%
+  );
   --hover-surface:   rgba(250, 248, 243, 0.08);
   /* Crimson is only 2.86:1 on --bg-card here; the lightened teal is 5.85:1. */
   --focus-ring:      #6FAEBE;
