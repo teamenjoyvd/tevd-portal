@@ -51,8 +51,7 @@ blanket ban with the doc updated in the same commit.
    cards/dialogs/navbar read at 8px; check the mobile event popup's top corners, the Footer social
    row (now 4px squares, was circles), and the Trips hero tile (the surface most at risk at 8px).
 2. `/code-review low` on each, then mark ready for CodeRabbit and apply GCR.
-3. File the **Phase 2** issue (see Open items) for `app/admin/**`.
-4. `npm run verify` deliberately NOT run locally: its `next build` runs under `NODE_ENV=production`,
+3. `npm run verify` deliberately NOT run locally: its `next build` runs under `NODE_ENV=production`,
    which on this box resolves `.env.local` = PROD. CI builds it on the PR.
 
 ## Constraints
@@ -121,15 +120,11 @@ blanket ban with the doc updated in the same commit.
 - #702 CLOSED (epic, 2026-08-12) — all ten children and all six follow-ups merged.
 
 ## Open items
-- **OPEN — Phase 2 of the radius migration (`app/admin/**`), not yet filed as an issue.** Audited
-  work: **61 pill-shaped `rounded-full` sites** → `rounded-control`, and **~80 containers stranded
-  on `rounded-lg`/`rounded-xl`** → `rounded-container`. High-leverage shared components to do first
-  (one edit each, many call sites): `app/admin/calendar/components/Pill.tsx:8`,
-  `app/admin/components/AdminStatusBadge.tsx:15`, `app/admin/components/RoleSelector.tsx:29`,
-  `app/admin/components/AdminTabs.tsx:65`. Two admin ambiguities deferred with it:
-  `AdminTabs.tsx:65` (count badge — near-circular at one digit) and `MembersTable.tsx:113` (24px
-  circular ABO-level token). Until this lands, admin renders at the control tier by default —
-  visible but internal-facing.
+- **FILED as #746** — Radius Phase 2 (`app/admin/**`). 61 pill-shaped `rounded-full` →
+  `rounded-control`, ~80 containers stranded on `rounded-lg`/`rounded-xl` → `rounded-container`.
+  The issue carries the shared-component shortlist and both admin ambiguities. Until it lands, admin
+  renders at the control tier by default — visible but internal-facing, and called out in
+  DESIGN-SYSTEM.md § Rounding.
 - **OPEN (#741 C4):** `--text-tertiary` fails WCAG AA in BOTH themes — 3.15:1 light, 3.94:1 dark on
   `--bg-card` — and is never redefined for dark at all. Not fixed in C1 because it moves light-mode
   pixels and "light mode visually unchanged" is C1's review invariant.
