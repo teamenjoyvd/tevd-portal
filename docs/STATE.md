@@ -10,9 +10,13 @@ full-bleed image hero, a sibling to the Trips tile it sits beside. No migration.
 limited**, so the ready-state pass covers `9bc7010`, not `d0b6921`; the delta is a one-line
 absence check.
 
-Remaining: merge, then GCR (prune the CLAIMS row, close #743). **Delete the DEV seed row** —
-`social_posts` has exactly one row, seeded so the preview would show the hero, plus
-`social-thumbnails/dev-seed-743.jpg` in DEV storage.
+Remaining: merge, then GCR (prune the CLAIMS row, close #743). **Delete the DEV seed rows** —
+`social_posts` holds **6 seeded variants** (`post_url` all match `%dev-seed-743-variant-%`), plus
+three objects in the DEV `social-thumbnails` bucket (`dev-seed-743.jpg`, `-pale.png`, `-alt.png`).
+They cover long/short/empty/no-thumbnail/unknown-platform cases; the API shows the lowest
+`sort_order`, so `update social_posts set sort_order = case when post_url like '%variant-N%' then 0
+else 10 end;` switches which one renders. DEV `social_posts` was empty before this ticket, so
+deleting every row is the correct cleanup.
 
 #740 (PR #744) and #741 (PR #745) both **merged** on 2026-08-13; their CLAIMS.md rows were stale and
 are pruned in this branch's CLAIM commit rather than in a standalone cleanup PR.
