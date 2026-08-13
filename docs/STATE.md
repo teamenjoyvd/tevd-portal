@@ -1,19 +1,38 @@
 ## Goal
-Two stacked tickets, both open as DRAFT PRs, neither merged.
-
-- **#740** (`dev/2608-DEV-740` → PR **#744**, base `main`): QA polish — calendar bubble insets,
-  popup title + dark-mode contrast, Trips bento deep link, and a **two-tier corner radius system**.
-- **#741** (`dev/2608-DEV-741` → PR **#745**, base **`dev/2608-DEV-740`**): C1 only of the dark-mode
-  foundation — fill the token gaps and make every semantic token a Tailwind utility.
+**#743** (`dev/2608-DEV-743`, cut from `main` @ `0a29718`): redesign the Socials bento as a
+full-bleed image hero, a sibling to the Trips tile it sits beside. No migration.
 
 ## Now
 
-**#741 is stacked on #740.** PR #745's base is `dev/2608-DEV-740`, NOT `main`, because both branches
-edit `styles/brand-tokens.css` and `app/globals.css`. Merge #744 first; GitHub retargets #745
-automatically. #741 **has** been rebased onto the two-tier radius work; both CSS files auto-merged
-(the radius tokens and the colour tokens are disjoint additions to the same blocks).
+**PR #748 is ready to merge.** The CLAIMS row is already removed in this PR (never a standalone
+cleanup PR). After merge, the only remaining GCR work is closing #743 and deleting the DEV seed
+rows + storage objects listed below.
 
-### #740 — what landed
+`app/(dashboard)/components/tiles/SocialsTile.test.tsx` is the **repo's first component test suite**
+— 13 cases over the six seeded data shapes. Infra: `jsdom` + `@testing-library/react` (+ the
+`@testing-library/dom` peer, which RTL v16 does not bundle) as dev deps, `.tsx` added to the vitest
+include globs. Default environment stays `node`; component files opt into jsdom with a
+`// @vitest-environment jsdom` docblock. `tsconfig.json` already sets `jsx: react-jsx`, so esbuild
+transforms `.tsx` with no React plugin.
+
+Earlier state (kept for the record): head `d0b6921`, all checks green (including
+`390px smoke vs preview` and `Authenticated E2E (Clerk)`). CodeRabbit's one finding — truthiness on
+`post.caption` — is fixed and its thread is resolved. Its **re-review after that push was rate
+limited**, so the ready-state pass covers `9bc7010`, not `d0b6921`; the delta is a one-line
+absence check.
+
+Remaining: merge, then GCR (prune the CLAIMS row, close #743). **Delete the DEV seed rows** —
+`social_posts` holds **6 seeded variants** (`post_url` all match `%dev-seed-743-variant-%`), plus
+three objects in the DEV `social-thumbnails` bucket (`dev-seed-743.jpg`, `-pale.png`, `-alt.png`).
+They cover long/short/empty/no-thumbnail/unknown-platform cases; the API shows the lowest
+`sort_order`, so `update social_posts set sort_order = case when post_url like '%variant-N%' then 0
+else 10 end;` switches which one renders. DEV `social_posts` was empty before this ticket, so
+deleting every row is the correct cleanup.
+
+#740 (PR #744) and #741 (PR #745) both **merged** on 2026-08-13; their CLAIMS.md rows were stale and
+are pruned in this branch's CLAIM commit rather than in a standalone cleanup PR.
+
+### #740 — what landed (merged)
 Commits `9fc24a9` (original) + the radius revision on top.
 
 A1 event-bar wrapper carries a 2px inset keyed off `packWeek`'s `continuesLeft/Right`. A2 the popup
@@ -46,12 +65,9 @@ for both themes; `@custom-variant dark` registered against `[data-theme="dark"]`
 blanket ban with the doc updated in the same commit.
 
 ## Next
-1. Vercel preview READY + CI green on both, then the **visual pass — the real gate**. At 390px and
-   desktop, in **both** themes: status badges and filter chips must show a flat edge;
-   cards/dialogs/navbar read at 8px; check the mobile event popup's top corners, the Footer social
-   row (now 4px squares, was circles), and the Trips hero tile (the surface most at risk at 8px).
-2. `/code-review low` on each, then mark ready for CodeRabbit and apply GCR.
-3. `npm run verify` deliberately NOT run locally: its `next build` runs under `NODE_ENV=production`,
+1. Merge #748, then GCR: remove the CLAIMS row, close #743, and delete the DEV seed row + storage
+   object.
+2. `npm run verify` deliberately NOT run locally: its `next build` runs under `NODE_ENV=production`,
    which on this box resolves `.env.local` = PROD. CI builds it on the PR.
 
 ## Constraints
@@ -99,6 +115,19 @@ blanket ban with the doc updated in the same commit.
   `@theme` breaks. Do not repeat the "freezes the light value" claim; it was measured false.
 - Overriding a shadcn default utility by className works because Tailwind emits the larger scale step
   later in the stylesheet (`.text-lg` after `.text-base`) — verified, not assumed.
+- `.env.development.local` now points at the hosted DEV project (`iymwxdewcpvpjgzewtzk`), not the
+  dead local Docker stack. `next dev` hot-reloads `.env*` changes into an already-running server —
+  that is why a warm dev server picked up the switch mid-session without a restart. The old value is
+  in this session's scratchpad as `env.development.local.bak`.
+- The homepage `/` is a PUBLIC route (`lib/public-routes.ts:23`), so homepage visual checks need no
+  Clerk session — just a dev server and Playwright.
+- `npm audit --omit=dev` reports moderate DOMPurify advisories via `jspdf@2.5.2` — **pre-existing**,
+  unrelated to the jsdom/RTL dev deps, and CI's Security Audit is a soft gate
+  (`npm audit --audit-level=high --omit=dev || true`, `.github/workflows/ci.yml:85`).
+- `social_posts_single_pinned` (UNIQUE partial index, `20260716000100:134`) allows exactly one
+  pinned row. The app never trips it: the admin PATCH routes pins through the atomic
+  `pin_social_post` RPC (`app/api/admin/social-posts/[id]/route.ts:31`, ISS-0171). Only bulk
+  inserts/updates from a script can hit it — drive selection by `sort_order` there.
 - Baseline on both branches: `npm test` 481 passed / 34 files, `npx tsc --noEmit` clean,
   `npm run lint` 0 errors / 465 pre-existing warnings.
 - Prod migration ledger head is `20260811000100`, verified 2026-08-12 against `ynykjpnetfwqzdnsgkkg`.
@@ -107,6 +136,22 @@ blanket ban with the doc updated in the same commit.
   (`iymwxdewcpvpjgzewtzk`). Only a warm-server run is evidence.
 
 ## Done
+- #743 CLAIM + BUILD (`5d1e57a`, `5e67671` + the review fix). **Visually verified locally, unlike
+  #740/#741**: dev server against hosted DEV, a seeded `social_posts` row with a 241-char Bulgarian
+  caption, Playwright at 390×844 and 1440×900 in **both** themes. Measured — page `scrollWidth`
+  375 ≤ 390 and 1425 ≤ 1440 (no overflow); card `scrollWidth == clientWidth` at both sizes; caption
+  renders exactly 2 lines in `--on-accent`; the card anchor resolves to `post_url` and the pill to
+  the profile with `querySelector('a a') === null` (no nested anchor); no-thumbnail post falls back
+  to `card--forest`; empty state still `card bento-tile flex flex-col` with the coming-soon copy.
+  `tsc` clean, `npm test` 481 passed, lint 0 errors. The seed row and its local image were removed
+  afterwards — DEV `social_posts` is back to 0 rows.
+- #743 verified on the **Vercel preview** too (`tevd-portal-mym1ogste`, DEV-backed, reached with a
+  `_vercel_share` bypass link from the Vercel MCP — preview deployments are auth-protected): at
+  390×844 and 1440×900 in both themes the hero image loads from DEV storage, caption is 2 lines,
+  `a a` is null, page `scrollWidth` 375/1425 against 390/1440.
+- `/code-review low` on #743 found one real issue — in hero mode every child is absolute, so the
+  card had no intrinsic height and depended on its call sites for one. Fixed with `min-h-[200px]`;
+  re-measured heights unchanged (198px mobile, 218px desktop).
 - #740 BUILD — A1–A5 plus the two-tier radius revision and the Phase 1 sweep. Verified: tsc clean,
   `npm test` 481 passed, lint 0 errors/465 warnings, real `app/globals.css` compiles to
   `rounded-control → var(--radius-control)` and `rounded-container → var(--radius-container)`, and

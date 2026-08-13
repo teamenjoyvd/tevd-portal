@@ -27,6 +27,8 @@ export const home = {
   'home.socials.comingSoon': { en: 'Social feed coming soon.', bg: 'Социалните публикации идват скоро.' },
   'home.socials.viewPost':   { en: 'View post →',          bg: 'Виж публикацията →'      },
   'home.socials.postAlt':    { en: 'post',                 bg: 'публикация'              },
+  'home.socials.followLink': { en: 'Follow →',             bg: 'Последвай →'             },
+  'home.socials.openPost':   { en: 'Open post',            bg: 'Отвори публикацията'     },
   // shared.tsx (profile section shared components)
   'home.shared.showMore':    { en: 'more',                 bg: 'още'                     },
   'home.shared.cancelled':   { en: 'cancelled',            bg: 'отменено'                },

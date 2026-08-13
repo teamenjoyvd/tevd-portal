@@ -24,6 +24,12 @@ type SocialsData = {
 
 const STORAGE_URL_FRAGMENT = '/storage/v1/object/public/social-thumbnails/'
 
+/** Platform profile pages — same two accounts the Footer links to. */
+const PROFILE_URLS: Record<string, string> = {
+  instagram: 'https://www.instagram.com/teamenjoyvd/',
+  facebook: 'https://www.facebook.com/teamenjoyvd/',
+}
+
 function thumbnailSrc(url: string): string {
   if (url.includes(STORAGE_URL_FRAGMENT)) return url
   return `/api/socials/thumbnail?src=${encodeURIComponent(url)}`
@@ -77,12 +83,25 @@ export default function SocialsTile({
     return timeAgoMs(now - new Date(dateStr).getTime(), t)
   }
 
+  // Explicit absence check: '' is a stored value, not "no thumbnail" — but it is
+  // also not a loadable src, so both fall back to the flat hero.
+  const thumbnail =
+    post === null || post.thumbnail_url === null || post.thumbnail_url === '' ? null : post.thumbnail_url
+  const profileUrl = post === null ? undefined : PROFILE_URLS[post.platform]
+
   return (
     <BentoCard
-      variant="default"
+      // No image to carry the hero: fall back to a filled card so the parchment
+      // caption still has something dark under it. A scrim over nothing is the
+      // broken-looking state this avoids.
+      variant={post !== null && thumbnail === null ? 'forest' : 'default'}
       colSpan={colSpan}
       rowSpan={rowSpan}
-      className="bento-tile flex flex-col"
+      // min-h: in hero mode every child is absolutely positioned, so the card has
+      // no intrinsic height. Both current call sites impose one (mobile
+      // `minHeight: 200`, desktop grid row) — this keeps the tile from collapsing
+      // if a future one does not.
+      className={post !== null ? 'bento-tile relative overflow-hidden p-0 min-h-[200px]' : 'bento-tile flex flex-col'}
       style={{ animationDelay: '350ms', ...style }}
     >
       {isLoading && (
@@ -98,46 +117,75 @@ export default function SocialsTile({
       )}
 
       {!isLoading && post && (
-        <a
-          href={post.post_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex gap-3 md:gap-4 group mt-3 md:mt-0 flex-1 md:items-center"
-          style={{ textDecoration: 'none' }}
-        >
-          {post.thumbnail_url && (
-            <div
-              className="flex-shrink-0 rounded-container overflow-hidden self-start md:self-auto w-20 h-20 md:w-[100px] md:h-[100px] outline outline-2 outline-offset-1 outline-[rgba(0,0,0,0.08)] md:outline-0 md:shadow-[0_2px_8px_rgba(0,0,0,0.10)]"
-              style={{ backgroundColor: 'rgba(0,0,0,0.06)' }}
-            >
+        <>
+          {thumbnail !== null && (
+            <>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={thumbnailSrc(post.thumbnail_url)}
+                src={thumbnailSrc(thumbnail)}
                 alt={`${post.platform} ${t('home.socials.postAlt')}`}
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  pointerEvents: 'none',
+                }}
               />
-            </div>
+              <div
+                aria-hidden="true"
+                className="absolute inset-0 pointer-events-none"
+                style={{ background: 'var(--image-scrim)' }}
+              />
+            </>
           )}
 
-          <div className="flex-1 min-w-0 flex flex-col justify-between md:justify-start md:gap-1.5">
-            <div className="flex items-center gap-1.5 mb-1.5 md:mb-0" style={{ color: 'var(--text-secondary)' }}>
+          {/* Whole-tile navigation to the post. A sibling overlay, not a wrapper:
+              wrapping would nest the profile pill inside this <a>. The content
+              overlays are pointer-events-none so clicks reach it, and the pill
+              sits above at z-20 to win the hit test. Same pattern as TripHeroTile. */}
+          <a
+            href={post.post_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={t('home.socials.openPost')}
+            className="absolute inset-0 z-10"
+          />
+
+          <div className="absolute top-0 left-0 right-0 flex items-start justify-between gap-2 px-5 pt-5 z-20 pointer-events-none">
+            <span
+              className="inline-flex items-center gap-1.5 font-body text-[11px] font-medium capitalize px-2 py-1 rounded-control min-w-0"
+              style={{ backgroundColor: 'rgba(26,31,24,0.55)', color: 'var(--on-accent)' }}
+            >
               {post.platform === 'instagram' ? <InstagramIcon /> : <FacebookIcon />}
-              <span className="text-xs font-medium capitalize" style={{ color: 'var(--text-secondary)' }}>
-                {post.platform}
-              </span>
+              <span className="truncate">{post.platform}</span>
               {now !== null && (
-                <span className="text-xs" style={{ color: 'var(--text-secondary)', opacity: 0.55 }}>
-                  · {timeAgo(post.posted_at ?? post.created_at)}
-                </span>
+                <span style={{ opacity: 0.75 }}>· {timeAgo(post.posted_at ?? post.created_at)}</span>
               )}
-            </div>
-            {post.caption ? (
+            </span>
+
+            {profileUrl !== undefined && (
+              <a
+                href={profileUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-body text-[11px] font-bold tracking-widest uppercase pill-link-parchment pointer-events-auto whitespace-nowrap shrink-0"
+                style={{ backgroundColor: 'rgba(26,31,24,0.55)' }}
+              >
+                {t('home.socials.followLink')}
+              </a>
+            )}
+          </div>
+
+          <div className="absolute bottom-0 left-0 right-0 px-5 pb-5 z-10 pointer-events-none">
+            {post.caption !== null && post.caption !== '' ? (
               <p
-                className="text-xs leading-relaxed group-hover:underline"
+                className="font-body text-sm leading-snug"
                 style={{
-                  color: 'var(--text-primary)',
+                  color: 'var(--on-accent)',
                   display: '-webkit-box',
-                  WebkitLineClamp: 3,
+                  WebkitLineClamp: 2,
                   WebkitBoxOrient: 'vertical',
                   overflow: 'hidden',
                 }}
@@ -145,12 +193,12 @@ export default function SocialsTile({
                 {post.caption}
               </p>
             ) : (
-              <p className="text-xs italic" style={{ color: 'var(--text-secondary)' }}>
+              <p className="font-body text-sm italic" style={{ color: 'var(--on-accent)', opacity: 0.85 }}>
                 {t('home.socials.viewPost')}
               </p>
             )}
           </div>
-        </a>
+        </>
       )}
     </BentoCard>
   )
