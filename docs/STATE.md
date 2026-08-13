@@ -10,7 +10,8 @@ Two stacked tickets, both open as DRAFT PRs, neither merged.
 
 **#741 is stacked on #740.** PR #745's base is `dev/2608-DEV-740`, NOT `main`, because both branches
 edit `styles/brand-tokens.css` and `app/globals.css`. Merge #744 first; GitHub retargets #745
-automatically. **#741 has NOT yet been rebased onto the latest #740** — see Next, step 1.
+automatically. #741 **has** been rebased onto the two-tier radius work; both CSS files auto-merged
+(the radius tokens and the colour tokens are disjoint additions to the same blocks).
 
 ### #740 — what landed
 Commits `9fc24a9` (original) + the radius revision on top.
@@ -45,17 +46,13 @@ for both themes; `@custom-variant dark` registered against `[data-theme="dark"]`
 blanket ban with the doc updated in the same commit.
 
 ## Next
-1. **Rebase #741 onto #740** — `git rebase dev/2608-DEV-740` on `dev/2608-DEV-741`, then force-push.
-   Expect a conflict in `docs/STATE.md` (this file was rewritten on #740 after #741 branched) and
-   possibly in `styles/brand-tokens.css` / `app/globals.css`. Resolve by keeping BOTH: #740's radius
-   tokens and #741's colour tokens are disjoint additions to the same files.
-2. Vercel preview READY + CI green on both, then the **visual pass — the real gate**. At 390px and
+1. Vercel preview READY + CI green on both, then the **visual pass — the real gate**. At 390px and
    desktop, in **both** themes: status badges and filter chips must show a flat edge;
    cards/dialogs/navbar read at 8px; check the mobile event popup's top corners, the Footer social
    row (now 4px squares, was circles), and the Trips hero tile (the surface most at risk at 8px).
-3. `/code-review low` on each, then mark ready for CodeRabbit and apply GCR.
-4. File the **Phase 2** issue (see Open items) for `app/admin/**`.
-5. `npm run verify` deliberately NOT run locally: its `next build` runs under `NODE_ENV=production`,
+2. `/code-review low` on each, then mark ready for CodeRabbit and apply GCR.
+3. File the **Phase 2** issue (see Open items) for `app/admin/**`.
+4. `npm run verify` deliberately NOT run locally: its `next build` runs under `NODE_ENV=production`,
    which on this box resolves `.env.local` = PROD. CI builds it on the PR.
 
 ## Constraints
