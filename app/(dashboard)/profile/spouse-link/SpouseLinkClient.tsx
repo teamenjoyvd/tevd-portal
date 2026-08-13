@@ -216,7 +216,7 @@ function GuestView({ outboundRequest }: { outboundRequest: OutboundRequest | nul
       }}
     >
       <div
-        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold mb-3"
+        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-control text-[10px] font-semibold mb-3"
         style={{
           backgroundColor: isPending ? '#f2cc8f33' : isDenied ? '#bc474915' : '#1a3c2e18',
           color: isPending ? '#7a5c00' : isDenied ? '#bc4749' : '#1a3c2e',

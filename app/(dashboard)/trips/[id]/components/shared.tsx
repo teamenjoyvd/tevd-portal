@@ -144,14 +144,14 @@ export function TripHeroImage({
         <div className="absolute bottom-4 left-6 right-6">
           <div className="flex flex-wrap items-center gap-1.5 mb-2">
             <span
-              className="text-xs font-semibold px-2 py-0.5 rounded-full"
+              className="text-xs font-semibold px-2 py-0.5 rounded-control"
               style={{ backgroundColor: badgeBg, color: badgeColor }}
             >
               {trip.destination}
             </span>
             {trip.trip_type && (
               <span
-                className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                className="text-xs font-semibold px-2 py-0.5 rounded-control"
                 style={{ backgroundColor: tealBadgeBg, color: badgeColor }}
               >
                 {trip.trip_type}
@@ -220,7 +220,7 @@ export function TripDetail({
           </div>
           {countdown === 0 && (
             <span
-              className="text-xs font-semibold px-3 py-1 rounded-full flex-shrink-0"
+              className="text-xs font-semibold px-3 py-1 rounded-control flex-shrink-0"
               style={{ backgroundColor: 'rgba(255,255,255,0.2)', color: '#fff' }}
             >
               {t('trips.todayBadge')}
@@ -280,7 +280,7 @@ export function TripDetail({
             </p>
             <div className="flex flex-wrap gap-1.5">
               {trip.inclusions.map((inc, i) => (
-                <span key={i} className="text-xs px-2 py-0.5 rounded-full"
+                <span key={i} className="text-xs px-2 py-0.5 rounded-control"
                   style={{ backgroundColor: 'rgba(129,178,154,0.15)', color: 'var(--text-primary)' }}>
                   {inc}
                 </span>

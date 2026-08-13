@@ -172,7 +172,7 @@ export function LosUploadClient({ aboNumber }: { aboNumber: string | null }) {
         </p>
       </div>
 
-      <details className="rounded-xl border" style={{ borderColor: 'var(--border-default)', backgroundColor: 'var(--bg-card)' }} open={howToOpen} onToggle={handleHowToToggle}>
+      <details className="rounded-container border" style={{ borderColor: 'var(--border-default)', backgroundColor: 'var(--bg-card)' }} open={howToOpen} onToggle={handleHowToToggle}>
         <summary className="cursor-pointer px-4 py-3 text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
           {t('los.upload.howToTitle')}
         </summary>
@@ -209,7 +209,7 @@ export function LosUploadClient({ aboNumber }: { aboNumber: string | null }) {
           <AssemblySummary assembly={assembly} sourceCount={files.length} />
 
           {rootCheck && !rootCheck.ok && (
-            <div className="p-4 rounded-lg border" style={{ backgroundColor: 'rgba(188,71,73,0.06)', borderColor: 'rgba(188,71,73,0.3)' }}>
+            <div className="p-4 rounded-container border" style={{ backgroundColor: 'rgba(188,71,73,0.06)', borderColor: 'rgba(188,71,73,0.3)' }}>
               <p className="text-sm" style={{ color: '#bc4749' }}>{ROOT_ERROR[rootCheck.reason]}</p>
               {rootCheck.reason === 'mismatch' && (
                 <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
@@ -255,7 +255,7 @@ export function LosUploadClient({ aboNumber }: { aboNumber: string | null }) {
               <div key={sub.id} className="rounded-xl border px-4 py-3" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{sub.row_count} members</span>
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: s.bg, color: s.color }}>{s.label}</span>
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-control" style={{ backgroundColor: s.bg, color: s.color }}>{s.label}</span>
                   <span className="text-xs ml-auto" style={{ color: 'var(--text-secondary)' }}>{fmtDate(sub.created_at)}</span>
                   {sub.status === 'pending' && (
                     <button onClick={() => handleWithdraw(sub.id)} className="text-xs px-2 py-1 rounded-lg border" style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>

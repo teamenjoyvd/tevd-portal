@@ -149,7 +149,7 @@ export function InvitesSection() {
     return (
       <div className="p-4 space-y-3">
         {[...Array(2)].map((_, i) => (
-          <div key={i} className="h-20 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--skeleton-base)' }} />
+          <div key={i} className="h-20 rounded-container animate-pulse" style={{ backgroundColor: 'var(--skeleton-base)' }} />
         ))}
       </div>
     )
@@ -272,7 +272,7 @@ export function InvitesSection() {
             const isOpen    = !!expanded[link.id]
 
             return (
-              <div key={link.id} className="rounded-xl border overflow-hidden" style={{ borderColor: 'var(--border-default)' }}>
+              <div key={link.id} className="rounded-container border overflow-hidden" style={{ borderColor: 'var(--border-default)' }}>
                 {/* Event header */}
                 <div className="w-full flex flex-wrap items-start justify-between gap-3 px-4 py-3" style={{ backgroundColor: 'var(--bg-card)' }}>
                   <button
@@ -283,7 +283,7 @@ export function InvitesSection() {
                     <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
                       {link.event.title}
                       {revoked && (
-                        <StatusBadge status="cancelled" className="ml-2 px-2 py-0.5 rounded-full text-[10px] font-semibold align-middle">
+                        <StatusBadge status="cancelled" className="ml-2 px-2 py-0.5 rounded-control text-[10px] font-semibold align-middle">
                           {t('profile.invites.revoked')}
                         </StatusBadge>
                       )}
@@ -368,7 +368,7 @@ export function InvitesSection() {
                                 <td className="px-4 py-2 font-medium" style={{ color: 'var(--text-primary)' }}>{g.name}</td>
                                 <td className="px-4 py-2" style={{ color: 'var(--text-secondary)' }}>{g.email ?? '—'}</td>
                                 <td className="px-4 py-2">
-                                  <StatusBadge status={s} className="px-2 py-0.5 rounded-full text-[10px] font-semibold">{s}</StatusBadge>
+                                  <StatusBadge status={s} className="px-2 py-0.5 rounded-control text-[10px] font-semibold">{s}</StatusBadge>
                                 </td>
                                 <td className="px-4 py-2" style={{ color: 'var(--text-secondary)' }}>{fmt(g.created_at)}</td>
                                 <td className="px-4 py-2" style={{ color: 'var(--text-secondary)' }}>{fmt(g.attended_at)}</td>
@@ -387,7 +387,7 @@ export function InvitesSection() {
                           <div key={g.id} className="px-4 py-3 space-y-1" style={{ borderTop: '1px solid var(--border-default)' }}>
                             <div className="flex items-center justify-between gap-2">
                               <p className="text-xs font-medium truncate" style={{ color: 'var(--text-primary)' }}>{g.name}</p>
-                              <StatusBadge status={s} className="px-2 py-0.5 rounded-full text-[10px] font-semibold shrink-0">{s}</StatusBadge>
+                              <StatusBadge status={s} className="px-2 py-0.5 rounded-control text-[10px] font-semibold shrink-0">{s}</StatusBadge>
                             </div>
                             <p className="text-[11px] truncate" style={{ color: 'var(--text-secondary)' }}>{g.email ?? '—'}</p>
                             <p className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>

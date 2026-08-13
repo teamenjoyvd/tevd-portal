@@ -41,7 +41,7 @@ function MemberCard({ node, isExpanded, onToggle }: {
 
   return (
     <div
-      className="rounded-xl mb-1.5 overflow-hidden"
+      className="rounded-container mb-1.5 overflow-hidden"
       style={{ border: `1px solid ${rc.border}`, opacity: rc.opacity, backgroundColor: 'var(--bg-card)' }}
     >
       <div
@@ -65,7 +65,7 @@ function MemberCard({ node, isExpanded, onToggle }: {
           </span>
         )}
         <span
-          className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 uppercase tracking-wide"
+          className="text-[10px] font-bold px-2 py-0.5 rounded-control flex-shrink-0 uppercase tracking-wide"
           style={{ backgroundColor: rc.labelBg, color: rc.labelColor }}
         >
           {node.role ?? 'guest'}
@@ -107,7 +107,7 @@ function MemberCard({ node, isExpanded, onToggle }: {
                 {node.vital_signs.map(vs => (
                   <span
                     key={vs.definition_id}
-                    className="text-xs font-semibold px-2.5 py-1 rounded-full"
+                    className="text-xs font-semibold px-2.5 py-1 rounded-control"
                     style={{
                       backgroundColor: isVitalRecorded(vs) ? 'rgba(188,71,73,0.12)' : 'rgba(0,0,0,0.05)',
                       color: isVitalRecorded(vs) ? 'var(--brand-crimson)' : 'var(--text-secondary)',
@@ -176,7 +176,7 @@ function SimpleRow({ node, label }: { node: LOSNode; label: string }) {
           <span className="text-xs font-mono" style={{ color: 'var(--text-tertiary)' }}>{node.abo_number}</span>
         )}
         <span
-          className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ml-auto"
+          className="text-[10px] font-bold px-2 py-0.5 rounded-control uppercase ml-auto"
           style={{ backgroundColor: rc.labelBg, color: rc.labelColor }}
         >
           {node.role ?? 'member'}
@@ -300,7 +300,7 @@ function LOSPageInner() {
         {isLoading && (
           <div className="space-y-2">
             {[...Array(8)].map((_, i) => (
-              <div key={i} className="h-10 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--border-default)' }} />
+              <div key={i} className="h-10 rounded-container animate-pulse" style={{ backgroundColor: 'var(--border-default)' }} />
             ))}
           </div>
         )}

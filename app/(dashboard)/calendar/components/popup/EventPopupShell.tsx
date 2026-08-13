@@ -36,10 +36,12 @@ function formatAllDayRange(startIso: string, endIso: string): string {
   return `${startFmt.format(start)} – ${RANGE_FULL_FMT.format(end)}`
 }
 
+// Theme-aware token pairs, not literals — the popup is rendered in dark mode
+// too. See app/(dashboard)/calendar/components/popup/styles.ts.
 const EVENT_TYPE_STYLES: Record<string, { bg: string; color: string; label: string }> = {
-  'in-person': { bg: 'rgba(129,178,154,0.18)', color: '#2d6a4f',  label: 'In-Person' },
-  'online':    { bg: 'rgba(61,64,91,0.10)',    color: '#3d405b',  label: 'Online'    },
-  'hybrid':    { bg: 'rgba(242,204,143,0.35)', color: '#7a5c00',  label: 'Hybrid'    },
+  'in-person': { bg: 'var(--status-success-bg)', color: 'var(--status-success-fg)', label: 'In-Person' },
+  'online':    { bg: 'var(--status-info-bg)',    color: 'var(--status-info-fg)',    label: 'Online'    },
+  'hybrid':    { bg: 'var(--status-pending-bg)', color: 'var(--status-pending-fg)', label: 'Hybrid'    },
 }
 
 type Props = {
@@ -85,12 +87,12 @@ export default function EventPopupShell({
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
-              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-xl"
                 style={{ backgroundColor: event?.category === 'N21' ? 'var(--brand-forest)' : 'var(--brand-sienna)', color: 'rgba(255,255,255,0.9)' }}>
                 {event?.category ?? '…'}
               </span>
               {eventTypeStyle && (
-                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-xl"
                   style={{ backgroundColor: eventTypeStyle.bg, color: eventTypeStyle.color }}>
                   {eventTypeStyle.label}
                 </span>
@@ -99,12 +101,17 @@ export default function EventPopupShell({
                 <span className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>W{event.week_number}</span>
               )}
             </div>
-            <p className="font-display text-base font-semibold leading-snug" style={{ color: 'var(--text-primary)' }}>
+            {/* A real DialogTitle, not a <p>: this Dialog previously had none,
+                which Radix warns about and which left the modal without an
+                accessible name. Promoting the title fixes the a11y gap and the
+                size in one place. DialogTitle's own `text-base` is overridden
+                by `text-lg` — Tailwind emits the larger step later. */}
+            <DialogTitle className="font-display text-lg font-semibold leading-snug" style={{ color: 'var(--text-primary)' }}>
               {isLoading ? '…' : event?.title}
-            </p>
+            </DialogTitle>
           </div>
           <button onClick={onClose}
-            className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-black/5 transition-colors flex-shrink-0 mt-0.5"
+            className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-[var(--bg-card-raised)] transition-colors flex-shrink-0 mt-0.5"
             style={{ color: 'var(--text-secondary)' }}>
             <X size={14} />
           </button>
@@ -119,7 +126,7 @@ export default function EventPopupShell({
         {isLoading ? (
           <div className="p-4 space-y-2">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-6 rounded animate-pulse" style={{ backgroundColor: 'rgba(0,0,0,0.06)' }} />
+              <div key={i} className="h-6 rounded animate-pulse" style={{ backgroundColor: 'var(--skeleton-base)' }} />
             ))}
           </div>
         ) : event ? (
@@ -266,7 +273,7 @@ export default function EventPopupShell({
                 <button
                   onClick={onQrDismiss}
                   aria-label="Close"
-                  className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-black/5 transition-colors flex-shrink-0 mt-0.5"
+                  className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-[var(--bg-card-raised)] transition-colors flex-shrink-0 mt-0.5"
                   style={{ color: 'var(--text-secondary)' }}
                 >
                   <X size={14} />
@@ -281,7 +288,7 @@ export default function EventPopupShell({
                   alt={t('cal.qrTitle')}
                   width={256}
                   height={256}
-                  className="h-auto w-full max-w-[256px] rounded-lg border"
+                  className="h-auto w-full max-w-[256px] rounded-container border"
                   style={{ borderColor: 'var(--border-default)' }}
                 />
                 <button

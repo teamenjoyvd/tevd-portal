@@ -6,5 +6,6 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
-| #730 | `dev/2608-DEV-730` | env tooling only: `scripts/check-env.js`, `scripts/lib/env-files.js` (new), `scripts/lib/safe-supabase-target.js`, the four `scripts/seed-*.js` loaders, `playwright.config.ts` (comment), `.env.example`, `CLAUDE.md` — **migration: no** | 2026-08-12 |
+| #740 | `dev/2608-DEV-740` | QA polish: `app/(dashboard)/calendar/components/{MonthView.tsx,popup/*}`, `app/(dashboard)/components/tiles/TripHeroTile.tsx`, `app/(dashboard)/profile/components/{AboInfoContent,StatusBadge}.tsx`, `components/layout/Footer.tsx`, `components/ui/{tooltip,sonner,vaul-drawer}.tsx`, `styles/brand-tokens.css` (radius only), `app/globals.css` (`@theme` radius keys only), `docs/design/DESIGN-SYSTEM.md` — **migration: no** | 2026-08-13 |
+| #741 | `dev/2608-DEV-741` | Dark-mode foundation (C1 only): `styles/brand-tokens.css` (colour tokens), `app/globals.css` (`@theme inline`, `color-scheme`, `@custom-variant dark`), `docs/design/DESIGN-SYSTEM.md` — **migration: no**. ⚠️ Overlaps #740 on both CSS files; branch is **stacked on `dev/2608-DEV-740`**, PR base is that branch, not `main`. C2/C4/C5 phases are deliberately NOT in this claim. | 2026-08-13 |
 

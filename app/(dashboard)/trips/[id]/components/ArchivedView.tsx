@@ -55,7 +55,7 @@ export function ArchivedView({
                         <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
                           {formatCurrency(p.amount)}
                         </p>
-                        <span className="text-xs px-1.5 py-0.5 rounded-full font-medium"
+                        <span className="text-xs px-1.5 py-0.5 rounded-control font-medium"
                           style={
                             p.admin_status === 'approved'
                               ? { backgroundColor: 'rgba(129,178,154,0.15)', color: '#2d6a4f' }

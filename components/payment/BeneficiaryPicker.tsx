@@ -244,7 +244,7 @@ export function BeneficiaryPicker({
 
       {!isLoading && addingGuest && (
         <div
-          className="space-y-2 rounded-xl p-3"
+          className="space-y-2 rounded-container p-3"
           style={{ border: '1px dashed var(--border-default)' }}
         >
           <input

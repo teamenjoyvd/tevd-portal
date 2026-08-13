@@ -40,9 +40,21 @@
   --shadow-hover: 0 2px 4px rgba(45, 51, 42, 0.05), 0 12px 24px -8px rgba(45, 51, 42, 0.10);
   --shadow-modal: 0 4px 12px rgba(26, 31, 24, 0.08), 0 24px 48px -12px rgba(26, 31, 24, 0.18);
 
+  /* ── Corner radius — two tiers, 2:1 ──
+     One value cannot serve both a 200px card and a 19px badge: CSS clamps a
+     corner to min(r, width/2, height/2), so ANY radius at or above half an
+     element's height renders as a capsule. A 19px status badge is a capsule at
+     16px AND at 12px — which is why "one radius site-wide" looked like it did
+     nothing to the pills.
+     Containers are 8px, controls 4px. The 2:1 gap is what makes a badge read
+     as nested inside its card. At these values nothing clamps anywhere.
+     See docs/design/DESIGN-SYSTEM.md § Rounding. */
+  --radius:         8px;   /* containers: cards, dialogs, sheets, navbar   */
+  --radius-control: 4px;   /* controls: pills, badges, buttons, inputs     */
+
   /* ── Bento tokens ── */
   --bento-gap:          12px;
-  --bento-radius:       12px;
+  --bento-radius:       var(--radius);
   --bento-border:       rgba(45, 51, 42, 0.08);
   --bento-border-hover: rgba(45, 51, 42, 0.16);
   --bento-accent-edge:  4px;
@@ -214,7 +226,7 @@ html { font-size: calc(var(--font-scale) * 16px); }
 /* Light surface: crimson pill on hover */
 .pill-link-crimson {
   color: var(--text-nav);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-control);
   padding: 0.25rem 0.625rem;
   transition: background-color 150ms ease, color 150ms ease;
 }
@@ -226,7 +238,7 @@ html { font-size: calc(var(--font-scale) * 16px); }
 /* Dark surface: parchment pill on hover (teal/forest/crimson card bg) */
 .pill-link-parchment {
   color: var(--brand-parchment);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-control);
   padding: 0.25rem 0.625rem;
   transition: background-color 150ms ease, color 150ms ease;
 }
@@ -238,7 +250,7 @@ html { font-size: calc(var(--font-scale) * 16px); }
 /* Footer variant: parchment-tinted, slightly dimmer base */
 .pill-link-footer {
   color: rgba(242, 239, 232, 0.65);
-  border-radius: 9999px;
+  border-radius: var(--radius-control);
   padding: 0.25rem 0.625rem;
   transition: background-color 150ms ease, color 150ms ease;
 }

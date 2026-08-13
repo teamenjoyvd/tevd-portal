@@ -84,7 +84,7 @@ export default function EventActionsTabs({
                     ? [slot.assigned_profile.first_name, slot.assigned_profile.last_name].filter(Boolean).join(' ') || '—'
                     : null
                   return (
-                    <div key={slot.role_label} className="rounded-lg p-2.5" style={{ backgroundColor: slotStyle.bg }}>
+                    <div key={slot.role_label} className="rounded-container p-2.5" style={{ backgroundColor: slotStyle.bg }}>
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>{slot.role_label}</p>
@@ -96,8 +96,8 @@ export default function EventActionsTabs({
                           {slot.status === 'contested' && (
                             <PendingPopover profiles={slot.pending_profiles} color={slotStyle.color} />
                           )}
-                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                            style={{ backgroundColor: 'rgba(255,255,255,0.55)', color: slotStyle.color }}>
+                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-xl"
+                            style={{ backgroundColor: 'var(--bg-card-raised)', color: slotStyle.color }}>
                             {t(`event.slot.${slot.status}` as `event.slot.${'open'|'contested'|'filled'}`)}
                           </span>
                         </div>

@@ -184,6 +184,13 @@ export function MonthView({
                     gridColumn: `calc(var(--col-offset) + ${seg.startCol + 1}) / span ${seg.span}`,
                     gridRow: seg.lane + 2,
                     minWidth: 0,
+                    // Day cells and event bars are grid SIBLINGS, so the cell's
+                    // p-1 never reaches the bars — inset them here instead, or
+                    // the pill (w-full) touches the day-cell border. A bar cut
+                    // by a week boundary stays flush at the cut, matching the
+                    // squared-corner treatment in EventPill.
+                    paddingLeft: seg.continuesLeft === true ? 0 : 2,
+                    paddingRight: seg.continuesRight === true ? 0 : 2,
                   }}
                 >
                   <EventPill

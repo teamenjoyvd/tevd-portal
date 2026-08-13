@@ -100,7 +100,7 @@ export default function UserDropdown() {
                 {fullName}
               </p>
               <span
-                className="text-[10px] font-semibold px-2 py-0.5 rounded-full mt-0.5 inline-block"
+                className="text-[10px] font-semibold px-2 py-0.5 rounded-control mt-0.5 inline-block"
                 style={{ backgroundColor: roleColors.bg, color: roleColors.font }}
               >
                 {isUnverified ? 'Unverified Member' : (ROLE_LABELS[role] ?? role)}

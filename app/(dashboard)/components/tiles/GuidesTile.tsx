@@ -45,7 +45,7 @@ export default function GuidesTile({ colSpan = 6, rowSpan, mobileColSpan }: { co
       {isLoading ? (
         <div className="space-y-3 flex-1">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-8 rounded-lg animate-pulse"
+            <div key={i} className="h-8 rounded-container animate-pulse"
               style={{ backgroundColor: 'var(--border-default)' }} />
           ))}
         </div>

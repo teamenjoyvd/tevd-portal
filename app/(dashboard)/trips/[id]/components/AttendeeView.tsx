@@ -64,7 +64,7 @@ function WhosGoingTile({ attendees }: { attendees: TeamAttendee[] }) {
                     </p>
                   )}
                 </div>
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-control flex-shrink-0"
                   style={{ backgroundColor: colors.bg, color: colors.font }}>
                   {a.role}
                 </span>
@@ -222,7 +222,7 @@ export function AttendeeView({
                         <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
                           {formatCurrency(p.amount)}
                         </p>
-                        <span className="text-xs px-1.5 py-0.5 rounded-full font-medium"
+                        <span className="text-xs px-1.5 py-0.5 rounded-control font-medium"
                           style={
                             p.admin_status === 'approved'
                               ? { backgroundColor: 'rgba(129,178,154,0.15)', color: '#2d6a4f' }

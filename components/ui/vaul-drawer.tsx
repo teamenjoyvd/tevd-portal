@@ -56,7 +56,7 @@ export function VaulDrawer({
             zIndex: 50,
             display: 'flex',
             flexDirection: 'column',
-            borderRadius: '1rem 1rem 0 0',
+            borderRadius: 'var(--radius) var(--radius) 0 0',
             backgroundColor: 'var(--bg-global)',
             boxShadow: '0 -4px 32px rgba(0,0,0,0.18)',
             outline: 'none',

@@ -35,7 +35,7 @@ const DialogContent = React.forwardRef<
       ref={ref}
       style={{
         backgroundColor: 'var(--bg-card)',
-        borderRadius: '16px',
+        borderRadius: 'var(--radius)',
         boxShadow: 'var(--shadow-modal)',
         outline: 'none',
         ...style,

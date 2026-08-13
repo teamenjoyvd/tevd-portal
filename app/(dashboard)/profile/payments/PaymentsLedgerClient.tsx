@@ -321,7 +321,7 @@ export function PaymentsLedgerClient() {
                     </td>
                     <td className="px-3 py-2" style={{ color: 'var(--text-secondary)' }}>{entry.payment_method ?? ''}</td>
                     <td className="px-3 py-2">
-                      <StatusBadge status={entry.status} className="font-semibold px-2 py-0.5 rounded-full whitespace-nowrap">
+                      <StatusBadge status={entry.status} className="font-semibold px-2 py-0.5 rounded-control whitespace-nowrap">
                         {entry.status}
                       </StatusBadge>
                     </td>
@@ -394,7 +394,7 @@ function EntryCard({ entry, me, guestTag }: { entry: LedgerEntry; me: string; gu
           {formatCurrency(entry.amount, entry.currency)}
         </span>
         <span style={{ color: 'var(--text-secondary)' }}>{formatDate(entry.transaction_date)}</span>
-        <StatusBadge status={entry.status} className="ml-auto font-semibold px-2 py-0.5 rounded-full flex-shrink-0">
+        <StatusBadge status={entry.status} className="ml-auto font-semibold px-2 py-0.5 rounded-control flex-shrink-0">
           {entry.status}
         </StatusBadge>
       </div>

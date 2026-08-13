@@ -1,18 +1,29 @@
+/**
+ * Status colour maps for the calendar event popup.
+ *
+ * Every entry resolves to a `--status-*` token PAIR (bg + fg) from
+ * styles/brand-tokens.css, which is redefined under [data-theme="dark"].
+ * These were hardcoded light-mode hexes, so the popup was unreadable on dark.
+ * Never reintroduce a literal here — and never a Tailwind `dark:` class:
+ * this project toggles data-theme on <html>, so `dark:` tracks the OS setting
+ * instead. See docs/design/DESIGN-SYSTEM.md.
+ */
+
 export const SLOT_STATUS_STYLES = {
-  open:      { bg: 'rgba(0,0,0,0.05)',          color: 'var(--text-primary)'   },
-  contested: { bg: 'rgba(242,204,143,0.22)',    color: '#7a5c00'               },
-  filled:    { bg: 'rgba(129,178,154,0.22)',    color: '#2d6a4f'               },
+  open:      { bg: 'var(--status-neutral-bg)', color: 'var(--status-neutral-fg)' },
+  contested: { bg: 'var(--status-pending-bg)', color: 'var(--status-pending-fg)' },
+  filled:    { bg: 'var(--status-success-bg)', color: 'var(--status-success-fg)' },
 }
 
 export const REQUEST_STATUS_STYLES = {
-  pending:  { bg: '#f2cc8f33', color: '#7a5c00'  },
-  approved: { bg: '#81b29a33', color: '#2d6a4f'  },
-  denied:   { bg: '#bc474920', color: '#bc4749'  },
+  pending:  { bg: 'var(--status-pending-bg)', color: 'var(--status-pending-fg)' },
+  approved: { bg: 'var(--status-success-bg)', color: 'var(--status-success-fg)' },
+  denied:   { bg: 'var(--status-alert-bg)',   color: 'var(--status-alert-fg)'   },
 }
 
 export const REGISTRATION_STATUS_STYLES = {
-  attended:  { bg: 'rgba(129,178,154,0.2)',  color: '#2d6a4f' },
-  cancelled: { bg: '#bc474920',              color: '#bc4749' },
-  confirmed: { bg: 'rgba(61,64,91,0.08)',    color: '#3d405b' },
-  pending:   { bg: 'rgba(242,204,143,0.3)',  color: '#7a5c00' },
+  attended:  { bg: 'var(--status-success-bg)', color: 'var(--status-success-fg)' },
+  cancelled: { bg: 'var(--status-alert-bg)',   color: 'var(--status-alert-fg)'   },
+  confirmed: { bg: 'var(--status-info-bg)',    color: 'var(--status-info-fg)'    },
+  pending:   { bg: 'var(--status-pending-bg)', color: 'var(--status-pending-fg)' },
 }

@@ -32,6 +32,32 @@
   --color-brand-oyster: #f0ede6;
   --color-brand-moss: #252b23;
   --color-brand-stone: #8a8577;
+
+  /* ── Corner radius — two tiers (#740 A4) ──
+     CSS clamps a corner to min(r, width/2, height/2), so any radius at or
+     above half an element's height renders as a capsule. One shared value
+     therefore cannot serve a card and a 19px badge at the same time.
+
+     NAMED utilities are the ones to write — they say which tier the element
+     belongs to, which is the thing a bare `rounded-xl` never encoded:
+       rounded-container  → surfaces  (cards, dialogs, sheets, popovers, rows)
+       rounded-control    → interactive (pills, badges, buttons, inputs, tabs)
+     Directional variants work too, e.g. rounded-t-container.
+
+     The built-in steps below are a LEGACY LANDING ZONE, not a scale: md/lg/xl
+     resolve to the control tier because that is what the overwhelming majority
+     of their existing usages are, so unmigrated code lands correctly by
+     default. Do not reach for them in new code. rounded-full stays untouched
+     and is reserved for genuinely circular affordances.
+     See docs/design/DESIGN-SYSTEM.md § Rounding. */
+  --radius-control:   4px;
+  --radius-container: 8px;
+
+  --radius-sm: 2px;                    /* hairline chrome only */
+  --radius-md: var(--radius-control);  /* legacy → control */
+  --radius-lg: var(--radius-control);  /* legacy → control */
+  --radius-xl: var(--radius-control);  /* legacy → control */
+  --radius-2xl: var(--radius-container);
 }
 
 :root {

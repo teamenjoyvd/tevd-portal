@@ -22,7 +22,7 @@ export function DropZone({
   return (
     <div className="space-y-4">
       <div
-        className="border-2 border-dashed rounded-lg p-8 text-center"
+        className="border-2 border-dashed rounded-container p-8 text-center"
         style={{ borderColor: 'var(--border-default)', backgroundColor: 'var(--bg-card)' }}
         onDragOver={e => e.preventDefault()}
         onDrop={onFileDrop}
@@ -49,7 +49,7 @@ export function DropZone({
           {files.map(f => (
             <div
               key={f.filename}
-              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border"
+              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-control border"
               style={{ borderColor: 'var(--border-default)', backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)' }}
             >
               <span>{f.filename}</span>

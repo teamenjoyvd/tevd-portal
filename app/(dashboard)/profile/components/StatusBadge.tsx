@@ -31,7 +31,7 @@ const STATUS_TOKEN_MAP: Record<string, StatusToken> = {
   neutral:   'neutral',
 }
 
-const DEFAULT_CLASSNAME = 'inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold'
+const DEFAULT_CLASSNAME = 'inline-flex items-center rounded-control px-2 py-0.5 text-[10px] font-semibold'
 
 export function StatusBadge({
   status,

@@ -355,7 +355,7 @@ export function PaymentForm(props: PaymentFormProps) {
               return (
                 <span
                   key={row.profileId}
-                  className="inline-flex items-center gap-1.5 rounded-full pl-3 pr-2 text-xs"
+                  className="inline-flex items-center gap-1.5 rounded-control pl-3 pr-2 text-xs"
                   style={{
                     minHeight: '32px',
                     border: '1px solid var(--border-default)',
@@ -393,7 +393,7 @@ export function PaymentForm(props: PaymentFormProps) {
             <button
               type="button"
               onClick={() => setPickerOpen(true)}
-              className="inline-flex items-center rounded-full px-3 text-xs font-semibold transition-opacity hover:opacity-70"
+              className="inline-flex items-center rounded-control px-3 text-xs font-semibold transition-opacity hover:opacity-70"
               style={{
                 minHeight: '32px',
                 border: '1px dashed var(--border-default)',

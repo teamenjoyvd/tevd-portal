@@ -48,7 +48,7 @@ export function TripRow({
   const regStatus = isCancelled ? 'cancelled' : entry.registration_status
   return (
     <div
-      className="rounded-xl p-3"
+      className="rounded-container p-3"
       style={{ backgroundColor: 'var(--bg-global)', border: '1px solid var(--border-default)', opacity: isCancelled ? 0.7 : 1 }}
     >
       <div className="flex items-start justify-between gap-2">
@@ -59,7 +59,7 @@ export function TripRow({
             {formatDate(entry.trip.start_date)} – {formatDate(entry.trip.end_date)}
           </p>
         </div>
-        <StatusBadge status={regStatus} className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0">
+        <StatusBadge status={regStatus} className="text-[10px] font-semibold px-2 py-0.5 rounded-control flex-shrink-0">
           {isCancelled ? t('home.shared.cancelled') : entry.registration_status}
         </StatusBadge>
       </div>
@@ -147,7 +147,7 @@ export function PaymentRow({
         </span>
         <span style={{ color: 'var(--text-secondary)' }}>{formatDate(entry.transaction_date)}</span>
         {entry.payment_method != null && entry.payment_method !== '' && <span className="truncate min-w-0" style={{ color: 'var(--text-secondary)' }}>{entry.payment_method}</span>}
-        <StatusBadge status={entry.status} className="ml-auto font-semibold px-2 py-0.5 rounded-full flex-shrink-0 flex items-center gap-1">
+        <StatusBadge status={entry.status} className="ml-auto font-semibold px-2 py-0.5 rounded-control flex-shrink-0 flex items-center gap-1">
           {entry.status}
           {(hasAdminNote || linkedTripCancelled) && (
             <span title={linkedTripCancelled ? t('home.shared.tripCancelled') : (entry.admin_note ?? '')} style={{ cursor: 'help', fontSize: 10, lineHeight: 1 }}>ⓘ</span>

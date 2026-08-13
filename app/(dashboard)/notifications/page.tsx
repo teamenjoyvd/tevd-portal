@@ -151,7 +151,7 @@ export default function NotificationsPage() {
                 {/* Type pills */}
                 <button
                   onClick={() => setTypeFilter('all')}
-                  className="px-3 py-1 rounded-full text-xs font-medium transition-all"
+                  className="px-3 py-1 rounded-control text-xs font-medium transition-all"
                   style={{
                     backgroundColor: typeFilter === 'all' ? 'var(--text-primary)' : 'rgba(0,0,0,0.06)',
                     color: typeFilter === 'all' ? 'white' : 'var(--text-secondary)',
@@ -163,7 +163,7 @@ export default function NotificationsPage() {
                   <button
                     key={type}
                     onClick={() => setTypeFilter(f => f === type ? 'all' : type)}
-                    className="px-3 py-1 rounded-full text-xs font-medium transition-all"
+                    className="px-3 py-1 rounded-control text-xs font-medium transition-all"
                     style={{
                       backgroundColor: typeFilter === type
                         ? (TYPE_STYLES[type]?.bg ?? 'rgba(0,0,0,0.06)')
@@ -184,7 +184,7 @@ export default function NotificationsPage() {
           {isLoading ? (
             <div className="space-y-3">
               {[...Array(5)].map((_, i) => (
-                <div key={i} className="h-16 rounded-xl animate-pulse"
+                <div key={i} className="h-16 rounded-container animate-pulse"
                   style={{ backgroundColor: 'rgba(0,0,0,0.06)' }} />
               ))}
             </div>
@@ -224,7 +224,7 @@ export default function NotificationsPage() {
                 <div
                   key={n.id}
                   onClick={() => { if (!n.is_read) markRead.mutate(n.id) }}
-                  className="rounded-xl p-4 border transition-colors cursor-pointer"
+                  className="rounded-container p-4 border transition-colors cursor-pointer"
                   style={{
                     backgroundColor: n.is_read ? 'white' : 'rgba(244,241,222,0.6)',
                     borderColor: n.is_read
@@ -235,7 +235,7 @@ export default function NotificationsPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs font-medium px-2 py-0.5 rounded-full"
+                        <span className="text-xs font-medium px-2 py-0.5 rounded-control"
                           style={{
                             backgroundColor: (TYPE_STYLES[n.type] ?? TYPE_STYLES.event_fetched).bg,
                             color: (TYPE_STYLES[n.type] ?? TYPE_STYLES.event_fetched).color,

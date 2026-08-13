@@ -89,21 +89,21 @@ export function TripBadges({ destination, tripType, completedLabel }: { destinat
     <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
       {hasCompletedLabel && (
         <span
-          className="text-xs font-semibold px-2 py-0.5 rounded-full"
+          className="text-xs font-semibold px-2 py-0.5 rounded-control"
           style={{ backgroundColor: 'var(--brand-stone)', color: 'rgba(255,255,255,0.95)' }}
         >
           {completedLabel}
         </span>
       )}
       <span
-        className="text-xs font-semibold px-2 py-0.5 rounded-full"
+        className="text-xs font-semibold px-2 py-0.5 rounded-control"
         style={{ backgroundColor: 'var(--brand-forest)', color: 'rgba(255,255,255,0.85)' }}
       >
         {destination}
       </span>
       {tripType && (
         <span
-          className="text-xs font-semibold px-2 py-0.5 rounded-full"
+          className="text-xs font-semibold px-2 py-0.5 rounded-control"
           style={{ backgroundColor: 'var(--brand-teal)', color: 'rgba(255,255,255,0.85)' }}
         >
           {tripType}
