@@ -41,7 +41,7 @@ export default function MemberActions({
         const mySlot = roleSlots.find(s => s.caller_request !== null)
         const myReq  = mySlot?.caller_request ?? null
         return myReq ? (
-          <div className="rounded-lg p-2.5 mb-3" style={{ backgroundColor: REQUEST_STATUS_STYLES[myReq.status].bg }}>
+          <div className="rounded-container p-2.5 mb-3" style={{ backgroundColor: REQUEST_STATUS_STYLES[myReq.status].bg }}>
             <div className="flex items-center justify-between gap-2">
               <div className="flex-1 min-w-0">
                 <p className="text-[10px] font-medium mb-0.5" style={{ color: 'var(--text-secondary)' }}>

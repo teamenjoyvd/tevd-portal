@@ -166,8 +166,8 @@ export default function CalendarClient({
           />
           <DialogContent
             className="fixed flex flex-col overflow-hidden p-0
-              inset-x-0 bottom-0 w-full max-h-[85vh] rounded-t-2xl
-              md:inset-x-auto md:bottom-auto md:top-1/2 md:left-1/2 md:w-[360px] md:max-h-[80vh] md:rounded-2xl md:-translate-x-1/2 md:-translate-y-1/2"
+              inset-x-0 bottom-0 w-full max-h-[85vh] rounded-t-container
+              md:inset-x-auto md:bottom-auto md:top-1/2 md:left-1/2 md:w-[360px] md:max-h-[80vh] md:rounded-container md:-translate-x-1/2 md:-translate-y-1/2"
             style={{
               backgroundColor: 'var(--bg-global)',
               boxShadow: '0 8px 40px rgba(0,0,0,0.22)',

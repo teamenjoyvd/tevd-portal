@@ -57,7 +57,7 @@ export function InvitesBento() {
           {[...Array(4)].map((_, i) => (
             <div
               key={i}
-              className="h-14 rounded-xl animate-pulse"
+              className="h-14 rounded-container animate-pulse"
               style={{ backgroundColor: 'var(--skeleton-base)' }}
             />
           ))}

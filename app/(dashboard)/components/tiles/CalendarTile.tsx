@@ -150,7 +150,7 @@ export default function CalendarTile({ events = [], colSpan, mobileColSpan, rowS
 
                 {/* Date badge */}
                 <div
-                  className="flex flex-col items-center flex-shrink-0 rounded-md overflow-hidden"
+                  className="flex flex-col items-center flex-shrink-0 rounded-container overflow-hidden"
                   style={{ width: 44, height: 52 }}
                 >
                   {/* Month strip */}

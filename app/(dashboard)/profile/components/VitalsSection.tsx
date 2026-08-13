@@ -21,14 +21,14 @@ function VitalCard({ vs }: { vs: ProfileVitalSign }) {
 
   return (
     <div
-      className="rounded-xl p-3 flex flex-col gap-1"
+      className="rounded-container p-3 flex flex-col gap-1"
       style={{
         backgroundColor: recorded ? 'color-mix(in srgb, var(--brand-crimson) 8%, transparent)' : 'var(--bg-global)',
         border: `1px solid ${recorded ? 'color-mix(in srgb, var(--brand-crimson) 20%, transparent)' : 'var(--border-default)'}`,
       }}
     >
       <span
-        className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full self-start"
+        className="text-[10px] font-semibold px-1.5 py-0.5 rounded-control self-start"
         style={{
           backgroundColor: recorded ? 'var(--status-alert-bg)' : 'var(--border-default)',
           color: recorded ? 'var(--status-alert-fg)' : 'var(--text-secondary)',

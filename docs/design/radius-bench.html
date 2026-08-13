@@ -1,0 +1,582 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Radius Bench — teamenjoyVD design system</title>
+<!--
+  Radius Bench — a standalone reference tool for the corner-radius system.
+
+  Open this file directly in a browser. No build step, no server, no
+  dependencies. It is deliberately self-contained so it keeps working when the
+  app around it changes.
+
+  WHAT IT IS FOR
+  A radius decision cannot be reviewed as a diff. This page renders every
+  surface in the portal at an adjustable radius, light and dark side by side,
+  and reports each specimen's measured height, the radius requested, and the
+  radius ACTUALLY rendered after CSS clamping. Use it before changing
+  --radius or --radius-control in styles/brand-tokens.css.
+
+  KEEPING IT HONEST
+  The specimen palettes below are copied from styles/brand-tokens.css. If those
+  tokens change, update the .app / .app[data-app="dark"] blocks here to match,
+  or this page will quietly start lying. The defaults on the two sliders should
+  track the shipped values of --radius (containers) and --radius-control.
+
+  Introduced by 2608-DEV-740. See DESIGN-SYSTEM.md § Rounding.
+-->
+<style>
+/* ── PAGE CHROME — three-state theme (bare / prefers / stamped) ── */
+:root {
+  --ground: #F7F5F0; --panel: #FFFFFF; --panel-sunk: #EFECE4;
+  --ink: #22261F; --ink-soft: #5C5950; --ink-faint: #8A8577;
+  --rule: rgba(45,51,42,.14); --rule-soft: rgba(45,51,42,.07);
+  --accent: #bc4749; --accent-soft: rgba(188,71,73,.10);
+  --warn: #a3502e; --warn-soft: rgba(224,122,95,.16);
+  --ok: #2f5138; --ok-soft: rgba(63,107,74,.14);
+  --shadow: 0 1px 2px rgba(45,51,42,.05), 0 8px 24px -10px rgba(45,51,42,.18);
+  --serif: "Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+  --sans: system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono: ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground:#161914; --panel:#1E221B; --panel-sunk:#14170F;
+    --ink:#F2EFE8; --ink-soft:#B5B0A8; --ink-faint:#8A8577;
+    --rule:rgba(242,239,232,.16); --rule-soft:rgba(242,239,232,.08);
+    --accent:#E08284; --accent-soft:rgba(224,130,132,.14);
+    --warn:#f0b08d; --warn-soft:rgba(232,150,120,.18);
+    --ok:#9fd6ae; --ok-soft:rgba(127,184,143,.16);
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 24px -10px rgba(0,0,0,.6);
+  }
+}
+:root[data-theme="dark"] {
+  --ground:#161914; --panel:#1E221B; --panel-sunk:#14170F;
+  --ink:#F2EFE8; --ink-soft:#B5B0A8; --ink-faint:#8A8577;
+  --rule:rgba(242,239,232,.16); --rule-soft:rgba(242,239,232,.08);
+  --accent:#E08284; --accent-soft:rgba(224,130,132,.14);
+  --warn:#f0b08d; --warn-soft:rgba(232,150,120,.18);
+  --ok:#9fd6ae; --ok-soft:rgba(127,184,143,.16);
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 24px -10px rgba(0,0,0,.6);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--ground); color: var(--ink);
+  font-family: var(--sans); font-size: 15px; line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+img { max-width: 100%; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 20px 96px; }
+
+.masthead { padding: 52px 0 26px; border-bottom: 1px solid var(--rule); }
+.eyebrow {
+  font-family: var(--mono); font-size: 11px; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--ink-faint); margin: 0 0 14px;
+}
+h1 {
+  font-family: var(--serif); font-weight: 600; font-size: clamp(32px,6vw,50px);
+  line-height: 1.04; letter-spacing: -.015em; margin: 0 0 18px; text-wrap: balance;
+}
+.standfirst { font-size: 17px; line-height: 1.62; color: var(--ink-soft); max-width: 62ch; margin: 0; }
+.standfirst strong { color: var(--ink); font-weight: 600; }
+
+.axiom {
+  margin: 26px 0 0; padding: 20px 22px; background: var(--accent-soft);
+  border-left: 3px solid var(--accent); border-radius: 0 6px 6px 0; max-width: 74ch;
+}
+.axiom p { margin: 0; font-size: 14.5px; line-height: 1.65; color: var(--ink); }
+.axiom p + p { margin-top: 10px; }
+code {
+  font-family: var(--mono); font-size: .88em;
+  background: var(--rule-soft); padding: 1px 5px; border-radius: 4px;
+}
+
+.controls {
+  position: sticky; top: 0; z-index: 20;
+  background: color-mix(in oklab, var(--ground) 88%, transparent);
+  backdrop-filter: blur(12px); border-bottom: 1px solid var(--rule);
+  margin: 0 -20px; padding: 14px 20px;
+}
+.controls-inner {
+  max-width: 1140px; margin: 0 auto; display: flex; flex-wrap: wrap;
+  gap: 22px 30px; align-items: flex-end;
+}
+.ctl { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+.ctl-label {
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: .13em;
+  text-transform: uppercase; color: var(--ink-faint);
+  display: flex; align-items: baseline; gap: 8px;
+}
+.ctl-val {
+  font-family: var(--mono); font-size: 14px; color: var(--accent); font-weight: 700;
+  letter-spacing: 0; text-transform: none; font-variant-numeric: tabular-nums;
+}
+input[type="range"] { width: 190px; max-width: 46vw; accent-color: var(--accent); margin: 0; }
+.seg { display: flex; gap: 4px; flex-wrap: wrap; }
+.seg button {
+  font-family: var(--mono); font-size: 11.5px; padding: 6px 11px;
+  border: 1px solid var(--rule); background: var(--panel); color: var(--ink-soft);
+  border-radius: 5px; cursor: pointer; transition: background .13s, color .13s, border-color .13s;
+}
+.seg button:hover { border-color: var(--accent); color: var(--ink); }
+.seg button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
+:root[data-theme="dark"] .seg button[aria-pressed="true"] { color: #1A1F18; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .seg button[aria-pressed="true"] { color: #1A1F18; }
+}
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+section { padding-top: 50px; }
+h2 { font-family: var(--serif); font-size: 29px; font-weight: 600; letter-spacing: -.01em; margin: 0 0 6px; }
+.tier-meta {
+  font-family: var(--mono); font-size: 11.5px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--ink-faint); margin: 0 0 8px;
+}
+.tier-note { color: var(--ink-soft); max-width: 68ch; margin: 0 0 26px; font-size: 14.5px; }
+
+.specimens { display: flex; flex-direction: column; gap: 16px; }
+.spec {
+  background: var(--panel); border: 1px solid var(--rule-soft);
+  border-radius: 8px; box-shadow: var(--shadow); overflow: hidden;
+}
+.spec-head {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 14px;
+  padding: 13px 18px; border-bottom: 1px solid var(--rule-soft); background: var(--panel-sunk);
+}
+.spec-name { font-weight: 650; font-size: 14.5px; }
+.spec-src { font-family: var(--mono); font-size: 11px; color: var(--ink-faint); }
+.spec-metrics {
+  margin-left: auto; display: flex; gap: 7px; flex-wrap: wrap;
+  font-family: var(--mono); font-size: 11px; font-variant-numeric: tabular-nums;
+}
+.metric { padding: 3px 8px; border-radius: 4px; background: var(--rule-soft); color: var(--ink-soft); white-space: nowrap; }
+.metric b { color: var(--ink); font-weight: 700; }
+.metric.is-capsule { background: var(--warn-soft); color: var(--warn); }
+.metric.is-capsule b { color: var(--warn); }
+.metric.is-shaped { background: var(--ok-soft); color: var(--ok); }
+.metric.is-shaped b { color: var(--ok); }
+
+.stage { display: grid; grid-template-columns: 1fr 1fr; }
+.stage.solo { grid-template-columns: 1fr; }
+.stage.solo .pane[data-app="dark"] { display: none; }
+.pane {
+  padding: 30px 24px; display: flex; align-items: center; justify-content: center;
+  min-height: 128px; position: relative;
+}
+.pane + .pane { border-left: 1px solid var(--rule-soft); }
+.pane-tag {
+  position: absolute; top: 8px; left: 12px; font-family: var(--mono);
+  font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; opacity: .5;
+}
+@media (max-width: 720px) {
+  .stage { grid-template-columns: 1fr; }
+  .pane + .pane { border-left: 0; border-top: 1px solid var(--rule-soft); }
+  .spec-metrics { margin-left: 0; width: 100%; }
+}
+
+/* ── SPECIMEN PALETTES — mirrored from styles/brand-tokens.css ── */
+.app {
+  --bg-global:#FAF8F3; --bg-card:#F0EDE6; --bg-card-raised:rgba(45,51,42,.04);
+  --text-primary:#1A1F18; --text-secondary:#5C5950; --text-tertiary:#8A8577;
+  --border-default:rgba(45,51,42,.08); --nav-border:rgba(45,51,42,.08);
+  --skeleton-base:rgba(45,51,42,.07);
+  --status-success-bg:rgba(63,107,74,.12);  --status-success-fg:#2f5138;
+  --status-info-bg:rgba(62,119,133,.12);    --status-info-fg:#2c5964;
+  --status-alert-bg:rgba(188,71,73,.12);    --status-alert-fg:#96393b;
+  --status-pending-bg:rgba(224,122,95,.14); --status-pending-fg:#a3502e;
+  --status-neutral-bg:rgba(138,133,119,.15);--status-neutral-fg:#5c5950;
+  --shadow-rest:0 1px 2px rgba(45,51,42,.04), 0 2px 8px rgba(45,51,42,.04);
+  --shadow-modal:0 4px 12px rgba(26,31,24,.08), 0 24px 48px -12px rgba(26,31,24,.18);
+  --brand-crimson:#bc4749; --brand-forest:#2d332a; --brand-teal:#3E7785;
+  --brand-sienna:#e07a5f; --brand-parchment:#FAF8F3; --on-accent:#FAF8F3; --link:#356874;
+  background: var(--bg-global); color: var(--text-primary); font-family: var(--sans);
+}
+.app[data-app="dark"] {
+  --bg-global:#1A1F18; --bg-card:#252B23; --bg-card-raised:#2B3229;
+  --text-primary:#FAF8F3; --text-secondary:#B5B0A8; --text-tertiary:#8A8577;
+  --border-default:rgba(250,248,243,.10); --nav-border:rgba(250,248,243,.10);
+  --skeleton-base:rgba(250,248,243,.06);
+  --status-success-bg:rgba(127,184,143,.18); --status-success-fg:#9fd6ae;
+  --status-info-bg:rgba(94,168,184,.18);     --status-info-fg:#8fd0dd;
+  --status-alert-bg:rgba(224,110,112,.18);   --status-alert-fg:#f19a9b;
+  --status-pending-bg:rgba(232,150,120,.20); --status-pending-fg:#f0b08d;
+  --status-neutral-bg:rgba(181,176,168,.20); --status-neutral-fg:#B5B0A8;
+  --shadow-rest:0 1px 2px rgba(26,31,24,.12), 0 2px 8px rgba(26,31,24,.12);
+  --shadow-modal:0 4px 12px rgba(26,31,24,.24), 0 24px 48px -12px rgba(26,31,24,.54);
+  --link:#6FAEBE;
+}
+
+/* Component recreations. Radius comes from --rc (control) / --rk (container). */
+.badge { display:inline-flex; align-items:center; gap:5px; font-size:10px; font-weight:600; padding:2px 8px; border-radius:var(--rc); line-height:1.5; }
+.badge.tiny { font-size:9px; padding:4px 10px; letter-spacing:.12em; text-transform:uppercase; font-weight:700; }
+.chip { font-size:12px; font-weight:600; padding:4px 10px; border-radius:var(--rc); border:1px solid var(--border-default); background:var(--bg-card); color:var(--text-secondary); line-height:1.333; }
+.chip.on { background:var(--brand-crimson); border-color:var(--brand-crimson); color:var(--on-accent); }
+.btn { font-size:14px; font-weight:600; padding:9px 18px; border-radius:var(--rc); border:0; cursor:pointer; background:var(--brand-crimson); color:var(--on-accent); font-family:inherit; }
+.btn.ghost { background:transparent; border:1px solid var(--border-default); color:var(--text-primary); }
+.field { font-size:14px; padding:9px 12px; width:210px; max-width:100%; border-radius:var(--rc); border:1px solid var(--border-default); background:var(--bg-global); color:var(--text-primary); font-family:inherit; }
+.iconbtn { width:32px; height:32px; display:inline-flex; align-items:center; justify-content:center; border-radius:var(--rc); border:1px solid rgba(255,255,255,.15); background:transparent; color:rgba(242,239,232,.75); }
+.evpill { border-radius:var(--rc); background:var(--brand-teal); color:var(--brand-parchment); font-size:10px; font-weight:600; padding:2px 6px; width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; line-height:1.5; }
+
+.card { border-radius:var(--rk); padding:20px; border:1px solid var(--border-default); background:var(--bg-card); box-shadow:var(--shadow-rest); width:260px; max-width:100%; }
+.card h4 { margin:0 0 4px; font-size:15px; font-weight:650; }
+.card p { margin:0; font-size:12.5px; color:var(--text-secondary); }
+.hero { border-radius:var(--rk); width:260px; max-width:100%; height:132px; padding:16px; background:linear-gradient(140deg,#6d3d34,#2d332a 78%); color:var(--brand-parchment); position:relative; overflow:hidden; display:flex; flex-direction:column; justify-content:flex-end; }
+.hero .t { font-family:var(--serif); font-size:22px; font-weight:600; line-height:1.1; }
+.dialog { border-radius:var(--rk); background:var(--bg-card); box-shadow:var(--shadow-modal); width:250px; max-width:100%; overflow:hidden; }
+.dialog .dh { padding:12px 14px; border-bottom:1px solid var(--border-default); }
+.dialog .dt { font-family:var(--serif); font-size:18px; font-weight:600; line-height:1.25; }
+.dialog .db { padding:12px 14px; font-size:12.5px; color:var(--text-secondary); }
+.sheet { border-radius:var(--rk) var(--rk) 0 0; background:var(--bg-global); width:260px; max-width:100%; padding:10px 16px 22px; box-shadow:0 -4px 32px rgba(0,0,0,.18); text-align:center; }
+.sheet .grip { width:32px; height:4px; border-radius:9999px; background:var(--text-tertiary); opacity:.5; margin:0 auto 12px; }
+.menu { border-radius:var(--rk); width:200px; background:var(--bg-card); border:1px solid var(--border-default); box-shadow:var(--shadow-modal); overflow:hidden; padding:6px; }
+.menu div { padding:7px 10px; font-size:13px; border-radius:var(--rk); }
+.menu div.sel { background:var(--bg-card-raised); }
+.tip { border-radius:var(--rk); background:var(--bg-global); border:1px solid var(--border-default); padding:8px 10px; font-size:12px; max-width:200px; box-shadow:0 8px 32px rgba(0,0,0,.12); }
+.toast { border-radius:var(--rk); background:var(--bg-card); border:1px solid var(--border-default); padding:11px 14px; width:230px; max-width:100%; }
+.toast .tt { font-size:13px; font-weight:600; }
+.toast .td { font-size:11.5px; color:var(--text-secondary); }
+.nav { border-radius:var(--rk); border:1px solid var(--nav-border); background:var(--bg-card); padding:7px 9px; display:flex; gap:4px; align-items:center; }
+.nav span { font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; padding:5px 9px; border-radius:var(--rc); color:var(--text-secondary); }
+.nav span.on { background:var(--bg-card-raised); color:var(--text-primary); }
+.row { border-radius:var(--rk); background:var(--bg-card-raised); border:1px solid var(--border-default); padding:10px 12px; width:250px; max-width:100%; display:flex; align-items:center; gap:8px; }
+.row .nm { font-size:12.5px; font-weight:600; flex:1; }
+.skel { border-radius:var(--rk); background:var(--skeleton-base); height:40px; width:250px; max-width:100%; }
+.footerbar { border-radius:var(--rk); background:var(--brand-forest); padding:14px 16px; display:flex; gap:10px; align-items:center; width:260px; max-width:100%; }
+
+.tablewrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 8px; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; min-width: 560px; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--rule-soft); }
+th { font-family: var(--mono); font-size: 10.5px; letter-spacing: .11em; text-transform: uppercase; color: var(--ink-faint); background: var(--panel-sunk); }
+tbody tr:last-child td { border-bottom: 0; }
+td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.pill-ok, .pill-bad { font-family: var(--mono); font-size: 10.5px; padding: 2px 7px; border-radius: 4px; font-weight: 700; }
+.pill-ok { background: var(--ok-soft); color: var(--ok); }
+.pill-bad { background: var(--warn-soft); color: var(--warn); }
+
+.rec { margin-top: 20px; background: var(--panel); border: 1px solid var(--rule); border-radius: 10px; padding: 26px 26px 8px; box-shadow: var(--shadow); }
+.rec h3 { font-family: var(--serif); font-size: 21px; margin: 0 0 4px; font-weight: 600; }
+.rec > p { color: var(--ink-soft); margin: 0 0 20px; max-width: 66ch; font-size: 14.5px; }
+.opt { border-top: 1px solid var(--rule-soft); padding: 18px 0; }
+.opt-n { font-weight: 700; font-size: 15px; display: block; margin-bottom: 6px; }
+.opt p { margin: 0; font-size: 14px; color: var(--ink-soft); max-width: 68ch; }
+.opt p + p { margin-top: 8px; }
+.codeblock {
+  background: var(--panel-sunk); border: 1px solid var(--rule-soft); border-radius: 8px;
+  padding: 16px 18px; overflow-x: auto; font-family: var(--mono); font-size: 12.5px;
+  line-height: 1.7; margin: 18px 0 0; color: var(--ink);
+}
+.codeblock .c { color: var(--ink-faint); }
+.codeblock .k { color: var(--accent); }
+footer { margin-top: 58px; padding-top: 22px; border-top: 1px solid var(--rule); color: var(--ink-faint); font-size: 12.5px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="masthead">
+  <p class="eyebrow">teamenjoyVD · design system · reference tool</p>
+  <h1>Radius Bench</h1>
+  <p class="standfirst">
+    Every surface in the portal, rendered live at whatever corner radius you dial in.
+    The sliders start at the <strong>shipped values — 8px containers, 4px controls</strong>.
+    Move them to see what a change would actually do before you make it.
+  </p>
+
+  <div class="axiom">
+    <p><strong>The fact this tool exists to make visible.</strong> CSS clamps corner
+    radii when the two radii on a side exceed that side's length
+    (CSS Backgrounds 3 §5.5): every radius scales down by the same factor. For a
+    uniform radius the rendered corner is <code>min(r, width/2, height/2)</code>.</p>
+    <p>A status badge is <strong>19px tall</strong>. At <code>16px</code> it renders at 9.5px —
+    exactly half its height, which is a capsule. At <code>12px</code> it is <em>still</em>
+    a capsule. Nothing at or above ~9px changes that badge at all. This is why a
+    single site-wide radius cannot work, and why the system has two tiers.</p>
+  </div>
+</header>
+
+<div class="controls">
+  <div class="controls-inner">
+    <div class="ctl">
+      <label class="ctl-label" for="rk">Containers <span class="ctl-val" id="rkv">8px</span></label>
+      <input type="range" id="rk" min="0" max="20" step="1" value="8">
+    </div>
+    <div class="ctl">
+      <label class="ctl-label" for="rc">Controls <span class="ctl-val" id="rcv">4px</span></label>
+      <input type="range" id="rc" min="0" max="20" step="1" value="4">
+    </div>
+    <div class="ctl">
+      <span class="ctl-label">Container presets</span>
+      <div class="seg" id="presets">
+        <button type="button" data-rk="8">8 · shipped</button>
+        <button type="button" data-rk="12">12</button>
+        <button type="button" data-rk="16">16</button>
+        <button type="button" data-rk="4">4</button>
+        <button type="button" data-rk="0">0</button>
+      </div>
+    </div>
+    <div class="ctl">
+      <span class="ctl-label">Themes</span>
+      <div class="seg" id="themes">
+        <button type="button" data-mode="both" aria-pressed="true">Both</button>
+        <button type="button" data-mode="light" aria-pressed="false">Light only</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section>
+  <p class="tier-meta">Tier 1 · <code>rounded-control</code> · <code>--radius-control</code></p>
+  <h2>Controls</h2>
+  <p class="tier-note">
+    Badges, chips, buttons, inputs, event pills. Every specimen shows its measured
+    height and the radius actually rendered after clamping.
+  </p>
+  <div class="specimens" id="tier-controls"></div>
+</section>
+
+<section>
+  <p class="tier-meta">Tier 2 · <code>rounded-container</code> · <code>--radius</code></p>
+  <h2>Containers</h2>
+  <p class="tier-note">
+    Cards, tiles, dialogs, sheets, menus and the navbar shell. All are far taller
+    than twice any radius here, so they never clamp — a container renders exactly
+    the number you set.
+  </p>
+  <div class="specimens" id="tier-containers"></div>
+</section>
+
+<section>
+  <p class="tier-meta">Reference</p>
+  <h2>What actually renders</h2>
+  <p class="tier-note">
+    Requested versus rendered radius at the current settings. “Capsule” means the
+    corner consumed half the box — a lozenge no matter what number was asked for.
+  </p>
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr><th>Element</th><th>Tier</th><th>Height</th><th>Requested</th><th>Rendered</th><th>Shape</th></tr>
+      </thead>
+      <tbody id="summary"></tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <p class="tier-meta">The shipped system</p>
+  <h2>Why 8 and 4</h2>
+
+  <div class="rec">
+    <h3>Two tiers, held at 2:1</h3>
+    <p>Decided in 2608-DEV-740 after the single-16px rule failed visual review.</p>
+
+    <div class="opt">
+      <span class="opt-n">One value could not work</span>
+      <p>
+        A single radius cannot serve a 200px card and a 19px badge, because the
+        badge clamps. The original rule produced 16px cards and capsule-shaped
+        pills, which is precisely what it was written to prevent.
+      </p>
+    </div>
+
+    <div class="opt">
+      <span class="opt-n">Nothing clamps at 8 / 4</span>
+      <p>
+        Both values sit below half the height of the shortest element in their
+        tier, so every surface renders the exact number set. Dial the sliders
+        above 9px and watch the control specimens flip to “capsule”.
+      </p>
+    </div>
+
+    <div class="opt">
+      <span class="opt-n">The 2:1 gap is the system</span>
+      <p>
+        A badge inside a card needs a visibly tighter corner than the card, or the
+        two tiers read as noise rather than hierarchy. If you change these values,
+        keep the ratio — and keep the control value under half the shortest badge.
+      </p>
+    </div>
+  </div>
+
+  <div class="codeblock"><span class="c">/* styles/brand-tokens.css */</span>
+<span class="k">--radius</span>:         8px;  <span class="c">/* containers → rounded-container */</span>
+<span class="k">--radius-control</span>: 4px;  <span class="c">/* controls   → rounded-control   */</span>
+
+<span class="c">/* app/globals.css @theme — legacy landing zone, not a scale */</span>
+<span class="k">--radius-sm</span>:  2px;
+<span class="k">--radius-md</span>:  var(--radius-control);
+<span class="k">--radius-lg</span>:  var(--radius-control);
+<span class="k">--radius-xl</span>:  var(--radius-control);
+<span class="k">--radius-2xl</span>: var(--radius-container);</div>
+</section>
+
+<footer>
+  Specimens mirror the token values in <code>styles/brand-tokens.css</code>; update them here if
+  those change. Heights are measured in your browser, so they reflect real layout, not estimates.
+  Type is substituted — Cormorant Garamond and Montserrat are not loaded in this standalone file,
+  so judge shape, not letterforms. See <code>DESIGN-SYSTEM.md § Rounding</code>.
+</footer>
+
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var SPECS = [
+    ['Status badge', 'StatusBadge.tsx · text-[10px] py-0.5', 'c',
+      '<span class="badge" data-m style="background:var(--status-success-bg);color:var(--status-success-fg)">confirmed</span>' +
+      '<span class="badge" style="background:var(--status-pending-bg);color:var(--status-pending-fg);margin-left:8px">pending</span>' +
+      '<span class="badge" style="background:var(--status-alert-bg);color:var(--status-alert-fg);margin-left:8px">cancelled</span>'],
+    ['Category + type badges', 'EventPopupShell.tsx', 'c',
+      '<span class="badge" data-m style="background:var(--brand-sienna);color:var(--on-accent)">N21</span>' +
+      '<span class="badge" style="background:var(--status-success-bg);color:var(--status-success-fg);margin-left:8px">In-Person</span>'],
+    ['Trips eyebrow', 'TripHeroTile.tsx · text-[9px] py-1', 'c',
+      '<span class="badge tiny" data-m style="background:rgba(255,255,255,.18);color:#FAF8F3">Next trip</span>'],
+    ['Filter chip', 'FilterControls.tsx · text-xs py-1', 'c',
+      '<span class="chip on" data-m>N21</span><span class="chip" style="margin-left:8px">Open</span><span class="chip" style="margin-left:8px">Online</span>'],
+    ['Buttons', 'components/ui/button', 'c',
+      '<button class="btn" data-m>Attend</button><button class="btn ghost" style="margin-left:10px">Cancel</button>'],
+    ['Input field', 'components/ui/select · trigger', 'c',
+      '<input class="field" data-m value="ivan@example.com" readonly>'],
+    ['Calendar event pill', 'EventPill.tsx · compact', 'c',
+      '<div class="evpill" data-m>19:00 Team briefing</div>'],
+    ['Footer social button', 'Footer.tsx · w-8 h-8 (32px)', 'c',
+      '<div class="footerbar"><span class="iconbtn" data-m>&#9993;</span><span class="iconbtn">&#64;</span><span class="iconbtn">f</span></div>'],
+
+    ['Bento card', 'BentoCard.tsx · .card', 'k',
+      '<div class="card" data-m><h4>Your profile</h4><p>Verified ABO · Core member since 2024</p></div>'],
+    ['Trips hero tile', 'TripHeroTile.tsx', 'k',
+      '<div class="hero" data-m><span class="badge tiny" style="background:rgba(255,255,255,.18);color:#FAF8F3;align-self:flex-start;margin-bottom:6px">Next trip</span><span class="t">Amsterdam</span></div>'],
+    ['Dialog / event popup', 'components/ui/dialog', 'k',
+      '<div class="dialog" data-m><div class="dh"><span class="dt">Team briefing</span></div><div class="db">Thursday 19:00 &ndash; 20:30 · Online</div></div>'],
+    ['Bottom sheet', 'CalendarClient.tsx · rounded-t-container', 'k',
+      '<div class="sheet" data-m><div class="grip"></div><strong style="font-size:14px">Share event</strong></div>'],
+    ['Dropdown menu', 'dropdown-menu.tsx', 'k',
+      '<div class="menu" data-m><div class="sel">Profile</div><div>Payments</div><div>Sign out</div></div>'],
+    ['Tooltip', 'tooltip.tsx', 'k',
+      '<div class="tip" data-m>Only admins can edit a published event.</div>'],
+    ['Toast', 'sonner.tsx', 'k',
+      '<div class="toast" data-m><div class="tt">Link copied</div><div class="td">Anyone with it can register.</div></div>'],
+    ['Navbar shell', 'Header.tsx · h-14', 'k',
+      '<div class="nav" data-m><span class="on">Home</span><span>Calendar</span><span>Trips</span></div>'],
+    ['Registration row', 'RegistrationsTab.tsx', 'k',
+      '<div class="row" data-m><span class="nm">Ivan Petrov</span><span class="badge" style="background:var(--status-info-bg);color:var(--status-info-fg)">member</span></div>'],
+    ['Skeleton block', 'components/ui/skeleton.tsx', 'k',
+      '<div class="skel" data-m></div>']
+  ];
+
+  var els = {
+    rk: document.getElementById('rk'), rc: document.getElementById('rc'),
+    rkv: document.getElementById('rkv'), rcv: document.getElementById('rcv'),
+    tc: document.getElementById('tier-controls'), tk: document.getElementById('tier-containers'),
+    sum: document.getElementById('summary')
+  };
+
+  function build(spec) {
+    var name = spec[0], src = spec[1], tier = spec[2], html = spec[3];
+    var el = document.createElement('div');
+    el.className = 'spec';
+    el.innerHTML =
+      '<div class="spec-head"><span class="spec-name"></span><span class="spec-src"></span>' +
+      '<span class="spec-metrics"></span></div>' +
+      '<div class="stage">' +
+        '<div class="pane app" data-app="light"><span class="pane-tag">Light</span>' + html + '</div>' +
+        '<div class="pane app" data-app="dark"><span class="pane-tag">Dark</span>' + html + '</div>' +
+      '</div>';
+    el.querySelector('.spec-name').textContent = name;
+    el.querySelector('.spec-src').textContent = src;
+    el.dataset.tier = tier;
+    el.dataset.name = name;
+    return el;
+  }
+
+  SPECS.forEach(function (s) { (s[2] === 'c' ? els.tc : els.tk).appendChild(build(s)); });
+
+  function measure() {
+    var rk = Number(els.rk.value), rc = Number(els.rc.value);
+    els.sum.innerHTML = '';
+
+    Array.prototype.forEach.call(document.querySelectorAll('.spec'), function (spec) {
+      var tier = spec.dataset.tier;
+      var requested = tier === 'c' ? rc : rk;
+      var target = spec.querySelector('.pane[data-app="light"] [data-m]');
+      if (!target) return;
+      var r = target.getBoundingClientRect();
+      var h = r.height, w = r.width;
+      if (!h) return;
+
+      var rendered = Math.min(requested, h / 2, w / 2);
+      // A sheet rounds only its top corners, so half-height never binds.
+      if (spec.dataset.name === 'Bottom sheet') rendered = Math.min(requested, w / 2);
+      var capsule = requested > 0 && rendered < requested - 0.01;
+
+      var mbox = spec.querySelector('.spec-metrics');
+      mbox.innerHTML = '';
+      function chip(txt, cls) {
+        var s = document.createElement('span');
+        s.className = 'metric' + (cls ? ' ' + cls : '');
+        s.innerHTML = txt;
+        mbox.appendChild(s);
+      }
+      chip('height <b>' + h.toFixed(1) + 'px</b>');
+      chip('asked <b>' + requested + 'px</b>');
+      chip('renders <b>' + rendered.toFixed(1) + 'px</b>', capsule ? 'is-capsule' : 'is-shaped');
+      if (capsule) chip('<b>clamped to a capsule</b>', 'is-capsule');
+
+      var tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td></td><td>' + (tier === 'c' ? 'Control' : 'Container') + '</td>' +
+        '<td class="num">' + h.toFixed(1) + '</td>' +
+        '<td class="num">' + requested + '</td>' +
+        '<td class="num">' + rendered.toFixed(1) + '</td>' +
+        '<td>' + (capsule ? '<span class="pill-bad">capsule</span>' : '<span class="pill-ok">shaped</span>') + '</td>';
+      tr.firstChild.textContent = spec.dataset.name;
+      els.sum.appendChild(tr);
+    });
+  }
+
+  function apply() {
+    var rk = Number(els.rk.value), rc = Number(els.rc.value);
+    document.documentElement.style.setProperty('--rk', rk + 'px');
+    document.documentElement.style.setProperty('--rc', rc + 'px');
+    els.rkv.textContent = rk + 'px';
+    els.rcv.textContent = rc + 'px';
+    Array.prototype.forEach.call(document.querySelectorAll('#presets button'), function (b) {
+      b.setAttribute('aria-pressed', String(Number(b.dataset.rk) === rk));
+    });
+    measure();
+  }
+
+  els.rk.addEventListener('input', apply);
+  els.rc.addEventListener('input', apply);
+
+  document.getElementById('presets').addEventListener('click', function (e) {
+    var b = e.target.closest('button');
+    if (!b) return;
+    els.rk.value = b.dataset.rk;
+    apply();
+  });
+
+  document.getElementById('themes').addEventListener('click', function (e) {
+    var b = e.target.closest('button');
+    if (!b) return;
+    var solo = b.dataset.mode === 'light';
+    Array.prototype.forEach.call(document.querySelectorAll('.stage'), function (s) {
+      s.classList.toggle('solo', solo);
+    });
+    Array.prototype.forEach.call(this.querySelectorAll('button'), function (x) {
+      x.setAttribute('aria-pressed', String(x === b));
+    });
+    measure();
+  });
+
+  window.addEventListener('resize', measure);
+  apply();
+})();
+</script>
+</body>
+</html>

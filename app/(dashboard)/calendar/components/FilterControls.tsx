@@ -96,7 +96,7 @@ export function FilterControls({
             <button
               onClick={() => setShowN21(v => !v)}
               aria-pressed={showN21}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 transition-all"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-control text-xs font-semibold flex-shrink-0 transition-all"
               style={{
                 backgroundColor: showN21 ? 'var(--forest)' : 'rgba(0,0,0,0.05)',
                 color: showN21 ? 'white' : 'var(--text-secondary)',
@@ -110,7 +110,7 @@ export function FilterControls({
               <button
                 onClick={() => setShowPersonal(v => !v)}
                 aria-pressed={showPersonal}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 transition-all"
+                className="flex items-center gap-1 px-2.5 py-1 rounded-control text-xs font-semibold flex-shrink-0 transition-all"
                 style={{
                   backgroundColor: showPersonal ? 'var(--sienna)' : 'rgba(0,0,0,0.05)',
                   color: showPersonal ? 'white' : 'var(--text-secondary)',
@@ -127,7 +127,7 @@ export function FilterControls({
                 key={type}
                 onClick={() => setFilterType(filterType === type ? null : type)}
                 aria-pressed={filterType === type}
-                className="px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 transition-all"
+                className="px-2.5 py-1 rounded-control text-xs font-semibold flex-shrink-0 transition-all"
                 style={{
                   backgroundColor: filterType === type ? 'var(--brand-teal)' : 'rgba(0,0,0,0.05)',
                   color: filterType === type ? 'white' : 'var(--text-secondary)',

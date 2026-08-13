@@ -288,7 +288,7 @@ export default function EventPopupShell({
                   alt={t('cal.qrTitle')}
                   width={256}
                   height={256}
-                  className="h-auto w-full max-w-[256px] rounded-lg border"
+                  className="h-auto w-full max-w-[256px] rounded-container border"
                   style={{ borderColor: 'var(--border-default)' }}
                 />
                 <button

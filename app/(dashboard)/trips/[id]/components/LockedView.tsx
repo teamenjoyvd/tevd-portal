@@ -20,12 +20,12 @@ export function LockedView({ trip, profile }: { trip: Trip; profile: TripProfile
       <div className="max-w-[720px] mx-auto px-4 space-y-4">
         <BackButton />
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
+          <span className="text-xs font-semibold px-2 py-0.5 rounded-control"
             style={{ backgroundColor: 'var(--brand-forest)', color: 'rgba(255,255,255,0.85)' }}>
             {trip.destination}
           </span>
           {trip.trip_type && (
-            <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-control"
               style={{ backgroundColor: 'var(--brand-teal)', color: 'rgba(255,255,255,0.85)' }}>
               {trip.trip_type}
             </span>

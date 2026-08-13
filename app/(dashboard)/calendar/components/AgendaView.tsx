@@ -75,8 +75,8 @@ export function AgendaView({
       <div className="px-4 py-4 space-y-4">
         {[...Array(4)].map((_, i) => (
           <div key={i} className="space-y-2">
-            <div className="h-6 w-32 rounded-full animate-pulse" style={{ backgroundColor: 'rgba(0,0,0,0.06)' }} />
-            <div className="h-16 rounded-xl animate-pulse" style={{ backgroundColor: 'rgba(0,0,0,0.04)' }} />
+            <div className="h-6 w-32 rounded-control animate-pulse" style={{ backgroundColor: 'rgba(0,0,0,0.06)' }} />
+            <div className="h-16 rounded-container animate-pulse" style={{ backgroundColor: 'rgba(0,0,0,0.04)' }} />
           </div>
         ))}
       </div>
@@ -106,7 +106,7 @@ export function AgendaView({
           >
             <div className="flex items-center gap-3 mb-2 py-2">
               <div
-                className="flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold"
+                className="flex items-center gap-2 px-3 py-1 rounded-control text-xs font-semibold"
                 style={{
                   backgroundColor: isToday ? 'var(--crimson)' : 'rgba(0,0,0,0.06)',
                   color: isToday ? 'white' : 'var(--text-primary)',
@@ -127,7 +127,7 @@ export function AgendaView({
                     key={`${ev.id}-${dateKey}`}
                     ref={isHighlighted ? highlightRef : null}
                     onClick={() => onEventClick(ev.id)}
-                    className="w-full text-left rounded-xl border overflow-hidden hover:shadow-sm transition-shadow flex scroll-mt-20 md:scroll-mt-0"
+                    className="w-full text-left rounded-container border overflow-hidden hover:shadow-sm transition-shadow flex scroll-mt-20 md:scroll-mt-0"
                     style={{
                       backgroundColor: 'var(--bg-card)',
                       borderColor: isHighlighted ? 'var(--brand-crimson)' : 'rgba(0,0,0,0.05)',

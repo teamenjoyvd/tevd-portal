@@ -80,7 +80,7 @@ export default function ProfileTile({
         <div className="flex items-center justify-end">
           <div className="h-3 w-16 rounded animate-pulse" style={{ backgroundColor: 'rgba(250,248,243,0.15)' }} />
         </div>
-        <div className="h-6 w-24 rounded-lg animate-pulse" style={{ backgroundColor: 'rgba(250,248,243,0.15)' }} />
+        <div className="h-6 w-24 rounded-container animate-pulse" style={{ backgroundColor: 'rgba(250,248,243,0.15)' }} />
       </BentoCard>
     )
   }
@@ -119,7 +119,7 @@ export default function ProfileTile({
           <h2 className="font-display text-2xl font-semibold mt-3" style={{ color: 'var(--brand-parchment)' }}>
             Hey, {displayName ?? t('home.profile.there')}.
           </h2>
-          <span className="inline-block mt-2 text-xs font-semibold px-2.5 py-1 rounded-full"
+          <span className="inline-block mt-2 text-xs font-semibold px-2.5 py-1 rounded-control"
             style={{ backgroundColor: 'rgba(250,248,243,0.15)', color: 'var(--brand-parchment)' }}>
             {t('profile.unverified')}
           </span>
@@ -151,7 +151,7 @@ export default function ProfileTile({
           Hey, {displayName ?? t('home.profile.there')}.
         </h2>
         <div className="flex items-center gap-2 mt-2 flex-wrap">
-          <span className="text-xs font-semibold px-2.5 py-1 rounded-full"
+          <span className="text-xs font-semibold px-2.5 py-1 rounded-control"
             style={{ backgroundColor: roleStyle.bg, color: roleStyle.color }}>
             {t(('role.' + role) as TranslationKey)}
           </span>

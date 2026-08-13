@@ -69,13 +69,13 @@ export default function AboutContent() {
       <HighlightedParagraph raw={t('about.body1')} highlights={P1_HIGHLIGHTS[lang]} />
 
       <div
-        className="h-px w-8 rounded-full"
+        className="h-px w-8"
         style={{ backgroundColor: 'var(--brand-crimson)', opacity: 0.4 }}
       />
       <HighlightedParagraph raw={t('about.body2')} highlights={P2_HIGHLIGHTS[lang]} />
 
       <div
-        className="h-px w-8 rounded-full"
+        className="h-px w-8"
         style={{ backgroundColor: 'var(--brand-crimson)', opacity: 0.4 }}
       />
       <HighlightedParagraph raw={t('about.body3')} highlights={[]} />

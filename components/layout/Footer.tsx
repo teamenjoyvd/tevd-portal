@@ -56,7 +56,7 @@ export default function Footer() {
             {/* Tickets */}
             <a href="https://epaygo.bg/3640737494" target="_blank" rel="noopener noreferrer"
               aria-label="Tickets"
-              className="w-8 h-8 rounded-xl flex items-center justify-center transition-colors hover:bg-white/10"
+              className="w-8 h-8 rounded-control flex items-center justify-center transition-colors hover:bg-white/10"
               style={{ border: '1px solid rgba(255,255,255,0.15)' }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                 stroke="rgba(242,239,232,0.6)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -70,7 +70,7 @@ export default function Footer() {
             {/* Mail */}
             <a href="mailto:teamenjoyvd@gmail.com"
               aria-label="Email"
-              className="w-8 h-8 rounded-xl flex items-center justify-center transition-colors hover:bg-white/10"
+              className="w-8 h-8 rounded-control flex items-center justify-center transition-colors hover:bg-white/10"
               style={{ border: '1px solid rgba(255,255,255,0.15)' }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                 stroke="rgba(242,239,232,0.6)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -82,7 +82,7 @@ export default function Footer() {
             {/* Instagram */}
             <a href="https://www.instagram.com/teamenjoyvd/" target="_blank" rel="noopener noreferrer"
               aria-label="Instagram"
-              className="w-8 h-8 rounded-xl flex items-center justify-center transition-colors hover:bg-white/10"
+              className="w-8 h-8 rounded-control flex items-center justify-center transition-colors hover:bg-white/10"
               style={{ border: '1px solid rgba(255,255,255,0.15)' }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                 stroke="rgba(242,239,232,0.6)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -95,7 +95,7 @@ export default function Footer() {
             {/* Facebook */}
             <a href="https://www.facebook.com/teamenjoyvd/" target="_blank" rel="noopener noreferrer"
               aria-label="Facebook"
-              className="w-8 h-8 rounded-xl flex items-center justify-center transition-colors hover:bg-white/10"
+              className="w-8 h-8 rounded-control flex items-center justify-center transition-colors hover:bg-white/10"
               style={{ border: '1px solid rgba(255,255,255,0.15)' }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="rgba(242,239,232,0.6)">
                 <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>

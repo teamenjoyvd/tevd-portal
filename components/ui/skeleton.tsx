@@ -10,7 +10,7 @@ export function Skeleton({
 }) {
   return (
     <div
-      className={cn('skeleton-shimmer rounded-md', className)}
+      className={cn('skeleton-shimmer rounded-container', className)}
       style={{ backgroundColor: 'var(--skeleton-base)', ...style }}
     />
   )

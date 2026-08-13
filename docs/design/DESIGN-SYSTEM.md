@@ -61,38 +61,79 @@ fonts have real usage in the app.
 
 ## Rounding
 
-**One radius, site-wide: 16px.** It is the navbar shell's radius (`Header.tsx`),
-and it is now canonical for every card, pill, badge, input, button and overlay
-surface. Before 2608-DEV-740 four scales coexisted (16 / 12 / 8 / 6px, plus 165
-`rounded-full`), which is why nothing looked like it belonged to one system.
+**Two tiers, held at 2:1 — containers 8px, controls 4px.**
 
-The value lives in exactly one place — `--radius` in `styles/brand-tokens.css`:
+| Tier | Value | Token | Utility | What it covers |
+|---|---|---|---|---|
+| Container | **8px** | `--radius` | `rounded-container` | Cards, tiles, dialogs, sheets, popovers, menus, list rows, panels, images, skeleton blocks, the navbar shell |
+| Control | **4px** | `--radius-control` | `rounded-control` | Pills, badges, chips, buttons, inputs, selects, tabs |
 
-| Layer | How it gets 16px |
-|---|---|
-| Tailwind utilities | `app/globals.css` `@theme` pins `--radius-md`, `--radius-lg`, `--radius-xl`, `--radius-2xl` to `16px`, so `rounded-md/lg/xl/2xl` are all the same radius. This normalises ~515 existing class usages without editing the files. |
-| `.card` and bento surfaces | `--bento-radius: var(--radius)` |
-| Inline `style` props (shadcn fork in `components/ui/`) | `borderRadius: 'var(--radius)'` |
+Both live in `styles/brand-tokens.css`. Directional variants work
+(`rounded-t-container` for the mobile bottom sheet).
 
-Because the four Tailwind steps are equal, **which one you type does not
-matter** — prefer `rounded-xl`. Never write a numeric radius (`10px`,
-`0.5rem`, `9999px`) in a component; use `var(--radius)` or a `rounded-*`
-utility.
+### Why not one value
+
+An earlier revision of this section mandated a single 16px radius. It was
+wrong, and the reason is worth keeping because it is not obvious:
+
+> **CSS clamps corner radii.** When the two radii on a side exceed that side's
+> length, *every* radius scales down by the same factor (CSS Backgrounds 3
+> §5.5). For a uniform radius the rendered corner is
+> `min(r, width/2, height/2)`.
+
+A status badge is **19px tall**. At 16px it renders at 9.5px — exactly half its
+height, which is a capsule. At 12px it is *still* a capsule. No value at or
+above ~9px changes that badge at all, so "one radius site-wide" silently meant
+"cards get 16px and every pill stays a lozenge".
+
+8px and 4px were chosen so that **nothing clamps anywhere** — every element
+renders exactly the value set — and the 2:1 gap is what makes a badge read as
+nested inside its card. If you change these, keep the ratio, and keep the
+control value below half the height of the shortest badge.
+
+### Writing it
+
+Use the **named** utilities. A bare `rounded-xl` never said which kind of thing
+it was on, which is exactly how four scales drifted into the codebase:
+
+```tsx
+<div className="rounded-container p-4">   {/* a surface     */}
+  <span className="rounded-control px-2">  {/* an interactive */}
+```
+
+Never write a numeric radius (`10px`, `0.5rem`, `9999px`) in a component.
+
+`--radius-md`, `--radius-lg` and `--radius-xl` are pinned to the **control**
+tier and `--radius-2xl` to the container tier. That is a **legacy landing zone**
+so unmigrated code lands somewhere sane — not a scale. Do not reach for
+`rounded-md/lg/xl/2xl` in new code.
 
 ### The only exceptions
 
 - **`rounded-full`** — circular affordances *only*: avatars and logos
   (`Footer.tsx`, `Header.tsx`), the calendar today-dot (`MonthView.tsx`),
-  progress tracks (`AttendeeView.tsx`), `ui/switch.tsx`, `ui/toggle.tsx`,
-  spinners, drag handles (`ui/vaul-drawer.tsx`), and dialog close buttons.
-  A status pill or badge is **not** one of these — those are `rounded-xl`.
-- **`rounded-sm`** (`--radius-sm`, 0.25rem) — deliberately left off the
-  collapse for hairline chrome. Not for cards or pills.
+  progress tracks (`AttendeeView.tsx`), `ui/switch.tsx`, spinners, the drawer
+  drag handle (`ui/vaul-drawer.tsx`), dialog close buttons, and notification
+  count dots (`BellButton.tsx`). A status pill or badge is **not** one of
+  these — those are `rounded-control`.
+- **`rounded-sm`** (`--radius-sm`, 2px) — hairline chrome only. Not cards, not pills.
 - Tiptap **rendered content** styles in `globals.css` are author content, not
   app chrome, and keep their own radii.
 
-To change the corner radius of the entire app, change `--radius` and the four
-`@theme` keys. There is no second place to look.
+### Radius Bench
+
+`docs/design/radius-bench.html` — open it in a browser. It renders every
+surface in the portal at an adjustable radius, light and dark side by side, and
+reports each specimen's measured height, the radius requested, and the radius
+actually rendered after clamping. Use it before changing either value; a
+radius decision cannot be reviewed as a diff.
+
+### Migration status
+
+`app/admin/**` has not been migrated (2608-DEV-740 Phase 1 covered
+`components/`, `app/(dashboard)/` and `app/events/`). Admin pills still use
+`rounded-full` and some admin containers still sit on `rounded-lg`/`rounded-xl`,
+so they render at the control tier. Tracked as the Phase 2 follow-up.
 
 ## Elevation Shadows
 

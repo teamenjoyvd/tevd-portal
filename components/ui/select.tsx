@@ -58,7 +58,7 @@ function SelectContent({
     <SelectPrimitive.Portal>
       <SelectPrimitive.Content
         className={cn(
-          'relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-xl border shadow-md',
+          'relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-container border shadow-md',
           'data-[state=open]:animate-in data-[state=closed]:animate-out',
           'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
           'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
@@ -109,7 +109,7 @@ function SelectItem({
   return (
     <SelectPrimitive.Item
       className={cn(
-        'relative flex w-full cursor-default select-none items-center rounded-lg py-2 pl-3 pr-8 text-sm outline-none',
+        'relative flex w-full cursor-default select-none items-center rounded-container py-2 pl-3 pr-8 text-sm outline-none',
         'focus:bg-black/5 data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
         className,
       )}

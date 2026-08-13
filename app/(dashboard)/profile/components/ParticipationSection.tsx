@@ -51,7 +51,7 @@ export function ParticipationSection({ profileId, role }: { profileId: string; r
           </p>
           {er.note && <p className="mt-0.5 italic" style={{ color: 'var(--text-secondary)' }}>{er.note}</p>}
         </div>
-        <StatusBadge status={er.status} className="font-semibold px-2 py-0.5 rounded-full flex-shrink-0">{er.status}</StatusBadge>
+        <StatusBadge status={er.status} className="font-semibold px-2 py-0.5 rounded-control flex-shrink-0">{er.status}</StatusBadge>
       </div>
     )
   }

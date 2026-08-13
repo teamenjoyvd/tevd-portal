@@ -32,7 +32,7 @@ export default function RegistrationsTab({ eventId, t }: Props) {
     return (
       <div className="px-4 py-3 space-y-2">
         {[...Array(3)].map((_, i) => (
-          <div key={i} className="h-10 rounded-lg animate-pulse" style={{ backgroundColor: 'var(--skeleton-base)' }} />
+          <div key={i} className="h-10 rounded-container animate-pulse" style={{ backgroundColor: 'var(--skeleton-base)' }} />
         ))}
       </div>
     )
@@ -72,7 +72,7 @@ export default function RegistrationsTab({ eventId, t }: Props) {
             // a registrant may ALSO appear as another row's sharer, so a bare
             // text locator is ambiguous by design of this list.
             data-testid="registration-row"
-            className="rounded-lg p-2.5"
+            className="rounded-container p-2.5"
             style={{ backgroundColor: 'var(--bg-card-raised)', border: '1px solid var(--border-default)' }}
           >
             <div className="flex items-start justify-between gap-2">
@@ -104,7 +104,7 @@ export default function RegistrationsTab({ eventId, t }: Props) {
                 )}
               </div>
               <span
-                className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
+                className="text-[10px] font-semibold px-2 py-0.5 rounded-control flex-shrink-0"
                 style={{ backgroundColor: registrationStyle.bg, color: registrationStyle.color }}
               >
                 {t(`cal.reg.status.${statusKey}` as `cal.reg.status.${StatusKey}`)}

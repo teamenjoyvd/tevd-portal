@@ -88,7 +88,7 @@ export default function History({ data }: HistoryProps) {
                   {fullName}
                 </span>
                 <span
-                  className="text-xs font-bold px-2 py-0.5 rounded-full"
+                  className="text-xs font-bold px-2 py-0.5 rounded-control"
                   style={{
                     backgroundColor: 'rgba(var(--primary-default-rgb, 46, 125, 50), 0.1)',
                     color: 'var(--primary-default)',

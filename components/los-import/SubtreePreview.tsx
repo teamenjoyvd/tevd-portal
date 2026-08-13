@@ -88,7 +88,7 @@ export function SubtreePreview({
   }
 
   return (
-    <div className="overflow-x-auto rounded-xl border p-3" style={{ borderColor: 'var(--border-default)', backgroundColor: 'var(--bg-subtle, var(--bg-card))' }}>
+    <div className="overflow-x-auto rounded-container border p-3" style={{ borderColor: 'var(--border-default)', backgroundColor: 'var(--bg-subtle, var(--bg-card))' }}>
       <svg width={bounds.maxX + 20} height={bounds.maxY + 20} style={{ display: 'block' }}>
         {edges.map((e, i) => (
           <path

@@ -43,7 +43,7 @@ export default function NotificationPopup({ onClose }: Props) {
         </p>
         {unreadCount > 0 && (
           <span
-            className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+            className="text-[10px] font-bold px-2 py-0.5 rounded-control"
             style={{ backgroundColor: 'var(--brand-crimson)', color: 'var(--brand-parchment)' }}
           >
             {unreadCount}
@@ -56,7 +56,7 @@ export default function NotificationPopup({ onClose }: Props) {
         {isLoading ? (
           <div className="px-4 py-6 space-y-3">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-10 rounded-xl animate-pulse"
+              <div key={i} className="h-10 rounded-container animate-pulse"
                 style={{ backgroundColor: 'var(--border-default)' }} />
             ))}
           </div>

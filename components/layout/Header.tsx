@@ -45,7 +45,7 @@ export default function Header() {
     <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
       <header className="fixed top-4 left-0 right-0 z-50 px-4">
         <div className="max-w-[1440px] mx-auto relative z-50">
-          <div className="h-14 flex items-center px-5 rounded-2xl backdrop-blur-md backdrop-saturate-150"
+          <div className="h-14 flex items-center px-5 rounded-container backdrop-blur-md backdrop-saturate-150"
             style={{
               backgroundColor: 'rgba(var(--bg-global-rgb), 0.80)',
               border: '1px solid var(--nav-border)',
@@ -149,7 +149,7 @@ export default function Header() {
       {/* Mobile/tablet drawer — visible below lg */}
       <SheetContent
         side="top"
-        className="lg:hidden inset-x-4 top-20 max-w-[1440px] mx-auto h-auto shadow-none rounded-2xl py-2 px-3 flex flex-col gap-1"
+        className="lg:hidden inset-x-4 top-20 max-w-[1440px] mx-auto h-auto shadow-none rounded-container py-2 px-3 flex flex-col gap-1"
         style={{
           backgroundColor: 'rgba(var(--bg-global-rgb), 0.97)',
           border: '1px solid var(--nav-border)',
