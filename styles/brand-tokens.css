@@ -1,6 +1,12 @@
 /* ── ISS-0027 · 2026 Bento Design System — Brand Tokens ── */
 
 :root {
+  /* Makes native UI — scrollbars, <select> popups, date pickers, autofill
+     backgrounds — follow the app theme. Without it a fully themed dark UI
+     still renders a glaring white scrollbar. Paired with [data-theme] below,
+     NOT with prefers-color-scheme: the app's theme is explicit. */
+  color-scheme: light;
+
   /* ── Palette ── */
   --brand-forest:    #2d332a;
   --brand-crimson:   #bc4749;
@@ -63,6 +69,34 @@
   /* ── Skeleton shimmer base ── */
   --skeleton-base:      rgba(45, 51, 42, 0.07);
 
+  /* ── Interaction tokens (2608-DEV-741 C1) ──
+     These exist because there was no token for "a link", "a hover", "text on
+     a crimson fill" or "the dialog scrim" — so those got typed as colour
+     literals 513 times, and every one of them is wrong in dark mode.
+     WCAG ratios for each pair are recorded in docs/design/DESIGN-SYSTEM.md. */
+
+  /* NOT var(--brand-teal): teal measures 4.29:1 on --bg-card, under the 4.5:1
+     bar for body text. This is a darkened teal at 5.31:1 on card / 5.85:1 on
+     global. --brand-teal remains the brand fill colour; --link is for text. */
+  --link:            #356874;
+  --link-hover:      #2C5964;
+
+  /* Text and icons on a crimson / forest / teal fill. Parchment clears 4.5:1
+     on all three (4.78 / 12.22 / 4.73); the rgba(255,255,255,0.9) it replaces
+     did not, because the alpha blended it toward the fill. */
+  --on-accent:       var(--brand-parchment);
+
+  /* Dialog and sheet scrims. */
+  --overlay:         rgba(26, 31, 24, 0.40);
+
+  /* The single biggest source of dark-mode invisibility: hover:bg-black/[0.02-0.05]. */
+  --hover-surface:   rgba(45, 51, 42, 0.05);
+
+  /* Must clear 3:1 against BOTH the page and card surface of its own theme.
+     Crimson does in light (4.78 / 4.34) but only 2.86 on the dark card, which
+     is exactly why this is a token and not a constant. */
+  --focus-ring:      var(--brand-crimson);
+
   /* ── Status pill tokens — semantic, theme-aware (bg tint + fg pair) ── */
   --status-success-bg:  rgba(63, 107, 74, 0.12);
   --status-success-fg:  #2f5138;
@@ -87,6 +121,8 @@
 html { font-size: calc(var(--font-scale) * 16px); }
 
 [data-theme="dark"] {
+  color-scheme: dark;
+
   --bg-global-rgb:      26, 31, 24;   /* #1A1F18 — required for rgba() header backdrop */
   --bg-global:          var(--brand-void);
   --bg-card:            var(--brand-moss);
@@ -115,6 +151,19 @@ html { font-size: calc(var(--font-scale) * 16px); }
   --status-pending-fg:  #f0b08d;
   --status-neutral-bg:  rgba(181, 176, 168, 0.20);
   --status-neutral-fg:  #B5B0A8;
+
+  /* ── Interaction tokens — dark ── */
+  /* Lightened teal: raw --brand-teal is 3.34:1 on --brand-void, a WCAG AA
+     fail. This is 6.76:1 on global, 5.85:1 on card, 5.33:1 on card-raised. */
+  --link:            #6FAEBE;
+  --link-hover:      #93CBD8;
+  --on-accent:       var(--brand-parchment);
+  /* Deeper than light: a 0.40 scrim over an already-dark page does not
+     separate the dialog from what is behind it. */
+  --overlay:         rgba(0, 0, 0, 0.60);
+  --hover-surface:   rgba(250, 248, 243, 0.08);
+  /* Crimson is only 2.86:1 on --bg-card here; the lightened teal is 5.85:1. */
+  --focus-ring:      #6FAEBE;
 }
 
 /* ── Utility classes ── */
