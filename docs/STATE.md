@@ -4,8 +4,15 @@ full-bleed image hero, a sibling to the Trips tile it sits beside. No migration.
 
 ## Now
 
-BUILD is complete and **visually verified locally** (see Done). No PR yet — pushing needs an
-explicit grant, and none has been given for this ticket.
+**PR #748 is OPEN and ready for review**, head `d0b6921`, all checks green (including
+`390px smoke vs preview` and `Authenticated E2E (Clerk)`). CodeRabbit's one finding — truthiness on
+`post.caption` — is fixed and its thread is resolved. Its **re-review after that push was rate
+limited**, so the ready-state pass covers `9bc7010`, not `d0b6921`; the delta is a one-line
+absence check.
+
+Remaining: merge, then GCR (prune the CLAIMS row, close #743). **Delete the DEV seed row** —
+`social_posts` has exactly one row, seeded so the preview would show the hero, plus
+`social-thumbnails/dev-seed-743.jpg` in DEV storage.
 
 #740 (PR #744) and #741 (PR #745) both **merged** on 2026-08-13; their CLAIMS.md rows were stale and
 are pruned in this branch's CLAIM commit rather than in a standalone cleanup PR.
@@ -43,13 +50,9 @@ for both themes; `@custom-variant dark` registered against `[data-theme="dark"]`
 blanket ban with the doc updated in the same commit.
 
 ## Next
-1. **Needs a push grant** — then push `dev/2608-DEV-743`, open PR as DRAFT, wait for CI green +
-   Vercel preview READY, mark ready for one CodeRabbit pass, batch the fixes, GCR.
-2. **The DEV `social_posts` table is empty**, so the preview will show the *empty* state, not the
-   hero. Reviewing the hero on the preview requires seeding a row first — and DEV has no
-   `social-thumbnails` storage bucket either (creating it was denied by the permission classifier
-   this session), so a seeded row needs an fbcdn/cdninstagram URL to survive `thumbnailSrc()`.
-3. `npm run verify` deliberately NOT run locally: its `next build` runs under `NODE_ENV=production`,
+1. Merge #748, then GCR: remove the CLAIMS row, close #743, and delete the DEV seed row + storage
+   object.
+2. `npm run verify` deliberately NOT run locally: its `next build` runs under `NODE_ENV=production`,
    which on this box resolves `.env.local` = PROD. CI builds it on the PR.
 
 ## Constraints
@@ -120,6 +123,10 @@ blanket ban with the doc updated in the same commit.
   to `card--forest`; empty state still `card bento-tile flex flex-col` with the coming-soon copy.
   `tsc` clean, `npm test` 481 passed, lint 0 errors. The seed row and its local image were removed
   afterwards — DEV `social_posts` is back to 0 rows.
+- #743 verified on the **Vercel preview** too (`tevd-portal-mym1ogste`, DEV-backed, reached with a
+  `_vercel_share` bypass link from the Vercel MCP — preview deployments are auth-protected): at
+  390×844 and 1440×900 in both themes the hero image loads from DEV storage, caption is 2 lines,
+  `a a` is null, page `scrollWidth` 375/1425 against 390/1440.
 - `/code-review low` on #743 found one real issue — in hero mode every child is absolute, so the
   card had no intrinsic height and depended on its call sites for one. Fixed with `min-h-[200px]`;
   re-measured heights unchanged (198px mobile, 218px desktop).
