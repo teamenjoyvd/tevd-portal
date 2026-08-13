@@ -187,7 +187,7 @@ export const AboInfoContent = memo(function AboInfoContent() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <p className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>{t('profile.access')}</p>
             <span
-              className="text-[10px] font-bold px-2 py-0.5 rounded-xl self-start w-fit"
+              className="text-[10px] font-bold px-2 py-0.5 rounded-control self-start w-fit"
               style={{ backgroundColor: rc.bg, color: rc.font }}
             >
               {t(`profile.role.label.${role}` as Parameters<typeof t>[0])}
@@ -230,7 +230,7 @@ export const AboInfoContent = memo(function AboInfoContent() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <p className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>{t('profile.access')}</p>
             <span
-              className="text-[10px] font-bold px-2 py-0.5 rounded-xl self-start w-fit"
+              className="text-[10px] font-bold px-2 py-0.5 rounded-control self-start w-fit"
               style={{ backgroundColor: rc.bg, color: rc.font }}
             >
               {t(`profile.role.label.${role}` as Parameters<typeof t>[0])}

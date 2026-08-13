@@ -109,7 +109,7 @@ function SelectItem({
   return (
     <SelectPrimitive.Item
       className={cn(
-        'relative flex w-full cursor-default select-none items-center rounded-container py-2 pl-3 pr-8 text-sm outline-none',
+        'relative flex w-full cursor-default select-none items-center rounded-control py-2 pl-3 pr-8 text-sm outline-none',
         'focus:bg-black/5 data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
         className,
       )}

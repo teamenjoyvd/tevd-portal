@@ -189,8 +189,8 @@ export function MonthView({
                     // the pill (w-full) touches the day-cell border. A bar cut
                     // by a week boundary stays flush at the cut, matching the
                     // squared-corner treatment in EventPill.
-                    paddingLeft: seg.continuesLeft ? 0 : 2,
-                    paddingRight: seg.continuesRight ? 0 : 2,
+                    paddingLeft: seg.continuesLeft === true ? 0 : 2,
+                    paddingRight: seg.continuesRight === true ? 0 : 2,
                   }}
                 >
                   <EventPill
