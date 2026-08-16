@@ -6,4 +6,5 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
+| #749 | `dev/2608-DEV-749` | `supabase/migrations/` (**migration: yes** — enum + columns + trigger fn), `app/api/events/[id]/request-role/route.ts`, `app/api/events/[id]/route.ts`, `app/api/admin/event-role-requests/[id]/route.ts`, `app/(dashboard)/calendar/components/popup/**`, `app/admin/approval-hub/components/EventRolesTab.tsx`, `app/admin/members/[id]/components/memberDetailFormat.ts`, `lib/events/role-cutoff.ts` (new), `lib/hooks/useMinuteTick.ts` (new), `lib/email/templates/EventRoleRequestEmail.tsx`, `lib/i18n/domains/{events,calendar}.ts` | 2026-08-16 |
 
