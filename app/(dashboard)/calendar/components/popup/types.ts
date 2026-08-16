@@ -1,7 +1,10 @@
 export type CallerRequest = {
   id: string
   role_label: string
-  status: 'pending' | 'approved' | 'denied'
+  // 'cancelled' (2608-DEV-749) is in the union because the type mirrors the
+  // registration_status enum, but /api/events/[id] deliberately never sends a
+  // cancelled row as caller_request — see that route's callerReq filter.
+  status: 'pending' | 'approved' | 'denied' | 'cancelled'
 }
 
 export type PendingProfile = {

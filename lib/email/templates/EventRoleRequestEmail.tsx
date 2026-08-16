@@ -3,15 +3,19 @@ import { Section, Text } from '@react-email/components'
 import * as React from 'react'
 import { EmailShell, bodyPadding } from './_shell'
 
-type RoleStatus = 'approved' | 'denied'
+type RoleStatus = 'approved' | 'denied' | 'cancelled'
 
 const STATUS_LABEL: Record<RoleStatus, string> = {
-  approved: 'Approved ✓',
-  denied:   'Declined',
+  approved:  'Approved ✓',
+  denied:    'Declined',
+  cancelled: 'Cancelled',
 }
 const STATUS_COLOR: Record<RoleStatus, string> = {
-  approved: '#1a3c2e',
-  denied:   '#bc4749',
+  approved:  '#1a3c2e',
+  denied:    '#bc4749',
+  // Neutral grey, not the alert red used for `denied`: a revoke is an
+  // administrative change, not a rejection of the member (2608-DEV-749).
+  cancelled: '#6b7280',
 }
 
 export type EventRoleRequestEmailProps = {
@@ -69,6 +73,14 @@ export function EventRoleRequestEmail({
         {status === 'denied' && (
           <Text style={{ margin: '0 0 16px', fontSize: 15, color: '#374151' }}>
             Your role request was not approved for this event. You can submit a new request from the calendar.
+          </Text>
+        )}
+
+        {status === 'cancelled' && (
+          <Text style={{ margin: '0 0 16px', fontSize: 15, color: '#374151' }}>
+            An administrator has cancelled your participation in this role, and the slot is open
+            again for other members. Your registration for the event itself is unaffected — you are
+            still expected to attend.
           </Text>
         )}
 

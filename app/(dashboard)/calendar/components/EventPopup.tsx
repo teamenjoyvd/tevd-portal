@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { apiClient, ApiError } from '@/lib/apiClient'
+import { isRoleWindowClosed } from '@/lib/events/role-cutoff'
 import QRCode from 'qrcode'
 import { toast } from 'sonner'
 import EventPopupShell from './popup/EventPopupShell'
@@ -42,9 +43,10 @@ export default function EventPopup({
   const actionsRole: 'admin' | 'core' | 'member' | null =
     userRole === 'guest' || userRole === null ? null : userRole
 
-  // Role requests close 15 minutes before start. Admins always see full UI.
-  const isClosed = !isAdmin && !!event &&
-    Date.now() >= new Date(event.start_time).getTime() - 15 * 60 * 1000
+  // Role sign-ups close ROLE_CUTOFF_MS before start (60 min since
+  // 2608-DEV-749, was 15). Admins always see the full UI. The window itself
+  // lives in lib/events/role-cutoff.ts, shared with the route that enforces it.
+  const isClosed = !isAdmin && !!event && isRoleWindowClosed(event.start_time)
 
   const isEventEnded = !!event && Date.now() >= new Date(event.end_time).getTime()
 
@@ -55,12 +57,36 @@ export default function EventPopup({
         body: JSON.stringify({ role_label }),
       }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['event', eventId] }),
+    onError: (err: unknown) => {
+      const code = err instanceof ApiError ? err.code : undefined
+      const key = code === 'role_window_closed' ? 'cal.roleWindowClosed'
+        : code === 'slot_filled' ? 'cal.roleSlotFilled'
+        : code === 'already_requested' ? 'cal.roleAlreadyRequested'
+        : 'cal.requestRoleError'
+      toast.error(t(key))
+      // slot_filled / state_changed mean this client is looking at a stale
+      // board — refetch so the member sees what actually happened.
+      qc.invalidateQueries({ queryKey: ['event', eventId] })
+    },
   })
 
+  // Takes no argument: the route identifies the row from the session + event id,
+  // and the old `request_id` parameter was accepted and never sent.
   const cancelMutation = useMutation({
-    mutationFn: (request_id: string) =>
+    mutationFn: () =>
       apiClient(`/api/events/${eventId}/request-role`, { method: 'DELETE' }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['event', eventId] }),
+    onSuccess: () => {
+      toast.success(t('cal.cancelRoleSuccess'))
+      qc.invalidateQueries({ queryKey: ['event', eventId] })
+    },
+    // Same code-keyed branching as attendMutation — never match on err.message.
+    onError: (err: unknown) => {
+      const code = err instanceof ApiError ? err.code : undefined
+      const key = code === 'role_window_closed' ? 'cal.roleWindowClosed'
+        : code === 'nothing_to_cancel' ? 'cal.cancelRoleGone'
+        : 'cal.cancelRoleError'
+      toast.error(t(key))
+    },
   })
 
   const attendMutation = useMutation({

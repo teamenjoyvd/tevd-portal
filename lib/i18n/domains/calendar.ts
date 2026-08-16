@@ -41,6 +41,16 @@ export const calendar = {
   // 2608-DEV-707 — the attending-state CTA row
   'cal.joinRecordsAttendance': { en: 'Records your attendance',     bg: 'Отбелязва присъствието ви'      },
   'cal.attendSuccessEmailed':  { en: "You're attending. Confirmation sent to your email.", bg: 'Ще присъствате. Изпратихме потвърждение на имейла ви.' },
+
+  // role request / cancel toasts (2608-DEV-749) — keyed off the route's
+  // RoleRequestFailureCode, never off the English error string
+  'cal.cancelRoleSuccess':   { en: 'Your role was cancelled and the slot is open again.', bg: 'Ролята ви беше отказана и мястото е свободно отново.' },
+  'cal.cancelRoleError':     { en: 'Could not cancel your role. Please try again.',       bg: 'Ролята не можа да бъде отказана. Опитайте отново.'    },
+  'cal.cancelRoleGone':      { en: 'You have no active role request for this event.',     bg: 'Нямате активна заявка за роля за това събитие.'       },
+  'cal.roleWindowClosed':    { en: 'Role sign-ups closed 1 hour before this event.',      bg: 'Заявките за роли се затвориха 1 час преди събитието.'  },
+  'cal.roleSlotFilled':      { en: 'Someone else already has this role.',                 bg: 'Някой друг вече е зает с тази роля.'                  },
+  'cal.roleAlreadyRequested': { en: 'You already have a request for this event.',         bg: 'Вече имате заявка за това събитие.'                   },
+  'cal.requestRoleError':    { en: 'Could not request this role. Please try again.',      bg: 'Заявката за роля не бе успешна. Опитайте отново.'     },
   // 2608-DEV-709 — the tiered Registrations tab. "via"/"Direct" are NOT
   // duplicated here: profile.invites.via / profile.invites.direct already carry
   // them and keys are globally unique (lib/i18n/index.ts).

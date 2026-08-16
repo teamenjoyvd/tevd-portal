@@ -65,7 +65,12 @@ export async function GET(
     const slotRequests = requestsByRole[slot.role_label] ?? []
     const approvedReq = slotRequests.find(r => r.status === 'approved')
     const pendingReqs = slotRequests.filter(r => r.status === 'pending')
-    const callerReq = slotRequests.find(r => r.profile_id === callerProfile.id) ?? null
+    // A cancelled row is history, not "your request" (2608-DEV-749) — surfacing
+    // it would keep rendering the withdrawn slot as the caller's and block them
+    // from claiming another. `denied` still surfaces, exactly as before.
+    const callerReq = slotRequests.find(
+      r => r.profile_id === callerProfile.id && r.status !== 'cancelled',
+    ) ?? null
 
     let status: 'open' | 'contested' | 'filled'
     if (approvedReq) {

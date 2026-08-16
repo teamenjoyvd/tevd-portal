@@ -8,9 +8,15 @@ type RoleEmailPayload = {
   eventTitle: string
   eventDate: string
   roleLabel: string
-  status: 'approved' | 'denied'
+  status: 'approved' | 'denied' | 'cancelled'
   requestId: string
   profileId: string
+}
+
+const EMAIL_SUBJECT: Record<RoleEmailPayload['status'], string> = {
+  approved:  'Event Role Request Approved ✓',
+  denied:    'Event Role Request Declined',
+  cancelled: 'Event Role Participation Cancelled',
 }
 
 async function sendRoleEmail(payload: RoleEmailPayload): Promise<void> {
@@ -30,7 +36,7 @@ async function sendRoleEmail(payload: RoleEmailPayload): Promise<void> {
 
   await sendNotificationEmail({
     to: payload.contactEmail,
-    subject: payload.status === 'approved' ? 'Event Role Request Approved ✓' : 'Event Role Request Declined',
+    subject: EMAIL_SUBJECT[payload.status],
     html,
     template: 'event_role_request_result',
     meta: { request_id: payload.requestId, profile_id: payload.profileId },
@@ -50,7 +56,9 @@ export async function PATCH(
   if (ctx.guard) return ctx.guard
 
   const { status } = await req.json()
-  if (!['approved', 'denied'].includes(status)) {
+  // 'cancelled' (2608-DEV-749) is the admin revoke: it takes an APPROVED role
+  // away and reopens the slot. 'denied' still means "never granted".
+  if (!['approved', 'denied', 'cancelled'].includes(status)) {
     return Response.json({ error: 'Invalid status' }, { status: 400 })
   }
 
@@ -88,15 +96,38 @@ export async function PATCH(
     return Response.json(result)
   }
 
-  // Deny path — direct update, no slot write needed
-  const { data, error } = await supabase
+  // Deny / revoke path — direct update, no slot write needed. Cancelling stamps
+  // the audit columns with the acting admin; denying leaves them alone.
+  //
+  // The `.in('status', ...)` on the revoke is a precondition re-checked at write
+  // time: only an APPROVED role can be revoked, and reading-then-writing would
+  // let a concurrent change slip through between the two statements.
+  const patch = status === 'cancelled'
+    ? {
+        status: 'cancelled' as const,
+        cancelled_at: new Date().toISOString(),
+        cancelled_by: ctx.profile.id,
+      }
+    : { status: 'denied' as const }
+
+  const query = supabase
     .from('event_role_requests')
-    .update({ status: 'denied' })
+    .update(patch)
     .eq('id', id)
+
+  if (status === 'cancelled') query.in('status', ['approved'])
+
+  const { data, error } = await query
     .select('id, role_label, profile_id, profile:profiles!profile_id(first_name, contact_email), event:calendar_events!event_id(title, start_time)')
-    .single()
+    .maybeSingle()
 
   if (error) return Response.json({ error: error.message }, { status: 500 })
+  if (!data) {
+    return Response.json(
+      { error: 'This request is no longer in a state that can be changed', code: 'state_changed' },
+      { status: 409 },
+    )
+  }
 
   const profileData = data.profile as { first_name: string | null; contact_email: string | null }
   const eventData = data.event as { title: string; start_time: string }
@@ -111,7 +142,7 @@ export async function PATCH(
         ? new Date(eventData.start_time).toLocaleDateString()
         : 'TBD',
       roleLabel: data.role_label,
-      status: 'denied',
+      status: status === 'cancelled' ? 'cancelled' : 'denied',
       requestId: data.id,
       profileId: data.profile_id,
     }).catch(console.error)
