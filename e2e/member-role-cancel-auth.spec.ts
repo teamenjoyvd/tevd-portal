@@ -27,6 +27,9 @@ const TEST_RUN_ID = randomUUID().slice(0, 8)
 const EVENT_TITLE = `E2E Role Cancel ${TEST_RUN_ID}`
 const ROLE_LABEL = 'HOST'
 
+// The write target is guarded once, globally: e2e/global-setup.ts calls
+// assertSafeSupabaseTarget(), which throws before any spec loads unless the URL
+// is localhost or the hosted DEV project. No per-spec copy of that check.
 function svc(): SupabaseClient | null {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -40,7 +43,7 @@ let memberProfileId: string | null = null
 
 test.beforeAll(async () => {
   sb = svc()
-  if (!sb) return
+  if (sb === null) return
 
   const { data: profile } = await sb
     .from('profiles')
@@ -49,7 +52,7 @@ test.beforeAll(async () => {
     .maybeSingle()
 
   // Guests are 403 on this route — the seeded member must already be promoted.
-  if (!profile || profile.role === 'guest') return
+  if (profile === null || profile.role === 'guest') return
   memberProfileId = profile.id
 
   const now = Date.now()
@@ -71,14 +74,14 @@ test.beforeAll(async () => {
     .select('id')
     .single()
 
-  if (insertError || !event) {
+  if (insertError !== null || event === null) {
     throw new Error(`Failed to seed event for member-role-cancel-auth: ${insertError?.message ?? 'no row returned'}`)
   }
   eventId = event.id
 })
 
 test.afterAll(async () => {
-  if (!sb || !eventId) return
+  if (sb === null || eventId === null) return
   // event_role_requests.event_id has no ON DELETE CASCADE (baseline.sql:158),
   // unlike event_role_slots — so the requests must go first or the event delete
   // fails on the FK. Approval also leaves a guest_registrations row behind

@@ -17,6 +17,7 @@ import { toast } from '@/lib/toast'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { formatDate, formatTime } from '@/lib/format'
 import { fetchJson } from '@/lib/utils/fetchJson'
+import type { TranslationKey } from '@/lib/i18n'
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -49,6 +50,16 @@ const STATUS_BADGE: Record<string, string> = {
   // 2608-DEV-749 — neutral grey: a revoked role is an administrative change,
   // not a rejection. Same shape as the entries above it.
   cancelled: 'bg-black/5 text-[var(--text-secondary)] border border-black/10',
+}
+
+// The badge used to render the raw enum value, so an admin on Bulgarian read
+// "cancelled". Keyed on the same union as RoleRequest['status'], so adding a
+// status to that type fails the build here until a label exists for it.
+const STATUS_LABEL: Record<RoleRequest['status'], TranslationKey> = {
+  pending:   'admin.approval.events.status.pending',
+  approved:  'admin.approval.events.status.approved',
+  denied:    'admin.approval.events.status.denied',
+  cancelled: 'admin.approval.events.status.cancelled',
 }
 
 const SLOT_BADGE: Record<string, string> = {
@@ -279,7 +290,7 @@ export function EventRolesTab() {
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
                 <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${STATUS_BADGE[r.status]}`}>
-                  {r.status}
+                  {t(STATUS_LABEL[r.status])}
                 </span>
                 {/* 2608-DEV-749: an approved role was read-only here, so nobody
                     could undo it. Behind a confirm — it emails the member and

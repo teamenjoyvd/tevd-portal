@@ -62,6 +62,7 @@ export default function EventPopup({
       const key = code === 'role_window_closed' ? 'cal.roleWindowClosed'
         : code === 'slot_filled' ? 'cal.roleSlotFilled'
         : code === 'already_requested' ? 'cal.roleAlreadyRequested'
+        : code === 'state_changed' ? 'cal.roleStateChanged'
         : 'cal.requestRoleError'
       toast.error(t(key))
       // slot_filled / state_changed mean this client is looking at a stale
@@ -86,6 +87,12 @@ export default function EventPopup({
         : code === 'nothing_to_cancel' ? 'cal.cancelRoleGone'
         : 'cal.cancelRoleError'
       toast.error(t(key))
+      // nothing_to_cancel means the server has no active row while this client
+      // still shows one (an admin revoked it, or a second tab withdrew first) —
+      // refetch, or the popup keeps offering a withdraw that can never succeed.
+      if (code === 'nothing_to_cancel') {
+        qc.invalidateQueries({ queryKey: ['event', eventId] })
+      }
     },
   })
 

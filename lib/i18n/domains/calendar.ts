@@ -50,6 +50,7 @@ export const calendar = {
   'cal.roleWindowClosed':    { en: 'Role sign-ups closed 1 hour before this event.',      bg: 'Заявките за роли се затвориха 1 час преди събитието.'  },
   'cal.roleSlotFilled':      { en: 'Someone else already has this role.',                 bg: 'Някой друг вече е зает с тази роля.'                  },
   'cal.roleAlreadyRequested': { en: 'You already have a request for this event.',         bg: 'Вече имате заявка за това събитие.'                   },
+  'cal.roleStateChanged':    { en: 'This request changed while you were acting on it.',   bg: 'Заявката се промени, докато действахте върху нея.'    },
   'cal.requestRoleError':    { en: 'Could not request this role. Please try again.',      bg: 'Заявката за роля не бе успешна. Опитайте отново.'     },
   // 2608-DEV-709 — the tiered Registrations tab. "via"/"Direct" are NOT
   // duplicated here: profile.invites.via / profile.invites.direct already carry
