@@ -42,7 +42,12 @@ export default function MemberActions({
   // case of an event days away.
   const startTime = event?.start_time ?? ''
   const minutesLeft = startTime !== '' ? minutesUntilRoleCutoff(startTime) : Number.POSITIVE_INFINITY
-  const inCountdown = !isClosed && minutesLeft > 0 && minutesLeft <= CUTOFF_MINUTES
+  // Derived here, not just taken from the prop: the prop is computed once in
+  // EventPopup, and the tick below re-renders THIS component only. Without the
+  // local `minutesLeft <= 0` the popup would sit on the generic hint at the
+  // exact moment the window closed, with the buttons still live.
+  const closed = isClosed || minutesLeft <= 0
+  const inCountdown = !closed && minutesLeft <= CUTOFF_MINUTES
   useMinuteTick(inCountdown)
 
   if (isLoading || !event) return null
@@ -60,7 +65,7 @@ export default function MemberActions({
   )
   const showNameGate = canRequestRole && profileNameMissing && !hasActiveRequest
 
-  const cutoffLine = isClosed
+  const cutoffLine = closed
     ? t('event.cutoff.closed')
     : inCountdown
       ? t('event.cutoff.countdown').replace('{{minutes}}', String(minutesLeft))
@@ -70,7 +75,7 @@ export default function MemberActions({
     <div className="px-4 py-3 border-b border-black/5">
       <p className="text-[10px] font-semibold tracking-widest uppercase mb-1 flex items-center gap-1" style={{ color: 'var(--text-secondary)' }}>
         {t('event.roles')}
-        {isClosed && <Lock size={10} />}
+        {closed && <Lock size={10} />}
       </p>
 
       {/* Cutoff copy: the window was silent before this ticket — a closed slot
@@ -124,8 +129,8 @@ export default function MemberActions({
 
             const isPendingMine  = isActive && myReq.status === 'pending'
             const isApprovedMine = isActive && myReq.status === 'approved'
-            const disabledCancel  = isMutating || isClosed
-            const disabledRequest = isMutating || isFilled || hasActiveRequest || isClosed
+            const disabledCancel  = isMutating || closed
+            const disabledRequest = isMutating || isFilled || hasActiveRequest || closed
 
             const occupantName = isFilled && slot.assigned_profile
               ? [slot.assigned_profile.first_name, slot.assigned_profile.last_name].filter(Boolean).join(' ') || null
@@ -140,10 +145,11 @@ export default function MemberActions({
             const buttonBody = (
               <>
                 {slot.role_label}
-                {isPendingMine  && <X size={10} className="opacity-60" />}
-                {isApprovedMine && <X size={10} className="opacity-60" />}
+                {/* Both of the caller's own live states now offer a way out —
+                    the approved case used to render an inert <Check/>. */}
+                {(isPendingMine || isApprovedMine) && <X size={10} className="opacity-60" />}
                 {isFilled && !isActive && <Check size={10} className="opacity-40" />}
-                {isClosed && !isActive && <Lock size={10} className="opacity-40" />}
+                {closed && !isActive && <Lock size={10} className="opacity-40" />}
               </>
             )
 
@@ -177,7 +183,7 @@ export default function MemberActions({
                   ) : (
                     <button
                       onClick={() => {
-                        if (isClosed) return
+                        if (closed) return
                         if (isPendingMine) cancelMutation.mutate()
                         else if (!hasActiveRequest && !isFilled) requestMutation.mutate(slot.role_label)
                       }}
