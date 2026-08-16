@@ -20,7 +20,9 @@ type Props = {
   canRequestRole: boolean
   profileNameMissing: boolean
   requestMutation: UseMutationResult<unknown, unknown, string>
-  cancelMutation: UseMutationResult<unknown, unknown, string>
+  // void, not string: the DELETE route resolves the row from the session and the
+  // event id, so the old `request_id` argument was accepted and never sent.
+  cancelMutation: UseMutationResult<unknown, unknown, void>
   t: (key: TranslationKey) => string
 }
 

@@ -13,6 +13,16 @@ export const events = {
   'event.slot.filled':      { en: 'Filled',            bg: 'Заета'                           },
   'event.slot.yourRequest': { en: 'Your request',      bg: 'Вашата заявка'                   },
 
+  // sign-up cutoff (2608-DEV-749) — the window was never surfaced before
+  'event.cutoff.hint':      { en: 'Sign-ups close 1 hour before start', bg: 'Заявките се затварят 1 час преди началото' },
+  'event.cutoff.countdown': { en: 'Sign-ups close in {{minutes}}m',     bg: 'Заявките се затварят след {{minutes}} мин' },
+  'event.cutoff.closed':    { en: 'Sign-ups closed',                    bg: 'Заявките са затворени'                     },
+
+  // withdrawing from a role you already hold (2608-DEV-749)
+  'event.withdrawRoleTitle':   { en: 'Give up this role?', bg: 'Отказ от тази роля?' },
+  'event.withdrawRoleDesc':    { en: 'The slot reopens for other members. You stay registered for the event.', bg: 'Ролята се освобождава за други членове. Оставате регистрирани за събитието.' },
+  'event.withdrawRoleConfirm': { en: 'Give up role',      bg: 'Откажи ролята'       },
+
   // profile name gate
   'event.nameRequiredToRequest': { en: 'To request a role, please complete your name in your profile.', bg: 'За да заявите роля, моля попълнете името си в профила.' },
   'event.goToProfile':           { en: 'Go to profile',                                                  bg: 'Към профила'                                                                  },

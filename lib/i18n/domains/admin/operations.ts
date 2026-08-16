@@ -29,6 +29,15 @@ export const adminOperations = {
 
   'admin.approval.events.btn.allEvents': { en: 'All events', bg: 'Всички събития' },
   'admin.approval.events.noPending': { en: 'No pending role requests.', bg: 'Няма чакащи заявки за роли.' },
+  // revoking an already-approved role (2608-DEV-749)
+  'admin.approval.events.btn.revoke': { en: 'Revoke', bg: 'Отнеми' },
+  'admin.approval.events.revokeTitle': { en: 'Revoke this role?', bg: 'Отнемане на тази роля?' },
+  'admin.approval.events.revokeDesc': { en: 'The slot reopens and the member is emailed. Their event registration is not affected.', bg: 'Мястото се освобождава и членът получава имейл. Регистрацията му за събитието не се променя.' },
+  // resolved-row status badge — the raw enum value was rendered before
+  'admin.approval.events.status.pending': { en: 'Pending', bg: 'Чакаща' },
+  'admin.approval.events.status.approved': { en: 'Approved', bg: 'Одобрена' },
+  'admin.approval.events.status.denied': { en: 'Denied', bg: 'Отказана' },
+  'admin.approval.events.status.cancelled': { en: 'Cancelled', bg: 'Отменена' },
 
   // -- Operations: Trips --
   'admin.operations.trips.btn.new': { en: '+ New trip', bg: '+ Ново пътуване' },

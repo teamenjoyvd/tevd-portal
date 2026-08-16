@@ -19,6 +19,9 @@ export const REQUEST_STATUS_STYLES = {
   pending:  { bg: 'var(--status-pending-bg)', color: 'var(--status-pending-fg)' },
   approved: { bg: 'var(--status-success-bg)', color: 'var(--status-success-fg)' },
   denied:   { bg: 'var(--status-alert-bg)',   color: 'var(--status-alert-fg)'   },
+  // 2608-DEV-749 — a withdrawn/revoked role is neutral, not an alert: nothing
+  // went wrong, the slot simply reopened.
+  cancelled: { bg: 'var(--status-neutral-bg)', color: 'var(--status-neutral-fg)' },
 }
 
 export const REGISTRATION_STATUS_STYLES = {

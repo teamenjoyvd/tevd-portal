@@ -265,6 +265,8 @@ export type Database = {
       }
       event_role_requests: {
         Row: {
+          cancelled_at: string | null
+          cancelled_by: string | null
           created_at: string
           event_id: string
           id: string
@@ -275,6 +277,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           created_at?: string
           event_id: string
           id?: string
@@ -285,6 +289,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           created_at?: string
           event_id?: string
           id?: string
@@ -295,6 +301,20 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "event_role_requests_cancelled_by_fkey"
+            columns: ["cancelled_by"]
+            isOneToOne: false
+            referencedRelation: "member_roles_history"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "event_role_requests_cancelled_by_fkey"
+            columns: ["cancelled_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "event_role_requests_event_id_fkey"
             columns: ["event_id"]
@@ -2547,7 +2567,7 @@ export type Database = {
         | "trip_message"
         | "trip_attachment"
         | "spouse_link_request"
-      registration_status: "pending" | "approved" | "denied"
+      registration_status: "pending" | "approved" | "denied" | "cancelled"
       reminder_type: "1_hour" | "15_min"
       user_role: "admin" | "core" | "member" | "guest"
     }
@@ -3151,7 +3171,7 @@ export const Constants = {
         "trip_attachment",
         "spouse_link_request",
       ],
-      registration_status: ["pending", "approved", "denied"],
+      registration_status: ["pending", "approved", "denied", "cancelled"],
       reminder_type: ["1_hour", "15_min"],
       user_role: ["admin", "core", "member", "guest"],
     },

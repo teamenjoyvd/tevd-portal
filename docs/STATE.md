@@ -1,12 +1,33 @@
 ## Goal
-**#743** (`dev/2608-DEV-743`, cut from `main` @ `0a29718`): redesign the Socials bento as a
-full-bleed image hero, a sibling to the Trips tile it sits beside. No migration.
+**#749** (`dev/2608-DEV-749`, cut from `main` @ `915a7e8`): make an approved calendar role
+revocable — member self-withdraw and admin revoke, as a soft `cancelled` status — and move the
+sign-up cutoff 15 min → 60 min with the deadline actually surfaced. **Migration: yes (two files).**
 
 ## Now
 
-**PR #748 is ready to merge.** The CLAIMS row is already removed in this PR (never a standalone
-cleanup PR). After merge, the only remaining GCR work is closing #743 and deleting the DEV seed
-rows + storage objects listed below.
+BUILD complete and locally verified; next action is the draft PR.
+
+**Migrations are already applied to DEV `iymwxdewcpvpjgzewtzk`** (user approved this session).
+The Supabase MCP recorded HHMMSS-style ledger versions (`20260816203117` / `...203152`); both rows
+were **rewritten in place** to `20260816000000` / `20260816000100` so the ledger matches the repo
+filenames. Verified on DEV: `enum_range(registration_status)` = approved/cancelled/denied/pending,
+both `cancelled_*` columns present, both functions recompiled with the new bodies.
+
+`types/supabase.ts` was **NOT** taken wholesale from the MCP generator — it emits `public` only and
+would have deleted the `graphql_public` and `storage` schemas (485 lines). The four generator-
+produced deltas were spliced into the committed file instead (22 insertions, 2 modified lines).
+
+**The issue body was wrong on one point.** It said to copy `notify_role_request_status_change()`
+from `baseline.sql:785`. That is not the live definition — `20260705000800:261` retargeted the
+insert from `public.notifications` to `public.member_notifications`. Copying the baseline body would
+have silently reverted that. The migration copies the 20260705000800 version.
+
+**The issue's "must be checked at BUILD" question is answered: no duplicate reminders.**
+`fn_schedule_guest_reminders_record` (`20260705000800:53-75`) upserts
+`ON CONFLICT (registration_id, type) DO UPDATE`, and re-approval reuses the same
+`guest_registrations.id`. Nothing to fix.
+
+### #743 — what landed (merged as PR #748)
 
 `app/(dashboard)/components/tiles/SocialsTile.test.tsx` is the **repo's first component test suite**
 — 13 cases over the six seeded data shapes. Infra: `jsdom` + `@testing-library/react` (+ the
@@ -14,23 +35,6 @@ rows + storage objects listed below.
 include globs. Default environment stays `node`; component files opt into jsdom with a
 `// @vitest-environment jsdom` docblock. `tsconfig.json` already sets `jsx: react-jsx`, so esbuild
 transforms `.tsx` with no React plugin.
-
-Earlier state (kept for the record): head `d0b6921`, all checks green (including
-`390px smoke vs preview` and `Authenticated E2E (Clerk)`). CodeRabbit's one finding — truthiness on
-`post.caption` — is fixed and its thread is resolved. Its **re-review after that push was rate
-limited**, so the ready-state pass covers `9bc7010`, not `d0b6921`; the delta is a one-line
-absence check.
-
-Remaining: merge, then GCR (prune the CLAIMS row, close #743). **Delete the DEV seed rows** —
-`social_posts` holds **6 seeded variants** (`post_url` all match `%dev-seed-743-variant-%`), plus
-three objects in the DEV `social-thumbnails` bucket (`dev-seed-743.jpg`, `-pale.png`, `-alt.png`).
-They cover long/short/empty/no-thumbnail/unknown-platform cases; the API shows the lowest
-`sort_order`, so `update social_posts set sort_order = case when post_url like '%variant-N%' then 0
-else 10 end;` switches which one renders. DEV `social_posts` was empty before this ticket, so
-deleting every row is the correct cleanup.
-
-#740 (PR #744) and #741 (PR #745) both **merged** on 2026-08-13; their CLAIMS.md rows were stale and
-are pruned in this branch's CLAIM commit rather than in a standalone cleanup PR.
 
 ### #740 — what landed (merged)
 Commits `9fc24a9` (original) + the radius revision on top.
@@ -65,10 +69,14 @@ for both themes; `@custom-variant dark` registered against `[data-theme="dark"]`
 blanket ban with the doc updated in the same commit.
 
 ## Next
-1. Merge #748, then GCR: remove the CLAIMS row, close #743, and delete the DEV seed row + storage
-   object.
+1. Push `dev/2608-DEV-749`, open the PR as a DRAFT, wait for CI green + Vercel preview READY, then
+   mark it ready for review (one CodeRabbit pass).
 2. `npm run verify` deliberately NOT run locally: its `next build` runs under `NODE_ENV=production`,
    which on this box resolves `.env.local` = PROD. CI builds it on the PR.
+3. **DEV cleanup pending from #743** (carried, not done in this ticket): `social_posts` holds 6
+   seeded variants (`post_url like '%dev-seed-743-variant-%'`) plus three objects in the DEV
+   `social-thumbnails` bucket (`dev-seed-743.jpg`, `-pale.png`, `-alt.png`). DEV `social_posts` was
+   empty before that ticket, so deleting every row is correct. #743 also still needs closing.
 
 ## Constraints
 - Never push without an explicit grant in this conversation. Grants from earlier tickets/sessions do
@@ -136,6 +144,12 @@ blanket ban with the doc updated in the same commit.
   (`iymwxdewcpvpjgzewtzk`). Only a warm-server run is evidence.
 
 ## Done
+- #749 CLAIM + BUILD. Verified: `npx tsc --noEmit` clean; `npm test` **507 passed / 36 files**
+  (baseline 494/35 — the 13 new cases are `app/api/events/[id]/request-role/route.test.ts`, the
+  route's first coverage ever); `npx eslint` on all 15 changed files → 0 findings; DEV DB probe
+  confirms the enum value, both columns and both recompiled functions. **NOT visually verified and
+  the new e2e spec has NOT been run** — `e2e/member-role-cancel-auth.spec.ts` needs a warm dev
+  server against DEV plus the seeded Clerk member.
 - #743 CLAIM + BUILD (`5d1e57a`, `5e67671` + the review fix). **Visually verified locally, unlike
   #740/#741**: dev server against hosted DEV, a seeded `social_posts` row with a 241-char Bulgarian
   caption, Playwright at 390×844 and 1440×900 in **both** themes. Measured — page `scrollWidth`
@@ -165,6 +179,16 @@ blanket ban with the doc updated in the same commit.
 - #702 CLOSED (epic, 2026-08-12) — all ten children and all six follow-ups merged.
 
 ## Open items
+- **NOTED (#749), pre-existing, deliberately not fixed:** `fn_schedule_guest_reminders_record`'s
+  `ON CONFLICT ... DO UPDATE SET status = 'pending', attempts = 0` has no `WHERE`, so re-confirming
+  a registration resets an **already-sent** reminder back to pending. Reachable today via
+  attend → cancel → attend, so #749 does not open the door — but it is real.
+- **NOTED (#749), accepted side effect:** `lib/server/event-capacity.ts:41-45` excludes approved
+  role holders from the guest headcount. After a cancel the person keeps their registration and
+  starts counting, so an at-capacity event can end up one over. Derived count, tolerable.
+- **NOTED (#749), pre-existing, out of scope:** `event_role_requests.event_id` has no
+  `ON DELETE CASCADE` (`baseline.sql:158`), unlike `event_role_slots` — deleting a calendar event
+  that has role requests still fails on the FK.
 - **FILED as #746** — Radius Phase 2 (`app/admin/**`). 61 pill-shaped `rounded-full` →
   `rounded-control`, ~80 containers stranded on `rounded-lg`/`rounded-xl` → `rounded-container`.
   The issue carries the shared-component shortlist and both admin ambiguities. Until it lands, admin

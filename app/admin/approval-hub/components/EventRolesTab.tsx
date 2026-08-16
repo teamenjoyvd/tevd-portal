@@ -2,10 +2,22 @@
 
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { toast } from '@/lib/toast'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { formatDate, formatTime } from '@/lib/format'
 import { fetchJson } from '@/lib/utils/fetchJson'
+import type { TranslationKey } from '@/lib/i18n'
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -14,7 +26,7 @@ type CalendarEvent = { id: string; title: string; start_time: string }
 type RoleRequest = {
   id: string
   role_label: string
-  status: 'pending' | 'approved' | 'denied'
+  status: 'pending' | 'approved' | 'denied' | 'cancelled'
   note: string | null
   created_at: string
   event_id: string
@@ -35,6 +47,19 @@ const STATUS_BADGE: Record<string, string> = {
   pending:  'bg-[#f2cc8f]/30 text-[#7a5c00] border border-[#f2cc8f]',
   approved: 'bg-[#81b29a]/20 text-[#2d6a4f] border border-[#81b29a]/50',
   denied:   'bg-[#bc4749]/10 text-[#bc4749] border border-[#bc4749]/30',
+  // 2608-DEV-749 — neutral grey: a revoked role is an administrative change,
+  // not a rejection. Same shape as the entries above it.
+  cancelled: 'bg-black/5 text-[var(--text-secondary)] border border-black/10',
+}
+
+// The badge used to render the raw enum value, so an admin on Bulgarian read
+// "cancelled". Keyed on the same union as RoleRequest['status'], so adding a
+// status to that type fails the build here until a label exists for it.
+const STATUS_LABEL: Record<RoleRequest['status'], TranslationKey> = {
+  pending:   'admin.approval.events.status.pending',
+  approved:  'admin.approval.events.status.approved',
+  denied:    'admin.approval.events.status.denied',
+  cancelled: 'admin.approval.events.status.cancelled',
 }
 
 const SLOT_BADGE: Record<string, string> = {
@@ -97,7 +122,7 @@ export function EventRolesTab() {
   )
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: 'approved' | 'denied' }) =>
+    mutationFn: ({ id, status }: { id: string; status: 'approved' | 'denied' | 'cancelled' }) =>
       fetchJson(`/api/admin/event-role-requests/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -263,9 +288,39 @@ export function EventRolesTab() {
                   {eventMeta(r)}
                 </p>
               </div>
-              <span className={`text-xs px-2.5 py-1 rounded-full font-medium flex-shrink-0 ${STATUS_BADGE[r.status]}`}>
-                {r.status}
-              </span>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${STATUS_BADGE[r.status]}`}>
+                  {t(STATUS_LABEL[r.status])}
+                </span>
+                {/* 2608-DEV-749: an approved role was read-only here, so nobody
+                    could undo it. Behind a confirm — it emails the member and
+                    reopens the slot. */}
+                {r.status === 'approved' && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <button
+                        disabled={updateMutation.isPending}
+                        className="text-xs font-medium hover:opacity-70 transition-opacity disabled:opacity-40"
+                        style={{ color: 'var(--brand-crimson)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                      >
+                        {t('admin.approval.events.btn.revoke')}
+                      </button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>{t('admin.approval.events.revokeTitle')}</AlertDialogTitle>
+                        <AlertDialogDescription>{t('admin.approval.events.revokeDesc')}</AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>{t('event.cancel')}</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => updateMutation.mutate({ id: r.id, status: 'cancelled' })}>
+                          {t('admin.approval.events.btn.revoke')}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
+              </div>
             </div>
           )
         })}
