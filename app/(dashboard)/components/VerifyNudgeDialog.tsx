@@ -75,6 +75,19 @@ export function selectVariant(p: Profile): NudgeVariant | null {
   return null
 }
 
+/** Runs `run` for each queued argument strictly in call order, regardless of
+ *  how long an individual run takes. Used to keep the two onboarding-prefs
+ *  PATCH requests (show-count, dismiss) from landing out of order: they can
+ *  fire moments apart (a dialog opens, then is immediately dismissed), and an
+ *  out-of-order arrival would let the show-count write silently overwrite a
+ *  dismissal's `verify_dismissed_at`, defeating the snooze. */
+export function createWriteQueue<T>(run: (arg: T) => Promise<unknown>) {
+  let chain: Promise<unknown> = Promise.resolve()
+  return (arg: T) => {
+    chain = chain.catch(() => {}).then(() => run(arg))
+  }
+}
+
 /** True while the user's last dismissal is still inside the snooze window. */
 export function isSnoozed(o: OnboardingPrefs | undefined, now: number): boolean {
   const dismissedAt = o?.verify_dismissed_at
@@ -169,6 +182,18 @@ export default function VerifyNudgeDialog() {
   // Guards the showing-count write against React's double-invoked effects in
   // development and against a re-render between the timer firing and the PATCH.
   const recordedRef = useRef(false)
+  const enqueueWrite = useRef(
+    createWriteQueue<OnboardingPrefs>(next =>
+      apiClient('/api/profile', {
+        method: 'PATCH',
+        body: JSON.stringify({ ui_prefs: { onboarding: next } }),
+      }).catch(err => {
+        // Non-fatal: the popup has already done its job on screen. Worst case
+        // the cap is not advanced and they see it once more next session.
+        console.error('[VerifyNudgeDialog] failed to persist onboarding prefs', err)
+      })
+    )
+  ).current
 
   const onboarding = profile?.ui_prefs?.onboarding
   const shownCount = onboarding?.verify_shown_count ?? 0
@@ -183,23 +208,14 @@ export default function VerifyNudgeDialog() {
    *  deep (route.ts:194-197), so a partial `onboarding` would drop its siblings.
    *  Top-level neighbours (bento_order, bento_collapsed, font_size,
    *  ical_display_name) are untouched by that same merge. */
-  async function persist(next: OnboardingPrefs) {
+  function persist(next: OnboardingPrefs) {
     // Update the cache first so a client-side navigation back to the homepage
     // re-evaluates against the new state instead of the stale one. Not an
     // invalidate: refetching here would re-render the open dialog mid-interaction.
     qc.setQueryData<Profile>(['profile'], prev =>
       prev ? { ...prev, ui_prefs: { ...prev.ui_prefs, onboarding: next } } : prev
     )
-    try {
-      await apiClient('/api/profile', {
-        method: 'PATCH',
-        body: JSON.stringify({ ui_prefs: { onboarding: next } }),
-      })
-    } catch (err) {
-      // Non-fatal: the popup has already done its job on screen. Worst case the
-      // cap is not advanced and they see it once more next session.
-      console.error('[VerifyNudgeDialog] failed to persist onboarding prefs', err)
-    }
+    enqueueWrite(next)
   }
 
   useEffect(() => {
@@ -208,7 +224,7 @@ export default function VerifyNudgeDialog() {
       setOpen(true)
       if (recordedRef.current) return
       recordedRef.current = true
-      void persist({ ...onboarding, verify_shown_count: shownCount + 1 })
+      persist({ ...onboarding, verify_shown_count: shownCount + 1 })
     }, NUDGE_DELAY_MS)
     return () => clearTimeout(timer)
     // `onboarding`/`shownCount` are snapshotted deliberately: persist() rewrites
@@ -218,7 +234,7 @@ export default function VerifyNudgeDialog() {
 
   function dismiss() {
     setOpen(false)
-    void persist({
+    persist({
       ...onboarding,
       verify_shown_count: Math.max(shownCount, 1),
       verify_dismissed_at: new Date().toISOString(),

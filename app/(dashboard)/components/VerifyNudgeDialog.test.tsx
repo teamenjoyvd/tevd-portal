@@ -4,8 +4,8 @@
 // exercised here — they are what encodes the ticket's five-state matrix, and
 // getting that matrix wrong is the failure mode that matters (2608-DEV-742).
 
-import { describe, it, expect } from 'vitest'
-import { selectVariant, isSnoozed } from './VerifyNudgeDialog'
+import { describe, it, expect, vi } from 'vitest'
+import { selectVariant, isSnoozed, createWriteQueue } from './VerifyNudgeDialog'
 import type { Profile } from '../profile/types'
 
 const BASE = {
@@ -94,5 +94,42 @@ describe('isSnoozed', () => {
 
   it('a malformed timestamp does not suppress the nudge forever', () => {
     expect(isSnoozed({ verify_dismissed_at: 'not-a-date' }, NOW)).toBe(false)
+  })
+})
+
+describe('createWriteQueue', () => {
+  it('runs queued writes in call order even when the first resolves last', async () => {
+    // Regresses the show-count-then-dismiss race: display fires a PATCH, the
+    // user immediately dismisses and fires a second PATCH, and the first
+    // request's response arrives after the second's. Without ordering, the
+    // slower show-count write would land last and silently drop
+    // `verify_dismissed_at`, undoing the dismissal's snooze.
+    const order: string[] = []
+    const queue = createWriteQueue<string>(async label => {
+      if (label === 'shown-count') {
+        await new Promise(resolve => setTimeout(resolve, 10))
+      }
+      order.push(label)
+    })
+
+    queue('shown-count')
+    queue('dismiss')
+
+    await new Promise(resolve => setTimeout(resolve, 20))
+    expect(order).toEqual(['shown-count', 'dismiss'])
+  })
+
+  it('keeps running later writes after an earlier one rejects', async () => {
+    const run = vi.fn()
+      .mockRejectedValueOnce(new Error('network error'))
+      .mockResolvedValueOnce(undefined)
+    const queue = createWriteQueue<string>(run)
+
+    queue('shown-count')
+    queue('dismiss')
+
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(run).toHaveBeenNthCalledWith(1, 'shown-count')
+    expect(run).toHaveBeenNthCalledWith(2, 'dismiss')
   })
 })
