@@ -1,13 +1,51 @@
 ## Goal
-**#751** (`dev/2608-DEV-751`, cut from `main` @ `b6b856a`): the two observability defects found while
-diagnosing #749 in production — `fetchJson` dropping the route's `code` (so the admin approval hub
-showed one hardcoded English toast for every failure), and both role routes swallowing the driver
-error on their DB-error branches. **Migration: no.**
+**#742** (`dev/2608-DEV-742`, cut from `main` @ `06a2aef`): an on-site verification nudge for
+unverified profiles — a dismissible homepage popup covering both the single account holder and the
+co-owner path — plus the two data defects that made its target population invisible.
+**Migration: no.** #741 is explicitly **out of scope** (see Constraints).
 
 ## Now
 
-BUILD complete and locally verified (`7a57f8b`); next action is the draft PR. Not pushed — no push
-grant exists in this conversation.
+BUILD complete and locally verified (`d8994e9`); next action is the PR.
+
+### #742 — what this branch does
+
+**Five derived states, three popups.** "Confirmed" is not a column anywhere — it is derived from
+`role` + `verRequest` + the caller's own spouse-link request, and this ticket reads that derivation
+rather than adding a source of truth. States 2 (under review) and 4 (waiting on the primary) are
+*waiting*, not *stuck*, so they get nothing.
+
+**Two real defects fixed, both of which the issue predicted:**
+1. `ProfileTile`'s `isUnverified` required `verRequest !== null`, so a guest who **never submitted**
+   fell through to the authenticated-member branch and got a plain greeting — the one population the
+   nudge exists for was the one told nothing.
+2. `pendingSpouseLinkCount` counts only **inbound** requests and is hardcoded to 0 for guests, so
+   state 4 was indistinguishable from state 1. `GET /api/profile` now also returns
+   `ownSpouseLinkRequest` (the caller's own outbound row). Without it a guest waiting on their
+   primary would be told to verify an ABO that `verify-abo/route.ts:27-35` forbids them submitting.
+
+**Deviations from the issue body, all deliberate:**
+- State 5's copy is **count-based**, not `"<name> is waiting for your approval"`. `/api/profile`
+  returns a count, not the requester's name; inventing a name would need another query. Matches the
+  existing `SpouseLinkBanner` phrasing.
+- The two guest tile branches are **one parameterised branch**, not two — they differed only in
+  badge and one line of copy, and a second pasted copy is how they drift apart.
+- An `approved` verRequest on a not-yet-promoted guest keeps today's plain greeting in both the tile
+  and the popup: transient admin state, not stuck.
+- `prefers-reduced-motion` is handled by adding `.nudge-motion` to the existing allowlist block in
+  `globals.css:194` — that block is a **targeted allowlist**, not a global rule, so a new animated
+  surface has to opt in or it is not covered.
+
+**A correction to the issue's premise:** `GET /api/profile/spouse-link` **already** returns the
+caller's own outbound row, but only `/profile` queries it (`queryKey: ['spouseLinkRequest']`).
+Following the DoD anyway, so the homepage needs no second request.
+
+**Verified:** `npx tsc --noEmit` exit 0; `npm test` 527 passed / 37 files (baseline 511/36, +16 new
+in `VerifyNudgeDialog.test.tsx` covering the whole state matrix); `npm run lint` 0 errors.
+**Not visually verified** and no local `npm run build` — `check:env` says production-mode commands
+resolve to **PROD** `ynykjpnetfwqzdnsgkkg`, so the Vercel preview is the gate for both.
+
+### #751 — merged as PR #752
 
 **Production cancel/revoke was broken for a reason that is NOT a code defect.** PR #750 merged
 2026-08-16 21:54 and Vercel shipped the code, but the gated `Migrate Prod` run
