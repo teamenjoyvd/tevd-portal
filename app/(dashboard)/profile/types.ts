@@ -4,6 +4,17 @@
 export type UiPrefs = {
   bento_order?: string[]
   bento_collapsed?: Record<string, boolean>
+  onboarding?: OnboardingPrefs
+}
+
+// Verification-nudge popup frequency state (2608-DEV-742). Lives in ui_prefs so
+// it needs no migration. PATCH /api/profile merges ui_prefs ONE level deep
+// (route.ts:168-171), so writers must send this whole object, never a partial.
+export type OnboardingPrefs = {
+  /** ISO timestamp of the last dismissal — snoozes the popup for 7 days. */
+  verify_dismissed_at?: string
+  /** Lifetime count of showings — hard stop at NUDGE_MAX_SHOWINGS. */
+  verify_shown_count?: number
 }
 
 export type NotificationPrefs = {
@@ -75,6 +86,10 @@ export type Profile = {
   spouse: SpouseData | null
   // Number of pending inbound spouse link requests (primary members only, else 0)
   pendingSpouseLinkCount: number
+  // The caller's own OUTBOUND spouse-link request (guests with no primary link
+  // only, else null). Distinguishes "guest waiting on their primary" from "guest
+  // who never submitted anything" — see app/api/profile/route.ts.
+  ownSpouseLinkRequest: SpouseLinkRequest | null
 }
 
 export type TripPayment = {

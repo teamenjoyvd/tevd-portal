@@ -9,6 +9,7 @@ import type { TranslationKey } from '@/lib/i18n/translations'
 import { apiClient } from '@/lib/apiClient'
 
 type VerifRequest = { status: 'pending' | 'approved' | 'denied' } | null
+type SpouseLinkReq = { status: 'pending' | 'approved' | 'denied' } | null
 type Upline = { upline_name: string | null; upline_abo_number: string | null } | null
 type Profile = {
   role: string
@@ -16,8 +17,11 @@ type Profile = {
   last_name: string | null
   display_names: Record<string, string> | null
   abo_number: string | null
+  primary_profile_id: string | null
   upline: Upline
   verRequest: VerifRequest
+  ownSpouseLinkRequest: SpouseLinkReq
+  pendingSpouseLinkCount: number
 }
 
 const ROLE_STYLES: Record<string, { bg: string; color: string }> = {
@@ -52,9 +56,26 @@ export default function ProfileTile({
   const verRequest = profile?.verRequest ?? null
   const uplineData = profile?.upline ?? null
 
-  const isUnverified = profile?.role === 'guest' &&
-    verRequest !== null &&
-    (verRequest.status === 'pending' || verRequest.status === 'denied')
+  // A guest who never submitted a verification request has verRequest === null.
+  // The old predicate required verRequest !== null, so that population — the one
+  // most in need of the nudge — fell through to the "Authenticated member+"
+  // branch below and got a plain greeting with no badge (2608-DEV-742).
+  // Every guest who is not already linked to a primary is unverified; the one
+  // exception is a guest waiting on their primary to approve a spouse link,
+  // who is handled separately because they are blocked, not idle.
+  const isGuest = profile?.role === 'guest'
+  const isLinkedSecondary = (profile?.primary_profile_id ?? null) !== null
+  const awaitingPrimary =
+    isGuest && !isLinkedSecondary && profile?.ownSpouseLinkRequest?.status === 'pending'
+  // 'approved' with the role not yet promoted is a transient admin state — they
+  // are not stuck and telling them to verify would be wrong, so they keep the
+  // plain greeting they get today. Matches selectVariant() in VerifyNudgeDialog.
+  const isUnverified =
+    isGuest && !isLinkedSecondary && !awaitingPrimary && verRequest?.status !== 'approved'
+
+  // State 5 — a primary member with inbound spouse-link requests to approve.
+  // Mirrors SpouseLinkBanner on /profile (AboInfoContent.tsx:38-62).
+  const pendingSpouseLinkCount = profile?.pendingSpouseLinkCount ?? 0
 
   const role = profile?.role ?? 'guest'
   const roleStyle = ROLE_STYLES[role] ?? ROLE_STYLES.guest
@@ -106,8 +127,17 @@ export default function ProfileTile({
     )
   }
 
-  // Unverified Member
-  if (isUnverified) {
+  // Guest states — same card, different badge and one line of copy. State 4
+  // (awaiting the primary's approval) is deliberately NOT told to verify an ABO:
+  // verify-abo/route.ts:27-35 forbids secondaries from submitting one at all.
+  if (awaitingPrimary || isUnverified) {
+    const badgeKey: TranslationKey = awaitingPrimary ? 'profile.awaitingPrimary' : 'profile.unverified'
+    const descKey: TranslationKey = awaitingPrimary
+      ? 'profile.awaitingPrimaryDesc'
+      : verRequest?.status === 'pending' ? 'profile.verifPendingDesc'
+      : verRequest?.status === 'denied'  ? 'profile.verifDeniedDesc'
+      : 'profile.verifNotStartedDesc'
+
     return (
       <BentoCard variant="teal" colSpan={colSpan} mobileColSpan={mobileColSpan} rowSpan={rowSpan} style={style} className="flex flex-col justify-between">
         <div className="flex items-center justify-end">
@@ -121,12 +151,10 @@ export default function ProfileTile({
           </h2>
           <span className="inline-block mt-2 text-xs font-semibold px-2.5 py-1 rounded-control"
             style={{ backgroundColor: 'rgba(250,248,243,0.15)', color: 'var(--brand-parchment)' }}>
-            {t('profile.unverified')}
+            {t(badgeKey)}
           </span>
           <p className="text-xs mt-2 font-body" style={{ color: 'rgba(250,248,243,0.70)' }}>
-            {verRequest?.status === 'pending'
-              ? t('profile.verifPendingDesc')
-              : t('profile.verifDeniedDesc')}
+            {t(descKey)}
           </p>
         </div>
       </BentoCard>
@@ -161,6 +189,26 @@ export default function ProfileTile({
             </span>
           )}
         </div>
+        {/* State 5 — inbound spouse-link requests to approve. The applicant cannot
+            act here, only the primary can, so the prompt lives on THIS tile.
+            Count-based copy matches SpouseLinkBanner: /api/profile returns a count,
+            not the requester's name. */}
+        {pendingSpouseLinkCount > 0 && (
+          <Link
+            href="/profile/spouse-link"
+            className="flex items-center gap-2 mt-3 px-3 py-2 rounded-control"
+            style={{ backgroundColor: 'rgba(250,248,243,0.15)', textDecoration: 'none' }}
+          >
+            <span className="text-xs font-medium" style={{ color: 'var(--brand-parchment)' }}>
+              {pendingSpouseLinkCount === 1
+                ? t('profile.spouseLinkBanner.single')
+                : t('profile.spouseLinkBanner.multiple').replace('{{count}}', String(pendingSpouseLinkCount))}
+            </span>
+            <span className="ml-auto shrink-0 text-[11px] font-semibold" style={{ color: 'var(--brand-parchment)' }}>
+              {t('profile.spouseLinkBanner.review')}
+            </span>
+          </Link>
+        )}
       </div>
     </BentoCard>
   )

@@ -203,6 +203,14 @@ body {
     animation: none !important;
     transition: none !important;
   }
+
+  /* VerifyNudgeDialog (2608-DEV-742) — the dialog's own enter/exit animation.
+     Applied to the overlay and content of that one dialog, not to Dialog
+     globally, so the rest of the app's motion decisions stay untouched. */
+  .nudge-motion {
+    animation: none !important;
+    transition: none !important;
+  }
 }
 
 /* ── Bento staggered entrance animation ── */
