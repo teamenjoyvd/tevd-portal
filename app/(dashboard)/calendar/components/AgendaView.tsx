@@ -76,7 +76,7 @@ export function AgendaView({
         {[...Array(4)].map((_, i) => (
           <div key={i} className="space-y-2">
             <div className="h-6 w-32 rounded-control animate-pulse" style={{ backgroundColor: 'var(--skeleton-base)' }} />
-            <div className="h-16 rounded-container animate-pulse" style={{ backgroundColor: 'var(--skeleton-base)' }} />
+            <div className="h-16 rounded-container animate-pulse" style={{ backgroundColor: 'var(--bg-card-raised)' }} />
           </div>
         ))}
       </div>
