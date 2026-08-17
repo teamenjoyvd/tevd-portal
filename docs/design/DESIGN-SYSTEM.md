@@ -75,6 +75,7 @@ literals 513 times, and every one of them is wrong in dark mode.
 | `--on-accent` | parchment | parchment | Text/icons on a crimson / forest / teal fill |
 | `--overlay` | `rgba(26,31,24,.40)` | `rgba(0,0,0,.60)` | Dialog and sheet scrims |
 | `--hover-surface` | `rgba(45,51,42,.05)` | `rgba(250,248,243,.08)` | Hover tints |
+| `--on-accent-hover` | `rgba(255,255,255,.10)` | same | Hover wash on a fill that does not swap with theme (footer icon buttons) |
 | `--focus-ring` | crimson | `#6FAEBE` | Focus rings |
 
 `color-scheme` is set alongside them (`light` on `:root`, `dark` on

@@ -72,7 +72,7 @@ export default function NotificationPopup({ onClose }: Props) {
               <button
                 key={n.id}
                 onClick={() => handleItemClick(n.id, n.action_url)}
-                className="w-full text-left px-4 py-3 flex items-start gap-3 transition-colors hover:bg-black/[0.03]"
+                className="w-full text-left px-4 py-3 flex items-start gap-3 transition-colors hover:bg-hover-surface"
               >
                 {/* Unread dot */}
                 <div className="flex-shrink-0 mt-1.5">
@@ -109,7 +109,7 @@ export default function NotificationPopup({ onClose }: Props) {
         <Link
           href="/notifications"
           onClick={onClose}
-          className="flex items-center justify-center px-4 py-3 text-xs font-semibold tracking-wide transition-colors hover:bg-black/[0.03]"
+          className="flex items-center justify-center px-4 py-3 text-xs font-semibold tracking-wide transition-colors hover:bg-hover-surface"
           style={{ color: 'var(--brand-crimson)' }}
         >
           {t('notif.view')}

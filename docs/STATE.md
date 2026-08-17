@@ -6,9 +6,11 @@ co-owner path — plus the two data defects that made its target population invi
 
 ## Now
 
-#741 C2 phase 1 (`components/ui/*`) BUILD complete, pushed, PR #754 open as DRAFT on
-`dev/2608-DEV-741`. Next action: wait for CI green + Vercel preview READY, do the manual
-light/dark 390px check listed in the PR body, then mark ready for review.
+#741 C2 phase 2 (`components/layout/*`) BUILD complete on `dev/2608-DEV-741` (branch reset off
+`main` after phase 1's squash-merge as `cac8eb4` — the local branch's 3 pre-merge commits were
+superseded, not lost). `/code-review low` running in background. Next action: address any findings,
+then push and open PR as DRAFT, wait for CI green + Vercel preview READY, do the manual light/dark
+390px check, then mark ready for review.
 
 ### #742 — what this branch does
 
@@ -114,6 +116,33 @@ value cannot serve a 200px card and a 19px badge. Now:
 `--radius-sm` is 2px (hairline). `--radius-md/lg/xl` are pinned to the control tier and
 `--radius-2xl` to the container tier as a **legacy landing zone**, so unmigrated code lands sanely —
 that is not a scale, and new code must use the named utilities.
+
+### #741 C2 phase 2 — what landed
+Commit `e4dde07` on `dev/2608-DEV-741`, on top of `8bec163` (CLAIM).
+
+`components/layout/*` (Header, Footer, UserDropdown, BellButton, NotificationPopup) colour
+literals migrated to tokens. Header's active nav-pill background (`rgba(188,71,73,0.12)`) reuses
+`var(--status-alert-bg)` — an exact value match in both themes. Black-rgba border/shadow literals
+(logo ring, mobile drawer) consolidated onto `var(--border-default)` / `var(--shadow-modal)` —
+deliberate deviation (black → forest-tinted default at the same alpha), same pattern as phase 1's
+drag-handle call. `hover:bg-black/[x]` → `hover:bg-hover-surface` throughout.
+
+**Footer needed a different treatment**: its `--brand-forest` fill is fixed in both themes (not a
+swapped surface token), so its white/oyster-tinted borders, icon strokes, hover wash and copyright
+text needed RGB-channel compositing helpers, not a theme-swapped token pair. Added `--white-rgb`
+and `--brand-oyster-rgb` (same pattern as phase 1's `--brand-stone-rgb`/`--brand-sienna-rgb`) plus
+a new `--on-accent-hover` token (`rgba(255,255,255,0.10)`, no dark override needed) mapped into
+Tailwind via `@theme inline`, replacing `hover:bg-white/10`. `text-white` on crimson/forest badge
+fills → `text-on-accent`, C1's existing token for exactly that case.
+
+**Deliberately not touched**: `Footer.tsx:32`'s `filter: brightness(0) invert(1)` logo forcing and
+the 4 JS theme branches are C3 scope. `app/(dashboard)/**` and `app/admin/**` are phases 3/4.
+
+**Verified:** `npx tsc --noEmit` clean; `npx vitest run` 529 passed / 37 files (no regression);
+`npx eslint` on all changed files → 0 errors; real `app/globals.css` compiled through
+`@tailwindcss/postcss` confirms `hover:bg-on-accent-hover` emits
+`background-color: var(--on-accent-hover)` and `text-on-accent` resolves. **NOT visually verified
+locally** — Vercel preview is the gate. `/code-review low` run, pending result at time of writing.
 
 ### #741 C2 phase 1 — what landed
 Commits `f9a2e00` (CLAIM) + `f0773d3` (BUILD) on `dev/2608-DEV-741`, PR #754 (draft).

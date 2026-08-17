@@ -23,6 +23,8 @@
      Same pattern as --bg-global-rgb below. Keep in sync with the hex above. */
   --brand-stone-rgb:  138, 133, 119;
   --brand-sienna-rgb: 224, 122, 95;
+  --white-rgb:        255, 255, 255;
+  --brand-oyster-rgb: 240, 237, 230;
 
   /* ── Primitive aliases — legacy callers use bare token names ── */
   --sienna: var(--brand-sienna);
@@ -111,6 +113,11 @@
 
   /* The single biggest source of dark-mode invisibility: hover:bg-black/[0.02-0.05]. */
   --hover-surface:   rgba(45, 51, 42, 0.05);
+
+  /* Hover wash for controls on a fill that does NOT swap with theme (footer's
+     --brand-forest is constant in both themes) — distinct from --hover-surface,
+     which is for the surfaces that DO swap. No dark override needed. */
+  --on-accent-hover: rgba(255, 255, 255, 0.10);
 
   /* Must clear 3:1 against BOTH the page and card surface of its own theme.
      Crimson does in light (4.78 / 4.34) but only 2.86 on the dark card, which

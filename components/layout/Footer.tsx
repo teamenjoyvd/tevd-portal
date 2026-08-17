@@ -22,7 +22,7 @@ export default function Footer() {
           {/* Col 1 — Brand */}
           <div className="flex items-center gap-2.5">
             <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0"
-              style={{ border: '1px solid rgba(255,255,255,0.15)' }}>
+              style={{ border: '1px solid rgba(var(--white-rgb), 0.15)' }}>
               <Image
                 src="/logo.png"
                 alt="teamenjoyVD"
@@ -56,10 +56,10 @@ export default function Footer() {
             {/* Tickets */}
             <a href="https://epaygo.bg/3640737494" target="_blank" rel="noopener noreferrer"
               aria-label="Tickets"
-              className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-white/10"
-              style={{ border: '1px solid rgba(255,255,255,0.15)' }}>
+              className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-on-accent-hover"
+              style={{ border: '1px solid rgba(var(--white-rgb), 0.15)' }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                stroke="rgba(242,239,232,0.6)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                stroke="rgba(var(--brand-oyster-rgb), 0.6)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="1" y="7" width="22" height="10" rx="2" ry="2"/>
                 <path d="M1 12h3M20 12h3"/>
                 <circle cx="4" cy="12" r="1.5" fill="transparent"/>
@@ -70,10 +70,10 @@ export default function Footer() {
             {/* Mail */}
             <a href="mailto:teamenjoyvd@gmail.com"
               aria-label="Email"
-              className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-white/10"
-              style={{ border: '1px solid rgba(255,255,255,0.15)' }}>
+              className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-on-accent-hover"
+              style={{ border: '1px solid rgba(var(--white-rgb), 0.15)' }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                stroke="rgba(242,239,232,0.6)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                stroke="rgba(var(--brand-oyster-rgb), 0.6)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <rect width="20" height="16" x="2" y="4" rx="2"/>
                 <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
               </svg>
@@ -82,10 +82,10 @@ export default function Footer() {
             {/* Instagram */}
             <a href="https://www.instagram.com/teamenjoyvd/" target="_blank" rel="noopener noreferrer"
               aria-label="Instagram"
-              className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-white/10"
-              style={{ border: '1px solid rgba(255,255,255,0.15)' }}>
+              className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-on-accent-hover"
+              style={{ border: '1px solid rgba(var(--white-rgb), 0.15)' }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                stroke="rgba(242,239,232,0.6)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                stroke="rgba(var(--brand-oyster-rgb), 0.6)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <rect width="20" height="20" x="2" y="2" rx="5" ry="5"/>
                 <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
                 <line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/>
@@ -95,9 +95,9 @@ export default function Footer() {
             {/* Facebook */}
             <a href="https://www.facebook.com/teamenjoyvd/" target="_blank" rel="noopener noreferrer"
               aria-label="Facebook"
-              className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-white/10"
-              style={{ border: '1px solid rgba(255,255,255,0.15)' }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="rgba(242,239,232,0.6)">
+              className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-on-accent-hover"
+              style={{ border: '1px solid rgba(var(--white-rgb), 0.15)' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="rgba(var(--brand-oyster-rgb), 0.6)">
                 <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
               </svg>
             </a>
@@ -108,9 +108,9 @@ export default function Footer() {
       </div>
 
       {/* Bottom bar */}
-      <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+      <div style={{ borderTop: '1px solid rgba(var(--white-rgb), 0.07)' }}>
         <div className="max-w-[1440px] mx-auto px-8 xl:px-12 2xl:px-16 py-3 flex items-center justify-between gap-4">
-          <p className="text-[11px]" style={{ color: 'rgba(242,239,232,0.3)' }}>
+          <p className="text-[11px]" style={{ color: 'rgba(var(--brand-oyster-rgb), 0.3)' }}>
             © {new Date().getFullYear()} teamenjoyvd.com · {t('footer.allRightsReserved')} ·{' '}
             <a
               href="https://tally.so/r/BzAl5Q"
@@ -121,7 +121,7 @@ export default function Footer() {
               {t('footer.feedback')}
             </a>
           </p>
-          <p className="text-[11px]" style={{ color: 'rgba(242,239,232,0.3)' }}>
+          <p className="text-[11px]" style={{ color: 'rgba(var(--brand-oyster-rgb), 0.3)' }}>
             {t('footer.builtBy')}
           </p>
         </div>

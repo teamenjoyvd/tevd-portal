@@ -101,6 +101,7 @@
   --color-on-accent:      var(--on-accent);
   --color-overlay:        var(--overlay);
   --color-hover-surface:  var(--hover-surface);
+  --color-on-accent-hover: var(--on-accent-hover);
   --color-focus-ring:     var(--focus-ring);
   --color-skeleton-base:  var(--skeleton-base);
 
