@@ -67,7 +67,14 @@ export async function PATCH(
     const { data: rpcResult, error: rpcError } = await supabase
       .rpc('approve_event_role_request', { p_request_id: id })
 
-    if (rpcError) return Response.json({ error: rpcError.message }, { status: 500 })
+    // Log the whole driver error, not just `.message` (2608-DEV-751): a
+    // PostgrestError's `code`/`details`/`hint` are what identify an
+    // infrastructure fault, and without them a missing column reached the admin
+    // as an untraceable generic toast.
+    if (rpcError) {
+      console.error('[event-role-requests] approve RPC failed:', rpcError)
+      return Response.json({ error: rpcError.message }, { status: 500 })
+    }
 
     const result = rpcResult as {
       id: string
@@ -121,7 +128,10 @@ export async function PATCH(
     .select('id, role_label, profile_id, profile:profiles!profile_id(first_name, contact_email), event:calendar_events!event_id(title, start_time)')
     .maybeSingle()
 
-  if (error) return Response.json({ error: error.message }, { status: 500 })
+  if (error) {
+    console.error(`[event-role-requests] ${status} update failed:`, error)
+    return Response.json({ error: error.message }, { status: 500 })
+  }
   if (!data) {
     return Response.json(
       { error: 'This request is no longer in a state that can be changed', code: 'state_changed' },

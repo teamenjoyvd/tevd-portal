@@ -1,11 +1,26 @@
 ## Goal
-**#749** (`dev/2608-DEV-749`, cut from `main` @ `915a7e8`): make an approved calendar role
-revocable — member self-withdraw and admin revoke, as a soft `cancelled` status — and move the
-sign-up cutoff 15 min → 60 min with the deadline actually surfaced. **Migration: yes (two files).**
+**#751** (`dev/2608-DEV-751`, cut from `main` @ `b6b856a`): the two observability defects found while
+diagnosing #749 in production — `fetchJson` dropping the route's `code` (so the admin approval hub
+showed one hardcoded English toast for every failure), and both role routes swallowing the driver
+error on their DB-error branches. **Migration: no.**
 
 ## Now
 
-BUILD complete and locally verified; next action is the draft PR.
+BUILD complete and locally verified (`7a57f8b`); next action is the draft PR. Not pushed — no push
+grant exists in this conversation.
+
+**Production cancel/revoke was broken for a reason that is NOT a code defect.** PR #750 merged
+2026-08-16 21:54 and Vercel shipped the code, but the gated `Migrate Prod` run
+[31974848811](https://github.com/teamenjoyvd/tevd-portal/actions/runs/31974848811) is still
+`waiting` at the `Production` environment approval. Verified against `ynykjpnetfwqzdnsgkkg`:
+`registration_status` = pending/approved/denied only, no `cancelled`; `event_role_requests` has
+neither `cancelled_at` nor `cancelled_by`; ledger head is still `20260811000100`. So every
+cancel/revoke write 400s (`PGRST204`) while role SIGN-UP still works, because the insert touches
+none of the new schema. **Approving that run is the fix; #751 changes nothing about it.**
+The same UPDATE was probed against DEV in a rollback-only `DO` block and succeeded
+(`rows_updated_id=331af8ff… status=cancelled`), confirming the code path itself is sound.
+
+### #749 — what landed (merged as PR #750)
 
 **Migrations are already applied to DEV `iymwxdewcpvpjgzewtzk`** (user approved this session).
 The Supabase MCP recorded HHMMSS-style ledger versions (`20260816203117` / `...203152`); both rows
@@ -69,9 +84,13 @@ for both themes; `@custom-variant dark` registered against `[data-theme="dark"]`
 blanket ban with the doc updated in the same commit.
 
 ## Next
-1. Push `dev/2608-DEV-749`, open the PR as a DRAFT, wait for CI green + Vercel preview READY, then
+1. **Approve the pending `Migrate Prod` run 31974848811** (Actions → `Production` gate). This is
+   what actually restores cancel/revoke in production; it is independent of #751. Both migration
+   files are idempotent (`ADD VALUE IF NOT EXISTS`, `ADD COLUMN IF NOT EXISTS`), so a re-run is safe.
+   Smoke-check `https://www.teamenjoyvd.com` afterwards.
+2. Push `dev/2608-DEV-751`, open the PR as a DRAFT, wait for CI green + Vercel preview READY, then
    mark it ready for review (one CodeRabbit pass).
-2. `npm run verify` deliberately NOT run locally: its `next build` runs under `NODE_ENV=production`,
+3. `npm run verify` deliberately NOT run locally: its `next build` runs under `NODE_ENV=production`,
    which on this box resolves `.env.local` = PROD. CI builds it on the PR.
 3. **DEV cleanup pending from #743** (carried, not done in this ticket): `social_posts` holds 6
    seeded variants (`post_url like '%dev-seed-743-variant-%'`) plus three objects in the DEV
@@ -144,6 +163,15 @@ blanket ban with the doc updated in the same commit.
   (`iymwxdewcpvpjgzewtzk`). Only a warm-server run is evidence.
 
 ## Done
+- #751 PLAN + CLAIM + BUILD (`040d822`, `7a57f8b`). Verified: `npm run check-types` clean;
+  `npx vitest run` **511 passed / 36 files** (main baseline 507 — the +4 are new `fetchJson` cases
+  pinning `status`/`code`/`ApiError`); `npx eslint` on all 8 changed files → 0 errors. `ApiError`
+  moved to `lib/api-error.ts` with `apiClient` re-exporting it, so all four existing import sites
+  are untouched. **The shared `parseErrorBody` helper was written and then deleted**: `apiClient`
+  falls back to `json.message` and `fetchJson` deliberately does not, so sharing it would have
+  silently changed `fetchJson`'s message and broken its existing "no error field" test. Route
+  changes are log lines only — every status code and response body is byte-identical.
+  **NOT visually verified**; no live 500 was exercised to observe the new log output.
 - #749 CLAIM + BUILD. Verified: `npx tsc --noEmit` clean; `npm test` **507 passed / 36 files**
   (baseline 494/35 — the 13 new cases are `app/api/events/[id]/request-role/route.test.ts`, the
   route's first coverage ever); `npx eslint` on all 15 changed files → 0 findings; DEV DB probe

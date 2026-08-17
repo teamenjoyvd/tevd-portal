@@ -38,6 +38,11 @@ export const adminOperations = {
   'admin.approval.events.status.approved': { en: 'Approved', bg: 'Одобрена' },
   'admin.approval.events.status.denied': { en: 'Denied', bg: 'Отказана' },
   'admin.approval.events.status.cancelled': { en: 'Cancelled', bg: 'Отменена' },
+  // failure toasts (2608-DEV-751) — this tab showed one hardcoded English string
+  // for every failure, so an admin on Bulgarian read English and a 409 was
+  // indistinguishable from a 500
+  'admin.approval.events.updateError': { en: 'Could not update the role request. Please try again.', bg: 'Заявката за роля не можа да бъде обновена. Опитайте отново.' },
+  'admin.approval.events.stateChanged': { en: 'This request changed while you were acting on it.', bg: 'Заявката се промени, докато действахте върху нея.' },
 
   // -- Operations: Trips --
   'admin.operations.trips.btn.new': { en: '+ New trip', bg: '+ Ново пътуване' },

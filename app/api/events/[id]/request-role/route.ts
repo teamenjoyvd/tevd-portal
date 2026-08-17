@@ -78,7 +78,15 @@ export async function POST(
     .eq('status', 'approved')
     .maybeSingle()
 
-  if (slotError) return Response.json({ error: slotError.message }, { status: 500 })
+  // Log the whole driver error, not just `.message` (2608-DEV-751). A
+  // PostgrestError carries `code`/`details`/`hint`, and those are what identify
+  // an infrastructure fault: when production was missing the `cancelled_*`
+  // columns, the PGRST204 reached no log and the failure surfaced only as a
+  // generic "please try again" toast.
+  if (slotError) {
+    console.error('[request-role] slot-filled lookup failed:', slotError)
+    return Response.json({ error: slotError.message }, { status: 500 })
+  }
   if (slotRequests) {
     return Response.json(
       { error: 'This role is already filled', code: 'slot_filled' },
@@ -97,7 +105,10 @@ export async function POST(
     .eq('profile_id', profile.id)
     .maybeSingle()
 
-  if (existingError) return Response.json({ error: existingError.message }, { status: 500 })
+  if (existingError) {
+    console.error('[request-role] existing-row lookup failed:', existingError)
+    return Response.json({ error: existingError.message }, { status: 500 })
+  }
 
   if (existing) {
     if (existing.status === 'pending' || existing.status === 'approved') {
@@ -127,7 +138,10 @@ export async function POST(
       .select()
       .maybeSingle()
 
-    if (reviveError) return Response.json({ error: reviveError.message }, { status: 500 })
+    if (reviveError) {
+      console.error('[request-role] revive update failed:', reviveError)
+      return Response.json({ error: reviveError.message }, { status: 500 })
+    }
     if (!revived) {
       // Zero rows means the state moved under us. Never retry silently.
       return Response.json(
@@ -152,6 +166,7 @@ export async function POST(
         { status: 409 },
       )
     }
+    console.error('[request-role] insert failed:', error)
     return Response.json({ error: error.message }, { status: 500 })
   }
 
@@ -199,7 +214,10 @@ export async function DELETE(
     .select('id, status')
     .maybeSingle()
 
-  if (error) return Response.json({ error: error.message }, { status: 500 })
+  if (error) {
+    console.error('[request-role] cancel update failed:', error)
+    return Response.json({ error: error.message }, { status: 500 })
+  }
   if (!data) {
     return Response.json(
       { error: 'No active role request to cancel', code: 'nothing_to_cancel' },
