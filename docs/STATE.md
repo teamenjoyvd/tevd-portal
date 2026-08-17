@@ -6,13 +6,12 @@ co-owner path — plus the two data defects that made its target population invi
 
 ## Now
 
-#741 C2 phase 2 merged as PR #755. Phase 3 (`app/(dashboard)/**`, 158 literals / 28 files) is too
-large for one PR, so it's sub-split by feature directory — one PR per directory. First sub-slice,
-`calendar/**`, BUILD complete on `dev/2608-DEV-741` (branch reset off `main` @ `8fa4c67` after
-phase 2's squash-merge). `/code-review low` running in background. Next action: address any
+#741 C2 phase 3, calendar sub-slice merged as PR #756. Second sub-slice, `components/tiles/*`,
+BUILD complete on `dev/2608-DEV-741` (branch reset off `main` @ `9f2d2c6` after the calendar
+slice's squash-merge). `/code-review low` running in background. Next action: address any
 findings, then push and open PR, wait for CI green + Vercel preview READY, do the manual light/dark
 390px check, then mark ready for review. Remaining phase 3 sub-slices (not started):
-`components/tiles/*`, `guides/` + `library/[slug]/`, `profile/*`, `roles/*`, `trips/*`,
+`guides/` + `library/[slug]/`, `profile/*`, `roles/*`, `trips/*`,
 `los/page.tsx` + `notifications/page.tsx`.
 
 ### #742 — what this branch does
@@ -119,6 +118,32 @@ value cannot serve a 200px card and a 19px badge. Now:
 `--radius-sm` is 2px (hairline). `--radius-md/lg/xl` are pinned to the control tier and
 `--radius-2xl` to the container tier as a **legacy landing zone**, so unmigrated code lands sanely —
 that is not a scale, and new code must use the named utilities.
+
+### #741 C2 phase 3 (tiles sub-slice) — what landed
+Commit `5752c78` on `dev/2608-DEV-741`, on top of `d96a7ef` (CLAIM), on top of `9f2d2c6`
+(the calendar sub-slice's squash-merge — branch was reset here, discarding its now-redundant
+local CLAIM/BUILD/fix/docs commits, all already captured in that squash).
+
+`app/(dashboard)/components/tiles/*` (ProfileTile, SocialsTile, TripHeroTile, CalendarTile)
+migrated; the other 9 tile files had no colour literals. Two new RGB-channel companion tokens in
+`styles/brand-tokens.css`: `--brand-parchment-rgb` (ProfileTile's `variant="teal"` card is a fixed
+fill in both themes, like phase 2's Footer forest fill — parchment-on-teal needed a composited
+alpha, not a swapped surface token) and `--brand-void-rgb` (SocialsTile's platform-badge/
+follow-link scrim sits over a user photo, also fixed both themes). Neither is mapped through
+`@theme inline` — confirmed by grep that the three existing companions
+(`--white-rgb`/`--brand-oyster-rgb`/`--brand-crimson-rgb`) aren't either; all four are consumed
+directly as CSS custom properties via `rgba(var(--x-rgb), α)`, never as Tailwind utility classes.
+
+SocialsTile's loading-skeleton `rgba(0,0,0,0.06)` was a real dark-mode bug (plain black is
+invisible on a dark card) — same failure class as phase 3 calendar's `FilterControls` bare
+`'white'` tab — now `var(--skeleton-base)`. TripHeroTile's `rgba(242,239,232,0.65)` doesn't
+exactly match `--brand-oyster-rgb` (240,237,230) — a 2-unit-per-channel drift, imperceptible —
+consolidated onto the existing token rather than adding a near-duplicate, same call as phase 1's
+drag-handle deviation.
+
+**Verified:** `npx tsc --noEmit` clean; `npx vitest run` 529 passed / 37 files (no regression);
+`npx eslint` on all changed files → 0 errors (3 pre-existing unrelated warnings). **NOT visually
+verified locally** — Vercel preview is the gate. `/code-review low` running in background.
 
 ### #741 C2 phase 3 (calendar sub-slice) — what landed
 Commit `bfa2c31` on `dev/2608-DEV-741`, on top of `a0d1582` (CLAIM).
