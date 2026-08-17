@@ -12,20 +12,12 @@
  */
 
 import { getToken } from '@clerk/nextjs'
+import { ApiError } from '@/lib/api-error'
 
-export class ApiError extends Error {
-  /**
-   * `code` is the machine-readable failure discriminant a route may send
-   * alongside its error string (2608-DEV-733), e.g. `event_full` from
-   * `/api/events/[id]/attend`. Optional because most routes send only a
-   * message; a client that needs to branch should switch on this and never on
-   * `message`, which is English developer copy and free to be reworded.
-   */
-  constructor(public status: number, message: string, public code?: string) {
-    super(message)
-    this.name = 'ApiError'
-  }
-}
+// Defined in `lib/api-error.ts` since 2608-DEV-751 so `lib/utils/fetchJson.ts`
+// can throw it without importing this module (and with it Clerk). Re-exported
+// here because every existing call site imports it from '@/lib/apiClient'.
+export { ApiError }
 
 /**
  * 2608-DEV-727. A 401 is NOT proof that the session ended.

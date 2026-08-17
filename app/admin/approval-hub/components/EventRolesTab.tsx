@@ -17,6 +17,7 @@ import { toast } from '@/lib/toast'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { formatDate, formatTime } from '@/lib/format'
 import { fetchJson } from '@/lib/utils/fetchJson'
+import { ApiError } from '@/lib/api-error'
 import type { TranslationKey } from '@/lib/i18n'
 
 // ── Types ────────────────────────────────────────────────────────
@@ -136,9 +137,17 @@ export function EventRolesTab() {
       )
       return { prev }
     },
-    onError: (_e, _v, ctx) => {
+    // Same code-keyed branching the calendar popup uses (2608-DEV-733): switch on
+    // the route's `code`, never on `message`, which is English developer copy.
+    // Until 2608-DEV-751 `fetchJson` threw a bare Error, so the code was lost and
+    // every failure — including a 409 `state_changed` — showed one hardcoded
+    // English string.
+    onError: (err: unknown, _v, ctx) => {
       if (ctx?.prev) qc.setQueryData(['role-requests', 'all'], ctx.prev)
-      toast.error('Failed to update role request. Please try again.')
+      const code = err instanceof ApiError ? err.code : undefined
+      toast.error(t(code === 'state_changed'
+        ? 'admin.approval.events.stateChanged'
+        : 'admin.approval.events.updateError'))
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: ['role-requests', 'all'] })
