@@ -74,7 +74,7 @@ export async function GET() {
   const effectiveAboNumber: string | null = aboNumber ?? primaryInfo?.abo_number ?? null
   const effectiveUplineAboNumber: string | null = uplineAboNumber ?? primaryInfo?.upline_abo_number ?? null
 
-  const [upline, verRequest, spouse, pendingSpouseLinkCount] = await Promise.all([
+  const [upline, verRequest, spouse, pendingSpouseLinkCount, ownSpouseLinkRequest] = await Promise.all([
     // Resolve upline for any verified member (own account, or via the primary
     // profile's shared ABO when this is a spouse-linked secondary).
     (effectiveAboNumber || effectiveUplineAboNumber)
@@ -120,6 +120,31 @@ export async function GET() {
           return count ?? 0
         })()
       : Promise.resolve(0),
+    // The caller's OWN outbound spouse-link request (2608-DEV-742).
+    // pendingSpouseLinkCount above counts only INBOUND requests and is hardcoded
+    // to 0 for guests, which made "guest who never submitted anything" and "guest
+    // already waiting on their primary to approve" indistinguishable — and the
+    // second group must never be told to go verify an ABO number they are not
+    // permitted to submit (verify-abo/route.ts:27-35 hard-blocks secondaries).
+    // Same row GET /api/profile/spouse-link returns; surfaced here so the homepage
+    // needs no second request. Secondaries are already linked, so they skip it.
+    role === 'guest' && !primaryProfileId
+      ? (async () => {
+          const { data: own, error: ownError } = await supabase
+            .from('spouse_link_requests')
+            .select('id, status, admin_note, created_at')
+            .eq('requester_id', profileId)
+            .maybeSingle()
+          if (ownError) {
+            // Non-fatal: the rest of the profile payload is still valid. Log it
+            // rather than swallowing — a silent null here downgrades the caller
+            // to the "never submitted" nudge, which is the wrong prompt.
+            console.error('[GET /api/profile] own spouse_link_requests lookup failed', ownError)
+            return null
+          }
+          return own ?? null
+        })()
+      : Promise.resolve(null),
   ])
 
   return Response.json({
@@ -130,6 +155,7 @@ export async function GET() {
     verRequest,
     spouse,
     pendingSpouseLinkCount,
+    ownSpouseLinkRequest,
   })
 }
 

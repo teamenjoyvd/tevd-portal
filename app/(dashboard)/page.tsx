@@ -13,6 +13,7 @@ import HeroTile from '@/app/(dashboard)/components/tiles/HeroTile'
 import AboutTile from '@/app/(dashboard)/components/tiles/AboutTile'
 import AnnouncementTile from '@/app/(dashboard)/components/tiles/AnnouncementTile'
 import TripHeroTile from '@/app/(dashboard)/components/tiles/TripHeroTile'
+import VerifyNudgeDialog from '@/app/(dashboard)/components/VerifyNudgeDialog'
 import { todayInSofia } from '@/lib/format'
 
 export const dynamic = 'force-dynamic'
@@ -223,6 +224,12 @@ export default async function HomePage() {
         <SocialsTile style={{ minHeight: 200 }} />
 
       </div>
+
+      {/* Homepage-only verification nudge. Mounted once outside both layout
+          branches — it is a portalled dialog, so it renders nothing inline and
+          decides for itself whether the signed-in user is in a state worth
+          interrupting (2608-DEV-742). */}
+      <VerifyNudgeDialog />
 
     </div>
   )

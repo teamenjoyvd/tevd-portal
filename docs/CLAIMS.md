@@ -6,5 +6,5 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
-| #751 | `dev/2608-DEV-751` | **migration: no** — `lib/api-error.ts` (new), `lib/apiClient.ts`, `lib/utils/fetchJson.ts` (+ test), `app/admin/approval-hub/components/EventRolesTab.tsx`, `lib/i18n/domains/admin/operations.ts`, `app/api/events/[id]/request-role/route.ts`, `app/api/admin/event-role-requests/[id]/route.ts` | 2026-08-17 |
+| #742 | `dev/2608-DEV-742` | **migration: no** — `app/api/profile/route.ts`, `app/(dashboard)/profile/types.ts`, `app/(dashboard)/components/tiles/ProfileTile.tsx`, `app/(dashboard)/components/VerifyNudgeDialog.tsx` (new), `app/(dashboard)/page.tsx`, `lib/i18n/domains/home.ts` | 2026-08-17 |
 

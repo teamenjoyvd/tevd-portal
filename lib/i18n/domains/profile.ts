@@ -77,6 +77,10 @@ export const profile = {
   'profile.unverified':         { en: 'Unverified Member',                                       bg: 'Неверифициран Член'                                            },
   'profile.verifPendingDesc':   { en: 'Verification pending admin review.',                      bg: 'Верификацията очаква преглед от администратор.'                },
   'profile.verifDeniedDesc':    { en: 'Verification was denied. Update your details and resubmit.', bg: 'Верификацията беше отказана. Обновете данните и опитайте отново.' },
+  // 2608-DEV-742 — the guest who never submitted anything, previously shown nothing at all.
+  'profile.verifNotStartedDesc': { en: 'Verify your ABO number to unlock member content.',          bg: 'Верифицирайте своя ABO номер, за да отключите съдържанието за членове.' },
+  'profile.awaitingPrimary':    { en: 'Awaiting approval',                                         bg: 'Очаква одобрение'                                              },
+  'profile.awaitingPrimaryDesc': { en: 'Your spouse link is waiting for the primary account holder to approve it.', bg: 'Свързването на съпруг/а очаква одобрение от основния титуляр.' },
   'profile.profileLink':        { en: 'Profile →',                                               bg: 'Профил →'                                                      },
   'profile.adminLink':          { en: 'Admin →',                                                 bg: 'Админ →'                                                       },
   'profile.access':             { en: 'Access',                  bg: 'Достъп'                   },
