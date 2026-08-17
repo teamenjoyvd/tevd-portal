@@ -55,7 +55,7 @@ export default function TripHeroTile({ trip }: Props) {
       <div className="absolute bottom-0 left-0 right-0 px-5 pb-5 z-10 pointer-events-none">
         <span
           className="inline-block font-body text-[9px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-xl mb-2"
-          style={{ backgroundColor: 'rgba(255,255,255,0.18)', color: 'var(--brand-parchment)', opacity: 0.55 }}
+          style={{ backgroundColor: 'rgba(var(--white-rgb), 0.18)', color: 'var(--brand-parchment)', opacity: 0.55 }}
         >
           {t('home.trips.nextTrip')}
         </span>
@@ -68,11 +68,11 @@ export default function TripHeroTile({ trip }: Props) {
         <div className="flex items-center gap-2 mt-1">
           <span
             className="font-body text-[11px] font-bold px-2.5 py-1 rounded-xl"
-            style={{ backgroundColor: 'rgba(255,255,255,0.18)', color: 'var(--brand-parchment)' }}
+            style={{ backgroundColor: 'rgba(var(--white-rgb), 0.18)', color: 'var(--brand-parchment)' }}
           >
             {trip.destination}
           </span>
-          <p className="font-body text-[12px]" style={{ color: 'rgba(242,239,232,0.65)' }}>
+          <p className="font-body text-[12px]" style={{ color: 'rgba(var(--brand-oyster-rgb), 0.65)' }}>
             {formatDate(trip.start_date)}
           </p>
         </div>

@@ -25,10 +25,10 @@ type Profile = {
 }
 
 const ROLE_STYLES: Record<string, { bg: string; color: string }> = {
-  admin:  { bg: 'rgba(250,248,243,0.20)', color: 'var(--brand-parchment)' },
-  core:   { bg: 'rgba(250,248,243,0.20)', color: 'var(--brand-parchment)' },
-  member: { bg: 'rgba(250,248,243,0.20)', color: 'var(--brand-parchment)' },
-  guest:  { bg: 'rgba(250,248,243,0.12)', color: 'rgba(250,248,243,0.70)' },
+  admin:  { bg: 'rgba(var(--brand-parchment-rgb), 0.20)', color: 'var(--brand-parchment)' },
+  core:   { bg: 'rgba(var(--brand-parchment-rgb), 0.20)', color: 'var(--brand-parchment)' },
+  member: { bg: 'rgba(var(--brand-parchment-rgb), 0.20)', color: 'var(--brand-parchment)' },
+  guest:  { bg: 'rgba(var(--brand-parchment-rgb), 0.12)', color: 'rgba(var(--brand-parchment-rgb), 0.70)' },
 }
 
 export default function ProfileTile({
@@ -99,9 +99,9 @@ export default function ProfileTile({
     return (
       <BentoCard variant="teal" colSpan={colSpan} mobileColSpan={mobileColSpan} rowSpan={rowSpan} style={style} className="flex flex-col justify-between">
         <div className="flex items-center justify-end">
-          <div className="h-3 w-16 rounded animate-pulse" style={{ backgroundColor: 'rgba(250,248,243,0.15)' }} />
+          <div className="h-3 w-16 rounded animate-pulse" style={{ backgroundColor: 'rgba(var(--brand-parchment-rgb), 0.15)' }} />
         </div>
-        <div className="h-6 w-24 rounded-container animate-pulse" style={{ backgroundColor: 'rgba(250,248,243,0.15)' }} />
+        <div className="h-6 w-24 rounded-container animate-pulse" style={{ backgroundColor: 'rgba(var(--brand-parchment-rgb), 0.15)' }} />
       </BentoCard>
     )
   }
@@ -119,7 +119,7 @@ export default function ProfileTile({
           <h2 className="font-display text-2xl font-semibold mt-3" style={{ color: 'var(--brand-parchment)' }}>
             {t('profile.heyGuest')}
           </h2>
-          <p className="text-sm mt-2 font-body" style={{ color: 'rgba(250,248,243,0.70)' }}>
+          <p className="text-sm mt-2 font-body" style={{ color: 'rgba(var(--brand-parchment-rgb), 0.70)' }}>
             {t('profile.signInDesc')}
           </p>
         </div>
@@ -150,10 +150,10 @@ export default function ProfileTile({
             Hey, {displayName ?? t('home.profile.there')}.
           </h2>
           <span className="inline-block mt-2 text-xs font-semibold px-2.5 py-1 rounded-control"
-            style={{ backgroundColor: 'rgba(250,248,243,0.15)', color: 'var(--brand-parchment)' }}>
+            style={{ backgroundColor: 'rgba(var(--brand-parchment-rgb), 0.15)', color: 'var(--brand-parchment)' }}>
             {t(badgeKey)}
           </span>
-          <p className="text-xs mt-2 font-body" style={{ color: 'rgba(250,248,243,0.70)' }}>
+          <p className="text-xs mt-2 font-body" style={{ color: 'rgba(var(--brand-parchment-rgb), 0.70)' }}>
             {t(descKey)}
           </p>
         </div>
@@ -184,7 +184,7 @@ export default function ProfileTile({
             {t(('role.' + role) as TranslationKey)}
           </span>
           {uplineData?.upline_name && (
-            <span className="text-xs font-body" style={{ color: 'rgba(250,248,243,0.70)' }}>
+            <span className="text-xs font-body" style={{ color: 'rgba(var(--brand-parchment-rgb), 0.70)' }}>
               ↑ {uplineData.upline_name}
             </span>
           )}
@@ -197,7 +197,7 @@ export default function ProfileTile({
           <Link
             href="/profile/spouse-link"
             className="flex items-center gap-2 mt-3 px-3 py-2 rounded-control"
-            style={{ backgroundColor: 'rgba(250,248,243,0.15)', textDecoration: 'none' }}
+            style={{ backgroundColor: 'rgba(var(--brand-parchment-rgb), 0.15)', textDecoration: 'none' }}
           >
             <span className="text-xs font-medium" style={{ color: 'var(--brand-parchment)' }}>
               {pendingSpouseLinkCount === 1
