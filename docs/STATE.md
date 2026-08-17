@@ -98,6 +98,8 @@ blanket ban with the doc updated in the same commit.
    empty before that ticket, so deleting every row is correct. #743 also still needs closing.
 
 ## Constraints
+- (#742 session, 2026-08-17) On the question of how much of #741 to build alongside #742, the user
+  answered verbatim: "Skip that, do only 742". #741 is out of scope for this branch entirely.
 - Never push without an explicit grant in this conversation. Grants from earlier tickets/sessions do
   not carry over. (A grant WAS given this session: "PUSH TO OPEN DRAFT PR #740 and #741".)
 - Never apply migrations to a hosted Supabase project (DEV or prod) without asking first.
