@@ -75,8 +75,8 @@ export function AgendaView({
       <div className="px-4 py-4 space-y-4">
         {[...Array(4)].map((_, i) => (
           <div key={i} className="space-y-2">
-            <div className="h-6 w-32 rounded-control animate-pulse" style={{ backgroundColor: 'rgba(0,0,0,0.06)' }} />
-            <div className="h-16 rounded-container animate-pulse" style={{ backgroundColor: 'rgba(0,0,0,0.04)' }} />
+            <div className="h-6 w-32 rounded-control animate-pulse" style={{ backgroundColor: 'var(--skeleton-base)' }} />
+            <div className="h-16 rounded-container animate-pulse" style={{ backgroundColor: 'var(--skeleton-base)' }} />
           </div>
         ))}
       </div>
@@ -108,8 +108,8 @@ export function AgendaView({
               <div
                 className="flex items-center gap-2 px-3 py-1 rounded-control text-xs font-semibold"
                 style={{
-                  backgroundColor: isToday ? 'var(--crimson)' : 'rgba(0,0,0,0.06)',
-                  color: isToday ? 'white' : 'var(--text-primary)',
+                  backgroundColor: isToday ? 'var(--crimson)' : 'var(--hover-surface)',
+                  color: isToday ? 'var(--on-accent)' : 'var(--text-primary)',
                 }}
               >
                 {formatShortDate(date)}
@@ -130,8 +130,8 @@ export function AgendaView({
                     className="w-full text-left rounded-container border overflow-hidden hover:shadow-sm transition-shadow flex scroll-mt-20 md:scroll-mt-0"
                     style={{
                       backgroundColor: 'var(--bg-card)',
-                      borderColor: isHighlighted ? 'var(--brand-crimson)' : 'rgba(0,0,0,0.05)',
-                      boxShadow: isHighlighted ? '0 0 0 2px rgba(188,71,73,0.25)' : undefined,
+                      borderColor: isHighlighted ? 'var(--brand-crimson)' : 'var(--border-default)',
+                      boxShadow: isHighlighted ? '0 0 0 2px rgba(var(--brand-crimson-rgb), 0.25)' : undefined,
                     }}
                   >
                     <div className="w-1 flex-shrink-0" style={{ backgroundColor: c.bg }} />

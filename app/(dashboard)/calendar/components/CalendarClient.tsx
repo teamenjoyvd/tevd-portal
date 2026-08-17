@@ -162,7 +162,7 @@ export default function CalendarClient({
       <Dialog open={!!selectedEventId} onOpenChange={open => { if (!open) handleClose() }}>
         <DialogPortal>
           <DialogOverlay
-            style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}
+            style={{ backgroundColor: 'var(--overlay)' }}
           />
           <DialogContent
             className="fixed flex flex-col overflow-hidden p-0
@@ -170,7 +170,7 @@ export default function CalendarClient({
               md:inset-x-auto md:bottom-auto md:top-1/2 md:left-1/2 md:w-[360px] md:max-h-[80vh] md:rounded-container md:-translate-x-1/2 md:-translate-y-1/2"
             style={{
               backgroundColor: 'var(--bg-global)',
-              boxShadow: '0 8px 40px rgba(0,0,0,0.22)',
+              boxShadow: 'var(--shadow-modal)',
             }}
           >
             {selectedEventId && (

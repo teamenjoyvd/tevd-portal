@@ -26,7 +26,7 @@ export function PendingPopover({ profiles, color }: { profiles: PendingProfile[]
         side="top"
         align="center"
         className="p-2 min-w-0 w-auto max-w-[200px]"
-        style={{ backgroundColor: 'var(--bg-card)', border: '1px solid rgba(0,0,0,0.08)' }}
+        style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}
       >
         <p className="text-[10px] font-semibold tracking-wider uppercase mb-1.5" style={{ color: 'var(--text-secondary)' }}>
           Requested by

@@ -83,12 +83,12 @@ export default function EventPopupShell({
   return (
     <>
       {/* Header */}
-      <div className="px-4 pt-3 pb-3 border-b border-black/5 flex-shrink-0">
+      <div className="px-4 pt-3 pb-3 border-b border-border-default flex-shrink-0">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
               <span className="text-[10px] font-semibold px-2 py-0.5 rounded-xl"
-                style={{ backgroundColor: event?.category === 'N21' ? 'var(--brand-forest)' : 'var(--brand-sienna)', color: 'rgba(255,255,255,0.9)' }}>
+                style={{ backgroundColor: event?.category === 'N21' ? 'var(--brand-forest)' : 'var(--brand-sienna)', color: 'var(--on-accent)' }}>
                 {event?.category ?? '…'}
               </span>
               {eventTypeStyle && (
@@ -139,7 +139,7 @@ export default function EventPopupShell({
                 container so the Roles tab renders exactly as before — a sibling
                 block would add a second divider to a screen that has no bug. */}
             {(showMeta || showActions) && (
-              <div className="px-4 py-3 border-b border-black/5">
+              <div className="px-4 py-3 border-b border-border-default">
                 {showMeta && (
                   <>
                     <div className="flex items-center gap-2 text-xs mb-1" style={{ color: 'var(--text-primary)' }}>
@@ -257,7 +257,7 @@ export default function EventPopupShell({
 
       <Dialog open={qrDataUrl !== null} onOpenChange={(open) => { if (!open) onQrDismiss() }}>
         <DialogPortal>
-          <DialogOverlay className="z-[60]" style={{ backgroundColor: 'rgba(0,0,0,0.32)' }} />
+          <DialogOverlay className="z-[60]" style={{ backgroundColor: 'var(--overlay)' }} />
           <DialogContent
             className="left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 p-5 z-[60]"
             style={{ width: 320, maxWidth: '90vw', border: '1px solid var(--border-default)' }}
@@ -293,7 +293,7 @@ export default function EventPopupShell({
                 />
                 <button
                   onClick={downloadQr}
-                  className="flex items-center gap-1.5 rounded-xl px-5 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+                  className="flex items-center gap-1.5 rounded-xl px-5 py-2 text-sm font-semibold text-on-accent transition-opacity hover:opacity-90"
                   style={{ backgroundColor: 'var(--brand-teal)' }}
                 >
                   <Download size={14} />

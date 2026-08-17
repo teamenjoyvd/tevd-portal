@@ -49,7 +49,7 @@ export function FilterControls({
           <div className="flex items-center justify-between gap-2 py-2.5">
             <div className="flex items-center gap-1 min-w-0">
               <button onClick={() => navigate(-1)} aria-label={t('cal.prevMonth')}
-                className="w-11 h-11 flex items-center justify-center rounded-lg hover:bg-black/5 flex-shrink-0"
+                className="w-11 h-11 flex items-center justify-center rounded-lg hover:bg-hover-surface flex-shrink-0"
                 style={{ color: 'var(--text-primary)' }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
                   stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -62,7 +62,7 @@ export function FilterControls({
                 {t('cal.today')}
               </button>
               <button onClick={() => navigate(1)} aria-label={t('cal.nextMonth')}
-                className="w-11 h-11 flex items-center justify-center rounded-lg hover:bg-black/5 flex-shrink-0"
+                className="w-11 h-11 flex items-center justify-center rounded-lg hover:bg-hover-surface flex-shrink-0"
                 style={{ color: 'var(--text-primary)' }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
                   stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -73,14 +73,14 @@ export function FilterControls({
                 {periodLabel}
               </p>
             </div>
-            <div className="flex gap-0.5 p-0.5 rounded-lg flex-shrink-0" style={{ backgroundColor: 'rgba(0,0,0,0.05)' }}>
+            <div className="flex gap-0.5 p-0.5 rounded-lg flex-shrink-0" style={{ backgroundColor: 'var(--hover-surface)' }}>
               {VIEWS.map(v => (
                 <button key={v.key} onClick={() => setView(v.key)}
                   className="px-2.5 py-1 rounded-md text-xs font-medium transition-all"
                   style={{
-                    backgroundColor: view === v.key ? 'white' : 'transparent',
+                    backgroundColor: view === v.key ? 'var(--bg-card)' : 'transparent',
                     color: view === v.key ? 'var(--text-primary)' : 'var(--text-secondary)',
-                    boxShadow: view === v.key ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                    boxShadow: view === v.key ? 'var(--shadow-rest)' : 'none',
                   }}>
                   {v.label(t)}
                 </button>
@@ -98,12 +98,12 @@ export function FilterControls({
               aria-pressed={showN21}
               className="flex items-center gap-1 px-2.5 py-1 rounded-control text-xs font-semibold flex-shrink-0 transition-all"
               style={{
-                backgroundColor: showN21 ? 'var(--forest)' : 'rgba(0,0,0,0.05)',
-                color: showN21 ? 'white' : 'var(--text-secondary)',
+                backgroundColor: showN21 ? 'var(--forest)' : 'var(--hover-surface)',
+                color: showN21 ? 'var(--on-accent)' : 'var(--text-secondary)',
               }}
             >
               <span className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                style={{ backgroundColor: showN21 ? 'rgba(255,255,255,0.6)' : 'var(--forest)' }} />
+                style={{ backgroundColor: showN21 ? 'rgba(var(--white-rgb), 0.6)' : 'var(--forest)' }} />
               N21
             </button>
             {canSeePersonal && (
@@ -112,12 +112,12 @@ export function FilterControls({
                 aria-pressed={showPersonal}
                 className="flex items-center gap-1 px-2.5 py-1 rounded-control text-xs font-semibold flex-shrink-0 transition-all"
                 style={{
-                  backgroundColor: showPersonal ? 'var(--sienna)' : 'rgba(0,0,0,0.05)',
-                  color: showPersonal ? 'white' : 'var(--text-secondary)',
+                  backgroundColor: showPersonal ? 'var(--sienna)' : 'var(--hover-surface)',
+                  color: showPersonal ? 'var(--on-accent)' : 'var(--text-secondary)',
                 }}
               >
                 <span className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: showPersonal ? 'rgba(255,255,255,0.6)' : 'var(--sienna)' }} />
+                  style={{ backgroundColor: showPersonal ? 'rgba(var(--white-rgb), 0.6)' : 'var(--sienna)' }} />
                 {t('cal.personal')}
               </button>
             )}
@@ -129,8 +129,8 @@ export function FilterControls({
                 aria-pressed={filterType === type}
                 className="px-2.5 py-1 rounded-control text-xs font-semibold flex-shrink-0 transition-all"
                 style={{
-                  backgroundColor: filterType === type ? 'var(--brand-teal)' : 'rgba(0,0,0,0.05)',
-                  color: filterType === type ? 'white' : 'var(--text-secondary)',
+                  backgroundColor: filterType === type ? 'var(--brand-teal)' : 'var(--hover-surface)',
+                  color: filterType === type ? 'var(--on-accent)' : 'var(--text-secondary)',
                 }}
               >
                 {typeLabel(type, t)}
@@ -151,7 +151,7 @@ export function FilterControls({
           </p>
           <div className="flex gap-1 mt-2">
             <button onClick={() => navigate(-1)} aria-label={t('cal.prevMonth')}
-              className="w-11 h-11 flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors flex-shrink-0"
+              className="w-11 h-11 flex items-center justify-center rounded-lg hover:bg-hover-surface transition-colors flex-shrink-0"
               style={{ color: 'var(--text-primary)' }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -159,7 +159,7 @@ export function FilterControls({
               </svg>
             </button>
             <button onClick={() => navigate(1)} aria-label={t('cal.nextMonth')}
-              className="w-11 h-11 flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors flex-shrink-0"
+              className="w-11 h-11 flex items-center justify-center rounded-lg hover:bg-hover-surface transition-colors flex-shrink-0"
               style={{ color: 'var(--text-primary)' }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -168,7 +168,7 @@ export function FilterControls({
             </button>
           </div>
           <button onClick={goToday}
-            className="mt-2 w-full px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors hover:bg-black/[0.02]"
+            className="mt-2 w-full px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors hover:bg-hover-surface"
             style={{ borderColor: 'var(--crimson)', color: 'var(--crimson)' }}>
             {t('cal.today')}
           </button>
@@ -181,7 +181,7 @@ export function FilterControls({
               <button key={v.key} onClick={() => setView(v.key)}
                 className="w-full text-left px-3 py-2 rounded-lg text-xs font-medium transition-all"
                 style={{
-                  backgroundColor: view === v.key ? 'rgba(188,71,73,0.08)' : 'transparent',
+                  backgroundColor: view === v.key ? 'rgba(var(--brand-crimson-rgb), 0.08)' : 'transparent',
                   color: view === v.key ? 'var(--brand-crimson)' : 'var(--text-secondary)',
                   fontWeight: view === v.key ? 600 : 400,
                 }}>
@@ -197,22 +197,22 @@ export function FilterControls({
             <button onClick={() => setShowN21(v => !v)} aria-pressed={showN21}
               className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all"
               style={{
-                backgroundColor: showN21 ? 'var(--forest)' : 'rgba(0,0,0,0.04)',
-                color: showN21 ? 'white' : 'var(--text-secondary)',
+                backgroundColor: showN21 ? 'var(--forest)' : 'var(--bg-card-raised)',
+                color: showN21 ? 'var(--on-accent)' : 'var(--text-secondary)',
               }}>
               <span className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                style={{ backgroundColor: showN21 ? 'rgba(255,255,255,0.6)' : 'var(--forest)' }} />
+                style={{ backgroundColor: showN21 ? 'rgba(var(--white-rgb), 0.6)' : 'var(--forest)' }} />
               N21
             </button>
             {canSeePersonal && (
               <button onClick={() => setShowPersonal(v => !v)} aria-pressed={showPersonal}
                 className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all"
                 style={{
-                  backgroundColor: showPersonal ? 'var(--sienna)' : 'rgba(0,0,0,0.04)',
-                  color: showPersonal ? 'white' : 'var(--text-secondary)',
+                  backgroundColor: showPersonal ? 'var(--sienna)' : 'var(--bg-card-raised)',
+                  color: showPersonal ? 'var(--on-accent)' : 'var(--text-secondary)',
                 }}>
                 <span className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: showPersonal ? 'rgba(255,255,255,0.6)' : 'var(--sienna)' }} />
+                  style={{ backgroundColor: showPersonal ? 'rgba(var(--white-rgb), 0.6)' : 'var(--sienna)' }} />
                 {t('cal.personal')}
               </button>
             )}
@@ -226,8 +226,8 @@ export function FilterControls({
               <button key={type} onClick={() => setFilterType(filterType === type ? null : type)} aria-pressed={filterType === type}
                 className="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold transition-all"
                 style={{
-                  backgroundColor: filterType === type ? 'var(--brand-teal)' : 'rgba(0,0,0,0.04)',
-                  color: filterType === type ? 'white' : 'var(--text-secondary)',
+                  backgroundColor: filterType === type ? 'var(--brand-teal)' : 'var(--bg-card-raised)',
+                  color: filterType === type ? 'var(--on-accent)' : 'var(--text-secondary)',
                 }}>
                 {typeLabel(type, t)}
               </button>
