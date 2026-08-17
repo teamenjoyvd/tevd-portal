@@ -11,8 +11,8 @@ export const HOURS = Array.from({ length: 24 }, (_, i) => i)
 export const HOUR_HEIGHT = 60
 
 export const CATEGORY_COLOR: Record<string, { bg: string; text: string }> = {
-  N21:      { bg: 'var(--brand-forest)',  text: 'rgba(255,255,255,0.95)' },
-  Personal: { bg: 'var(--brand-sienna)', text: 'rgba(255,255,255,0.95)' },
+  N21:      { bg: 'var(--brand-forest)',  text: 'rgba(var(--white-rgb), 0.95)' },
+  Personal: { bg: 'var(--brand-sienna)', text: 'rgba(var(--white-rgb), 0.95)' },
 }
 
 // Moved to lib/calendar-dates.ts (shared with app/api/calendar/feed.ics) —

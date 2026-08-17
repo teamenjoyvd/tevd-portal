@@ -52,7 +52,7 @@ export default function AttendSection({
       <div className="flex items-center gap-3">
         <span
           className="flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-control"
-          style={{ backgroundColor: 'var(--status-success-bg, rgba(129,178,154,0.18))', color: 'var(--status-success-fg, #2d6a4f)' }}
+          style={{ backgroundColor: 'var(--status-success-bg)', color: 'var(--status-success-fg)' }}
         >
           <Check size={10} />
           {t('cal.attending')}
