@@ -43,7 +43,7 @@ export function VaulDrawer({
           style={{
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(0,0,0,0.4)',
+            backgroundColor: 'var(--overlay)',
             zIndex: 49,
           }}
         />
@@ -58,7 +58,7 @@ export function VaulDrawer({
             flexDirection: 'column',
             borderRadius: 'var(--radius) var(--radius) 0 0',
             backgroundColor: 'var(--bg-global)',
-            boxShadow: '0 -4px 32px rgba(0,0,0,0.18)',
+            boxShadow: 'var(--shadow-modal)',
             outline: 'none',
             maxHeight: '92dvh',
           }}
@@ -79,7 +79,7 @@ export function VaulDrawer({
                 width: 32,
                 height: 4,
                 borderRadius: 9999,
-                backgroundColor: 'rgba(0,0,0,0.15)',
+                backgroundColor: 'var(--bento-border-hover)',
               }}
             />
           </div>

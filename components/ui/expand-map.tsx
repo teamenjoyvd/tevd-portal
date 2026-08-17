@@ -56,9 +56,9 @@ const PARCHMENT = 'var(--brand-parchment)'
 const STONE = 'var(--brand-stone)'
 const MOSS = 'var(--brand-moss)'
 const ACCENT = 'var(--brand-sienna)'
-const ACCENT_RGB = '224, 122, 95'
+const ACCENT_RGB = 'var(--brand-sienna-rgb)'
 
-const stone = (alpha: number) => `rgba(138, 133, 119, ${alpha})`
+const stone = (alpha: number) => `rgba(var(--brand-stone-rgb), ${alpha})`
 
 // Skyline blocks: [top, left|right, width, height, fill alpha, entrance delay].
 const BUILDINGS: {
