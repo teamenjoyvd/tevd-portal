@@ -6,11 +6,14 @@ co-owner path — plus the two data defects that made its target population invi
 
 ## Now
 
-#741 C2 phase 2 (`components/layout/*`) BUILD complete on `dev/2608-DEV-741` (branch reset off
-`main` after phase 1's squash-merge as `cac8eb4` — the local branch's 3 pre-merge commits were
-superseded, not lost). `/code-review low` running in background. Next action: address any findings,
-then push and open PR as DRAFT, wait for CI green + Vercel preview READY, do the manual light/dark
-390px check, then mark ready for review.
+#741 C2 phase 2 merged as PR #755. Phase 3 (`app/(dashboard)/**`, 158 literals / 28 files) is too
+large for one PR, so it's sub-split by feature directory — one PR per directory. First sub-slice,
+`calendar/**`, BUILD complete on `dev/2608-DEV-741` (branch reset off `main` @ `8fa4c67` after
+phase 2's squash-merge). `/code-review low` running in background. Next action: address any
+findings, then push and open PR, wait for CI green + Vercel preview READY, do the manual light/dark
+390px check, then mark ready for review. Remaining phase 3 sub-slices (not started):
+`components/tiles/*`, `guides/` + `library/[slug]/`, `profile/*`, `roles/*`, `trips/*`,
+`los/page.tsx` + `notifications/page.tsx`.
 
 ### #742 — what this branch does
 
@@ -116,6 +119,34 @@ value cannot serve a 200px card and a 19px badge. Now:
 `--radius-sm` is 2px (hairline). `--radius-md/lg/xl` are pinned to the control tier and
 `--radius-2xl` to the container tier as a **legacy landing zone**, so unmigrated code lands sanely —
 that is not a scale, and new code must use the named utilities.
+
+### #741 C2 phase 3 (calendar sub-slice) — what landed
+Commit `bfa2c31` on `dev/2608-DEV-741`, on top of `a0d1582` (CLAIM).
+
+`app/(dashboard)/calendar/**` (utils.ts + 6 components) migrated. `CalendarClient.tsx:165`'s
+`rgba(0,0,0,0.4)` → `var(--overlay)` is the exact call site C1's foundation table named as
+`--overlay`'s origin case — C1 only added the token, this is the first place it's actually applied.
+Same pattern for the QR-share dialog scrim and the mobile drawer shadow → `var(--overlay)` /
+`var(--shadow-modal)`. FilterControls' view-switcher active tab was a bare `'white'` — a real
+dark-mode bug (failed to darken), not just an untidy literal — now `var(--bg-card)`. New
+`--brand-crimson-rgb` companion (matches phase 2's `--white-rgb`/`--brand-oyster-rgb` pattern) for
+two call sites needing crimson at an alpha with no exact existing token. `AttendSection.tsx` also
+had a `var(--x, rgba(...))` CSS fallback whose fallback value didn't even match the current token
+and could never render (the var always resolves) — removed as dead code, not migrated.
+
+**Verified:** `npx tsc --noEmit` clean; `npx vitest run` 529 passed / 37 files (no regression);
+`npx eslint` on all changed files → 0 errors; real `app/globals.css` compiled through
+`@tailwindcss/postcss` confirms `.border-border-default` emits. **NOT visually verified locally**
+— Vercel preview is the gate.
+
+`/code-review low` (`c05b868`) flagged 4 items; 3 were false positives from diff-only context
+(`--shadow-modal` already existed pre-diff in C1; the removed `var(x, fallback)` in
+`AttendSection.tsx` was dead code with a stale fallback value, consistent with the fallback-free
+usage already in this same PR's `EventPopupShell.tsx`; the mobile/desktop inactive-pill tokens
+were already two different literal values pre-migration, not a new inconsistency). One was real
+and fixed: AgendaView's two skeleton bars had collapsed onto one shared token, losing their
+original two-tier opacity — now `--skeleton-base` / `--bg-card-raised` respectively (the latter an
+exact value match).
 
 ### #741 C2 phase 2 — what landed
 Commit `e4dde07` on `dev/2608-DEV-741`, on top of `8bec163` (CLAIM).
