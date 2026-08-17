@@ -6,7 +6,9 @@ co-owner path — plus the two data defects that made its target population invi
 
 ## Now
 
-BUILD complete and locally verified (`d8994e9`); next action is the PR.
+#741 C2 phase 1 (`components/ui/*`) BUILD complete, pushed, PR #754 open as DRAFT on
+`dev/2608-DEV-741`. Next action: wait for CI green + Vercel preview READY, do the manual
+light/dark 390px check listed in the PR body, then mark ready for review.
 
 ### #742 — what this branch does
 
@@ -112,6 +114,23 @@ value cannot serve a 200px card and a 19px badge. Now:
 `--radius-sm` is 2px (hairline). `--radius-md/lg/xl` are pinned to the control tier and
 `--radius-2xl` to the container tier as a **legacy landing zone**, so unmigrated code lands sanely —
 that is not a scale, and new code must use the named utilities.
+
+### #741 C2 phase 1 — what landed
+Commits `f9a2e00` (CLAIM) + `f0773d3` (BUILD) on `dev/2608-DEV-741`, PR #754 (draft).
+
+`components/ui/*` colour literals migrated to tokens: overlay scrims (`alert-dialog`,
+`sheet`, `vaul-drawer`) → `var(--overlay)`; ad hoc `box-shadow` literals (`tooltip`,
+`vaul-drawer` content) → `var(--shadow-modal)` (adopts the existing elevation system rather
+than inventing per-component shadows — a deliberate geometry-consolidation call, not a
+literal-preserving one); `toggle`'s inline hover wash → `var(--hover-surface)`; drawer drag
+handle → `var(--bento-border-hover)` (0.16 alpha, closest existing token to the 0.15 literal).
+`expand-map`'s `stone()`/`ACCENT_RGB` were raw RGB decompositions of
+`--brand-stone`/`--brand-sienna` — added `--brand-stone-rgb` / `--brand-sienna-rgb`
+companion tokens (same pattern as `--bg-global-rgb`) so they source from tokens, pixel-identical.
+**Verified:** `npx tsc --noEmit` clean; `npm test` 529 passed / 37 files (no regression);
+`npm run lint` 0 errors; `/code-review low` — no correctness findings (one soft note on the
+drag-handle token's semantic name, accepted as the closest existing match). **NOT visually
+verified locally** — Vercel preview is the gate.
 
 ### #741 C1 — what landed
 Commits `09b4280` + `bc60cf2` on `dev/2608-DEV-741`.

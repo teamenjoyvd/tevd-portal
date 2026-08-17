@@ -6,5 +6,5 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
-| #742 | `dev/2608-DEV-742` | **migration: no** — `app/api/profile/route.ts`, `app/(dashboard)/profile/types.ts`, `app/(dashboard)/components/tiles/ProfileTile.tsx`, `app/(dashboard)/components/VerifyNudgeDialog.tsx` (new), `app/(dashboard)/page.tsx`, `lib/i18n/domains/home.ts` | 2026-08-17 |
+| #741 | `dev/2608-DEV-741` | **migration: no** — `components/ui/alert-dialog.tsx`, `components/ui/sheet.tsx`, `components/ui/vaul-drawer.tsx`, `components/ui/tooltip.tsx`, `components/ui/toggle.tsx`, `components/ui/expand-map.tsx`, `styles/brand-tokens.css` | 2026-08-17 |
 

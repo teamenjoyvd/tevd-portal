@@ -21,7 +21,7 @@ function TooltipContent({
           backgroundColor: 'var(--bg-global)',
           border: '1px solid var(--border-default)',
           borderRadius: 'var(--radius)',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)',
+          boxShadow: 'var(--shadow-modal)',
           outline: 'none',
           maxWidth: '320px',
           padding: '8px 10px',

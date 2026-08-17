@@ -18,6 +18,12 @@
   --brand-moss:      #252B23;
   --brand-stone:     #8A8577;
 
+  /* RGB channel companions — needed where a caller composites a variable
+     alpha via rgba(...) in JS (template literals can't call color-mix()).
+     Same pattern as --bg-global-rgb below. Keep in sync with the hex above. */
+  --brand-stone-rgb:  138, 133, 119;
+  --brand-sienna-rgb: 224, 122, 95;
+
   /* ── Primitive aliases — legacy callers use bare token names ── */
   --sienna: var(--brand-sienna);
   --forest: var(--brand-forest);
