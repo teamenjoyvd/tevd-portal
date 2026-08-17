@@ -77,8 +77,8 @@ export default function UserDropdown() {
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <button
-          className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-white transition-opacity hover:opacity-80 active:opacity-60 flex-shrink-0"
-          style={{ backgroundColor: 'var(--brand-forest)', border: '1.5px solid rgba(0,0,0,0.1)' }}
+          className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-on-accent transition-opacity hover:opacity-80 active:opacity-60 flex-shrink-0"
+          style={{ backgroundColor: 'var(--brand-forest)', border: '1.5px solid var(--border-default)' }}
           aria-label="Account menu"
         >
           {initials}
@@ -90,7 +90,7 @@ export default function UserDropdown() {
         <div className="px-4 py-4" style={{ borderBottom: '1px solid var(--border-default)' }}>
           <div className="flex items-center gap-3">
             <div
-              className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
+              className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-on-accent flex-shrink-0"
               style={{ backgroundColor: 'var(--brand-forest)' }}
             >
               {initials}

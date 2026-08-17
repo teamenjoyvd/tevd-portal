@@ -19,7 +19,7 @@ export default function BellButton() {
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button
-          className="interactive relative w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors"
+          className="interactive relative w-8 h-8 flex items-center justify-center rounded-lg hover:bg-hover-surface transition-colors"
           aria-label="Notifications"
         >
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
@@ -30,7 +30,7 @@ export default function BellButton() {
           </svg>
           {unread > 0 && (
             <span
-              className="absolute top-0.5 right-0.5 min-w-[15px] h-[15px] text-white text-[9px] font-bold rounded-full flex items-center justify-center px-1"
+              className="absolute top-0.5 right-0.5 min-w-[15px] h-[15px] text-on-accent text-[9px] font-bold rounded-full flex items-center justify-center px-1"
               style={{ backgroundColor: 'var(--brand-crimson)' }}
             >
               {unread > 99 ? '99+' : unread}

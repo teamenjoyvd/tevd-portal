@@ -53,7 +53,7 @@ export default function Header() {
 
             <Link href="/" className="flex items-center gap-2.5 flex-shrink-0 interactive">
               <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0"
-                style={{ border: '1px solid rgba(0,0,0,0.08)' }}>
+                style={{ border: '1px solid var(--border-default)' }}>
                 <Image
                   src="/logo.png"
                   alt="teamenjoyVD"
@@ -77,7 +77,7 @@ export default function Header() {
                   key={href}
                   href={href}
                   className="interactive pill-link-crimson text-xs font-semibold tracking-widest uppercase"
-                  style={isActive(href) ? { backgroundColor: 'rgba(188,71,73,0.12)' } : undefined}
+                  style={isActive(href) ? { backgroundColor: 'var(--status-alert-bg)' } : undefined}
                 >
                   {labels[lang]}
                 </Link>
@@ -88,7 +88,7 @@ export default function Header() {
               {/* Hamburger — visible below lg (covers portrait + landscape phones, portrait tablet) */}
               <SheetTrigger asChild>
                 <button
-                  className="interactive lg:hidden w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors"
+                  className="interactive lg:hidden w-8 h-8 flex items-center justify-center rounded-lg hover:bg-hover-surface transition-colors"
                   aria-label="Toggle navigation"
                   aria-expanded={mobileNavOpen}
                 >
@@ -128,7 +128,7 @@ export default function Header() {
                   trigger={
                     <button
                       aria-label="Sign in or change language"
-                      className="interactive w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors"
+                      className="interactive w-8 h-8 flex items-center justify-center rounded-lg hover:bg-hover-surface transition-colors"
                     >
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
                         stroke="var(--text-nav)" strokeWidth="1.8"
@@ -153,7 +153,7 @@ export default function Header() {
         style={{
           backgroundColor: 'rgba(var(--bg-global-rgb), 0.97)',
           border: '1px solid var(--nav-border)',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.10)',
+          boxShadow: 'var(--shadow-modal)',
           backdropFilter: 'blur(12px)',
         }}
       >
@@ -166,7 +166,7 @@ export default function Header() {
               href={href}
               onClick={() => setMobileNavOpen(false)}
               className="interactive flex items-center gap-3 pill-link-crimson text-xs font-semibold tracking-widest uppercase w-full min-h-[44px] py-3"
-              style={isActive(href) ? { backgroundColor: 'rgba(188,71,73,0.12)' } : undefined}
+              style={isActive(href) ? { backgroundColor: 'var(--status-alert-bg)' } : undefined}
             >
               {Icon && <Icon size={18} strokeWidth={1.75} className="flex-shrink-0" />}
               {labels[lang]}
