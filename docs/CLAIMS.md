@@ -6,5 +6,5 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
-| #741 | `dev/2608-DEV-741` | **migration: no** — `components/layout/Header.tsx`, `components/layout/Footer.tsx`, `components/layout/UserDropdown.tsx`, `components/layout/BellButton.tsx`, `components/layout/NotificationPopup.tsx`, `styles/brand-tokens.css`, `app/globals.css`, `docs/design/DESIGN-SYSTEM.md` | 2026-08-17 |
+| #741 | `dev/2608-DEV-741` | **migration: no** — `app/(dashboard)/calendar/**` (sub-slice of C2 phase 3), `styles/brand-tokens.css` | 2026-08-17 |
 
