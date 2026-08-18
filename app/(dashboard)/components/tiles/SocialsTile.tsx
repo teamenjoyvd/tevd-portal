@@ -106,7 +106,7 @@ export default function SocialsTile({
     >
       {isLoading && (
         <div className="flex-1 flex flex-col justify-center gap-3 mt-3 md:mt-0">
-          <div className="h-14 rounded-container animate-pulse" style={{ backgroundColor: 'rgba(0,0,0,0.06)' }} />
+          <div className="h-14 rounded-container animate-pulse" style={{ backgroundColor: 'var(--skeleton-base)' }} />
         </div>
       )}
 
@@ -156,7 +156,7 @@ export default function SocialsTile({
           <div className="absolute top-0 left-0 right-0 flex items-start justify-between gap-2 px-5 pt-5 z-20 pointer-events-none">
             <span
               className="inline-flex items-center gap-1.5 font-body text-[11px] font-medium capitalize px-2 py-1 rounded-control min-w-0"
-              style={{ backgroundColor: 'rgba(26,31,24,0.55)', color: 'var(--on-accent)' }}
+              style={{ backgroundColor: 'rgba(var(--brand-void-rgb), 0.55)', color: 'var(--on-accent)' }}
             >
               {post.platform === 'instagram' ? <InstagramIcon /> : <FacebookIcon />}
               <span className="truncate">{post.platform}</span>
@@ -171,7 +171,7 @@ export default function SocialsTile({
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-body text-[11px] font-bold tracking-widest uppercase pill-link-parchment pointer-events-auto whitespace-nowrap shrink-0"
-                style={{ backgroundColor: 'rgba(26,31,24,0.55)' }}
+                style={{ backgroundColor: 'rgba(var(--brand-void-rgb), 0.55)' }}
               >
                 {t('home.socials.followLink')}
               </a>

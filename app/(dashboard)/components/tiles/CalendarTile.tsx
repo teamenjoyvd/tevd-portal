@@ -135,7 +135,7 @@ export default function CalendarTile({ events = [], colSpan, mobileColSpan, rowS
                     {pipLabel && (
                       <span
                         className="ml-1.5 text-[9px] font-bold tracking-widest align-middle"
-                        style={{ color: '#bc4749' }}
+                        style={{ color: 'var(--brand-crimson)' }}
                       >
                         {pipLabel}
                       </span>
@@ -160,7 +160,7 @@ export default function CalendarTile({ events = [], colSpan, mobileColSpan, rowS
                   >
                     <span
                       className="text-[10px] font-medium tracking-widest uppercase leading-none"
-                      style={{ color: 'rgba(255,255,255,0.92)' }}
+                      style={{ color: 'rgba(var(--white-rgb), 0.92)' }}
                     >
                       {monthLabel}
                     </span>

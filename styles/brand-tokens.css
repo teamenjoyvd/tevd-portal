@@ -26,6 +26,8 @@
   --white-rgb:        255, 255, 255;
   --brand-oyster-rgb: 240, 237, 230;
   --brand-crimson-rgb: 188, 71, 73;
+  --brand-parchment-rgb: 250, 248, 243;
+  --brand-void-rgb:   26, 31, 24;
 
   /* ── Primitive aliases — legacy callers use bare token names ── */
   --sienna: var(--brand-sienna);
