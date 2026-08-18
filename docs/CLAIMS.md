@@ -6,5 +6,5 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
-| #741 | `dev/2608-DEV-741` | **migration: no** — `app/(dashboard)/guides/*` + `app/(dashboard)/library/[slug]/*` (sub-slice of C2 phase 3), `styles/brand-tokens.css` | 2026-08-18 |
+| #741 | `dev/2608-DEV-741` | **migration: no** — closes #741: C2 remainder (`app/(dashboard)/**`, `app/admin/**`, `app/events/**`, `app/erc2026/**`, `components/**`, `lib/role-colors.ts`), C3, C4 (`styles/brand-tokens.css`, `app/globals.css`), C5 (`scripts/check-color-literals.js`, `package.json`, `.github/workflows/ci.yml`), `docs/design/DESIGN-SYSTEM.md` | 2026-08-18 |
 
