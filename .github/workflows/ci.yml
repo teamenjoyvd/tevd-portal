@@ -38,6 +38,19 @@ jobs:
       - run: npm ci
       - run: npm run lint
 
+  colors:
+    name: Colour Tokens
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      # No dependencies: the check is plain Node with no imports, so it does not
+      # wait on npm ci and fails in seconds when someone types a hex.
+      - run: npm run check:colors
+
   test:
     name: Test
     runs-on: ubuntu-latest
