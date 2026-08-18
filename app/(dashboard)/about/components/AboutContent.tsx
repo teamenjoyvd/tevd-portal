@@ -50,7 +50,7 @@ function HighlightedParagraph({
     <p className="text-sm leading-relaxed font-body" style={{ color: 'var(--text-secondary)' }}>
       {parts.map((part, i) =>
         part.toLowerCase() in lookup ? (
-          <em key={i} style={{ color: 'var(--brand-teal)', fontStyle: 'italic', fontWeight: 500 }}>
+          <em key={i} style={{ color: 'var(--link)', fontStyle: 'italic', fontWeight: 500 }}>
             {part}
           </em>
         ) : (

@@ -20,8 +20,8 @@ type Attachment = {
 }
 
 function AttachmentIcon({ type }: { type: Attachment['file_type'] }) {
-  if (type === 'pdf')   return <FileText size={16} style={{ color: 'var(--brand-crimson)', flexShrink: 0 }} />
-  if (type === 'image') return <ImageIcon size={16} style={{ color: 'var(--brand-teal)',    flexShrink: 0 }} />
+  if (type === 'pdf')   return <FileText size={16} style={{ color: 'var(--status-alert-fg)', flexShrink: 0 }} />
+  if (type === 'image') return <ImageIcon size={16} style={{ color: 'var(--link)',    flexShrink: 0 }} />
   return                       <File     size={16} style={{ color: 'var(--text-secondary)', flexShrink: 0 }} />
 }
 
@@ -86,7 +86,7 @@ export default function GuideBody({
       <Dialog open={!!lightboxUrl} onOpenChange={open => { if (!open) setLightboxUrl(null) }}>
         <DialogOverlay style={{ backgroundColor: 'var(--overlay-strong)' }} />
         <DialogContent
-          className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-transparent border-none shadow-none p-0 max-w-[90vw] flex flex-col items-center gap-3 [&>button]:text-white [&>button]:opacity-100 [&>button]:bg-black/40 [&>button]:rounded-full [&>button]:p-1"
+          className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-transparent border-none shadow-none p-0 max-w-[90vw] flex flex-col items-center gap-3 [&>button]:text-on-accent [&>button]:opacity-100 [&>button]:bg-overlay [&>button]:rounded-full [&>button]:p-1"
           aria-label="Image lightbox"
         >
           {lightboxUrl && (

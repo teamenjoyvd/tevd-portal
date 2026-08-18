@@ -7,12 +7,12 @@ export function formatEur(n: number) {
 }
 
 export const STATUS_PILL: Record<string, string> = {
-  pending:   'bg-[#f2cc8f33] text-[#7a5c00]',
-  approved:  'bg-[#81b29a33] text-[#2d6a4f]',
-  denied:    'bg-[#bc474920] text-[#bc4749]',
+  pending:   'bg-status-pending-bg text-status-pending-fg',
+  approved:  'bg-status-success-bg text-status-success-fg',
+  denied:    'bg-status-alert-bg text-status-alert-fg',
   // 2608-DEV-749 — registration_status gained 'cancelled'; without a line here
   // the `?? ''` fallback at the three call sites renders an unstyled pill.
-  cancelled: 'bg-black/5 text-[var(--text-secondary)]',
-  completed: 'bg-[#81b29a33] text-[#2d6a4f]',
-  failed:    'bg-[#bc474920] text-[#bc4749]',
+  cancelled: 'bg-hover-surface text-[var(--text-secondary)]',
+  completed: 'bg-status-success-bg text-status-success-fg',
+  failed:    'bg-status-alert-bg text-status-alert-fg',
 }

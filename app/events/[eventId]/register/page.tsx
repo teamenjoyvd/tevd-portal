@@ -157,11 +157,11 @@ export default async function GuestRegisterPage({ params, searchParams }: Props)
       {/* ── Desktop ────────────────────────────────────────────────────────── */}
       <div
         className="hidden md:flex min-h-screen items-center justify-center px-6"
-        style={{ backgroundColor: 'var(--bg-global, #f4f1eb)' }}
+        style={{ backgroundColor: 'var(--bg-global)' }}
       >
         <div className="w-full max-w-md">
           <div className="mb-8 text-center">
-            <p className="text-xs font-bold tracking-widest uppercase mb-3" style={{ color: '#bc4749' }}>
+            <p className="text-xs font-bold tracking-widest uppercase mb-3" style={{ color: 'var(--status-alert-fg)' }}>
               {t('event.join.brandName', lang)}
             </p>
             <h1 className="font-display text-2xl font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
@@ -195,10 +195,10 @@ export default async function GuestRegisterPage({ params, searchParams }: Props)
       {/* ── Mobile ──────────────────────────────────────────────────────────── */}
       <div
         className="md:hidden min-h-screen px-5 pt-12 pb-8"
-        style={{ backgroundColor: 'var(--bg-global, #f4f1eb)' }}
+        style={{ backgroundColor: 'var(--bg-global)' }}
       >
         <div className="mb-8">
-          <p className="text-xs font-bold tracking-widest uppercase mb-3" style={{ color: '#bc4749' }}>
+          <p className="text-xs font-bold tracking-widest uppercase mb-3" style={{ color: 'var(--status-alert-fg)' }}>
             {t('event.join.brandName', lang)}
           </p>
           <h1 className="font-display text-xl font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>

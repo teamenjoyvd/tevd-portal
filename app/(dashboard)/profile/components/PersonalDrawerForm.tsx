@@ -56,10 +56,10 @@ export function PersonalDrawerForm({
             value={form.first_name ?? ''}
             onChange={e => { onChange('first_name', e.target.value); onClearError('first_name') }}
             onBlur={e => onBlur('first_name', e.target.value)}
-            className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+            className="w-full border border-border-default rounded-xl px-3 py-2.5 text-sm"
             style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)', borderColor: formErrors.first_name ? 'var(--brand-crimson)' : undefined }}
           />
-          {formErrors.first_name && <p className="text-[11px] mt-1" style={{ color: 'var(--brand-crimson)' }}>{formErrors.first_name}</p>}
+          {formErrors.first_name && <p className="text-[11px] mt-1" style={{ color: 'var(--status-alert-fg)' }}>{formErrors.first_name}</p>}
         </div>
         <div>
           <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
@@ -69,10 +69,10 @@ export function PersonalDrawerForm({
             value={form.last_name ?? ''}
             onChange={e => { onChange('last_name', e.target.value); onClearError('last_name') }}
             onBlur={e => onBlur('last_name', e.target.value)}
-            className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+            className="w-full border border-border-default rounded-xl px-3 py-2.5 text-sm"
             style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)', borderColor: formErrors.last_name ? 'var(--brand-crimson)' : undefined }}
           />
-          {formErrors.last_name && <p className="text-[11px] mt-1" style={{ color: 'var(--brand-crimson)' }}>{formErrors.last_name}</p>}
+          {formErrors.last_name && <p className="text-[11px] mt-1" style={{ color: 'var(--status-alert-fg)' }}>{formErrors.last_name}</p>}
         </div>
       </div>
 
@@ -85,10 +85,10 @@ export function PersonalDrawerForm({
             value={dn.bg_first ?? ''}
             onChange={e => { onChange('bg_first', e.target.value); onClearError('bg_first') }}
             onBlur={e => onBlur('bg_first', e.target.value)}
-            className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+            className="w-full border border-border-default rounded-xl px-3 py-2.5 text-sm"
             style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)', borderColor: formErrors.bg_first ? 'var(--brand-crimson)' : undefined }}
           />
-          {formErrors.bg_first && <p className="text-[11px] mt-1" style={{ color: 'var(--brand-crimson)' }}>{formErrors.bg_first}</p>}
+          {formErrors.bg_first && <p className="text-[11px] mt-1" style={{ color: 'var(--status-alert-fg)' }}>{formErrors.bg_first}</p>}
         </div>
         <div>
           <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
@@ -98,10 +98,10 @@ export function PersonalDrawerForm({
             value={dn.bg_last ?? ''}
             onChange={e => { onChange('bg_last', e.target.value); onClearError('bg_last') }}
             onBlur={e => onBlur('bg_last', e.target.value)}
-            className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+            className="w-full border border-border-default rounded-xl px-3 py-2.5 text-sm"
             style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)', borderColor: formErrors.bg_last ? 'var(--brand-crimson)' : undefined }}
           />
-          {formErrors.bg_last && <p className="text-[11px] mt-1" style={{ color: 'var(--brand-crimson)' }}>{formErrors.bg_last}</p>}
+          {formErrors.bg_last && <p className="text-[11px] mt-1" style={{ color: 'var(--status-alert-fg)' }}>{formErrors.bg_last}</p>}
         </div>
       </div>
 
@@ -113,10 +113,10 @@ export function PersonalDrawerForm({
             onChange={e => { onChange('phone', e.target.value); onClearError('phone') }}
             onBlur={e => onBlur('phone', e.target.value)}
             placeholder="+359 88 000 0000"
-            className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+            className="w-full border border-border-default rounded-xl px-3 py-2.5 text-sm"
             style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)', borderColor: formErrors.phone ? 'var(--brand-crimson)' : undefined }}
           />
-          {formErrors.phone && <p className="text-[11px] mt-1" style={{ color: 'var(--brand-crimson)' }}>{formErrors.phone}</p>}
+          {formErrors.phone && <p className="text-[11px] mt-1" style={{ color: 'var(--status-alert-fg)' }}>{formErrors.phone}</p>}
         </div>
         <div>
           <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t('profile.contactEmail')}</label>
@@ -125,21 +125,21 @@ export function PersonalDrawerForm({
             onChange={e => { onChange('contact_email', e.target.value); onClearError('contact_email') }}
             onBlur={e => onBlur('contact_email', e.target.value)}
             placeholder="your@email.com"
-            className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+            className="w-full border border-border-default rounded-xl px-3 py-2.5 text-sm"
             style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)', borderColor: formErrors.contact_email ? 'var(--brand-crimson)' : undefined }}
           />
-          {formErrors.contact_email && <p className="text-[11px] mt-1" style={{ color: 'var(--brand-crimson)' }}>{formErrors.contact_email}</p>}
+          {formErrors.contact_email && <p className="text-[11px] mt-1" style={{ color: 'var(--status-alert-fg)' }}>{formErrors.contact_email}</p>}
         </div>
       </div>
 
       {isError && (
-        <p className="text-xs" style={{ color: 'var(--brand-crimson)' }}>{errorMessage}</p>
+        <p className="text-xs" style={{ color: 'var(--status-alert-fg)' }}>{errorMessage}</p>
       )}
 
       <div className="flex gap-3 pt-2">
         <button
           onClick={onCancel}
-          className="flex-1 py-2.5 rounded-xl text-sm font-semibold border hover:bg-black/5 transition-colors"
+          className="flex-1 py-2.5 rounded-xl text-sm font-semibold border hover:bg-hover-surface transition-colors"
           style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
         >
           {t('profile.cancel')}
@@ -147,7 +147,7 @@ export function PersonalDrawerForm({
         <button
           onClick={onSave}
           disabled={isPending || Object.values(formErrors).some(Boolean)}
-          className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
+          className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-on-accent disabled:opacity-50 hover:opacity-90 transition-opacity"
           style={{ backgroundColor: 'var(--brand-crimson)' }}
         >
           {isPending ? t('profile.saving') : saved ? t('profile.saved') : t('profile.saveChanges')}

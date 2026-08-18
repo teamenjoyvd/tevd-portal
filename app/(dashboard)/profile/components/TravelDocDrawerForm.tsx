@@ -89,10 +89,10 @@ export function TravelDocDrawerForm({
             value={docNumber}
             onChange={e => { onDocNumberChange(e.target.value); onClearError('doc_number') }}
             onBlur={e => onDocNumberBlur(e.target.value)}
-            className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm font-mono"
+            className="w-full border border-border-default rounded-xl px-3 py-2.5 text-sm font-mono"
             style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)', borderColor: formErrors.doc_number ? 'var(--brand-crimson)' : undefined }}
           />
-          {formErrors.doc_number && <p className="text-[11px] mt-1" style={{ color: 'var(--brand-crimson)' }}>{formErrors.doc_number}</p>}
+          {formErrors.doc_number && <p className="text-[11px] mt-1" style={{ color: 'var(--status-alert-fg)' }}>{formErrors.doc_number}</p>}
         </div>
         <div>
           <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>
@@ -103,10 +103,10 @@ export function TravelDocDrawerForm({
             value={form.valid_through ?? ''}
             onChange={e => { onValidThroughChange(e.target.value); onClearError('valid_through') }}
             onBlur={e => onValidThroughBlur(e.target.value)}
-            className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm"
+            className="w-full border border-border-default rounded-xl px-3 py-2.5 text-sm"
             style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-global)', borderColor: formErrors.valid_through ? 'var(--brand-crimson)' : undefined }}
           />
-          {formErrors.valid_through && <p className="text-[11px] mt-1" style={{ color: 'var(--brand-crimson)' }}>{formErrors.valid_through}</p>}
+          {formErrors.valid_through && <p className="text-[11px] mt-1" style={{ color: 'var(--status-alert-fg)' }}>{formErrors.valid_through}</p>}
         </div>
       </div>
 
@@ -128,13 +128,13 @@ export function TravelDocDrawerForm({
       )}
 
       {isError && (
-        <p className="text-xs" style={{ color: 'var(--brand-crimson)' }}>{errorMessage}</p>
+        <p className="text-xs" style={{ color: 'var(--status-alert-fg)' }}>{errorMessage}</p>
       )}
 
       <div className="flex gap-3 pt-2">
         <button
           onClick={onCancel}
-          className="flex-1 py-2.5 rounded-xl text-sm font-semibold border hover:bg-black/5 transition-colors"
+          className="flex-1 py-2.5 rounded-xl text-sm font-semibold border hover:bg-hover-surface transition-colors"
           style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
         >
           {t('profile.cancel')}
@@ -142,7 +142,7 @@ export function TravelDocDrawerForm({
         <button
           onClick={onSave}
           disabled={isPending || Object.values(formErrors).some(Boolean)}
-          className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
+          className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-on-accent disabled:opacity-50 hover:opacity-90 transition-opacity"
           style={{ backgroundColor: 'var(--brand-crimson)' }}
         >
           {isPending ? t('profile.saving') : saved ? t('profile.saved') : t('profile.saveChanges')}

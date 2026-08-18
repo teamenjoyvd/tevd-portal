@@ -40,7 +40,7 @@ export default async function AdminCalendarEventPage({
         <h1 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>
           {event.title}
         </h1>
-        <p className="mt-1 text-sm" style={{ color: 'var(--text-muted)' }}>Scheduled reminders</p>
+        <p className="mt-1 text-sm" style={{ color: 'var(--text-secondary)' }}>Scheduled reminders</p>
       </div>
 
       {/* Mobile header */}
@@ -48,7 +48,7 @@ export default async function AdminCalendarEventPage({
         <h1 className="text-base font-semibold leading-tight" style={{ color: 'var(--text-primary)' }}>
           {event.title}
         </h1>
-        <p className="mt-0.5 text-xs" style={{ color: 'var(--text-muted)' }}>Reminders</p>
+        <p className="mt-0.5 text-xs" style={{ color: 'var(--text-secondary)' }}>Reminders</p>
       </div>
 
       <ReminderTable

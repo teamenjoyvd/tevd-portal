@@ -1,8 +1,8 @@
 import type { CSSProperties } from "react";
 
-const TEAL = "#3E7785";
-const TEAL_BG = "rgba(62,119,133,0.05)";
-const TEAL_BORDER = "rgba(62,119,133,0.15)";
+const TEAL = "var(--brand-teal)";
+const TEAL_BG = "rgba(var(--brand-teal-rgb), 0.05)";
+const TEAL_BORDER = "rgba(var(--brand-teal-rgb), 0.15)";
 
 const BUTTON_STYLE: CSSProperties = {
   display: "inline-flex",
@@ -65,7 +65,7 @@ export const TranslationCard = () => (
         display: "inline-flex",
         alignItems: "center",
         gap: "8px",
-        background: "rgba(62,119,133,0.1)",
+        background: "rgba(var(--brand-teal-rgb), 0.1)",
         borderRadius: "6px",
         padding: "6px 10px",
         marginTop: "8px",

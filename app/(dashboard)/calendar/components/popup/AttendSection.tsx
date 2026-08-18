@@ -62,7 +62,7 @@ export default function AttendSection({
             <button
               disabled={isPending}
               className="text-xs font-medium hover:opacity-70 transition-opacity disabled:opacity-40"
-              style={{ color: 'var(--brand-crimson)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+              style={{ color: 'var(--status-alert-fg)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
             >
               {t('cal.cantAttend')}
             </button>
@@ -90,7 +90,7 @@ export default function AttendSection({
             target="_blank"
             rel="noopener noreferrer"
             className="flex flex-col"
-            style={{ color: 'var(--brand-teal)' }}
+            style={{ color: 'var(--link)' }}
           >
             <span className="flex items-center gap-1.5 text-xs font-semibold hover:opacity-70 transition-opacity">
               <Video size={12} />
@@ -118,7 +118,7 @@ export default function AttendSection({
       onClick={onAttend}
       disabled={isPending}
       className="flex items-center gap-1.5 text-xs font-semibold hover:opacity-70 transition-opacity disabled:opacity-40"
-      style={{ color: 'var(--brand-teal)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+      style={{ color: 'var(--link)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
     >
       {isPending ? '…' : t('cal.attend')}
     </button>

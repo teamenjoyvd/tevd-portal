@@ -163,7 +163,7 @@ export function LinksTab() {
             actions={
               <>
                 <button onClick={() => startEditingLink(l)}
-                  className="text-xs font-medium border px-2.5 py-1 rounded-full hover:bg-black/5 transition-colors"
+                  className="text-xs font-medium border px-2.5 py-1 rounded-full hover:bg-hover-surface transition-colors"
                   style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
                   {t('admin.content.links.btn.edit')}
                 </button>
@@ -176,7 +176,7 @@ export function LinksTab() {
                 <button
                   onClick={() => setLinkAlertTarget({ id: l.id, name: l.label.en })}
                   className="text-xs font-medium hover:opacity-70 transition-opacity"
-                  style={{ color: 'var(--brand-crimson)' }}>
+                  style={{ color: 'var(--status-alert-fg)' }}>
                   {t('admin.content.links.btn.delete')}
                 </button>
               </>

@@ -58,7 +58,7 @@ export function AccessRolesSection({
               onClick={() => toggle(role)}
               className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
               style={{
-                backgroundColor: active ? 'var(--text-primary)' : 'rgba(0,0,0,0.06)',
+                backgroundColor: active ? 'var(--text-primary)' : 'var(--hover-surface)',
                 color: active ? 'var(--bg-card)' : 'var(--text-secondary)',
               }}
             >
@@ -68,12 +68,12 @@ export function AccessRolesSection({
         })}
       </div>
 
-      {error && <p className="text-xs" style={{ color: 'var(--brand-crimson)' }}>{error}</p>}
+      {error && <p className="text-xs" style={{ color: 'var(--status-alert-fg)' }}>{error}</p>}
 
       <button
         onClick={handleSave}
         disabled={saving}
-        className="px-4 py-2 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-opacity disabled:opacity-50"
+        className="px-4 py-2 rounded-xl text-sm font-semibold text-on-accent hover:opacity-90 transition-opacity disabled:opacity-50"
         style={{ backgroundColor: 'var(--brand-crimson)' }}
       >
         {saving ? 'Saving…' : saved ? 'Saved ✓' : 'Save'}

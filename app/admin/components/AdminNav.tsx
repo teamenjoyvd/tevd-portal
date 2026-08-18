@@ -29,7 +29,7 @@ export default function AdminNav() {
           {/* ADMIN label */}
           <span
             className="text-xs font-bold tracking-widest uppercase px-2 flex-shrink-0"
-            style={{ color: 'rgba(255,255,255,0.35)' }}
+            style={{ color: 'rgba(var(--white-rgb), 0.35)' }}
           >
             {t('nav.admin')}
           </span>
@@ -37,7 +37,7 @@ export default function AdminNav() {
           {/* Pipe */}
           {/* eslint-disable-next-line i18next/no-literal-string */}
           {/* reason: decorative punctuation, not UI copy */}
-          <span className="text-xs px-1 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.2)' }}>|</span>
+          <span className="text-xs px-1 flex-shrink-0" style={{ color: 'rgba(var(--white-rgb), 0.2)' }}>|</span>
 
           {/* Nav items */}
           {ADMIN_NAV.map(({ href, labels }) => (
@@ -46,8 +46,8 @@ export default function AdminNav() {
               href={href}
               className="px-3 py-1.5 rounded-lg text-xs font-semibold tracking-widest uppercase transition-colors whitespace-nowrap"
               style={{
-                color: isActive(href) ? 'white' : 'rgba(255,255,255,0.7)',
-                backgroundColor: isActive(href) ? 'rgba(255,255,255,0.10)' : 'transparent',
+                color: isActive(href) ? 'var(--on-accent)' : 'rgba(var(--white-rgb), 0.7)',
+                backgroundColor: isActive(href) ? 'rgba(var(--white-rgb), 0.10)' : 'transparent',
               }}
             >
               {labels[lang]}
@@ -57,13 +57,13 @@ export default function AdminNav() {
           {/* Pipe */}
           {/* eslint-disable-next-line i18next/no-literal-string */}
           {/* reason: decorative punctuation, not UI copy */}
-          <span className="text-xs px-1 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.2)' }}>|</span>
+          <span className="text-xs px-1 flex-shrink-0" style={{ color: 'rgba(var(--white-rgb), 0.2)' }}>|</span>
 
           {/* Portal link */}
           <Link
             href="/"
-            className="flex items-center gap-1.5 px-2 text-xs font-semibold tracking-widest uppercase transition-colors hover:text-white flex-shrink-0"
-            style={{ color: 'rgba(255,255,255,0.7)' }}
+            className="flex items-center gap-1.5 px-2 text-xs font-semibold tracking-widest uppercase transition-colors hover:text-on-accent flex-shrink-0"
+            style={{ color: 'rgba(var(--white-rgb), 0.7)' }}
           >
             {t('admin.nav.portal')}
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
@@ -77,7 +77,7 @@ export default function AdminNav() {
         <div className="flex lg:hidden items-center justify-between w-full">
           <span
             className="text-xs font-bold tracking-widest uppercase"
-            style={{ color: 'rgba(255,255,255,0.35)' }}
+            style={{ color: 'rgba(var(--white-rgb), 0.35)' }}
           >
             {t('nav.admin')}
           </span>
@@ -87,7 +87,7 @@ export default function AdminNav() {
               <button
                 aria-label={t('admin.nav.openMenu')}
                 className="flex items-center justify-center w-9 h-9 rounded-lg transition-colors"
-                style={{ color: 'rgba(255,255,255,0.7)' }}
+                style={{ color: 'rgba(var(--white-rgb), 0.7)' }}
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
                   stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -98,11 +98,11 @@ export default function AdminNav() {
               </button>
             </SheetTrigger>
 
-            <SheetContent side="right" style={{ backgroundColor: 'var(--brand-forest)', borderColor: 'rgba(255,255,255,0.1)' }}>
+            <SheetContent side="right" style={{ backgroundColor: 'var(--brand-forest)', borderColor: 'rgba(var(--white-rgb), 0.1)' }}>
               <SheetHeader>
                 <SheetTitle
                   className="text-xs font-bold tracking-widest uppercase"
-                  style={{ color: 'rgba(255,255,255,0.35)' }}
+                  style={{ color: 'rgba(var(--white-rgb), 0.35)' }}
                 >
                   {t('nav.admin')}
                 </SheetTitle>
@@ -116,21 +116,21 @@ export default function AdminNav() {
                     onClick={() => setOpen(false)}
                     className="px-3 py-2.5 rounded-lg text-xs font-semibold tracking-widest uppercase transition-colors"
                     style={{
-                      color: isActive(href) ? 'white' : 'rgba(255,255,255,0.7)',
-                      backgroundColor: isActive(href) ? 'rgba(255,255,255,0.10)' : 'transparent',
+                      color: isActive(href) ? 'var(--on-accent)' : 'rgba(var(--white-rgb), 0.7)',
+                      backgroundColor: isActive(href) ? 'rgba(var(--white-rgb), 0.10)' : 'transparent',
                     }}
                   >
                     {labels[lang]}
                   </Link>
                 ))}
 
-                <div className="my-3" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }} />
+                <div className="my-3" style={{ borderTop: '1px solid rgba(var(--white-rgb), 0.1)' }} />
 
                 <Link
                   href="/"
                   onClick={() => setOpen(false)}
                   className="flex items-center gap-1.5 px-3 py-2.5 rounded-lg text-xs font-semibold tracking-widest uppercase transition-colors"
-                  style={{ color: 'rgba(255,255,255,0.7)' }}
+                  style={{ color: 'rgba(var(--white-rgb), 0.7)' }}
                 >
                   {t('admin.nav.portal')}
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none"

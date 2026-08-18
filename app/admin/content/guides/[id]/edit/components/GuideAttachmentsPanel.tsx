@@ -28,8 +28,8 @@ type Attachment = {
 }
 
 function FileIcon({ type }: { type: Attachment['file_type'] }) {
-  if (type === 'pdf')   return <FileText size={16} style={{ color: 'var(--brand-crimson)', flexShrink: 0 }} />
-  if (type === 'image') return <Image    size={16} style={{ color: 'var(--brand-teal)',    flexShrink: 0 }} />
+  if (type === 'pdf')   return <FileText size={16} style={{ color: 'var(--status-alert-fg)', flexShrink: 0 }} />
+  if (type === 'image') return <Image    size={16} style={{ color: 'var(--link)',    flexShrink: 0 }} />
   return                       <File     size={16} style={{ color: 'var(--text-secondary)', flexShrink: 0 }} />
 }
 
@@ -138,7 +138,7 @@ export function GuideAttachmentsPanel({ guideId }: { guideId: string }) {
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
-            className="px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all hover:bg-black/5 disabled:opacity-40"
+            className="px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all hover:bg-hover-surface disabled:opacity-40"
             style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
           >
             {uploading
@@ -149,13 +149,13 @@ export function GuideAttachmentsPanel({ guideId }: { guideId: string }) {
       </div>
 
       {uploadError && (
-        <p className="text-xs" style={{ color: 'var(--brand-crimson)' }}>{uploadError}</p>
+        <p className="text-xs" style={{ color: 'var(--status-alert-fg)' }}>{uploadError}</p>
       )}
 
       {isLoading && (
         <div className="space-y-2">
           {[...Array(2)].map((_, i) => (
-            <div key={i} className="h-10 rounded-xl animate-pulse" style={{ backgroundColor: 'rgba(0,0,0,0.05)' }} />
+            <div key={i} className="h-10 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--hover-surface)' }} />
           ))}
         </div>
       )}
@@ -180,7 +180,7 @@ export function GuideAttachmentsPanel({ guideId }: { guideId: string }) {
               style={{
                 borderColor: 'var(--border-default)',
                 backgroundColor: dragHandlers.isDragging(att.id)
-                  ? 'rgba(0,0,0,0.04)'
+                  ? 'var(--hover-surface)'
                   : 'var(--bg-card)',
                 opacity: dragHandlers.isDragging(att.id) ? 0.5 : 1,
               }}
@@ -205,7 +205,7 @@ export function GuideAttachmentsPanel({ guideId }: { guideId: string }) {
                 className="flex-shrink-0 hover:opacity-70 transition-opacity"
                 aria-label="Delete attachment"
               >
-                <Trash2 size={14} style={{ color: 'var(--brand-crimson)' }} />
+                <Trash2 size={14} style={{ color: 'var(--status-alert-fg)' }} />
               </button>
             </div>
           ))}
@@ -224,7 +224,7 @@ export function GuideAttachmentsPanel({ guideId }: { guideId: string }) {
             <AlertDialogCancel>{t('admin.content.guides.attachments.deleteCancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => deleteTarget && deleteMut.mutate(deleteTarget.id)}
-              style={{ backgroundColor: 'var(--brand-crimson)', color: 'white' }}
+              style={{ backgroundColor: 'var(--brand-crimson)', color: 'var(--on-accent)' }}
             >
               {t('admin.content.guides.attachments.deleteConfirm')}
             </AlertDialogAction>

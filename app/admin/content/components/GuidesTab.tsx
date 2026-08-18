@@ -98,7 +98,7 @@ export function GuidesTab() {
           {guidesRaw.length} guide{guidesRaw.length !== 1 ? 's' : ''}
         </p>
         <button onClick={() => { createDrawer.openCreate(); setGuidesMutError(null) }}
-          className="px-4 py-2 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-opacity"
+          className="px-4 py-2 rounded-xl text-sm font-semibold text-on-accent hover:opacity-90 transition-opacity"
           style={{ backgroundColor: 'var(--brand-crimson)' }}>
           {t('admin.content.guides.btn.new')}
         </button>
@@ -153,13 +153,13 @@ export function GuidesTab() {
                 <>
                   <AdminStatusBadge variant={guide.is_published ? 'active' : 'inactive'} label={guide.is_published ? 'Published' : 'Draft'} />
                   <button onClick={() => toggleGuidePublish(guide)} disabled={updateGuide.isPending}
-                    className="px-3 py-1 rounded-full text-xs font-semibold border transition-all disabled:opacity-50 hover:bg-black/5"
+                    className="px-3 py-1 rounded-full text-xs font-semibold border transition-all disabled:opacity-50 hover:bg-hover-surface"
                     style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
                     {guide.is_published ? t('admin.content.guides.btn.unpublish') : t('admin.content.guides.btn.publish')}
                   </button>
                   <button
                     onClick={() => router.push(`/admin/content/guides/${guide.id}/edit`)}
-                    className="px-3 py-1 rounded-lg text-xs font-semibold border transition-colors hover:bg-black/5"
+                    className="px-3 py-1 rounded-lg text-xs font-semibold border transition-colors hover:bg-hover-surface"
                     style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
                     {t('admin.content.guides.btn.edit')}
                   </button>
@@ -167,7 +167,7 @@ export function GuidesTab() {
                     onClick={() => setGuideAlertTarget({ id: guide.id, name: guide.title.en || guide.slug })}
                     disabled={deleteGuide.isPending}
                     className="text-xs font-medium hover:opacity-70 transition-opacity disabled:opacity-50"
-                    style={{ color: 'var(--brand-crimson)' }}>
+                    style={{ color: 'var(--status-alert-fg)' }}>
                     {t('admin.content.guides.btn.delete')}
                   </button>
                 </>

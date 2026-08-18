@@ -58,7 +58,7 @@ export function FilterControls({
               </button>
               <button onClick={goToday}
                 className="px-2.5 py-1 rounded-lg text-xs font-semibold border flex-shrink-0"
-                style={{ borderColor: 'var(--crimson)', color: 'var(--crimson)' }}>
+                style={{ borderColor: 'var(--brand-crimson)', color: 'var(--status-alert-fg)' }}>
                 {t('cal.today')}
               </button>
               <button onClick={() => navigate(1)} aria-label={t('cal.nextMonth')}
@@ -169,7 +169,7 @@ export function FilterControls({
           </div>
           <button onClick={goToday}
             className="mt-2 w-full px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors hover:bg-hover-surface"
-            style={{ borderColor: 'var(--crimson)', color: 'var(--crimson)' }}>
+            style={{ borderColor: 'var(--brand-crimson)', color: 'var(--status-alert-fg)' }}>
             {t('cal.today')}
           </button>
         </div>

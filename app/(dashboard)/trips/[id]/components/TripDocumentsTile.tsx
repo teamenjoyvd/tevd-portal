@@ -127,7 +127,7 @@ export function TripDocumentsTile({ tripId }: { tripId: string }) {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-xs flex-shrink-0 hover:opacity-70 transition-opacity"
-                style={{ color: 'var(--brand-teal)' }}
+                style={{ color: 'var(--link)' }}
               >
                 {t('trips.openFile')}
               </a>

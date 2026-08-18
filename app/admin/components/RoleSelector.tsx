@@ -28,7 +28,7 @@ export function RoleSelector({ roles, selected, onChange }: RoleSelectorProps) {
           onClick={() => toggle(role)}
           className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
           style={{
-            backgroundColor: selected.includes(role) ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)',
+            backgroundColor: selected.includes(role) ? 'var(--brand-forest)' : 'var(--hover-surface)',
             color: selected.includes(role) ? 'var(--brand-parchment)' : 'var(--text-secondary)',
           }}
         >

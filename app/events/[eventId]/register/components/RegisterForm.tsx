@@ -27,9 +27,9 @@ export function RegisterForm({
       >
         <div
           className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4"
-          style={{ backgroundColor: 'rgba(26,60,46,0.12)' }}
+          style={{ backgroundColor: 'var(--status-success-bg)' }}
         >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1a3c2e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--status-success-fg)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="20 6 9 17 4 12" />
           </svg>
         </div>
@@ -109,7 +109,7 @@ export function RegisterForm({
       </div>
 
       {state.error && (
-        <p className="text-sm" style={{ color: '#bc4749' }}>
+        <p className="text-sm" style={{ color: 'var(--status-alert-fg)' }}>
           {state.error}
         </p>
       )}
@@ -117,8 +117,8 @@ export function RegisterForm({
       <button
         type="submit"
         disabled={isPending}
-        className="w-full rounded-xl py-3.5 text-sm font-semibold text-white disabled:opacity-60 transition-opacity"
-        style={{ backgroundColor: '#1a3c2e', minHeight: 44 }}
+        className="w-full rounded-xl py-3.5 text-sm font-semibold text-on-accent disabled:opacity-60 transition-opacity"
+        style={{ backgroundColor: 'var(--brand-forest)', minHeight: 44 }}
       >
         {isPending ? t('event.register.sendingLink') : t('event.register.getAccessLink')}
       </button>

@@ -91,7 +91,7 @@ const AlertDialogAction = React.forwardRef<
   <AlertDialogPrimitive.Action
     ref={ref}
     className={cn(
-      "px-5 py-2 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90",
+      "px-5 py-2 rounded-xl text-sm font-semibold text-on-accent transition-opacity hover:opacity-90",
       className,
     )}
     style={{ backgroundColor: "var(--brand-crimson)" }}
@@ -107,7 +107,7 @@ const AlertDialogCancel = React.forwardRef<
   <AlertDialogPrimitive.Cancel
     ref={ref}
     className={cn(
-      "px-5 py-2 rounded-xl text-sm font-semibold border transition-colors hover:bg-black/5",
+      "px-5 py-2 rounded-xl text-sm font-semibold border transition-colors hover:bg-hover-surface",
       className,
     )}
     style={{ borderColor: "var(--border-default)", color: "var(--text-secondary)" }}

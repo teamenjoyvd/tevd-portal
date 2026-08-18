@@ -106,7 +106,7 @@ export function NewsTab() {
         </p>
         <button
           onClick={() => newsDrawer.openCreate()}
-          className="px-4 py-2 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-opacity"
+          className="px-4 py-2 rounded-xl text-sm font-semibold text-on-accent hover:opacity-90 transition-opacity"
           style={{ backgroundColor: 'var(--brand-crimson)' }}
         >
           {t('admin.content.news.btn.new')}
@@ -178,7 +178,7 @@ export function NewsTab() {
                 <>
                   <button
                     onClick={() => newsDrawer.openEdit(item)}
-                    className="text-xs px-2.5 py-1 rounded-full font-medium border hover:bg-black/5 transition-colors"
+                    className="text-xs px-2.5 py-1 rounded-full font-medium border hover:bg-hover-surface transition-colors"
                     style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
                   >
                     {t('admin.content.news.btn.edit')}
@@ -189,7 +189,7 @@ export function NewsTab() {
                   <button
                     onClick={() => setAlertTarget({ id: item.id, name: item.titles.en || item.titles.bg || 'Untitled' })}
                     className="text-xs font-medium hover:opacity-70 transition-opacity"
-                    style={{ color: 'var(--brand-crimson)' }}
+                    style={{ color: 'var(--status-alert-fg)' }}
                   >
                     {t('admin.content.news.btn.delete')}
                   </button>

@@ -11,11 +11,11 @@ const sora = Sora({
   display: "swap",
 });
 
-const TEAL = "#3E7785";
-const TEAL_DARK = "#2a5560";
-const TEAL_BG = "rgba(62,119,133,0.05)";
-const TEAL_BORDER = "rgba(62,119,133,0.15)";
-const TEAL_NOTE_BG = "rgba(62,119,133,0.06)";
+const TEAL = "var(--brand-teal)";
+const TEAL_DARK = "var(--link-hover)";
+const TEAL_BG = "rgba(var(--brand-teal-rgb), 0.05)";
+const TEAL_BORDER = "rgba(var(--brand-teal-rgb), 0.15)";
+const TEAL_NOTE_BG = "rgba(var(--brand-teal-rgb), 0.06)";
 
 const GATHERING_POINT_URL = "https://maps.google.com/?q=бул.+Янко+Сакъзов+9,+1527+София";
 const GLORY_HOTEL_URL = "https://maps.google.com/?q=Strada+Meziadului+56,+410265+Oradea,+Romania";
@@ -389,14 +389,14 @@ const QuickFacts = () => (
           <div style={{
             display: "block",
             width: "100%",
-            background: "rgba(230,92,0,0.08)",
-            border: "1px solid rgba(230,92,0,0.25)",
+            background: "rgba(var(--brand-sienna-rgb), 0.08)",
+            border: "1px solid rgba(var(--brand-sienna-rgb), 0.25)",
             borderRadius: "20px",
             padding: "4px 10px",
             fontFamily: "var(--font-body)",
             fontSize: "12px",
             fontWeight: 600,
-            color: "#c94400",
+            color: "var(--status-pending-fg)",
             whiteSpace: "normal",
             overflowWrap: "anywhere",
           }}>
@@ -480,7 +480,7 @@ export default function ERC2026() {
       }}>
         <div style={{
           display: "inline-block",
-          background: "rgba(0,0,0,0.25)",
+          background: "rgba(var(--brand-void-rgb), 0.25)",
           color: "white",
           fontFamily: "var(--font-sora)",
           fontSize: "10px",
@@ -504,7 +504,7 @@ export default function ERC2026() {
         }}>
           ERC 2026
         </h1>
-        <p style={{ fontFamily: "var(--font-sora)", fontSize: "14px", color: "rgba(255,255,255,0.7)", margin: "0 0 2px", fontWeight: 600, letterSpacing: "0.04em" }}>
+        <p style={{ fontFamily: "var(--font-sora)", fontSize: "14px", color: "rgba(var(--white-rgb), 0.7)", margin: "0 0 2px", fontWeight: 600, letterSpacing: "0.04em" }}>
           12 – 14 ЮНИ 2026
         </p>
       </div>
@@ -526,7 +526,7 @@ export default function ERC2026() {
         borderRadius: "16px",
         margin: "0 12px",
         overflow: "hidden",
-        boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04)",
+        boxShadow: "var(--shadow-rest)",
       }}>
         <Timeline />
       </div>

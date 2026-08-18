@@ -232,7 +232,7 @@ export const PersonalDetailsContent = memo(function PersonalDetailsContent() {
           </div>
 
           {incomplete && (
-            <p className="text-[11px] font-medium" style={{ color: 'var(--brand-crimson)' }}>
+            <p className="text-[11px] font-medium" style={{ color: 'var(--status-alert-fg)' }}>
               {t('profile.incompleteHint')}
             </p>
           )}

@@ -141,13 +141,13 @@ function PendingSingleRow({
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-xs hover:underline"
-                    style={{ color: 'var(--brand-teal)' }}
+                    style={{ color: 'var(--link)' }}
                   >
                     {t('admin.operations.payments.viewProof')}
                   </a>
                 )}
               </div>
-              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0" style={{ backgroundColor: '#f2cc8f33', color: '#7a5c00' }}>
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0" style={{ backgroundColor: 'var(--status-pending-bg)', color: 'var(--status-pending-fg)' }}>
                 {t('admin.operations.payments.badge.pending')}
               </span>
             </div>
@@ -165,13 +165,13 @@ function PendingSingleRow({
                 <button
                   onClick={() => onApprove(p.id, noteFor(p.id))}
                   disabled={isPending}
-                  className="flex-1 sm:flex-none px-4 py-2 rounded-xl text-xs font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity sm:flex-shrink-0"
-                  style={{ backgroundColor: '#2d6a4f' }}
+                  className="flex-1 sm:flex-none px-4 py-2 rounded-xl text-xs font-semibold text-on-accent disabled:opacity-40 hover:opacity-90 transition-opacity sm:flex-shrink-0"
+                  style={{ backgroundColor: 'var(--brand-forest)' }}
                 >{t('admin.operations.payments.btn.approve')}</button>
                 <button
                   onClick={() => onReject(p.id, noteFor(p.id))}
                   disabled={isPending}
-                  className="flex-1 sm:flex-none px-4 py-2 rounded-xl text-xs font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity sm:flex-shrink-0"
+                  className="flex-1 sm:flex-none px-4 py-2 rounded-xl text-xs font-semibold text-on-accent disabled:opacity-40 hover:opacity-90 transition-opacity sm:flex-shrink-0"
                   style={{ backgroundColor: 'var(--brand-crimson)' }}
                 >{t('admin.operations.payments.btn.deny')}</button>
               </div>

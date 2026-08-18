@@ -99,14 +99,14 @@ export function LosToolbar({
             <>
               <button
                 onClick={() => setExpanded(collectKeys(tree))}
-                className="px-3 py-2 rounded-xl text-xs font-semibold border transition-colors hover:bg-black/5 flex-shrink-0"
+                className="px-3 py-2 rounded-xl text-xs font-semibold border transition-colors hover:bg-hover-surface flex-shrink-0"
                 style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
               >
                 Expand all
               </button>
               <button
                 onClick={() => setExpanded(new Set())}
-                className="px-3 py-2 rounded-xl text-xs font-semibold border transition-colors hover:bg-black/5 flex-shrink-0"
+                className="px-3 py-2 rounded-xl text-xs font-semibold border transition-colors hover:bg-hover-surface flex-shrink-0"
                 style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
               >
                 Collapse all

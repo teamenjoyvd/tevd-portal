@@ -36,7 +36,7 @@ export default function GuidesTile({ colSpan = 6, rowSpan, mobileColSpan }: { co
         <Link
           href="/library"
           className="text-xs font-semibold tracking-widest uppercase transition-colors hover:opacity-70"
-          style={{ color: 'var(--brand-crimson)' }}
+          style={{ color: 'var(--status-alert-fg)' }}
         >
           {t('home.guides.viewAll')}
         </Link>
@@ -59,7 +59,7 @@ export default function GuidesTile({ colSpan = 6, rowSpan, mobileColSpan }: { co
               <Link
                 key={g.id}
                 href={`/library/${g.slug}`}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors hover:bg-black/[0.04] group"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors hover:bg-hover-surface group"
               >
                 <span className="text-base flex-shrink-0 w-6 text-center">
                   {g.emoji ?? '📄'}

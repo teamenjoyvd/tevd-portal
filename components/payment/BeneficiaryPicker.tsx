@@ -170,7 +170,7 @@ export function BeneficiaryPicker({
                 disabled={isSelected}
                 onClick={() => onSelect(b)}
                 // 44px minimum touch target — the whole row is the tap area.
-                className="w-full flex items-center gap-3 rounded-xl px-2 text-left transition-colors hover:bg-black/[0.03]"
+                className="w-full flex items-center gap-3 rounded-xl px-2 text-left transition-colors hover:bg-hover-surface"
                 style={{
                   minHeight: '44px',
                   background: 'none',
@@ -216,7 +216,7 @@ export function BeneficiaryPicker({
           in silence, and the row cannot be disabled instead because
           `selectedIds` holds row keys and the duplicate carries a different one. */}
       {addGuestError != null && addGuestError !== '' && !addingGuest && (
-        <p className="text-[11px] px-1" style={{ color: '#bc4749' }} role="alert">
+        <p className="text-[11px] px-1" style={{ color: 'var(--status-alert-fg)' }} role="alert">
           {addGuestError}
         </p>
       )}
@@ -290,14 +290,14 @@ export function BeneficiaryPicker({
           />
 
           {nameTouched && guestName.trim() === '' && (
-            <p id={GUEST_NAME_ERROR_ID} className="text-[11px]" style={{ color: '#bc4749' }}>
+            <p id={GUEST_NAME_ERROR_ID} className="text-[11px]" style={{ color: 'var(--status-alert-fg)' }}>
               {t('payment.guestNameRequired')}
             </p>
           )}
           {/* Explicit null/empty test, not truthiness: the prop is string | null
               and '' is not a message worth reserving a line for. */}
           {addGuestError != null && addGuestError !== '' && (
-            <p className="text-[11px]" style={{ color: '#bc4749' }} role="alert">
+            <p className="text-[11px]" style={{ color: 'var(--status-alert-fg)' }} role="alert">
               {addGuestError}
             </p>
           )}
@@ -331,7 +331,7 @@ export function BeneficiaryPicker({
                 // can be corrected rather than being thrown away.
                 onAddGuest(name, guestEmail.trim() || null)
               }}
-              className="flex-1 rounded-xl text-xs font-semibold text-white transition-opacity hover:opacity-90"
+              className="flex-1 rounded-xl text-xs font-semibold text-on-accent transition-opacity hover:opacity-90"
               style={{
                 minHeight: '44px',
                 backgroundColor: 'var(--brand-forest)',

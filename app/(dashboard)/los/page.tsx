@@ -45,7 +45,7 @@ function MemberCard({ node, isExpanded, onToggle }: {
       style={{ border: `1px solid ${rc.border}`, opacity: rc.opacity, backgroundColor: 'var(--bg-card)' }}
     >
       <div
-        className="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-black/[0.02] transition-colors"
+        className="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-hover-surface transition-colors"
         onClick={onToggle}
       >
         <svg
@@ -77,7 +77,7 @@ function MemberCard({ node, isExpanded, onToggle }: {
                 key={vs.definition_id}
                 title={`${vs.label}: ${isVitalRecorded(vs) ? 'recorded' : 'not recorded'}`}
                 className="w-2 h-2 rounded-full flex-shrink-0"
-                style={{ backgroundColor: isVitalRecorded(vs) ? 'var(--brand-crimson)' : 'rgba(0,0,0,0.12)' }}
+                style={{ backgroundColor: isVitalRecorded(vs) ? 'var(--brand-crimson)' : 'rgba(var(--brand-forest-rgb), 0.12)' }}
               />
             ))}
           </div>
@@ -109,7 +109,7 @@ function MemberCard({ node, isExpanded, onToggle }: {
                     key={vs.definition_id}
                     className="text-xs font-semibold px-2.5 py-1 rounded-control"
                     style={{
-                      backgroundColor: isVitalRecorded(vs) ? 'rgba(188,71,73,0.12)' : 'rgba(0,0,0,0.05)',
+                      backgroundColor: isVitalRecorded(vs) ? 'var(--status-alert-bg)' : 'var(--hover-surface)',
                       color: isVitalRecorded(vs) ? 'var(--brand-crimson)' : 'var(--text-secondary)',
                     }}
                   >
@@ -308,7 +308,7 @@ function LOSPageInner() {
         {/* Error */}
         {isError && (
           <div className="rounded-2xl p-6 text-center" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
-            <p className="text-sm font-semibold" style={{ color: 'var(--brand-crimson)' }}>Failed to load LOS data.</p>
+            <p className="text-sm font-semibold" style={{ color: 'var(--status-alert-fg)' }}>Failed to load LOS data.</p>
           </div>
         )}
 

@@ -41,7 +41,7 @@ export function CoverImageUploader({
     <div className="space-y-2">
       <div className="flex items-center gap-2">
         <label
-          className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold border cursor-pointer hover:bg-black/5 transition-colors flex-shrink-0"
+          className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold border cursor-pointer hover:bg-hover-surface transition-colors flex-shrink-0"
           style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
         >
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -58,7 +58,7 @@ export function CoverImageUploader({
           />
         </label>
         {coverFile && !uploading && (
-          <span className="text-[11px] truncate max-w-[120px]" style={{ color: 'var(--brand-teal)' }}>
+          <span className="text-[11px] truncate max-w-[120px]" style={{ color: 'var(--link)' }}>
             {coverFile.name}
           </span>
         )}

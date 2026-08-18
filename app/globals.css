@@ -103,6 +103,7 @@
   --color-overlay-strong: var(--overlay-strong);
   --color-hover-surface:  var(--hover-surface);
   --color-on-accent-hover: var(--on-accent-hover);
+  --color-on-accent-dark: var(--on-accent-dark);
   --color-focus-ring:     var(--focus-ring);
   --color-skeleton-base:  var(--skeleton-base);
 
@@ -132,11 +133,15 @@
    See docs/design/DESIGN-SYSTEM.md § Usage Rules. */
 @custom-variant dark (&:where([data-theme="dark"] *));
 
+/* Legacy bare-name aliases for the older calendar components. These used to
+   repeat the hexes, "kept in sync by convention" — and had already drifted:
+   --stone was #8e8b82 against the palette's #8A8577. Pointing them at the
+   brand tokens makes drift impossible (2608-DEV-741 C5). Do not add more. */
 :root {
-  --forest:   #2d332a;
-  --crimson:  #bc4749;
-  --sienna:   #e07a5f;
-  --stone:    #8e8b82;
+  --forest:   var(--brand-forest);
+  --crimson:  var(--brand-crimson);
+  --sienna:   var(--brand-sienna);
+  --stone:    var(--brand-stone);
 }
 
 html {
@@ -156,12 +161,16 @@ body {
 }
 
 *:focus-visible {
-  outline: 2px solid var(--crimson);
+  /* --focus-ring, not raw crimson: crimson is 2.86:1 on the dark card, under
+     the 3:1 bar for a UI component (2608-DEV-741 C4). */
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
 
 .footer-link:hover {
-  color: var(--crimson) !important;
+  /* The footer sits on --brand-forest in both themes, so the fill does not
+     swap and the brand hex is the right value here. */
+  color: var(--brand-crimson) !important;
 }
 
 :root {

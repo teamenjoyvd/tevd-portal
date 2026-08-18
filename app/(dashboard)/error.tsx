@@ -37,7 +37,7 @@ export default function DashboardError({
       <div className="flex items-center gap-3">
         <button
           onClick={reset}
-          className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-opacity"
+          className="px-5 py-2.5 rounded-xl text-sm font-semibold text-on-accent hover:opacity-90 transition-opacity"
           style={{ backgroundColor: 'var(--brand-crimson)' }}
         >
           {t('error.retry')}

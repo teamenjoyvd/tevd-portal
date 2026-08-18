@@ -8,21 +8,21 @@ type Registration = {
 export function TripsPanel({ registrations, totalPaid }: { registrations: Registration[]; totalPaid: number }) {
   if (registrations.length === 0) return null
   return (
-    <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-5 mb-4">
+    <div className="bg-bg-card rounded-2xl border border-border-default shadow-sm p-5 mb-4">
       <div className="flex items-center justify-between mb-3">
         <p className="text-xs font-semibold tracking-widest uppercase"
           style={{ color: 'var(--text-secondary)' }}>
           Trips
         </p>
         {totalPaid > 0 && (
-          <p className="text-xs font-medium" style={{ color: 'var(--brand-teal)' }}>
+          <p className="text-xs font-medium" style={{ color: 'var(--link)' }}>
             {formatEur(totalPaid)} total paid
           </p>
         )}
       </div>
       <div className="space-y-2">
         {registrations.map(r => (
-          <div key={r.id} className="flex items-center justify-between py-2 border-b border-black/5 last:border-0">
+          <div key={r.id} className="flex items-center justify-between py-2 border-b border-border-default last:border-0">
             <div>
               <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
                 {r.trip.title}

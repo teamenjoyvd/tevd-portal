@@ -41,7 +41,7 @@ function renderMessageBody(body: string): ReactNode {
         target="_blank"
         rel="noopener noreferrer"
         className="hover:opacity-70 transition-opacity underline"
-        style={{ color: 'var(--brand-teal)' }}
+        style={{ color: 'var(--link)' }}
       >
         {url}
       </a>
@@ -97,7 +97,7 @@ export function TripMessagesTile({ tripId }: { tripId: string }) {
         <div className="px-6 py-4 flex items-center justify-between">
           <p
             className="text-xs font-semibold tracking-widest uppercase"
-            style={{ color: 'var(--brand-teal)' }}
+            style={{ color: 'var(--link)' }}
           >
             {t('trips.messages')}
           </p>
@@ -128,7 +128,7 @@ export function TripMessagesTile({ tripId }: { tripId: string }) {
       <div className="px-6 pt-5 pb-2">
         <p
           className="text-xs font-semibold tracking-widest uppercase"
-          style={{ color: 'var(--brand-teal)' }}
+          style={{ color: 'var(--link)' }}
         >
           {t('trips.messages')}
         </p>

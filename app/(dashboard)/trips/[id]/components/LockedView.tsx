@@ -21,12 +21,12 @@ export function LockedView({ trip, profile }: { trip: Trip; profile: TripProfile
         <BackButton />
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs font-semibold px-2 py-0.5 rounded-control"
-            style={{ backgroundColor: 'var(--brand-forest)', color: 'rgba(255,255,255,0.85)' }}>
+            style={{ backgroundColor: 'var(--brand-forest)', color: 'rgba(var(--white-rgb), 0.85)' }}>
             {trip.destination}
           </span>
           {trip.trip_type && (
             <span className="text-xs font-semibold px-2 py-0.5 rounded-control"
-              style={{ backgroundColor: 'var(--brand-teal)', color: 'rgba(255,255,255,0.85)' }}>
+              style={{ backgroundColor: 'var(--brand-teal)', color: 'rgba(var(--white-rgb), 0.85)' }}>
               {trip.trip_type}
             </span>
           )}
@@ -35,18 +35,18 @@ export function LockedView({ trip, profile }: { trip: Trip; profile: TripProfile
           </h1>
         </div>
         <div className="rounded-2xl px-6 py-8"
-          style={{ backgroundColor: 'rgba(188,71,73,0.08)', border: '1px solid rgba(188,71,73,0.25)' }}>
+          style={{ backgroundColor: 'var(--status-alert-bg)', border: '1px solid rgba(var(--brand-crimson-rgb), 0.25)' }}>
           <div className="flex items-start gap-4">
             <div className="flex-shrink-0 mt-0.5">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
-                stroke="#bc4749" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                stroke="var(--status-alert-fg)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10" />
                 <line x1="12" x2="12" y1="8" y2="12" />
                 <line x1="12" x2="12.01" y1="16" y2="16" />
               </svg>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-base font-semibold mb-1" style={{ color: '#bc4749' }}>
+              <p className="text-base font-semibold mb-1" style={{ color: 'var(--status-alert-fg)' }}>
                 Action Required: Update Travel Documents
               </p>
               <p className="text-sm leading-relaxed mb-5" style={{ color: 'var(--text-secondary)' }}>
@@ -55,8 +55,8 @@ export function LockedView({ trip, profile }: { trip: Trip; profile: TripProfile
               </p>
               <button
                 onClick={() => router.push('/profile')}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white"
-                style={{ backgroundColor: '#bc4749' }}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-on-accent"
+                style={{ backgroundColor: 'var(--brand-crimson)' }}
               >
                 Go to Profile
               </button>

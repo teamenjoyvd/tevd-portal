@@ -71,7 +71,7 @@ export function TripImage({
       {overlay && (
         <div
           className="absolute inset-0 pointer-events-none"
-          style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 60%)' }}
+          style={{ background: 'var(--image-scrim)' }}
         />
       )}
       {children && (
@@ -90,21 +90,21 @@ export function TripBadges({ destination, tripType, completedLabel }: { destinat
       {hasCompletedLabel && (
         <span
           className="text-xs font-semibold px-2 py-0.5 rounded-control"
-          style={{ backgroundColor: 'var(--brand-stone)', color: 'rgba(255,255,255,0.95)' }}
+          style={{ backgroundColor: 'var(--brand-stone)', color: 'var(--on-accent-dark)' }}
         >
           {completedLabel}
         </span>
       )}
       <span
         className="text-xs font-semibold px-2 py-0.5 rounded-control"
-        style={{ backgroundColor: 'var(--brand-forest)', color: 'rgba(255,255,255,0.85)' }}
+        style={{ backgroundColor: 'var(--brand-forest)', color: 'rgba(var(--white-rgb), 0.85)' }}
       >
         {destination}
       </span>
       {tripType && (
         <span
           className="text-xs font-semibold px-2 py-0.5 rounded-control"
-          style={{ backgroundColor: 'var(--brand-teal)', color: 'rgba(255,255,255,0.85)' }}
+          style={{ backgroundColor: 'var(--brand-teal)', color: 'rgba(var(--white-rgb), 0.85)' }}
         >
           {tripType}
         </span>

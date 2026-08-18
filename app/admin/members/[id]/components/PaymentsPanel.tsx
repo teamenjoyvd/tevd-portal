@@ -9,14 +9,14 @@ type Payment = {
 export function PaymentsPanel({ payments }: { payments: Payment[] }) {
   if (payments.length === 0) return null
   return (
-    <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-5 mb-4">
+    <div className="bg-bg-card rounded-2xl border border-border-default shadow-sm p-5 mb-4">
       <p className="text-xs font-semibold tracking-widest uppercase mb-3"
         style={{ color: 'var(--text-secondary)' }}>
         Payment history
       </p>
       <div className="space-y-2">
         {payments.map(p => (
-          <div key={p.id} className="flex items-center justify-between py-2 border-b border-black/5 last:border-0">
+          <div key={p.id} className="flex items-center justify-between py-2 border-b border-border-default last:border-0">
             <div>
               <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
                 {p.trip.title}

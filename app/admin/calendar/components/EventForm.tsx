@@ -126,7 +126,7 @@ export function EventForm({
             {CATEGORIES.map(c => (
               <button key={c} type="button" onClick={() => setF(p => ({ ...p, category: c }))}
                 className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
-                style={{ backgroundColor: f.category === c ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)', color: f.category === c ? 'var(--brand-parchment)' : 'var(--text-secondary)' }}>
+                style={{ backgroundColor: f.category === c ? 'var(--brand-forest)' : 'var(--hover-surface)', color: f.category === c ? 'var(--brand-parchment)' : 'var(--text-secondary)' }}>
                 {c}
               </button>
             ))}
@@ -138,7 +138,7 @@ export function EventForm({
             {EVENT_TYPES.map(t2 => (
               <button key={t2} type="button" onClick={() => setF(p => ({ ...p, event_type: f.event_type === t2 ? null : t2 }))}
                 className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
-                style={{ backgroundColor: f.event_type === t2 ? 'var(--brand-teal)' : 'rgba(0,0,0,0.06)', color: f.event_type === t2 ? 'white' : 'var(--text-secondary)' }}>
+                style={{ backgroundColor: f.event_type === t2 ? 'var(--brand-teal)' : 'var(--hover-surface)', color: f.event_type === t2 ? 'var(--on-accent)' : 'var(--text-secondary)' }}>
                 {t2}
               </button>
             ))}
@@ -155,7 +155,7 @@ export function EventForm({
                   : [...p.access_roles, role],
               }))}
                 className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
-                style={{ backgroundColor: f.access_roles.includes(role) ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)', color: f.access_roles.includes(role) ? 'var(--brand-parchment)' : 'var(--text-secondary)' }}>
+                style={{ backgroundColor: f.access_roles.includes(role) ? 'var(--brand-forest)' : 'var(--hover-surface)', color: f.access_roles.includes(role) ? 'var(--brand-parchment)' : 'var(--text-secondary)' }}>
                 {role}
               </button>
             ))}
@@ -171,8 +171,8 @@ export function EventForm({
           onClick={() => setF(p => ({ ...p, allow_guest_registration: !p.allow_guest_registration }))}
           className="px-4 py-1.5 rounded-full text-xs font-semibold transition-all"
           style={{
-            backgroundColor: f.allow_guest_registration ? 'var(--brand-teal)' : 'rgba(0,0,0,0.06)',
-            color: f.allow_guest_registration ? 'white' : 'var(--text-secondary)',
+            backgroundColor: f.allow_guest_registration ? 'var(--brand-teal)' : 'var(--hover-surface)',
+            color: f.allow_guest_registration ? 'var(--on-accent)' : 'var(--text-secondary)',
           }}>
           {f.allow_guest_registration ? 'ON' : 'OFF'}
         </button>
@@ -219,22 +219,22 @@ export function EventForm({
             className="flex-1 border rounded-xl px-3 py-2 text-xs"
             style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
           <button type="button" onClick={addRole}
-            className="px-3 py-2 rounded-xl text-xs font-semibold border transition-colors hover:bg-black/5"
+            className="px-3 py-2 rounded-xl text-xs font-semibold border transition-colors hover:bg-hover-surface"
             style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
             +
           </button>
         </div>
       </div>
 
-      {formError && <p className="text-sm" style={{ color: 'var(--brand-crimson)' }}>{formError}</p>}
+      {formError && <p className="text-sm" style={{ color: 'var(--status-alert-fg)' }}>{formError}</p>}
       <div className="flex gap-3 pt-2">
         <button onClick={onSave} disabled={isPending || !f.title || !f.start_time || !f.end_time}
-          className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity"
+          className="px-6 py-2.5 rounded-xl text-sm font-semibold text-on-accent disabled:opacity-40 hover:opacity-90 transition-opacity"
           style={{ backgroundColor: 'var(--brand-crimson)' }}>
           {isPending ? t('admin.calendar.btn.saving') : label}
         </button>
         <button onClick={onCancel}
-          className="px-6 py-2.5 rounded-xl text-sm font-semibold border transition-colors hover:bg-black/5"
+          className="px-6 py-2.5 rounded-xl text-sm font-semibold border transition-colors hover:bg-hover-surface"
           style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
           {t('admin.calendar.btn.cancel')}
         </button>

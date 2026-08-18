@@ -127,7 +127,7 @@ function MoveButton({
       title={label}
       disabled={disabled}
       onClick={onClick}
-      className="w-7 h-7 rounded-lg border flex items-center justify-center transition-colors disabled:opacity-30 hover:bg-black/5"
+      className="w-7 h-7 rounded-lg border flex items-center justify-center transition-colors disabled:opacity-30 hover:bg-hover-surface"
       style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
     >
       <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" aria-hidden="true">

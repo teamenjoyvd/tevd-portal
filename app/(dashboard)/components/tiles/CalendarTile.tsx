@@ -135,7 +135,7 @@ export default function CalendarTile({ events = [], colSpan, mobileColSpan, rowS
                     {pipLabel && (
                       <span
                         className="ml-1.5 text-[9px] font-bold tracking-widest align-middle"
-                        style={{ color: 'var(--brand-crimson)' }}
+                        style={{ color: 'var(--status-alert-fg)' }}
                       >
                         {pipLabel}
                       </span>
@@ -174,7 +174,7 @@ export default function CalendarTile({ events = [], colSpan, mobileColSpan, rowS
                   >
                     <span
                       className="font-display text-3xl font-black leading-none"
-                      style={{ color: 'var(--brand-crimson)' }}
+                      style={{ color: 'var(--status-alert-fg)' }}
                     >
                       {dayLabel}
                     </span>

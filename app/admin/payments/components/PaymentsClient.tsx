@@ -24,12 +24,12 @@ import {
 
 function statusPill(status: string) {
   if (status === 'approved' || status === 'completed') {
-    return { bg: '#81b29a33', color: '#2d6a4f' }
+    return { bg: 'var(--status-success-bg)', color: 'var(--status-success-fg)' }
   }
   if (status === 'rejected' || status === 'denied' || status === 'failed') {
-    return { bg: 'rgba(188,71,73,0.1)', color: 'var(--brand-crimson)' }
+    return { bg: 'var(--status-alert-bg)', color: 'var(--status-alert-fg)' }
   }
-  return { bg: '#f2cc8f33', color: '#7a5c00' }
+  return { bg: 'var(--status-pending-bg)', color: 'var(--status-pending-fg)' }
 }
 
 // ── Component ────────────────────────────────────────────
@@ -142,7 +142,7 @@ export function PaymentsClient({
         </h1>
         <button
           onClick={() => setDrawerOpen(true)}
-          className="px-4 py-2 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-opacity"
+          className="px-4 py-2 rounded-xl text-sm font-semibold text-on-accent hover:opacity-90 transition-opacity"
           style={{ backgroundColor: 'var(--brand-crimson)' }}
         >
           {t('admin.operations.payments.btn.log')}
@@ -165,7 +165,7 @@ export function PaymentsClient({
           clicked" — so the reason has to be shown here, beside the queue the
           admin is looking at. */}
       {(reviewMutation.isError || reviewGroupMutation.isError || deleteMutation.isError) && (
-        <p className="text-xs" style={{ color: 'var(--brand-crimson)' }} role="alert">
+        <p className="text-xs" style={{ color: 'var(--status-alert-fg)' }} role="alert">
           {(reviewGroupMutation.error ?? reviewMutation.error ?? deleteMutation.error)?.message}
         </p>
       )}
@@ -182,7 +182,7 @@ export function PaymentsClient({
           <button key={f.key} onClick={() => setStatusFilter(f.key)}
             className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
             style={{
-              backgroundColor: statusFilter === f.key ? 'var(--text-primary)' : 'rgba(0,0,0,0.06)',
+              backgroundColor: statusFilter === f.key ? 'var(--text-primary)' : 'var(--hover-surface)',
               color: statusFilter === f.key ? 'var(--bg-card)' : 'var(--text-secondary)',
             }}>
             {t(f.labelKey)}
@@ -240,8 +240,8 @@ export function PaymentsClient({
                   <button
                     onClick={() => setDeleteTargetId(p.id)}
                     disabled={isDeleting}
-                    className="text-xs px-2 py-1 rounded-lg border transition-colors hover:bg-black/5 disabled:opacity-40"
-                    style={{ borderColor: 'var(--border-default)', color: 'var(--brand-crimson)' }}
+                    className="text-xs px-2 py-1 rounded-lg border transition-colors hover:bg-hover-surface disabled:opacity-40"
+                    style={{ borderColor: 'var(--border-default)', color: 'var(--status-alert-fg)' }}
                     aria-label={t('admin.operations.payments.aria.delete')}
                   >
                     {isDeleting ? '…' : t('admin.operations.payments.btn.delete')}
@@ -269,7 +269,7 @@ export function PaymentsClient({
                 and the statuses is the difference between a considered click and
                 a surprise. */}
             {deleteGroupScope !== null && (
-              <AlertDialogDescription style={{ color: 'var(--brand-crimson)' }}>
+              <AlertDialogDescription style={{ color: 'var(--status-alert-fg)' }}>
                 {lang === 'bg'
                   ? `Ще бъдат изтрити ${deleteGroupScope.count} плащания от тази група (${deleteGroupScope.statuses.join(', ')}).`
                   : `${deleteGroupScope.count} payments in this group will be deleted (${deleteGroupScope.statuses.join(', ')}).`}

@@ -72,7 +72,7 @@ export function MilestonesSection({
                 onClick={() => removeMilestone(i)}
                 disabled={saving}
                 className="text-xs hover:opacity-70 transition-opacity disabled:opacity-40"
-                style={{ color: 'var(--brand-crimson)' }}
+                style={{ color: 'var(--status-alert-fg)' }}
               >
                 Remove
               </button>
@@ -90,12 +90,12 @@ export function MilestonesSection({
           value={draft.due_date} onChange={e => setDraft(p => ({ ...p, due_date: e.target.value }))} />
       </div>
 
-      {error && <p className="text-xs" style={{ color: 'var(--brand-crimson)' }}>{error}</p>}
+      {error && <p className="text-xs" style={{ color: 'var(--status-alert-fg)' }}>{error}</p>}
 
       <button
         onClick={addMilestone}
         disabled={saving || !draft.label || !draft.amount || !draft.due_date}
-        className="px-4 py-2 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-opacity disabled:opacity-40"
+        className="px-4 py-2 rounded-xl text-sm font-semibold text-on-accent hover:opacity-90 transition-opacity disabled:opacity-40"
         style={{ backgroundColor: 'var(--brand-crimson)' }}
       >
         {saving ? 'Saving…' : 'Add milestone'}

@@ -110,7 +110,7 @@ export default function NotificationPopup({ onClose }: Props) {
           href="/notifications"
           onClick={onClose}
           className="flex items-center justify-center px-4 py-3 text-xs font-semibold tracking-wide transition-colors hover:bg-hover-surface"
-          style={{ color: 'var(--brand-crimson)' }}
+          style={{ color: 'var(--status-alert-fg)' }}
         >
           {t('notif.view')}
         </Link>

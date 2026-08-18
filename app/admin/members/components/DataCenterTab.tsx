@@ -78,24 +78,24 @@ function ScanPurgeButton({
   }
 
   return (
-    <div className="p-4 rounded-xl border" style={{ borderColor: 'rgba(188,71,73,0.3)', backgroundColor: 'rgba(188,71,73,0.04)' }}>
-      <p className="text-sm font-semibold mb-1" style={{ color: '#bc4749' }}>Scan &amp; purge absent members</p>
+    <div className="p-4 rounded-xl border" style={{ borderColor: 'rgba(var(--brand-crimson-rgb), 0.3)', backgroundColor: 'var(--status-alert-bg)' }}>
+      <p className="text-sm font-semibold mb-1" style={{ color: 'var(--status-alert-fg)' }}>Scan &amp; purge absent members</p>
       <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>
         Permanently deletes all LOS members not present in the currently loaded files.
         Import your files first, then purge. Rollback is available immediately after.
         {atRiskEstimate !== null && (
-          <span style={{ color: '#bc4749' }}> Up to {atRiskEstimate} member{atRiskEstimate !== 1 ? 's' : ''} may be removed (exact count determined server-side).</span>
+          <span style={{ color: 'var(--status-alert-fg)' }}> Up to {atRiskEstimate} member{atRiskEstimate !== 1 ? 's' : ''} may be removed (exact count determined server-side).</span>
         )}
       </p>
       {purgeError && (
-        <p className="text-xs mb-2" style={{ color: '#bc4749' }}>{purgeError}</p>
+        <p className="text-xs mb-2" style={{ color: 'var(--status-alert-fg)' }}>{purgeError}</p>
       )}
       <AlertDialog>
         <AlertDialogTrigger asChild>
           <button
             disabled={purging}
             className="border px-4 py-1.5 rounded-lg text-sm font-medium disabled:opacity-50"
-            style={{ borderColor: '#bc4749', color: '#bc4749' }}
+            style={{ borderColor: 'var(--brand-crimson)', color: 'var(--status-alert-fg)' }}
           >
             {purging ? 'Purging...' : 'Purge absent members'}
           </button>
@@ -112,7 +112,7 @@ function ScanPurgeButton({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handlePurge} style={{ backgroundColor: '#bc4749' }}>
+            <AlertDialogAction onClick={handlePurge} style={{ backgroundColor: 'var(--brand-crimson)' }}>
               Yes, purge
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -171,7 +171,7 @@ export function DataCenterTab() {
           <div className="flex flex-wrap gap-3 items-start">
             <button
               onClick={() => setPhase('diff')}
-              className="bg-[#bc4749] text-white px-6 py-2 rounded-lg text-sm font-medium"
+              className="bg-brand-crimson text-on-accent px-6 py-2 rounded-lg text-sm font-medium"
             >
               Review import ({assembly!.total_row_count} rows)
             </button>
@@ -193,14 +193,14 @@ export function DataCenterTab() {
               Import ID: <span className="font-mono">{purgeResult.import_id}</span>
             </p>
             {purgeRollbackError && (
-              <p className="text-xs mb-2" style={{ color: '#bc4749' }}>{purgeRollbackError}</p>
+              <p className="text-xs mb-2" style={{ color: 'var(--status-alert-fg)' }}>{purgeRollbackError}</p>
             )}
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <button
                   disabled={purgingBack}
                   className="border px-4 py-1.5 rounded-lg text-sm font-medium disabled:opacity-50"
-                  style={{ borderColor: '#bc4749', color: '#bc4749' }}
+                  style={{ borderColor: 'var(--brand-crimson)', color: 'var(--status-alert-fg)' }}
                 >
                   {purgingBack ? 'Rolling back...' : 'Rollback purge'}
                 </button>
@@ -215,7 +215,7 @@ export function DataCenterTab() {
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handlePurgeRollback} style={{ backgroundColor: '#bc4749' }}>
+                  <AlertDialogAction onClick={handlePurgeRollback} style={{ backgroundColor: 'var(--brand-crimson)' }}>
                     Yes, rollback
                   </AlertDialogAction>
                 </AlertDialogFooter>
@@ -264,23 +264,23 @@ export function DataCenterTab() {
         )}
 
         {assembly!.conflicts.length > 0 && (
-          <div className="p-3 rounded-lg" style={{ backgroundColor: 'rgba(224,122,95,0.08)', borderLeft: '3px solid #e07a5f' }}>
-            <p className="text-xs font-semibold" style={{ color: '#e07a5f' }}>
+          <div className="p-3 rounded-lg" style={{ backgroundColor: 'rgba(var(--brand-sienna-rgb), 0.08)', borderLeft: '3px solid var(--brand-sienna)' }}>
+            <p className="text-xs font-semibold" style={{ color: 'var(--status-pending-fg)' }}>
               {assembly!.conflicts.length} data discrepanc{assembly!.conflicts.length !== 1 ? 'ies' : 'y'} detected — first-seen file wins for each.
             </p>
           </div>
         )}
 
         {importError && (
-          <div className="p-4 rounded-lg border" style={{ backgroundColor: 'rgba(188,71,73,0.06)', borderColor: 'rgba(188,71,73,0.3)' }}>
-            <p className="text-sm" style={{ color: 'var(--brand-crimson)' }}>{importError}</p>
+          <div className="p-4 rounded-lg border" style={{ backgroundColor: 'var(--status-alert-bg)', borderColor: 'rgba(var(--brand-crimson-rgb), 0.3)' }}>
+            <p className="text-sm" style={{ color: 'var(--status-alert-fg)' }}>{importError}</p>
           </div>
         )}
 
         <button
           onClick={handleImport}
           disabled={importing}
-          className="bg-[#bc4749] text-white px-6 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
+          className="bg-brand-crimson text-on-accent px-6 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
         >
           {importing ? 'Importing...' : `Run import (${assembly!.total_row_count} rows)`}
         </button>
@@ -305,17 +305,17 @@ export function DataCenterTab() {
       {result && (
         <div className="p-5 rounded-2xl border" style={{ borderColor: 'var(--border-default)', backgroundColor: 'var(--bg-card)' }}>
           <div className="flex items-center gap-3 flex-wrap mb-2">
-            <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: '#81b29a20', color: '#2d6a4f' }}>
+            <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: 'var(--status-success-bg)', color: 'var(--status-success-fg)' }}>
               {result.diff.new_members.length} new
             </span>
-            <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: '#3d405b20', color: '#3d405b' }}>
+            <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: 'var(--status-info-bg)', color: 'var(--status-info-fg)' }}>
               {result.diff.level_changes.length} level changes
             </span>
-            <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: '#e07a5f20', color: '#e07a5f' }}>
+            <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: 'var(--status-pending-bg)', color: 'var(--status-pending-fg)' }}>
               {result.diff.bonus_changes.length} bonus changes
             </span>
             {result.errors.length > 0 && (
-              <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(188,71,73,0.12)', color: '#bc4749' }}>
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: 'var(--status-alert-bg)', color: 'var(--status-alert-fg)' }}>
                 {result.errors.length} errors
               </span>
             )}
@@ -327,19 +327,19 @@ export function DataCenterTab() {
             </p>
           )}
 
-          <DiffSection title="New members" count={result.diff.new_members.length} color="#81b29a">
+          <DiffSection title="New members" count={result.diff.new_members.length} color="var(--status-success-fg)">
             {result.diff.new_members.map(m => (
-              <div key={m.abo_number} className="flex items-center gap-2 text-xs px-2 py-1.5 rounded-lg" style={{ backgroundColor: '#81b29a10' }}>
+              <div key={m.abo_number} className="flex items-center gap-2 text-xs px-2 py-1.5 rounded-lg" style={{ backgroundColor: 'var(--status-success-bg)' }}>
                 <span className="font-mono font-medium" style={{ color: 'var(--text-primary)' }}>{m.abo_number}</span>
                 <span style={{ color: 'var(--text-secondary)' }}>{m.name}</span>
-                <span className="ml-auto font-semibold" style={{ color: '#2d6a4f' }}>Level {m.abo_level}</span>
+                <span className="ml-auto font-semibold" style={{ color: 'var(--status-success-fg)' }}>Level {m.abo_level}</span>
               </div>
             ))}
           </DiffSection>
 
-          <DiffSection title={t('admin.data.result.levelChangesTitle')} count={result.diff.level_changes.length} color="#3d405b">
+          <DiffSection title={t('admin.data.result.levelChangesTitle')} count={result.diff.level_changes.length} color="var(--status-info-fg)">
             {result.diff.level_changes.map(m => (
-              <div key={m.abo_number} className="flex items-center gap-2 text-xs px-2 py-1.5 rounded-lg" style={{ backgroundColor: '#3d405b10' }}>
+              <div key={m.abo_number} className="flex items-center gap-2 text-xs px-2 py-1.5 rounded-lg" style={{ backgroundColor: 'var(--status-info-bg)' }}>
                 <span className="font-mono font-medium" style={{ color: 'var(--text-primary)' }}>{m.abo_number}</span>
                 <span style={{ color: 'var(--text-secondary)' }}>{m.name}</span>
                 <span className="ml-auto font-semibold" style={{ color: 'var(--text-primary)' }}>{m.prev_level} → {m.new_level}</span>
@@ -347,12 +347,12 @@ export function DataCenterTab() {
             ))}
           </DiffSection>
 
-          <DiffSection title={t('admin.data.result.bonusChangesTitle')} count={result.diff.bonus_changes.length} color="#e07a5f">
+          <DiffSection title={t('admin.data.result.bonusChangesTitle')} count={result.diff.bonus_changes.length} color="var(--status-pending-fg)">
             {result.diff.bonus_changes.map(m => (
-              <div key={m.abo_number} className="flex items-center gap-2 text-xs px-2 py-1.5 rounded-lg" style={{ backgroundColor: '#e07a5f10' }}>
+              <div key={m.abo_number} className="flex items-center gap-2 text-xs px-2 py-1.5 rounded-lg" style={{ backgroundColor: 'var(--status-pending-bg)' }}>
                 <span className="font-mono font-medium" style={{ color: 'var(--text-primary)' }}>{m.abo_number}</span>
                 <span style={{ color: 'var(--text-secondary)' }}>{m.name}</span>
-                <span className="ml-auto font-semibold" style={{ color: m.new_bonus > m.prev_bonus ? '#2d6a4f' : '#bc4749' }}>
+                <span className="ml-auto font-semibold" style={{ color: m.new_bonus > m.prev_bonus ? 'var(--status-success-fg)' : 'var(--status-alert-fg)' }}>
                   {m.prev_bonus}% → {m.new_bonus}%
                 </span>
               </div>
@@ -361,11 +361,11 @@ export function DataCenterTab() {
 
           {result.errors.length > 0 && (
             <div className="mt-4 pt-4 border-t" style={{ borderColor: 'var(--border-default)' }}>
-              <p className="text-xs font-semibold mb-1" style={{ color: 'var(--brand-crimson)' }}>
+              <p className="text-xs font-semibold mb-1" style={{ color: 'var(--status-alert-fg)' }}>
                 {t('admin.data.result.rowErrorsTitle').replace('{{count}}', String(result.errors.length))}
               </p>
               {result.errors.map((e, i) => (
-                <p key={i} className="text-xs" style={{ color: 'var(--brand-crimson)' }}>{e.abo_number}: {e.error}</p>
+                <p key={i} className="text-xs" style={{ color: 'var(--status-alert-fg)' }}>{e.abo_number}: {e.error}</p>
               ))}
             </div>
           )}
@@ -380,14 +380,14 @@ export function DataCenterTab() {
             Restores LOS to the state before this import and re-anchors all affected portal members.
           </p>
           {rollbackError && (
-            <p className="text-xs mb-2" style={{ color: 'var(--brand-crimson)' }}>{rollbackError}</p>
+            <p className="text-xs mb-2" style={{ color: 'var(--status-alert-fg)' }}>{rollbackError}</p>
           )}
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <button
                 disabled={rollingBack}
                 className="border px-4 py-1.5 rounded-lg text-sm font-medium disabled:opacity-50"
-                style={{ borderColor: '#bc4749', color: '#bc4749' }}
+                style={{ borderColor: 'var(--brand-crimson)', color: 'var(--status-alert-fg)' }}
               >
                 {rollingBack ? 'Rolling back...' : 'Rollback this import'}
               </button>
@@ -405,7 +405,7 @@ export function DataCenterTab() {
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={handleRollback}
-                  style={{ backgroundColor: '#bc4749' }}
+                  style={{ backgroundColor: 'var(--brand-crimson)' }}
                 >
                   Yes, rollback
                 </AlertDialogAction>

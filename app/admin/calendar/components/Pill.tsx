@@ -7,7 +7,7 @@ export function Pill({ active, onClick, children }: { active: boolean; onClick: 
       onClick={onClick}
       className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all flex-shrink-0"
       style={{
-        backgroundColor: active ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)',
+        backgroundColor: active ? 'var(--brand-forest)' : 'var(--hover-surface)',
         color: active ? 'var(--brand-parchment)' : 'var(--text-secondary)',
       }}
     >

@@ -101,7 +101,7 @@ export function SocialPostForm({
         {(['instagram', 'facebook'] as const).map(p => (
           <button key={p} onClick={() => setForm(f => ({ ...f, platform: p }))}
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all"
-            style={{ backgroundColor: form.platform === p ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)', color: form.platform === p ? 'var(--brand-parchment)' : 'var(--text-secondary)' }}>
+            style={{ backgroundColor: form.platform === p ? 'var(--brand-forest)' : 'var(--hover-surface)', color: form.platform === p ? 'var(--brand-parchment)' : 'var(--text-secondary)' }}>
             {p === 'instagram' ? <InstagramIcon /> : <FacebookIcon />}
             {p.charAt(0).toUpperCase() + p.slice(1)}
           </button>
@@ -148,7 +148,7 @@ export function SocialPostForm({
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
-            className="px-3 py-1.5 rounded-xl text-xs font-semibold border transition-colors hover:bg-black/5 disabled:opacity-50"
+            className="px-3 py-1.5 rounded-xl text-xs font-semibold border transition-colors hover:bg-hover-surface disabled:opacity-50"
             style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
           >
             {uploading ? t('admin.content.social.btn.uploading') : t('admin.content.social.btn.uploadThumbnail')}
@@ -182,22 +182,22 @@ export function SocialPostForm({
           }}
         />
         {thumbnailIsBlocked && (
-          <p className="text-xs" style={{ color: 'var(--brand-crimson)' }}>
+          <p className="text-xs" style={{ color: 'var(--status-alert-fg)' }}>
             {t('admin.content.social.cdnUrlWarning')}
           </p>
         )}
       </div>
-      {error && <p className="text-xs" style={{ color: 'var(--brand-crimson)' }}>{error}</p>}
+      {error && <p className="text-xs" style={{ color: 'var(--status-alert-fg)' }}>{error}</p>}
       <div className="flex gap-3 pt-2">
         <button
           onClick={() => onSave(form)}
           disabled={isPending || !form.post_url || thumbnailIsBlocked}
-          className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40 transition-opacity hover:opacity-90"
+          className="px-6 py-2.5 rounded-xl text-sm font-semibold text-on-accent disabled:opacity-40 transition-opacity hover:opacity-90"
           style={{ backgroundColor: 'var(--brand-crimson)' }}>
           {isPending ? t('admin.content.social.btn.saving') : t('admin.content.social.btn.save')}
         </button>
         <button onClick={onCancel}
-          className="px-6 py-2.5 rounded-xl text-sm font-semibold border transition-colors hover:bg-black/5"
+          className="px-6 py-2.5 rounded-xl text-sm font-semibold border transition-colors hover:bg-hover-surface"
           style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
           {t('admin.content.social.btn.cancel')}
         </button>

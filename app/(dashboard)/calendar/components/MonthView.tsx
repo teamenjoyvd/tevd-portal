@@ -85,7 +85,7 @@ export function MonthView({
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
-      <div className="grid grid-cols-7 md:grid-cols-[40px_repeat(7,1fr)] border-b border-black/5 flex-shrink-0">
+      <div className="grid grid-cols-7 md:grid-cols-[40px_repeat(7,1fr)] border-b border-border-default flex-shrink-0">
         <div className="hidden md:block" />
         {DAYS.map(d => (
           <div key={d} className="py-2 text-center text-xs font-semibold tracking-wide"
@@ -109,7 +109,7 @@ export function MonthView({
           )
           return (
             <div key={week} role="row"
-              className="grid grid-cols-7 md:grid-cols-[40px_repeat(7,1fr)] border-b border-black/5 [--col-offset:0] md:[--col-offset:1]"
+              className="grid grid-cols-7 md:grid-cols-[40px_repeat(7,1fr)] border-b border-border-default [--col-offset:0] md:[--col-offset:1]"
               style={{
                 minHeight: rowMinHeight,
                 gridTemplateRows: `${DAY_NUMBER_ROW_HEIGHT}px repeat(${visibleLanes}, ${LANE_HEIGHT}px) ${OVERFLOW_ROW_HEIGHT}px`,
@@ -148,7 +148,7 @@ export function MonthView({
                     onClick={() => { setFocusIndex(index); onDayClick(date) }}
                     onKeyDown={e => handleGridKeyDown(e, index, date)}
                     onFocus={() => setFocusIndex(index)}
-                    className="border-l border-black/5 p-1 cursor-pointer hover:bg-black/[0.02] transition-colors overflow-hidden focus:outline-none focus:ring-2 focus:ring-inset"
+                    className="border-l border-border-default p-1 cursor-pointer hover:bg-hover-surface transition-colors overflow-hidden focus:outline-none focus:ring-2 focus:ring-inset"
                     style={{
                       gridRow: '1 / -1',
                       gridColumn: `calc(var(--col-offset) + ${di + 1}) / span 1`,
@@ -160,7 +160,7 @@ export function MonthView({
                         className="w-6 h-6 flex items-center justify-center rounded-full text-xs font-medium flex-shrink-0"
                         style={{
                           backgroundColor: isToday ? 'var(--crimson)' : 'transparent',
-                          color: isToday ? 'white' : isCurrentMonth ? 'var(--text-primary)' : 'var(--text-secondary)',
+                          color: isToday ? 'var(--on-accent)' : isCurrentMonth ? 'var(--text-primary)' : 'var(--text-secondary)',
                           opacity: isCurrentMonth ? 1 : 0.4,
                         }}
                       >

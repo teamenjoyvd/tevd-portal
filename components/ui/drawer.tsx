@@ -31,7 +31,7 @@ export function Drawer({ open, onClose, title, children }: DrawerProps) {
           <SheetClose asChild>
             <button
               onClick={onClose}
-              className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors hover:bg-black/8"
+              className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors hover:bg-hover-surface"
               style={{ color: "var(--text-secondary)" }}
               aria-label="Close"
             >

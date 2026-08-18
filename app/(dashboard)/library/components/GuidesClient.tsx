@@ -120,7 +120,7 @@ function GuidesInner({ initialGuides: guides, initialLinks: links, initialNews: 
         className="flex items-center gap-3 px-4 py-3 rounded-2xl hover:brightness-95 active:scale-[0.98] transition-all"
         style={{ ...cardStyle, minHeight: 68 }}
       >
-        <span className="shrink-0" style={{ color: 'var(--brand-crimson)', opacity: 0.7 }}>
+        <span className="shrink-0" style={{ color: 'var(--status-alert-fg)', opacity: 0.7 }}>
           <IconLink size={16} />
         </span>
         <div className="flex flex-col min-w-0">
@@ -147,7 +147,7 @@ function GuidesInner({ initialGuides: guides, initialLinks: links, initialNews: 
         className="flex items-start gap-4 px-5 py-4 rounded-2xl hover:brightness-95 active:scale-[0.98] transition-all"
         style={{ ...cardStyle, minHeight: 88 }}
       >
-        <span className="shrink-0 mt-0.5" style={{ color: 'var(--brand-crimson)', opacity: 0.75 }}>
+        <span className="shrink-0 mt-0.5" style={{ color: 'var(--status-alert-fg)', opacity: 0.75 }}>
           <IconBook size={18} />
         </span>
         <div className="flex flex-col min-w-0">
@@ -169,7 +169,7 @@ function GuidesInner({ initialGuides: guides, initialLinks: links, initialNews: 
     const excerpt = newsExcerpt(n)
     const inner = (
       <div className="flex items-start gap-4 px-5 py-4 rounded-2xl hover:brightness-95 active:scale-[0.98] transition-all" style={{ ...cardStyle, minHeight: 80 }}>
-        <span className="shrink-0 mt-0.5" style={{ color: 'var(--brand-crimson)', opacity: 0.75 }}>
+        <span className="shrink-0 mt-0.5" style={{ color: 'var(--status-alert-fg)', opacity: 0.75 }}>
           <IconNews size={18} />
         </span>
         <div className="flex flex-col min-w-0 flex-1">

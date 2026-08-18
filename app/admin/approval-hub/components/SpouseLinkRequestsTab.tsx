@@ -30,9 +30,9 @@ function fullName(p: { first_name: string; last_name: string } | null) {
 }
 
 const STATUS_STYLE: Record<SpouseLinkRequest['status'], { bg: string; color: string; label: string }> = {
-  pending:  { bg: '#f2cc8f33', color: '#7a5c00', label: 'Pending primary review' },
-  approved: { bg: '#1a3c2e18', color: '#1a3c2e', label: 'Approved' },
-  denied:   { bg: '#bc474915', color: '#bc4749', label: 'Denied' },
+  pending:  { bg: 'var(--status-pending-bg)', color: 'var(--status-pending-fg)', label: 'Pending primary review' },
+  approved: { bg: 'var(--status-success-bg)', color: 'var(--status-success-fg)', label: 'Approved' },
+  denied:   { bg: 'var(--status-alert-bg)', color: 'var(--status-alert-fg)', label: 'Denied' },
 }
 
 // ── Component ────────────────────────────────────────────
@@ -66,7 +66,7 @@ export function SpouseLinkRequestsTab() {
       {isLoading ? (
         <div className="space-y-2">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-16 bg-black/5 rounded-xl animate-pulse" />
+            <div key={i} className="h-16 bg-hover-surface rounded-xl animate-pulse" />
           ))}
         </div>
       ) : requests.length === 0 ? (

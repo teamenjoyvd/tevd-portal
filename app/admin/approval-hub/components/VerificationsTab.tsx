@@ -12,9 +12,9 @@ const EVENT_LABEL: Record<string, string> = {
 }
 
 const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
-  ok:      { bg: 'rgba(129,178,154,0.2)', color: '#2d6a4f' },
-  failed:  { bg: 'rgba(188,71,73,0.1)',   color: '#bc4749' },
-  error:   { bg: 'rgba(188,71,73,0.1)',   color: '#bc4749' },
+  ok:      { bg: 'var(--status-success-bg)', color: 'var(--status-success-fg)' },
+  failed:  { bg: 'var(--status-alert-bg)',   color: 'var(--status-alert-fg)' },
+  error:   { bg: 'var(--status-alert-bg)',   color: 'var(--status-alert-fg)' },
 }
 
 function formatTs(iso: string) {

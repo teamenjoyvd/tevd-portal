@@ -164,7 +164,7 @@ export function ItemCreateForm() {
           onClick={() => setForm(f => ({ ...f, is_active: !f.is_active }))}
           className="text-xs font-semibold px-3 py-1.5 rounded-full transition-all"
           style={{
-            backgroundColor: form.is_active ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)',
+            backgroundColor: form.is_active ? 'var(--brand-forest)' : 'var(--hover-surface)',
             color: form.is_active ? 'var(--brand-parchment)' : 'var(--text-secondary)',
           }}
         >
@@ -172,13 +172,13 @@ export function ItemCreateForm() {
         </button>
       </div>
 
-      {error && <p className="text-sm" style={{ color: 'var(--brand-crimson)' }}>{error}</p>}
+      {error && <p className="text-sm" style={{ color: 'var(--status-alert-fg)' }}>{error}</p>}
 
       <div className="flex gap-3 pt-2">
         <button
           onClick={handleSubmit}
           disabled={isPending || !isValid}
-          className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity"
+          className="px-6 py-2.5 rounded-xl text-sm font-semibold text-on-accent disabled:opacity-40 hover:opacity-90 transition-opacity"
           style={{ backgroundColor: 'var(--brand-crimson)' }}
         >
           {isPending ? 'Creating…' : 'Create Item'}

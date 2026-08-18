@@ -70,11 +70,11 @@ function PostForm({
           '--tw-ring-color': 'var(--brand-crimson)',
         }}
       />
-      {error && <p className="text-xs" style={{ color: 'var(--brand-crimson)' }}>{error}</p>}
+      {error && <p className="text-xs" style={{ color: 'var(--status-alert-fg)' }}>{error}</p>}
       <button
         onClick={() => mutation.mutate()}
         disabled={mutation.isPending || !body.trim()}
-        className="px-4 py-1.5 rounded-lg text-xs font-semibold text-white hover:opacity-90 transition-opacity disabled:opacity-50"
+        className="px-4 py-1.5 rounded-lg text-xs font-semibold text-on-accent hover:opacity-90 transition-opacity disabled:opacity-50"
         style={{ backgroundColor: 'var(--brand-crimson)' }}
       >
         {mutation.isPending ? 'Posting\u2026' : 'Post'}
@@ -129,12 +129,12 @@ function EditForm({
           '--tw-ring-color': 'var(--brand-crimson)',
         }}
       />
-      {error && <p className="text-xs" style={{ color: 'var(--brand-crimson)' }}>{error}</p>}
+      {error && <p className="text-xs" style={{ color: 'var(--status-alert-fg)' }}>{error}</p>}
       <div className="flex gap-2">
         <button
           onClick={() => mutation.mutate()}
           disabled={mutation.isPending || !body.trim() || body.trim() === message.body}
-          className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white hover:opacity-90 transition-opacity disabled:opacity-50"
+          className="px-3 py-1.5 rounded-lg text-xs font-semibold text-on-accent hover:opacity-90 transition-opacity disabled:opacity-50"
           style={{ backgroundColor: 'var(--brand-crimson)' }}
         >
           {mutation.isPending ? 'Saving\u2026' : 'Save'}
@@ -193,7 +193,7 @@ export function TripMessagesSection({ tripId }: { tripId: string }) {
       {isLoading ? (
         <div className="space-y-2">
           {[...Array(2)].map((_, i) => (
-            <div key={i} className="h-16 rounded-lg animate-pulse" style={{ backgroundColor: 'rgba(0,0,0,0.05)' }} />
+            <div key={i} className="h-16 rounded-lg animate-pulse" style={{ backgroundColor: 'var(--hover-surface)' }} />
           ))}
         </div>
       ) : messages.length === 0 ? (
@@ -223,7 +223,7 @@ export function TripMessagesSection({ tripId }: { tripId: string }) {
                   <button
                     onClick={() => setDeleteTarget({ id: msg.id })}
                     className="hover:opacity-70 transition-opacity"
-                    style={{ color: 'var(--brand-crimson)' }}
+                    style={{ color: 'var(--status-alert-fg)' }}
                     aria-label="Delete message"
                   >
                     <Trash2 size={13} />

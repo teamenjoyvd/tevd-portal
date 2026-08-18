@@ -58,8 +58,8 @@ export function ArchivedView({
                         <span className="text-xs px-1.5 py-0.5 rounded-control font-medium"
                           style={
                             p.admin_status === 'approved'
-                              ? { backgroundColor: 'rgba(129,178,154,0.15)', color: '#2d6a4f' }
-                              : { backgroundColor: 'rgba(180,138,60,0.12)', color: '#b48a3c' }
+                              ? { backgroundColor: 'var(--status-success-bg)', color: 'var(--status-success-fg)' }
+                              : { backgroundColor: 'var(--status-pending-bg)', color: 'var(--status-pending-fg)' }
                           }>
                           {p.admin_status === 'approved' ? 'Approved' : 'Pending'}
                         </span>
@@ -83,7 +83,7 @@ export function ArchivedView({
                     {p.proof_url && (
                       <a href={p.proof_url} target="_blank" rel="noopener noreferrer"
                         className="text-xs flex-shrink-0 hover:opacity-70 transition-opacity"
-                        style={{ color: 'var(--brand-teal)' }}>
+                        style={{ color: 'var(--link)' }}>
                         Proof ↗
                       </a>
                     )}

@@ -65,11 +65,11 @@ function EventRemindersToggle({ eventId, initialEnabled }: { eventId: string; in
         aria-label={enabled ? t('admin.calendar.reminders.disableAria') : t('admin.calendar.reminders.enableAria')}
         className={[
           'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none disabled:opacity-50',
-          enabled ? 'bg-[#bc4749]' : 'bg-gray-300 dark:bg-gray-600',
+          enabled ? 'bg-brand-crimson' : 'bg-border-default',
         ].join(' ')}
       >
         <span className={[
-          'pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition duration-200',
+          'pointer-events-none inline-block h-5 w-5 rounded-full bg-bg-card shadow transform transition duration-200',
           enabled ? 'translate-x-5' : 'translate-x-0',
         ].join(' ')} />
       </button>
@@ -124,8 +124,8 @@ function RowActions({ reminder, eventId }: { reminder: Reminder; eventId: string
           <AlertDialogTrigger asChild>
             <button
               disabled={pending}
-              className="text-xs px-2 py-1 rounded border transition-colors hover:bg-black/5 disabled:opacity-50"
-              style={{ borderColor: 'var(--border-default)', color: 'var(--brand-crimson)' }}
+              className="text-xs px-2 py-1 rounded border transition-colors hover:bg-hover-surface disabled:opacity-50"
+              style={{ borderColor: 'var(--border-default)', color: 'var(--status-alert-fg)' }}
             >
               {t('admin.calendar.reminders.btn.cancel')}
             </button>
@@ -152,7 +152,7 @@ function RowActions({ reminder, eventId }: { reminder: Reminder; eventId: string
           <AlertDialogTrigger asChild>
             <button
               disabled={pending}
-              className="text-xs px-2 py-1 rounded border transition-colors hover:bg-black/5 disabled:opacity-50"
+              className="text-xs px-2 py-1 rounded border transition-colors hover:bg-hover-surface disabled:opacity-50"
               style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
             >
               {t('admin.calendar.reminders.btn.resend')}
@@ -180,7 +180,7 @@ function RowActions({ reminder, eventId }: { reminder: Reminder; eventId: string
           <button
             disabled={pending}
             onClick={() => setRescheduleOpen(true)}
-            className="text-xs px-2 py-1 rounded border transition-colors hover:bg-black/5 disabled:opacity-50"
+            className="text-xs px-2 py-1 rounded border transition-colors hover:bg-hover-surface disabled:opacity-50"
             style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
           >
             {t('admin.calendar.reminders.btn.reschedule')}
@@ -207,7 +207,7 @@ function RowActions({ reminder, eventId }: { reminder: Reminder; eventId: string
               <div className="flex gap-3 pt-2">
                 <button
                   onClick={() => setRescheduleOpen(false)}
-                  className="flex-1 rounded-lg border px-4 py-2 text-sm font-medium transition-colors hover:bg-black/5"
+                  className="flex-1 rounded-lg border px-4 py-2 text-sm font-medium transition-colors hover:bg-hover-surface"
                   style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                 >
                   {t('admin.calendar.btn.cancel')}
@@ -215,8 +215,8 @@ function RowActions({ reminder, eventId }: { reminder: Reminder; eventId: string
                 <button
                   onClick={handleReschedule}
                   disabled={!newSendAt || pending}
-                  className="flex-1 rounded-lg px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-                  style={{ backgroundColor: '#bc4749' }}
+                  className="flex-1 rounded-lg px-4 py-2 text-sm font-medium text-on-accent disabled:opacity-50"
+                  style={{ backgroundColor: 'var(--brand-crimson)' }}
                 >
                   {rescheduleMutation.isPending ? t('admin.calendar.reminders.reschedule.saving') : t('admin.calendar.reminders.reschedule.save')}
                 </button>
@@ -225,7 +225,7 @@ function RowActions({ reminder, eventId }: { reminder: Reminder; eventId: string
           </Drawer>
         </>
       )}
-      {actionError && <p className="text-xs" style={{ color: 'var(--brand-crimson)' }}>{actionError}</p>}
+      {actionError && <p className="text-xs" style={{ color: 'var(--status-alert-fg)' }}>{actionError}</p>}
     </div>
   )
 }
@@ -254,16 +254,16 @@ export default function ReminderTable({
       <EventRemindersToggle eventId={eventId} initialEnabled={remindersEnabled} />
 
       {reminders.length === 0 ? (
-        <p className="text-sm py-6 text-center" style={{ color: 'var(--text-muted)' }}>
+        <p className="text-sm py-6 text-center" style={{ color: 'var(--text-secondary)' }}>
           {t('admin.calendar.reminders.empty')}
         </p>
       ) : (
         <>
           {/* Desktop table */}
-          <div className="hidden md:block overflow-x-auto rounded-lg border" style={{ borderColor: 'var(--border)' }}>
+          <div className="hidden md:block overflow-x-auto rounded-lg border" style={{ borderColor: 'var(--border-default)' }}>
             <table className="w-full text-sm">
               <thead style={{ backgroundColor: 'var(--bg-card)' }}>
-                <tr className="text-left text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
+                <tr className="text-left text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--text-secondary)' }}>
                   <th className="px-4 py-3">{t('admin.calendar.reminders.col.guest')}</th>
                   <th className="px-4 py-3">{t('admin.calendar.reminders.col.email')}</th>
                   <th className="px-4 py-3">{t('admin.calendar.reminders.col.type')}</th>
@@ -272,13 +272,13 @@ export default function ReminderTable({
                   <th className="px-4 py-3" />
                 </tr>
               </thead>
-              <tbody className="divide-y" style={{ borderColor: 'var(--border)' }}>
+              <tbody className="divide-y" style={{ borderColor: 'var(--border-default)' }}>
                 {reminders.map((r) => (
                   <tr key={r.id} style={{ backgroundColor: 'var(--bg-card)' }}>
                     <td className="px-4 py-3" style={{ color: 'var(--text-primary)' }}>{r.guest_registrations?.name ?? '—'}</td>
-                    <td className="px-4 py-3" style={{ color: 'var(--text-muted)' }}>{r.guest_registrations?.email ?? '—'}</td>
+                    <td className="px-4 py-3" style={{ color: 'var(--text-secondary)' }}>{r.guest_registrations?.email ?? '—'}</td>
                     <td className="px-4 py-3" style={{ color: 'var(--text-secondary)' }}>{reminderLabelLong(t, r.type)}</td>
-                    <td className="px-4 py-3 tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                    <td className="px-4 py-3 tabular-nums" style={{ color: 'var(--text-secondary)' }}>
                       {new Date(r.send_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                     </td>
                     <td className="px-4 py-3"><StatusPill status={r.status} /></td>
@@ -292,12 +292,12 @@ export default function ReminderTable({
           {/* Mobile cards */}
           <div className="md:hidden space-y-3">
             {reminders.map((r) => (
-              <div key={r.id} className="rounded-lg border p-4 space-y-2" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--bg-card)' }}>
+              <div key={r.id} className="rounded-lg border p-4 space-y-2" style={{ borderColor: 'var(--border-default)', backgroundColor: 'var(--bg-card)' }}>
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-medium text-sm truncate" style={{ color: 'var(--text-primary)' }}>{r.guest_registrations?.name ?? '—'}</span>
                   <StatusPill status={r.status} />
                 </div>
-                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{r.guest_registrations?.email ?? '—'}</p>
+                <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{r.guest_registrations?.email ?? '—'}</p>
                 <div className="flex items-center justify-between text-xs" style={{ color: 'var(--text-secondary)' }}>
                   <span>{reminderLabelLong(t, r.type)}</span>
                   <span className="tabular-nums">{new Date(r.send_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>

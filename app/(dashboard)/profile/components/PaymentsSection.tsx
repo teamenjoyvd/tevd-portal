@@ -170,7 +170,7 @@ export function PaymentsSection({ profileId, role }: { profileId: string; role: 
                     type="button"
                     onClick={() => setWithdrawTargetId(group.groupId)}
                     className="flex-shrink-0 text-xs font-semibold transition-opacity hover:opacity-70"
-                    style={{ background: 'none', border: 'none', color: '#bc4749', cursor: 'pointer', minHeight: '32px' }}
+                    style={{ background: 'none', border: 'none', color: 'var(--status-alert-fg)', cursor: 'pointer', minHeight: '32px' }}
                   >
                     {t('payment.withdraw')}
                   </button>
@@ -196,7 +196,7 @@ export function PaymentsSection({ profileId, role }: { profileId: string; role: 
           <Link
             href="/profile/payments"
             className="inline-block mt-3 text-xs font-semibold hover:opacity-70 transition-opacity"
-            style={{ color: 'var(--brand-crimson)' }}
+            style={{ color: 'var(--status-alert-fg)' }}
           >
             {t('payment.viewAll')}
           </Link>
@@ -234,7 +234,7 @@ export function PaymentsSection({ profileId, role }: { profileId: string; role: 
               nothing happened at all. mutationFn always throws an Error with the
               API's own message, so there is nothing to fall back to. */}
           {withdrawMutation.isError && (
-            <p className="text-xs" style={{ color: '#bc4749' }}>
+            <p className="text-xs" style={{ color: 'var(--status-alert-fg)' }}>
               {withdrawMutation.error.message}
             </p>
           )}

@@ -82,7 +82,7 @@ export default function LinksGuidesTile({
           href={normaliseUrl(link.url)}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-2.5 px-2 py-[7px] rounded-lg hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
+          className="flex items-center gap-2.5 px-2 py-[7px] rounded-lg hover:bg-hover-surface transition-colors"
         >
           <span
             className="flex-1 text-[13px] font-medium truncate"
@@ -108,7 +108,7 @@ export default function LinksGuidesTile({
         <Link
           key={g.id}
           href={`/library/${g.slug}`}
-          className="flex items-center gap-2.5 px-2 py-[7px] rounded-lg hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
+          className="flex items-center gap-2.5 px-2 py-[7px] rounded-lg hover:bg-hover-surface transition-colors"
         >
           <span
             className="flex-1 text-[13px] font-medium truncate"

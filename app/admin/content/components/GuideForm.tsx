@@ -78,11 +78,11 @@ export function GuideForm({
             type="button"
             onClick={copySlugUrl}
             disabled={!form.slug}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border transition-all disabled:opacity-30 hover:bg-black/5 flex-shrink-0"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border transition-all disabled:opacity-30 hover:bg-hover-surface flex-shrink-0"
             style={{
-              borderColor: copied ? 'rgba(34,197,94,0.4)' : 'var(--border-default)',
-              color: copied ? '#15803d' : 'var(--text-secondary)',
-              backgroundColor: copied ? 'rgba(34,197,94,0.08)' : 'transparent',
+              borderColor: copied ? 'var(--status-success-fg)' : 'var(--border-default)',
+              color: copied ? 'var(--status-success-fg)' : 'var(--text-secondary)',
+              backgroundColor: copied ? 'var(--status-success-bg)' : 'transparent',
             }}
           >
             {copied ? (
@@ -159,24 +159,24 @@ export function GuideForm({
         <AdminStatusBadge variant={form.is_published ? 'active' : 'inactive'} label={form.is_published ? 'Published' : 'Draft'} />
         <button
           onClick={() => setForm(f => ({ ...f, is_published: !f.is_published }))}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border transition-all hover:bg-black/5"
+          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border transition-all hover:bg-hover-surface"
           style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
           {form.is_published ? t('admin.content.guides.btn.unpublish') : t('admin.content.guides.btn.publish')}
         </button>
       </div>
 
-      {error && <p className="text-sm" style={{ color: 'var(--brand-crimson)' }}>{error}</p>}
+      {error && <p className="text-sm" style={{ color: 'var(--status-alert-fg)' }}>{error}</p>}
 
       <div className="flex gap-3 pt-2">
         <button
           onClick={() => onSave(form)}
           disabled={isPending || !form.slug || !form.title.en || coverUploading}
-          className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40 transition-opacity hover:opacity-90"
+          className="px-6 py-2.5 rounded-xl text-sm font-semibold text-on-accent disabled:opacity-40 transition-opacity hover:opacity-90"
           style={{ backgroundColor: 'var(--brand-crimson)' }}>
           {isPending ? t('admin.content.guides.btn.saving') : t('admin.content.guides.btn.save')}
         </button>
         <button onClick={onCancel}
-          className="px-6 py-2.5 rounded-xl text-sm font-semibold border transition-colors hover:bg-black/5"
+          className="px-6 py-2.5 rounded-xl text-sm font-semibold border transition-colors hover:bg-hover-surface"
           style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
           {t('admin.content.guides.btn.cancel')}
         </button>

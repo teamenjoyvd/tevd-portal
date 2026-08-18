@@ -90,16 +90,16 @@ function RolesTable({
   return (
     <div
       className="rounded-2xl overflow-hidden"
-      style={{ border: '1px solid rgba(0,0,0,0.07)', backgroundColor: 'var(--bg-card)' }}
+      style={{ border: '1px solid var(--border-default)', backgroundColor: 'var(--bg-card)' }}
     >
       {/* Header row */}
       <div
         className="grid text-[10px] font-semibold tracking-widest uppercase px-4 py-2.5"
         style={{
           gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr 1.5fr',
-          borderBottom: '1px solid rgba(0,0,0,0.06)',
+          borderBottom: '1px solid var(--border-default)',
           color: 'var(--text-secondary)',
-          backgroundColor: 'rgba(0,0,0,0.02)',
+          backgroundColor: 'var(--bg-card-raised)',
         }}
       >
         {headers.map(h => <span key={h}>{h}</span>)}
@@ -114,7 +114,7 @@ function RolesTable({
             className="grid items-center px-4 py-3 text-sm transition-all"
             style={{
               gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr 1.5fr',
-              borderTop: i === 0 ? undefined : '1px solid rgba(0,0,0,0.04)',
+              borderTop: i === 0 ? undefined : '1px solid var(--border-default)',
               opacity: isPast ? 0.6 : undefined,
               filter: isPast ? 'grayscale(0.5)' : undefined,
             }}
@@ -165,7 +165,7 @@ function RolesCards({
             key={event.id}
             className="rounded-2xl p-4 transition-all"
             style={{
-              border: '1px solid rgba(0,0,0,0.07)',
+              border: '1px solid var(--border-default)',
               backgroundColor: 'var(--bg-card)',
               opacity: isPast ? 0.6 : undefined,
               filter: isPast ? 'grayscale(0.5)' : undefined,
@@ -335,7 +335,7 @@ export default function RolesClient({
       </div>
 
       {isPending && (
-        <p className="text-xs animate-pulse mb-4" style={{ color: 'var(--primary-default)' }}>
+        <p className="text-xs animate-pulse mb-4" style={{ color: 'var(--status-success-fg)' }}>
           {t('event.roles.updating')}
         </p>
       )}

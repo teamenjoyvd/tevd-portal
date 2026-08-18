@@ -121,7 +121,7 @@ export function TripFilesSection({ tripId }: { tripId: string }) {
         <button
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white hover:opacity-90 transition-opacity disabled:opacity-50"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-on-accent hover:opacity-90 transition-opacity disabled:opacity-50"
           style={{ backgroundColor: 'var(--brand-crimson)' }}
         >
           <Upload size={13} />
@@ -137,16 +137,16 @@ export function TripFilesSection({ tripId }: { tripId: string }) {
       </div>
 
       {sizeError && (
-        <p className="text-xs" style={{ color: 'var(--brand-crimson)' }}>{sizeError}</p>
+        <p className="text-xs" style={{ color: 'var(--status-alert-fg)' }}>{sizeError}</p>
       )}
       {uploadError && (
-        <p className="text-xs" style={{ color: 'var(--brand-crimson)' }}>{uploadError}</p>
+        <p className="text-xs" style={{ color: 'var(--status-alert-fg)' }}>{uploadError}</p>
       )}
 
       {isLoading ? (
         <div className="space-y-2">
           {[...Array(2)].map((_, i) => (
-            <div key={i} className="h-10 rounded-lg animate-pulse" style={{ backgroundColor: 'rgba(0,0,0,0.05)' }} />
+            <div key={i} className="h-10 rounded-lg animate-pulse" style={{ backgroundColor: 'var(--hover-surface)' }} />
           ))}
         </div>
       ) : attachments.length === 0 ? (
@@ -184,7 +184,7 @@ export function TripFilesSection({ tripId }: { tripId: string }) {
                   onClick={() => !isOptimistic && setDeleteTarget({ id: a.id, name: a.file_name })}
                   disabled={isOptimistic}
                   className="flex-shrink-0 hover:opacity-70 transition-opacity disabled:opacity-30"
-                  style={{ color: 'var(--brand-crimson)' }}
+                  style={{ color: 'var(--status-alert-fg)' }}
                   aria-label={`Delete ${a.file_name}`}
                 >
                   <Trash2 size={14} />

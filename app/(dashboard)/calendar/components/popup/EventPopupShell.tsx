@@ -172,7 +172,7 @@ export default function EventPopupShell({
                           <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
                         </svg>
                         <a href={event.meeting_url} target="_blank" rel="noopener noreferrer"
-                          className="truncate hover:underline" style={{ color: 'var(--brand-teal)' }}>
+                          className="truncate hover:underline" style={{ color: 'var(--link)' }}>
                           {event.meeting_url}
                         </a>
                       </div>
