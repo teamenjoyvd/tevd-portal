@@ -37,8 +37,12 @@ in both themes — an undefined custom property is not a CSS error):
 (baseline 529/37); `npm run lint` 0 errors / 464 warnings (baseline identical);
 `npm run check:colors` clean over 423 files; `app/globals.css` compiled through
 `@tailwindcss/postcss` — all 30 new utilities emit as `var(--token)`.
-**Not visually verified locally** — the Vercel preview is the gate, as for every
-prior slice.
+**Preview verified** (PR #759, all 12 checks green including the new Colour
+Tokens job, the 390px smoke and Authenticated E2E): home, /trips and /calendar
+checked on the deployed preview in *both* themes. Tokens resolve live
+(`--text-tertiary` #6a6559 light / #9c978a dark, `--link` #6faebe dark), and the
+light-mode rendering is unchanged apart from the deliberate shifts listed above.
+Admin surfaces are behind auth and are covered by the Authenticated E2E job.
 
 ### #742 — what this branch does
 
