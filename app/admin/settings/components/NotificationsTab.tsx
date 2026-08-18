@@ -60,7 +60,7 @@ export function NotificationsTab({ rows, page, count }: NotificationsTabProps) {
               key={row.id}
               className="px-4 py-3 text-sm flex flex-col md:grid md:grid-cols-[auto_auto_1fr_1fr_auto_auto] md:items-center gap-1.5 md:gap-4"
               style={{
-                backgroundColor: isDeleted ? 'rgba(188,71,73,0.04)' : i % 2 === 0 ? 'white' : 'var(--bg-global)',
+                backgroundColor: isDeleted ? 'var(--status-alert-bg)' : i % 2 === 0 ? 'var(--bg-card)' : 'var(--bg-global)',
                 borderTop: i > 0 ? '1px solid var(--border-default)' : 'none',
                 opacity: isDeleted ? 0.7 : 1,
               }}
@@ -69,15 +69,15 @@ export function NotificationsTab({ rows, page, count }: NotificationsTabProps) {
                 {formatDateTime(row.created_at)}
               </span>
               <span className="text-xs font-medium px-2 py-0.5 rounded-full w-fit"
-                style={{ backgroundColor: 'rgba(0,0,0,0.06)', color: 'var(--text-secondary)' }}>{row.type}</span>
+                style={{ backgroundColor: 'var(--hover-surface)', color: 'var(--text-secondary)' }}>{row.type}</span>
               <span className="truncate" style={{ color: 'var(--text-primary)' }}>{row.title}</span>
               <span className="truncate md:whitespace-nowrap" style={{ color: 'var(--text-primary)' }}>{memberName}</span>
               {row.is_read ? (
                 <span className="text-xs font-medium px-2 py-0.5 rounded-full w-fit"
-                  style={{ backgroundColor: 'rgba(45,51,42,0.08)', color: 'var(--brand-forest)' }}>{t('admin.notifications.badge.read')}</span>
+                  style={{ backgroundColor: 'var(--border-default)', color: 'var(--brand-forest)' }}>{t('admin.notifications.badge.read')}</span>
               ) : (
                 <span className="text-xs font-medium px-2 py-0.5 rounded-full w-fit"
-                  style={{ backgroundColor: 'rgba(188,71,73,0.10)', color: 'var(--brand-crimson)' }}>{t('admin.notifications.badge.unread')}</span>
+                  style={{ backgroundColor: 'var(--status-alert-bg)', color: 'var(--status-alert-fg)' }}>{t('admin.notifications.badge.unread')}</span>
               )}
               {/* Deleted-at: hidden on mobile when absent — without the column
                   header there it would read as a second, unexplained date. */}
@@ -107,12 +107,12 @@ export function NotificationsTab({ rows, page, count }: NotificationsTabProps) {
           <div className="flex items-center gap-2">
             {page > 1 && (
               <a href={buildUrl(page - 1)}
-                className="px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors hover:bg-black/5"
+                className="px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors hover:bg-hover-surface"
                 style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}>{t('admin.notifications.pagination.prev')}</a>
             )}
             {page < totalPages && (
               <a href={buildUrl(page + 1)}
-                className="px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors hover:bg-black/5"
+                className="px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors hover:bg-hover-surface"
                 style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}>{t('admin.notifications.pagination.next')}</a>
             )}
           </div>

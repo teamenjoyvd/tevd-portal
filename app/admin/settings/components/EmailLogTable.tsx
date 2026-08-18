@@ -27,9 +27,9 @@ type LogsResponse = {
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function statusPill(status: string) {
-  if (status === 'sent') return { bg: '#81b29a33', color: '#2d6a4f' }
-  if (status === 'failed') return { bg: 'rgba(188,71,73,0.1)', color: 'var(--brand-crimson)' }
-  return { bg: '#f2cc8f33', color: '#7a5c00' }
+  if (status === 'sent') return { bg: 'var(--status-success-bg)', color: 'var(--status-success-fg)' }
+  if (status === 'failed') return { bg: 'var(--status-alert-bg)', color: 'var(--status-alert-fg)' }
+  return { bg: 'var(--status-pending-bg)', color: 'var(--status-pending-fg)' }
 }
 
 function formatDate(iso: string) {
@@ -102,12 +102,12 @@ export function EmailLogTable() {
   ]
 
   return (
-    <div className="bg-[var(--bg-card)] rounded-xl border border-[var(--border-subtle)] p-5 w-full shadow-sm flex flex-col gap-5">
+    <div className="bg-[var(--bg-card)] rounded-xl border border-[var(--border-default)] p-5 w-full shadow-sm flex flex-col gap-5">
       <div className="flex flex-col gap-1">
-        <h2 className="text-lg font-semibold text-[var(--semantic-fg-primary)] tracking-tight">
+        <h2 className="text-lg font-semibold text-[var(--text-primary)] tracking-tight">
           {t('admin.settings.emailLog.title', 'en')}
         </h2>
-        <p className="text-xs text-[var(--semantic-fg-secondary)]">
+        <p className="text-xs text-[var(--text-secondary)]">
           {t('admin.settings.emailLog.desc', 'en')}
         </p>
       </div>
@@ -120,8 +120,8 @@ export function EmailLogTable() {
               onClick={() => { setStatusFilter(s.key); setPage(0) }}
               className="px-3 py-1 rounded-full text-xs font-semibold capitalize transition-all"
               style={{
-                backgroundColor: statusFilter === s.key ? 'var(--semantic-fg-primary)' : 'rgba(0,0,0,0.06)',
-                color: statusFilter === s.key ? 'var(--bg-card)' : 'var(--semantic-fg-secondary)',
+                backgroundColor: statusFilter === s.key ? 'var(--text-primary)' : 'var(--hover-surface)',
+                color: statusFilter === s.key ? 'var(--bg-card)' : 'var(--text-secondary)',
               }}
             >
               {t(s.labelKey, 'en')}
@@ -134,9 +134,9 @@ export function EmailLogTable() {
           onChange={e => { setTemplateFilter(e.target.value); setPage(0) }}
           className="ml-auto text-xs border rounded-lg px-2.5 py-1.5 h-8"
           style={{
-            borderColor: 'var(--border-subtle)',
+            borderColor: 'var(--border-default)',
             backgroundColor: 'var(--bg-card)',
-            color: 'var(--semantic-fg-primary)',
+            color: 'var(--text-primary)',
           }}
         >
           <option value="all">{t('admin.settings.emailLog.allTemplates', 'en')}</option>
@@ -147,7 +147,7 @@ export function EmailLogTable() {
       </div>
 
       {retryError && (
-        <p className="text-xs px-3 py-2 rounded-lg bg-red-50 text-red-700 border border-red-200">
+        <p className="text-xs px-3 py-2 rounded-lg bg-status-alert-bg text-status-alert-fg border border-status-alert-fg/30">
           {t('admin.settings.emailLog.retryError', 'en')} {retryError}
         </p>
       )}
@@ -155,16 +155,16 @@ export function EmailLogTable() {
       {isLoading ? (
         <div className="space-y-2">
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-14 rounded-xl animate-pulse" style={{ backgroundColor: 'rgba(0,0,0,0.05)' }} />
+            <div key={i} className="h-14 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--hover-surface)' }} />
           ))}
         </div>
       ) : rows.length === 0 ? (
-        <p className="text-sm text-[var(--semantic-fg-secondary)] py-4 text-center">{t('admin.settings.emailLog.empty', 'en')}</p>
+        <p className="text-sm text-[var(--text-secondary)] py-4 text-center">{t('admin.settings.emailLog.empty', 'en')}</p>
       ) : (
-        <div className="rounded-xl border overflow-hidden" style={{ borderColor: 'var(--border-subtle)' }}>
+        <div className="rounded-xl border overflow-hidden" style={{ borderColor: 'var(--border-default)' }}>
           <div
             className="hidden md:grid grid-cols-[1fr_1fr_1fr_auto_auto] gap-4 px-4 py-2.5 text-[10px] font-semibold uppercase tracking-widest"
-            style={{ backgroundColor: 'rgba(0,0,0,0.03)', color: 'var(--semantic-fg-tertiary)', borderBottom: '1px solid var(--border-subtle)' }}
+            style={{ backgroundColor: 'var(--bg-card-raised)', color: 'var(--text-tertiary)', borderBottom: '1px solid var(--border-default)' }}
           >
             <span>{t('admin.settings.emailLog.col.template', 'en')}</span>
             <span>{t('admin.settings.emailLog.col.recipient', 'en')}</span>
@@ -179,18 +179,18 @@ export function EmailLogTable() {
               <div
                 key={row.id}
                 className="px-4 py-3 flex flex-col md:grid md:grid-cols-[1fr_1fr_1fr_auto_auto] md:items-center gap-2 md:gap-4"
-                style={{ borderTop: i > 0 ? '1px solid var(--border-subtle)' : 'none' }}
+                style={{ borderTop: i > 0 ? '1px solid var(--border-default)' : 'none' }}
               >
                 <div className="flex flex-col gap-0.5">
-                  <span className="text-xs font-medium text-[var(--semantic-fg-primary)]">
+                  <span className="text-xs font-medium text-[var(--text-primary)]">
                     {TEMPLATE_LABELS[row.template] ?? row.template}
                   </span>
                   {row.error && (
-                    <span className="text-[10px] text-red-600 leading-tight line-clamp-2">{row.error}</span>
+                    <span className="text-[10px] text-status-alert-fg leading-tight line-clamp-2">{row.error}</span>
                   )}
                 </div>
-                <span className="text-xs text-[var(--semantic-fg-secondary)] truncate">{row.recipient}</span>
-                <span className="text-xs text-[var(--semantic-fg-tertiary)]">
+                <span className="text-xs text-[var(--text-secondary)] truncate">{row.recipient}</span>
+                <span className="text-xs text-[var(--text-tertiary)]">
                   {row.sent_at ? formatDate(row.sent_at) : formatDate(row.created_at)}
                 </span>
                 <span
@@ -204,8 +204,8 @@ export function EmailLogTable() {
                     <button
                       disabled={retryingId === row.id}
                       onClick={() => retryMutation.mutate(row.id)}
-                      className="text-xs font-semibold px-3 py-1 rounded-lg border transition-colors hover:bg-black/5 disabled:opacity-40"
-                      style={{ borderColor: 'var(--border-subtle)', color: 'var(--semantic-fg-primary)' }}
+                      className="text-xs font-semibold px-3 py-1 rounded-lg border transition-colors hover:bg-hover-surface disabled:opacity-40"
+                      style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                     >
                       {retryingId === row.id ? t('admin.settings.emailLog.btn.retrying', 'en') : t('admin.settings.emailLog.btn.retry', 'en')}
                     </button>
@@ -219,23 +219,23 @@ export function EmailLogTable() {
 
       {totalPages > 1 && (
         <div className="flex items-center justify-between pt-2">
-          <span className="text-xs text-[var(--semantic-fg-tertiary)]">
+          <span className="text-xs text-[var(--text-tertiary)]">
             {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, total)} of {total}
           </span>
           <div className="flex gap-2">
             <button
               disabled={page === 0}
               onClick={() => setPage(p => p - 1)}
-              className="px-3 py-1.5 text-xs font-semibold rounded-lg border disabled:opacity-40 transition-colors hover:bg-black/5"
-              style={{ borderColor: 'var(--border-subtle)', color: 'var(--semantic-fg-primary)' }}
+              className="px-3 py-1.5 text-xs font-semibold rounded-lg border disabled:opacity-40 transition-colors hover:bg-hover-surface"
+              style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
             >
               {t('admin.settings.emailLog.pagination.prev', 'en')}
             </button>
             <button
               disabled={page >= totalPages - 1}
               onClick={() => setPage(p => p + 1)}
-              className="px-3 py-1.5 text-xs font-semibold rounded-lg border disabled:opacity-40 transition-colors hover:bg-black/5"
-              style={{ borderColor: 'var(--border-subtle)', color: 'var(--semantic-fg-primary)' }}
+              className="px-3 py-1.5 text-xs font-semibold rounded-lg border disabled:opacity-40 transition-colors hover:bg-hover-surface"
+              style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
             >
               {t('admin.settings.emailLog.pagination.next', 'en')}
             </button>

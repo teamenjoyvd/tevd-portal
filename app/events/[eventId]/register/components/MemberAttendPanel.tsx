@@ -132,8 +132,8 @@ export function MemberAttendPanel({
             <span
               className="flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-control"
               style={{
-                backgroundColor: 'var(--status-success-bg, rgba(129,178,154,0.18))',
-                color: 'var(--status-success-fg, #2d6a4f)',
+                backgroundColor: 'var(--status-success-bg)',
+                color: 'var(--status-success-fg)',
               }}
             >
               <Check size={10} />
@@ -144,7 +144,7 @@ export function MemberAttendPanel({
                 <button
                   disabled={isPending}
                   className="text-xs font-medium hover:opacity-70 transition-opacity disabled:opacity-40"
-                  style={{ color: 'var(--brand-crimson, #bc4749)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                  style={{ color: 'var(--status-alert-fg)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
                 >
                   {t('cal.cantAttend')}
                 </button>
@@ -167,8 +167,8 @@ export function MemberAttendPanel({
               href={meetingUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center w-full rounded-xl py-3.5 text-sm font-semibold text-white hover:opacity-80 transition-opacity"
-              style={{ backgroundColor: '#1a3c2e', minHeight: 44 }}
+              className="flex items-center justify-center w-full rounded-xl py-3.5 text-sm font-semibold text-on-accent hover:opacity-80 transition-opacity"
+              style={{ backgroundColor: 'var(--brand-forest)', minHeight: 44 }}
             >
               {t('event.join.joinMeeting')}
             </a>
@@ -184,7 +184,7 @@ export function MemberAttendPanel({
               target="_blank"
               rel="noopener noreferrer"
               className="flex flex-col"
-              style={{ color: 'var(--brand-teal, #1a3c2e)' }}
+              style={{ color: 'var(--link)' }}
             >
               <span className="flex items-center gap-1.5 text-xs font-semibold hover:opacity-70 transition-opacity">
                 <Video size={12} />
@@ -210,8 +210,8 @@ export function MemberAttendPanel({
           onClick={attend}
           disabled={isPending}
           aria-busy={isPending}
-          className="w-full rounded-xl py-3.5 text-sm font-semibold text-white disabled:opacity-60 transition-opacity"
-          style={{ backgroundColor: '#1a3c2e', minHeight: 44 }}
+          className="w-full rounded-xl py-3.5 text-sm font-semibold text-on-accent disabled:opacity-60 transition-opacity"
+          style={{ backgroundColor: 'var(--brand-forest)', minHeight: 44 }}
         >
           {/* Label kept while pending: swapping it for '…' takes the button's
               accessible name away mid-request. disabled + disabled:opacity-60
@@ -221,7 +221,7 @@ export function MemberAttendPanel({
       )}
 
       {error !== null && (
-        <p className="text-sm" style={{ color: '#bc4749' }}>
+        <p className="text-sm" style={{ color: 'var(--status-alert-fg)' }}>
           {error}
         </p>
       )}

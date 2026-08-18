@@ -47,10 +47,12 @@ function StatusBadge({ status, onCancel, isCancelling, t }: {
   isCancelling?: boolean
   t: CardProps['t']
 }) {
+  // The three registration states are the semantic status pairs — #7a5c00 and
+  // #2d6a4f are two of the contrast suspects #741 names by hex.
   const STATUS_STYLES = {
-    pending:  { bg: '#f2cc8f33', color: '#7a5c00', label: t('trips.status.pending')  },
-    approved: { bg: '#81b29a33', color: '#2d6a4f', label: t('trips.status.approved') },
-    denied:   { bg: '#bc474920', color: '#bc4749', label: t('trips.status.denied')   },
+    pending:  { bg: 'var(--status-pending-bg)', color: 'var(--status-pending-fg)', label: t('trips.status.pending')  },
+    approved: { bg: 'var(--status-success-bg)', color: 'var(--status-success-fg)', label: t('trips.status.approved') },
+    denied:   { bg: 'var(--status-alert-bg)',   color: 'var(--status-alert-fg)',   label: t('trips.status.denied')   },
   } as const
   const style = STATUS_STYLES[status]
   return (
@@ -95,15 +97,15 @@ function Cta({ trip, registrationStatus, isCancelled, isCompleted, authLoading, 
     if (registrationStatus === 'pending') {
       return {
         node: (
-          <div className="px-4 py-3 rounded-xl flex items-center justify-between" style={{ backgroundColor: '#f2cc8f33' }}>
-            <p className="text-sm font-medium leading-snug min-w-0 flex-1" style={{ color: '#7a5c00' }}>
+          <div className="px-4 py-3 rounded-xl flex items-center justify-between" style={{ backgroundColor: 'var(--status-pending-bg)' }}>
+            <p className="text-sm font-medium leading-snug min-w-0 flex-1" style={{ color: 'var(--status-pending-fg)' }}>
               {t('trips.status.pendingLong')}
             </p>
             <button
               onClick={e => { e.stopPropagation(); onCancel(trip.id) }}
               disabled={isCancelling}
               className="ml-3 text-xs font-medium flex-shrink-0 disabled:opacity-50"
-              style={{ color: '#7a5c00' }}
+              style={{ color: 'var(--status-pending-fg)' }}
             >
               {t('trips.cancel')}
             </button>
@@ -120,7 +122,7 @@ function Cta({ trip, registrationStatus, isCancelled, isCompleted, authLoading, 
           <StatusBadge status={registrationStatus} onCancel={() => onCancel(trip.id)} isCancelling={isCancelling} t={t} />
           <button
             onClick={e => { e.stopPropagation(); onViewDetails() }}
-            className="w-full py-3 rounded-xl text-sm font-semibold text-white hover:opacity-90 active:opacity-70 transition-opacity"
+            className="w-full py-3 rounded-xl text-sm font-semibold text-on-accent hover:opacity-90 active:opacity-70 transition-opacity"
             style={{ backgroundColor: 'var(--brand-forest)' }}
           >
             {t('trips.viewDetails')}
@@ -149,7 +151,7 @@ function Cta({ trip, registrationStatus, isCancelled, isCompleted, authLoading, 
             </p>
             <a
               href="/profile"
-              className="mt-3 block text-center text-xs font-semibold py-2 rounded-xl text-white hover:opacity-90 transition-opacity"
+              className="mt-3 block text-center text-xs font-semibold py-2 rounded-xl text-on-accent hover:opacity-90 transition-opacity"
               style={{ backgroundColor: 'var(--brand-forest)' }}
             >
               Go to Profile →

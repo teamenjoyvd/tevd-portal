@@ -101,13 +101,13 @@ export function TripCreateForm() {
         </div>
       </div>
 
-      {error && <p className="text-xs" style={{ color: 'var(--brand-crimson)' }}>{error}</p>}
+      {error && <p className="text-xs" style={{ color: 'var(--status-alert-fg)' }}>{error}</p>}
 
       <div className="space-y-2">
         <button
           onClick={handleSubmit}
           disabled={!isValid || submitting}
-          className="w-full px-4 py-2 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-opacity disabled:opacity-40"
+          className="w-full px-4 py-2 rounded-xl text-sm font-semibold text-on-accent hover:opacity-90 transition-opacity disabled:opacity-40"
           style={{ backgroundColor: 'var(--brand-crimson)' }}
         >
           {submitting ? 'Creating…' : 'Create Trip'}

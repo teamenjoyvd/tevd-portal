@@ -30,10 +30,10 @@ type TreeNode = {
 }
 
 const STATUS_STYLE: Record<Submission['status'], { bg: string; color: string; label: string }> = {
-  pending:   { bg: '#f2cc8f33', color: '#7a5c00', label: 'Pending admin review' },
-  approved:  { bg: '#1a3c2e18', color: '#1a3c2e', label: 'Approved & imported' },
-  rejected:  { bg: '#bc474915', color: '#bc4749', label: 'Rejected' },
-  withdrawn: { bg: 'rgba(0,0,0,0.05)', color: 'var(--text-secondary)', label: 'Withdrawn' },
+  pending:   { bg: 'var(--status-pending-bg)', color: 'var(--status-pending-fg)', label: 'Pending admin review' },
+  approved:  { bg: 'var(--status-success-bg)', color: 'var(--status-success-fg)', label: 'Approved & imported' },
+  rejected:  { bg: 'var(--status-alert-bg)', color: 'var(--status-alert-fg)', label: 'Rejected' },
+  withdrawn: { bg: 'var(--hover-surface)', color: 'var(--text-secondary)', label: 'Withdrawn' },
 }
 
 const ROOT_ERROR: Record<string, string> = {
@@ -209,8 +209,8 @@ export function LosUploadClient({ aboNumber }: { aboNumber: string | null }) {
           <AssemblySummary assembly={assembly} sourceCount={files.length} />
 
           {rootCheck && !rootCheck.ok && (
-            <div className="p-4 rounded-container border" style={{ backgroundColor: 'rgba(188,71,73,0.06)', borderColor: 'rgba(188,71,73,0.3)' }}>
-              <p className="text-sm" style={{ color: '#bc4749' }}>{ROOT_ERROR[rootCheck.reason]}</p>
+            <div className="p-4 rounded-container border" style={{ backgroundColor: 'var(--status-alert-bg)', borderColor: 'rgba(var(--brand-crimson-rgb), 0.3)' }}>
+              <p className="text-sm" style={{ color: 'var(--status-alert-fg)' }}>{ROOT_ERROR[rootCheck.reason]}</p>
               {rootCheck.reason === 'mismatch' && (
                 <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
                   Found root: <span className="font-mono">{rootCheck.roots[0]}</span> · your ABO: <span className="font-mono">{aboNumber}</span>
@@ -224,18 +224,18 @@ export function LosUploadClient({ aboNumber }: { aboNumber: string | null }) {
               <p className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>Preview — what your upload changes</p>
               <SubtreePreview rows={assembly.rows} anchorAbo={aboNumber} changeStatus={changeStatus} meta={meta} />
               <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
-                Tinted by change: <span style={{ color: '#2d6a4f' }}>new</span> · <span style={{ color: '#3d405b' }}>level</span> · <span style={{ color: '#e07a5f' }}>bonus</span>.
+                Tinted by change: <span style={{ color: 'var(--status-success-fg)' }}>new</span> · <span style={{ color: 'var(--status-info-fg)' }}>level</span> · <span style={{ color: 'var(--status-pending-fg)' }}>bonus</span>.
                 “upd · upline” (orange) marks members an upline last updated.
               </p>
             </div>
           )}
 
-          {submitError && <p className="text-sm" style={{ color: '#bc4749' }}>{submitError}</p>}
+          {submitError && <p className="text-sm" style={{ color: 'var(--status-alert-fg)' }}>{submitError}</p>}
 
           <button
             onClick={handleSubmit}
             disabled={!rootCheck?.ok || submitting}
-            className="bg-[#bc4749] text-white px-6 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
+            className="bg-brand-crimson text-on-accent px-6 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
           >
             {submitting ? 'Submitting…' : `Submit for review (${assembly.total_row_count} members)`}
           </button>
@@ -245,7 +245,7 @@ export function LosUploadClient({ aboNumber }: { aboNumber: string | null }) {
       {/* My submissions */}
       <div className="space-y-2">
         <p className="text-xs font-semibold tracking-widest uppercase" style={{ color: 'var(--text-secondary)' }}>My submissions</p>
-        {withdrawError && <p className="text-sm" style={{ color: '#bc4749' }}>{withdrawError}</p>}
+        {withdrawError && <p className="text-sm" style={{ color: 'var(--status-alert-fg)' }}>{withdrawError}</p>}
         {submissions.length === 0 ? (
           <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No submissions yet.</p>
         ) : (

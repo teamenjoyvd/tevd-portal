@@ -103,7 +103,7 @@ export function GuestLinkPanel() {
           and the row moves, so a silent failure is indistinguishable from a
           click that never registered. */}
       {linkMutation.isError && (
-        <p className="px-5 pb-2 text-xs" style={{ color: 'var(--brand-crimson)' }} role="alert">
+        <p className="px-5 pb-2 text-xs" style={{ color: 'var(--status-alert-fg)' }} role="alert">
           {(linkMutation.error as Error).message}
         </p>
       )}
@@ -113,7 +113,7 @@ export function GuestLinkPanel() {
           reads a broken request as an empty queue. Distinguished before the
           empty case, never merged into it. */}
       {isError ? (
-        <p className="px-5 pb-4 text-xs" style={{ color: 'var(--brand-crimson)' }} role="alert">
+        <p className="px-5 pb-4 text-xs" style={{ color: 'var(--status-alert-fg)' }} role="alert">
           {(error as Error).message}
         </p>
       ) : guests.length === 0 ? (
@@ -137,7 +137,7 @@ export function GuestLinkPanel() {
                 {guest.linked_profile_id === null && (
                   <span
                     className="ml-2 px-1.5 py-0.5 rounded-full text-[10px] font-semibold align-middle"
-                    style={{ backgroundColor: '#f2cc8f33', color: '#7a5c00' }}
+                    style={{ backgroundColor: 'var(--status-pending-bg)', color: 'var(--status-pending-fg)' }}
                   >
                     {t('payment.guestUnlinked')}
                   </span>
@@ -186,8 +186,8 @@ export function GuestLinkPanel() {
                     // truthiness-checked: '' is the Select's unchosen value and
                     // is the only value that must block the click.
                     disabled={chosen === '' || linkMutation.isPending}
-                    className="px-4 py-2 rounded-xl text-xs font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity"
-                    style={{ backgroundColor: '#2d6a4f' }}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold text-on-accent disabled:opacity-40 hover:opacity-90 transition-opacity"
+                    style={{ backgroundColor: 'var(--brand-forest)' }}
                   >
                     {t('payment.guestLink')}
                   </button>
@@ -196,8 +196,8 @@ export function GuestLinkPanel() {
                 <button
                   onClick={() => setUnlinkTarget(guest)}
                   disabled={linkMutation.isPending}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold border disabled:opacity-40 transition-colors hover:bg-black/5"
-                  style={{ borderColor: 'var(--border-default)', color: 'var(--brand-crimson)' }}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold border disabled:opacity-40 transition-colors hover:bg-hover-surface"
+                  style={{ borderColor: 'var(--border-default)', color: 'var(--status-alert-fg)' }}
                 >
                   {t('payment.guestUnlink')}
                 </button>

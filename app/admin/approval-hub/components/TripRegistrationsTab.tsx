@@ -22,9 +22,9 @@ export type TripRegistration = {
 // ── Helpers ──────────────────────────────────────────────────────
 
 const STATUS_BADGE: Record<string, string> = {
-  pending:  'bg-[#f2cc8f]/30 text-[#7a5c00] border border-[#f2cc8f]',
-  approved: 'bg-[#81b29a]/20 text-[#2d6a4f] border border-[#81b29a]/50',
-  denied:   'bg-[#bc4749]/10 text-[#bc4749] border border-[#bc4749]/30',
+  pending:  'bg-status-pending-bg text-status-pending-fg border border-status-pending-fg/30',
+  approved: 'bg-status-success-bg text-status-success-fg border border-status-success-fg/50',
+  denied:   'bg-brand-crimson/10 text-status-alert-fg border border-status-alert-fg/30',
 }
 
 function formatDate(iso: string) {
@@ -117,8 +117,8 @@ export function TripRegistrationsTab() {
             onClick={() => setFilterTripId('all')}
             className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex-shrink-0"
             style={{
-              backgroundColor: filterTripId === 'all' ? 'var(--text-primary)' : 'rgba(0,0,0,0.05)',
-              color: filterTripId === 'all' ? 'white' : 'var(--text-secondary)',
+              backgroundColor: filterTripId === 'all' ? 'var(--text-primary)' : 'var(--hover-surface)',
+              color: filterTripId === 'all' ? 'var(--bg-global)' : 'var(--text-secondary)',
             }}
           >
             {t('admin.approval.trips.btn.allTrips')}
@@ -129,8 +129,8 @@ export function TripRegistrationsTab() {
               onClick={() => setFilterTripId(trip.id)}
               className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors max-w-[200px] truncate flex-shrink-0"
               style={{
-                backgroundColor: filterTripId === trip.id ? 'var(--text-primary)' : 'rgba(0,0,0,0.05)',
-                color: filterTripId === trip.id ? 'white' : 'var(--text-secondary)',
+                backgroundColor: filterTripId === trip.id ? 'var(--text-primary)' : 'var(--hover-surface)',
+                color: filterTripId === trip.id ? 'var(--bg-global)' : 'var(--text-secondary)',
               }}
             >
               {trip.title}
@@ -145,7 +145,7 @@ export function TripRegistrationsTab() {
 
       {isLoading ? (
         <div className="space-y-2">
-          {[...Array(3)].map((_, i) => <div key={i} className="h-16 bg-black/5 rounded-xl animate-pulse" />)}
+          {[...Array(3)].map((_, i) => <div key={i} className="h-16 bg-hover-surface rounded-xl animate-pulse" />)}
         </div>
       ) : pending.length === 0 ? (
         <div className="rounded-xl border px-5 py-8 text-center" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
@@ -172,7 +172,7 @@ export function TripRegistrationsTab() {
                 <button
                   onClick={() => updateMutation.mutate({ id: r.id, status: 'approved' })}
                   disabled={updateMutation.isPending}
-                  className="flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-medium text-white disabled:opacity-50 transition-opacity"
+                  className="flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-medium text-on-accent disabled:opacity-50 transition-opacity"
                   style={{ backgroundColor: 'var(--brand-teal)' }}
                 >
                   {t('admin.approval.verify.btn.approve')}
@@ -181,7 +181,7 @@ export function TripRegistrationsTab() {
                   onClick={() => updateMutation.mutate({ id: r.id, status: 'denied' })}
                   disabled={updateMutation.isPending}
                   className="flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-medium disabled:opacity-50 transition-opacity"
-                  style={{ backgroundColor: 'rgba(0,0,0,0.06)', color: 'var(--text-primary)' }}
+                  style={{ backgroundColor: 'var(--hover-surface)', color: 'var(--text-primary)' }}
                 >
                   {t('admin.approval.verify.btn.deny')}
                 </button>

@@ -319,7 +319,7 @@ export function InvitesSection() {
                       <AlertDialogTrigger asChild>
                         <button
                           className="text-[10px] font-semibold px-2.5 py-1 rounded-lg border transition-colors hover:opacity-70 disabled:opacity-40"
-                          style={{ borderColor: 'var(--border-default)', color: 'var(--brand-crimson)' }}
+                          style={{ borderColor: 'var(--border-default)', color: 'var(--status-alert-fg)' }}
                           disabled={revokingId === link.id}
                         >
                           {t('profile.invites.revoke')}

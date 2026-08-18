@@ -25,16 +25,16 @@ export default function History({ data }: HistoryProps) {
       {/* Desktop view (lg+) */}
       <div
         className="hidden lg:block rounded-2xl overflow-hidden"
-        style={{ border: '1px solid rgba(0,0,0,0.07)', backgroundColor: 'var(--bg-card)' }}
+        style={{ border: '1px solid var(--border-default)', backgroundColor: 'var(--bg-card)' }}
       >
         {/* Header row */}
         <div
           className="grid text-[10px] font-semibold tracking-widest uppercase px-4 py-2.5"
           style={{
             gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr',
-            borderBottom: '1px solid rgba(0,0,0,0.06)',
+            borderBottom: '1px solid var(--border-default)',
             color: 'var(--text-secondary)',
-            backgroundColor: 'rgba(0,0,0,0.02)',
+            backgroundColor: 'var(--bg-card-raised)',
           }}
         >
           <span>{t('event.roles.history.col.name')}</span>
@@ -53,7 +53,7 @@ export default function History({ data }: HistoryProps) {
               className="grid items-center px-4 py-3 text-sm transition-all"
               style={{
                 gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr',
-                borderTop: i === 0 ? undefined : '1px solid rgba(0,0,0,0.04)',
+                borderTop: i === 0 ? undefined : '1px solid var(--border-default)',
               }}
             >
               <span className="font-semibold truncate pr-4" style={{ color: 'var(--text-primary)' }}>
@@ -62,7 +62,7 @@ export default function History({ data }: HistoryProps) {
               <span style={{ color: 'var(--text-primary)' }}>{row.host_count ?? 0}</span>
               <span style={{ color: 'var(--text-primary)' }}>{row.speaker_count ?? 0}</span>
               <span style={{ color: 'var(--text-primary)' }}>{row.products_count ?? 0}</span>
-              <span className="text-right font-bold pr-4" style={{ color: 'var(--primary-default)' }}>
+              <span className="text-right font-bold pr-4" style={{ color: 'var(--status-success-fg)' }}>
                 {row.total_count ?? 0}
               </span>
             </div>
@@ -79,7 +79,7 @@ export default function History({ data }: HistoryProps) {
               key={row.profile_id || i}
               className="rounded-2xl p-4 transition-all"
               style={{
-                border: '1px solid rgba(0,0,0,0.07)',
+                border: '1px solid var(--border-default)',
                 backgroundColor: 'var(--bg-card)',
               }}
             >
@@ -90,8 +90,8 @@ export default function History({ data }: HistoryProps) {
                 <span
                   className="text-xs font-bold px-2 py-0.5 rounded-control"
                   style={{
-                    backgroundColor: 'rgba(var(--primary-default-rgb, 46, 125, 50), 0.1)',
-                    color: 'var(--primary-default)',
+                    backgroundColor: 'var(--status-success-bg)',
+                    color: 'var(--status-success-fg)',
                   }}
                 >
                   {row.total_count ?? 0}

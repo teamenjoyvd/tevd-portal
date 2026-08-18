@@ -76,6 +76,9 @@ literals 513 times, and every one of them is wrong in dark mode.
 | `--overlay` | `rgba(26,31,24,.40)` | `rgba(0,0,0,.60)` | Dialog and sheet scrims |
 | `--hover-surface` | `rgba(45,51,42,.05)` | `rgba(250,248,243,.08)` | Hover tints |
 | `--on-accent-hover` | `rgba(255,255,255,.10)` | same | Hover wash on a fill that does not swap with theme (footer icon buttons) |
+| `--on-accent-dark` | void | same | Text on a **light** accent fill (sienna, stone), where parchment fails AA |
+| `--overlay-strong` | `rgba(0,0,0,.85)` | same | Image lightbox backdrop over an unknown photo |
+| `--image-scrim` | forest-tinted gradient | black gradient | Text laid over a photo |
 | `--focus-ring` | crimson | `#6FAEBE` | Focus rings |
 
 `color-scheme` is set alongside them (`light` on `:root`, `dark` on
@@ -84,24 +87,60 @@ and autofill backgrounds follow the app theme.
 
 ### Contrast (WCAG 2.2 AA)
 
-Measured, not estimated. AA is 4.5:1 for body text and 3:1 for large text and
-UI components. Re-measure and update this table whenever a value changes.
+Measured, not estimated — every ratio below is computed from the actual token
+values in `styles/brand-tokens.css`, compositing translucent tints over the
+surface they sit on. AA is 4.5:1 for body text and 3:1 for large text and UI
+components. **Nothing in this table is below its bar.** Re-measure and update
+whenever a value changes.
+
+**Foregrounds on the three surfaces** (`--bg-global` page, `--bg-card`,
+`--bg-card-raised`):
+
+| Token | Light (global / card / raised) | Dark (global / card / raised) | Bar | |
+|---|---|---|---|---|
+| `--text-primary` | 15.79 / 14.33 / 14.72 | 15.79 / 13.66 / 12.44 | 4.5 | pass |
+| `--text-secondary` | 6.60 / 5.99 / 6.15 | 7.77 / 6.72 / 6.12 | 4.5 | pass |
+| `--text-tertiary` | 5.47 / 4.96 / 5.10 | 5.75 / 4.98 / 4.53 | 4.5 | pass |
+| `--text-nav` | 6.60 / 5.99 / 6.15 | 15.79 / 13.66 / 12.44 | 4.5 | pass |
+| `--link` | 5.85 / 5.31 / 5.45 | 6.76 / 5.85 / 5.33 | 4.5 | pass |
+| `--link-hover` | 7.27 / 6.60 / 6.78 | 9.40 / 8.13 / 7.40 | 4.5 | pass |
+| `--focus-ring` | 4.78 / 4.34 / 4.46 | 6.76 / 5.85 / 5.33 | 3.0 | pass |
+| `--status-success-fg` on card | 7.63 | 8.77 | 4.5 | pass |
+| `--status-info-fg` on card | 6.60 | 8.45 | 4.5 | pass |
+| `--status-alert-fg` on card | 6.10 | 6.79 | 4.5 | pass |
+| `--status-pending-fg` on card | 5.54 | 7.80 | 4.5 | pass |
+| `--status-neutral-fg` on card | 5.99 | 6.72 | 4.5 | pass |
+
+**Designed pairs** — each foreground on the fill it is meant for, which is the
+ratio that actually ships:
 
 | Pair | Light | Dark | Bar | |
 |---|---|---|---|---|
-| `--text-primary` on `--bg-card` | 14.33 | 13.66 | 4.5 | pass |
-| `--text-secondary` on `--bg-card` | 5.99 | 6.72 | 4.5 | pass |
-| `--link` on `--bg-global` | 5.85 | 6.76 | 4.5 | pass |
-| `--link` on `--bg-card` | 5.31 | 5.85 | 4.5 | pass |
-| `--link-hover` on `--bg-card` | 6.60 | 8.13 | 4.5 | pass |
-| `--on-accent` on crimson / forest / teal | 4.78 / 12.22 / 4.73 | same | 4.5 | pass |
-| `--focus-ring` on `--bg-global` / `--bg-card` | 4.78 / 4.34 | 6.76 / 5.85 | 3.0 | pass |
-| `--status-success-fg` on `--bg-card` | 7.63 | 8.77 | 4.5 | pass |
-| `--status-info-fg` on `--bg-card` | 6.60 | 8.45 | 4.5 | pass |
-| `--status-alert-fg` on `--bg-card` | 6.10 | 6.79 | 4.5 | pass |
-| `--status-pending-fg` on `--bg-card` | 4.80 | 7.80 | 4.5 | pass |
-| `--status-neutral-fg` on `--bg-card` | 5.99 | 6.72 | 4.5 | pass |
-| **`--text-tertiary` on `--bg-card`** | **3.15** | **3.94** | 4.5 | **FAIL — open** |
+| `--status-success-fg` on `--status-success-bg` | 6.51 | 6.22 | 4.5 | pass |
+| `--status-info-fg` on `--status-info-bg` | 5.72 | 6.25 | 4.5 | pass |
+| `--status-alert-fg` on `--status-alert-bg` | 5.22 | 5.30 | 4.5 | pass |
+| `--status-pending-fg` on `--status-pending-bg` | 4.90 | 5.38 | 4.5 | pass |
+| `--status-neutral-fg` on `--status-neutral-bg` | 5.18 | 4.50 | 4.5 | pass |
+| `--on-accent` on `--brand-crimson` | 4.78 | 4.78 | 4.5 | pass |
+| `--on-accent` on `--brand-forest` | 12.22 | 12.22 | 4.5 | pass |
+| `--on-accent` on `--brand-teal` | 4.73 | 4.73 | 4.5 | pass |
+| `--on-accent-dark` on `--brand-sienna` | 5.68 | 5.68 | 4.5 | pass |
+| `--on-accent-dark` on `--brand-stone` | 4.55 | 4.55 | 4.5 | pass |
+
+The four rows the audit (2608-DEV-741 C4) had to **change**, not just record:
+
+- `--text-tertiary` was `#8A8577`: 3.15 on the light card, 3.94 on the dark one,
+  and never redefined for dark at all. Now `#6A6559` light / `#9C978A` dark.
+- `--status-pending-fg` was `#a3502e`: 4.25 on its own tint, the only status
+  pair that failed. Now `#96481f`.
+- `--on-accent` on `--brand-sienna` (2.78) and `--brand-stone` (3.47) — parchment
+  on a *light* fill never had a chance. Those two call sites (the admin calendar
+  category badge, the "completed" trip badge) now use `--on-accent-dark`.
+- Brand colours **as text**: `--brand-crimson` is 2.86:1 and `--brand-teal`
+  2.89:1 on the dark card — below even the 3:1 UI bar. All 127 `color:
+  var(--brand-crimson|teal)` call sites moved to `--status-alert-fg` / `--link`.
+  The only exception is the **TEAMENJOY*VD*** wordmark, which WCAG 1.4.3 exempts
+  as a logotype; it keeps the brand hex in `Header.tsx` and `Footer.tsx`.
 
 Two notes on why `--link` is not simply `var(--brand-teal)`:
 
@@ -110,9 +149,34 @@ Two notes on why `--link` is not simply `var(--brand-teal)`:
 - It is *also* 4.29:1 on the **light** card, a failure nobody had noticed.
   `--brand-teal` stays the brand **fill** colour; `--link` is for text.
 
-`--text-tertiary` fails in both themes and is never redefined for dark at all.
-Fixing it changes light-mode pixels, so it is deliberately **not** in the C1
-foundation change — it belongs to the contrast-audit phase.
+### The check that keeps this true
+
+`npm run check:colors` (`scripts/check-color-literals.js`, a CI job of its own)
+fails the build on:
+
+1. a hex, `rgb()/rgba()/hsl()/hsla()`, or a bare `'white'`/`'black'` in `app/`
+   or `components/` — `rgba(var(--token-rgb), a)` is the sanctioned form when a
+   variable alpha has to be composited in JS;
+2. a Tailwind palette class — `text-emerald-800`, `bg-gray-200`,
+   `hover:bg-black/5`, `text-white`. These were the cheap wrong path: one word,
+   versus a whole style object for the correct one;
+3. a `var(--x)` that no stylesheet defines. This is not a CSS error — an
+   undefined custom property silently computes to nothing, so it renders
+   transparent and nobody finds out. Three separate families of these were
+   live when the check was written: `--bg-base` (the mobile payment footer),
+   `--semantic-fg-*` and `--border-subtle` (26 uses across the two email-settings
+   components), and `--primary-default` / `--text-muted` / `--border` /
+   `--bg-subtle` (roles, admin calendar, LOS preview).
+
+Genuine exceptions carry a reason inline:
+
+```tsx
+// colour-literal-ok: <why this cannot be a token>
+```
+
+and the file-level allowlist in the script itself covers the Clerk shadow DOM
+(CSS variables do not cross it) and the jsPDF export route (a PDF canvas has no
+CSS at all).
 
 ## Typography
 
@@ -201,10 +265,14 @@ radius decision cannot be reviewed as a diff.
 
 ### Migration status
 
-`app/admin/**` has not been migrated (2608-DEV-740 Phase 1 covered
+**Radius:** `app/admin/**` has not been migrated (2608-DEV-740 Phase 1 covered
 `components/`, `app/(dashboard)/` and `app/events/`). Admin pills still use
 `rounded-full` and some admin containers still sit on `rounded-lg`/`rounded-xl`,
 so they render at the control tier. Tracked as the Phase 2 follow-up.
+
+**Colour:** complete. 2608-DEV-741 finished the migration across `app/` and
+`components/` — 329 literals in 73 files, plus ~176 Tailwind palette classes and
+39 dangling `var()` references. `npm run check:colors` holds the line.
 
 ## Elevation Shadows
 
@@ -282,7 +350,23 @@ settings. Applied via `@media (prefers-reduced-motion: reduce)` guard in
     geometry, `opacity`, image `filter`, `background-image` gradients.
 
   For JS-driven values, read `data-theme` at runtime (`lib/hooks/useTheme.ts`;
-  `ThemeTile.tsx` is the reference consumer).
+  `ThemeTile.tsx` is the reference consumer). As of 2608-DEV-741 C2 there are
+  **zero** `dark:` classes in `app/` and `components/` — all five that existed
+  were colour, and colour is now a token. The variant stays registered for the
+  non-colour cases above.
+- **Brand colours are fills, not text.** `--brand-crimson` measures 2.86:1 and
+  `--brand-teal` 2.89:1 as text on the dark card. For coloured *text* use
+  `--status-alert-fg`, `--status-info-fg` or `--link`. The wordmark is the one
+  exception (WCAG 1.4.3 exempts logotypes).
+- **Text on a fill picks its foreground from the fill's lightness.** Dark fills
+  (crimson, forest, teal) take `--on-accent`; light fills (sienna, stone) take
+  `--on-accent-dark`. An inverted fill — `backgroundColor: var(--text-primary)`
+  — takes `var(--bg-global)`, never `white`: in dark mode `--text-primary` *is*
+  parchment, so white-on-white was a real bug in six filter pills.
+- **`npm run check:colors` enforces all of the above** and runs as its own CI
+  job. See § The check that keeps this true. Do not silence it with a pragma
+  unless the reason is that CSS variables genuinely cannot reach the value
+  (Clerk's shadow DOM, a PDF canvas, a numeric blend constant).
 - **Legacy bare token names** (`--forest`, `--crimson`, `--sienna`, `--stone`,
   defined in `app/globals.css`) are a deliberate back-compat layer for older
   calendar components (`FilterControls.tsx`, `MonthView.tsx`, `AgendaView.tsx`,

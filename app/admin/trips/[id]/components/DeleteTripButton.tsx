@@ -56,8 +56,8 @@ export function DeleteTripButton({ tripId }: { tripId: string }) {
         <AlertDialogTrigger asChild>
           <button
             disabled={isPending}
-            className="text-sm font-semibold px-4 py-2 rounded-xl border transition-colors hover:bg-black/5 disabled:opacity-40"
-            style={{ borderColor: 'var(--brand-crimson)', color: 'var(--brand-crimson)' }}
+            className="text-sm font-semibold px-4 py-2 rounded-xl border transition-colors hover:bg-hover-surface disabled:opacity-40"
+            style={{ borderColor: 'var(--brand-crimson)', color: 'var(--status-alert-fg)' }}
           >
             {isPending ? 'Deleting…' : 'Delete Trip'}
           </button>
@@ -79,7 +79,7 @@ export function DeleteTripButton({ tripId }: { tripId: string }) {
       </AlertDialog>
 
       {error && (
-        <p className="text-sm" style={{ color: 'var(--brand-crimson)' }}>{error}</p>
+        <p className="text-sm" style={{ color: 'var(--status-alert-fg)' }}>{error}</p>
       )}
     </div>
   )

@@ -314,7 +314,7 @@ export function PaymentForm(props: PaymentFormProps) {
       {/* Required field legend */}
       <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
         {t('payment.fieldsRequiredPre')}{' '}
-        <span style={{ color: 'var(--brand-crimson)' }}>*</span>
+        <span style={{ color: 'var(--status-alert-fg)' }}>*</span>
         {' '}{t('payment.fieldsRequiredPost')}
       </p>
 
@@ -322,7 +322,7 @@ export function PaymentForm(props: PaymentFormProps) {
       {'payableItems' in props && (
         <div>
           <label style={labelStyle}>
-            {t('payment.item')} <span style={{ color: 'var(--brand-crimson)' }}>*</span>
+            {t('payment.item')} <span style={{ color: 'var(--status-alert-fg)' }}>*</span>
           </label>
           <select
             value={itemId}
@@ -412,7 +412,7 @@ export function PaymentForm(props: PaymentFormProps) {
       <div>
         <label style={labelStyle}>
           {isOnBehalf ? t('payment.total') : t('payment.amount')} ({currency}){' '}
-          <span style={{ color: 'var(--brand-crimson)' }}>*</span>
+          <span style={{ color: 'var(--status-alert-fg)' }}>*</span>
         </label>
         <input
           type="number" min="0" step="0.01" placeholder="0.00"
@@ -462,7 +462,7 @@ export function PaymentForm(props: PaymentFormProps) {
       {/* Date */}
       <div>
         <label style={labelStyle}>
-          {t('payment.date')} <span style={{ color: 'var(--brand-crimson)' }}>*</span>
+          {t('payment.date')} <span style={{ color: 'var(--status-alert-fg)' }}>*</span>
         </label>
         <input
           type="date" value={date} onChange={e => setDate(e.target.value)}
@@ -475,7 +475,7 @@ export function PaymentForm(props: PaymentFormProps) {
         <label style={labelStyle}>{t('payment.method')}</label>
         <div
           className="flex p-1 gap-1 rounded-xl"
-          style={{ backgroundColor: 'rgba(0,0,0,0.05)' }}
+          style={{ backgroundColor: 'var(--hover-surface)' }}
         >
           {(['cash', 'bank_transfer'] as const).map(m => (
             <button
@@ -486,7 +486,7 @@ export function PaymentForm(props: PaymentFormProps) {
               style={{
                 backgroundColor: method === m ? 'var(--bg-card)' : 'transparent',
                 color: method === m ? 'var(--text-primary)' : 'var(--text-secondary)',
-                boxShadow: method === m ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                boxShadow: method === m ? 'var(--shadow-rest)' : 'none',
                 border: 'none',
                 cursor: 'pointer',
               }}
@@ -548,7 +548,7 @@ export function PaymentForm(props: PaymentFormProps) {
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="w-full flex flex-col items-center justify-center gap-2 rounded-xl py-6 transition-colors hover:bg-black/[0.02]"
+            className="w-full flex flex-col items-center justify-center gap-2 rounded-xl py-6 transition-colors hover:bg-hover-surface"
             style={{
               border: '1.5px dashed var(--border-default)',
               backgroundColor: 'transparent',
@@ -570,7 +570,7 @@ export function PaymentForm(props: PaymentFormProps) {
 
       {/* Error */}
       {submitMutation.isError && (
-        <p className="text-xs" style={{ color: '#bc4749' }}>
+        <p className="text-xs" style={{ color: 'var(--status-alert-fg)' }}>
           {(submitMutation.error as Error).message}
         </p>
       )}
@@ -596,10 +596,10 @@ export function PaymentForm(props: PaymentFormProps) {
           type="button"
           onClick={() => submitMutation.mutate()}
           disabled={!canSubmit}
-          className="flex-1 py-3 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90"
+          className="flex-1 py-3 rounded-xl text-sm font-semibold text-on-accent transition-opacity hover:opacity-90"
           style={{
-            backgroundColor: canSubmit ? 'var(--brand-forest)' : 'rgba(0,0,0,0.12)',
-            color: canSubmit ? '#ffffff' : 'var(--text-secondary)',
+            backgroundColor: canSubmit ? 'var(--brand-forest)' : 'rgba(var(--brand-forest-rgb), 0.12)',
+            color: canSubmit ? 'var(--on-accent)' : 'var(--text-secondary)',
             cursor: canSubmit ? 'pointer' : 'not-allowed',
             border: 'none',
           }}

@@ -34,7 +34,7 @@ export function CancelActions({ token }: { token: string }) {
     <form ref={formRef} action={formAction} className="mt-6 text-center">
       <input type="hidden" name="token" value={token} />
       {state.error && (
-        <p className="text-sm mb-2" style={{ color: '#bc4749' }}>{t('event.join.cancelError')}</p>
+        <p className="text-sm mb-2" style={{ color: 'var(--status-alert-fg)' }}>{t('event.join.cancelError')}</p>
       )}
       <AlertDialog>
         <AlertDialogTrigger asChild>

@@ -29,10 +29,10 @@ function InvalidState({ eventId, reason, lang }: { eventId: string; reason: 'mis
       {/* Desktop */}
       <div
         className="hidden md:flex min-h-screen items-center justify-center px-6"
-        style={{ backgroundColor: 'var(--bg-global, #f4f1eb)' }}
+        style={{ backgroundColor: 'var(--bg-global)' }}
       >
         <div className="w-full max-w-sm text-center">
-          <p className="text-xs font-bold tracking-widest uppercase mb-6" style={{ color: '#bc4749' }}>
+          <p className="text-xs font-bold tracking-widest uppercase mb-6" style={{ color: 'var(--status-alert-fg)' }}>
             {t('event.join.brandName', lang)}
           </p>
           <div
@@ -45,8 +45,8 @@ function InvalidState({ eventId, reason, lang }: { eventId: string; reason: 'mis
             </p>
             <Link
               href={`/events/${eventId}/register`}
-              className="inline-block w-full rounded-xl py-3.5 text-sm font-semibold text-white text-center hover:opacity-80 transition-opacity"
-              style={{ backgroundColor: '#1a3c2e' }}
+              className="inline-block w-full rounded-xl py-3.5 text-sm font-semibold text-on-accent text-center hover:opacity-80 transition-opacity"
+              style={{ backgroundColor: 'var(--brand-forest)' }}
             >
               {t('event.join.registerAgain', lang)}
             </Link>
@@ -58,9 +58,9 @@ function InvalidState({ eventId, reason, lang }: { eventId: string; reason: 'mis
       {/* Mobile */}
       <div
         className="md:hidden min-h-screen px-5 pt-12 pb-8"
-        style={{ backgroundColor: 'var(--bg-global, #f4f1eb)' }}
+        style={{ backgroundColor: 'var(--bg-global)' }}
       >
-        <p className="text-xs font-bold tracking-widest uppercase mb-8" style={{ color: '#bc4749' }}>
+        <p className="text-xs font-bold tracking-widest uppercase mb-8" style={{ color: 'var(--status-alert-fg)' }}>
           {t('event.join.brandName', lang)}
         </p>
         <div
@@ -73,8 +73,8 @@ function InvalidState({ eventId, reason, lang }: { eventId: string; reason: 'mis
           </p>
           <Link
             href={`/events/${eventId}/register`}
-            className="block w-full rounded-xl py-3.5 text-sm font-semibold text-white text-center active:opacity-70"
-            style={{ backgroundColor: '#1a3c2e', minHeight: 44 }}
+            className="block w-full rounded-xl py-3.5 text-sm font-semibold text-on-accent text-center active:opacity-70"
+            style={{ backgroundColor: 'var(--brand-forest)', minHeight: 44 }}
           >
             {t('event.join.registerAgain', lang)}
           </Link>
@@ -218,10 +218,10 @@ export default async function GuestJoinPage({ params, searchParams }: Props) {
       {/* -- Desktop ----------------------------------------------------------- */}
       <div
         className="hidden md:flex min-h-screen items-center justify-center px-6"
-        style={{ backgroundColor: 'var(--bg-global, #f4f1eb)' }}
+        style={{ backgroundColor: 'var(--bg-global)' }}
       >
         <div className="w-full max-w-sm">
-          <p className="text-xs font-bold tracking-widest uppercase mb-6 text-center" style={{ color: '#bc4749' }}>
+          <p className="text-xs font-bold tracking-widest uppercase mb-6 text-center" style={{ color: 'var(--status-alert-fg)' }}>
             {t('event.join.brandName', lang)}
           </p>
           <div
@@ -240,8 +240,8 @@ export default async function GuestJoinPage({ params, searchParams }: Props) {
                 href={event.meeting_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center w-full rounded-xl py-3.5 text-sm font-semibold text-white hover:opacity-80 transition-opacity"
-                style={{ backgroundColor: '#1a3c2e', minHeight: 44 }}
+                className="flex items-center justify-center w-full rounded-xl py-3.5 text-sm font-semibold text-on-accent hover:opacity-80 transition-opacity"
+                style={{ backgroundColor: 'var(--brand-forest)', minHeight: 44 }}
               >
                 {t('event.join.joinMeeting', lang)}
               </a>
@@ -261,9 +261,9 @@ export default async function GuestJoinPage({ params, searchParams }: Props) {
       {/* -- Mobile ------------------------------------------------------------ */}
       <div
         className="md:hidden min-h-screen px-5 pt-12 pb-8"
-        style={{ backgroundColor: 'var(--bg-global, #f4f1eb)' }}
+        style={{ backgroundColor: 'var(--bg-global)' }}
       >
-        <p className="text-xs font-bold tracking-widest uppercase mb-8" style={{ color: '#bc4749' }}>
+        <p className="text-xs font-bold tracking-widest uppercase mb-8" style={{ color: 'var(--status-alert-fg)' }}>
           {t('event.join.brandName', lang)}
         </p>
         <div
@@ -282,8 +282,8 @@ export default async function GuestJoinPage({ params, searchParams }: Props) {
               href={event.meeting_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center w-full rounded-xl py-3.5 text-sm font-semibold text-white active:opacity-70"
-              style={{ backgroundColor: '#1a3c2e', minHeight: 44 }}
+              className="flex items-center justify-center w-full rounded-xl py-3.5 text-sm font-semibold text-on-accent active:opacity-70"
+              style={{ backgroundColor: 'var(--brand-forest)', minHeight: 44 }}
             >
               {t('event.join.joinMeeting', lang)}
             </a>

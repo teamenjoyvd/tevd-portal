@@ -211,7 +211,7 @@ export default function UserDropdown() {
                 window.location.href = '/'
               }}
               className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors cursor-pointer"
-              style={{ color: 'var(--brand-crimson)', borderTop: '1px solid var(--border-default)', backgroundColor: 'transparent' }}
+              style={{ color: 'var(--status-alert-fg)', borderTop: '1px solid var(--border-default)', backgroundColor: 'transparent' }}
               onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--bg-global)')}
               onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
             >

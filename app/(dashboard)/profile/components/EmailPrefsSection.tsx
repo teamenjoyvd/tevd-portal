@@ -85,7 +85,7 @@ export function EmailPrefsSection() {
               </span>
             )}
             {save.isError && (
-              <span className="text-xs font-medium" style={{ color: 'var(--brand-crimson)' }}>
+              <span className="text-xs font-medium" style={{ color: 'var(--status-alert-fg)' }}>
                 {t('profile.error')}
               </span>
             )}

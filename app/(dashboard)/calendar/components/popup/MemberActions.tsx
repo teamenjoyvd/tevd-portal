@@ -72,7 +72,7 @@ export default function MemberActions({
       : t('event.cutoff.hint')
 
   return (
-    <div className="px-4 py-3 border-b border-black/5">
+    <div className="px-4 py-3 border-b border-border-default">
       <p className="text-[10px] font-semibold tracking-widest uppercase mb-1 flex items-center gap-1" style={{ color: 'var(--text-secondary)' }}>
         {t('event.roles')}
         {closed && <Lock size={10} />}
@@ -110,7 +110,7 @@ export default function MemberActions({
       {showNameGate && (
         <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
           {t('event.nameRequiredToRequest')}{' '}
-          <Link href="/profile" style={{ color: 'var(--brand-teal)' }}>
+          <Link href="/profile" style={{ color: 'var(--link)' }}>
             {t('event.goToProfile')}
           </Link>
         </p>

@@ -56,13 +56,13 @@ export function ReconciliationPanel({
         </div>
         {selectedLos && selectedProfileId && (
           <button onClick={handleLink} disabled={linking}
-            className="flex-shrink-0 px-4 py-2 rounded-lg text-sm font-semibold text-white disabled:opacity-50"
+            className="flex-shrink-0 px-4 py-2 rounded-lg text-sm font-semibold text-on-accent disabled:opacity-50"
             style={{ backgroundColor: 'var(--brand-teal)' }}>
             {linking ? 'Linking...' : 'Link'}
           </button>
         )}
       </div>
-      {linkError && <p className="text-xs mb-3" style={{ color: 'var(--brand-crimson)' }}>{linkError}</p>}
+      {linkError && <p className="text-xs mb-3" style={{ color: 'var(--status-alert-fg)' }}>{linkError}</p>}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <p className="text-xs font-semibold tracking-widest uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>
@@ -77,8 +77,8 @@ export function ReconciliationPanel({
                   onClick={() => setSelectedLos(s => s === row.abo_number ? null : row.abo_number)}
                   className="w-full text-left px-3 py-2.5 rounded-xl text-xs transition-colors"
                   style={{
-                    backgroundColor: selectedLos === row.abo_number ? 'rgba(62,119,133,0.15)' : 'rgba(0,0,0,0.03)',
-                    border: `1px solid ${selectedLos === row.abo_number ? '#3E7785' : 'transparent'}`,
+                    backgroundColor: selectedLos === row.abo_number ? 'var(--status-info-bg)' : 'var(--bg-card-raised)',
+                    border: `1px solid ${selectedLos === row.abo_number ? 'var(--brand-teal)' : 'transparent'}`,
                   }}>
                   <span className="font-mono font-medium block" style={{ color: 'var(--text-primary)' }}>{row.abo_number}</span>
                   <span style={{ color: 'var(--text-secondary)' }}>{row.name}</span>
@@ -103,8 +103,8 @@ export function ReconciliationPanel({
                   onClick={() => setSelectedProfileId(s => s === p.id ? null : p.id)}
                   className="w-full text-left px-3 py-2.5 rounded-xl text-xs transition-colors"
                   style={{
-                    backgroundColor: selectedProfileId === p.id ? 'rgba(62,119,133,0.15)' : 'rgba(0,0,0,0.03)',
-                    border: `1px solid ${selectedProfileId === p.id ? '#3E7785' : 'transparent'}`,
+                    backgroundColor: selectedProfileId === p.id ? 'var(--status-info-bg)' : 'var(--bg-card-raised)',
+                    border: `1px solid ${selectedProfileId === p.id ? 'var(--brand-teal)' : 'transparent'}`,
                   }}>
                   <span className="font-medium block" style={{ color: 'var(--text-primary)' }}>{p.first_name} {p.last_name}</span>
                   {p.upline_abo_number && (

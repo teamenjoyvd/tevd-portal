@@ -49,7 +49,7 @@ export default function EventActionsTabs({
     <>
       {/* Same bare role="tablist" as app/admin/components/LangTabs.tsx:14 —
           the tab labels are the accessible name, no separate aria-label. */}
-      <div role="tablist" className="px-4 pt-3 pb-0 flex gap-1 border-b border-black/5">
+      <div role="tablist" className="px-4 pt-3 pb-0 flex gap-1 border-b border-border-default">
         {(['roles', 'registrations'] as const).map(tab => (
           <button
             key={tab}
@@ -74,7 +74,7 @@ export default function EventActionsTabs({
       {activeTab === 'roles' && (
         <div role="tabpanel" id="event-tabpanel-roles" aria-labelledby="event-tab-roles">
         {role === 'admin' ? (
-          <div className="px-4 py-3 border-b border-black/5">
+          <div className="px-4 py-3 border-b border-border-default">
             <p className="text-[10px] font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
               {t('event.roles')}
             </p>

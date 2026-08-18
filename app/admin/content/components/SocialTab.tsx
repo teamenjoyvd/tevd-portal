@@ -149,7 +149,7 @@ export function SocialTab() {
           {socialPostsRaw.length} post{socialPostsRaw.length !== 1 ? 's' : ''}
         </p>
         <button onClick={() => { socialDrawer.openCreate(); setSocialMutError(null) }}
-          className="px-4 py-2 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-opacity"
+          className="px-4 py-2 rounded-xl text-sm font-semibold text-on-accent hover:opacity-90 transition-opacity"
           style={{ backgroundColor: 'var(--brand-crimson)' }}>
           {t('admin.content.social.btn.addPost')}
         </button>
@@ -202,7 +202,7 @@ export function SocialTab() {
             key={post.id}
             grip
             lead={
-              <div className="rounded-lg overflow-hidden flex-shrink-0" style={{ width: 40, height: 40, backgroundColor: 'rgba(0,0,0,0.06)' }}>
+              <div className="rounded-lg overflow-hidden flex-shrink-0" style={{ width: 40, height: 40, backgroundColor: 'var(--hover-surface)' }}>
                 {post.thumbnail_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={post.thumbnail_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -234,12 +234,12 @@ export function SocialTab() {
                   />
                 </button>
                 <button onClick={() => patchSocialPost.mutate({ id: post.id, is_pinned: !post.is_pinned })} disabled={patchSocialPost.isPending}
-                  className="text-xs px-2.5 py-1 rounded-full font-semibold border transition-all disabled:opacity-50 hover:bg-black/5"
+                  className="text-xs px-2.5 py-1 rounded-full font-semibold border transition-all disabled:opacity-50 hover:bg-hover-surface"
                   style={{ borderColor: 'var(--border-default)', color: post.is_pinned ? 'var(--brand-crimson)' : 'var(--text-secondary)' }}>
                   {post.is_pinned ? t('admin.content.social.btn.unpin') : t('admin.content.social.btn.pin')}
                 </button>
                 <button onClick={() => { socialDrawer.openEdit(post); setSocialMutError(null) }}
-                  className="text-xs font-medium border px-2.5 py-1 rounded-full hover:bg-black/5 transition-colors"
+                  className="text-xs font-medium border px-2.5 py-1 rounded-full hover:bg-hover-surface transition-colors"
                   style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
                   {t('admin.content.social.btn.edit')}
                 </button>
@@ -247,7 +247,7 @@ export function SocialTab() {
                   onClick={() => setSocialAlertTarget({ id: post.id, name: post.caption ?? post.post_url })}
                   disabled={deleteSocialPost.isPending}
                   className="text-xs font-medium hover:opacity-70 transition-opacity disabled:opacity-40"
-                  style={{ color: 'var(--brand-crimson)' }}>
+                  style={{ color: 'var(--status-alert-fg)' }}>
                   {t('admin.content.social.btn.delete')}
                 </button>
               </>

@@ -22,7 +22,7 @@ export default function PageHeading({ title, accent, subtitle }: Props) {
           style={{ color: 'var(--text-primary)' }}
         >
           {baseWords && <>{baseWords} </>}
-          <span style={{ color: 'var(--brand-crimson)' }}>{accentWord}</span>
+          <span style={{ color: 'var(--status-alert-fg)' }}>{accentWord}</span>
         </h1>
         {subtitle && (
           <p

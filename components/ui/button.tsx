@@ -10,7 +10,7 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default: "bg-[var(--brand-forest)] text-[var(--brand-parchment)] hover:opacity-90",
-        destructive: "bg-[var(--brand-crimson)] text-white hover:opacity-90",
+        destructive: "bg-[var(--brand-crimson)] text-on-accent hover:opacity-90",
         outline: "border border-[var(--border-default)] bg-transparent text-[var(--text-primary)] hover:bg-[var(--bg-card)]",
         secondary: "bg-[var(--bg-card)] text-[var(--text-primary)] hover:opacity-80",
         ghost: "text-[var(--text-secondary)] hover:opacity-70",

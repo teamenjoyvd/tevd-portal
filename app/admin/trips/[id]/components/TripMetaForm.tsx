@@ -149,12 +149,12 @@ export function TripMetaForm({ trip }: { trip: Trip }) {
         </div>
       </div>
 
-      {error && <p className="text-xs" style={{ color: 'var(--brand-crimson)' }}>{error}</p>}
+      {error && <p className="text-xs" style={{ color: 'var(--status-alert-fg)' }}>{error}</p>}
 
       <button
         onClick={handleSave}
         disabled={saving}
-        className="px-4 py-2 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-opacity disabled:opacity-50"
+        className="px-4 py-2 rounded-xl text-sm font-semibold text-on-accent hover:opacity-90 transition-opacity disabled:opacity-50"
         style={{ backgroundColor: 'var(--brand-crimson)' }}
       >
         {saving ? 'Saving…' : saved ? 'Saved ✓' : 'Save'}

@@ -14,7 +14,7 @@ export default function TripCard(props: CardProps) {
       <TripImage src={trip.image_url} heightClassName="h-[180px] md:h-[220px]" overlay muted={isCompleted}>
         <div className="px-4 pb-3 md:px-5 md:pb-4">
           <TripBadges destination={trip.destination} tripType={trip.trip_type} completedLabel={isCompleted ? props.t('trips.status.completed') : null} />
-          <h3 className="font-display text-xl md:text-2xl font-semibold leading-snug text-white">
+          <h3 className="font-display text-xl md:text-2xl font-semibold leading-snug text-on-accent">
             {trip.title}
           </h3>
         </div>

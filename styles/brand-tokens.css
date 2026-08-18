@@ -26,6 +26,8 @@
   --white-rgb:        255, 255, 255;
   --brand-oyster-rgb: 240, 237, 230;
   --brand-crimson-rgb: 188, 71, 73;
+  --brand-forest-rgb: 45, 51, 42;
+  --brand-teal-rgb:   62, 119, 133;
   --brand-parchment-rgb: 250, 248, 243;
   --brand-void-rgb:   26, 31, 24;
 
@@ -42,7 +44,7 @@
   --bg-card:           var(--brand-oyster);
   --text-primary:      var(--brand-void);
   --text-secondary:    #5C5950;
-  --text-tertiary:     #8A8577;
+  --text-tertiary:     #6A6559;
   --text-nav:          var(--text-secondary); /* nav chrome — bumped in dark mode */
   --border-default:    rgba(45, 51, 42, 0.08);
   --bg-card-raised:    rgba(45, 51, 42, 0.04);
@@ -129,6 +131,10 @@
      which is for the surfaces that DO swap. No dark override needed. */
   --on-accent-hover: rgba(255, 255, 255, 0.10);
 
+  /* Text on a LIGHT accent fill (sienna, stone), where parchment fails AA:
+     2.78:1 on sienna and 3.47:1 on stone, against 5.68 and 4.55 for void. */
+  --on-accent-dark:  var(--brand-void);
+
   /* Must clear 3:1 against BOTH the page and card surface of its own theme.
      Crimson does in light (4.78 / 4.34) but only 2.86 on the dark card, which
      is exactly why this is a token and not a constant. */
@@ -142,7 +148,7 @@
   --status-alert-bg:    rgba(188, 71, 73, 0.12);
   --status-alert-fg:    #96393b;
   --status-pending-bg:  rgba(224, 122, 95, 0.14);
-  --status-pending-fg:  #a3502e;
+  --status-pending-fg:  #96481f;
   --status-neutral-bg:  rgba(138, 133, 119, 0.15);
   --status-neutral-fg:  #5c5950;
 
@@ -166,6 +172,8 @@ html { font-size: calc(var(--font-scale) * 16px); }
   --bg-card-raised:     #2B3229;      /* raised surface for dark cards */
   --text-primary:       var(--brand-parchment);
   --text-secondary:     #B5B0A8;
+  /* C4: the :root value measures 3.94:1 on the dark card. */
+  --text-tertiary:      #9C978A;
   --text-nav:           var(--brand-parchment); /* full parchment on dark backdrop */
   --nav-border:         rgba(250, 248, 243, 0.10); /* parchment-tinted, subtle outline on dark bg */
   --logo-text:          var(--brand-parchment); /* wordmark visible on dark backdrop */

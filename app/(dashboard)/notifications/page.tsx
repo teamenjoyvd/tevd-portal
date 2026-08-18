@@ -7,13 +7,21 @@ import { TranslationKey } from '@/lib/i18n/translations'
 import PageHeading from '@/components/layout/PageHeading'
 import PageContainer from '@/components/layout/PageContainer'
 
+/* The six notification types map onto the five semantic status pairs, which
+   already are "a tint plus a foreground that stays legible on it" in both
+   themes. The literals these replace were brand colours at a fixed alpha with
+   no dark override: teal fg on a dark card is 3.34:1, and the forest pair was
+   invisible on --brand-void. Light-mode values are unchanged except
+   trip_created, which moves from a forest-grey tint to the green success pair
+   — the closest theme-aware token; the alternative was a seventh token whose
+   only job is to be forest. */
 const TYPE_STYLES: Record<string, { bg: string; color: string }> = {
-  role_request:  { bg: 'rgba(62,119,133,0.12)',  color: 'var(--brand-teal)'    },
-  trip_request:  { bg: 'rgba(188,71,73,0.10)',   color: 'var(--brand-crimson)' },
-  trip_created:  { bg: 'rgba(45,51,42,0.10)',    color: 'var(--brand-forest)'  },
-  event_fetched: { bg: 'rgba(138,133,119,0.15)', color: 'var(--text-secondary)'},
-  doc_expiry:    { bg: 'rgba(188,71,73,0.10)',   color: 'var(--brand-crimson)' },
-  los_digest:    { bg: 'rgba(62,119,133,0.10)',  color: 'var(--brand-teal)'   },
+  role_request:  { bg: 'var(--status-info-bg)',    color: 'var(--status-info-fg)'    },
+  trip_request:  { bg: 'var(--status-alert-bg)',   color: 'var(--status-alert-fg)'   },
+  trip_created:  { bg: 'var(--status-success-bg)', color: 'var(--status-success-fg)' },
+  event_fetched: { bg: 'var(--status-neutral-bg)', color: 'var(--status-neutral-fg)' },
+  doc_expiry:    { bg: 'var(--status-alert-bg)',   color: 'var(--status-alert-fg)'   },
+  los_digest:    { bg: 'var(--status-info-bg)',    color: 'var(--status-info-fg)'    },
 }
 
 const ALL_TYPES = ['role_request', 'trip_request', 'trip_created', 'event_fetched', 'doc_expiry', 'los_digest']
@@ -83,7 +91,7 @@ export default function NotificationsPage() {
                     onClick={() => markAllRead.mutate()}
                     disabled={markAllRead.isPending}
                     className="text-sm font-medium disabled:opacity-50 hover:underline"
-                    style={{ color: 'var(--brand-crimson)' }}
+                    style={{ color: 'var(--status-alert-fg)' }}
                   >
                     {t('notif.markAllRead')}
                   </button>
@@ -122,7 +130,7 @@ export default function NotificationsPage() {
                   className="w-full pl-9 pr-3 py-2 rounded-xl text-sm border transition-colors"
                   style={{
                     borderColor: 'var(--border-default)',
-                    backgroundColor: 'white',
+                    backgroundColor: 'var(--bg-card)',
                     color: 'var(--text-primary)',
                   }}
                 />
@@ -131,16 +139,16 @@ export default function NotificationsPage() {
               {/* Read state + Type filters */}
               <div className="flex flex-wrap items-center gap-2">
                 {/* Read state */}
-                <div className="flex gap-1 p-0.5 rounded-lg" style={{ backgroundColor: 'rgba(0,0,0,0.05)' }}>
+                <div className="flex gap-1 p-0.5 rounded-lg" style={{ backgroundColor: 'var(--hover-surface)' }}>
                   {(['all', 'unread', 'read'] as const).map(opt => (
                     <button
                       key={opt}
                       onClick={() => setReadFilter(opt)}
                       className="px-3 py-1 rounded-md text-xs font-medium capitalize transition-all"
                       style={{
-                        backgroundColor: readFilter === opt ? 'white' : 'transparent',
+                        backgroundColor: readFilter === opt ? 'var(--bg-card)' : 'transparent',
                         color: readFilter === opt ? 'var(--text-primary)' : 'var(--text-secondary)',
-                        boxShadow: readFilter === opt ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                        boxShadow: readFilter === opt ? 'var(--shadow-rest)' : 'none',
                       }}
                     >
                       {opt === 'all' ? t('notif.filter.all') : opt === 'unread' ? t('notif.filter.unread') : t('notif.filter.read')}
@@ -153,8 +161,8 @@ export default function NotificationsPage() {
                   onClick={() => setTypeFilter('all')}
                   className="px-3 py-1 rounded-control text-xs font-medium transition-all"
                   style={{
-                    backgroundColor: typeFilter === 'all' ? 'var(--text-primary)' : 'rgba(0,0,0,0.06)',
-                    color: typeFilter === 'all' ? 'white' : 'var(--text-secondary)',
+                    backgroundColor: typeFilter === 'all' ? 'var(--text-primary)' : 'var(--hover-surface)',
+                    color: typeFilter === 'all' ? 'var(--bg-global)' : 'var(--text-secondary)',
                   }}
                 >
                   {t('notif.filter.allTypes')}
@@ -166,8 +174,8 @@ export default function NotificationsPage() {
                     className="px-3 py-1 rounded-control text-xs font-medium transition-all"
                     style={{
                       backgroundColor: typeFilter === type
-                        ? (TYPE_STYLES[type]?.bg ?? 'rgba(0,0,0,0.06)')
-                        : 'rgba(0,0,0,0.06)',
+                        ? (TYPE_STYLES[type]?.bg ?? 'var(--hover-surface)')
+                        : 'var(--hover-surface)',
                       color: typeFilter === type
                         ? (TYPE_STYLES[type]?.color ?? 'var(--text-secondary)')
                         : 'var(--text-secondary)',
@@ -185,13 +193,13 @@ export default function NotificationsPage() {
             <div className="space-y-3">
               {[...Array(5)].map((_, i) => (
                 <div key={i} className="h-16 rounded-container animate-pulse"
-                  style={{ backgroundColor: 'rgba(0,0,0,0.06)' }} />
+                  style={{ backgroundColor: 'var(--skeleton-base)' }} />
               ))}
             </div>
           ) : notifications.length === 0 ? (
             <div className="text-center py-20">
               <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
-                style={{ backgroundColor: 'rgba(0,0,0,0.05)' }}>
+                style={{ backgroundColor: 'var(--hover-surface)' }}>
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
                   stroke="var(--text-secondary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
@@ -212,7 +220,7 @@ export default function NotificationsPage() {
                 <button
                   onClick={() => { setSearch(''); setTypeFilter('all'); setReadFilter('all') }}
                   className="text-xs mt-2 hover:underline"
-                  style={{ color: 'var(--brand-crimson)' }}
+                  style={{ color: 'var(--status-alert-fg)' }}
                 >
                   {t('notif.clearFilters')}
                 </button>
@@ -226,10 +234,14 @@ export default function NotificationsPage() {
                   onClick={() => { if (!n.is_read) markRead.mutate(n.id) }}
                   className="rounded-container p-4 border transition-colors cursor-pointer"
                   style={{
-                    backgroundColor: n.is_read ? 'white' : 'rgba(244,241,222,0.6)',
+                    /* Unread was a cream wash with a sienna border; the wash had no
+                       dark override, so an unread row read as a lighter card in dark
+                       mode. --status-pending-bg is the same sienna family as the
+                       border it already carries and swaps with the theme. */
+                    backgroundColor: n.is_read ? 'var(--bg-card)' : 'var(--status-pending-bg)',
                     borderColor: n.is_read
-                      ? 'rgba(0,0,0,0.05)'
-                      : 'rgba(224,122,95,0.25)',
+                      ? 'var(--border-default)'
+                      : 'rgba(var(--brand-sienna-rgb), 0.25)',
                   }}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -284,7 +296,7 @@ export default function NotificationsPage() {
                       href={n.action_url}
                       onClick={e => e.stopPropagation()}
                       className="text-xs font-medium mt-2 inline-block hover:underline"
-                      style={{ color: 'var(--brand-crimson)' }}
+                      style={{ color: 'var(--status-alert-fg)' }}
                     >
                       {t('notif.view')}
                     </a>

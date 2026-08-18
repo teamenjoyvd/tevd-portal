@@ -153,14 +153,14 @@ export function SplitEditor({ rows, people, totalCents, currency, onChangeAmount
         <span style={{ color: 'var(--text-secondary)' }}>Σ</span>
         <span
           className="font-semibold"
-          style={{ color: balanced ? 'var(--text-primary)' : '#bc4749' }}
+          style={{ color: balanced ? 'var(--text-primary)' : 'var(--status-alert-fg)' }}
         >
           {formatCurrency(currentCents / 100, currency)} / {formatCurrency(totalCents / 100, currency)}
         </span>
       </div>
 
       {!balanced && (
-        <p className="text-xs" style={{ color: '#bc4749' }}>
+        <p className="text-xs" style={{ color: 'var(--status-alert-fg)' }}>
           {t('payment.mustSumToTotal')}
         </p>
       )}

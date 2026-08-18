@@ -96,7 +96,7 @@ function NodeCard({
         <div className="flex items-start gap-3">
           {hasChildren ? (
             <button onClick={() => onToggleExpand(key)}
-              className="w-5 h-5 flex items-center justify-center rounded flex-shrink-0 mt-0.5 transition-colors hover:bg-black/10"
+              className="w-5 h-5 flex items-center justify-center rounded flex-shrink-0 mt-0.5 transition-colors hover:bg-hover-surface"
               style={{ color: 'var(--text-secondary)' }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"

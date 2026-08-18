@@ -52,7 +52,7 @@ export default function AdminTabs({ tabs, value, onValueChange, children }: Admi
                 // inactive base
                 'text-[var(--text-secondary)] bg-transparent ' +
                 // inactive hover — forest tint
-                'hover:bg-[rgba(45,51,42,0.07)] hover:text-[var(--text-primary)] ' +
+                'hover:bg-hover-surface hover:text-text-primary ' +
                 // active — forest fill, parchment text, no extra hover
                 'data-[state=active]:bg-[var(--brand-forest)] data-[state=active]:text-[var(--brand-parchment)] ' +
                 'data-[state=active]:shadow-sm data-[state=active]:hover:bg-[var(--brand-forest)] ' +
@@ -63,7 +63,7 @@ export default function AdminTabs({ tabs, value, onValueChange, children }: Admi
               {tab.badge != null && tab.badge > 0 && (
                 <span
                   className="text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center leading-none"
-                  style={{ backgroundColor: 'var(--brand-crimson)', color: 'white' }}
+                  style={{ backgroundColor: 'var(--brand-crimson)', color: 'var(--on-accent)' }}
                 >
                   {tab.badge}
                 </span>

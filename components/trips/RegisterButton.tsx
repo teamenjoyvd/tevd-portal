@@ -38,7 +38,7 @@ export default function RegisterButton({ tripId, profileId }: Props) {
     <button
       onClick={() => mutation.mutate()}
       disabled={mutation.isPending || !profileId}
-      className="w-full py-3 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 active:opacity-70 transition-opacity flex items-center justify-center gap-2"
+      className="w-full py-3 rounded-xl text-sm font-semibold text-on-accent disabled:opacity-50 hover:opacity-90 active:opacity-70 transition-opacity flex items-center justify-center gap-2"
       style={{ backgroundColor: 'var(--brand-crimson)' }}
     >
       {mutation.isPending && (

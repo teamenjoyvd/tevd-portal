@@ -16,11 +16,15 @@ import {
 
 export type ChangeStatus = 'new' | 'level' | 'bonus' | 'unchanged'
 
+/* The three change kinds are success / info / pending: they need a tint plus a
+   foreground legible on it in both themes, which is exactly what the status
+   pairs are. #3d405b (level) is one of the contrast suspects #741 names by hex
+   — it had no dark override and no token to move to. */
 const STATUS_STYLE: Record<ChangeStatus, { border: string; bg: string; label: string; color: string }> = {
-  new:       { border: '#81b29a', bg: 'rgba(129,178,154,0.12)', label: 'new',   color: '#2d6a4f' },
-  level:     { border: '#3d405b', bg: 'rgba(61,64,91,0.10)',    label: 'level', color: '#3d405b' },
-  bonus:     { border: '#e07a5f', bg: 'rgba(224,122,95,0.12)',  label: 'bonus', color: '#e07a5f' },
-  unchanged: { border: 'rgba(45,51,42,0.15)', bg: 'var(--bg-card)', label: '',   color: 'var(--text-secondary)' },
+  new:       { border: 'var(--status-success-fg)', bg: 'var(--status-success-bg)', label: 'new',   color: 'var(--status-success-fg)' },
+  level:     { border: 'var(--status-info-fg)',    bg: 'var(--status-info-bg)',    label: 'level', color: 'var(--status-info-fg)'    },
+  bonus:     { border: 'var(--status-pending-fg)', bg: 'var(--status-pending-bg)', label: 'bonus', color: 'var(--status-pending-fg)' },
+  unchanged: { border: 'rgba(var(--brand-forest-rgb), 0.15)', bg: 'var(--bg-card)', label: '',   color: 'var(--text-secondary)' },
 }
 
 // Map a parsed CSV row to the minimal LOSNode shape buildTree/layout need.
@@ -88,7 +92,7 @@ export function SubtreePreview({
   }
 
   return (
-    <div className="overflow-x-auto rounded-container border p-3" style={{ borderColor: 'var(--border-default)', backgroundColor: 'var(--bg-subtle, var(--bg-card))' }}>
+    <div className="overflow-x-auto rounded-container border p-3" style={{ borderColor: 'var(--border-default)', backgroundColor: 'var(--bg-card)' }}>
       <svg width={bounds.maxX + 20} height={bounds.maxY + 20} style={{ display: 'block' }}>
         {edges.map((e, i) => (
           <path
@@ -117,7 +121,7 @@ export function SubtreePreview({
                     {ln.node.name ?? abo}
                   </span>
                   {s.label && (
-                    <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 99, backgroundColor: s.border, color: '#fff', flexShrink: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 99, backgroundColor: s.border, color: 'var(--on-accent)', flexShrink: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                       {s.label}
                     </span>
                   )}
@@ -127,7 +131,7 @@ export function SubtreePreview({
                   <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>Level {ln.node.abo_level}</span>
                 )}
                 {m?.lastUpdated && (
-                  <span style={{ fontSize: 9, marginTop: 'auto', color: m.byUpline ? '#e07a5f' : 'var(--text-tertiary)', fontWeight: m.byUpline ? 600 : 400 }}>
+                  <span style={{ fontSize: 9, marginTop: 'auto', color: m.byUpline ? 'var(--status-pending-fg)' : 'var(--text-tertiary)', fontWeight: m.byUpline ? 600 : 400 }}>
                     upd {fmtShort(m.lastUpdated)}{m.byUpline ? ' · upline' : ''}
                   </span>
                 )}

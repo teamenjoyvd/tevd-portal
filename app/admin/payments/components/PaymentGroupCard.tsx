@@ -78,7 +78,7 @@ export function PaymentGroupCard({
                     {row.payment_guests.linked_profile_id === null && (
                       <span
                         className="ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold align-middle"
-                        style={{ backgroundColor: '#f2cc8f33', color: '#7a5c00' }}
+                        style={{ backgroundColor: 'var(--status-pending-bg)', color: 'var(--status-pending-fg)' }}
                       >
                         {t('payment.guestUnlinked')}
                       </span>
@@ -110,7 +110,7 @@ export function PaymentGroupCard({
               target="_blank"
               rel="noopener noreferrer"
               className="text-xs hover:underline"
-              style={{ color: 'var(--brand-teal)' }}
+              style={{ color: 'var(--link)' }}
             >
               {t('admin.operations.payments.viewProof')}
             </a>
@@ -119,7 +119,7 @@ export function PaymentGroupCard({
 
         <span
           className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
-          style={{ backgroundColor: '#f2cc8f33', color: '#7a5c00' }}
+          style={{ backgroundColor: 'var(--status-pending-bg)', color: 'var(--status-pending-fg)' }}
         >
           {t('admin.operations.payments.badge.pending')}
         </span>
@@ -137,15 +137,15 @@ export function PaymentGroupCard({
           <button
             onClick={() => onApprove(groupId, approveNote)}
             disabled={isPending}
-            className="flex-1 sm:flex-none px-4 py-2 rounded-xl text-xs font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity sm:flex-shrink-0"
-            style={{ backgroundColor: '#2d6a4f' }}
+            className="flex-1 sm:flex-none px-4 py-2 rounded-xl text-xs font-semibold text-on-accent disabled:opacity-40 hover:opacity-90 transition-opacity sm:flex-shrink-0"
+            style={{ backgroundColor: 'var(--brand-forest)' }}
           >
             {t('payment.approveGroup')}
           </button>
           <button
             onClick={() => setRejectOpen(true)}
             disabled={isPending}
-            className="flex-1 sm:flex-none px-4 py-2 rounded-xl text-xs font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity sm:flex-shrink-0"
+            className="flex-1 sm:flex-none px-4 py-2 rounded-xl text-xs font-semibold text-on-accent disabled:opacity-40 hover:opacity-90 transition-opacity sm:flex-shrink-0"
             style={{ backgroundColor: 'var(--brand-crimson)' }}
           >
             {t('payment.rejectGroup')}

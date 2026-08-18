@@ -12,6 +12,10 @@ import { useLanguage } from '@/lib/hooks/useLanguage'
 
 type Trip = Tables<'trips'>
 
+// colour-literal-ok: not a themeable surface — this is the blend target the
+// canvas sampler averages image pixels toward (see the 0x2d/0x6a/0x4f terms in
+// handleImageLoad), so it has to be a numeric hex, and the strip it paints
+// carries --on-accent text in both themes.
 export const FALLBACK_ACCENT = '#2d6a4f'
 
 // Dynamically imported (ssr:false) so @tiptap/* is not in the initial
@@ -62,9 +66,9 @@ export function TripHeroImage({
   }, [trip.image_url, onAccentColor])
 
   const imageFilter = muted ? 'opacity(0.5) grayscale(1)' : undefined
-  const badgeBg = muted ? 'rgba(0,0,0,0.15)' : 'var(--brand-forest)'
-  const badgeColor = muted ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.85)'
-  const tealBadgeBg = muted ? 'rgba(0,0,0,0.12)' : 'var(--brand-teal)'
+  const badgeBg = muted ? 'rgba(var(--brand-void-rgb), 0.15)' : 'var(--brand-forest)'
+  const badgeColor = muted ? 'rgba(var(--white-rgb), 0.6)' : 'rgba(var(--white-rgb), 0.85)'
+  const tealBadgeBg = muted ? 'rgba(var(--brand-void-rgb), 0.12)' : 'var(--brand-teal)'
 
   const days = Math.round(
     (new Date(trip.end_date).getTime() - new Date(trip.start_date).getTime()) / 86400000
@@ -138,7 +142,7 @@ export function TripHeroImage({
         {/* Gradient overlay */}
         <div
           className="absolute inset-0 pointer-events-none"
-          style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.62) 0%, transparent 55%)' }}
+          style={{ background: 'var(--image-scrim)' }}
         />
         {/* Title + badges over image */}
         <div className="absolute bottom-4 left-6 right-6">
@@ -157,13 +161,13 @@ export function TripHeroImage({
                 {trip.trip_type}
               </span>
             )}
-            <span className="text-xs" style={{ color: 'rgba(255,255,255,0.65)' }}>
+            <span className="text-xs" style={{ color: 'rgba(var(--white-rgb), 0.65)' }}>
               {days} {t(days !== 1 ? 'trips.dayPlural' : 'trips.daySingular')}
             </span>
           </div>
           <h1
             className="font-display text-2xl font-semibold leading-snug"
-            style={{ color: '#fff' }}
+            style={{ color: 'var(--on-accent)' }}
           >
             {trip.title}
           </h1>
@@ -207,13 +211,13 @@ export function TripDetail({
           <div className="flex items-baseline gap-2 min-w-0">
             <span
               className="font-display font-bold leading-none flex-shrink-0"
-              style={{ fontSize: 'clamp(2rem, 8vw, 3rem)', color: '#fff' }}
+              style={{ fontSize: 'clamp(2rem, 8vw, 3rem)', color: 'var(--on-accent)' }}
             >
               {countdown}
             </span>
             <span
               className="text-sm font-medium"
-              style={{ color: 'rgba(255,255,255,0.85)', whiteSpace: 'nowrap' }}
+              style={{ color: 'rgba(var(--white-rgb), 0.85)', whiteSpace: 'nowrap' }}
             >
               {t('trips.daysToGo')}
             </span>
@@ -221,7 +225,7 @@ export function TripDetail({
           {countdown === 0 && (
             <span
               className="text-xs font-semibold px-3 py-1 rounded-control flex-shrink-0"
-              style={{ backgroundColor: 'rgba(255,255,255,0.2)', color: '#fff' }}
+              style={{ backgroundColor: 'rgba(var(--white-rgb), 0.2)', color: 'var(--on-accent)' }}
             >
               {t('trips.todayBadge')}
             </span>
@@ -281,7 +285,7 @@ export function TripDetail({
             <div className="flex flex-wrap gap-1.5">
               {trip.inclusions.map((inc, i) => (
                 <span key={i} className="text-xs px-2 py-0.5 rounded-control"
-                  style={{ backgroundColor: 'rgba(129,178,154,0.15)', color: 'var(--text-primary)' }}>
+                  style={{ backgroundColor: 'var(--status-success-bg)', color: 'var(--text-primary)' }}>
                   {inc}
                 </span>
               ))}

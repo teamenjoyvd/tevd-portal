@@ -77,7 +77,7 @@ export function LinkForm({
             }))}
             className="px-3 py-1 rounded-full text-xs font-semibold transition-all"
             style={{
-              backgroundColor: form.access_roles.includes(role) ? 'var(--brand-forest)' : 'rgba(0,0,0,0.06)',
+              backgroundColor: form.access_roles.includes(role) ? 'var(--brand-forest)' : 'var(--hover-surface)',
               color: form.access_roles.includes(role) ? 'var(--brand-parchment)' : 'var(--text-secondary)',
             }}
           >
@@ -88,7 +88,7 @@ export function LinkForm({
       <button
         onClick={() => onSave(form)}
         disabled={isPending || !form.label.en || !form.url}
-        className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
+        className="px-5 py-2 rounded-xl text-sm font-semibold text-on-accent disabled:opacity-50 hover:opacity-90 transition-opacity"
         style={{ backgroundColor: 'var(--brand-crimson)' }}
       >
         {submitLabel}

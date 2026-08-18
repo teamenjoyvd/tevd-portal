@@ -146,19 +146,19 @@ export function LogPaymentForm({
           className="w-full border rounded-xl px-3 py-2.5 text-sm"
           style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} />
       </div>
-      {externalError !== null && externalError !== '' && <p className="text-sm" style={{ color: 'var(--brand-crimson)' }}>{externalError}</p>}
+      {externalError !== null && externalError !== '' && <p className="text-sm" style={{ color: 'var(--status-alert-fg)' }}>{externalError}</p>}
       <div className="flex flex-col gap-3 pt-2 sm:flex-row">
         <button
           onClick={handleLog}
           disabled={isPending || entity === '' || profileId === '' || amount === '' || Number(amount) <= 0}
-          className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity"
+          className="px-6 py-2.5 rounded-xl text-sm font-semibold text-on-accent disabled:opacity-40 hover:opacity-90 transition-opacity"
           style={{ backgroundColor: 'var(--brand-crimson)' }}
         >
           {isPending ? t('admin.operations.payments.btn.saving') : t('admin.operations.payments.btn.log2')}
         </button>
         <button
           onClick={onClose}
-          className="px-6 py-2.5 rounded-xl text-sm font-semibold border transition-colors hover:bg-black/5"
+          className="px-6 py-2.5 rounded-xl text-sm font-semibold border transition-colors hover:bg-hover-surface"
           style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
         >{t('admin.operations.payments.btn.cancel')}</button>
       </div>

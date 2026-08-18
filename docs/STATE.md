@@ -6,13 +6,43 @@ co-owner path — plus the two data defects that made its target population invi
 
 ## Now
 
-#741 C2 phase 3, calendar sub-slice merged as PR #756. Second sub-slice, `components/tiles/*`,
-BUILD complete on `dev/2608-DEV-741` (branch reset off `main` @ `9f2d2c6` after the calendar
-slice's squash-merge). `/code-review low` running in background. Next action: address any
-findings, then push and open PR, wait for CI green + Vercel preview READY, do the manual light/dark
-390px check, then mark ready for review. Remaining phase 3 sub-slices (not started):
-`guides/` + `library/[slug]/`, `profile/*`, `roles/*`, `trips/*`,
-`los/page.tsx` + `notifications/page.tsx`.
+**#741 is complete** — every phase (C1-C5) is done on `dev/2608-DEV-741`, cut
+off `main` @ `c982ee4`. This slice finished C2 (everything the four earlier PRs
+left), C3, C4 and C5 in one pass, because C5's gate had to exist first to
+produce a trustworthy inventory and then had to stay green, which forces the
+rest to land with it.
+
+- **C2 remainder** — 329 literals across 73 files, plus ~176 Tailwind palette
+  classes (`text-white`, `hover:bg-black/5`, `bg-gray-300`) that the earlier
+  phases' hex-only inventory never counted. `npm run check:colors` reports zero.
+- **C3** — the Footer logo bullet was based on a **false premise**: the footer
+  sits on `--brand-forest`, which has no dark override, so the forced-white
+  logo is correct in both themes. Documented in place rather than "fixed". The
+  four `useTheme()` consumers are all the theme switch itself and must branch.
+- **C4** — every token pair measured in both themes; four failures found and
+  fixed (`--text-tertiary` 3.15/3.94, `--status-pending-fg` 4.25, `--on-accent`
+  on sienna 2.78 and stone 3.47 → new `--on-accent-dark`), plus 127 sites using
+  a brand colour as text (2.86:1 on the dark card) moved to
+  `--status-alert-fg` / `--link`. Ratios recorded in DESIGN-SYSTEM.md.
+- **C5** — `scripts/check-color-literals.js` + `npm run check:colors` + its own
+  CI job. It also checks for `var()` references no stylesheet defines.
+
+**Three dangling-token families fixed on the way** (all rendered as *nothing*,
+in both themes — an undefined custom property is not a CSS error):
+`--bg-base` (mobile sticky payment footer), `--semantic-fg-*` + `--border-subtle`
+(26 uses in the two email-settings components), and `--primary-default`,
+`--text-muted`, `--border`, `--bg-subtle` (roles, admin calendar, LOS preview).
+
+**Verified:** `npx tsc --noEmit` exit 0; `npx vitest run` 529 passed / 37 files
+(baseline 529/37); `npm run lint` 0 errors / 464 warnings (baseline identical);
+`npm run check:colors` clean over 423 files; `app/globals.css` compiled through
+`@tailwindcss/postcss` — all 30 new utilities emit as `var(--token)`.
+**Preview verified** (PR #759, all 12 checks green including the new Colour
+Tokens job, the 390px smoke and Authenticated E2E): home, /trips and /calendar
+checked on the deployed preview in *both* themes. Tokens resolve live
+(`--text-tertiary` #6a6559 light / #9c978a dark, `--link` #6faebe dark), and the
+light-mode rendering is unchanged apart from the deliberate shifts listed above.
+Admin surfaces are behind auth and are covered by the Authenticated E2E job.
 
 ### #742 — what this branch does
 
@@ -243,7 +273,8 @@ blanket ban with the doc updated in the same commit.
 - (#742 session, 2026-08-17) On the question of how much of #741 to build alongside #742, the user
   answered verbatim: "Skip that, do only 742". #741 is out of scope for this branch entirely.
 - Never push without an explicit grant in this conversation. Grants from earlier tickets/sessions do
-  not carry over. (A grant WAS given this session: "PUSH TO OPEN DRAFT PR #740 and #741".)
+  not carry over. (2026-08-18 session: grant given for the #741 close-out — "Push + open PRs
+  freely", scoped to that session.)
 - Never apply migrations to a hosted Supabase project (DEV or prod) without asking first.
 - Fold `docs/CLAIMS.md` row removal + `docs/STATE.md` updates into the merging PR, never a
   standalone cleanup PR.

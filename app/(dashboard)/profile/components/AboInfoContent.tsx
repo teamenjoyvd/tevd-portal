@@ -294,7 +294,7 @@ export const AboInfoContent = memo(function AboInfoContent() {
                 onClick={() => cancelVerification.mutate()}
                 disabled={cancelVerification.isPending}
                 className="text-xs mt-2 font-medium hover:underline disabled:opacity-50"
-                style={{ color: 'var(--brand-crimson)' }}
+                style={{ color: 'var(--status-alert-fg)' }}
               >
                 {t('profile.cancelRequest')}
               </button>
@@ -456,7 +456,7 @@ function VerificationForm({
         />
       </div>
       {submitError && (
-        <p className="text-xs" style={{ color: 'var(--brand-crimson)' }}>{submitError}</p>
+        <p className="text-xs" style={{ color: 'var(--status-alert-fg)' }}>{submitError}</p>
       )}
       {showSpouseLinkCta && (
         <button
@@ -510,7 +510,7 @@ function SpouseLinkSection({
           onClick={onCancel}
           disabled={cancelPending}
           className="text-xs mt-2 font-medium hover:underline disabled:opacity-50"
-          style={{ color: 'var(--brand-crimson)' }}
+          style={{ color: 'var(--status-alert-fg)' }}
         >
           {t('profile.spouseLinkCancelRequest')}
         </button>
@@ -548,7 +548,7 @@ function SpouseLinkSection({
         />
       </div>
       {submitError && (
-        <p className="text-xs" style={{ color: 'var(--brand-crimson)' }}>{submitError}</p>
+        <p className="text-xs" style={{ color: 'var(--status-alert-fg)' }}>{submitError}</p>
       )}
       <button
         onClick={onSubmit}

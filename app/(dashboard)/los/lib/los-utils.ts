@@ -53,10 +53,10 @@ export type RoleColors = {
 }
 
 const ROLE_COLORS: Record<string, RoleColors> = {
-  admin:  { border: '#2d332a',             labelBg: '#2d332a',               labelColor: '#FAF8F3', opacity: 1   },
-  core:   { border: '#3E7785',             labelBg: '#3E7785',               labelColor: '#FAF8F3', opacity: 1   },
-  member: { border: 'rgba(45,51,42,0.15)', labelBg: 'rgba(62,119,133,0.12)', labelColor: '#3E7785', opacity: 1   },
-  guest:  { border: 'rgba(45,51,42,0.08)', labelBg: 'rgba(0,0,0,0.05)',      labelColor: '#8A8577', opacity: 0.6 },
+  admin:  { border: 'var(--brand-forest)',              labelBg: 'var(--brand-forest)',    labelColor: 'var(--on-accent)',      opacity: 1   },
+  core:   { border: 'var(--brand-teal)',                labelBg: 'var(--brand-teal)',      labelColor: 'var(--on-accent)',      opacity: 1   },
+  member: { border: 'rgba(var(--brand-forest-rgb), 0.15)', labelBg: 'var(--status-info-bg)',  labelColor: 'var(--status-info-fg)', opacity: 1   },
+  guest:  { border: 'var(--border-default)',            labelBg: 'var(--hover-surface)',   labelColor: 'var(--text-tertiary)',  opacity: 0.6 },
 }
 
 export function roleColors(role: string | null): RoleColors {

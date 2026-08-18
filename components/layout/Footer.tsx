@@ -29,6 +29,10 @@ export default function Footer() {
                 width={40}
                 height={40}
                 className="object-contain"
+                /* Forced white in BOTH themes on purpose (2608-DEV-741 C3):
+                   the footer sits on --brand-forest, which has no dark
+                   override, so this surface never swaps. Scoping the filter to
+                   `dark:` would break the light-mode footer, not fix it. */
                 style={{ filter: 'brightness(0) invert(1)' }}
               />
             </div>

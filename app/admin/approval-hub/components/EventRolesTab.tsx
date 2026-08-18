@@ -45,12 +45,12 @@ type RoleRequest = {
 // ── Helpers ──────────────────────────────────────────────────────
 
 const STATUS_BADGE: Record<string, string> = {
-  pending:  'bg-[#f2cc8f]/30 text-[#7a5c00] border border-[#f2cc8f]',
-  approved: 'bg-[#81b29a]/20 text-[#2d6a4f] border border-[#81b29a]/50',
-  denied:   'bg-[#bc4749]/10 text-[#bc4749] border border-[#bc4749]/30',
+  pending:  'bg-status-pending-bg text-status-pending-fg border border-status-pending-fg/30',
+  approved: 'bg-status-success-bg text-status-success-fg border border-status-success-fg/50',
+  denied:   'bg-brand-crimson/10 text-status-alert-fg border border-status-alert-fg/30',
   // 2608-DEV-749 — neutral grey: a revoked role is an administrative change,
   // not a rejection. Same shape as the entries above it.
-  cancelled: 'bg-black/5 text-[var(--text-secondary)] border border-black/10',
+  cancelled: 'bg-hover-surface text-[var(--text-secondary)] border border-border-default',
 }
 
 // The badge used to render the raw enum value, so an admin on Bulgarian read
@@ -64,9 +64,9 @@ const STATUS_LABEL: Record<RoleRequest['status'], TranslationKey> = {
 }
 
 const SLOT_BADGE: Record<string, string> = {
-  open:      'bg-black/5 text-[var(--text-secondary)]',
-  contested: 'bg-[#f2cc8f]/30 text-[#7a5c00] border border-[#f2cc8f]',
-  filled:    'bg-[#81b29a]/20 text-[#2d6a4f] border border-[#81b29a]/50',
+  open:      'bg-hover-surface text-[var(--text-secondary)]',
+  contested: 'bg-status-pending-bg text-status-pending-fg border border-status-pending-fg/30',
+  filled:    'bg-status-success-bg text-status-success-fg border border-status-success-fg/50',
 }
 
 function requesterName(r: RoleRequest): { primary: string; secondary: string | null } {
@@ -179,8 +179,8 @@ export function EventRolesTab() {
             onClick={() => setFilterEventId('all')}
             className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex-shrink-0"
             style={{
-              backgroundColor: filterEventId === 'all' ? 'var(--text-primary)' : 'rgba(0,0,0,0.05)',
-              color: filterEventId === 'all' ? 'white' : 'var(--text-secondary)',
+              backgroundColor: filterEventId === 'all' ? 'var(--text-primary)' : 'var(--hover-surface)',
+              color: filterEventId === 'all' ? 'var(--bg-global)' : 'var(--text-secondary)',
             }}
           >
             {t('admin.approval.events.btn.allEvents')}
@@ -191,8 +191,8 @@ export function EventRolesTab() {
               onClick={() => setFilterEventId(e.id)}
               className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors max-w-[200px] flex-shrink-0 inline-flex items-center gap-1"
               style={{
-                backgroundColor: filterEventId === e.id ? 'var(--text-primary)' : 'rgba(0,0,0,0.05)',
-                color: filterEventId === e.id ? 'white' : 'var(--text-secondary)',
+                backgroundColor: filterEventId === e.id ? 'var(--text-primary)' : 'var(--hover-surface)',
+                color: filterEventId === e.id ? 'var(--bg-global)' : 'var(--text-secondary)',
               }}
             >
               {/* Title truncates, date does not: recurring Google-synced events
@@ -211,7 +211,7 @@ export function EventRolesTab() {
 
       {isLoading ? (
         <div className="space-y-2">
-          {[...Array(3)].map((_, i) => <div key={i} className="h-16 bg-black/5 rounded-xl animate-pulse" />)}
+          {[...Array(3)].map((_, i) => <div key={i} className="h-16 bg-hover-surface rounded-xl animate-pulse" />)}
         </div>
       ) : pending.length === 0 ? (
         <div className="rounded-xl border px-5 py-8 text-center" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
@@ -258,7 +258,7 @@ export function EventRolesTab() {
                     <button
                       onClick={() => updateMutation.mutate({ id: r.id, status: 'approved' })}
                       disabled={updateMutation.isPending}
-                      className="flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-medium text-white disabled:opacity-50"
+                      className="flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-medium text-on-accent disabled:opacity-50"
                       style={{ backgroundColor: 'var(--brand-teal)' }}
                     >
                       {t('admin.approval.verify.btn.approve')}
@@ -267,7 +267,7 @@ export function EventRolesTab() {
                       onClick={() => updateMutation.mutate({ id: r.id, status: 'denied' })}
                       disabled={updateMutation.isPending}
                       className="flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-medium disabled:opacity-50"
-                      style={{ backgroundColor: 'rgba(0,0,0,0.06)', color: 'var(--text-primary)' }}
+                      style={{ backgroundColor: 'var(--hover-surface)', color: 'var(--text-primary)' }}
                     >
                       {t('admin.approval.verify.btn.deny')}
                     </button>
@@ -310,7 +310,7 @@ export function EventRolesTab() {
                       <button
                         disabled={updateMutation.isPending}
                         className="text-xs font-medium hover:opacity-70 transition-opacity disabled:opacity-40"
-                        style={{ color: 'var(--brand-crimson)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                        style={{ color: 'var(--status-alert-fg)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
                       >
                         {t('admin.approval.events.btn.revoke')}
                       </button>

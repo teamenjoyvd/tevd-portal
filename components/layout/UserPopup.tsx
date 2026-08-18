@@ -30,7 +30,7 @@ export default function UserPopup({
         <Link
           href="/sign-in"
           className="flex items-center justify-center px-4 py-2 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80"
-          style={{ backgroundColor: 'var(--brand-crimson)', color: 'white' }}
+          style={{ backgroundColor: 'var(--brand-crimson)', color: 'var(--on-accent)' }}
           onClick={() => onOpenChange(false)}
         >
           {t('nav.signIn')}

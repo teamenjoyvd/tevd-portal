@@ -110,7 +110,7 @@ function SelectItem({
     <SelectPrimitive.Item
       className={cn(
         'relative flex w-full cursor-default select-none items-center rounded-control py-2 pl-3 pr-8 text-sm outline-none',
-        'focus:bg-black/5 data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
+        'focus:bg-hover-surface data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
         className,
       )}
       style={{ color: 'var(--text-primary)' }}

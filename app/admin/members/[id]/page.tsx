@@ -106,7 +106,7 @@ function PartnershipSection({
 
   if (isSecondary) {
     return (
-      <div className="mt-4 pt-4 border-t border-black/5">
+      <div className="mt-4 pt-4 border-t border-border-default">
         <p className="text-xs font-semibold tracking-widest uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
           {t('admin.members.partnership.sectionTitle')}
         </p>
@@ -125,7 +125,7 @@ function PartnershipSection({
                 <button
                   disabled={isPending}
                   className="px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-40 transition-opacity"
-                  style={{ backgroundColor: 'rgba(0,0,0,0.06)', color: 'var(--text-primary)' }}
+                  style={{ backgroundColor: 'var(--hover-surface)', color: 'var(--text-primary)' }}
                 >
                   {t('admin.members.partnership.btn.promote')}
                 </button>
@@ -154,7 +154,7 @@ function PartnershipSection({
                 <button
                   disabled={isPending}
                   className="px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-40 transition-opacity"
-                  style={{ backgroundColor: '#bc474920', color: 'var(--brand-crimson)' }}
+                  style={{ backgroundColor: 'var(--status-alert-bg)', color: 'var(--status-alert-fg)' }}
                 >
                   {t('admin.members.partnership.btn.dissolve')}
                 </button>
@@ -257,7 +257,7 @@ export default function MemberDetailPage() {
       <div className="p-6 space-y-4">
         {[...Array(4)].map((_, i) => (
           <div key={i} className="h-24 rounded-2xl animate-pulse"
-            style={{ backgroundColor: 'rgba(0,0,0,0.05)' }} />
+            style={{ backgroundColor: 'var(--hover-surface)' }} />
         ))}
       </div>
     )
@@ -295,7 +295,7 @@ export default function MemberDetailPage() {
       </button>
 
       {/* Identity card */}
-      <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-5 mb-4">
+      <div className="bg-bg-card rounded-2xl border border-border-default shadow-sm p-5 mb-4">
         <div className="flex items-start gap-4">
           <div
             className="w-14 h-14 rounded-2xl flex items-center justify-center text-xl font-bold flex-shrink-0"
@@ -311,7 +311,7 @@ export default function MemberDetailPage() {
               {isSecondary && (
                 <span
                   className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: 'rgba(0,0,0,0.06)', color: 'var(--text-secondary)' }}
+                  style={{ backgroundColor: 'var(--hover-surface)', color: 'var(--text-secondary)' }}
                 >
                   {t('admin.members.table.coOwnerBadge')}
                 </span>
@@ -332,7 +332,7 @@ export default function MemberDetailPage() {
         </div>
 
         {/* Role editor */}
-        <div className="mt-4 pt-4 border-t border-black/5">
+        <div className="mt-4 pt-4 border-t border-border-default">
           <div className="flex items-center justify-between mb-2">
             <p className="text-xs font-semibold tracking-widest uppercase"
               style={{ color: 'var(--text-secondary)' }}>
@@ -342,7 +342,7 @@ export default function MemberDetailPage() {
               <button
                 onClick={() => { setEditRole(true); setSelectedRole(profile.role) }}
                 className="text-xs font-medium"
-                style={{ color: 'var(--brand-crimson)' }}
+                style={{ color: 'var(--status-alert-fg)' }}
               >
                 Edit
               </button>
@@ -363,8 +363,8 @@ export default function MemberDetailPage() {
                   onClick={() => setSelectedRole(r)}
                   className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
                   style={{
-                    backgroundColor: selectedRole === r ? 'var(--text-primary)' : 'rgba(0,0,0,0.05)',
-                    color: selectedRole === r ? 'white' : 'var(--text-secondary)',
+                    backgroundColor: selectedRole === r ? 'var(--text-primary)' : 'var(--hover-surface)',
+                    color: selectedRole === r ? 'var(--bg-global)' : 'var(--text-secondary)',
                   }}
                 >
                   {r}
@@ -373,7 +373,7 @@ export default function MemberDetailPage() {
               <button
                 onClick={() => updateMutation.mutate({ role: selectedRole })}
                 disabled={updateMutation.isPending || selectedRole === profile.role}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium text-white disabled:opacity-40"
+                className="px-3 py-1.5 rounded-lg text-xs font-medium text-on-accent disabled:opacity-40"
                 style={{ backgroundColor: 'var(--brand-crimson)' }}
               >
                 Save
@@ -399,7 +399,7 @@ export default function MemberDetailPage() {
       </div>
 
       {/* Document */}
-      <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-5 mb-4">
+      <div className="bg-bg-card rounded-2xl border border-border-default shadow-sm p-5 mb-4">
         <p className="text-xs font-semibold tracking-widest uppercase mb-3"
           style={{ color: 'var(--text-secondary)' }}>
           Travel document
@@ -425,8 +425,8 @@ export default function MemberDetailPage() {
             <span
               className="text-xs font-semibold px-2.5 py-1 rounded-full"
               style={{
-                backgroundColor: expiry === 'critical' ? '#bc474920' : '#f2cc8f33',
-                color: expiry === 'critical' ? 'var(--brand-crimson)' : '#7a5c00',
+                backgroundColor: expiry === 'critical' ? 'var(--status-alert-bg)' : 'var(--status-pending-bg)',
+                color: expiry === 'critical' ? 'var(--brand-crimson)' : 'var(--status-pending-fg)',
               }}
             >
               {expiry === 'critical' ? 'Expiring soon' : 'Check needed'}
@@ -437,7 +437,7 @@ export default function MemberDetailPage() {
 
       {/* LOS data */}
       {los && (
-        <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-5 mb-4">
+        <div className="bg-bg-card rounded-2xl border border-border-default shadow-sm p-5 mb-4">
           <p className="text-xs font-semibold tracking-widest uppercase mb-3"
             style={{ color: 'var(--text-secondary)' }}>
             LOS data

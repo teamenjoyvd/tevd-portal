@@ -56,7 +56,7 @@ export function MembersFilterBar<T>({
       {onExport && (
         <button
           onClick={onExport}
-          className="px-3 py-2 rounded-xl text-xs font-semibold border hover:bg-black/5 transition-colors flex items-center gap-1.5"
+          className="px-3 py-2 rounded-xl text-xs font-semibold border hover:bg-hover-surface transition-colors flex items-center gap-1.5"
           style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
         >
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -68,7 +68,7 @@ export function MembersFilterBar<T>({
       <div ref={colsRef} className="relative">
         <button
           onClick={() => setColsOpen(o => !o)}
-          className="px-3 py-2 rounded-xl text-xs font-semibold border hover:bg-black/5 transition-colors"
+          className="px-3 py-2 rounded-xl text-xs font-semibold border hover:bg-hover-surface transition-colors"
           style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
         >{t('admin.members.btn.columns')}</button>
         {colsOpen && (
@@ -77,7 +77,7 @@ export function MembersFilterBar<T>({
             style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}
           >
             {TOGGLEABLE_COLS.map(colId => (
-              <label key={colId} className="flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer hover:bg-black/5">
+              <label key={colId} className="flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer hover:bg-hover-surface">
                 <input
                   type="checkbox"
                   checked={table.getColumn(colId)?.getIsVisible() ?? true}

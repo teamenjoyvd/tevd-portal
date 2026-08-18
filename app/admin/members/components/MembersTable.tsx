@@ -47,9 +47,9 @@ function resolveDisplayName(m: LOSMember): string {
 }
 
 const LEVEL_BG: Record<string, { bg: string; color: string }> = {
-  '1': { bg: 'var(--brand-forest)', color: 'white' },
-  '2': { bg: 'var(--brand-crimson)', color: 'white' },
-  '3': { bg: 'rgba(0,0,0,0.08)', color: 'var(--text-primary)' },
+  '1': { bg: 'var(--brand-forest)', color: 'var(--on-accent)' },
+  '2': { bg: 'var(--brand-crimson)', color: 'var(--on-accent)' },
+  '3': { bg: 'var(--border-default)', color: 'var(--text-primary)' },
 }
 
 const MOBILE_HIDDEN = new Set(['gpv', 'bonus_percent', 'group_size', 'sponsor_abo_number'])
@@ -124,7 +124,7 @@ export function MembersTable({
             {isSecondary && (
               <span
                 className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0"
-                style={{ backgroundColor: 'rgba(0,0,0,0.06)', color: 'var(--text-secondary)' }}
+                style={{ backgroundColor: 'var(--hover-surface)', color: 'var(--text-secondary)' }}
               >
                 {t('admin.members.table.coOwnerBadge')}
               </span>
@@ -200,7 +200,7 @@ export function MembersTable({
                 onClick={() => onPromote(m.profile!.id, 'core')}
                 disabled={promotePending}
                 className="px-3 py-1 rounded-lg text-xs font-semibold disabled:opacity-40 hover:opacity-80 transition-opacity"
-                style={{ backgroundColor: 'var(--brand-crimson)', color: 'white' }}
+                style={{ backgroundColor: 'var(--brand-crimson)', color: 'var(--on-accent)' }}
               >
                 → Core
               </button>
@@ -210,7 +210,7 @@ export function MembersTable({
                 onClick={() => onPromote(m.profile!.id, 'member')}
                 disabled={promotePending}
                 className="px-3 py-1 rounded-lg text-xs font-semibold disabled:opacity-40 hover:opacity-80 transition-opacity"
-                style={{ backgroundColor: 'rgba(0,0,0,0.06)', color: 'var(--text-secondary)' }}
+                style={{ backgroundColor: 'var(--hover-surface)', color: 'var(--text-secondary)' }}
               >
                 → Member
               </button>
@@ -248,7 +248,7 @@ export function MembersTable({
     return (
       <div className="space-y-2">
         {[...Array(7)].map((_, i) => (
-          <div key={i} className="h-14 rounded-2xl animate-pulse" style={{ backgroundColor: 'rgba(0,0,0,0.05)' }} />
+          <div key={i} className="h-14 rounded-2xl animate-pulse" style={{ backgroundColor: 'var(--hover-surface)' }} />
         ))}
       </div>
     )
@@ -281,7 +281,7 @@ export function MembersTable({
         <Table className="border-collapse">
           <TableHeader>
             {table.getHeaderGroups().map(hg => (
-              <TableRow key={hg.id} style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }} className="border-0 hover:bg-transparent">
+              <TableRow key={hg.id} style={{ borderBottom: '1px solid var(--border-default)' }} className="border-0 hover:bg-transparent">
                 {hg.headers.map(header => {
                   const isMobileHidden = MOBILE_HIDDEN.has(header.id)
                   return (
@@ -317,7 +317,7 @@ export function MembersTable({
               <TableRow
                 key={row.id}
                 className="border-0 hover:bg-transparent"
-                style={{ borderTop: i > 0 ? '1px solid rgba(0,0,0,0.05)' : 'none' }}
+                style={{ borderTop: i > 0 ? '1px solid var(--border-default)' : 'none' }}
               >
                 {row.getVisibleCells().map(cell => {
                   const isMobileHidden = MOBILE_HIDDEN.has(cell.column.id)

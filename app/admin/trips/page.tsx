@@ -41,7 +41,7 @@ export default async function TripsListPage() {
         </div>
         <Link
           href="/admin/trips/new"
-          className="px-4 py-2 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-opacity"
+          className="px-4 py-2 rounded-xl text-sm font-semibold text-on-accent hover:opacity-90 transition-opacity"
           style={{ backgroundColor: 'var(--brand-crimson)' }}
         >
           New Trip

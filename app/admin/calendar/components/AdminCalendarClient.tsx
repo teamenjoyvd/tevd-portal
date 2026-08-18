@@ -229,7 +229,7 @@ export default function AdminCalendarClient() {
             />
           </button>
           <button onClick={openCreate}
-            className="px-4 py-2 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-opacity"
+            className="px-4 py-2 rounded-xl text-sm font-semibold text-on-accent hover:opacity-90 transition-opacity"
             style={{ backgroundColor: 'var(--brand-crimson)' }}>
             {t('admin.calendar.btn.new')}
           </button>
@@ -312,37 +312,37 @@ export default function AdminCalendarClient() {
                 <div className="flex items-center gap-2 flex-wrap mb-0.5">
                   <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{ev.title}</p>
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                    style={{ backgroundColor: ev.category === 'N21' ? 'var(--brand-forest)' : 'var(--sienna)', color: 'white' }}>
+                    style={{ backgroundColor: ev.category === 'N21' ? 'var(--brand-forest)' : 'var(--sienna)', color: ev.category === 'N21' ? 'var(--on-accent)' : 'var(--on-accent-dark)' }}>
                     {ev.category}
                   </span>
                   {ev.event_type && (
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                      style={{ backgroundColor: 'rgba(62,119,133,0.15)', color: 'var(--brand-teal)' }}>
+                      style={{ backgroundColor: 'var(--status-info-bg)', color: 'var(--link)' }}>
                       {ev.event_type}
                     </span>
                   )}
                   {ev.google_event_id && (
                     <span className="text-[10px] px-2 py-0.5 rounded-full"
-                      style={{ backgroundColor: 'rgba(0,0,0,0.05)', color: 'var(--text-secondary)' }}>
+                      style={{ backgroundColor: 'var(--hover-surface)', color: 'var(--text-secondary)' }}>
                       {t('admin.calendar.badge.google')}
                     </span>
                   )}
                   {ev.meeting_url && (
                     <a href={ev.meeting_url} target="_blank" rel="noopener noreferrer"
                       className="text-[10px] px-2 py-0.5 rounded-full hover:opacity-70 transition-opacity"
-                      style={{ backgroundColor: 'rgba(62,119,133,0.12)', color: 'var(--brand-teal)' }}>
+                      style={{ backgroundColor: 'var(--status-info-bg)', color: 'var(--link)' }}>
                       🔗
                     </a>
                   )}
                   {ev.allow_guest_registration && (
                     <span className="text-[10px] px-2 py-0.5 rounded-full"
-                      style={{ backgroundColor: 'rgba(129,178,154,0.2)', color: '#2d6a4f' }}>
+                      style={{ backgroundColor: 'var(--status-success-bg)', color: 'var(--status-success-fg)' }}>
                       {t('admin.calendar.badge.guestReg')}
                     </span>
                   )}
                   {ev.available_roles?.map(role => (
                     <span key={role} className="text-[10px] px-2 py-0.5 rounded-full"
-                      style={{ backgroundColor: 'rgba(0,0,0,0.05)', color: 'var(--text-secondary)' }}>
+                      style={{ backgroundColor: 'var(--hover-surface)', color: 'var(--text-secondary)' }}>
                       {role}
                     </span>
                   ))}
@@ -359,7 +359,7 @@ export default function AdminCalendarClient() {
                 </button>
                 <button onClick={() => setDeleteTarget(ev)}
                   disabled={deleteMutation.isPending}
-                  className="text-xs hover:opacity-70 transition-opacity disabled:opacity-30" style={{ color: 'var(--brand-crimson)' }}>
+                  className="text-xs hover:opacity-70 transition-opacity disabled:opacity-30" style={{ color: 'var(--status-alert-fg)' }}>
                   {t('admin.calendar.btn.delete')}
                 </button>
               </div>
@@ -420,7 +420,7 @@ export default function AdminCalendarClient() {
                 t('admin.calendar.confirm.guestWarning').replace('{{count}}', String(deleteTarget.guest_registration_count))}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          {deleteError && <p className="text-sm" style={{ color: 'var(--brand-crimson)' }}>{deleteError}</p>}
+          {deleteError && <p className="text-sm" style={{ color: 'var(--status-alert-fg)' }}>{deleteError}</p>}
           <AlertDialogFooter>
             <AlertDialogCancel>{t('admin.calendar.btn.cancel')}</AlertDialogCancel>
             <AlertDialogAction

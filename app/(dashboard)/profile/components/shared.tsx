@@ -26,7 +26,7 @@ export function ShowMoreButton({ count, onClick }: { count: number; onClick: () 
     <button
       onClick={onClick}
       className="mt-3 text-xs font-semibold hover:opacity-70 transition-opacity"
-      style={{ color: 'var(--brand-crimson)' }}
+      style={{ color: 'var(--status-alert-fg)' }}
     >
       +{count} {t('home.shared.showMore')}
     </button>
@@ -69,7 +69,7 @@ export function TripRow({
             <button
               disabled={cancelPending}
               className="mt-2 text-[11px] font-medium hover:opacity-70 transition-opacity disabled:opacity-40"
-              style={{ color: 'var(--brand-crimson)' }}
+              style={{ color: 'var(--status-alert-fg)' }}
             >
               {t('home.shared.cancelPart')}
             </button>
@@ -155,7 +155,7 @@ export function PaymentRow({
         </StatusBadge>
         {head.proof_url && (
           <a href={head.proof_url} target="_blank" rel="noopener noreferrer"
-            className="flex-shrink-0 hover:underline" style={{ color: 'var(--brand-teal)' }}>{t('home.shared.proofLink')}</a>
+            className="flex-shrink-0 hover:underline" style={{ color: 'var(--link)' }}>{t('home.shared.proofLink')}</a>
         )}
       </div>
       {/* truncate + min-w-0: at 390px an untruncatable list of names would push

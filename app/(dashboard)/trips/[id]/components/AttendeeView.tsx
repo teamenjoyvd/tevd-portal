@@ -86,7 +86,7 @@ function SubmitPaymentCTA({
   return (
     <button
       onClick={onOpen}
-      className="w-full py-3 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90"
+      className="w-full py-3 rounded-xl text-sm font-semibold text-on-accent transition-opacity hover:opacity-90"
       style={{ backgroundColor: 'var(--brand-forest)' }}
     >
       {t('payment.submit')}
@@ -161,7 +161,7 @@ export function AttendeeView({
             >
               <div
                 className="h-full rounded-full transition-all"
-                style={{ width: `${progressPct}%`, backgroundColor: '#2d6a4f' }}
+                style={{ width: `${progressPct}%`, backgroundColor: 'var(--status-success-fg)' }}
               />
             </div>
           </div>
@@ -176,11 +176,11 @@ export function AttendeeView({
                       style={{ borderColor: 'var(--border-default)' }}>
                       <div className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center"
                         style={{
-                          backgroundColor: covered ? 'rgba(129,178,154,0.2)' : 'var(--border-default)',
+                          backgroundColor: covered ? 'var(--status-success-bg)' : 'var(--border-default)',
                         }}>
                         {covered && (
                           <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
-                            stroke="#2d6a4f" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            stroke="var(--status-success-fg)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                             <polyline points="20 6 9 17 4 12" />
                           </svg>
                         )}
@@ -225,8 +225,8 @@ export function AttendeeView({
                         <span className="text-xs px-1.5 py-0.5 rounded-control font-medium"
                           style={
                             p.admin_status === 'approved'
-                              ? { backgroundColor: 'rgba(129,178,154,0.15)', color: '#2d6a4f' }
-                              : { backgroundColor: 'rgba(180,138,60,0.12)', color: '#b48a3c' }
+                              ? { backgroundColor: 'var(--status-success-bg)', color: 'var(--status-success-fg)' }
+                              : { backgroundColor: 'var(--status-pending-bg)', color: 'var(--status-pending-fg)' }
                           }>
                           {p.admin_status === 'approved' ? t('payment.approved') : t('payment.pending')}
                         </span>
@@ -253,7 +253,7 @@ export function AttendeeView({
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-xs flex-shrink-0 hover:opacity-70 transition-opacity"
-                        style={{ color: 'var(--brand-teal)' }}
+                        style={{ color: 'var(--link)' }}
                       >
                         {t('payment.proofLink')}
                       </a>
@@ -270,7 +270,7 @@ export function AttendeeView({
                 {t('payment.balanceRemaining')}
               </p>
               <p className="text-base font-semibold"
-                style={{ color: remaining === 0 ? '#2d6a4f' : 'var(--text-primary)' }}>
+                style={{ color: remaining === 0 ? 'var(--status-success-fg)' : 'var(--text-primary)' }}>
                 {remaining === 0 ? t('payment.paidInFull') : formatCurrency(remaining)}
               </p>
             </div>
@@ -291,7 +291,7 @@ export function AttendeeView({
       {/* Sticky footer CTA — slimmed, mobile only */}
       <div
         className="fixed bottom-0 left-0 right-0 px-4 pb-4 pt-2 md:hidden"
-        style={{ backgroundColor: 'var(--bg-base)', borderTop: '1px solid var(--border-default)' }}
+        style={{ backgroundColor: 'var(--bg-global)', borderTop: '1px solid var(--border-default)' }}
       >
         <SubmitPaymentCTA onOpen={() => setDrawerOpen(true)} />
       </div>

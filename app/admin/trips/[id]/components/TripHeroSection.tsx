@@ -161,8 +161,8 @@ export function TripHeroSection({
         </h2>
         <div className="flex items-center gap-2">
           <label
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white cursor-pointer hover:opacity-90 transition-opacity"
-            style={{ backgroundColor: uploading ? 'rgba(0,0,0,0.3)' : 'var(--brand-crimson)', pointerEvents: uploading ? 'none' : 'auto' }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-on-accent cursor-pointer hover:opacity-90 transition-opacity"
+            style={{ backgroundColor: uploading ? 'rgba(var(--brand-void-rgb), 0.3)' : 'var(--brand-crimson)', pointerEvents: uploading ? 'none' : 'auto' }}
           >
             <Upload size={13} />
             {uploading ? 'Uploading…' : 'Upload'}
@@ -178,7 +178,7 @@ export function TripHeroSection({
             <button
               onClick={() => setDeleteOpen(true)}
               className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-70 transition-opacity"
-              style={{ color: 'var(--brand-crimson)', border: '1px solid var(--border-default)' }}
+              style={{ color: 'var(--status-alert-fg)', border: '1px solid var(--border-default)' }}
             >
               <Trash2 size={13} />
               Remove
@@ -188,10 +188,10 @@ export function TripHeroSection({
       </div>
 
       {uploadError && (
-        <p className="text-xs" style={{ color: 'var(--brand-crimson)' }}>{uploadError}</p>
+        <p className="text-xs" style={{ color: 'var(--status-alert-fg)' }}>{uploadError}</p>
       )}
       {deleteError && (
-        <p className="text-xs" style={{ color: 'var(--brand-crimson)' }}>{deleteError}</p>
+        <p className="text-xs" style={{ color: 'var(--status-alert-fg)' }}>{deleteError}</p>
       )}
 
       {imageUrl ? (
@@ -240,11 +240,11 @@ export function TripHeroSection({
         >
           <span
             className="font-display font-bold leading-none"
-            style={{ fontSize: 'clamp(1.5rem, 6vw, 2rem)', color: '#fff' }}
+            style={{ fontSize: 'clamp(1.5rem, 6vw, 2rem)', color: 'var(--on-accent)' }}
           >
             42
           </span>
-          <span className="text-sm font-medium" style={{ color: 'rgba(255,255,255,0.85)' }}>
+          <span className="text-sm font-medium" style={{ color: 'rgba(var(--white-rgb), 0.85)' }}>
             days to go
           </span>
         </div>
@@ -258,7 +258,7 @@ export function TripHeroSection({
           >
             <span
               className="inline-block w-3 h-3 rounded-sm flex-shrink-0"
-              style={{ backgroundColor: candidate, border: '1px solid rgba(0,0,0,0.15)' }}
+              style={{ backgroundColor: candidate, border: '1px solid var(--border-default)' }}
             />
             Custom
             <input
@@ -285,7 +285,7 @@ export function TripHeroSection({
           <button
             onClick={handleSave}
             disabled={saving || !isDirty}
-            className="ml-auto px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+            className="ml-auto px-3 py-1.5 rounded-lg text-xs font-semibold text-on-accent transition-opacity hover:opacity-90 disabled:opacity-40"
             style={{ backgroundColor: 'var(--brand-forest)' }}
           >
             {saving ? 'Saving…' : 'Save'}
@@ -293,7 +293,7 @@ export function TripHeroSection({
         </div>
 
         {saveError && (
-          <p className="text-xs" style={{ color: 'var(--brand-crimson)' }}>{saveError}</p>
+          <p className="text-xs" style={{ color: 'var(--status-alert-fg)' }}>{saveError}</p>
         )}
       </div>
 

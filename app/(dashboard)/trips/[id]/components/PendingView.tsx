@@ -64,17 +64,17 @@ export function PendingView({
           <TripDetail trip={trip} profile={profile} accentColor={accentColor} />
         </div>
         <div className="mt-4 rounded-2xl px-6 py-6"
-          style={{ backgroundColor: 'rgba(180,138,60,0.08)', border: '1px solid rgba(180,138,60,0.25)' }}>
+          style={{ backgroundColor: 'var(--status-pending-bg)', border: '1px solid rgba(var(--brand-sienna-rgb), 0.25)' }}>
           <div className="flex items-start gap-4">
             <div className="flex-shrink-0 mt-0.5">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-                stroke="#b48a3c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                stroke="var(--status-pending-fg)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10" />
                 <polyline points="12 6 12 12 16 14" />
               </svg>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold mb-1" style={{ color: '#b48a3c' }}>
+              <p className="text-sm font-semibold mb-1" style={{ color: 'var(--status-pending-fg)' }}>
                 Registration Pending
               </p>
               <p className="text-sm leading-relaxed mb-5" style={{ color: 'var(--text-secondary)' }}>
@@ -89,7 +89,7 @@ export function PendingView({
                 Cancel Registration
               </button>
               {cancelMutation.isError && (
-                <p className="text-xs mt-2" style={{ color: '#bc4749' }}>
+                <p className="text-xs mt-2" style={{ color: 'var(--status-alert-fg)' }}>
                   {(cancelMutation.error as Error).message}
                 </p>
               )}

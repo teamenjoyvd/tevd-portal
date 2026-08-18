@@ -21,8 +21,8 @@ export function LangTabs({ langs, active, onChange }: LangTabsProps) {
           onClick={() => onChange(l)}
           className="px-3 py-1 rounded-lg text-sm font-medium transition-colors"
           style={{
-            backgroundColor: active === l ? 'var(--text-primary)' : 'rgba(0,0,0,0.05)',
-            color: active === l ? 'white' : 'var(--text-secondary)',
+            backgroundColor: active === l ? 'var(--text-primary)' : 'var(--hover-surface)',
+            color: active === l ? 'var(--bg-global)' : 'var(--text-secondary)',
           }}
         >
           {l.toUpperCase()}

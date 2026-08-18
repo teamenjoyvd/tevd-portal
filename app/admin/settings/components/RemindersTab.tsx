@@ -82,11 +82,11 @@ function GlobalToggle({
         aria-label={enabled ? 'Disable' : 'Enable'}
         className={[
           'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none disabled:opacity-50',
-          enabled ? 'bg-[#bc4749]' : 'bg-gray-300 dark:bg-gray-600',
+          enabled ? 'bg-brand-crimson' : 'bg-border-default',
         ].join(' ')}
       >
         <span className={[
-          'pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition duration-200',
+          'pointer-events-none inline-block h-5 w-5 rounded-full bg-bg-card shadow transform transition duration-200',
           enabled ? 'translate-x-5' : 'translate-x-0',
         ].join(' ')} />
       </button>
@@ -116,11 +116,11 @@ function EventToggle({ eventId, initialEnabled }: { eventId: string; initialEnab
       aria-label={enabled ? 'Disable reminders for event' : 'Enable reminders for event'}
       className={[
         'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none disabled:opacity-50',
-        enabled ? 'bg-[#bc4749]' : 'bg-gray-300 dark:bg-gray-600',
+        enabled ? 'bg-brand-crimson' : 'bg-border-default',
       ].join(' ')}
     >
       <span className={[
-        'pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow transform transition duration-200',
+        'pointer-events-none inline-block h-4 w-4 rounded-full bg-bg-card shadow transform transition duration-200',
         enabled ? 'translate-x-4' : 'translate-x-0',
       ].join(' ')} />
     </button>
@@ -169,8 +169,8 @@ function ReminderRowActions({ reminder }: { reminder: ReminderRow }) {
           <AlertDialogTrigger asChild>
             <button
               disabled={pending}
-              className="text-xs px-2 py-1 rounded border transition-colors hover:bg-black/5 disabled:opacity-50"
-              style={{ borderColor: 'var(--border-default)', color: 'var(--brand-crimson)' }}
+              className="text-xs px-2 py-1 rounded border transition-colors hover:bg-hover-surface disabled:opacity-50"
+              style={{ borderColor: 'var(--border-default)', color: 'var(--status-alert-fg)' }}
             >
               Cancel
             </button>
@@ -197,7 +197,7 @@ function ReminderRowActions({ reminder }: { reminder: ReminderRow }) {
           <AlertDialogTrigger asChild>
             <button
               disabled={pending}
-              className="text-xs px-2 py-1 rounded border transition-colors hover:bg-black/5 disabled:opacity-50"
+              className="text-xs px-2 py-1 rounded border transition-colors hover:bg-hover-surface disabled:opacity-50"
               style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
             >
               Resend
@@ -224,7 +224,7 @@ function ReminderRowActions({ reminder }: { reminder: ReminderRow }) {
           <button
             disabled={pending}
             onClick={() => setRescheduleOpen(true)}
-            className="text-xs px-2 py-1 rounded border transition-colors hover:bg-black/5 disabled:opacity-50"
+            className="text-xs px-2 py-1 rounded border transition-colors hover:bg-hover-surface disabled:opacity-50"
             style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
           >
             Reschedule
@@ -253,7 +253,7 @@ function ReminderRowActions({ reminder }: { reminder: ReminderRow }) {
               <div className="flex gap-3 pt-2">
                 <button
                   onClick={() => setRescheduleOpen(false)}
-                  className="flex-1 rounded-lg border px-4 py-2 text-sm font-medium transition-colors hover:bg-black/5"
+                  className="flex-1 rounded-lg border px-4 py-2 text-sm font-medium transition-colors hover:bg-hover-surface"
                   style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                 >
                   Cancel
@@ -261,8 +261,8 @@ function ReminderRowActions({ reminder }: { reminder: ReminderRow }) {
                 <button
                   onClick={handleReschedule}
                   disabled={!newSendAt || pending}
-                  className="flex-1 rounded-lg px-4 py-2 text-sm font-medium text-white disabled:opacity-50 transition-colors"
-                  style={{ backgroundColor: '#bc4749' }}
+                  className="flex-1 rounded-lg px-4 py-2 text-sm font-medium text-on-accent disabled:opacity-50 transition-colors"
+                  style={{ backgroundColor: 'var(--brand-crimson)' }}
                 >
                   {pending ? 'Saving…' : 'Save'}
                 </button>
@@ -302,7 +302,7 @@ export function RemindersTab({ globalToggles, reminders, truncated }: RemindersT
       {truncated && (
         <div
           className="rounded-lg border px-4 py-3 text-sm"
-          style={{ borderColor: '#b45309', backgroundColor: '#fef3c7', color: '#92400e' }}
+          style={{ borderColor: 'var(--status-pending-fg)', backgroundColor: 'var(--status-pending-bg)', color: 'var(--status-pending-fg)' }}
         >
           ⚠️ Showing the first 500 reminders. Some reminders are not visible — consider cancelling sent reminders to reduce volume.
         </div>
@@ -338,7 +338,7 @@ export function RemindersTab({ globalToggles, reminders, truncated }: RemindersT
                   <Link
                     href={`/admin/calendar/${event.id}`}
                     className="text-sm font-semibold truncate hover:underline"
-                    style={{ color: 'var(--brand-crimson)' }}
+                    style={{ color: 'var(--status-alert-fg)' }}
                   >
                     {event.title}
                   </Link>

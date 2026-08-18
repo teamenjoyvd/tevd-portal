@@ -22,9 +22,9 @@ export type LosSubmission = {
 type ApproveResult = { inserted: number; import_id: string; approved: number; junctions: JunctionNode[]; conflicts: JunctionNode[]; row_count: number }
 
 const STATUS_STYLE: Record<LosSubmission['status'], { bg: string; color: string; label: string }> = {
-  pending:  { bg: '#f2cc8f33', color: '#7a5c00', label: 'Pending' },
-  approved: { bg: '#1a3c2e18', color: '#1a3c2e', label: 'Approved' },
-  rejected: { bg: '#bc474915', color: '#bc4749', label: 'Rejected' },
+  pending:  { bg: 'var(--status-pending-bg)', color: 'var(--status-pending-fg)', label: 'Pending' },
+  approved: { bg: 'var(--status-success-bg)', color: 'var(--status-success-fg)', label: 'Approved' },
+  rejected: { bg: 'var(--status-alert-bg)', color: 'var(--status-alert-fg)', label: 'Rejected' },
 }
 
 function fmtDate(iso: string) {
@@ -96,7 +96,7 @@ export function LosSubmissionsTab() {
         Select CORE submissions to merge (deepest-owner-wins per ABO) and import in one authoritative step.
       </p>
 
-      {error && <p className="text-sm" style={{ color: '#bc4749' }}>{error}</p>}
+      {error && <p className="text-sm" style={{ color: 'var(--status-alert-fg)' }}>{error}</p>}
 
       {result && (
         <div className="p-4 rounded-xl border" style={{ borderColor: 'var(--border-default)', backgroundColor: 'var(--bg-card)' }}>
@@ -105,20 +105,20 @@ export function LosSubmissionsTab() {
           </p>
           <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>Import ID: <span className="font-mono">{result.import_id}</span></p>
           {result.conflicts.length > 0 && (
-            <p className="text-xs mt-1" style={{ color: '#e07a5f' }}>{result.conflicts.length} contested node(s) — deepest owner won each.</p>
+            <p className="text-xs mt-1" style={{ color: 'var(--status-pending-fg)' }}>{result.conflicts.length} contested node(s) — deepest owner won each.</p>
           )}
           <JunctionPanel junctions={result.junctions} ownerLabel="owners" />
         </div>
       )}
 
       {selected.size > 0 && (
-        <button onClick={approve} disabled={busy} className="bg-[#bc4749] text-white px-6 py-2 rounded-lg text-sm font-medium disabled:opacity-50">
+        <button onClick={approve} disabled={busy} className="bg-brand-crimson text-on-accent px-6 py-2 rounded-lg text-sm font-medium disabled:opacity-50">
           {busy ? 'Importing…' : `Approve & import (${selected.size} selected)`}
         </button>
       )}
 
       {isLoading ? (
-        <div className="space-y-2">{[...Array(3)].map((_, i) => <div key={i} className="h-16 bg-black/5 rounded-xl animate-pulse" />)}</div>
+        <div className="space-y-2">{[...Array(3)].map((_, i) => <div key={i} className="h-16 bg-hover-surface rounded-xl animate-pulse" />)}</div>
       ) : submissions.length === 0 ? (
         <div className="rounded-xl border px-5 py-8 text-center" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
           <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No submissions yet.</p>
@@ -145,7 +145,7 @@ export function LosSubmissionsTab() {
                     {sub.admin_note && <p className="text-xs mt-1 italic" style={{ color: 'var(--text-secondary)' }}>Note: {sub.admin_note}</p>}
                   </div>
                   {isPending && (
-                    <button onClick={() => reject(sub.id)} disabled={busy} className="text-xs px-3 py-1.5 rounded-lg border disabled:opacity-50" style={{ borderColor: '#bc4749', color: '#bc4749' }}>
+                    <button onClick={() => reject(sub.id)} disabled={busy} className="text-xs px-3 py-1.5 rounded-lg border disabled:opacity-50" style={{ borderColor: 'var(--brand-crimson)', color: 'var(--status-alert-fg)' }}>
                       Reject
                     </button>
                   )}

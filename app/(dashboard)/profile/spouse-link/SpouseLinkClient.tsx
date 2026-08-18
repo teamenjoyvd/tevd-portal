@@ -72,7 +72,7 @@ function DenyForm({
         <button
           onClick={() => { if (note.trim()) onConfirm(note.trim()) }}
           disabled={!note.trim() || isPending}
-          className="px-4 py-2 rounded-xl text-xs font-semibold text-white disabled:opacity-40 transition-opacity"
+          className="px-4 py-2 rounded-xl text-xs font-semibold text-on-accent disabled:opacity-40 transition-opacity"
           style={{ backgroundColor: 'var(--brand-crimson)' }}
         >
           Confirm deny
@@ -81,7 +81,7 @@ function DenyForm({
           onClick={onCancel}
           disabled={isPending}
           className="px-4 py-2 rounded-xl text-xs font-semibold disabled:opacity-40 transition-opacity"
-          style={{ backgroundColor: 'rgba(0,0,0,0.06)', color: 'var(--text-secondary)' }}
+          style={{ backgroundColor: 'var(--hover-surface)', color: 'var(--text-secondary)' }}
         >
           Cancel
         </button>
@@ -158,7 +158,7 @@ function PrimaryView({ inboundRequests }: { inboundRequests: InboundRequest[] })
               <button
                 onClick={() => actionMutation.mutate({ requestId: req.id, action: 'approve' })}
                 disabled={actionMutation.isPending}
-                className="px-4 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 transition-opacity"
+                className="px-4 py-2 rounded-xl text-sm font-semibold text-on-accent disabled:opacity-50 transition-opacity"
                 style={{ backgroundColor: 'var(--brand-teal)' }}
               >
                 Approve
@@ -167,7 +167,7 @@ function PrimaryView({ inboundRequests }: { inboundRequests: InboundRequest[] })
                 onClick={() => setDenyingId(req.id)}
                 disabled={actionMutation.isPending}
                 className="px-4 py-2 rounded-xl text-sm font-semibold disabled:opacity-50 transition-opacity"
-                style={{ backgroundColor: 'rgba(0,0,0,0.06)', color: 'var(--text-primary)' }}
+                style={{ backgroundColor: 'var(--hover-surface)', color: 'var(--text-primary)' }}
               >
                 Deny
               </button>
@@ -212,14 +212,14 @@ function GuestView({ outboundRequest }: { outboundRequest: OutboundRequest | nul
       className="rounded-2xl border px-5 py-4"
       style={{
         backgroundColor: 'var(--bg-card)',
-        borderColor: isPending ? 'rgba(0,0,0,0.08)' : isDenied ? 'var(--brand-crimson)' : 'var(--border-default)',
+        borderColor: isPending ? 'var(--border-default)' : isDenied ? 'var(--brand-crimson)' : 'var(--border-default)',
       }}
     >
       <div
         className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-control text-[10px] font-semibold mb-3"
         style={{
-          backgroundColor: isPending ? '#f2cc8f33' : isDenied ? '#bc474915' : '#1a3c2e18',
-          color: isPending ? '#7a5c00' : isDenied ? '#bc4749' : '#1a3c2e',
+          backgroundColor: isPending ? 'var(--status-pending-bg)' : isDenied ? 'var(--status-alert-bg)' : 'var(--status-success-bg)',
+          color: isPending ? 'var(--status-pending-fg)' : isDenied ? 'var(--status-alert-fg)' : 'var(--status-success-fg)',
         }}
       >
         {isPending ? 'Pending primary review' : isDenied ? 'Denied' : 'Approved'}
@@ -236,7 +236,7 @@ function GuestView({ outboundRequest }: { outboundRequest: OutboundRequest | nul
         Submitted {formatDate(outboundRequest.created_at)}
       </p>
       {isDenied && outboundRequest.admin_note && (
-        <p className="text-xs mt-2" style={{ color: 'var(--brand-crimson)' }}>
+        <p className="text-xs mt-2" style={{ color: 'var(--status-alert-fg)' }}>
           {outboundRequest.admin_note}
         </p>
       )}
@@ -278,7 +278,7 @@ export default function SpouseLinkClient({
           marginBottom: 12,
         }}
       >
-        <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-1" style={{ color: 'var(--brand-crimson)' }}>
+        <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-1" style={{ color: 'var(--status-alert-fg)' }}>
           {title}
         </p>
         <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>

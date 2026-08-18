@@ -42,7 +42,7 @@ export default async function ItemsListPage() {
         </h1>
         <Link
           href="/admin/items/new"
-          className="px-4 py-2 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-opacity"
+          className="px-4 py-2 rounded-xl text-sm font-semibold text-on-accent hover:opacity-90 transition-opacity"
           style={{ backgroundColor: 'var(--brand-crimson)' }}
         >
           New Item
@@ -90,8 +90,8 @@ export default async function ItemsListPage() {
                         <span
                           className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
                           style={{
-                            backgroundColor: item.is_active ? '#81b29a33' : 'rgba(0,0,0,0.06)',
-                            color: item.is_active ? '#2d6a4f' : 'var(--text-secondary)',
+                            backgroundColor: item.is_active ? 'var(--status-success-bg)' : 'var(--hover-surface)',
+                            color: item.is_active ? 'var(--status-success-fg)' : 'var(--text-secondary)',
                           }}
                         >
                           {item.is_active ? 'Active' : 'Inactive'}
@@ -125,8 +125,8 @@ export default async function ItemsListPage() {
                   <span
                     className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
                     style={{
-                      backgroundColor: item.is_active ? '#81b29a33' : 'rgba(0,0,0,0.06)',
-                      color: item.is_active ? '#2d6a4f' : 'var(--text-secondary)',
+                      backgroundColor: item.is_active ? 'var(--status-success-bg)' : 'var(--hover-surface)',
+                      color: item.is_active ? 'var(--status-success-fg)' : 'var(--text-secondary)',
                     }}
                   >
                     {item.is_active ? 'Active' : 'Inactive'}

@@ -58,37 +58,37 @@ export function EmailSettingsPanel({ initialConfig }: { initialConfig: EmailConf
   }
 
   return (
-    <div className="bg-[var(--bg-card)] rounded-xl border border-[var(--border-subtle)] p-6 w-full shadow-sm flex flex-col gap-8">
-      <div className="flex items-center justify-between pb-6 border-b border-[var(--border-subtle)]">
+    <div className="bg-[var(--bg-card)] rounded-xl border border-[var(--border-default)] p-6 w-full shadow-sm flex flex-col gap-8">
+      <div className="flex items-center justify-between pb-6 border-b border-[var(--border-default)]">
         <div className="flex flex-col gap-1">
-          <h3 className="text-sm font-semibold text-[var(--semantic-fg-primary)]">{t('admin.settings.emailPanel.globalTitle', 'en')}</h3>
-          <p className="text-xs text-[var(--semantic-fg-secondary)]">{t('admin.settings.emailPanel.globalDesc', 'en')}</p>
+          <h3 className="text-sm font-semibold text-[var(--text-primary)]">{t('admin.settings.emailPanel.globalTitle', 'en')}</h3>
+          <p className="text-xs text-[var(--text-secondary)]">{t('admin.settings.emailPanel.globalDesc', 'en')}</p>
         </div>
         <button
           onClick={() => toggleAll(!config.enabled)}
-          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${config.enabled ? 'bg-green-600' : 'bg-gray-200'}`}
+          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${config.enabled ? 'bg-status-success-fg' : 'bg-border-default'}`}
         >
-          <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${config.enabled ? 'translate-x-6' : 'translate-x-1'}`} />
+          <span className={`inline-block h-4 w-4 transform rounded-full bg-bg-card transition-transform ${config.enabled ? 'translate-x-6' : 'translate-x-1'}`} />
         </button>
       </div>
 
       <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-1">
-          <label className="text-sm font-semibold text-[var(--semantic-fg-primary)]">{t('admin.settings.emailPanel.recipientTitle', 'en')}</label>
-          <p className="text-xs text-[var(--semantic-fg-secondary)]">{t('admin.settings.emailPanel.recipientDesc', 'en')}</p>
+          <label className="text-sm font-semibold text-[var(--text-primary)]">{t('admin.settings.emailPanel.recipientTitle', 'en')}</label>
+          <p className="text-xs text-[var(--text-secondary)]">{t('admin.settings.emailPanel.recipientDesc', 'en')}</p>
         </div>
         <div className="flex gap-2">
           <input
             type="email"
             placeholder="admin@example.com"
-            className="flex-1 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-lg px-3 py-2 text-sm text-[var(--semantic-fg-primary)] focus:outline-none focus:ring-1 focus:ring-black/10 transition-all"
+            className="flex-1 bg-[var(--bg-card)] border border-[var(--border-default)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-border-default transition-all"
             value={config.alert_recipient}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, alert_recipient: e.target.value })}
           />
           <button
             onClick={() => mutation.mutate(config)}
             disabled={mutation.isPending}
-            className="px-4 py-2 bg-[var(--semantic-fg-primary)] text-[var(--bg-card)] rounded-lg text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+            className="px-4 py-2 bg-[var(--text-primary)] text-[var(--bg-card)] rounded-lg text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
           >
             {t('admin.settings.emailPanel.btn.save', 'en')}
           </button>
@@ -96,16 +96,16 @@ export function EmailSettingsPanel({ initialConfig }: { initialConfig: EmailConf
       </div>
 
       <div className="flex flex-col gap-4">
-        <h3 className="text-sm font-semibold text-[var(--semantic-fg-primary)]">{t('admin.settings.emailPanel.automatedTitle', 'en')}</h3>
+        <h3 className="text-sm font-semibold text-[var(--text-primary)]">{t('admin.settings.emailPanel.automatedTitle', 'en')}</h3>
         <div className="grid gap-3">
           {TEMPLATES.map(tmpl => (
-            <div key={tmpl.id} className="flex items-center justify-between p-3 rounded-lg border border-[var(--border-subtle)] hover:bg-black/[0.02] transition-colors">
-              <span className="text-xs font-medium text-[var(--semantic-fg-secondary)]">{t(`admin.settings.emailPanel.template.${tmpl.id}` as Parameters<typeof t>[0], 'en')}</span>
+            <div key={tmpl.id} className="flex items-center justify-between p-3 rounded-lg border border-[var(--border-default)] hover:bg-hover-surface transition-colors">
+              <span className="text-xs font-medium text-[var(--text-secondary)]">{t(`admin.settings.emailPanel.template.${tmpl.id}` as Parameters<typeof t>[0], 'en')}</span>
               <button
                 onClick={() => toggleType(tmpl.id, !(config.notification_types?.[tmpl.id] !== false))}
-                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${config.notification_types?.[tmpl.id] !== false ? 'bg-green-600' : 'bg-gray-200'}`}
+                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${config.notification_types?.[tmpl.id] !== false ? 'bg-status-success-fg' : 'bg-border-default'}`}
               >
-                <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${config.notification_types?.[tmpl.id] !== false ? 'translate-x-5' : 'translate-x-1'}`} />
+                <span className={`inline-block h-3 w-3 transform rounded-full bg-bg-card transition-transform ${config.notification_types?.[tmpl.id] !== false ? 'translate-x-5' : 'translate-x-1'}`} />
               </button>
             </div>
           ))}

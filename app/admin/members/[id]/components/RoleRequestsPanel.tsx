@@ -8,14 +8,14 @@ type RoleRequest = {
 export function RoleRequestsPanel({ roleRequests }: { roleRequests: RoleRequest[] }) {
   if (roleRequests.length === 0) return null
   return (
-    <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-5 mb-4">
+    <div className="bg-bg-card rounded-2xl border border-border-default shadow-sm p-5 mb-4">
       <p className="text-xs font-semibold tracking-widest uppercase mb-3"
         style={{ color: 'var(--text-secondary)' }}>
         Event role requests
       </p>
       <div className="space-y-2">
         {roleRequests.map(r => (
-          <div key={r.id} className="flex items-center justify-between py-2 border-b border-black/5 last:border-0">
+          <div key={r.id} className="flex items-center justify-between py-2 border-b border-border-default last:border-0">
             <div>
               <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
                 {r.role_label} · {r.event.title}

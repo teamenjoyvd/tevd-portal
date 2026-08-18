@@ -11,7 +11,7 @@ import { ImageUploadExtension, uploadAndInsert } from './ImageUploadExtension'
 import type { UploadUrls } from './ImageUploadExtension'
 
 const TOOLBAR_BTN =
-  'px-2 py-1 rounded text-xs font-semibold border transition-colors hover:bg-black/5 disabled:opacity-30'
+  'px-2 py-1 rounded text-xs font-semibold border transition-colors hover:bg-hover-surface disabled:opacity-30'
 
 const GUIDE_BODY_IMAGE_URLS: UploadUrls = {
   get: '/api/admin/guides/upload-url',

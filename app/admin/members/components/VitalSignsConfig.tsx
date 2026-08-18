@@ -84,7 +84,7 @@ export function VitalSignsConfig({ definitions, onRefetch }: {
     <div className="rounded-xl p-4 mb-6"
       style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
       <p className="text-xs font-semibold uppercase tracking-widest mb-3"
-        style={{ color: 'var(--brand-crimson)' }}>Vital Signs</p>
+        style={{ color: 'var(--status-alert-fg)' }}>Vital Signs</p>
       <div className="space-y-1.5">
         {localDefs.map(def => (
           <div
@@ -96,7 +96,7 @@ export function VitalSignsConfig({ definitions, onRefetch }: {
             onDragEnd={() => setDragging(null)}
             className="flex items-center gap-3 px-3 py-2 rounded-lg transition-opacity"
             style={{
-              backgroundColor: dragging === def.id ? 'rgba(0,0,0,0.06)' : 'transparent',
+              backgroundColor: dragging === def.id ? 'var(--hover-surface)' : 'transparent',
               opacity: def.is_active ? 1 : 0.5,
               cursor: 'grab',
             }}
@@ -118,8 +118,8 @@ export function VitalSignsConfig({ definitions, onRefetch }: {
               onClick={() => toggleActiveMutation.mutate({ id: def.id, is_active: !def.is_active })}
               className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold transition-all disabled:opacity-50"
               style={{
-                backgroundColor: def.is_active ? 'rgba(26,107,74,0.12)' : 'rgba(0,0,0,0.06)',
-                color: def.is_active ? '#1a6b4a' : 'var(--text-secondary)',
+                backgroundColor: def.is_active ? 'var(--status-success-bg)' : 'var(--hover-surface)',
+                color: def.is_active ? 'var(--status-success-fg)' : 'var(--text-secondary)',
               }}
             >
               {def.is_active ? 'Active' : 'Inactive'}

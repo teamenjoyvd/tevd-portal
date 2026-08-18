@@ -44,7 +44,7 @@ export default function RegistrationsTab({ eventId, t }: Props) {
   if (isError) {
     return (
       <div className="px-4 py-6 text-center">
-        <p className="text-xs" style={{ color: 'var(--brand-crimson)' }}>{t('cal.reg.error')}</p>
+        <p className="text-xs" style={{ color: 'var(--status-alert-fg)' }}>{t('cal.reg.error')}</p>
       </div>
     )
   }
@@ -95,7 +95,7 @@ export default function RegistrationsTab({ eventId, t }: Props) {
                 )}
                 {r.sharer_name !== null && r.sharer_name !== '' ? (
                   <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                    {t('profile.invites.via')} <span style={{ color: 'var(--brand-teal)' }}>{r.sharer_name}</span>
+                    {t('profile.invites.via')} <span style={{ color: 'var(--link)' }}>{r.sharer_name}</span>
                   </p>
                 ) : (
                   !r.is_member && (
