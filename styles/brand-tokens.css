@@ -100,6 +100,13 @@
   /* Dialog and sheet scrims. */
   --overlay:         rgba(26, 31, 24, 0.40);
 
+  /* Image lightbox backdrop — flat black at fixed alpha regardless of theme.
+     Not --overlay: that's tuned to sit over a themed surface. Not
+     --image-scrim: that's a gradient sized for text over an unknown photo.
+     This darkens a photo itself, so no dark override is needed (see
+     --on-accent-hover for the same reasoning). */
+  --overlay-strong:  rgba(0, 0, 0, 0.85);
+
   /* Bottom-up scrim for text laid over a photo (image-hero tiles). Not
      --overlay: that is a flat sheet over a KNOWN surface, this is a gradient
      over an UNKNOWN photo, so it is sized for the worst case — a bright sky

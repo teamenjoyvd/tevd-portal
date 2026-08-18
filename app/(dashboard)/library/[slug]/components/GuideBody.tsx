@@ -67,7 +67,7 @@ export default function GuideBody({
                   target="_blank"
                   rel="noopener noreferrer"
                   download
-                  className="flex items-center gap-3 px-4 py-3 rounded-xl border transition-all hover:bg-black/5"
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl border transition-all hover:bg-hover-surface"
                   style={{ borderColor: 'var(--border-default)', textDecoration: 'none' }}
                 >
                   <AttachmentIcon type={att.file_type} />
@@ -84,7 +84,7 @@ export default function GuideBody({
 
       {/* Lightbox — triggered programmatically if needed in future */}
       <Dialog open={!!lightboxUrl} onOpenChange={open => { if (!open) setLightboxUrl(null) }}>
-        <DialogOverlay style={{ backgroundColor: 'rgba(0,0,0,0.85)' }} />
+        <DialogOverlay style={{ backgroundColor: 'var(--overlay-strong)' }} />
         <DialogContent
           className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-transparent border-none shadow-none p-0 max-w-[90vw] flex flex-col items-center gap-3 [&>button]:text-white [&>button]:opacity-100 [&>button]:bg-black/40 [&>button]:rounded-full [&>button]:p-1"
           aria-label="Image lightbox"

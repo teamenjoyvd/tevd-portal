@@ -6,5 +6,5 @@ Checked at CLAIM time (see `docs/guardrails/PROJECT.md` Workflow commands) befor
 
 | Issue | Branch | Files/areas | Claimed at |
 |---|---|---|---|
-| #741 | `dev/2608-DEV-741` | **migration: no** — `app/(dashboard)/components/tiles/*` (sub-slice of C2 phase 3), `styles/brand-tokens.css` | 2026-08-18 |
+| #741 | `dev/2608-DEV-741` | **migration: no** — `app/(dashboard)/guides/*` + `app/(dashboard)/library/[slug]/*` (sub-slice of C2 phase 3), `styles/brand-tokens.css` | 2026-08-18 |
 
