@@ -65,7 +65,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v3
         with:
-          version: latest
+          # Pinned, never `latest` (#781). Under v3, `db push` needs `--yes` for
+          # a hosted target and `--db-url` is deprecated for `--remote`: moving
+          # to v3 means changing the commands below in the same PR.
+          version: 2.122.1
       # GitHub-hosted runners have no IPv6 route and the direct DB host
       # (db.<ref>.supabase.co) is IPv6-only, so `supabase link` cannot
       # connect from CI. Connect explicitly through the IPv4 session pooler.
