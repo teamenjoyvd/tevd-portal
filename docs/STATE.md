@@ -449,11 +449,24 @@ blanket ban with the doc updated in the same commit.
   skip 54320-54329 and an explicit listen on 54322 still succeeds. Fix: a "Reserve Supabase ports
   from the ephemeral range" step before `supabase start` in `ci.yml` (e2e-authenticated) and
   `migrations-check.yml`. Close this item after ~20 green E2E runs with no bind error.
-- **macOS setup on this Mac, remaining** (`docs/DEV_WORKFLOW.md` "macOS setup"; steps 1, 2, the
-  step 3, step 6 and the Docker helper are done, see Facts): the user writes the two env files
-  (step 4); then
-  `npm run check:env`, `npm run dev` (step 5), and step 7 E2E (seeding writes to the shared DEV DB:
-  ask first). Restart the Claude app so agent sessions pick up Node 22.
+- **macOS setup on this Mac, remaining** (`docs/DEV_WORKFLOW.md` "macOS setup"; steps 1, 2, 3, 4,
+  6 and the Docker helper are done, see Facts). Step 4: both env files written by the user in the
+  main checkout (600, gitignored); `npm run check:env` -> dev/seed line DEV (iymwxdewcpvpjgzewtzk);
+  the production-mode line has no Supabase URL (expected: no `.env.production.local`). Both Clerk
+  keys belong to instance `loved-mole-75.clerk.accounts.dev` (same as CI). Copied into this worktree
+  with `npm run env:worktree`. Step 5: `next dev` renders `/` with DEV data, signed out; the
+  signed-in half needs the user's own Clerk sign-in. Playwright 1.61.1 needed chromium build 1228
+  (`npx playwright install chromium`, done). Remaining: user signs in on localhost:3000; step 7
+  `e2e:seed-clerk` + `test:e2e:auth` (write to the shared DEV DB: ask first). Restart the Claude app
+  so agent sessions pick up Node 22.
+- **`test:mobile` is NOT write-free (found 2026-11-09):** `AUTHENTICATED_SPECS` in
+  `playwright.config.ts:31` omits `member-role-cancel-auth` (added in #750, b6b856a), so that spec
+  also runs in the `mobile-390` and `desktop` projects. Without Clerk keys (preview-smoke) it skips;
+  with local dev keys it signs in and writes to the shared DEV DB (event, role request, approval).
+  Its `afterAll` cleaned up (0 `E2E Role Cancel %` events left on DEV, checked). In the mobile-390
+  run it failed at `member-role-cancel-auth.spec.ts:177` (expected `cancelled`, received
+  `approved`); not yet run under the `authenticated` project locally (CI's authenticated run passes
+  it). Fix: add it to the regex. `npm run test:mobile` otherwise: 14 passed, 5 skipped.
 - **`scripts/local-gate.js:160` warns falsely on a `.git/hooks/pre-push` hand-off:** the `ci`-mode
   check reads only `core.hooksPath`. Either accept a hand-off hook there and document it in
   DEV_WORKFLOW.md step 6 as the option for clones with their own local hooks, or leave it.
