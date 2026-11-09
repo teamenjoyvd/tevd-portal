@@ -17,13 +17,101 @@ The single source for the dev process: local loop → verification → PR → pr
 | `npm run test` | Vitest unit tests |
 | `npm run lint` / `npm run check-types` | ESLint / `tsc --noEmit` |
 
+## macOS setup: fresh machine to green E2E
+
+Run in order, once per machine. Every step ends in a check; don't move on until it passes. Nothing here writes to production, and only step 7 writes to the shared DEV database.
+
+**1. Toolchain.** CI runs Node 22. Node 24 ships npm 11, which validates the lockfile more strictly than CI's npm 10 and can fail `npm ci` on a lockfile CI accepts (#783), so match CI.
+
+```bash
+xcode-select --install          # skip if already installed
+brew install node@22 gh
+echo 'export PATH="/opt/homebrew/opt/node@22/bin:$HOME/.local/bin:$PATH"' >> ~/.zshenv
+exec zsh
+```
+
+Check: `node -v` prints `v22.x`, and `npm -v` prints `10.x`.
+
+**2. Repo.**
+
+```bash
+gh auth login                   # GitHub.com, HTTPS, browser
+gh repo clone teamenjoyvd/tevd-portal ~/Code/tevd-portal
+cd ~/Code/tevd-portal
+npm ci
+```
+
+Check: `npm ci` exits 0.
+
+**3. Supabase CLI, pinned to CI's version.** The three workflows pin `2.122.1` (#781). Homebrew installs the latest release (3.x), whose `db push` against a hosted project takes different flags, so use a shim that runs the pinned version. It's a script on `PATH` rather than a shell alias, so non-interactive shells (agent sessions, scripts) find it too.
+
+```bash
+mkdir -p ~/.local/bin
+printf '#!/bin/sh\nexec npx -y supabase@2.122.1 "$@"\n' > ~/.local/bin/supabase
+chmod +x ~/.local/bin/supabase
+supabase login                  # browser sign-in; the CLI stores the access token locally
+supabase link --project-ref iymwxdewcpvpjgzewtzk
+```
+
+`link` asks for the DEV database password, which you'll find in Supabase under Project Settings → Database. Only ever link the DEV project (`iymwxdewcpvpjgzewtzk`). Production migrations go through `migrate-prod.yml` and nothing else.
+
+Check: `supabase --version` prints `2.122.1`, and `supabase migration list` shows matching `local` and `remote` columns on every row. The check only reads; it applies nothing.
+
+**4. Env files.** Two gitignored files in the repo root; precedence is explained in `.env.example`.
+
+`.env.local`: Clerk keys from the Clerk **development** instance (`pk_test_…` / `sk_test_…`) plus local-only values. Don't put hosted Supabase keys here: on other machines this file holds production ones, and `.env.development.local` (below) is what `next dev` should resolve.
+
+```bash
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
+CLERK_SECRET_KEY=sk_test_...
+ICAL_TOKEN_SECRET=<output of: openssl rand -hex 32>
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
+
+`.env.development.local`: the DEV Supabase project. Get the two keys with `supabase projects api-keys --project-ref iymwxdewcpvpjgzewtzk`.
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=https://iymwxdewcpvpjgzewtzk.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon>
+SUPABASE_SERVICE_ROLE_KEY=<service_role>
+```
+
+Then `chmod 600 .env.local .env.development.local`.
+
+Check: `npm run check:env` passes, and its dev/seed line reports **DEV**. The production-mode line may report something else; that one only covers `next build`/`next start`.
+
+**5. Run it.** `npm run dev`, then open <http://localhost:3000> and sign in with your Clerk dev-instance account.
+
+Check: the home page renders signed in, with no `supabaseUrl is required` error in the terminal.
+
+**6. Local CI mirror.**
+
+```bash
+npm run verify
+```
+
+Check: exits 0. This runs lint, type check, colour tokens, unit tests and the build.
+
+**7. E2E.** Playwright starts `npm run dev` itself, or reuses one that's already running. A cold first boot can take a few minutes.
+
+```bash
+npx playwright install chromium
+npm run test:mobile             # 390px smoke, public routes, no writes
+npm run e2e:seed-clerk          # Clerk test users + fixtures in the SHARED DEV DB (idempotent)
+npm run test:e2e:auth           # authenticated role-gate and flow specs
+```
+
+Check: all three Playwright runs report 0 failed. Skipped specs name the fixture they're missing; see "Authenticated E2E (Clerk)" below.
+
+**8. Worktrees.** Agent sessions run in `.claude/worktrees/*`, which don't inherit the env files. Run `npm run env:worktree` once in each new worktree.
+
 ## Hosted dev database
 
 Local dev runs against the **hosted Supabase dev project** `iymwxdewcpvpjgzewtzk` (`tevd-portal-dev`, the default link in `supabase/config.toml`) — [#563](https://github.com/teamenjoyvd/tevd-portal/issues/563) replaced the local Docker stack ([#547](https://github.com/teamenjoyvd/tevd-portal/issues/547)) because it outgrew what a laptop-class dev box can comfortably run (several GB of container images, `npm ci` alone took 30-40 min with Docker Desktop competing for resources). Everything except the database stays local: the Next dev server, tests, tooling.
 
 **One-time setup**
 
-1. Supabase CLI (`scoop install supabase` or `npm i -g supabase`), logged in (`supabase login`) with access to the `tevd-portal-dev` project.
+1. Supabase CLI pinned to CI's `2.122.1` (macOS: "macOS setup" step 3 above; Windows: `scoop install supabase`, or `npx -y supabase@2.122.1 <command>` if `supabase --version` isn't 2.x), logged in (`supabase login`) with access to the `tevd-portal-dev` project.
 2. Create `.env.development.local` in the repo root (gitignored; loaded by `next dev` with **higher priority than `.env.local`**, so Clerk values stay inherited):
 
    ```bash
