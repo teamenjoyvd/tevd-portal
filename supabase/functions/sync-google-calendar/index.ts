@@ -1,6 +1,8 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 
+import { partitionDeletable, planReconciliation, type WindowRow } from './reconcile.ts'
+
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
@@ -267,7 +269,7 @@ Deno.serve(async (req: Request) => {
   } while (pageToken)
 
   const fetchedIds     = new Set(items.map(i => String(i.id)))
-  const cancelledIds   = items.filter(i => i.status === 'cancelled').map(i => String(i.id))
+  const cancelledIds   = new Set(items.filter(i => i.status === 'cancelled').map(i => String(i.id)))
   const activeItems    = items.filter(i => i.status !== 'cancelled')
 
   // Bulk-fetch existing rows in the sync window once, instead of a
@@ -283,9 +285,12 @@ Deno.serve(async (req: Request) => {
   // team calendar's events, and a 180-day window realistically never
   // approaches that row count — adding keyset pagination here would be
   // disproportionate complexity for this scope.
+  // `id` and `source` are selected for reconciliation (2608-DEV-764): `id` is
+  // what guest_registrations.event_id points at, and `source` is what keeps the
+  // sync from deleting rows it does not own.
   const {data:existingRows, error:existingRowsError} = await sb
     .from('calendar_events')
-    .select('google_event_id')
+    .select('id, google_event_id, source')
     .gte('end_time', tMin)
     .lte('start_time', tMax)
     .not('google_event_id', 'is', null)
@@ -294,7 +299,17 @@ Deno.serve(async (req: Request) => {
     await recordSyncStatus(sb, false, detail)
     return new Response(JSON.stringify({error:'existing_rows_lookup_failed',detail}),{status:500})
   }
-  const existingIds = new Set((existingRows ?? []).map(r => r.google_event_id as string))
+  const windowRows: WindowRow[] = (existingRows ?? []).map(r => ({
+    id:              r.id as string,
+    google_event_id: r.google_event_id as string,
+    source:          (r.source ?? 'google') as string,
+  }))
+  // Deliberately NOT filtered by source: this set feeds the new-vs-existing
+  // diff, whose only job is to match the upsert's `onConflict: google_event_id`.
+  // A row that already holds this google_event_id is an update whatever its
+  // source, and treating it as new would overwrite its category/access_roles.
+  // Source filtering belongs to deletion, and happens in planReconciliation.
+  const existingIds = new Set(windowRows.map(r => r.google_event_id))
 
   const newRows: Record<string,unknown>[] = []
   const updateRows: Record<string,unknown>[] = []
@@ -329,6 +344,9 @@ Deno.serve(async (req: Request) => {
       // New event: full row including category and access_roles.
       newRows.push({
         ...eventPayload,
+        // Declared, not left to the column default, so ownership is explicit
+        // in the write that creates the row (2608-DEV-764).
+        source:       'google',
         category:     personal ? 'Personal' : 'N21',
         access_roles: personal ? ['member','core','admin'] : ['admin','core','member','guest'],
       })
@@ -357,18 +375,69 @@ Deno.serve(async (req: Request) => {
     else upserted += updateRows.length
   }
 
-  // Deletions: explicit Google cancellations, plus reconciliation — rows
-  // inside the fetched window that Google no longer returns at all (bounded
-  // to this window; never a global sweep).
-  const toDelete = new Set<string>(cancelledIds)
-  for (const id of existingIds) {
-    if (!fetchedIds.has(id)) toDelete.add(id)
+  // Deletions (2608-DEV-764). Only events Google explicitly returned as
+  // cancelled are deleted. A row Google merely did not return is reported and
+  // left alone: `showDeleted=true` means a real deletion always arrives as an
+  // explicit `status: 'cancelled'`, so absence carries no information beyond
+  // "this response did not mention it" — and acting on it destroyed guest
+  // registrations through the old ON DELETE CASCADE.
+  const plan = planReconciliation(windowRows, fetchedIds, cancelledIds)
+
+  // The caller is pg_cron via net.http_post, which discards the response body,
+  // so the function log is the only place these are ever read. Not an error:
+  // absence is usually a window-edge artefact and always harmless now that it
+  // deletes nothing.
+  if (plan.absent.length) {
+    console.warn(
+      '[reconcile] ' + plan.absent.length + ' window row(s) absent from the Google ' +
+      'response; kept: ' + plan.absent.map(r => r.google_event_id).join(', ')
+    )
   }
+
+  // Which of the cancelled events still have registrations. Registrations now
+  // block the delete (FK is RESTRICT), and a bulk .in() delete is one
+  // statement — without this split, one protected event would fail the whole
+  // batch and nothing would ever be reconciled again.
+  let protectedIds = new Set<string>()
+  let protectionLookupFailed = false
+  if (plan.cancelled.length) {
+    const {data:regRows, error:regError} = await sb
+      .from('guest_registrations')
+      .select('event_id')
+      .in('event_id', plan.cancelled.map(r => r.id))
+    if (regError) {
+      // Fail closed: without this answer every delete is a coin flip on
+      // member data, so delete nothing this run and say why.
+      protectionLookupFailed = true
+      errors.push('registration_guard lookup: ' + regError.message)
+    } else {
+      protectedIds = new Set((regRows ?? []).map(r => r.event_id as string))
+    }
+  }
+
+  const {deletable, blocked} = protectionLookupFailed
+    ? {deletable: [] as WindowRow[], blocked: plan.cancelled}
+    : partitionDeletable(plan.cancelled, protectedIds)
+
   let deletedCount = 0
-  if (toDelete.size) {
-    const {error} = await sb.from('calendar_events').delete().in('google_event_id', [...toDelete])
+  if (deletable.length) {
+    const {error} = await sb
+      .from('calendar_events')
+      .delete()
+      .in('google_event_id', deletable.map(r => r.google_event_id))
     if (error) errors.push('delete: ' + error.message)
-    else deletedCount = toDelete.size
+    else deletedCount = deletable.length
+  }
+
+  // A cancelled event that cannot be deleted needs a human: an admin has to
+  // notify the registrants and clear the registrations. Reported as an error so
+  // the admin sync-status banner shows it rather than it sitting silent.
+  if (!protectionLookupFailed && blocked.length) {
+    errors.push(
+      'cancelled in Google but kept — ' + blocked.length +
+      ' event(s) still have registrations; cancel them in the admin calendar: ' +
+      blocked.map(r => r.google_event_id).join(', ')
+    )
   }
 
   if (newEvents > 0) {
@@ -388,7 +457,18 @@ Deno.serve(async (req: Request) => {
 
   await recordSyncStatus(sb, errors.length === 0, errors.length ? errors.join('; ') : null)
 
-  return new Response(JSON.stringify({upserted, new_events: newEvents, deleted: deletedCount, errors}), {
+  return new Response(JSON.stringify({
+    upserted,
+    new_events: newEvents,
+    deleted: deletedCount,
+    // Reported for diagnosis, never acted on (2608-DEV-764). A non-empty
+    // `absent` list on a healthy calendar means the window bounds and Google's
+    // response disagree — investigate, do not delete.
+    absent:        plan.absent.map(r => r.google_event_id),
+    delete_blocked: blocked.map(r => r.google_event_id),
+    skipped_foreign: plan.foreign.length,
+    errors,
+  }), {
     headers: {'Content-Type': 'application/json'},
   })
 })

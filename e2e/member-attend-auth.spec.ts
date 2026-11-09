@@ -72,10 +72,14 @@ test.beforeAll(async () => {
 
 test.afterAll(async () => {
   if (!sb) return
-  if (memberProfileId && eventId) {
-    await sb.from('guest_registrations').delete().eq('event_id', eventId).eq('profile_id', memberProfileId)
+  if (eventId) {
+    // By event_id alone, and before the event: guest_registrations is
+    // ON DELETE RESTRICT since 2608-DEV-764, so any row left behind — one
+    // this spec did not expect, or one from a half-finished run — pins the
+    // event forever and leaks it into every later run.
+    await sb.from('guest_registrations').delete().eq('event_id', eventId)
+    await sb.from('calendar_events').delete().eq('id', eventId)
   }
-  if (eventId) await sb.from('calendar_events').delete().eq('id', eventId)
 })
 
 function skipIfUnseeded() {

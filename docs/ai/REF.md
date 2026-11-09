@@ -461,7 +461,7 @@ Normalised UNION ALL over `profiles_audit` + `role_change_audit`. Columns: `prof
 | Route | Method | Notes |
 |---|---|---|
 | `/api/admin/announcements` | GET, POST, PATCH, DELETE | |
-| `/api/admin/calendar` | GET, POST, PATCH, DELETE | |
+| `/api/admin/calendar` | GET, POST, PATCH, DELETE | POST sets `source: 'portal'` (clients cannot pick `source`). DELETE answers 409 `{registrationCount, requiresConfirmation}` while the event has registrations; the confirmed retry carries `?deleteRegistrations=true` and goes through the `admin_delete_event_with_registrations` RPC (2608-DEV-764). |
 | `/api/admin/calendar-sync` | POST | Triggers sync-google-calendar edge function |
 | `/api/admin/email-log` | GET | email_log audit (admin only) |
 | `/api/admin/event-role-requests` | GET | Flat join, no N+1 |

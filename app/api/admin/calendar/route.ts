@@ -138,6 +138,11 @@ export async function POST(req: Request): Promise<Response> {
     end_time: picked.end_time,
     week_number: picked.week_number,
     created_by: caller.id,
+    // 2608-DEV-764: the Google sync only reconciles (and only deletes) rows it
+    // owns, i.e. source = 'google'. An event created here is the portal's, so
+    // the next sync run must leave it alone. `source` is deliberately absent
+    // from `allowed` above — a client cannot claim another source.
+    source: 'portal',
   }
 
   const { data, error } = await supabase.from('calendar_events').insert(insertData).select().single()

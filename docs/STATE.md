@@ -549,6 +549,44 @@ blanket ban with the doc updated in the same commit.
 - RESOLVED (same): Supabase CLI v3 broke CI and the prod migration gate. Pinned to 2.122.1 and
   `[inbucket]` renamed `[local_smtp]` in #782. Moving to v3 needs `db push --yes` and `--remote`
   in `migrate-prod.yml`, in its own PR.
+- NOTED (not done, found in #764): **DEV's hourly calendar cron calls the PROD sync function.**
+  `supabase/migrations/20260407000000_fix_calendar_sync_cron_use_pg_net.sql:13` hardcodes
+  `https://ynykjpnetfwqzdnsgkkg.supabase.co/.../sync-google-calendar` (PROD), replacing the
+  baseline job that used this project's own ref (`20260315000000_baseline.sql:1096`). Because the
+  later migration wins, every project that replays migrations — DEV included — schedules an hourly
+  call to PROD's function. #764's own issue body states this backwards (it reads as if the baseline
+  wins). The URL should come from a setting, not a literal.
+- NOTED (not done, found in #764): **`npm run test:mock` cannot catch FK-cascade bugs.**
+  `scripts/run-e2e-tests.js`'s in-memory Supabase mock enforces no foreign keys at all, so neither
+  the old CASCADE data loss nor the new RESTRICT refusal is observable there. Anything about
+  referential behaviour needs the local stack or a route test.
+- NOTED (not done, found in #764): **most RPC service-role guards use a NULL-unsafe operator.**
+  ~16 migrations write `IF auth.role() <> 'service_role' AND NOT is_admin()`; with no JWT claims
+  `auth.role()` is NULL and the condition evaluates to NULL, which `IF` treats as false, so the
+  guard does not fire. `20260705000700_notification_rpcs.sql` and `20260706000200` already use the
+  correct `IS DISTINCT FROM`. Not reachable through PostgREST (every API request carries a role
+  claim), so this is a latent trap, not a live hole — but worth a sweep to one form.
+- NOTED (not done, found in #764): **`deno check` cannot run on the edge functions in this
+  worktree.** `deno check supabase/functions/sync-google-calendar/index.ts` fails with
+  "Could not find a matching package for 'npm:openai@^4.52.5'", required by
+  `jsr:@supabase/functions-js`'s `edge-runtime.d.ts`. So the edge functions have no type gate
+  locally (tsconfig excludes `supabase/functions`). `reconcile.ts` checks clean because it has no
+  imports.
+- NOTED (not done, found in #764): **the migration ROLLBACK hook false-positives on every Edit.**
+  `scripts/claude-hooks/dispatch.js:136` passes `(ti.content || "") + (ti.new_string || "")` to
+  `postWriteWarning`, so an Edit to a migration is checked against the replacement text alone, not
+  the file — it warns "migration lacks a -- ROLLBACK: comment" even when line 1 has one. It should
+  read the file from disk.
+- RETRACTED (#764, same session): the claim that `supabase db push --linked --dry-run` applied
+  `20261109000000` to hosted DEV. **Disproved:** a later plain `supabase db push` (CLI 2.122.1,
+  linked to DEV) listed that migration as pending, prompted, and applied it with no error — a
+  second apply would have failed on `CREATE TYPE public.calendar_event_source` ("already exists").
+  So DEV did not hold the objects before that push, and the dry run changed nothing. The probe
+  that produced the original claim was reading something other than hosted DEV (most likely the
+  local stack). Lesson: "object exists" probes must name the connection they ran over, and the
+  only evidence that a hosted project holds a migration is `migration list --linked` plus a query
+  whose target is unambiguous — a types regeneration or a probe whose host you did not pin proves
+  nothing about which database answered.
 
 ## Failed attempts
 - ATTEMPT 1 [L1] (#709 GCR): adding an explicit `role="tab"` to the tab-bar buttons broke all four
@@ -559,3 +597,13 @@ blanket ban with the doc updated in the same commit.
   draft PR and failed visual review — the pills still looked round. Cause: CSS radius clamping (see
   Facts). Lesson: a radius decision cannot be reviewed as a diff; render it. That is what
   `docs/design/radius-bench.html` is for.
+- ATTEMPT 3 [L1] (#764): guarded the new `admin_delete_event_with_registrations` with
+  `IF auth.role() <> 'service_role'`, copying the form used by most existing RPCs. A probe
+  (`SET LOCAL ROLE anon` + call) showed it FAILS OPEN: with no JWT claims `auth.role()` is NULL,
+  `NULL <> 'service_role'` is NULL, and `IF` treats NULL as false — anon executed the function and
+  deleted the event. Fixed with `IS DISTINCT FROM`, the form already used in
+  `20260705000700_notification_rpcs.sql`. Reachable only from a direct DB session, not through
+  PostgREST (every API request carries a role claim), so it is a latent trap rather than a live
+  hole — but `<>` is the wrong operator for a NULL-able guard, always.
+  Also learned: the REVOKEs on a new function are not load-bearing — the Supabase stack re-grants
+  EXECUTE to anon/authenticated after migrations run, so the in-body check is the only real gate.

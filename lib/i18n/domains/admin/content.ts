@@ -187,6 +187,15 @@ export const adminContent = {
     en: '{{count}} registered guest(s) will be notified.',
     bg: '{{count}} регистриран(и) гост(и) ще бъдат уведомени.',
   },
+  // 2608-DEV-764: the DELETE route refuses with 409 while registrations exist.
+  'admin.calendar.confirm.deleteBlocked': {
+    en: 'This event has registrations. Deleting it deletes them too, and registration history cannot be restored.',
+    bg: 'Това събитие има регистрации. Изтриването му изтрива и тях, а историята на регистрациите не може да бъде възстановена.',
+  },
+  'admin.calendar.btn.deleteAnyway': {
+    en: 'Delete event and registrations',
+    bg: 'Изтрий събитието и регистрациите',
+  },
   'admin.calendar.confirm.editTitle': { en: 'Save these changes?', bg: 'Запазване на промените?' },
   'admin.calendar.confirm.editDesc': {
     en: 'The date, time, or meeting link changed.',

@@ -43,8 +43,14 @@ export function useAdminCalendarMutations() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-calendar'] }),
   })
 
+  // 2608-DEV-764: the route answers 409 when the event still has registrations.
+  // `deleteRegistrations` is the admin's explicit confirmation on the retry;
+  // without it the route refuses rather than destroying the registrations.
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => apiClient(`/api/admin/calendar/${id}`, { method: 'DELETE' }),
+    mutationFn: ({ id, deleteRegistrations = false }: { id: string; deleteRegistrations?: boolean }) =>
+      apiClient(`/api/admin/calendar/${id}${deleteRegistrations ? '?deleteRegistrations=true' : ''}`, {
+        method: 'DELETE',
+      }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-calendar'] }),
   })
 
