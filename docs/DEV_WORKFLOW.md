@@ -8,6 +8,7 @@ The single source for the dev process: local loop → verification → PR → pr
 |---|---|
 | `npm run dev` | Dev server with HMR at <http://localhost:3000> |
 | `npm run verify` | Local mirror of CI: lint → check-types → test → build, visible output |
+| `npm run verify:ci` | Every required CI check, run before marking a PR ready: the pre-push checks, then the build with CI's placeholder env (never your hosted credentials) and, when `supabase/` changed and Docker runs, the migration replay. Prints a PASS / FAIL / NOT RUN summary (`scripts/local-gate.js`) |
 | `npm run check:env` | Validates env vars against `.env.example`'s required list; classifies the Supabase target as LOCAL/DEV/PROD/unrecognised **twice** — once for the dev/seed path (`next dev`, `seed-*.js`, Playwright) and once for production mode (`next build`, `next start`), which skip `.env.development.local` and can land on a different project |
 | `npm run test:mobile` | Playwright smoke at 390×844 against the local dev server |
 | `npm run test:e2e` | Full Playwright smoke (all projects) |
@@ -29,6 +30,8 @@ brew install node@22 gh
 echo 'export PATH="/opt/homebrew/opt/node@22/bin:$HOME/.local/bin:$PATH"' >> ~/.zshenv
 exec zsh
 ```
+
+Using a version manager (mise, nvm, fnm)? It sits ahead of Homebrew on `PATH`, so install 22 there and skip the `node@22` part of the `brew` line: for mise, `mise use -g node@22`. The pinned version lives in `.nvmrc`, which CI reads too, and the pre-push gate (step 6) refuses any other major.
 
 Check: `node -v` prints `v22.x`, and `npm -v` prints `10.x`.
 
@@ -84,13 +87,14 @@ Check: `npm run check:env` passes, and its dev/seed line reports **DEV**. The pr
 
 Check: the home page renders signed in, with no `supabaseUrl is required` error in the terminal.
 
-**6. Local CI mirror.**
+**6. Local gate.** Drafts are checked on this machine, not on GitHub: CI skips draft PRs and runs once when a PR is marked ready.
 
 ```bash
-npm run verify
+git config core.hooksPath .githooks   # once per clone; every worktree shares it
+npm run verify:ci
 ```
 
-Check: exits 0. This runs lint, type check, colour tokens, unit tests and the build.
+Check: every line of the `verify:ci` summary says PASS. From now on each `git push` runs the fast half (Node version, colour tokens, lint, type check, unit tests, attribution; about 20 seconds). `verify:ci` adds the build with CI's placeholder env and, when `supabase/` changed, the migration replay on a local Docker stack. Without Docker that line says NOT RUN and CI's required replay job stays the gate.
 
 **7. E2E.** Playwright starts `npm run dev` itself, or reuses one that's already running. A cold first boot can take a few minutes.
 
@@ -153,7 +157,7 @@ CI (`e2e-authenticated` job in `ci.yml`) does the same against a fresh local Sup
 2. Check your work in the browser:
    - **390px first**: devtools → device toolbar → 390 width (hard constraint: every new UI surface must render correctly at 390px), then desktop.
    - Dark mode toggle if the surface has themed styles.
-3. Before pushing: `npm run verify` (mirrors what CI runs — if it's green locally, CI is green apart from environment drift).
+3. `git push` runs the fast gate itself (`.githooks/pre-push`, enabled in "macOS setup" step 6). Before marking a PR ready: `npm run verify:ci`. It mirrors CI's required checks with CI's placeholder env, so green here means green there apart from what only GitHub has (secrets, a clean runner).
 4. Optionally `npm run test:mobile` when you touched layout.
 
 ## Branch → PR → merge
@@ -162,8 +166,8 @@ CI (`e2e-authenticated` job in `ci.yml`) does the same against a fresh local Sup
 2. Branch `dev/[YYMM]-DEV-[GH#]` off `main`. **Never push to `main` directly.**
 3. Check for overlap first: open PRs, remote `dev/*` branches and worktrees (see [docs/working-procedure.md](working-procedure.md) "Start"). The draft PR is the claim.
 4. Commit prefix and PR title: `[YYMM]-DEV-[GH#] description`. PRs by agents carry a `## Session State` block.
-5. Push (agents: only with an explicit user go-ahead) → PR opens → automatically:
-   - **GitHub Actions**: typecheck, lint, test, build, audit ([ci.yml](../.github/workflows/ci.yml))
+5. Push (agents: only with an explicit user go-ahead) → draft PR opens → automatically:
+   - **GitHub Actions** skip drafts: every job in [ci.yml](../.github/workflows/ci.yml), `migrations-check.yml` and `attribution.yml` is gated on `draft != true`, and reports as skipped. Drafts are checked locally (step 3 of "The local loop"). Marking the PR ready runs them all once: typecheck, lint, colours, test, build, audit, authenticated E2E, migration replay, attribution. A skipped run is not a green run.
    - **Vercel**: preview deployment (~2 min), URL in the PR comment
    - **preview-smoke**: Playwright 390px smoke against the preview URL once the deployment is READY — advisory (not a required check) for now. Covers navigation over the public routes plus one real guest flow (`e2e/library-guide.spec.ts`: open `/library` → click a guide card → detail page). That flow needs a stable guest-visible guide in DEV (`npm run seed:smoke-guide`, seeded once — see the Database section); the spec skips with a pointer when the guide is absent, so an unseeded DB never fails the run.
    - **CodeRabbit** review once the PR leaves draft; fixes go in one batched push (see [docs/working-procedure.md](working-procedure.md) "Landing")

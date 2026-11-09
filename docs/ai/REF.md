@@ -672,7 +672,7 @@ Eight DB-trigger functions write rows to `notifications` (in-app only — separa
 
 ## §12 CI
 
-On every PR to `main` and push to `main` (`.github/workflows/ci.yml`): typecheck (`tsc --noEmit`) → lint → test (vitest) → build → `npm audit --audit-level=high` (audit is non-blocking, `|| true`). Local mirror: `npm run verify`.
+On every non-draft PR to `main` and push to `main` (`.github/workflows/ci.yml`): typecheck (`tsc --noEmit`) → lint → test (vitest) → build → `npm audit --audit-level=high` (audit is non-blocking, `|| true`). Draft PRs skip every job in `ci.yml`, `migrations-check.yml` and `attribution.yml` (`if: github.event.pull_request.draft != true`); marking the PR ready runs them. Local mirror: `npm run verify:ci` (`scripts/local-gate.js`); the pre-push hook in `.githooks/` runs its fast half. Node version: `.nvmrc`, read by CI's `node-version-file`.
 
 Per PR additionally: Vercel preview deployment (~2 min, URL in PR comment) and `.github/workflows/preview-smoke.yml` — Playwright 390px navigation smoke against the preview URL once the deployment is READY (advisory, not a required check).
 

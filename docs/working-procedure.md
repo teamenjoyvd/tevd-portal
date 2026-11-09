@@ -39,20 +39,25 @@ How a change goes from a session to production, and why each step is there. The 
 - **Large change (over ~100 lines):** commit a skeleton with `// TODO:` items first, and keep the
   PR's `## Session State` at `IN PROGRESS`. *Why:* if the context runs out, the next session starts
   from the skeleton.
-- **Before the first push:** `npm run verify`, then `/code-review low` on the branch diff, and fix
-  the findings locally. Auth, RLS or migration changes: `/security-review` or
-  `/code-review medium`. *Why:* every push re-runs CI and the preview.
+- **Before the first push:** `/code-review low` on the branch diff, and fix the findings locally.
+  Auth, RLS or migration changes: `/security-review` or `/code-review medium`. The push itself runs
+  the fast local gate (`.githooks/pre-push`: Node version, lint, types, colours, unit tests,
+  attribution). *Why:* GitHub CI skips drafts, so this machine is the draft's only check.
 
 ## Landing
 
 1. **Push (only with the user's go-ahead) and open the PR as a draft,** title and commits prefixed
    `[YYMM-DEV-GH#]`, body with `Closes #<issue>` and a `## Session State` block. The draft PR is
-   the claim other sessions see in their overlap check. *Why:* CodeRabbit skips drafts
-   (`.coderabbit.yaml`), so iterating costs no review quota.
-2. **Wait for CI green and the Vercel preview READY.** Open the gated jobs (Authenticated E2E):
-   a job that skipped on missing secrets is not green. Check 390px. Auth or routing touched:
-   confirm `middleware.ts` does not exist.
-3. **Mark the PR ready.** CodeRabbit reviews once. Fix every finding in ONE batched push. A wrong
+   the claim other sessions see in their overlap check. *Why:* CodeRabbit (`.coderabbit.yaml`) and
+   GitHub CI (`draft != true` on every job) both skip drafts, so iterating costs no review quota
+   and no Actions minutes. The Vercel preview and its 390px smoke still run on every push.
+2. **Before marking ready:** `npm run verify:ci` passes (a NOT RUN line is left to CI), the Vercel
+   preview is READY and its 390px smoke passed. Check 390px. Auth or routing touched: confirm
+   `middleware.ts` does not exist. *Why:* anything found after step 3 costs a second CI run and a
+   second review.
+3. **Mark the PR ready.** CI runs once and CodeRabbit reviews once. Wait for CI green and open the
+   gated jobs (Authenticated E2E): a job skipped on missing secrets, or a run skipped because the PR
+   was still a draft, is not green. Fix every finding in ONE batched push. A wrong
    finding gets a reply and is resolved without a code change; a skipped one gets a reply with the
    reason and stays open. Resolve a thread only after its fix is pushed. *Why:* each push triggers
    an incremental re-review, so drip-fed fixes burn quota.

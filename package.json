@@ -18,6 +18,7 @@
     "seed:smoke-guest": "node scripts/seed-guest-test-user.js",
     "seed:smoke-calendar": "node scripts/seed-smoke-calendar.js",
     "verify": "npm run lint && npm run check-types && npm run check:colors && npm run test && npm run build",
+    "verify:ci": "node scripts/local-gate.js ci",
     "check:colors": "node scripts/check-color-literals.js",
     "check:env": "node scripts/check-env.js",
     "check:attribution": "node scripts/check-ai-attribution.js",

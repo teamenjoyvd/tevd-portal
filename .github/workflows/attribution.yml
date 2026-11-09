@@ -5,11 +5,16 @@ name: Attribution
 #
 # Separate from ci.yml so editing the PR text re-runs only this check: `edited`
 # is in the trigger list here and nowhere else.
+#
+# Draft PRs skip every job: drafts are checked locally (npm run verify:ci, the
+# .githooks/pre-push gate) and CI runs once when the PR is marked ready.
+# A job skipped by `if:` reports success, so required checks never hang on
+# "Expected"; on push to main `pull_request` is null and the condition holds.
 
 on:
   pull_request:
     branches: [main]
-    types: [opened, edited, synchronize, reopened]
+    types: [opened, edited, synchronize, reopened, ready_for_review]
 
 permissions:
   contents: read
@@ -21,6 +26,7 @@ concurrency:
 jobs:
   attribution:
     name: No AI Attribution
+    if: github.event.pull_request.draft != true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -29,7 +35,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version-file: .nvmrc
       # No dependencies: plain Node, so it fails in seconds without npm ci.
       # Event values go through env, never interpolated into the script.
       - run: node scripts/check-ai-attribution.js "$BASE_SHA..$HEAD_SHA"

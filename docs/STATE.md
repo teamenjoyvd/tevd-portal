@@ -1,10 +1,23 @@
 ## Goal
+**Local gate** (`claude/local-build-setup-bae263`, cut from `main` @ `f38b970`, no issue yet): check
+drafts on the maintainer's machine (pre-push hook + `npm run verify:ci`) and run GitHub CI only when a
+PR is marked ready; pin Node 22 for local and CI. Earlier goal, kept for its notes:
 **#742** (`dev/2608-DEV-742`, cut from `main` @ `06a2aef`): an on-site verification nudge for
 unverified profiles — a dismissible homepage popup covering both the single account holder and the
 co-owner path — plus the two data defects that made its target population invisible.
 **Migration: no.** #741 is explicitly **out of scope** (see Constraints).
 
 ## Now
+
+**Local gate (this branch):** implemented and committed locally, not pushed. `.nvmrc` (22),
+`scripts/local-gate.js` (`pre-push` / `ci` modes), `.githooks/pre-push`, `npm run verify:ci`, every
+job in `ci.yml` / `migrations-check.yml` / `attribution.yml` gated on
+`github.event.pull_request.draft != true` with `ready_for_review` in the trigger types, docs updated
+(DEV_WORKFLOW.md, working-procedure.md, ai/REF.md §12, .coderabbit.yaml comment).
+Verified locally under Node 22 (`mise exec node@22`): pre-push 6/6 PASS in 16s; `verify:ci` 8/8 PASS
+(build 13s); with an untracked file under `supabase/` and no Docker on PATH the replay reports NOT RUN.
+UNVERIFIED until a real PR: the GitHub-side behaviour (jobs skipped on a draft, full run on
+ready_for_review, required checks satisfied by skipped jobs).
 
 **#741 is complete** — every phase (C1-C5) is done on `dev/2608-DEV-741`, cut
 off `main` @ `c982ee4`. This slice finished C2 (everything the four earlier PRs
@@ -256,6 +269,8 @@ for both themes; `@custom-variant dark` registered against `[data-theme="dark"]`
 blanket ban with the doc updated in the same commit.
 
 ## Next
+0. **Local gate:** with the user's go-ahead, push and open a DRAFT PR: confirm every CI job shows
+   skipped; mark ready: confirm the full run starts and the six required checks go green.
 1. **Approve the pending `Migrate Prod` run 31974848811** (Actions → `Production` gate). This is
    what actually restores cancel/revoke in production; it is independent of #751. Both migration
    files are idempotent (`ADD VALUE IF NOT EXISTS`, `ADD COLUMN IF NOT EXISTS`), so a re-run is safe.
@@ -286,6 +301,18 @@ blanket ban with the doc updated in the same commit.
   ("no attribution" — "I like this one, get it too").
 
 ## Decisions
+- DECISION (local gate): Node is pinned by `.nvmrc` + CI `node-version-file` + a Node-major check in
+  `scripts/local-gate.js`, NOT `package.json` `engines` — Vercel reads `engines.node` to pick the
+  PRODUCTION runtime, and the Vercel project's current Node setting is unverified.
+- DECISION (local gate): the hook is enabled with `git config core.hooksPath .githooks` (one-time,
+  shared by every worktree of the clone), not an npm `prepare` script, which would also run in CI and
+  Vercel installs.
+- DECISION (local gate): `verify:ci` replays migrations only when `supabase/` changed AND Docker is
+  up; otherwise it prints NOT RUN. CI's required "Replay migrations from scratch" stays the gate,
+  because the local Docker stack was retired in #563.
+- DECISION (local gate): draft gating is a job-level `if: github.event.pull_request.draft != true`.
+  A skipped job reports success to the `protect-main` required checks, so drafts never hang on
+  "Expected"; on `push` to `main` `pull_request` is null, so the condition is true and main keeps its run.
 - DECISION (#740): corner radius is **two tiers at 2:1** — containers 8px, controls 4px. Chosen so
   that **nothing clamps anywhere** (both sit below half the height of the shortest element in their
   tier) and so a badge reads as nested inside its card. If either changes, keep the ratio and keep
@@ -303,6 +330,17 @@ blanket ban with the doc updated in the same commit.
   `waitForServerSession()` in `e2e/auth-helpers.ts`.
 
 ## Facts
+- Required checks (ruleset `protect-main`): Lint, Type Check, Build, Security Audit, Test, Replay
+  migrations from scratch. Colour Tokens, No AI Attribution, Authenticated E2E are not required.
+- This Mac (2026-11-09): node v24.22.1 / npm 11.19.1 from mise (`~/.local/share/mise`), ahead of
+  Homebrew on PATH; Homebrew `node@22` not installed; `~/.local/bin/supabase` shim missing; Docker
+  running; main checkout `/Users/deniz/Code/tevd-portal` has no `.env.local`.
+- Docker on this Mac cannot pull images: `docker-credential-osxkeychain` is not on PATH (seen
+  2026-11-09 pulling `rhysd/actionlint`). `supabase start` needs image pulls, so a local migration
+  replay will report NOT RUN until that helper is fixed.
+- `@next/env` never overrides a var already in `process.env`, so CI's placeholder env passed to
+  `next build` wins over `.env.local` for every var CI sets.
+- Local timings (2026-11-09): lint 8s, check-types 6s, check:colors 0s, vitest 2s (541 tests).
 - **CSS clamps corner radii** (CSS Backgrounds 3 §5.5): rendered corner is
   `min(r, width/2, height/2)`. Measured element heights — status badge **19px**, Trips eyebrow
   21.5px, filter chip 24px, Footer social button 32px, navbar 56px. This is why 12px would have
@@ -386,6 +424,11 @@ blanket ban with the doc updated in the same commit.
 - #702 CLOSED (epic, 2026-08-12) — all ten children and all six follow-ups merged.
 
 ## Open items
+- **macOS setup not yet run on this Mac** (`docs/DEV_WORKFLOW.md` "macOS setup", from step 1):
+  Node 22 in mise or Homebrew, `gh auth login`, Supabase CLI shim + `supabase login`, the two env
+  files (the user's own Clerk/Supabase credentials), then `git config core.hooksPath .githooks`.
+- **Local gate:** no GitHub issue exists yet. Before pushing, create one and use
+  `dev/[YYMM]-DEV-[GH#]` naming, or keep the `claude/*` branch the hook accepts.
 - **NOTED (#749), pre-existing, deliberately not fixed:** `fn_schedule_guest_reminders_record`'s
   `ON CONFLICT ... DO UPDATE SET status = 'pending', attempts = 0` has no `WHERE`, so re-confirming
   a registration resets an **already-sent** reminder back to pending. Reachable today via
