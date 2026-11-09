@@ -40,6 +40,13 @@ jobs:
             echo "changed=false" >> "$GITHUB_OUTPUT"
             echo "No supabase/ changes — replay skipped, check passes."
           fi
+      # Keeps image-pull connections off Supabase's fixed host ports, which sit in
+      # the ephemeral range; reasoning in ci.yml "Reserve Supabase ports".
+      - name: Reserve Supabase ports from the ephemeral range
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          sudo sysctl -w net.ipv4.ip_local_reserved_ports=54320-54329
+          echo "ephemeral range: $(cat /proc/sys/net/ipv4/ip_local_port_range)"
       - uses: supabase/setup-cli@v3
         if: steps.diff.outputs.changed == 'true'
         with:

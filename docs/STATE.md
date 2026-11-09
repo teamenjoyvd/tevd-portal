@@ -427,11 +427,17 @@ blanket ban with the doc updated in the same commit.
 - #702 CLOSED (epic, 2026-08-12) — all ten children and all six follow-ups merged.
 
 ## Open items
-- **CI flake (seen 2026-11-09, PR #786 run 42620637056 and main@7442b00 run 42598802779):** the
-  `Authenticated E2E (Clerk)` job's "Start local Supabase" step fails with `failed to bind host port
-  0.0.0.0:54322/tcp: address already in use` before any spec runs; main@f38b970 passed the same job.
-  Runner-side, not code. If it recurs, consider a port check / `supabase stop --no-backup` before
-  `supabase start` in ci.yml.
+- **Port-54322 E2E flake: fix pushed on PR #786, not yet proven in CI.** `Authenticated E2E (Clerk)`
+  "Start local Supabase" failed with `failed to bind host port 0.0.0.0:54322/tcp: address already in
+  use` on 2 of ~40 recent CI runs (main@7442b00 run 42598802779; PR #786 run 42620637056 attempt 1;
+  attempt 2 passed). Cause: Supabase's fixed host ports 54320-54329 lie in Linux's ephemeral range,
+  and `supabase start` pulls ~12 images in parallel before the db container binds; an outbound pull
+  connection that draws 54322 as its source port blocks the listen. Reproduced in a privileged
+  `postgres:18` container: an outbound socket on 54322 makes `listen 0.0.0.0:54322` fail with
+  "Address already in use"; with `net.ipv4.ip_local_reserved_ports=54320-54329` outbound sockets
+  skip 54320-54329 and an explicit listen on 54322 still succeeds. Fix: a "Reserve Supabase ports
+  from the ephemeral range" step before `supabase start` in `ci.yml` (e2e-authenticated) and
+  `migrations-check.yml`. Close this item after ~20 green E2E runs with no bind error.
 - **macOS setup not yet run on this Mac** (`docs/DEV_WORKFLOW.md` "macOS setup", from step 1):
   Node 22 in mise or Homebrew, `gh auth login`, Supabase CLI shim + `supabase login`, the two env
   files (the user's own Clerk/Supabase credentials), then `git config core.hooksPath .githooks`.
