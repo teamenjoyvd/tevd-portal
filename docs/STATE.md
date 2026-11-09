@@ -269,8 +269,11 @@ for both themes; `@custom-variant dark` registered against `[data-theme="dark"]`
 blanket ban with the doc updated in the same commit.
 
 ## Next
-0. **Local gate:** with the user's go-ahead, push and open a DRAFT PR: confirm every CI job shows
-   skipped; mark ready: confirm the full run starts and the six required checks go green.
+0. **Local gate (PR #786, draft):** draft-skip CONFIRMED 2026-11-09 — all 9 gated jobs report
+   "skipping" (run 42620079847 CI, 42620079655 Migrations Check, 42620079752 Attribution); Vercel
+   preview still deploys. Next: wait for the preview + preview-smoke, then mark the PR ready and
+   confirm the full run starts and the six required checks go green (mergeStateStatus was BLOCKED
+   while draft — check it clears).
 1. **Approve the pending `Migrate Prod` run 31974848811** (Actions → `Production` gate). This is
    what actually restores cancel/revoke in production; it is independent of #751. Both migration
    files are idempotent (`ADD VALUE IF NOT EXISTS`, `ADD COLUMN IF NOT EXISTS`), so a re-run is safe.
