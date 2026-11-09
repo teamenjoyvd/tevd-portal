@@ -14,7 +14,7 @@ loadEnvFiles(process.cwd(), 'development')
 
 // BASE_URL set (e.g. the preview-smoke workflow pointing at a Vercel preview)
 // -> test that deployment and start no local server.
-const baseURL = process.env.BASE_URL ?? 'http://localhost:3000'
+const baseURL = process.env.BASE_URL ?? 'http://localhost:3400'
 
 // Vercel "Protection Bypass for Automation": deployment protection (SSO)
 // otherwise redirects CI to a vercel.com login page. When the secret is set
@@ -98,7 +98,7 @@ export default defineConfig({
     ? undefined
     : {
         command: 'npm run dev',
-        url: 'http://localhost:3000',
+        url: 'http://localhost:3400',
         reuseExistingServer: true,
         // 300s, not 120s (2608-DEV-722). Measured 2026-08-10: with no server
         // running, a cold Turbopack boot on this repo exceeded the 120s ceiling

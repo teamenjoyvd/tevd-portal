@@ -21,7 +21,7 @@ import type { Reporter, TestCase, TestResult, FullResult, FullConfig } from '@pl
  * server is workflow-managed, and a hard exit would hide a real failure.
  */
 export default class ServerWatchdogReporter implements Reporter {
-  private baseURL = 'http://localhost:3000'
+  private baseURL = 'http://localhost:3400'
   private enabled = false
   private probing = false
 

@@ -456,9 +456,18 @@ blanket ban with the doc updated in the same commit.
   keys belong to instance `loved-mole-75.clerk.accounts.dev` (same as CI). Copied into this worktree
   with `npm run env:worktree`. Step 5: `next dev` renders `/` with DEV data, signed out; the
   signed-in half needs the user's own Clerk sign-in. Playwright 1.61.1 needed chromium build 1228
-  (`npx playwright install chromium`, done). Remaining: user signs in on localhost:3000; step 7
+  (`npx playwright install chromium`, done). Remaining: user signs in on localhost:3400; step 7
   `e2e:seed-clerk` + `test:e2e:auth` (write to the shared DEV DB: ask first). Restart the Claude app
   so agent sessions pick up Node 22.
+- **Local dev port is 3400 (2026-11-09, user request "Make it default"):** `npm run dev` is
+  `next dev -p 3400`; `.claude/launch.json`, `playwright.config.ts` (baseURL + webServer url), the
+  four e2e `BASE_URL` fallbacks, `e2e/server-watchdog-reporter.ts`, `scripts/run-e2e-tests.js:506`,
+  `ci.yml` E2E `NEXT_PUBLIC_APP_URL`, README and DEV_WORKFLOW all say 3400. Deliberately left at
+  3000: `scripts/run-e2e-tests.js:415,533` (dummy base for path parsing) and
+  `supabase/config.toml` `site_url` (Supabase Auth unused). This Mac's two `.env.local` copies
+  (main checkout + this worktree) have `NEXT_PUBLIC_APP_URL=http://localhost:3400`; other machines
+  must change theirs. Verified: pre-push gate 6/6; `test:mobile` against :3400 exit 0 (14 passed,
+  5 skipped).
 - **`test:mobile` is NOT write-free (found 2026-11-09):** `AUTHENTICATED_SPECS` in
   `playwright.config.ts:31` omits `member-role-cancel-auth` (added in #750, b6b856a), so that spec
   also runs in the `mobile-390` and `desktop` projects. Without Clerk keys (preview-smoke) it skips;

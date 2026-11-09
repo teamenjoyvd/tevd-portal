@@ -6,7 +6,7 @@ The single source for the dev process: local loop → verification → PR → pr
 
 | Command | What it does |
 |---|---|
-| `npm run dev` | Dev server with HMR at <http://localhost:3000> |
+| `npm run dev` | Dev server with HMR at <http://localhost:3400> |
 | `npm run verify` | Local mirror of CI: lint → check-types → test → build, visible output |
 | `npm run verify:ci` | Every required CI check, run before marking a PR ready: the pre-push checks, then the build with CI's placeholder env (never your hosted credentials) and, when `supabase/` changed and Docker runs, the migration replay. Prints a PASS / FAIL / NOT RUN summary (`scripts/local-gate.js`) |
 | `npm run check:env` | Validates env vars against `.env.example`'s required list; classifies the Supabase target as LOCAL/DEV/PROD/unrecognised **twice** — once for the dev/seed path (`next dev`, `seed-*.js`, Playwright) and once for production mode (`next build`, `next start`), which skip `.env.development.local` and can land on a different project |
@@ -68,7 +68,7 @@ Check: `supabase --version` prints `2.122.1`, and `supabase migration list` show
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
 CLERK_SECRET_KEY=sk_test_...
 ICAL_TOKEN_SECRET=<output of: openssl rand -hex 32>
-NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_APP_URL=http://localhost:3400
 ```
 
 `.env.development.local`: the DEV Supabase project. Get the two keys with `supabase projects api-keys --project-ref iymwxdewcpvpjgzewtzk`.
@@ -83,7 +83,7 @@ Then `chmod 600 .env.local .env.development.local`.
 
 Check: `npm run check:env` passes, and its dev/seed line reports **DEV**. The production-mode line may report something else; that one only covers `next build`/`next start`.
 
-**5. Run it.** `npm run dev`, then open <http://localhost:3000> and sign in with your Clerk dev-instance account.
+**5. Run it.** `npm run dev`, then open <http://localhost:3400> and sign in with your Clerk dev-instance account.
 
 Check: the home page renders signed in, with no `supabaseUrl is required` error in the terminal.
 
