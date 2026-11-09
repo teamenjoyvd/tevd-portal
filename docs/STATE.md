@@ -427,6 +427,11 @@ blanket ban with the doc updated in the same commit.
 - #702 CLOSED (epic, 2026-08-12) — all ten children and all six follow-ups merged.
 
 ## Open items
+- **CI flake (seen 2026-11-09, PR #786 run 42620637056 and main@7442b00 run 42598802779):** the
+  `Authenticated E2E (Clerk)` job's "Start local Supabase" step fails with `failed to bind host port
+  0.0.0.0:54322/tcp: address already in use` before any spec runs; main@f38b970 passed the same job.
+  Runner-side, not code. If it recurs, consider a port check / `supabase stop --no-backup` before
+  `supabase start` in ci.yml.
 - **macOS setup not yet run on this Mac** (`docs/DEV_WORKFLOW.md` "macOS setup", from step 1):
   Node 22 in mise or Homebrew, `gh auth login`, Supabase CLI shim + `supabase login`, the two env
   files (the user's own Clerk/Supabase credentials), then `git config core.hooksPath .githooks`.
