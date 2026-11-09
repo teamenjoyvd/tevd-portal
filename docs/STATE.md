@@ -343,7 +343,9 @@ blanket ban with the doc updated in the same commit.
     change (an already-running app or session) keep v24.22.1 until restarted.
   - Main checkout `/Users/deniz/Code/tevd-portal`: `npm ci` under Node 22 exits 0; no `.env.local`
     and no `.env.development.local` (step 4 needs the user's Clerk dev + DEV Supabase keys).
-  - `~/.local/bin/supabase` shim installed, prints 2.122.1. `supabase login` / `link` not run.
+  - `~/.local/bin/supabase` shim installed, prints 2.122.1. User ran `supabase login` and
+    `supabase link --project-ref iymwxdewcpvpjgzewtzk` in the main checkout (linked ref is DEV);
+    `supabase migration list`: 134 migrations, local = remote on every row.
   - Docker is Colima (context `colima`), `credsStore: osxkeychain`; `brew install
     docker-credential-helper` (0.9.12) fixed image pulls (`docker pull hello-world` OK).
   - Pre-push gate: `core.hooksPath` deliberately UNSET, because it would disable the local,
@@ -448,8 +450,8 @@ blanket ban with the doc updated in the same commit.
   from the ephemeral range" step before `supabase start` in `ci.yml` (e2e-authenticated) and
   `migrations-check.yml`. Close this item after ~20 green E2E runs with no bind error.
 - **macOS setup on this Mac, remaining** (`docs/DEV_WORKFLOW.md` "macOS setup"; steps 1, 2, the
-  step-3 shim, step 6 and the Docker helper are done, see Facts): the user runs `supabase login` +
-  `supabase link --project-ref iymwxdewcpvpjgzewtzk` and writes the two env files (step 4); then
+  step 3, step 6 and the Docker helper are done, see Facts): the user writes the two env files
+  (step 4); then
   `npm run check:env`, `npm run dev` (step 5), and step 7 E2E (seeding writes to the shared DEV DB:
   ask first). Restart the Claude app so agent sessions pick up Node 22.
 - **`scripts/local-gate.js:160` warns falsely on a `.git/hooks/pre-push` hand-off:** the `ci`-mode
