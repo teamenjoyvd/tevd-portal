@@ -34,7 +34,7 @@ const VIEWPORT_WIDTH = 390
  * at a preview or production deployment. Authenticated specs are local-only
  * (playwright.config.ts:79-80); fail loudly rather than sign in over there.
  */
-const BASE_URL = process.env.BASE_URL ?? 'http://localhost:3000'
+const BASE_URL = process.env.BASE_URL ?? 'http://localhost:3400'
 const IS_LOCAL_TARGET = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/|$)/.test(BASE_URL)
 
 /**

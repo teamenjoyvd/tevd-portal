@@ -52,7 +52,7 @@ test.describe('home page without WebGL', () => {
 
     // Same guard as mobile-smoke: Vercel deployment protection serves an
     // HTTP-200 login page on vercel.com that would pass every other assertion.
-    const expectedOrigin = new URL(process.env.BASE_URL ?? 'http://localhost:3000').origin
+    const expectedOrigin = new URL(process.env.BASE_URL ?? 'http://localhost:3400').origin
     expect(
       new URL(page.url()).origin,
       'landed off the app origin — deployment protection (SSO) page instead of the app?',

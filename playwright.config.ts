@@ -14,7 +14,7 @@ loadEnvFiles(process.cwd(), 'development')
 
 // BASE_URL set (e.g. the preview-smoke workflow pointing at a Vercel preview)
 // -> test that deployment and start no local server.
-const baseURL = process.env.BASE_URL ?? 'http://localhost:3000'
+const baseURL = process.env.BASE_URL ?? 'http://localhost:3400'
 
 // Vercel "Protection Bypass for Automation": deployment protection (SSO)
 // otherwise redirects CI to a vercel.com login page. When the secret is set
@@ -28,7 +28,7 @@ const bypassSecret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET
 // Vercel Preview with no Clerk secrets, so clerk.signIn() fails outright).
 // Named once so a new authenticated spec can't be added to one list and
 // silently omitted from the other two.
-const AUTHENTICATED_SPECS = /(admin-auth|admin-mobile-auth|los-submission-auth|profile-bento-auth|payments-on-behalf|payments-guest|member-attend-auth|member-share-register-auth|event-registrations-auth)\.spec\.ts/
+const AUTHENTICATED_SPECS = /(admin-auth|admin-mobile-auth|los-submission-auth|profile-bento-auth|payments-on-behalf|payments-guest|member-attend-auth|member-share-register-auth|event-registrations-auth|member-role-cancel-auth)\.spec\.ts/
 
 export default defineConfig({
   testDir: './e2e',
@@ -98,7 +98,7 @@ export default defineConfig({
     ? undefined
     : {
         command: 'npm run dev',
-        url: 'http://localhost:3000',
+        url: 'http://localhost:3400',
         reuseExistingServer: true,
         // 300s, not 120s (2608-DEV-722). Measured 2026-08-10: with no server
         // running, a cold Turbopack boot on this repo exceeded the 120s ceiling

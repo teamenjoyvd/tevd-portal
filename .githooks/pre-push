@@ -1,0 +1,5 @@
+#!/bin/sh
+# Runs the fast local gate before every push (docs/DEV_WORKFLOW.md "macOS setup" step 6).
+# Enable once per clone: git config core.hooksPath .githooks
+# Bypass once: git push --no-verify
+exec node scripts/local-gate.js pre-push

@@ -1,6 +1,7 @@
 # CodeRabbit configuration — versioned so review behavior is explicit.
-# Draft PRs are NOT auto-reviewed: open PRs as drafts to get CI + Vercel
-# preview for free, mark "Ready for review" to spend the one review pass.
+# Draft PRs are NOT auto-reviewed: open PRs as drafts to get the Vercel preview
+# for free (GitHub CI skips drafts too; drafts are checked locally with
+# npm run verify:ci), mark "Ready for review" to spend the one review pass.
 reviews:
   auto_review:
     enabled: true

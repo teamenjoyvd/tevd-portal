@@ -1,10 +1,23 @@
 ## Goal
+**Local gate** (`claude/local-build-setup-bae263`, cut from `main` @ `f38b970`, no issue yet): check
+drafts on the maintainer's machine (pre-push hook + `npm run verify:ci`) and run GitHub CI only when a
+PR is marked ready; pin Node 22 for local and CI. Earlier goal, kept for its notes:
 **#742** (`dev/2608-DEV-742`, cut from `main` @ `06a2aef`): an on-site verification nudge for
 unverified profiles — a dismissible homepage popup covering both the single account holder and the
 co-owner path — plus the two data defects that made its target population invisible.
 **Migration: no.** #741 is explicitly **out of scope** (see Constraints).
 
 ## Now
+
+**Local gate (this branch):** implemented and committed locally, not pushed. `.nvmrc` (22),
+`scripts/local-gate.js` (`pre-push` / `ci` modes), `.githooks/pre-push`, `npm run verify:ci`, every
+job in `ci.yml` / `migrations-check.yml` / `attribution.yml` gated on
+`github.event.pull_request.draft != true` with `ready_for_review` in the trigger types, docs updated
+(DEV_WORKFLOW.md, working-procedure.md, ai/REF.md §12, .coderabbit.yaml comment).
+Verified locally under Node 22 (`mise exec node@22`): pre-push 6/6 PASS in 16s; `verify:ci` 8/8 PASS
+(build 13s); with an untracked file under `supabase/` and no Docker on PATH the replay reports NOT RUN.
+UNVERIFIED until a real PR: the GitHub-side behaviour (jobs skipped on a draft, full run on
+ready_for_review, required checks satisfied by skipped jobs).
 
 **#741 is complete** — every phase (C1-C5) is done on `dev/2608-DEV-741`, cut
 off `main` @ `c982ee4`. This slice finished C2 (everything the four earlier PRs
@@ -256,6 +269,11 @@ for both themes; `@custom-variant dark` registered against `[data-theme="dark"]`
 blanket ban with the doc updated in the same commit.
 
 ## Next
+0. **Local gate (PR #786, draft):** draft-skip CONFIRMED 2026-11-09 — all 9 gated jobs report
+   "skipping" (run 42620079847 CI, 42620079655 Migrations Check, 42620079752 Attribution); Vercel
+   preview still deploys. Next: wait for the preview + preview-smoke, then mark the PR ready and
+   confirm the full run starts and the six required checks go green (mergeStateStatus was BLOCKED
+   while draft — check it clears).
 1. **Approve the pending `Migrate Prod` run 31974848811** (Actions → `Production` gate). This is
    what actually restores cancel/revoke in production; it is independent of #751. Both migration
    files are idempotent (`ADD VALUE IF NOT EXISTS`, `ADD COLUMN IF NOT EXISTS`), so a re-run is safe.
@@ -286,6 +304,18 @@ blanket ban with the doc updated in the same commit.
   ("no attribution" — "I like this one, get it too").
 
 ## Decisions
+- DECISION (local gate): Node is pinned by `.nvmrc` + CI `node-version-file` + a Node-major check in
+  `scripts/local-gate.js`, NOT `package.json` `engines` — Vercel reads `engines.node` to pick the
+  PRODUCTION runtime, and the Vercel project's current Node setting is unverified.
+- DECISION (local gate): the hook is enabled with `git config core.hooksPath .githooks` (one-time,
+  shared by every worktree of the clone), not an npm `prepare` script, which would also run in CI and
+  Vercel installs.
+- DECISION (local gate): `verify:ci` replays migrations only when `supabase/` changed AND Docker is
+  up; otherwise it prints NOT RUN. CI's required "Replay migrations from scratch" stays the gate,
+  because the local Docker stack was retired in #563.
+- DECISION (local gate): draft gating is a job-level `if: github.event.pull_request.draft != true`.
+  A skipped job reports success to the `protect-main` required checks, so drafts never hang on
+  "Expected"; on `push` to `main` `pull_request` is null, so the condition is true and main keeps its run.
 - DECISION (#740): corner radius is **two tiers at 2:1** — containers 8px, controls 4px. Chosen so
   that **nothing clamps anywhere** (both sit below half the height of the shortest element in their
   tier) and so a badge reads as nested inside its card. If either changes, keep the ratio and keep
@@ -303,6 +333,28 @@ blanket ban with the doc updated in the same commit.
   `waitForServerSession()` in `e2e/auth-helpers.ts`.
 
 ## Facts
+- Required checks (ruleset `protect-main`): Lint, Type Check, Build, Security Audit, Test, Replay
+  migrations from scratch. Colour Tokens, No AI Attribution, Authenticated E2E are not required.
+- This Mac (2026-11-09, after the macOS setup's credential-free steps):
+  - Node: mise global `node = "22"` in `~/.config/mise/config.toml` (was `"lts"`, backup in the
+    session's `$TMPDIR/mise-config.toml.bak`); a fresh `zsh -i` gives node v22.23.4 / npm 10.9.9.
+    mise puts the global's install dir first on PATH, so `.nvmrc` does NOT switch Node in
+    non-interactive shells: the global is what agent sessions get. Shells that started before the
+    change (an already-running app or session) keep v24.22.1 until restarted.
+  - Main checkout `/Users/deniz/Code/tevd-portal`: `npm ci` under Node 22 exits 0; no `.env.local`
+    and no `.env.development.local` (step 4 needs the user's Clerk dev + DEV Supabase keys).
+  - `~/.local/bin/supabase` shim installed, prints 2.122.1. User ran `supabase login` and
+    `supabase link --project-ref iymwxdewcpvpjgzewtzk` in the main checkout (linked ref is DEV);
+    `supabase migration list`: 134 migrations, local = remote on every row.
+  - Docker is Colima (context `colima`), `credsStore: osxkeychain`; `brew install
+    docker-credential-helper` (0.9.12) fixed image pulls (`docker pull hello-world` OK).
+  - Pre-push gate: `core.hooksPath` deliberately UNSET, because it would disable the local,
+    untracked `.git/hooks/post-checkout` (copies `.delta/settings.json` into new worktrees). A local
+    `.git/hooks/pre-push` instead execs `<worktree>/.githooks/pre-push` when that file exists
+    (tested: 6/6 PASS here, exit 0 on main which has no `.githooks` yet).
+- `@next/env` never overrides a var already in `process.env`, so CI's placeholder env passed to
+  `next build` wins over `.env.local` for every var CI sets.
+- Local timings (2026-11-09): lint 8s, check-types 6s, check:colors 0s, vitest 2s (541 tests).
 - **CSS clamps corner radii** (CSS Backgrounds 3 §5.5): rendered corner is
   `min(r, width/2, height/2)`. Measured element heights — status badge **19px**, Trips eyebrow
   21.5px, filter chip 24px, Footer social button 32px, navbar 56px. This is why 12px would have
@@ -386,6 +438,52 @@ blanket ban with the doc updated in the same commit.
 - #702 CLOSED (epic, 2026-08-12) — all ten children and all six follow-ups merged.
 
 ## Open items
+- **Port-54322 E2E flake: fix pushed on PR #786, not yet proven in CI.** `Authenticated E2E (Clerk)`
+  "Start local Supabase" failed with `failed to bind host port 0.0.0.0:54322/tcp: address already in
+  use` on 2 of ~40 recent CI runs (main@7442b00 run 42598802779; PR #786 run 42620637056 attempt 1;
+  attempt 2 passed). Cause: Supabase's fixed host ports 54320-54329 lie in Linux's ephemeral range,
+  and `supabase start` pulls ~12 images in parallel before the db container binds; an outbound pull
+  connection that draws 54322 as its source port blocks the listen. Reproduced in a privileged
+  `postgres:18` container: an outbound socket on 54322 makes `listen 0.0.0.0:54322` fail with
+  "Address already in use"; with `net.ipv4.ip_local_reserved_ports=54320-54329` outbound sockets
+  skip 54320-54329 and an explicit listen on 54322 still succeeds. Fix: a "Reserve Supabase ports
+  from the ephemeral range" step before `supabase start` in `ci.yml` (e2e-authenticated) and
+  `migrations-check.yml`. Close this item after ~20 green E2E runs with no bind error.
+- **macOS setup on this Mac, remaining** (`docs/DEV_WORKFLOW.md` "macOS setup"; steps 1, 2, 3, 4,
+  6 and the Docker helper are done, see Facts). Step 4: both env files written by the user in the
+  main checkout (600, gitignored); `npm run check:env` -> dev/seed line DEV (iymwxdewcpvpjgzewtzk);
+  the production-mode line has no Supabase URL (expected: no `.env.production.local`). Both Clerk
+  keys belong to instance `loved-mole-75.clerk.accounts.dev` (same as CI). Copied into this worktree
+  with `npm run env:worktree`. Step 5: `next dev` renders `/` with DEV data, signed out; the
+  signed-in half needs the user's own Clerk sign-in. Playwright 1.61.1 needed chromium build 1228
+  (`npx playwright install chromium`, done). Remaining: user signs in on localhost:3400; step 7
+  `e2e:seed-clerk` + `test:e2e:auth` (write to the shared DEV DB: ask first). Restart the Claude app
+  so agent sessions pick up Node 22.
+- **Local dev port is 3400 (2026-11-09, user request "Make it default"):** `npm run dev` is
+  `next dev -p 3400`; `.claude/launch.json`, `playwright.config.ts` (baseURL + webServer url), the
+  four e2e `BASE_URL` fallbacks, `e2e/server-watchdog-reporter.ts`, `scripts/run-e2e-tests.js:506`,
+  `ci.yml` E2E `NEXT_PUBLIC_APP_URL`, README and DEV_WORKFLOW all say 3400. Deliberately left at
+  3000: `scripts/run-e2e-tests.js:415,533` (dummy base for path parsing) and
+  `supabase/config.toml` `site_url` (Supabase Auth unused). This Mac's two `.env.local` copies
+  (main checkout + this worktree) have `NEXT_PUBLIC_APP_URL=http://localhost:3400`; other machines
+  must change theirs. Verified: pre-push gate 6/6; `test:mobile` against :3400 exit 0 (14 passed,
+  5 skipped).
+- **`test:mobile` is NOT write-free (found 2026-11-09):** `AUTHENTICATED_SPECS` in
+  `playwright.config.ts:31` omits `member-role-cancel-auth` (added in #750, b6b856a), so that spec
+  also runs in the `mobile-390` and `desktop` projects. Without Clerk keys (preview-smoke) it skips;
+  with local dev keys it signs in and writes to the shared DEV DB (event, role request, approval).
+  Its `afterAll` cleaned up (0 `E2E Role Cancel %` events left on DEV, checked). In the mobile-390
+  run it failed at `member-role-cancel-auth.spec.ts:177` (expected `cancelled`, received
+  `approved`). The `authenticated` project uses the same regex as `testMatch`, so this spec had
+  NEVER run in CI's Authenticated E2E either (its 35 passing tests excluded it). FIXED on PR #786:
+  added to the regex; `playwright test --list` now collects it only under `authenticated`. CI's
+  disposable-stack run of it is the first real one: a failure there at :177 is a real withdraw-path
+  finding (#749), not caused by #786. `npm run test:mobile` otherwise: 14 passed, 5 skipped.
+- **`scripts/local-gate.js:160` warns falsely on a `.git/hooks/pre-push` hand-off:** the `ci`-mode
+  check reads only `core.hooksPath`. Either accept a hand-off hook there and document it in
+  DEV_WORKFLOW.md step 6 as the option for clones with their own local hooks, or leave it.
+- **Local gate:** no GitHub issue exists yet. Before pushing, create one and use
+  `dev/[YYMM]-DEV-[GH#]` naming, or keep the `claude/*` branch the hook accepts.
 - **NOTED (#749), pre-existing, deliberately not fixed:** `fn_schedule_guest_reminders_record`'s
   `ON CONFLICT ... DO UPDATE SET status = 'pending', attempts = 0` has no `WHERE`, so re-confirming
   a registration resets an **already-sent** reminder back to pending. Reachable today via

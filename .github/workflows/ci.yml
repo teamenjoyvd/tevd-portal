@@ -1,10 +1,17 @@
 name: CI
 
+# Draft PRs skip every job: drafts are checked locally (npm run verify:ci, the
+# .githooks/pre-push gate) and CI runs once when the PR is marked ready.
+# A job skipped by `if:` reports success, so required checks never hang on
+# "Expected"; on push to main `pull_request` is null and the condition holds.
+
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
+    # Listing types replaces the defaults, so the defaults are spelled out.
+    types: [opened, synchronize, reopened, ready_for_review]
 
 permissions:
   contents: read
@@ -16,36 +23,39 @@ concurrency:
 jobs:
   typecheck:
     name: Type Check
+    if: github.event.pull_request.draft != true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version-file: .nvmrc
           cache: 'npm'
       - run: npm ci
       - run: npm run check-types
 
   lint:
     name: Lint
+    if: github.event.pull_request.draft != true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version-file: .nvmrc
           cache: 'npm'
       - run: npm ci
       - run: npm run lint
 
   colors:
     name: Colour Tokens
+    if: github.event.pull_request.draft != true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version-file: .nvmrc
           cache: 'npm'
       # No dependencies: the check is plain Node with no imports, so it does not
       # wait on npm ci and fails in seconds when someone types a hex.
@@ -53,24 +63,26 @@ jobs:
 
   test:
     name: Test
+    if: github.event.pull_request.draft != true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version-file: .nvmrc
           cache: 'npm'
       - run: npm ci
       - run: npm run test
 
   build:
     name: Build
+    if: github.event.pull_request.draft != true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version-file: .nvmrc
           cache: 'npm'
       - run: npm ci
       - run: npm run build
@@ -85,12 +97,13 @@ jobs:
 
   audit:
     name: Security Audit
+    if: github.event.pull_request.draft != true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version-file: .nvmrc
           cache: 'npm'
       - run: npm ci
       # Soft-gate the audit with '|| true' so vulnerabilities are reported in the logs
@@ -99,6 +112,7 @@ jobs:
 
   e2e-authenticated:
     name: Authenticated E2E (Clerk)
+    if: github.event.pull_request.draft != true
     runs-on: ubuntu-latest
     # Skips (not fails) until CLERK_SECRET_KEY and NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
     # secrets are added — see #560. Never targets Preview/prod Supabase: this job
@@ -119,12 +133,25 @@ jobs:
         env:
           CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
           CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+      # Supabase binds fixed host ports 54320-54329 (supabase/config.toml), inside
+      # Linux's ephemeral range. `supabase start` pulls ~12 images in parallel
+      # first; when one of those outbound connections draws 54322 as its source
+      # port, the db container dies with "failed to bind host port
+      # 0.0.0.0:54322/tcp: address already in use" (runs 42598802779 and
+      # 42620637056 attempt 1). Reserving the range removes it from ephemeral
+      # allocation only: Docker's explicit bind still gets it. Same step in
+      # migrations-check.yml.
+      - name: Reserve Supabase ports from the ephemeral range
+        if: steps.check.outputs.ready == 'true'
+        run: |
+          sudo sysctl -w net.ipv4.ip_local_reserved_ports=54320-54329
+          echo "ephemeral range: $(cat /proc/sys/net/ipv4/ip_local_port_range)"
       - uses: actions/checkout@v4
         if: steps.check.outputs.ready == 'true'
       - uses: actions/setup-node@v4
         if: steps.check.outputs.ready == 'true'
         with:
-          node-version: '22'
+          node-version-file: .nvmrc
           cache: 'npm'
       - run: npm ci
         if: steps.check.outputs.ready == 'true'
@@ -174,7 +201,7 @@ jobs:
         env:
           CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
-          NEXT_PUBLIC_APP_URL: "http://localhost:3000"
+          NEXT_PUBLIC_APP_URL: "http://localhost:3400"
           ICAL_TOKEN_SECRET: "0000000000000000000000000000000000000000000000000000000000000000"
       # !cancelled(), NOT failure(): retries: 1 means a flaky spec passes on the
       # second attempt and the JOB succeeds, so a failure()-gated upload throws

@@ -503,7 +503,7 @@ async function mockFetch(url, options = {}, db, currentUserId) {
 async function runFetch(url, options = {}, context) {
   if (context.isLive) {
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3400";
       const fullUrl = url.startsWith("http") ? url : `${baseUrl}${url}`;
       const fetchOpts = {
         method: options.method || "GET",

@@ -190,7 +190,7 @@ test('bg-language variant renders Bulgarian copy on the register page', async ({
   const { eventId } = fx!
 
   await context.addCookies([
-    { name: 'tevd_lang', value: 'bg', url: process.env.BASE_URL ?? 'http://localhost:3000' },
+    { name: 'tevd_lang', value: 'bg', url: process.env.BASE_URL ?? 'http://localhost:3400' },
   ])
 
   await page.goto(`/events/${eventId}/register`)

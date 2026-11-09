@@ -30,7 +30,7 @@ for (const route of PUBLIC_SMOKE_ROUTES) {
     // HTTP-200 login page on vercel.com, which passes every other assertion
     // here. Fail hard if we ever land off the app's origin (see the
     // VERCEL_AUTOMATION_BYPASS_SECRET wiring in playwright.config.ts).
-    const expectedOrigin = new URL(process.env.BASE_URL ?? 'http://localhost:3000').origin
+    const expectedOrigin = new URL(process.env.BASE_URL ?? 'http://localhost:3400').origin
     expect(
       new URL(page.url()).origin,
       `landed off the app origin on ${route} — deployment protection (SSO) page instead of the app?`,
