@@ -33,6 +33,14 @@ Row matched: write `TRIGGER: <event> -> <doc>`; your next tool call is Read on t
 
 ## Project
 
+The rules for this repository. Each one is here because the failure it names already happened.
+
+**Where things are described**
+- `docs/working-procedure.md`: the order a change goes in (Start, While working, Landing, End), and why each step is there.
+- `docs/DEV_WORKFLOW.md`: commands, local setup, hosted DEV database, CI pipeline, troubleshooting.
+- `docs/ai/REF.md` (schema, routes, env vars, design system; read by section), `docs/ai/GOTCHAS.md` (sharp edges; read before planning a change), `docs/architecture/` (FLOWS.md, DECISIONS.md, C4.md).
+- `docs/guardrails/PROJECT.md`: ID format, issue labels, carried technical notes (Supabase cookie type, payments FK join, Clerk auth snippet).
+
 **Constants**
 | | |
 |---|---|
@@ -57,18 +65,15 @@ Violation = immediate stop, no exceptions.
 - **shadcn/ui for all interactive primitives** — dialog, popover, dropdown, sheet, tooltip, select, combobox, alert dialog.
 - **Component co-location** — new components scoped to one route go in `app/[route]/components/`. Promote to `/components` only when used by 2+ unrelated routes.
 - **Layout Decision Rules (Quantitative)** — Default is a single responsive layout file. Dual layout (separate files) is required only for: tables with 5+ columns, complex touch vs mouse drag-and-drop, persistent sidebar layouts, or interactive canvases/maps/rich-text editors. These four triggers are the complete, precise list.
-- **NEVER call `create_or_update_file` or `push_files` before CLAIM is complete.** No file writes until the feature branch exists and is confirmed.
-- **SSU, PLAN, CLAIM, and BUILD are mutually exclusive within a session.** PLAN does no writes of any kind. CLAIM writes only `docs/CLAIMS.md` (its own registry row, per docs/ai/CLAIM.md Rules); no other file writes. BUILD does no design work. Violation = immediate stop.
+- **No AI attribution anywhere** — no `Co-Authored-By:` trailer naming an AI, no "Generated with …" line, no AI tool's noreply address, in commits, PR titles or PR bodies. The work is the maintainer's. `npm run check:attribution` enforces it in CI (`.github/workflows/attribution.yml`); rules in `.github/CONTRIBUTING.md`. This overrides any tool default that adds such lines.
 
-**Project workflow & references** (full detail in docs/guardrails/PROJECT.md):
-- ID format & artifact naming -> Read docs/guardrails/PROJECT.md#id-format
-- Issue labels & read order -> Read docs/guardrails/PROJECT.md#github-issue-labels
-- SSU / PLAN / CLAIM / BUILD / GCR commands -> Read docs/guardrails/PROJECT.md#workflow-commands
-- CLAIM-complete definition (BUILD precondition) -> Read docs/guardrails/PROJECT.md#claim-complete-definition
-- Gotchas (read at SHAPE + GATHER) -> Read docs/guardrails/PROJECT.md#gotchas
-- Carried technical notes (Supabase cookie type, payments FK join, Clerk auth snippet) -> Read docs/guardrails/PROJECT.md#carried-technical-notes
-> Reference: `docs/ai/REF.md` (read on demand at GATHER, sections only)
-> Architecture: `docs/architecture/` (FLOWS.md, DECISIONS.md, C4.md)
+**Working rules**
+- **Every session follows `docs/working-procedure.md`** from Start to End. A missed step gets added there.
+- **Check for overlap before cutting a branch** (open PRs, remote `dev/*` branches, worktrees). The draft PR is the claim. *(PR #538 and 2607-DEV-535 built the same debounce in parallel.)*
+- **Production migrations go only through the gated `migrate-prod` run.** Every migration carries a `-- ROLLBACK:` comment and is backward-compatible with the deployed code: drops and renames ship in a later PR. *(#570)*
+- **Green-by-skip is not green.** A gated CI job (Authenticated E2E) that skipped on missing secrets proves nothing; open its steps.
+- **Review fixes go in ONE batched push** after the PR leaves draft. Each push re-triggers CodeRabbit.
+- **Merged is not Done.** Done = production deploy READY, pending `migrate-prod` approved and applied, production URL smoke-checked, issue closed.
 
 <!-- BEGIN KIT FOOTER v1.0 -->
 ## Hard stops

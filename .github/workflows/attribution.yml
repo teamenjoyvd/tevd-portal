@@ -1,0 +1,40 @@
+name: Attribution
+
+# Fails a PR whose commits, title or body credit an AI tool
+# (CLAUDE.md Hard Constraints, .github/CONTRIBUTING.md).
+#
+# Separate from ci.yml so editing the PR text re-runs only this check: `edited`
+# is in the trigger list here and nowhere else.
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: attribution-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  attribution:
+    name: No AI Attribution
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The commit range needs the base commit and every PR commit.
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      # No dependencies: plain Node, so it fails in seconds without npm ci.
+      # Event values go through env, never interpolated into the script.
+      - run: node scripts/check-ai-attribution.js "$BASE_SHA..$HEAD_SHA"
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}

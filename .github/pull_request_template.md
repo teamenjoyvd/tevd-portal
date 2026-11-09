@@ -8,7 +8,7 @@
 - [ ] New UI surfaces render correctly at 390px
 - [ ] **Migrations are expand-only**: backward-compatible with currently deployed code (new tables / nullable columns / indexes). Destructive changes (drop/rename/narrow) are deferred to a follow-up PR — see docs/DEV_WORKFLOW.md "Database"
 - [ ] Every new migration carries a `-- ROLLBACK:` comment
-- [ ] `docs/CLAIMS.md` row registered (agent workflow)
+- [ ] No AI attribution in commits, title or this body (see .github/CONTRIBUTING.md)
 
 ## Session State
 

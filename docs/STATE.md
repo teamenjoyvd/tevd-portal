@@ -280,6 +280,10 @@ blanket ban with the doc updated in the same commit.
   standalone cleanup PR.
 - `.env.local` holds PRODUCTION Supabase credentials; `.env.development.local` holds the DEV stack.
   Run `npm run check:env` before any command touching a hosted DB.
+- (CLAUDE.md restructure session, 2026-11-09) Verbatim, other project's name redacted:
+  "there must be nothing from [other] project that leaks onto tevd-portal. We only copy the logic".
+  Nothing from another project — names, text, incidents, paths — goes into this repo. Also: no AI attribution in commits/PRs
+  ("no attribution" — "I like this one, get it too").
 
 ## Decisions
 - DECISION (#740): corner radius is **two tiers at 2:1** — containers 8px, controls 4px. Chosen so
@@ -438,6 +442,14 @@ blanket ban with the doc updated in the same commit.
   omits `deliver-email-notifications`.
 - FLAKE (not a spec defect): `Authenticated E2E (Clerk)` can fail wholesale at `clerk.signIn()` with
   `[Clerk Testing] FAPI request failed after 4 attempts`. Re-run the same commit.
+- NOTED (CLAUDE.md restructure, 2026-11-09): `npm ci` fails on macOS — `package-lock.json` lacks the
+  `@tailwindcss/oxide-*` optional binaries. Worked around with `npm install --no-package-lock`.
+- NOTED (same): CLAUDE.md says `dev/[YYMM]-DEV-[GH#]` branches only, but
+  `scripts/claude-hooks/dispatch.js:128` also allows `claude/*`. Align one with the other.
+- NOTED (same): the `## Constraints` line "Fold `docs/CLAIMS.md` row removal…" is half-obsolete —
+  `docs/CLAIMS.md` is retired. Its `docs/STATE.md` half still applies.
+- NOTED (same): `.infraignore:5-7,19` list the retired `docs/ai/{BUILD,PLAN,GCR,CLAIM}.md` paths; the
+  sync tooling that read it is retired too.
 
 ## Failed attempts
 - ATTEMPT 1 [L1] (#709 GCR): adding an explicit `role="tab"` to the tab-bar buttons broke all four

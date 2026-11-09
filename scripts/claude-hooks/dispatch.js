@@ -76,7 +76,7 @@ function bashViolation(command) {
 function postWriteWarning(filePath, content) {
   const p = posix(filePath);
   if (rules.isMigrationPath(p) && content && !rules.hasRollbackComment(content)) {
-    return "WARNING: migration lacks a -- ROLLBACK: comment (docs/ai/BUILD.md requires one).";
+    return "WARNING: migration lacks a -- ROLLBACK: comment (docs/working-procedure.md requires one).";
   }
   return null;
 }
