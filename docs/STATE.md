@@ -335,12 +335,21 @@ blanket ban with the doc updated in the same commit.
 ## Facts
 - Required checks (ruleset `protect-main`): Lint, Type Check, Build, Security Audit, Test, Replay
   migrations from scratch. Colour Tokens, No AI Attribution, Authenticated E2E are not required.
-- This Mac (2026-11-09): node v24.22.1 / npm 11.19.1 from mise (`~/.local/share/mise`), ahead of
-  Homebrew on PATH; Homebrew `node@22` not installed; `~/.local/bin/supabase` shim missing; Docker
-  running; main checkout `/Users/deniz/Code/tevd-portal` has no `.env.local`.
-- Docker on this Mac cannot pull images: `docker-credential-osxkeychain` is not on PATH (seen
-  2026-11-09 pulling `rhysd/actionlint`). `supabase start` needs image pulls, so a local migration
-  replay will report NOT RUN until that helper is fixed.
+- This Mac (2026-11-09, after the macOS setup's credential-free steps):
+  - Node: mise global `node = "22"` in `~/.config/mise/config.toml` (was `"lts"`, backup in the
+    session's `$TMPDIR/mise-config.toml.bak`); a fresh `zsh -i` gives node v22.23.4 / npm 10.9.9.
+    mise puts the global's install dir first on PATH, so `.nvmrc` does NOT switch Node in
+    non-interactive shells: the global is what agent sessions get. Shells that started before the
+    change (an already-running app or session) keep v24.22.1 until restarted.
+  - Main checkout `/Users/deniz/Code/tevd-portal`: `npm ci` under Node 22 exits 0; no `.env.local`
+    and no `.env.development.local` (step 4 needs the user's Clerk dev + DEV Supabase keys).
+  - `~/.local/bin/supabase` shim installed, prints 2.122.1. `supabase login` / `link` not run.
+  - Docker is Colima (context `colima`), `credsStore: osxkeychain`; `brew install
+    docker-credential-helper` (0.9.12) fixed image pulls (`docker pull hello-world` OK).
+  - Pre-push gate: `core.hooksPath` deliberately UNSET, because it would disable the local,
+    untracked `.git/hooks/post-checkout` (copies `.delta/settings.json` into new worktrees). A local
+    `.git/hooks/pre-push` instead execs `<worktree>/.githooks/pre-push` when that file exists
+    (tested: 6/6 PASS here, exit 0 on main which has no `.githooks` yet).
 - `@next/env` never overrides a var already in `process.env`, so CI's placeholder env passed to
   `next build` wins over `.env.local` for every var CI sets.
 - Local timings (2026-11-09): lint 8s, check-types 6s, check:colors 0s, vitest 2s (541 tests).
@@ -438,9 +447,14 @@ blanket ban with the doc updated in the same commit.
   skip 54320-54329 and an explicit listen on 54322 still succeeds. Fix: a "Reserve Supabase ports
   from the ephemeral range" step before `supabase start` in `ci.yml` (e2e-authenticated) and
   `migrations-check.yml`. Close this item after ~20 green E2E runs with no bind error.
-- **macOS setup not yet run on this Mac** (`docs/DEV_WORKFLOW.md` "macOS setup", from step 1):
-  Node 22 in mise or Homebrew, `gh auth login`, Supabase CLI shim + `supabase login`, the two env
-  files (the user's own Clerk/Supabase credentials), then `git config core.hooksPath .githooks`.
+- **macOS setup on this Mac, remaining** (`docs/DEV_WORKFLOW.md` "macOS setup"; steps 1, 2, the
+  step-3 shim, step 6 and the Docker helper are done, see Facts): the user runs `supabase login` +
+  `supabase link --project-ref iymwxdewcpvpjgzewtzk` and writes the two env files (step 4); then
+  `npm run check:env`, `npm run dev` (step 5), and step 7 E2E (seeding writes to the shared DEV DB:
+  ask first). Restart the Claude app so agent sessions pick up Node 22.
+- **`scripts/local-gate.js:160` warns falsely on a `.git/hooks/pre-push` hand-off:** the `ci`-mode
+  check reads only `core.hooksPath`. Either accept a hand-off hook there and document it in
+  DEV_WORKFLOW.md step 6 as the option for clones with their own local hooks, or leave it.
 - **Local gate:** no GitHub issue exists yet. Before pushing, create one and use
   `dev/[YYMM]-DEV-[GH#]` naming, or keep the `claude/*` branch the hook accepts.
 - **NOTED (#749), pre-existing, deliberately not fixed:** `fn_schedule_guest_reminders_record`'s
