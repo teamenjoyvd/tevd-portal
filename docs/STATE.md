@@ -465,8 +465,11 @@ blanket ban with the doc updated in the same commit.
   with local dev keys it signs in and writes to the shared DEV DB (event, role request, approval).
   Its `afterAll` cleaned up (0 `E2E Role Cancel %` events left on DEV, checked). In the mobile-390
   run it failed at `member-role-cancel-auth.spec.ts:177` (expected `cancelled`, received
-  `approved`); not yet run under the `authenticated` project locally (CI's authenticated run passes
-  it). Fix: add it to the regex. `npm run test:mobile` otherwise: 14 passed, 5 skipped.
+  `approved`). The `authenticated` project uses the same regex as `testMatch`, so this spec had
+  NEVER run in CI's Authenticated E2E either (its 35 passing tests excluded it). FIXED on PR #786:
+  added to the regex; `playwright test --list` now collects it only under `authenticated`. CI's
+  disposable-stack run of it is the first real one: a failure there at :177 is a real withdraw-path
+  finding (#749), not caused by #786. `npm run test:mobile` otherwise: 14 passed, 5 skipped.
 - **`scripts/local-gate.js:160` warns falsely on a `.git/hooks/pre-push` hand-off:** the `ci`-mode
   check reads only `core.hooksPath`. Either accept a hand-off hook there and document it in
   DEV_WORKFLOW.md step 6 as the option for clones with their own local hooks, or leave it.
