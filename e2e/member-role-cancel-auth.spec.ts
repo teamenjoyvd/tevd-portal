@@ -167,7 +167,16 @@ test.describe('member role withdraw @auth', () => {
     const confirm = page.getByRole('alertdialog')
     await expect(confirm).toBeVisible()
     await expect(confirm.getByText(/the slot reopens for other members/i)).toBeVisible()
+    // Wait for the DELETE itself before reading the row. The UI check in step 5
+    // is satisfied within ~100ms of the click, before the request has returned:
+    // CI run 42678642282 read 'approved' while the DELETE was still in flight
+    // (trace: status -1, aborted at test end).
+    const withdrawn = page.waitForResponse(
+      res => res.request().method() === 'DELETE' && res.url().endsWith(`/api/events/${eventId}/request-role`),
+    )
     await confirm.getByRole('button', { name: /give up role/i }).click()
+    const withdrawResponse = await withdrawn
+    expect(withdrawResponse.status(), await withdrawResponse.text()).toBe(200)
 
     // 5. The request is gone from the member's view — /api/events/[id] stops
     //    sending a cancelled row as caller_request.
