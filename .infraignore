@@ -2,9 +2,6 @@
 # On each upgrade cycle, manually diff these against upstream and merge relevant changes.
 CLAUDE.md
 docs/ai/GOTCHAS.md
-docs/ai/BUILD.md
-docs/ai/PLAN.md
-docs/ai/GCR.md
 .cursor/rules/auth.mdc
 .cursor/rules/frontend.mdc
 
@@ -16,4 +13,3 @@ docs/ai/REF.md
 docs/ai/REFACTOR.md
 docs/ai/system-prompt.xml
 docs/ai/archive
-docs/ai/CLAIM.md

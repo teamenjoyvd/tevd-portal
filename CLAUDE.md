@@ -53,7 +53,7 @@ Never ask the user to confirm these. The two refs are NOT interchangeable — `s
 
 **Hard Constraints**
 Violation = immediate stop, no exceptions.
-- **NEVER push directly to `main`.** Use `dev/[YYMM]-DEV-[GH#]` branches only.
+- **NEVER push directly to `main`.** Use `dev/[YYMM]-DEV-[GH#]` branches; `claude/*` worktree branches are the only other name the branch hook (`scripts/claude-hooks/dispatch.js`) accepts.
 - **NEVER create `middleware.ts`.** Auth lives in `proxy.ts`.
 - **NEVER expose `SUPABASE_SERVICE_ROLE_KEY` to the client.**
 - **NEVER bypass Clerk auth on a protected route.**
