@@ -200,6 +200,7 @@ export type Database = {
           location: string | null
           meeting_url: string | null
           reminders_enabled: boolean
+          source: Database["public"]["Enums"]["calendar_event_source"]
           start_time: string
           title: string
           week_number: number
@@ -221,6 +222,7 @@ export type Database = {
           location?: string | null
           meeting_url?: string | null
           reminders_enabled?: boolean
+          source?: Database["public"]["Enums"]["calendar_event_source"]
           start_time: string
           title: string
           week_number: number
@@ -242,6 +244,7 @@ export type Database = {
           location?: string | null
           meeting_url?: string | null
           reminders_enabled?: boolean
+          source?: Database["public"]["Enums"]["calendar_event_source"]
           start_time?: string
           title?: string
           week_number?: number
@@ -2270,6 +2273,10 @@ export type Database = {
     }
     Functions: {
       abo_to_ltree_label: { Args: { abo: string }; Returns: string }
+      admin_delete_event_with_registrations: {
+        Args: { p_event_id: string }
+        Returns: number
+      }
       approve_event_role_request: {
         Args: { p_request_id: string }
         Returns: Json
@@ -2548,6 +2555,7 @@ export type Database = {
       }
     }
     Enums: {
+      calendar_event_source: "google" | "zoom" | "portal"
       document_type: "id" | "passport"
       event_category: "N21" | "Personal"
       event_type: "in-person" | "online" | "hybrid"
@@ -3035,12 +3043,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3064,11 +3072,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3089,11 +3097,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3114,11 +3122,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3131,11 +3139,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3150,6 +3158,7 @@ export const Constants = {
   },
   public: {
     Enums: {
+      calendar_event_source: ["google", "zoom", "portal"],
       document_type: ["id", "passport"],
       event_category: ["N21", "Personal"],
       event_type: ["in-person", "online", "hybrid"],

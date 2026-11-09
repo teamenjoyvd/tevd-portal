@@ -14,6 +14,11 @@ export default defineConfig({
       'app/**/*.test.tsx',
       'components/**/*.test.tsx',
       'scripts/**/*.test.js',
+      // Edge functions are Deno, so most of supabase/functions/ cannot be
+      // loaded here. Import-free, Deno-global-free decision modules beside
+      // them can be, and are the only part of a function worth unit testing
+      // (2608-DEV-764: supabase/functions/sync-google-calendar/reconcile.ts).
+      'supabase/functions/**/*.test.ts',
     ],
   },
 })

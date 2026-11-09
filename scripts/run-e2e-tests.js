@@ -155,6 +155,24 @@ function executeMockTriggers(db, table, operation, data) {
 
 // ── MOCK RPC EXECUTOR ────────────────────────────────────────────────
 function executeMockRpc(db, fnName, args) {
+  // 2608-DEV-764. Mirrors public.admin_delete_event_with_registrations: the
+  // only sanctioned way past guest_registrations_event_id_fkey (RESTRICT),
+  // deleting the registrations and the event as one unit.
+  if (fnName === "admin_delete_event_with_registrations") {
+    const { p_event_id } = args;
+    const regs = db.tables.guest_registrations.filter((r) => r.event_id === p_event_id);
+    db.tables.guest_registrations = db.tables.guest_registrations.filter(
+      (r) => r.event_id !== p_event_id
+    );
+    executeMockTriggers(db, "guest_registrations", "delete", regs);
+    const events = db.tables.calendar_events.filter((e) => e.id === p_event_id);
+    if (events.length === 0) {
+      return { data: null, error: new Error(`event ${p_event_id} not found`) };
+    }
+    db.tables.calendar_events = db.tables.calendar_events.filter((e) => e.id !== p_event_id);
+    executeMockTriggers(db, "calendar_events", "delete", events);
+    return { data: regs.length, error: null };
+  }
   if (fnName === "claim_due_notifications") {
     const { p_channel, p_worker_id, p_limit = 10 } = args;
     const now = new Date();
@@ -387,6 +405,27 @@ class MockQueryBuilder {
     }
 
     if (this.operation === "delete") {
+      // 2608-DEV-764: guest_registrations.event_id is ON DELETE RESTRICT in the
+      // real schema. The simulator enforces it too, so a test that deletes an
+      // event out from under its registrations fails here instead of passing
+      // in mock mode and destroying member data in live mode.
+      if (this.table === "calendar_events") {
+        const ids = filtered.map((row) => row.id);
+        const blocking = (this.db.tables.guest_registrations || []).filter((reg) =>
+          ids.includes(reg.event_id)
+        );
+        if (blocking.length > 0) {
+          return {
+            data: null,
+            error: new Error(
+              `update or delete on table "calendar_events" violates foreign key constraint ` +
+                `"guest_registrations_event_id_fkey" on table "guest_registrations" ` +
+                `(${blocking.length} registration(s)) — delete the registrations first, ` +
+                `or use the admin_delete_event_with_registrations RPC`
+            ),
+          };
+        }
+      }
       this.db.tables[this.table] = rows.filter((row) => !filtered.includes(row));
       executeMockTriggers(this.db, this.table, "delete", filtered);
       return { data: filtered, error: null };
@@ -1792,7 +1831,22 @@ addTest("T2_F3_05", "Tier 2 - Feature 3", "Verify deleting event deletes reminde
   });
   let { data: queue1 } = await ctx.supabase.from("notification_queue").select("*").eq("event_id", eventId);
   assert(queue1 && queue1.length > 0, "Reminders enqueued");
-  await ctx.supabase.from("calendar_events").delete().eq("id", eventId);
+
+  // 2608-DEV-764: a bare delete here now hits guest_registrations_event_id_fkey
+  // (RESTRICT) — assert that, then delete through the sanctioned RPC, which is
+  // what the admin route does. The reminders must still be gone afterwards.
+  const { error: blockedError } = await ctx.supabase.from("calendar_events").delete().eq("id", eventId);
+  assert(
+    blockedError !== null && blockedError !== undefined,
+    "Deleting an event with registrations must be refused by the FK, not cascade"
+  );
+  const { data: deletedRegs, error: rpcError } = await ctx.supabase.rpc(
+    "admin_delete_event_with_registrations",
+    { p_event_id: eventId }
+  );
+  assert(!rpcError, `admin_delete_event_with_registrations failed: ${rpcError && rpcError.message}`);
+  assert(deletedRegs === 1, `RPC should report 1 registration deleted, got ${deletedRegs}`);
+
   let { data: queue2 } = await ctx.supabase.from("notification_queue").select("*").eq("event_id", eventId);
   assert(!queue2 || queue2.length === 0, "Reminders should be cleaned up on event deletion");
 });

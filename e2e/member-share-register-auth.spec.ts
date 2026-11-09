@@ -107,12 +107,13 @@ test.beforeAll(async () => {
 test.afterAll(async () => {
   if (!sb) return
   if (eventId) {
-    // event_share_links and guest_registrations both cascade from the event,
-    // but the registration is deleted explicitly so a failure to remove the
-    // event never leaves this member registered on a stray row.
-    if (memberProfileId) {
-      await sb.from('guest_registrations').delete().eq('event_id', eventId).eq('profile_id', memberProfileId)
-    }
+    // Order matters: guest_registrations no longer cascades from the event —
+    // the FK is ON DELETE RESTRICT since 2608-DEV-764, so the event delete
+    // below fails unless every registration for it is gone first. Deleted by
+    // event_id alone, not by profile_id: a row this spec did not expect (a
+    // half-finished run, a second registrant) would otherwise pin the event
+    // and leak it into every later run.
+    await sb.from('guest_registrations').delete().eq('event_id', eventId)
     await sb.from('event_share_links').delete().eq('event_id', eventId)
     await sb.from('calendar_events').delete().eq('id', eventId)
   }

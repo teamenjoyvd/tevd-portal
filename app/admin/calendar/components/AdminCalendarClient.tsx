@@ -3,7 +3,7 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react'
 import { RefreshCw } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
-import { apiClient } from '@/lib/apiClient'
+import { apiClient, ApiError } from '@/lib/apiClient'
 import { formatDateTime, toSofiaLocalInput } from '@/lib/format'
 import { Drawer } from '@/components/ui/drawer'
 import { useLanguage } from '@/lib/hooks/useLanguage'
@@ -47,6 +47,9 @@ export default function AdminCalendarClient() {
   const [formError, setFormError] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<AdminCalendarEvent | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+  // 2608-DEV-764: set once the route has refused with 409, which turns the
+  // delete button into the explicit "delete the registrations too" confirm.
+  const [deleteBlocked, setDeleteBlocked] = useState(false)
   const [editConfirmOpen, setEditConfirmOpen] = useState(false)
 
   // ── Filter state ────────────────────────────────────────────────────────────────────
@@ -408,7 +411,7 @@ export default function AdminCalendarClient() {
       </AlertDialog>
 
       {/* ── Delete confirm ──────────────────────────────────────────────────── */}
-      <AlertDialog open={deleteTarget != null} onOpenChange={open => { if (!open) { setDeleteTarget(null); setDeleteError(null) } }}>
+      <AlertDialog open={deleteTarget != null} onOpenChange={open => { if (!open) { setDeleteTarget(null); setDeleteError(null); setDeleteBlocked(false) } }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
@@ -420,21 +423,39 @@ export default function AdminCalendarClient() {
                 t('admin.calendar.confirm.guestWarning').replace('{{count}}', String(deleteTarget.guest_registration_count))}
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {deleteBlocked && (
+            <p className="text-sm" style={{ color: 'var(--status-alert-fg)' }}>
+              {t('admin.calendar.confirm.deleteBlocked')}
+            </p>
+          )}
           {deleteError && <p className="text-sm" style={{ color: 'var(--status-alert-fg)' }}>{deleteError}</p>}
           <AlertDialogFooter>
             <AlertDialogCancel>{t('admin.calendar.btn.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               disabled={deleteMutation.isPending}
-              onClick={() => {
+              onClick={e => {
+                // 2608-DEV-764: the first click never destroys registrations —
+                // the route answers 409 and this dialog turns into the
+                // delete-with-registrations confirm. Keep it open for that.
+                e.preventDefault()
                 if (!deleteTarget) return
                 setDeleteError(null)
-                deleteMutation.mutate(deleteTarget.id, {
-                  onSuccess: () => setDeleteTarget(null),
-                  onError: (e: Error) => setDeleteError(e.message),
-                })
+                deleteMutation.mutate(
+                  { id: deleteTarget.id, deleteRegistrations: deleteBlocked },
+                  {
+                    onSuccess: () => { setDeleteTarget(null); setDeleteBlocked(false) },
+                    onError: (err: Error) => {
+                      if (err instanceof ApiError && err.status === 409) {
+                        setDeleteBlocked(true)
+                        return
+                      }
+                      setDeleteError(err.message)
+                    },
+                  },
+                )
               }}
             >
-              {t('admin.calendar.btn.delete')}
+              {deleteBlocked ? t('admin.calendar.btn.deleteAnyway') : t('admin.calendar.btn.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

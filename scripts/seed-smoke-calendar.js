@@ -20,11 +20,11 @@
  * Idempotent: upserts on a deterministic per-month UUID, so re-running never
  * accumulates rows. Safe to run on every preview deployment.
  *
- * google_event_id is left NULL on purpose. The calendar-sync edge function
- * reconciles by that column (supabase/functions/sync-google-calendar/index.ts
- * :360-372) and deletes any row whose google_event_id is absent from the
- * Google feed; SQL `IN (NULL)` never matches, so a NULL-id fixture survives a
- * sync run. (The pre-existing 'e2e-multiday-span-test' row does not.)
+ * google_event_id is left NULL and source is 'portal' on purpose, so the
+ * calendar-sync edge function cannot touch this row. Since 2608-DEV-764 that
+ * function deletes only events Google explicitly returned as cancelled, and
+ * only ones with source='google' — it no longer deletes rows merely missing
+ * from the Google feed, which is what used to threaten this fixture.
  *
  * SAFETY: refuses to run unless NEXT_PUBLIC_SUPABASE_URL points at a local
  * instance (127.0.0.1/localhost) or the hosted DEV project
@@ -113,6 +113,10 @@ function fixtureEvent(monthKey) {
     is_all_day: false,
     location: 'Sofia',
     google_event_id: null,
+    // This fixture is not a Google row, so it says so (2608-DEV-764). That is
+    // now what keeps the sync off it: reconciliation only ever considers rows
+    // with source='google'.
+    source: 'portal',
   }
 }
 

@@ -95,7 +95,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   return Response.json(data)
 }
 
-export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const { userId } = await auth()
   if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
@@ -103,9 +103,32 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   const ctx = await getCallerContext(userId, supabase, 'admin')
   if (ctx.guard) return ctx.guard
 
-  // Fetch active registrants + event title BEFORE deleting — the FK is
-  // ON DELETE CASCADE, so guest_registrations rows vanish once the event
-  // row is gone.
+  // 2608-DEV-764: guest_registrations.event_id is ON DELETE RESTRICT now, so a
+  // bare delete raises 23503 the moment the event has any registration —
+  // cancelled ones included, because they are kept for stats. Refuse with the
+  // count first, and only go through on explicit confirmation.
+  const confirmed = new URL(req.url).searchParams.get('deleteRegistrations') === 'true'
+
+  const { count: registrationCount, error: countError } = await supabase
+    .from('guest_registrations')
+    .select('id', { count: 'exact', head: true })
+    .eq('event_id', id)
+  if (countError) return Response.json({ error: countError.message }, { status: 500 })
+
+  const registrations = registrationCount ?? 0
+  if (registrations > 0 && !confirmed) {
+    return Response.json(
+      {
+        error: `This event has ${registrations} registration(s). Deleting it deletes them too — confirm to proceed.`,
+        registrationCount: registrations,
+        requiresConfirmation: true,
+      },
+      { status: 409 },
+    )
+  }
+
+  // Fetch active registrants + event title BEFORE deleting — once the rows are
+  // gone there is nothing left to notify from.
   const { data: eventRow, error: eventRowError } = await supabase
     .from('calendar_events')
     .select('title')
@@ -124,8 +147,19 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
   if (regsError) console.error('Failed to fetch active registrants before delete, skipping guest cancel-notify:', regsError)
 
-  const { error } = await supabase.from('calendar_events').delete().eq('id', id)
-  if (error) return Response.json({ error: error.message }, { status: 500 })
+  // With registrations present, both deletes must be one transaction —
+  // supabase-js cannot span statements, so the RPC owns it (2608-DEV-764).
+  let registrationsDeleted = 0
+  if (registrations > 0) {
+    const { data: deletedCount, error } = await supabase.rpc('admin_delete_event_with_registrations', {
+      p_event_id: id,
+    })
+    if (error) return Response.json({ error: error.message }, { status: 500 })
+    registrationsDeleted = deletedCount ?? 0
+  } else {
+    const { error } = await supabase.from('calendar_events').delete().eq('id', id)
+    if (error) return Response.json({ error: error.message }, { status: 500 })
+  }
 
   if (eventRow && regs && regs.length > 0) {
     notifyGuestsOfEventCancellation(
@@ -139,5 +173,5 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     )
   }
 
-  return Response.json({ deleted: true })
+  return Response.json({ deleted: true, registrationsDeleted })
 }
