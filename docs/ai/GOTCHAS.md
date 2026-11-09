@@ -1,6 +1,6 @@
 # GOTCHAS — tevd-portal
 
-Read in full during SHAPE and GATHER. Add new entries here immediately when a sharp edge is discovered — never inline in code comments alone.
+Read in full before planning a change. Add new entries here immediately when a sharp edge is discovered — never inline in code comments alone.
 
 | Topic | Rule |
 |---|---|

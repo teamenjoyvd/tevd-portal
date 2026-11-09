@@ -32,10 +32,10 @@ npm run check:env                        # confirms vars + which Supabase projec
 
 - **Dev process** (local loop, verification, branch/PR flow): [docs/DEV_WORKFLOW.md](docs/DEV_WORKFLOW.md)
 - **Agent ruleset** (all AI agents working in this repo): [CLAUDE.md](CLAUDE.md), non-Claude agents enter via [AGENTS.md](AGENTS.md)
-- **Workflow commands** (SSU / PLAN / CLAIM / BUILD / GCR), ID format, labels: [docs/guardrails/PROJECT.md](docs/guardrails/PROJECT.md)
+- **Order of work** (Start, While working, Landing, End): [docs/working-procedure.md](docs/working-procedure.md); ID format, labels: [docs/guardrails/PROJECT.md](docs/guardrails/PROJECT.md)
 - **Reference tables** (schema, routes, env vars, design system, CI): [docs/ai/REF.md](docs/ai/REF.md); sharp edges: [docs/ai/GOTCHAS.md](docs/ai/GOTCHAS.md)
 - **Architecture**: [docs/architecture/](docs/architecture/) (C4.md, FLOWS.md, DECISIONS.md)
-- **In-flight work registry** (concurrent agents): [docs/CLAIMS.md](docs/CLAIMS.md); session state: [docs/STATE.md](docs/STATE.md)
+- **Session state**: [docs/STATE.md](docs/STATE.md)
 - **Historical artifacts** (superseded docs, past orchestration runs): [docs/archive/](docs/archive/README.md)
 
 ## Non-negotiables

@@ -1,7 +1,7 @@
 # REF.md — teamenjoyVD Portal Reference
 > Last updated: 2026-08-09 — added `/api/events/[id]` and `/api/events/[id]/attend` rows to §6 (2608-DEV-706).
 > Prior: 2026-07-12 — absorbed the archived CONTEXT doc's CI section as §12; removed a phantom guest-event-registration route entry from §4/§6.
-> Read on demand at GATHER only. Never read at SSU.
+> Read on demand, by section, as the change needs. Never read it whole.
 > Pull only the sections the ticket needs.
 
 > **This file is the single canonical reference doc.** `docs/ai/LOOKUP.md` was deleted on 2026-06-20

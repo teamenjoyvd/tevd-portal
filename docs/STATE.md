@@ -277,9 +277,13 @@ blanket ban with the doc updated in the same commit.
   freely", scoped to that session.)
 - Never apply migrations to a hosted Supabase project (DEV or prod) without asking first.
 - Fold `docs/CLAIMS.md` row removal + `docs/STATE.md` updates into the merging PR, never a
-  standalone cleanup PR.
+  standalone cleanup PR. (2026-11-09: `docs/CLAIMS.md` is retired; the `docs/STATE.md` half stands.)
 - `.env.local` holds PRODUCTION Supabase credentials; `.env.development.local` holds the DEV stack.
   Run `npm run check:env` before any command touching a hosted DB.
+- (CLAUDE.md restructure session, 2026-11-09) Verbatim, other project's name redacted:
+  "there must be nothing from [other] project that leaks onto tevd-portal. We only copy the logic".
+  Nothing from another project — names, text, incidents, paths — goes into this repo. Also: no AI attribution in commits/PRs
+  ("no attribution" — "I like this one, get it too").
 
 ## Decisions
 - DECISION (#740): corner radius is **two tiers at 2:1** — containers 8px, controls 4px. Chosen so
@@ -438,6 +442,15 @@ blanket ban with the doc updated in the same commit.
   omits `deliver-email-notifications`.
 - FLAKE (not a spec defect): `Authenticated E2E (Clerk)` can fail wholesale at `clerk.signIn()` with
   `[Clerk Testing] FAPI request failed after 4 attempts`. Re-run the same commit.
+- RESOLVED (CLAUDE.md restructure, 2026-11-09): `npm ci` failed under npm 11 — `package-lock.json`
+  lacked other platforms' optional binaries. Fixed in #783 (lockfile regenerated, additive only).
+- RESOLVED (same): CLAUDE.md's branch rule now names the `claude/*` allowance the hook already had.
+- RESOLVED (same): the CLAIMS half of the "Fold `docs/CLAIMS.md`…" constraint is annotated as retired.
+- RESOLVED (same): retired `docs/ai/{BUILD,PLAN,GCR,CLAIM}.md` paths dropped from `.infraignore`.
+  The file itself is dead config (its readers live in `docs/archive/agent-docs-2026-07/`); kept.
+- RESOLVED (same): Supabase CLI v3 broke CI and the prod migration gate. Pinned to 2.122.1 and
+  `[inbucket]` renamed `[local_smtp]` in #782. Moving to v3 needs `db push --yes` and `--remote`
+  in `migrate-prod.yml`, in its own PR.
 
 ## Failed attempts
 - ATTEMPT 1 [L1] (#709 GCR): adding an explicit `role="tab"` to the tab-bar buttons broke all four

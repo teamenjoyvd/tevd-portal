@@ -12,12 +12,12 @@
  *   2. Unregistered directories under .claude/worktrees/ (orphaned worktree
  *      leftovers — not listed by `git worktree list`), then `git worktree prune`.
  *
- * Reports only (NEVER deletes): stashes, docs/CLAIMS.md rows, build caches,
+ * Reports only (NEVER deletes): stashes, build caches,
  * remote branches. Docker/Supabase teardown is user-run only, never scripted
  * (docs/STATE.md constraint) — this script does not touch either.
  */
 import { execFileSync } from 'node:child_process'
-import { existsSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs'
+import { existsSync, readdirSync, rmSync, statSync } from 'node:fs'
 import path from 'node:path'
 
 const APPLY = process.argv.includes('--apply')
@@ -123,24 +123,6 @@ header('Stashes (report only — drop manually after review)')
 const stashes = git('stash', 'list', '--format=%gd\t%cr\t%s').split('\n').filter(Boolean)
 if (stashes.length === 0) console.log('  none')
 for (const s of stashes) console.log(`  ${s.replaceAll('\t', '  ')}`)
-
-header('docs/CLAIMS.md rows (report only — remove rows whose PR merged)')
-const claimsPath = path.join(repoRoot, 'docs', 'CLAIMS.md')
-if (existsSync(claimsPath)) {
-  const rows = readFileSync(claimsPath, 'utf8')
-    .split('\n')
-    .filter((l) => /^\|\s*#\d+/.test(l))
-  if (rows.length === 0) console.log('  no active claims')
-  for (const row of rows) {
-    const branch = row.match(/`([^`]+)`/)?.[1]
-    const branchExists = branch
-      ? git('branch', '--list', '--all', branch, `origin/${branch}`).trim() !== ''
-      : false
-    console.log(`  ${row.split('|').slice(1, 3).join(' ').trim()}${branchExists ? '' : ' — STALE? branch not found locally or on origin'}`)
-  }
-} else {
-  console.log('  docs/CLAIMS.md not found')
-}
 
 header('Build caches (report only — safe to delete by hand, they regenerate)')
 for (const rel of ['.next', 'tsconfig.tsbuildinfo']) {
