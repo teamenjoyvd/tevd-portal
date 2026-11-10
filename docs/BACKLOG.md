@@ -25,6 +25,7 @@ Known issues not yet filed or fixed. When you pick one up, open a GitHub issue f
 
 ## Tooling and CI
 - **Port-54322 E2E flake.** Fixed by the "Reserve Supabase ports from the ephemeral range" step in `ci.yml` and `migrations-check.yml`. Delete this line after ~20 green Authenticated E2E runs with no bind error.
+- **Bento collapse race in authenticated e2e.** `e2e/profile-bento-auth.spec.ts` and `e2e/payments-on-behalf.spec.ts` sign in as the same `E2E_CLERK_MEMBER_EMAIL`, and Playwright runs files in parallel. When a bento-collapse test persists `ui_prefs.bento_collapsed` mid-run, `payments-on-behalf.spec.ts:170` (L3) finds the Payments bento collapsed and times out on "Submit payment" (seen 2026-11-10; passes 3/3 alone). Fix: a separate test user for the bento suite, or `test.describe.configure({ mode: 'serial' })` across both.
 - **Clerk FAPI flake.** Authenticated E2E can fail wholesale at `clerk.signIn()` with "FAPI request failed after 4 attempts". Re-run the same commit.
 - `scripts/local-gate.js:160` warns falsely when a local `.git/hooks/pre-push` hands off to `.githooks/pre-push`, because it reads only `core.hooksPath`.
 - `scripts/claude-hooks/dispatch.js:136` checks an Edit to a migration against the replacement text only, so it warns "migration lacks a -- ROLLBACK: comment" even when the file has one. It should read the file from disk.
