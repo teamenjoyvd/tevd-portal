@@ -16,7 +16,7 @@
 
 **Who:** a human with prod credentials. **When:** once, before the first gated `migrate-prod.yml` run is approved. The workflow must not `db push` against prod until step 4 verifies clean.
 
-Prod ref: `ynykjpnetfwqzdnsgkkg`. This is the same procedure that repaired the DEV ledger on 2026-07-14 (see docs/STATE.md Facts), so the mechanism is proven.
+Prod ref: `ynykjpnetfwqzdnsgkkg`. This is the same procedure that repaired the DEV ledger on 2026-07-14, so the mechanism is proven.
 
 > The "never link prod from a dev machine" constraint is suspended for this runbook only — it is an explicitly prod-targeted ticket (#570). Unlink when done.
 

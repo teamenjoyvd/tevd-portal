@@ -14,8 +14,6 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Exclude translation domain files themselves — they define the raw strings.
     "lib/i18n/**",
-    // Archived historical artifacts (formerly /.agents/**) — never lint.
-    "docs/archive/**",
     // Sibling agent worktrees under the main checkout — each is a full repo
     // copy (with its own .next output) that lints itself in its own session.
     ".claude/worktrees/**",

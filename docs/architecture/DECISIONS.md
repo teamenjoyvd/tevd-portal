@@ -360,7 +360,7 @@ shadcn/ui does not ship a grid layout primitive. MUI Grid and similar impose a D
 - `rowSpan` prop must be accepted and applied by every client tile component or the grid collapses
 
 **Mitigations:**
-- Mobile override classes are defined in `globals.css` and documented in REF.md §7
+- Mobile override classes are defined in `globals.css` and documented in `docs/design/DESIGN-SYSTEM.md`
 - `rowSpan` requirement is a code review gate — any new tile that doesn't accept it is caught before merge
 - This ADR is the decision point if shadcn/ui is ever proposed: its grid limitations are the reason it was not adopted
 

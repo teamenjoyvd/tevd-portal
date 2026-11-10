@@ -30,7 +30,7 @@
  * production-mode target warns even when the dev path is clean.
  *
  * Missing/empty required vars are still judged on the dev/seed path alone —
- * that is the path docs/working-procedure.md gates, and it is the one a developer running
+ * that is the path AGENTS.md gates, and it is the one a developer running
  * this command is about to use.
  *
  * NEXT_PUBLIC_SUPABASE_URL is classified LOCAL / DEV / PROD / UNKNOWN by
@@ -145,8 +145,8 @@ function isUnsafeTarget(target) {
 console.log(`check:env: Supabase target — dev/seed path (next dev, seed-*.js, Playwright): ${describeTarget(devTarget)}.`)
 console.log(`check:env: Supabase target — production mode (next build, next start): ${describeTarget(prodTarget)}.`)
 
-// Sentence one is the stop signal agents are told to watch for (CLAUDE.md,
-// docs/working-procedure.md) — keep the wording if you touch this.
+// Sentence one is the stop signal agents are told to watch for (AGENTS.md
+// "Constants") — keep the wording if you touch this.
 if (isUnsafeTarget(devTarget)) {
   console.warn(
     'check:env: WARNING — Supabase target is NOT the local stack or the dev project.\n' +

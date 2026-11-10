@@ -24,7 +24,7 @@ function block(msg) {
 function fileWriteViolation(filePath, content) {
   const p = posix(filePath);
   if (rules.isMiddlewarePath(p)) {
-    return "BLOCKED: middleware.ts is banned in this repo — auth lives in proxy.ts (CLAUDE.md hard constraint).";
+    return "BLOCKED: middleware.ts is banned in this repo — auth lives in proxy.ts (AGENTS.md hard constraint).";
   }
   if (rules.serviceRoleLeak(content) || (/(^|\/)components\//.test(p) && content.includes("SUPABASE_SERVICE_ROLE_KEY"))) {
     return "BLOCKED: SUPABASE_SERVICE_ROLE_KEY referenced in client-side code. Server DB access uses createServiceClient() in server-only modules.";
@@ -61,7 +61,7 @@ function bashViolation(command) {
   for (const clause of cmd.split(/&&|\|\||[;|\n]/)) {
     // Never push to main (covers "push origin main", "push -f", "HEAD:main").
     if (/\bgit\s+push\b/.test(clause) && /(\s|:)(main|master)\b/.test(clause)) {
-      return "BLOCKED: pushing to main is forbidden. Use a dev/[YYMM]-DEV-[GH#] branch and open a PR (CLAUDE.md hard constraint).";
+      return "BLOCKED: pushing to main is forbidden. Use a dev/[YYMM]-DEV-[GH#] branch and open a PR (AGENTS.md hard constraint).";
     }
     // Branch naming at creation time.
     const m = clause.match(/\bgit\s+(?:checkout\s+-b|switch\s+-c)\s+["']?([^\s"']+)/);
@@ -76,7 +76,7 @@ function bashViolation(command) {
 function postWriteWarning(filePath, content) {
   const p = posix(filePath);
   if (rules.isMigrationPath(p) && content && !rules.hasRollbackComment(content)) {
-    return "WARNING: migration lacks a -- ROLLBACK: comment (docs/working-procedure.md requires one).";
+    return "WARNING: migration lacks a -- ROLLBACK: comment (AGENTS.md requires one).";
   }
   return null;
 }

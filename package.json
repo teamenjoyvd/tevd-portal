@@ -23,7 +23,6 @@
     "check:env": "node scripts/check-env.js",
     "check:attribution": "node scripts/check-ai-attribution.js",
     "env:worktree": "node scripts/setup-worktree-env.js",
-    "agentic:validate": "node scripts/validate-rules.js",
     "db:clean-fixes": "node -e \"const fs = require('fs'); if (fs.existsSync('apply_fixes.sql')) fs.unlinkSync('apply_fixes.sql')\"",
     "clean:weekly": "node scripts/clean-weekly.mjs"
   },

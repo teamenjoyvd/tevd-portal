@@ -14,7 +14,7 @@
  *
  * Reports only (NEVER deletes): stashes, build caches,
  * remote branches. Docker/Supabase teardown is user-run only, never scripted
- * (docs/STATE.md constraint) — this script does not touch either.
+ * (user decision) — this script does not touch either.
  */
 import { execFileSync } from 'node:child_process'
 import { existsSync, readdirSync, rmSync, statSync } from 'node:fs'

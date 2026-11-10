@@ -1,7 +1,7 @@
 name: Attribution
 
 # Fails a PR whose commits, title or body credit an AI tool
-# (CLAUDE.md Hard Constraints, .github/CONTRIBUTING.md).
+# (AGENTS.md Hard Constraints, .github/CONTRIBUTING.md).
 #
 # Separate from ci.yml so editing the PR text re-runs only this check: `edited`
 # is in the trigger list here and nowhere else.

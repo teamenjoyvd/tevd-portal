@@ -6,7 +6,7 @@
  *
  * GitHub CI skips draft PRs (ci.yml, attribution.yml, migrations-check.yml) and
  * runs once when the PR is marked ready, so the draft loop has to be checked
- * here. Order and rules: docs/working-procedure.md "Landing".
+ * here. Order and rules: AGENTS.md "PR flow".
  *
  * Usage:
  *   node scripts/local-gate.js pre-push   fast checks, run by .githooks/pre-push
