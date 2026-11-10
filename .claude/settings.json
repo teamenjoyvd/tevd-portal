@@ -32,5 +32,16 @@
               },
     "worktree":  {
                      "bgIsolation":  "none"
-                 }
+                 },
+    "enabledPlugins":  {
+                           "delta@zed-industries":  true
+                       },
+    "extraKnownMarketplaces":  {
+                                   "zed-industries":  {
+                                                          "source":  {
+                                                                         "source":  "github",
+                                                                         "repo":  "zed-industries/delta-claude"
+                                                                     }
+                                                      }
+                               }
 }

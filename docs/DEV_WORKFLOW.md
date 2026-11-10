@@ -162,15 +162,15 @@ CI (`e2e-authenticated` job in `ci.yml`) does the same against a fresh local Sup
 
 ## Branch → PR → merge
 
-1. Every change starts from a GitHub issue. ID format `[YYMM]-DEV-[GH#]` — the issue number is canonical (see [docs/guardrails/PROJECT.md](guardrails/PROJECT.md#id-format)).
+1. Every change starts from a GitHub issue. ID format `[YYMM]-DEV-[GH#]` — the issue number is canonical (see [AGENTS.md](../AGENTS.md#issues-branches-ids)).
 2. Branch `dev/[YYMM]-DEV-[GH#]` off `main`. **Never push to `main` directly.**
-3. Check for overlap first: open PRs, remote `dev/*` branches and worktrees (see [docs/working-procedure.md](working-procedure.md) "Start"). The draft PR is the claim.
-4. Commit prefix and PR title: `[YYMM]-DEV-[GH#] description`. PRs by agents carry a `## Session State` block.
+3. Check for overlap first: open PRs, remote `dev/*` branches and worktrees (see [AGENTS.md](../AGENTS.md#pr-flow) "PR flow"). The draft PR is the claim.
+4. Commit prefix and PR title: `[YYMM]-DEV-[GH#] description`.
 5. Push (agents: only with an explicit user go-ahead) → draft PR opens → automatically:
    - **GitHub Actions** skip drafts: every job in [ci.yml](../.github/workflows/ci.yml), `migrations-check.yml` and `attribution.yml` is gated on `draft != true`, and reports as skipped. Drafts are checked locally (step 3 of "The local loop"). Marking the PR ready runs them all once: typecheck, lint, colours, test, build, audit, authenticated E2E, migration replay, attribution. A skipped run is not a green run.
    - **Vercel**: preview deployment (~2 min), URL in the PR comment
    - **preview-smoke**: Playwright 390px smoke against the preview URL once the deployment is READY — advisory (not a required check) for now. Covers navigation over the public routes plus one real guest flow (`e2e/library-guide.spec.ts`: open `/library` → click a guide card → detail page). That flow needs a stable guest-visible guide in DEV (`npm run seed:smoke-guide`, seeded once — see the Database section); the spec skips with a pointer when the guide is absent, so an unseeded DB never fails the run.
-   - **CodeRabbit** review once the PR leaves draft; fixes go in one batched push (see [docs/working-procedure.md](working-procedure.md) "Landing")
+   - **CodeRabbit** review once the PR leaves draft; fixes go in one batched push (see [AGENTS.md](../AGENTS.md#pr-flow))
 6. Merge only when CI is green **and** the Vercel preview is READY (never mark work Done on static analysis alone).
 
 ## Git worktrees

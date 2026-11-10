@@ -22,7 +22,7 @@ Everything else is **report-only**: stashes, build-cache sizes, remote branches.
 - **Remote branches** — deleting them is a push; do it via GitHub UI/PR merge auto-delete, not from a script.
 - **`git gc`** — occasionally (monthly is plenty), after stashes are settled, to prune unreachable objects.
 - **`~/.claude/projects` session transcripts** — grow unbounded (≈100 MB observed at ~36 session dirs). Recommendation: archive or delete transcript dirs older than 30 days by hand; no automation, they're outside the repo and may hold context you still want.
-- **Docker / local Supabase stack** — user-run only, never scripted (`docs/STATE.md` constraint): `supabase stop` + `docker system prune` when you decide.
+- **Docker / local Supabase stack** — user-run only, never scripted (user decision): `supabase stop` + `docker system prune` when you decide.
 
 ## Why some junk can't return
 

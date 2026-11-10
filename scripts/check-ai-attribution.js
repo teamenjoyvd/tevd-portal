@@ -2,7 +2,7 @@
 "use strict";
 
 /**
- * No-AI-attribution gate (CLAUDE.md Hard Constraints, .github/CONTRIBUTING.md).
+ * No-AI-attribution gate (AGENTS.md Hard Constraints, .github/CONTRIBUTING.md).
  *
  * Fails when a commit message, PR title or PR body credits an AI tool. Coding
  * assistants append these lines by default, so the rule only holds if a

@@ -1,7 +1,7 @@
 "use strict";
 
-// Pure rule predicates shared by scripts/validate-rules.js (repo-wide walk)
-// and scripts/claude-hooks/dispatch.js (per-tool-call hook). Keep these
+// Pure rule predicates used by scripts/claude-hooks/dispatch.js (per-tool-call
+// hook). Keep these
 // side-effect free and fast: no fs, no child_process, no git.
 
 /** Forbidden patterns inside middleware.ts (only clerkMiddleware is allowed). */

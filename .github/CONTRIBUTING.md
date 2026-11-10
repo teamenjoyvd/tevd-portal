@@ -1,7 +1,6 @@
 # Contributing to tevd-portal
 
-The rules for agents and people are in `CLAUDE.md`; the order of work is in
-`docs/working-procedure.md`. This file covers the one rule that applies to text leaving the
+The rules for agents and people, including the PR flow, are in `AGENTS.md`. This file covers the one rule that applies to text leaving the
 working tree.
 
 ## No AI attribution

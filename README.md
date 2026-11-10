@@ -31,18 +31,16 @@ npm run check:env                        # confirms vars + which Supabase projec
 ## Where things live
 
 - **Dev process** (local loop, verification, branch/PR flow): [docs/DEV_WORKFLOW.md](docs/DEV_WORKFLOW.md)
-- **Agent ruleset** (all AI agents working in this repo): [CLAUDE.md](CLAUDE.md), non-Claude agents enter via [AGENTS.md](AGENTS.md)
-- **Order of work** (Start, While working, Landing, End): [docs/working-procedure.md](docs/working-procedure.md); ID format, labels: [docs/guardrails/PROJECT.md](docs/guardrails/PROJECT.md)
-- **Reference tables** (schema, routes, env vars, design system, CI): [docs/ai/REF.md](docs/ai/REF.md); sharp edges: [docs/ai/GOTCHAS.md](docs/ai/GOTCHAS.md)
+- **Rules for agents and people** (constants, hard constraints, IDs and labels, PR flow): [AGENTS.md](AGENTS.md); `CLAUDE.md` imports it
+- **Sharp edges**: [docs/ai/GOTCHAS.md](docs/ai/GOTCHAS.md); **design system**: [docs/design/DESIGN-SYSTEM.md](docs/design/DESIGN-SYSTEM.md)
 - **Architecture**: [docs/architecture/](docs/architecture/) (C4.md, FLOWS.md, DECISIONS.md)
-- **Session state**: [docs/STATE.md](docs/STATE.md)
-- **Historical artifacts** (superseded docs, past orchestration runs): [docs/archive/](docs/archive/README.md)
+- **Known issues not yet filed**: [docs/BACKLOG.md](docs/BACKLOG.md)
 
 ## Non-negotiables
 
-- Never push to `main` — work lands via `dev/[YYMM]-DEV-[GH#]` branches and PRs (format: [docs/guardrails/PROJECT.md](docs/guardrails/PROJECT.md#id-format))
+- Never push to `main` — work lands via `dev/[YYMM]-DEV-[GH#]` branches and PRs (format: [AGENTS.md](AGENTS.md#issues-branches-ids))
 - Every new UI surface must render correctly at **390px** (mobile-first)
 - Never write data to the **PROD** Supabase project (`ynykjpnetfwqzdnsgkkg`) from local dev, a preview, or a script — `.env.local` alone holds prod credentials, so keep `.env.development.local` pointed at DEV and run `npm run check:env` before anything that touches hosted data
 - `SUPABASE_SERVICE_ROLE_KEY` is server-only; RLS policies use Pattern-A helpers only
 
-Full list: `## Project` → Hard Constraints in [CLAUDE.md](CLAUDE.md).
+Full list: Hard Constraints in [AGENTS.md](AGENTS.md#hard-constraints).
