@@ -3,7 +3,7 @@
 Known issues not yet filed or fixed. When you pick one up, open a GitHub issue for it and delete the line here in the same PR.
 
 ## Security and data safety
-- **DEV cron calls PROD edge functions.** `supabase/migrations/20260407000000_fix_calendar_sync_cron_use_pg_net.sql:13` hardcodes the PROD URL for `sync-google-calendar`, and the later migration wins over the baseline (`20260315000000_baseline.sql:1096`), so every project that replays migrations schedules an hourly call to PROD. `check-document-expiry`, `send-event-reminders` and four notification functions hardcode the PROD ref the same way. The URL should come from a setting.
+- **DEV cron calls PROD edge functions** — filed as #768 (every notification and calendar cron hardcodes the PROD URL).
 - **RPC service-role guards fail open on NULL.** About 16 migrations use `IF auth.role() <> 'service_role' AND NOT is_admin()`. With no JWT claims `auth.role()` is NULL, so the guard does not fire. Not reachable through PostgREST, but sweep them to `IS DISTINCT FROM` (as in `20260705000700_notification_rpcs.sql`).
 - **Email kill switch can fail open.** `lib/email/send.ts:129` reads `if (!config.enabled)`; a row holding `"true"` or `1` passes. Use `!== true`, as #715 did elsewhere.
 - **Case-sensitive email match.** `lib/server/member-registration.ts` uses `.eq('email', contactEmail)` in `attendEvent`'s adopt step. Needs `lower()`/`citext` or `.ilike()` (fixed in the #710 RPC, not here).
