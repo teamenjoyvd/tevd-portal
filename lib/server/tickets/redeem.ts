@@ -76,8 +76,8 @@ async function tryRegister(deps: Deps, row: TicketAdmission): Promise<TicketAdmi
  * Claims one attempt. `zoom_attempts` is the compare-and-swap value: every claim
  * increments it, so two callers holding the same row cannot both win.
  */
-async function claim(supabase: ServiceClient, row: TicketAdmission): Promise<TicketAdmission | null> {
-  if (row.status !== 'pending_zoom' || row.zoom_attempts >= MAX_ZOOM_ATTEMPTS) return null
+async function claim(supabase: ServiceClient, row: TicketAdmission, maxAttempts: number): Promise<TicketAdmission | null> {
+  if (row.status !== 'pending_zoom' || row.zoom_attempts >= maxAttempts) return null
   const now = Date.now()
   if (row.zoom_attempted_at !== null && Date.parse(row.zoom_attempted_at) > now - CLAIM_HOLD_MS) return null
   const { data, error } = await supabase
@@ -93,10 +93,17 @@ async function claim(supabase: ServiceClient, row: TicketAdmission): Promise<Tic
 }
 
 /** Returns the active row, or null when it was not claimed, Zoom failed, or it was revoked meanwhile. */
-export async function registerWithZoom({ supabase, zoom }: Deps, row: TicketAdmission): Promise<TicketAdmission | null> {
-  const claimed = await claim(supabase, row)
-  if (claimed === null) return null
+export async function registerWithZoom(
+  deps: Deps,
+  row: TicketAdmission,
+  maxAttempts = MAX_ZOOM_ATTEMPTS,
+): Promise<TicketAdmission | null> {
+  const claimed = await claim(deps.supabase, row, maxAttempts)
+  return claimed === null ? null : registerClaimed(deps, claimed)
+}
 
+/** The caller has already taken the attempt. */
+export async function registerClaimed({ supabase, zoom }: Deps, claimed: TicketAdmission): Promise<TicketAdmission | null> {
   let registration: ZoomRegistration
   try {
     registration = await zoom.register({
