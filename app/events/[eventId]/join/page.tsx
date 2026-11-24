@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { sharedMeetingUrl } from '@/lib/server/meeting-url-visibility'
 import { JoinActions } from './components/JoinActions'
 import { CancelActions } from './components/CancelActions'
 import { ResendLinkForm } from '../components/ResendLinkForm'
@@ -88,6 +89,9 @@ function InvalidState({ eventId, reason, lang }: { eventId: string; reason: 'mis
 // -- Page ----------------------------------------------------------------------
 
 type JoinedEvent = {
+  id:          string
+  source:      string
+  series_key:  string | null
   title:       string
   meeting_url: string | null
   start_time:  string
@@ -113,7 +117,7 @@ export default async function GuestJoinPage({ params, searchParams }: Props) {
   if (token !== undefined) {
     const { data: reg } = await supabase
       .from('guest_registrations')
-      .select('id, name, event_id, expires_at, share_link_id, cancelled_at, calendar_events(title, meeting_url, start_time, end_time)')
+      .select('id, name, event_id, expires_at, share_link_id, cancelled_at, calendar_events(id, source, series_key, title, meeting_url, start_time, end_time)')
       .eq('token', token)
       .single()
 
@@ -175,7 +179,7 @@ export default async function GuestJoinPage({ params, searchParams }: Props) {
 
     const { data: reg } = await supabase
       .from('guest_registrations')
-      .select('id, name, share_link_id, calendar_events(title, meeting_url, start_time, end_time)')
+      .select('id, name, share_link_id, calendar_events(id, source, series_key, title, meeting_url, start_time, end_time)')
       .eq('event_id', eventId)
       .eq('profile_id', profile.id)
       .is('cancelled_at', null)
@@ -205,10 +209,12 @@ export default async function GuestJoinPage({ params, searchParams }: Props) {
     event = reg.calendar_events as unknown as JoinedEvent
   }
 
+  const meetingUrl = event === null ? null : await sharedMeetingUrl(supabase, event)
+
   const actionProps = {
     eventId,
     eventTitle: event?.title      ?? '',
-    meetingUrl: event?.meeting_url ?? null,
+    meetingUrl,
     startTime:  event?.start_time  ?? '',
     endTime:    event?.end_time    ?? '',
   }
@@ -235,9 +241,9 @@ export default async function GuestJoinPage({ params, searchParams }: Props) {
             <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
               {t('event.join.hiClick', lang).replace('{name}', registrantName)}
             </p>
-            {event?.meeting_url ? (
+            {meetingUrl ? (
               <a
-                href={event.meeting_url}
+                href={meetingUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-center w-full rounded-xl py-3.5 text-sm font-semibold text-on-accent hover:opacity-80 transition-opacity"
@@ -277,9 +283,9 @@ export default async function GuestJoinPage({ params, searchParams }: Props) {
           <p className="text-sm mb-5" style={{ color: 'var(--text-secondary)' }}>
             {t('event.join.hiTap', lang).replace('{name}', registrantName)}
           </p>
-          {event?.meeting_url ? (
+          {meetingUrl ? (
             <a
-              href={event.meeting_url}
+              href={meetingUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center w-full rounded-xl py-3.5 text-sm font-semibold text-on-accent active:opacity-70"

@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { sharedMeetingUrl } from '@/lib/server/meeting-url-visibility'
 import { countAttendeesForCapacity } from '@/lib/server/event-capacity'
 import { RegisterForm } from './components/RegisterForm'
 import { MemberAttendPanel } from './components/MemberAttendPanel'
@@ -109,10 +110,10 @@ export default async function GuestRegisterPage({ params, searchParams }: Props)
     if (isAttending) {
       const { data: gated } = await supabase
         .from('calendar_events')
-        .select('meeting_url')
+        .select('id, source, series_key, meeting_url')
         .eq('id', eventId)
         .single()
-      meetingUrl = gated?.meeting_url ?? null
+      meetingUrl = gated === null ? null : await sharedMeetingUrl(supabase, gated)
     }
   }
 

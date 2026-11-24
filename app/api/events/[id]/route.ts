@@ -2,7 +2,7 @@ import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { createClient } from '@/lib/supabase/server'
 import { getCallerProfile } from '@/lib/supabase/guards'
-import { canSeeMeetingUrl } from '@/lib/server/meeting-url-visibility'
+import { canSeeMeetingUrl, sharedMeetingUrl } from '@/lib/server/meeting-url-visibility'
 
 export async function GET(
   _req: Request,
@@ -124,7 +124,7 @@ export async function GET(
     allowGuestRegistration: event.allow_guest_registration === true,
     hasActiveRegistration: caller_registration !== null,
   })
-    ? event.meeting_url
+    ? await sharedMeetingUrl(supabase, event)
     : null
 
   return Response.json({ ...event, meeting_url, role_slots, caller_registration })
