@@ -196,15 +196,20 @@ export type Database = {
           google_event_id: string | null
           guest_capacity: number | null
           id: string
+          in_person_capacity: number | null
           is_all_day: boolean
           location: string | null
           meeting_url: string | null
+          online_capacity: number | null
           reminders_enabled: boolean
+          series_key: string | null
           source: Database["public"]["Enums"]["calendar_event_source"]
           start_time: string
+          tickets_cancelled_at: string | null
           title: string
           week_number: number
         }
+        ComputedFields: never
         Insert: {
           access_roles?: Database["public"]["Enums"]["user_role"][]
           allow_guest_registration?: boolean
@@ -218,12 +223,16 @@ export type Database = {
           google_event_id?: string | null
           guest_capacity?: number | null
           id?: string
+          in_person_capacity?: number | null
           is_all_day?: boolean
           location?: string | null
           meeting_url?: string | null
+          online_capacity?: number | null
           reminders_enabled?: boolean
+          series_key?: string | null
           source?: Database["public"]["Enums"]["calendar_event_source"]
           start_time: string
+          tickets_cancelled_at?: string | null
           title: string
           week_number: number
         }
@@ -240,12 +249,16 @@ export type Database = {
           google_event_id?: string | null
           guest_capacity?: number | null
           id?: string
+          in_person_capacity?: number | null
           is_all_day?: boolean
           location?: string | null
           meeting_url?: string | null
+          online_capacity?: number | null
           reminders_enabled?: boolean
+          series_key?: string | null
           source?: Database["public"]["Enums"]["calendar_event_source"]
           start_time?: string
+          tickets_cancelled_at?: string | null
           title?: string
           week_number?: number
         }
@@ -1849,6 +1862,412 @@ export type Database = {
           },
         ]
       }
+      stripe_events: {
+        Row: {
+          event_id: string
+          processed_at: string | null
+          type: string
+        }
+        ComputedFields: never
+        Insert: {
+          event_id: string
+          processed_at?: string | null
+          type: string
+        }
+        Update: {
+          event_id?: string
+          processed_at?: string | null
+          type?: string
+        }
+        Relationships: []
+      }
+      ticket_admissions: {
+        Row: {
+          admitted_via: string
+          attended_online_at: string | null
+          attendee_email: string | null
+          attendee_name: string
+          checked_in_at: string | null
+          checked_in_by: string | null
+          created_at: string
+          device_claimed_at: string | null
+          device_token_hash: string | null
+          event_id: string
+          id: string
+          mode: string
+          pass_id: string
+          status: string
+          zoom_attempted_at: string | null
+          zoom_attempts: number
+          zoom_join_link: string | null
+          zoom_left_at: string | null
+          zoom_ref: string | null
+        }
+        ComputedFields: never
+        Insert: {
+          admitted_via: string
+          attended_online_at?: string | null
+          attendee_email?: string | null
+          attendee_name: string
+          checked_in_at?: string | null
+          checked_in_by?: string | null
+          created_at?: string
+          device_claimed_at?: string | null
+          device_token_hash?: string | null
+          event_id: string
+          id?: string
+          mode: string
+          pass_id: string
+          status: string
+          zoom_attempted_at?: string | null
+          zoom_attempts?: number
+          zoom_join_link?: string | null
+          zoom_left_at?: string | null
+          zoom_ref?: string | null
+        }
+        Update: {
+          admitted_via?: string
+          attended_online_at?: string | null
+          attendee_email?: string | null
+          attendee_name?: string
+          checked_in_at?: string | null
+          checked_in_by?: string | null
+          created_at?: string
+          device_claimed_at?: string | null
+          device_token_hash?: string | null
+          event_id?: string
+          id?: string
+          mode?: string
+          pass_id?: string
+          status?: string
+          zoom_attempted_at?: string | null
+          zoom_attempts?: number
+          zoom_join_link?: string | null
+          zoom_left_at?: string | null
+          zoom_ref?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_admissions_checked_in_by_fkey"
+            columns: ["checked_in_by"]
+            isOneToOne: false
+            referencedRelation: "member_roles_history"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "ticket_admissions_checked_in_by_fkey"
+            columns: ["checked_in_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_admissions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_admissions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_roles_history"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "ticket_admissions_pass_id_fkey"
+            columns: ["pass_id"]
+            isOneToOne: false
+            referencedRelation: "ticket_passes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ticket_audit: {
+        Row: {
+          action: string
+          actor_profile_id: string | null
+          admission_id: string | null
+          after: Json | null
+          before: Json | null
+          created_at: string
+          id: string
+          pass_id: string | null
+        }
+        ComputedFields: never
+        Insert: {
+          action: string
+          actor_profile_id?: string | null
+          admission_id?: string | null
+          after?: Json | null
+          before?: Json | null
+          created_at?: string
+          id?: string
+          pass_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_profile_id?: string | null
+          admission_id?: string | null
+          after?: Json | null
+          before?: Json | null
+          created_at?: string
+          id?: string
+          pass_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_audit_actor_profile_id_fkey"
+            columns: ["actor_profile_id"]
+            isOneToOne: false
+            referencedRelation: "member_roles_history"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "ticket_audit_actor_profile_id_fkey"
+            columns: ["actor_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_audit_admission_id_fkey"
+            columns: ["admission_id"]
+            isOneToOne: false
+            referencedRelation: "ticket_admissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_audit_pass_id_fkey"
+            columns: ["pass_id"]
+            isOneToOne: false
+            referencedRelation: "ticket_passes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ticket_orders: {
+        Row: {
+          buyer_email: string
+          buyer_name: string
+          buyer_profile_id: string | null
+          created_at: string
+          currency: string
+          door_event_id: string | null
+          fulfilled_at: string | null
+          id: string
+          product_id: string
+          status: string
+          stripe_checkout_session_id: string | null
+          total_cents: number
+        }
+        ComputedFields: never
+        Insert: {
+          buyer_email: string
+          buyer_name: string
+          buyer_profile_id?: string | null
+          created_at?: string
+          currency?: string
+          door_event_id?: string | null
+          fulfilled_at?: string | null
+          id?: string
+          product_id: string
+          status?: string
+          stripe_checkout_session_id?: string | null
+          total_cents: number
+        }
+        Update: {
+          buyer_email?: string
+          buyer_name?: string
+          buyer_profile_id?: string | null
+          created_at?: string
+          currency?: string
+          door_event_id?: string | null
+          fulfilled_at?: string | null
+          id?: string
+          product_id?: string
+          status?: string
+          stripe_checkout_session_id?: string | null
+          total_cents?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_orders_buyer_profile_id_fkey"
+            columns: ["buyer_profile_id"]
+            isOneToOne: false
+            referencedRelation: "member_roles_history"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "ticket_orders_buyer_profile_id_fkey"
+            columns: ["buyer_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_orders_door_event_id_fkey"
+            columns: ["door_event_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_orders_door_event_id_fkey"
+            columns: ["door_event_id"]
+            isOneToOne: false
+            referencedRelation: "v_roles_history"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "ticket_orders_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "ticket_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ticket_passes: {
+        Row: {
+          created_at: string
+          email_attempts: number
+          email_claimed_at: string | null
+          email_sent_at: string | null
+          entries_total: number
+          expires_at: string
+          holder_email: string
+          holder_name: string
+          holder_profile_id: string | null
+          id: string
+          order_id: string | null
+          product_id: string
+          qr_token: string
+          status: string
+          unlock_code: string
+          void_reason: string | null
+        }
+        ComputedFields: never
+        Insert: {
+          created_at?: string
+          email_attempts?: number
+          email_claimed_at?: string | null
+          email_sent_at?: string | null
+          entries_total: number
+          expires_at: string
+          holder_email: string
+          holder_name: string
+          holder_profile_id?: string | null
+          id?: string
+          order_id?: string | null
+          product_id: string
+          qr_token: string
+          status?: string
+          unlock_code: string
+          void_reason?: string | null
+        }
+        Update: {
+          created_at?: string
+          email_attempts?: number
+          email_claimed_at?: string | null
+          email_sent_at?: string | null
+          entries_total?: number
+          expires_at?: string
+          holder_email?: string
+          holder_name?: string
+          holder_profile_id?: string | null
+          id?: string
+          order_id?: string | null
+          product_id?: string
+          qr_token?: string
+          status?: string
+          unlock_code?: string
+          void_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_passes_holder_profile_id_fkey"
+            columns: ["holder_profile_id"]
+            isOneToOne: false
+            referencedRelation: "member_roles_history"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "ticket_passes_holder_profile_id_fkey"
+            columns: ["holder_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_passes_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "ticket_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_passes_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "ticket_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ticket_products: {
+        Row: {
+          active: boolean
+          created_at: string
+          entries: number
+          event_id: string | null
+          id: string
+          kind: string
+          price_cents: number
+          series_key: string | null
+          validity_days: number | null
+        }
+        ComputedFields: never
+        Insert: {
+          active?: boolean
+          created_at?: string
+          entries: number
+          event_id?: string | null
+          id?: string
+          kind: string
+          price_cents: number
+          series_key?: string | null
+          validity_days?: number | null
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          entries?: number
+          event_id?: string | null
+          id?: string
+          kind?: string
+          price_cents?: number
+          series_key?: string | null
+          validity_days?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_products_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_products_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_roles_history"
+            referencedColumns: ["event_id"]
+          },
+        ]
+      }
       tree_nodes: {
         Row: {
           created_at: string
@@ -2277,6 +2696,36 @@ export type Database = {
         Args: { p_event_id: string }
         Returns: number
       }
+      anonymise_ticket_holder: {
+        Args: { p_actor: string; p_email: string }
+        Returns: {
+          admitted_via: string
+          attended_online_at: string | null
+          attendee_email: string | null
+          attendee_name: string
+          checked_in_at: string | null
+          checked_in_by: string | null
+          created_at: string
+          device_claimed_at: string | null
+          device_token_hash: string | null
+          event_id: string
+          id: string
+          mode: string
+          pass_id: string
+          status: string
+          zoom_attempted_at: string | null
+          zoom_attempts: number
+          zoom_join_link: string | null
+          zoom_left_at: string | null
+          zoom_ref: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "ticket_admissions"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       approve_event_role_request: {
         Args: { p_request_id: string }
         Returns: Json
@@ -2298,6 +2747,36 @@ export type Database = {
       can_pay_for: {
         Args: { p_beneficiary: string; p_payer: string }
         Returns: boolean
+      }
+      cancel_ticketed_session: {
+        Args: { p_actor: string; p_event_id: string }
+        Returns: {
+          admitted_via: string
+          attended_online_at: string | null
+          attendee_email: string | null
+          attendee_name: string
+          checked_in_at: string | null
+          checked_in_by: string | null
+          created_at: string
+          device_claimed_at: string | null
+          device_token_hash: string | null
+          event_id: string
+          id: string
+          mode: string
+          pass_id: string
+          status: string
+          zoom_attempted_at: string | null
+          zoom_attempts: number
+          zoom_join_link: string | null
+          zoom_left_at: string | null
+          zoom_ref: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "ticket_admissions"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       claim_due_notifications: {
         Args: {
@@ -2393,6 +2872,15 @@ export type Database = {
         }
         Returns: undefined
       }
+      fulfill_ticket_order: {
+        Args: {
+          p_order_id: string
+          p_qr_token: string
+          p_session_id: string
+          p_unlock_code: string
+        }
+        Returns: Json
+      }
       get_core_ancestors: { Args: { p_profile_id: string }; Returns: string[] }
       get_event_registrations_for_viewer: {
         Args: { p_event_id: string; p_viewer: string }
@@ -2474,6 +2962,42 @@ export type Database = {
         Returns: undefined
       }
       is_admin: { Args: never; Returns: boolean }
+      issue_complimentary_pass: {
+        Args: {
+          p_actor: string
+          p_email: string
+          p_entries: number
+          p_expires_at: string
+          p_name: string
+          p_product_id: string
+          p_qr_token: string
+          p_unlock_code: string
+        }
+        Returns: {
+          created_at: string
+          email_attempts: number
+          email_claimed_at: string | null
+          email_sent_at: string | null
+          entries_total: number
+          expires_at: string
+          holder_email: string
+          holder_name: string
+          holder_profile_id: string | null
+          id: string
+          order_id: string | null
+          product_id: string
+          qr_token: string
+          status: string
+          unlock_code: string
+          void_reason: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "ticket_passes"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       patch_member_role: {
         Args: {
           p_changed_by: string
@@ -2519,6 +3043,57 @@ export type Database = {
         Returns: Json
       }
       rebuild_tree_paths: { Args: never; Returns: undefined }
+      redeem_pass_entries: {
+        Args: {
+          p_actor: string
+          p_admitted_via: string
+          p_attendees: Json
+          p_event_id: string
+          p_mode: string
+          p_pass_id: string
+        }
+        Returns: {
+          admitted_via: string
+          attended_online_at: string | null
+          attendee_email: string | null
+          attendee_name: string
+          checked_in_at: string | null
+          checked_in_by: string | null
+          created_at: string
+          device_claimed_at: string | null
+          device_token_hash: string | null
+          event_id: string
+          id: string
+          mode: string
+          pass_id: string
+          status: string
+          zoom_attempted_at: string | null
+          zoom_attempts: number
+          zoom_join_link: string | null
+          zoom_left_at: string | null
+          zoom_ref: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "ticket_admissions"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      register_free_admission: {
+        Args: {
+          p_actor: string
+          p_admitted_via: string
+          p_email: string
+          p_event_id: string
+          p_mode: string
+          p_name: string
+          p_profile_id: string
+          p_qr_token: string
+          p_unlock_code: string
+        }
+        Returns: Json
+      }
       reject_los_submission: {
         Args: { p_id: string; p_note?: string; p_resolved_by?: string }
         Returns: undefined
@@ -2531,6 +3106,44 @@ export type Database = {
         Returns: string
       }
       text2ltree: { Args: { "": string }; Returns: unknown }
+      ticket_admit: {
+        Args: {
+          p_actor: string
+          p_admitted_via: string
+          p_at: string
+          p_attendees: Json
+          p_event_id: string
+          p_mode: string
+          p_pass_id: string
+        }
+        Returns: {
+          admitted_via: string
+          attended_online_at: string | null
+          attendee_email: string | null
+          attendee_name: string
+          checked_in_at: string | null
+          checked_in_by: string | null
+          created_at: string
+          device_claimed_at: string | null
+          device_token_hash: string | null
+          event_id: string
+          id: string
+          mode: string
+          pass_id: string
+          status: string
+          zoom_attempted_at: string | null
+          zoom_attempts: number
+          zoom_join_link: string | null
+          zoom_left_at: string | null
+          zoom_ref: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "ticket_admissions"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       upsert_tree_node: {
         Args: {
           p_abo_number?: string
@@ -2575,6 +3188,7 @@ export type Database = {
         | "trip_message"
         | "trip_attachment"
         | "spouse_link_request"
+        | "ticket_alert"
       registration_status: "pending" | "approved" | "denied" | "cancelled"
       reminder_type: "1_hour" | "15_min"
       user_role: "admin" | "core" | "member" | "guest"
@@ -3179,6 +3793,7 @@ export const Constants = {
         "trip_message",
         "trip_attachment",
         "spouse_link_request",
+        "ticket_alert",
       ],
       registration_status: ["pending", "approved", "denied", "cancelled"],
       reminder_type: ["1_hour", "15_min"],
