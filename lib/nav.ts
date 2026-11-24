@@ -42,6 +42,7 @@ export const MEMBER_NAV: NavItem[] = [
   { href: '/library', labels: { en: 'Library',    bg: 'Библиотека'  }, minRole: 'member' },
   { href: '/tickets', labels: { en: 'My tickets', bg: 'Моите билети' }, minRole: 'guest' },
   { href: '/los',     labels: { en: 'My Network', bg: 'Моята мрежа' }, minRole: 'member' },
+  { href: '/scanner', labels: { en: 'Door',       bg: 'Вход'        }, minRole: 'core'   },
   { href: '/roles',   labels: { en: 'Roles',      bg: 'Роли'        }, minRole: 'core'   },
 ]
 
@@ -56,6 +57,7 @@ export const ADMIN_NAV: NavItem[] = [
   { href: '/admin/items',        labels: { en: 'Items',        bg: 'Артикули'     } },
   { href: '/admin/payments',     labels: { en: 'Payments',     bg: 'Плащания'     } },
   { href: '/admin/tickets',      labels: { en: 'Tickets',      bg: 'Билети'       } },
+  { href: '/scanner',            labels: { en: 'Door',         bg: 'Вход'         } },
   { href: '/admin/calendar',     labels: { en: 'Calendar',     bg: 'Calendar'     } },
   { href: '/admin/content',      labels: { en: 'Content',      bg: 'Content'      } },
   { href: '/admin/members',      labels: { en: 'Members',      bg: 'Members'      } },
