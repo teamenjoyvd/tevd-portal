@@ -23,6 +23,7 @@ import {
 import { EventForm, emptyForm, DEFAULT_AVAILABLE_ROLES, type EventFormState } from './EventForm'
 import { useAdminCalendarMutations } from './useAdminCalendarMutations'
 import { Pill } from './Pill'
+import { LinkZoomSeriesForm, type ZoomSeriesOptions } from './LinkZoomSeriesForm'
 
 // Tracked fields (kept in sync with lib/notifications/guest-event-changes.ts
 // TRACKED_FIELDS) whose change should surface the "N registered guests will
@@ -42,6 +43,11 @@ export default function AdminCalendarClient() {
   const { t } = useLanguage()
   const { syncMutation, createMutation, updateMutation, deleteMutation } = useAdminCalendarMutations()
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [zoomOpen, setZoomOpen] = useState(false)
+  const { data: zoom } = useQuery<ZoomSeriesOptions>({
+    queryKey: ['admin-zoom-series'],
+    queryFn: () => apiClient<ZoomSeriesOptions>('/api/admin/zoom/series'),
+  })
   const [editing, setEditing] = useState<AdminCalendarEvent | null>(null)
   const [form, setForm] = useState<EventFormState>(emptyForm())
   const [formError, setFormError] = useState<string | null>(null)
@@ -197,7 +203,7 @@ export default function AdminCalendarClient() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
           <h1 className="font-display text-2xl font-semibold" style={{ color: 'var(--text-primary)' }}>
             {t('admin.calendar.pageTitle')}
@@ -230,6 +236,15 @@ export default function AdminCalendarClient() {
               size={15}
               className={syncMutation.isPending ? 'animate-spin' : ''}
             />
+          </button>
+          <button
+            onClick={() => setZoomOpen(true)}
+            disabled={!zoom?.configured}
+            title={zoom && !zoom.configured ? t('admin.zoom.notConfigured') : undefined}
+            className="px-4 py-2 rounded-xl text-sm font-semibold border transition-colors hover:bg-hover-surface disabled:opacity-40"
+            style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+          >
+            {t('admin.zoom.open')}
           </button>
           <button onClick={openCreate}
             className="px-4 py-2 rounded-xl text-sm font-semibold text-on-accent hover:opacity-90 transition-opacity"
@@ -388,6 +403,10 @@ export default function AdminCalendarClient() {
           label={editing ? t('admin.calendar.btn.saveChanges') : t('admin.calendar.btn.createEvent')}
           formError={formError}
         />
+      </Drawer>
+
+      <Drawer open={zoomOpen} onClose={() => setZoomOpen(false)} title={t('admin.zoom.open')}>
+        <LinkZoomSeriesForm seriesKeys={zoom?.series_keys ?? []} onClose={() => setZoomOpen(false)} />
       </Drawer>
 
       {/* ── Edit confirm: tracked fields changed on an event with active guests ── */}

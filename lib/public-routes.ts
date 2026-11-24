@@ -12,7 +12,8 @@ import { createRouteMatcher } from '@clerk/nextjs/server'
  *   /sign-in(.*)       auth
  *   /sign-up(.*)       auth
  *   /erc2026           ERC 2026 trip guide (public link, no login required)
- *   /api/webhooks/(.*) Clerk webhooks
+ *   /api/webhooks/(.*) Clerk and Zoom webhooks
+ *   /api/internal/jobs/(.*) scheduled jobs (no user; x-sync-secret, ADR-018)
  *   /api/calendar      public calendar API
  *   /api/calendar/(.*) public calendar API
  *   /api/events/:id    public event detail API
@@ -31,6 +32,7 @@ export const PUBLIC_ROUTE_PATTERNS = [
   '/sign-up(.*)',
   '/erc2026',
   '/api/webhooks/(.*)',
+  '/api/internal/jobs/(.*)',
   '/api/calendar',
   '/api/calendar/(.*)',
   '/api/events/:id',

@@ -1,5 +1,5 @@
 # DECISIONS.md — Architecture Decision Records
-> tevd-portal · Last updated: 2026-05-08
+> tevd-portal · Last updated: 2026-11-24
 > Format: Context | Decision | Consequences (Benefits / Risks / Mitigations)
 > Records are never deleted. Superseded records are marked and linked to their replacement.
 
@@ -25,6 +25,7 @@
 | ADR-014 | Cookie-based transport for UI preference synchronisation | 2026-03-28 | Active |
 | ADR-015 | Autonomous Tile Pattern for profile section components | 2026-04-06 | Active |
 | ADR-016 | ABO co-ownership: primary/secondary profile model over abo_partnerships table | 2026-05-08 | Active |
+| ADR-017 | Zoom webinar registrants for online event access | 2026-11-24 | Proposed |
 
 ---
 
@@ -805,3 +806,76 @@ The data migration is trivial — one INSERT per partnership row. The RPC refact
 - This ADR explicitly names `primary_profile_id` as a stepping stone, not a permanent design
 - `abo_partnerships` is named as the target state with a concrete migration path above
 - The `promote_to_primary` RPC makes the hierarchy fluid — it can be reversed by admin at any time
+
+---
+
+## ADR-017 — Zoom Webinar Registrants for Online Event Access
+
+**Date:** 2026-11-24
+**Status:** Proposed. Becomes Active when the live-session questions below are answered (#773).
+
+### Context
+Ticketing (#772) needs a personal Zoom link per person, per session, without a Zoom account. Candidates were Zoom Events (A), webinar registrants (B) and meeting registrants (C). The owner decided attendees do not speak, which removes C. A was not tested: the app's token has no Zoom Events scope (`GET /zoom_events/hubs` returns 401, code 104).
+
+### Proposed decision
+Use webinar registrants (`POST /webinars/{id}/registrants?occurrence_ids={session}`), with `registration_type: 2`.
+
+### Evidence
+From `scripts/zoom-probe.mjs`, plus a live session hosted by the owner and one-off API calls for questions 3 to 5, 7 and 9 and manual approval, all against a throwaway weekly webinar on 2026-11-24. "Untested" means nothing here supports an answer yet.
+
+| # | Question | Answer |
+|---|---|---|
+| 1 | One session of a series | Yes with `registration_type` 2 or 3: 201, `occurrences: [one]`, listed in that session only. With type 1 the `occurrence_ids` argument is ignored without an error and the person is listed in every session checked. Omitting `occurrence_ids` under type 2 registers the first session. How far a series can run and how sessions are added: untested |
+| 2 | Personal link | Yes. Different emails get different `registrant_id` and `join_url`. Same email, same session: 201 with the same id and link. Same email, other session: new id and link |
+| 3 | No Zoom account | Yes, in the browser: two attendees joined live without a Zoom account and without entering a passcode, name or email. Joining through the Zoom app: untested |
+| 4 | Forwarded link | With `allow_multiple_devices: false`, a second device is refused while the owner is in ("You've already joined this meeting on another device.") and the owner stays in. After the owner leaves, the link works on another device, under the owner's name. One device at a time, not one person |
+| 5 | Display name, rename lock | Yes: the host sees the registered name. Attendees cannot rename themselves; only the host can. Someone signed in to Zoom under another name: untested |
+| 6 | Zoom's own email | `registrants_confirmation_email: false` and `registrants_email_notification: false` are accepted and read back. That no email arrives: untested (the probe uses undeliverable addresses) |
+| 7 | Register after start | Yes: a person registered after the start joined with their link |
+| 8 | Our own id | Not through `comments`: sent on create, read back empty; other fields untested. Repeating a create returns the same registration for the same (email, session) but overwrites the name |
+| 9 | Cancel, rename | `action: cancel` returns 204 and leaves the person `denied`; registering them again fails with 400, code 3033. `DELETE ...?occurrence_id=` returns 204, and registering again works with a new id and link. DELETE without `occurrence_id` fails with 400, code 300. DELETE during the session does **not** remove someone already in; once they leave, their link asks for registration instead of admitting them. Rename: register again with the new name; same id and link, and the new name shows after leaving and rejoining, not live |
+| 10 | Limits | Same email, same session: calls 1 to 3 return 201; call 4 returns 429 until 00:00 UTC. Four calls for one email in four different sessions all return 201, so the limit is not per email across the series. Call 3 already carries `Retry-After`, so that header alone does not mean failure |
+| 11 | Join webhook | Untested |
+| 12 | Scopes | The app holds nearly every meeting, webinar and device scope. The owner decided on 2026-11-24 to keep them and not trim per feature, so a leaked `ZOOM_CLIENT_SECRET` exposes all of them. Expected minimum, not confirmed by trimming: `webinar:read:webinar:admin`, `webinar:read:list_registrants:admin`, `webinar:write:registrant:admin`, `webinar:delete:registrant:admin`. The probe also needs `webinar:update:webinar:admin`, `webinar:read:registrant:admin` and `webinar:update:registrant_status:admin` |
+
+### Settings for every ticketed webinar
+Set these **before the first registration**: `registration_type: 2`, `approval_type: 1`, `registrants_confirmation_email: false`, `registrants_email_notification: false`, `meeting_authentication: false`, `allow_multiple_devices: false`, `show_share_button: false`.
+
+### Why manual approval
+A dead link leads to Zoom's public registration form. Under `approval_type: 0` a registration is approved at once, so self-registering there would presumably give a free seat (not tried). Under `approval_type: 1` an API registration returns `pending` with a `join_url`; `PUT /registrants/status` with `action: approve` returns 204, keeps the same link, and repeating the create afterwards stays `approved`. So `register` is create, then approve. Untested: that a pending link does not admit, that a form registration lands as pending, and whether Zoom emails anyone about it.
+
+### Consequences
+
+**Benefits:**
+- One personal link per person per session, with retries that return the same link without our own id
+
+**Risks:**
+- Moving a webinar from `registration_type` 3 to 1 removed its registrations, and moving back did not restore them. The same is assumed for type 2: all sold links would be lost
+- A retry sent with an old name undoes a rename
+- A cancelled person could not be registered again for that session
+- A revoked person already in the session stays until they leave or the host removes them
+- A link can be handed on after its owner leaves
+
+**Mitigations:**
+- The portal never writes webinar settings; linking a series checks `registration_type` is 2 and `approval_type` is 1, and refuses otherwise
+- Revoking uses DELETE with `occurrence_id`, never `cancel`
+- Retries send the current name from our row
+- The admin void action tells staff to remove a person who is already in by hand
+
+---
+
+## ADR-018 — Scheduled Jobs as Secret-Guarded Routes
+
+**Date:** 2026-11-24
+**Status:** Active
+
+### Context
+Ticketing (#772) needs scheduled work that uses Node code: the Zoom client, email templates, ticket logic. Edge Functions cannot import `lib/server`, and a second copy would drift.
+
+### Decision
+`POST /api/internal/jobs/[job]` runs a named job. It is in `PUBLIC_ROUTE_PATTERNS` because no user is present, and checks `x-sync-secret` against `SYNC_SECRET` with `timingSafeEqual`. `pg_cron` calls it with `net.http_post`, reading `app_base_url` and `sync_secret` from Vault inside the cron statement. Where `app_base_url` is absent (DEV, local) no row matches and nothing is called; run the job by hand with `curl`.
+
+### Consequences
+- Jobs must be idempotent: `pg_net` does not retry, but a person may run a job twice.
+- A rotated `SYNC_SECRET` must change in Vercel and Vault together.
+- Responses carry counts only, never attendee data.
