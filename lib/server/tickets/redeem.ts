@@ -1,6 +1,7 @@
 import type { createServiceClient } from '@/lib/supabase/service'
 import type { Database } from '@/types/supabase'
 import { fromSofiaLocalInput, todayInSofia, toSofiaLocalInput } from '@/lib/format'
+import { alertAdmins } from './alerts'
 import { ticketErrorCode, type TicketErrorCode } from './errors'
 import type { ZoomPort, ZoomRegistration } from './zoom-port'
 
@@ -180,21 +181,3 @@ export async function healPendingAdmissions(
 }
 
 const sofiaDate = (iso: string) => toSofiaLocalInput(iso).slice(0, 10)
-
-async function alertAdmins(supabase: ServiceClient, message: string): Promise<void> {
-  const { data: admins, error } = await supabase.from('profiles').select('id').eq('role', 'admin')
-  if (error || admins.length === 0) {
-    console.error('[tickets] no admins to alert', error?.message)
-    return
-  }
-  const { error: insertError } = await supabase.from('member_notifications').insert(
-    admins.map((a) => ({
-      profile_id: a.id,
-      type: 'ticket_alert' as const,
-      title: 'Ticket needs attention',
-      message,
-      action_url: '/admin/tickets',
-    })),
-  )
-  if (insertError) console.error('[tickets] admin alert failed', insertError.message)
-}

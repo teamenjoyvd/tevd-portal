@@ -124,7 +124,7 @@ stateDiagram-v2
 ## 3. Payment Lifecycle
 
 ### Context
-tevd-portal has no payment processor. All payments are manual records — either submitted by members with proof, or logged directly by admins. Approval is a dual-gate: `admin_status` AND `member_status` must both be `approved` for a payment to be considered green.
+Trips and fees use no payment processor (event tickets do, see Ticket Purchase below). Those payments are manual records — either submitted by members with proof, or logged directly by admins. Approval is a dual-gate: `admin_status` AND `member_status` must both be `approved` for a payment to be considered green.
 
 Payments are always linked to exactly one entity: a trip (`trip_id`) OR a payable item (`payable_item_id`). The DB enforces this via a check constraint (`num_nonnulls(trip_id, payable_item_id) = 1`).
 
@@ -200,6 +200,13 @@ sequenceDiagram
 - GREEN = `admin_status = 'approved' AND member_status = 'approved'`.
 - Entity constraint is DB-enforced. API routes must pass exactly one of `trip_id` / `payable_item_id`.
 - FK ambiguity: any PostgREST join from `payments` to `profiles` must use `profiles!profile_id(...)`.
+
+---
+
+### Ticket Purchase (ADR-019)
+1. `/events/[id]/buy` → `POST /api/tickets/checkout`: `pending` order, then a Checkout Session whose id is stored on it.
+2. Paid: the Stripe webhook and `/events/[id]/buy/return` both call `fulfillOrder` → `fulfill_ticket_order` issues the pass once. A door order also uses one entry.
+3. Full refund or dispute → pass `void`. Session expired, or 25 hours unpaid → order `expired`; a late payment still fulfils.
 
 ---
 

@@ -50,6 +50,8 @@ export type SendEmailPayload = {
   template: string
   /** Any serialisable metadata to store in notification_delivery_log.payload (profile IDs, amounts...) */
   meta?: Record<string, unknown>
+  /** Base64 content. With a contentId the HTML can show it as `cid:<contentId>`. */
+  attachments?: { filename: string; content: string; contentId?: string }[]
 }
 
 export type TransactionalEmailResult =
@@ -76,6 +78,7 @@ async function _dispatch(
       to:      payload.to,
       subject: payload.subject,
       html:    payload.html,
+      attachments: payload.attachments,
     })
 
     if (error) throw new Error(error.message)

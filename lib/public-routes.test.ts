@@ -3,7 +3,7 @@ import { NextRequest } from 'next/server'
 import { PUBLIC_ROUTE_PATTERNS, isPublicRoute } from '@/lib/public-routes'
 
 describe('PUBLIC_ROUTE_PATTERNS', () => {
-  it('equals the documented 17-entry guest surface exactly', () => {
+  it('equals the documented 18-entry guest surface exactly', () => {
     expect(PUBLIC_ROUTE_PATTERNS).toEqual([
       '/',
       '/about',
@@ -17,13 +17,14 @@ describe('PUBLIC_ROUTE_PATTERNS', () => {
       '/erc2026',
       '/api/webhooks/(.*)',
       '/api/internal/jobs/(.*)',
+      '/api/tickets/checkout',
       '/api/calendar',
       '/api/calendar/(.*)',
       '/api/events/:id',
       '/api/socials',
       '/api/socials/(.*)',
     ])
-    expect(PUBLIC_ROUTE_PATTERNS).toHaveLength(17)
+    expect(PUBLIC_ROUTE_PATTERNS).toHaveLength(18)
   })
 })
 
@@ -48,6 +49,9 @@ describe('isPublicRoute', () => {
     '/erc2026',
     '/api/webhooks/clerk',
     '/api/webhooks/zoom',
+    '/api/webhooks/stripe',
+    '/api/tickets/checkout',
+    '/events/123/buy',
     '/api/internal/jobs/zoom-import-sessions',
     '/api/calendar',
     '/api/calendar/feed',
@@ -60,7 +64,7 @@ describe('isPublicRoute', () => {
     expect(isPublicRoute(reqFor(path))).toBe(true)
   })
 
-  const privatePaths = ['/profile', '/api/profile', '/api/admin/members', '/api/internal', '/api/internal/other', '/api/admin/zoom/series']
+  const privatePaths = ['/profile', '/api/profile', '/api/admin/members', '/api/internal', '/api/internal/other', '/api/admin/zoom/series', '/api/tickets/mine']
 
   it.each(privatePaths)('rejects %s', (path) => {
     expect(isPublicRoute(reqFor(path))).toBe(false)
