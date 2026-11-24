@@ -821,25 +821,28 @@ Ticketing (#772) needs a personal Zoom link per person, per session, without a Z
 Use webinar registrants (`POST /webinars/{id}/registrants?occurrence_ids={session}`), with `registration_type: 2`.
 
 ### Evidence
-From `scripts/zoom-probe.mjs` against a throwaway weekly webinar on 2026-11-24. "Untested" means nothing here supports an answer yet.
+From `scripts/zoom-probe.mjs`, plus a live session hosted by the owner and one-off API calls for questions 3 to 5, 7 and 9 and manual approval, all against a throwaway weekly webinar on 2026-11-24. "Untested" means nothing here supports an answer yet.
 
 | # | Question | Answer |
 |---|---|---|
 | 1 | One session of a series | Yes with `registration_type` 2 or 3: 201, `occurrences: [one]`, listed in that session only. With type 1 the `occurrence_ids` argument is ignored without an error and the person is listed in every session checked. Omitting `occurrence_ids` under type 2 registers the first session. How far a series can run and how sessions are added: untested |
 | 2 | Personal link | Yes. Different emails get different `registrant_id` and `join_url`. Same email, same session: 201 with the same id and link. Same email, other session: new id and link |
-| 3 | No Zoom account | `meeting_authentication` and `enforce_login` are off, and the link opened signed out returns 200 without a redirect. A real join, browser and app: untested |
-| 4 | Forwarded link | `allow_multiple_devices: false` and `show_share_button: false` are accepted and read back. What a second device sees: untested |
-| 5 | Display name, rename lock | Untested |
+| 3 | No Zoom account | Yes, in the browser: two attendees joined live without a Zoom account and without entering a passcode, name or email. Joining through the Zoom app: untested |
+| 4 | Forwarded link | With `allow_multiple_devices: false`, a second device is refused while the owner is in ("You've already joined this meeting on another device.") and the owner stays in. After the owner leaves, the link works on another device, under the owner's name. One device at a time, not one person |
+| 5 | Display name, rename lock | Yes: the host sees the registered name. Attendees cannot rename themselves; only the host can. Someone signed in to Zoom under another name: untested |
 | 6 | Zoom's own email | `registrants_confirmation_email: false` and `registrants_email_notification: false` are accepted and read back. That no email arrives: untested (the probe uses undeliverable addresses) |
-| 7 | Register after start | Untested |
+| 7 | Register after start | Yes: a person registered after the start joined with their link |
 | 8 | Our own id | Not through `comments`: sent on create, read back empty; other fields untested. Repeating a create returns the same registration for the same (email, session) but overwrites the name |
-| 9 | Cancel, rename | `action: cancel` returns 204 and leaves the person `denied`; registering them again fails with 400, code 3033. `DELETE ...?occurrence_id=` returns 204, and registering again works with a new id and link. DELETE without `occurrence_id` fails with 400, code 300. Rename: register again with the new name; same id and link. Removing someone already in the session: untested |
+| 9 | Cancel, rename | `action: cancel` returns 204 and leaves the person `denied`; registering them again fails with 400, code 3033. `DELETE ...?occurrence_id=` returns 204, and registering again works with a new id and link. DELETE without `occurrence_id` fails with 400, code 300. DELETE during the session does **not** remove someone already in; once they leave, their link asks for registration instead of admitting them. Rename: register again with the new name; same id and link, and the new name shows after leaving and rejoining, not live |
 | 10 | Limits | Same email, same session: calls 1 to 3 return 201; call 4 returns 429 until 00:00 UTC. Four calls for one email in four different sessions all return 201, so the limit is not per email across the series. Call 3 already carries `Retry-After`, so that header alone does not mean failure |
 | 11 | Join webhook | Untested |
-| 12 | Scopes | The current app holds nearly every meeting, webinar and device scope. Expected minimum, to be confirmed by trimming and rerunning: `webinar:read:webinar:admin`, `webinar:read:list_registrants:admin`, `webinar:write:registrant:admin`, `webinar:delete:registrant:admin`. The probe also needs `webinar:update:webinar:admin`, `webinar:read:registrant:admin` and `webinar:update:registrant_status:admin` |
+| 12 | Scopes | The app holds nearly every meeting, webinar and device scope. The owner decided on 2026-11-24 to keep them and not trim per feature, so a leaked `ZOOM_CLIENT_SECRET` exposes all of them. Expected minimum, not confirmed by trimming: `webinar:read:webinar:admin`, `webinar:read:list_registrants:admin`, `webinar:write:registrant:admin`, `webinar:delete:registrant:admin`. The probe also needs `webinar:update:webinar:admin`, `webinar:read:registrant:admin` and `webinar:update:registrant_status:admin` |
 
 ### Settings for every ticketed webinar
-Set these **before the first registration**: `registration_type: 2`, `approval_type: 0`, `registrants_confirmation_email: false`, `registrants_email_notification: false`, `meeting_authentication: false`, and (pending question 4) `allow_multiple_devices: false`, `show_share_button: false`.
+Set these **before the first registration**: `registration_type: 2`, `approval_type: 1`, `registrants_confirmation_email: false`, `registrants_email_notification: false`, `meeting_authentication: false`, `allow_multiple_devices: false`, `show_share_button: false`.
+
+### Why manual approval
+A dead link leads to Zoom's public registration form. Under `approval_type: 0` a registration is approved at once, so self-registering there would presumably give a free seat (not tried). Under `approval_type: 1` an API registration returns `pending` with a `join_url`; `PUT /registrants/status` with `action: approve` returns 204, keeps the same link, and repeating the create afterwards stays `approved`. So `register` is create, then approve. Untested: that a pending link does not admit, that a form registration lands as pending, and whether Zoom emails anyone about it.
 
 ### Consequences
 
@@ -850,8 +853,11 @@ Set these **before the first registration**: `registration_type: 2`, `approval_t
 - Moving a webinar from `registration_type` 3 to 1 removed its registrations, and moving back did not restore them. The same is assumed for type 2: all sold links would be lost
 - A retry sent with an old name undoes a rename
 - A cancelled person could not be registered again for that session
+- A revoked person already in the session stays until they leave or the host removes them
+- A link can be handed on after its owner leaves
 
 **Mitigations:**
-- The portal never writes webinar settings; linking a series checks `registration_type` is 2 and refuses otherwise
+- The portal never writes webinar settings; linking a series checks `registration_type` is 2 and `approval_type` is 1, and refuses otherwise
 - Revoking uses DELETE with `occurrence_id`, never `cancel`
 - Retries send the current name from our row
+- The admin void action tells staff to remove a person who is already in by hand
