@@ -209,7 +209,6 @@ export type Database = {
           title: string
           week_number: number
         }
-        ComputedFields: never
         Insert: {
           access_roles?: Database["public"]["Enums"]["user_role"][]
           allow_guest_registration?: boolean
@@ -1868,7 +1867,6 @@ export type Database = {
           processed_at: string | null
           type: string
         }
-        ComputedFields: never
         Insert: {
           event_id: string
           processed_at?: string | null
@@ -1903,7 +1901,6 @@ export type Database = {
           zoom_left_at: string | null
           zoom_ref: string | null
         }
-        ComputedFields: never
         Insert: {
           admitted_via: string
           attended_online_at?: string | null
@@ -1995,7 +1992,6 @@ export type Database = {
           id: string
           pass_id: string | null
         }
-        ComputedFields: never
         Insert: {
           action: string
           actor_profile_id?: string | null
@@ -2062,7 +2058,6 @@ export type Database = {
           stripe_checkout_session_id: string | null
           total_cents: number
         }
-        ComputedFields: never
         Insert: {
           buyer_email: string
           buyer_name: string
@@ -2148,7 +2143,6 @@ export type Database = {
           unlock_code: string
           void_reason: string | null
         }
-        ComputedFields: never
         Insert: {
           created_at?: string
           email_attempts?: number
@@ -2228,7 +2222,6 @@ export type Database = {
           series_key: string | null
           validity_days: number | null
         }
-        ComputedFields: never
         Insert: {
           active?: boolean
           created_at?: string
