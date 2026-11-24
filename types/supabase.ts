@@ -208,6 +208,8 @@ export type Database = {
           tickets_cancelled_at: string | null
           title: string
           week_number: number
+          zoom_event_ref: string | null
+          zoom_session_ref: string | null
         }
         Insert: {
           access_roles?: Database["public"]["Enums"]["user_role"][]
@@ -234,6 +236,8 @@ export type Database = {
           tickets_cancelled_at?: string | null
           title: string
           week_number: number
+          zoom_event_ref?: string | null
+          zoom_session_ref?: string | null
         }
         Update: {
           access_roles?: Database["public"]["Enums"]["user_role"][]
@@ -260,6 +264,8 @@ export type Database = {
           tickets_cancelled_at?: string | null
           title?: string
           week_number?: number
+          zoom_event_ref?: string | null
+          zoom_session_ref?: string | null
         }
         Relationships: [
           {

@@ -861,3 +861,21 @@ A dead link leads to Zoom's public registration form. Under `approval_type: 0` a
 - Revoking uses DELETE with `occurrence_id`, never `cancel`
 - Retries send the current name from our row
 - The admin void action tells staff to remove a person who is already in by hand
+
+---
+
+## ADR-018 — Scheduled Jobs as Secret-Guarded Routes
+
+**Date:** 2026-11-24
+**Status:** Active
+
+### Context
+Ticketing (#772) needs scheduled work that uses Node code: the Zoom client, email templates, ticket logic. Edge Functions cannot import `lib/server`, and a second copy would drift.
+
+### Decision
+`POST /api/internal/jobs/[job]` runs a named job. It is in `PUBLIC_ROUTE_PATTERNS` because no user is present, and checks `x-sync-secret` against `SYNC_SECRET` with `timingSafeEqual`. `pg_cron` calls it with `net.http_post`, reading `app_base_url` and `sync_secret` from Vault inside the cron statement. Where `app_base_url` is absent (DEV, local) no row matches and nothing is called; run the job by hand with `curl`.
+
+### Consequences
+- Jobs must be idempotent: `pg_net` does not retry, but a person may run a job twice.
+- A rotated `SYNC_SECRET` must change in Vercel and Vault together.
+- Responses carry counts only, never attendee data.
