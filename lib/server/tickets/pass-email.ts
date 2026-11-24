@@ -36,8 +36,18 @@ async function claim(supabase: ServiceClient, passId: string): Promise<TicketPas
 /** Returns true when this call sent the email. */
 export async function sendPassEmail(supabase: ServiceClient, passId: string): Promise<boolean> {
   const pass = await claim(supabase, passId)
-  if (pass === null) return false
+  if (pass === null || !(await sendPassCopy(pass))) return false
 
+  const { error } = await supabase
+    .from('ticket_passes')
+    .update({ email_sent_at: new Date().toISOString() })
+    .eq('id', pass.id)
+  if (error) console.error('[tickets] email sent but not marked', pass.id)
+  return true
+}
+
+/** Sends the pass to its own address again. The caller limits it. */
+export async function sendPassCopy(pass: TicketPass): Promise<boolean> {
   const qr = await QRCode.toBuffer(pass.qr_token, { width: 320, margin: 2 })
   const html = await renderEmailTemplate(
     React.createElement(TicketPassEmail, {
@@ -56,12 +66,27 @@ export async function sendPassEmail(supabase: ServiceClient, passId: string): Pr
     meta: { pass_id: pass.id },
     attachments: [{ filename: 'ticket-qr.png', content: qr.toString('base64'), contentId: QR_CONTENT_ID }],
   })
-  if (!result.sent) return false
+  return result.sent
+}
 
-  const { error } = await supabase
+/** Paid passes whose email never left. After the third attempt staff handle it (#779). */
+export async function retryPassEmails(supabase: ServiceClient): Promise<{ sent: number }> {
+  const { data, error } = await supabase
     .from('ticket_passes')
-    .update({ email_sent_at: new Date().toISOString() })
-    .eq('id', pass.id)
-  if (error) console.error('[tickets] email sent but not marked', pass.id)
-  return true
+    .select('id')
+    .not('order_id', 'is', null)
+    .eq('status', 'active')
+    .is('email_sent_at', null)
+    .lt('email_attempts', MAX_EMAIL_ATTEMPTS)
+    .limit(50)
+  if (error) throw error
+  let sent = 0
+  for (const { id } of data) {
+    try {
+      if (await sendPassEmail(supabase, id)) sent++
+    } catch (err) {
+      console.error('[tickets] email retry failed', id, err instanceof Error ? err.name : 'error')
+    }
+  }
+  return { sent }
 }

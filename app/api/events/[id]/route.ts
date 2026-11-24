@@ -2,7 +2,7 @@ import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { createClient } from '@/lib/supabase/server'
 import { getCallerProfile } from '@/lib/supabase/guards'
-import { canSeeMeetingUrl, sharedMeetingUrl } from '@/lib/server/meeting-url-visibility'
+import { canSeeMeetingUrl, isTicketedEvent, sharedMeetingUrl } from '@/lib/server/meeting-url-visibility'
 
 export async function GET(
   _req: Request,
@@ -18,7 +18,8 @@ export async function GET(
       .from('calendar_events').select('*').eq('id', id).single()
     if (error?.code === 'PGRST116') return Response.json({ error: 'Not found' }, { status: 404 })
     if (error) return Response.json({ error: error.message }, { status: 500 })
-    return Response.json({ ...event, meeting_url: null, role_slots: [], caller_registration: null })
+    const ticketed = await isTicketedEvent(createServiceClient(), event)
+    return Response.json({ ...event, meeting_url: null, role_slots: [], caller_registration: null, ticketed })
   }
 
   const supabase = createServiceClient()
@@ -34,9 +35,11 @@ export async function GET(
   if (error?.code === 'PGRST116') return Response.json({ error: 'Not found' }, { status: 404 })
   if (error) return Response.json({ error: error.message }, { status: 500 })
 
+  const ticketed = await isTicketedEvent(supabase, event)
+
   // Guests never see role section
   if (callerProfile.role === 'guest') {
-    return Response.json({ ...event, meeting_url: null, role_slots: [], caller_registration: null })
+    return Response.json({ ...event, meeting_url: null, role_slots: [], caller_registration: null, ticketed })
   }
 
   // Fetch all slots for this event
@@ -127,5 +130,5 @@ export async function GET(
     ? await sharedMeetingUrl(supabase, event)
     : null
 
-  return Response.json({ ...event, meeting_url, role_slots, caller_registration })
+  return Response.json({ ...event, meeting_url, role_slots, caller_registration, ticketed })
 }

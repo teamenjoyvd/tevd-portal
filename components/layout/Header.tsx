@@ -5,7 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
-import { Home, Info, Calendar, PlaneTakeoff, BookOpen, Users, UserRound, type LucideIcon } from 'lucide-react'
+import { Home, Info, Calendar, PlaneTakeoff, Ticket, BookOpen, Users, UserRound, type LucideIcon } from 'lucide-react'
 import { useLanguage } from '@/lib/hooks/useLanguage'
 import { useRole } from '@/lib/hooks/useRole'
 import UserDropdown from '@/components/layout/UserDropdown'
@@ -22,6 +22,7 @@ const NAV_ICONS: Record<string, LucideIcon> = {
   '/calendar': Calendar,
   '/trips': PlaneTakeoff,
   '/library': BookOpen,
+  '/tickets': Ticket,
   '/roles': Users,
   '/profile': UserRound,
 }

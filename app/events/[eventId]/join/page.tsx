@@ -2,6 +2,8 @@ import Link from 'next/link'
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { sharedMeetingUrl } from '@/lib/server/meeting-url-visibility'
+import { getTicketFlow } from '@/lib/server/tickets/flow'
+import { TicketJoin } from './components/TicketJoin'
 import { JoinActions } from './components/JoinActions'
 import { CancelActions } from './components/CancelActions'
 import { ResendLinkForm } from '../components/ResendLinkForm'
@@ -11,7 +13,7 @@ import { getLangFromCookies } from '@/lib/utils/lang-cookie'
 
 type Props = {
   params:       Promise<{ eventId: string }>
-  searchParams: Promise<{ token?: string }>
+  searchParams: Promise<{ token?: string; a?: string }>
 }
 
 // -- Sub-components (module-scoped -- never defined inside render fn) ----------
@@ -100,11 +102,14 @@ type JoinedEvent = {
 
 export default async function GuestJoinPage({ params, searchParams }: Props) {
   const { eventId } = await params
-  const { token }   = await searchParams
+  const { token, a } = await searchParams
 
   const lang = await getLangFromCookies()
 
   const supabase = createServiceClient()
+
+  const flow = await getTicketFlow(supabase, eventId)
+  if (flow !== null) return <TicketJoin supabase={supabase} flow={flow} admissionId={a} lang={lang} />
 
   // Resolved by whichever branch below owns this request: the guest magic
   // link, or the token-free member URL.

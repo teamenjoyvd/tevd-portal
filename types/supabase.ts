@@ -2049,6 +2049,32 @@ export type Database = {
           },
         ]
       }
+      ticket_device_codes: {
+        Row: {
+          admission_id: string
+          code_hash: string
+          expires_at: string
+        }
+        Insert: {
+          admission_id: string
+          code_hash: string
+          expires_at: string
+        }
+        Update: {
+          admission_id?: string
+          code_hash?: string
+          expires_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_device_codes_admission_id_fkey"
+            columns: ["admission_id"]
+            isOneToOne: true
+            referencedRelation: "ticket_admissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ticket_orders: {
         Row: {
           buyer_email: string
