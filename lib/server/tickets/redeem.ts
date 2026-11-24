@@ -161,6 +161,8 @@ export async function healPendingAdmissions(
     .select('*')
     .eq('status', 'pending_zoom')
     .lt('zoom_attempts', MAX_ZOOM_ATTEMPTS)
+    // Someone who attended and left comes back only by pressing Join (release.ts).
+    .is('attended_online_at', null)
     .in('event_id', events.map((e) => e.id))
   if (filter.passId !== undefined) query = query.eq('pass_id', filter.passId)
   const { data: rows, error } = await query

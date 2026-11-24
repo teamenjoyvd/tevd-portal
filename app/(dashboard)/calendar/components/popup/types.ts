@@ -59,4 +59,6 @@ export type EventDetail = {
   week_number: number
   role_slots: RoleSlot[]
   caller_registration: CallerRegistration | null
+  /** Reached through a personal ticket, not the Attend button. */
+  ticketed: boolean
 }

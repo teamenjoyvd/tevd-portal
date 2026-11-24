@@ -208,6 +208,13 @@ sequenceDiagram
 2. Paid: the Stripe webhook and `/events/[id]/buy/return` both call `fulfillOrder` → `fulfill_ticket_order` issues the pass once. A door order also uses one entry.
 3. Full refund or dispute → pass `void`. Session expired, or 25 hours unpaid → order `expired`; a late payment still fulfils.
 
+### Online Attendance of a Ticketed Event (ADR-017)
+`getTicketFlow` picks the flow from the event's products. Pages and actions: `app/events/[eventId]/{register,join}`, `lib/actions/tickets.ts`.
+1. **Free:** register → `register_free_admission` → Zoom. The registering device is claimed; the email carries the portal join link.
+2. **Code:** code → holder and extra people → `redeem_pass_entries` → Zoom. The redeeming device is claimed for the holder only; each extra person gets the portal join link by email.
+3. **Join** (always a POST): the first device is claimed (random token in the `tkt_<admissionId>` cookie, its SHA-256 in `device_token_hash`). Another device needs a one-time code emailed to the admission's address, which moves the claim. The Zoom link reaches a browser only here, and is never emailed.
+4. **Jobs, every minute:** `tickets-heal-zoom` finishes `pending_zoom` rows and emails their portal link; `tickets-retry-email` re-sends unsent pass emails; `tickets-release-left` deletes the Zoom registration of people gone for 10 minutes; it is **not scheduled** until proven against live Zoom (back to `pending_zoom`; Join registers again, while an attempt remains).
+
 ---
 
 ## 4. LOS Tree Propagation

@@ -101,3 +101,20 @@ export async function consumeRegistrationSlot({
 export async function consumeCheckoutSlot(ip: string): Promise<boolean> {
   return consumeSlot(`ticket-checkout:${ip}`, 'ticket-checkout', 10 * 60 * 1000, 100)
 }
+
+// -- Ticket codes -------------------------------------------------------------
+// Per IP and, when a code is typed, per code. Both must have room.
+
+const CODE_WINDOW_MS = 10 * 60 * 1000
+
+export async function consumeCodeAttempt({ ip, code }: { ip: string; code?: string }): Promise<boolean> {
+  if (!(await consumeSlot(`ticket-code:ip:${ip}`, 'ticket-code:ip', CODE_WINDOW_MS, 60))) return false
+  if (code === undefined) return true
+  // The key is hashed: a code is a secret.
+  return consumeSlot(`ticket-code:code:${keyDigest(code.trim().toUpperCase())}`, 'ticket-code:code', CODE_WINDOW_MS, 20)
+}
+
+/** A one-time code has six digits, so guesses are few. */
+export async function consumeDeviceCodeAttempt(admissionId: string): Promise<boolean> {
+  return consumeSlot(`ticket-device:${admissionId}`, 'ticket-device', CODE_WINDOW_MS, 5)
+}

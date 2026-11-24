@@ -3,6 +3,8 @@ import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { sharedMeetingUrl } from '@/lib/server/meeting-url-visibility'
 import { countAttendeesForCapacity } from '@/lib/server/event-capacity'
+import { getTicketFlow } from '@/lib/server/tickets/flow'
+import { TicketRegister } from './components/TicketRegister'
 import { RegisterForm } from './components/RegisterForm'
 import { MemberAttendPanel } from './components/MemberAttendPanel'
 import { ResendLinkForm } from '../components/ResendLinkForm'
@@ -24,6 +26,9 @@ export default async function GuestRegisterPage({ params, searchParams }: Props)
   const supabase     = createServiceClient()
 
   const lang = await getLangFromCookies()
+
+  const flow = await getTicketFlow(supabase, eventId)
+  if (flow !== null) return <TicketRegister supabase={supabase} flow={flow} lang={lang} />
 
   const { data: event } = await supabase
     .from('calendar_events')

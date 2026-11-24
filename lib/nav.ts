@@ -40,6 +40,7 @@ export const PUBLIC_NAV: NavItem[] = [
 
 export const MEMBER_NAV: NavItem[] = [
   { href: '/library', labels: { en: 'Library',    bg: 'Библиотека'  }, minRole: 'member' },
+  { href: '/tickets', labels: { en: 'My tickets', bg: 'Моите билети' }, minRole: 'guest' },
   { href: '/los',     labels: { en: 'My Network', bg: 'Моята мрежа' }, minRole: 'member' },
   { href: '/roles',   labels: { en: 'Roles',      bg: 'Роли'        }, minRole: 'core'   },
 ]

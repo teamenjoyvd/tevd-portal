@@ -78,7 +78,7 @@ export default function EventPopupShell({
   // The action row (Attend for non-admins, plus Share/QR) is deliberately NOT
   // tab-scoped — see the comment on the body block below. 2608-DEV-726.
   const showActions =
-    event !== undefined && event.allow_guest_registration === true && isGuest === false
+    event !== undefined && event.allow_guest_registration === true && isGuest === false && !event.ticketed
 
   return (
     <>
@@ -138,7 +138,7 @@ export default function EventPopupShell({
                 giving members the tab bar. Both halves stay inside ONE bordered
                 container so the Roles tab renders exactly as before — a sibling
                 block would add a second divider to a screen that has no bug. */}
-            {(showMeta || showActions) && (
+            {(showMeta || showActions || event.ticketed) && (
               <div className="px-4 py-3 border-b border-border-default">
                 {showMeta && (
                   <>
@@ -184,12 +184,21 @@ export default function EventPopupShell({
                         an event with no meeting_url configured at all must not be told
                         to attend for a link that will never appear. Stays tab-scoped
                         with the meta: it explains an absent meeting_url, which is meta. */}
-                    {!isGuest && !isAdmin && !event.meeting_url && event.allow_guest_registration && event.caller_registration === null && (
+                    {!isGuest && !isAdmin && !event.meeting_url && event.allow_guest_registration && event.caller_registration === null && !event.ticketed && (
                       <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
                         {t('cal.attendForLink')}
                       </p>
                     )}
                   </>
+                )}
+                {event.ticketed && (
+                  <a
+                    href={`/events/${event.id}/register`}
+                    className={`inline-flex items-center text-xs font-semibold hover:opacity-70 transition-opacity${showMeta ? ' mt-3' : ''}`}
+                    style={{ color: 'var(--link)' }}
+                  >
+                    {t('tickets.popup.link')}
+                  </a>
                 )}
                 {showActions && (
                   <div className={showMeta ? 'mt-3 space-y-3' : 'space-y-3'}>
