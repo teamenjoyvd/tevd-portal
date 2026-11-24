@@ -12,7 +12,7 @@
 | ADR-001 | ltree for LOS hierarchy over recursive CTEs | 2026-03 | Active |
 | ADR-002 | Service role for all server DB access (no JWT client) | 2026-03 | Active |
 | ADR-003 | Mapbox as CDN-only integration (no npm) | 2026-03 | Superseded 2026-08 |
-| ADR-004 | Dual-approval payment model (no payment processor) | 2026-03 | Active |
+| ADR-004 | Dual-approval payment model (no payment processor) | 2026-03 | Amended by ADR-019 |
 | ADR-005 | Clerk as identity provider with manual Supabase metadata sync | 2026-03 | Active |
 | ADR-006 | proxy.ts as the sole middleware file (never middleware.ts) | 2026-03 | Active |
 | ADR-007 | Unified payments table (single table, entity check constraint) | 2026-03 | Active |
@@ -26,6 +26,8 @@
 | ADR-015 | Autonomous Tile Pattern for profile section components | 2026-04-06 | Active |
 | ADR-016 | ABO co-ownership: primary/secondary profile model over abo_partnerships table | 2026-05-08 | Active |
 | ADR-017 | Zoom webinar registrants for online event access | 2026-11-24 | Proposed |
+| ADR-018 | Scheduled jobs as secret-guarded routes | 2026-11-24 | Active |
+| ADR-019 | Stripe Checkout for event tickets | 2026-11-24 | Active |
 
 ---
 
@@ -879,3 +881,18 @@ Ticketing (#772) needs scheduled work that uses Node code: the Zoom client, emai
 - Jobs must be idempotent: `pg_net` does not retry, but a person may run a job twice.
 - A rotated `SYNC_SECRET` must change in Vercel and Vault together.
 - Responses carry counts only, never attendee data.
+
+---
+
+## ADR-019 — Stripe Checkout for Event Tickets
+
+**Date:** 2026-11-24
+**Status:** Active. Amends ADR-004: the dual-approval ledger stays for trips and fees; tickets are the one flow with a processor.
+
+### Decision
+Stripe Embedded Checkout (`ui_mode: 'embedded_page'`, cards, EUR), API version pinned in `lib/server/stripe/client.ts`. Price and entries come from `ticket_products`, never from the request. The webhook and the return page both call `fulfillOrder`; the SQL function issues the pass once and the email claim sends once. Stripe's emailed receipt is the only receipt. Tickets are non-refundable; a full refund or a dispute voids the pass.
+
+### Consequences
+- A mismatch of amount or currency never fulfils; admins are alerted.
+- Stripe does not order events, so a refund that arrives before its pass is answered 500 and redelivered.
+- Voiding does not remove a person already inside a Zoom session.

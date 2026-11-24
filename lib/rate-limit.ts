@@ -94,3 +94,10 @@ export async function consumeRegistrationSlot({
 
   return consumeSlot(key, byLink ? 'guest-reg:link' : 'guest-reg:event', windowMs, max)
 }
+
+// -- Ticket checkout ----------------------------------------------------------
+// Generous: everyone buying at the door shares the venue's IP address.
+
+export async function consumeCheckoutSlot(ip: string): Promise<boolean> {
+  return consumeSlot(`ticket-checkout:${ip}`, 'ticket-checkout', 10 * 60 * 1000, 100)
+}
