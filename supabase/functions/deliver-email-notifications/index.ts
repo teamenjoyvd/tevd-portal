@@ -1,6 +1,7 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { buildReminderEmail, buildHtmlEmail } from '../_shared/email-templates.ts'
+import { isTicketedEvent } from '../_shared/ticketed-event.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
@@ -83,7 +84,7 @@ Deno.serve(async (req: Request) => {
 
         const { data: event, error: eventErr } = await sb
           .from('calendar_events')
-          .select('title, start_time, meeting_url')
+          .select('id, source, series_key, title, start_time, meeting_url')
           .eq('id', eventId)
           .single()
 
@@ -116,7 +117,9 @@ Deno.serve(async (req: Request) => {
         }
 
         const minutesBefore = item.type === 'event_reminder_1h' ? 60 : 15
-        html = buildReminderEmail(name, event.title, minutesBefore, event.start_time, event.meeting_url, reminderLang)
+        // A ticketed event has no shared link (2608-DEV-760).
+        const meetingUrl = event.meeting_url && !(await isTicketedEvent(sb, event)) ? event.meeting_url : null
+        html = buildReminderEmail(name, event.title, minutesBefore, event.start_time, meetingUrl, reminderLang)
       } else if (item.type === 'doc_expiry') {
         const profileId = item.profile_id
         if (!profileId) throw new Error('Missing profile_id')

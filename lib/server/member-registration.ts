@@ -5,6 +5,7 @@ import { sendTransactionalEmail } from '@/lib/email/send'
 import { renderEmailTemplate } from '@/lib/email/templates/render'
 import { MemberEventConfirmationEmail } from '@/lib/email/templates/MemberEventConfirmationEmail'
 import { buildGoogleCalUrl, buildOutlookUrl } from '@/lib/calendar-links'
+import { sharedMeetingUrl } from '@/lib/server/meeting-url-visibility'
 import { getBaseUrl } from '@/lib/utils/base-url'
 import { consumeEmailCap } from '@/lib/rate-limit'
 import { countAttendeesForCapacity, isCapacityViolation } from '@/lib/server/event-capacity'
@@ -199,7 +200,7 @@ export async function attendEvent(
 
   const { data: event, error: eventError } = await supabase
     .from('calendar_events')
-    .select('id, title, allow_guest_registration, start_time, end_time, guest_capacity, meeting_url')
+    .select('id, title, allow_guest_registration, start_time, end_time, guest_capacity, source, series_key, meeting_url')
     .eq('id', eventId)
     .single()
 
@@ -207,6 +208,9 @@ export async function attendEvent(
   if (event.allow_guest_registration !== true) return { success: false, code: 'not_open', error: 'Registration is not available for this event.' }
   if (new Date(event.end_time).getTime() < Date.now())
     return { success: false, code: 'event_ended', error: 'This event has already ended.' }
+
+  // The email and its calendar links go through the one gate (2608-DEV-760).
+  const confirmationEvent = { ...event, meeting_url: await sharedMeetingUrl(supabase, event) }
 
   // Resolve share token -> share_link_id, same revoked-link rule as the guest
   // path (lib/actions/guest-registration.ts:98-108). Self-attribution is
@@ -265,7 +269,7 @@ export async function attendEvent(
     if (updateError) return attendWriteError(updateError)
 
     await creditShareLink(supabase, shareLinkId, profileName)
-    const emailed = await sendMemberConfirmation(contactEmail, eventId, event, profileName, lang)
+    const emailed = await sendMemberConfirmation(contactEmail, eventId, confirmationEvent, profileName, lang)
     return { success: true, registrationId: existing.id, emailed }
   }
 
@@ -301,7 +305,7 @@ export async function attendEvent(
       if (adoptError) return attendWriteError(adoptError)
 
       await creditShareLink(supabase, shareLinkId, profileName)
-      const emailed = await sendMemberConfirmation(contactEmail, eventId, event, profileName, lang)
+      const emailed = await sendMemberConfirmation(contactEmail, eventId, confirmationEvent, profileName, lang)
       return { success: true, registrationId: guestRow.id, emailed }
     }
   }
@@ -322,7 +326,7 @@ export async function attendEvent(
   if (insertError || !inserted) return attendWriteError(insertError)
 
   await creditShareLink(supabase, shareLinkId, profileName)
-  const emailed = await sendMemberConfirmation(contactEmail, eventId, event, profileName, lang)
+  const emailed = await sendMemberConfirmation(contactEmail, eventId, confirmationEvent, profileName, lang)
   return { success: true, registrationId: inserted.id, emailed }
 }
 
