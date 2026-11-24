@@ -1,5 +1,6 @@
 -- [2611-DEV-776] One-time codes for moving a Join to another device, and the
--- minute jobs that finish registrations, retry emails and end used links.
+-- minute jobs that finish registrations and retry emails. 'tickets-release-left'
+-- is not scheduled until a live Zoom test shows a deleted person can register again.
 --
 -- ROLLBACK: SELECT cron.unschedule('ticket-jobs');
 --           DROP TABLE public.ticket_device_codes;
@@ -25,7 +26,7 @@ SELECT cron.schedule(
     body := '{}'::jsonb
   )
   FROM vault.decrypted_secrets b, vault.decrypted_secrets s,
-       (VALUES ('tickets-heal-zoom'), ('tickets-retry-email'), ('tickets-release-left')) AS j(name)
+       (VALUES ('tickets-heal-zoom'), ('tickets-retry-email')) AS j(name)
   WHERE b.name = 'app_base_url' AND s.name = 'sync_secret'
     AND extract(hour FROM now() AT TIME ZONE 'Europe/Sofia') >= 6;
   $$
