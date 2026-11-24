@@ -9,6 +9,7 @@
     "lint": "eslint",
     "check-types": "tsc --noEmit",
     "test": "vitest run",
+    "test:sql": "node scripts/test-ticket-sql.mjs",
     "test:mock": "node scripts/run-e2e-tests.js --mock",
     "test:e2e": "playwright test",
     "test:mobile": "playwright test --project=mobile-390",

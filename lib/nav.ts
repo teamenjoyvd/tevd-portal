@@ -54,6 +54,7 @@ export const ADMIN_NAV: NavItem[] = [
   { href: '/admin/trips',        labels: { en: 'Trips',        bg: 'Пътувания'   } },
   { href: '/admin/items',        labels: { en: 'Items',        bg: 'Артикули'     } },
   { href: '/admin/payments',     labels: { en: 'Payments',     bg: 'Плащания'     } },
+  { href: '/admin/tickets',      labels: { en: 'Tickets',      bg: 'Билети'       } },
   { href: '/admin/calendar',     labels: { en: 'Calendar',     bg: 'Calendar'     } },
   { href: '/admin/content',      labels: { en: 'Content',      bg: 'Content'      } },
   { href: '/admin/members',      labels: { en: 'Members',      bg: 'Members'      } },

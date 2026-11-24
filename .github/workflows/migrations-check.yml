@@ -60,3 +60,8 @@ jobs:
       - name: Lint database schema
         if: steps.diff.outputs.changed == 'true'
         run: supabase db lint --level error
+      # The ticketing rules live in SQL functions, so they are tested on a real
+      # database and never mocked (2611-DEV-775).
+      - name: Test ticketing SQL
+        if: steps.diff.outputs.changed == 'true'
+        run: node scripts/test-ticket-sql.mjs

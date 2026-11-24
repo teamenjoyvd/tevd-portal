@@ -25,7 +25,7 @@ export default function AdminNav() {
       <div className="max-w-[1440px] mx-auto px-4 md:px-6 lg:px-8 h-14 flex items-center">
 
         {/* ── DESKTOP (lg+) ──────────────────────────────────────────── */}
-        <div className="hidden lg:flex items-center gap-1 w-full justify-center">
+        <div className="hidden lg:flex items-center gap-0.5 xl:gap-1 w-full justify-center">
           {/* ADMIN label */}
           <span
             className="text-xs font-bold tracking-widest uppercase px-2 flex-shrink-0"
@@ -44,7 +44,7 @@ export default function AdminNav() {
             <Link
               key={href}
               href={href}
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold tracking-widest uppercase transition-colors whitespace-nowrap"
+              className="px-1.5 xl:px-3 py-1.5 rounded-lg text-xs font-semibold xl:tracking-widest uppercase transition-colors whitespace-nowrap"
               style={{
                 color: isActive(href) ? 'var(--on-accent)' : 'rgba(var(--white-rgb), 0.7)',
                 backgroundColor: isActive(href) ? 'rgba(var(--white-rgb), 0.10)' : 'transparent',
