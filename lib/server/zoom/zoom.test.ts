@@ -145,11 +145,26 @@ describe('port', () => {
     ).rejects.toMatchObject({ kind: 'retryable' })
   })
 
-  it('cancels with DELETE, and an already gone registration is fine', async () => {
-    answer(() => json(404))
+  // Zoom answers 400 / 3000 (recorded 2026-11-25); 404 is what its API would suggest.
+  it.each([
+    [400, { code: 3000, message: 'Registrant r1 was not found.' }],
+    [404, {}],
+  ])('cancels with DELETE, and an already gone registration (%i) is fine', async (status, body) => {
+    answer(() => json(status, body))
     await createZoomPort(client(linked)).cancel({ eventId: 'e', ref: 'r1' })
     expect(apiCalls()[0][1].method).toBe('DELETE')
     expect(apiCalls()[0][0]).toContain('/registrants/r1?occurrence_id=s1')
+  })
+
+  it.each([
+    [400, { code: 300 }],
+    [400, {}],
+    [403, { code: 3000 }],
+    [429, { code: 3000 }],
+    [500, { code: 3000 }],
+  ])('does not take another failed cancel (%i %j) for gone', async (status, body) => {
+    answer(() => json(status, body))
+    await expect(createZoomPort(client(linked)).cancel({ eventId: 'e', ref: 'r1' })).rejects.toMatchObject({ status })
   })
 
   it('refuses an event that is not linked', async () => {
