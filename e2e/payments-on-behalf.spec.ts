@@ -144,6 +144,11 @@ test.describe('profile payments ledger @390', () => {
     // An earlier version reached the page only through the bento link and
     // therefore skipped outright on CI's empty fixture: a green tick that had
     // measured nothing, which is the failure mode issue #679 tracks.
+    // Compile the route before the click. webServer is `next dev`, so the first
+    // request for it took 4.8s in CI and used up the 5s URL assertion below
+    // (2611-DEV-799). The assertion stays strict; only the compile moves out.
+    expect((await page.request.get('/profile/payments')).status()).toBe(200)
+
     const viewAll = page.getByRole('link', { name: /view all payments/i })
     if (await viewAll.count() > 0) {
       // Prefer the real click when there IS data: the link replacing the old

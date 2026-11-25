@@ -66,8 +66,9 @@ const MEMBER_ABO = process.env.E2E_CLERK_MEMBER_ABO ?? 'E2E-MEMBER-0001'
 // Deliberately NOT "flip the shared member fixture's role to core inside the
 // spec". That would work — app/(dashboard)/calendar/page.tsx reads role from
 // the DB, not Clerk metadata — but playwright.config.ts sets no `workers`, so
-// specs parallelize by file and payments-on-behalf / profile-bento-auth share
-// the member fixture; a mid-run role flip is a cross-worker race.
+// specs parallelize by file and several share the member fixture; a mid-run role
+// flip is a cross-worker race. profile-bento-auth signs in as this CORE user for
+// the same reason: it rewrites the saved profile layout (2611-DEV-799).
 //
 // Disjoint roots also buy the "an unrelated branch is not listed" assertion for
 // free: the CORE leg and the MEMBER leg never intersect, so the member's
