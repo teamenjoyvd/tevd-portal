@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test'
 import { loadEnvFiles } from './scripts/lib/env-files'
+import { fakeEnv } from './e2e/fakes/env'
+import { FAKE_URL } from './e2e/fakes/config.mjs'
 
 // Playwright's own process (globalSetup + tests) does not inherit Next's env
 // loading, so the authenticated project's Clerk/Supabase clients would see no
@@ -29,6 +31,12 @@ const bypassSecret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET
 // Named once so a new authenticated spec can't be added to one list and
 // silently omitted from the other two.
 const AUTHENTICATED_SPECS = /(admin-auth|admin-mobile-auth|admin-tickets-auth|los-submission-auth|profile-bento-auth|payments-on-behalf|payments-guest|member-attend-auth|member-share-register-auth|event-registrations-auth|member-role-cancel-auth)\.spec\.ts/
+
+// Own project, run on its own server: after the other authenticated specs, Next
+// 16.2.10's dev runtime fails to render ticketed event pages ("Object prototype
+// may only be an Object or null", React debug decoding, absent from the
+// production runtime). Reproduced without the fakes too (2611-DEV-803).
+const TICKETING_SPECS = /ticketing-[a-z-]+\.spec\.ts/
 
 export default defineConfig({
   testDir: './e2e',
@@ -69,7 +77,7 @@ export default defineConfig({
       // payments-guest.spec.ts joined that list for exactly this failure: it
       // was collected here on its first CI run and died on "The Clerk Frontend
       // API URL is required to bypass bot protection".
-      testIgnore: AUTHENTICATED_SPECS,
+      testIgnore: [AUTHENTICATED_SPECS, TICKETING_SPECS],
       use: {
         ...devices['iPhone 12'],
         browserName: 'chromium',
@@ -83,7 +91,7 @@ export default defineConfig({
       // running it a second time on 'desktop' would just duplicate the sign-in.
       // admin-mobile-auth.spec.ts is 390px-only and Clerk-authenticated, so it
       // has no business on a 1280px unauthenticated project either.
-      testIgnore: AUTHENTICATED_SPECS,
+      testIgnore: [AUTHENTICATED_SPECS, TICKETING_SPECS],
       use: { viewport: { width: 1280, height: 800 } },
     },
     {
@@ -93,11 +101,22 @@ export default defineConfig({
       testMatch: AUTHENTICATED_SPECS,
       use: { viewport: { width: 1280, height: 800 } },
     },
+    {
+      name: 'ticketing',
+      testMatch: TICKETING_SPECS,
+      use: { viewport: { width: 390, height: 844 } },
+    },
   ],
   webServer: process.env.BASE_URL
     ? undefined
-    : {
+    : [{
+        command: 'node e2e/fakes/server.mjs',
+        url: `${FAKE_URL}/health`,
+        reuseExistingServer: !process.env.CI,
+      }, {
         command: 'npm run dev',
+        // Zoom, Resend and Stripe never see a test (2611-DEV-803).
+        env: fakeEnv(),
         url: 'http://localhost:3400',
         reuseExistingServer: true,
         // 300s, not 120s (2608-DEV-722). Measured 2026-08-10: with no server
@@ -108,5 +127,5 @@ export default defineConfig({
         // still reused instantly (reuseExistingServer), so this costs nothing
         // on the common path; it only buys a cold start the time it needs.
         timeout: 300_000,
-      },
+      }],
 })
