@@ -130,6 +130,14 @@ export async function registerClaimed({ supabase, zoom }: Deps, claimed: TicketA
     .maybeSingle()
   if (error) throw error
   if (data === null) {
+    const { data: now, error: nowError } = await supabase
+      .from('ticket_admissions')
+      .select('*')
+      .eq('id', claimed.id)
+      .maybeSingle()
+    if (nowError) throw nowError
+    // An overlapping attempt got the same registration: cancelling would kill the live one.
+    if (now?.status === 'active' && now.zoom_ref === registration.ref) return now
     // Revoked while Zoom was answering: the link must not outlive the admission.
     try {
       await zoom.cancel({ eventId: claimed.event_id, ref: registration.ref })

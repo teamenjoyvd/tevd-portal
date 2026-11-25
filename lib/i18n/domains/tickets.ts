@@ -19,6 +19,7 @@ export const tickets = {
   'admin.tickets.loadError':          { en: 'Ticket products could not be loaded.', bg: 'Продуктите не могат да бъдат заредени.' },
   'admin.tickets.kind.single':        { en: 'Single ticket',                  bg: 'Единичен билет' },
   'admin.tickets.kind.pack':          { en: 'Ticket pack',                    bg: 'Пакет билети' },
+  'admin.tickets.kind.free':          { en: 'Free registration',              bg: 'Безплатна регистрация' },
   'admin.tickets.series.tuesday':     { en: 'Tuesday',                        bg: 'Вторник' },
   'admin.tickets.series.monday':      { en: 'Monday',                         bg: 'Понеделник' },
   'admin.zoom.open': { en: 'Link Zoom series', bg: 'Свържи Zoom серия' },

@@ -262,8 +262,21 @@ describe('rename', () => {
     expect(adm()).toMatchObject({ status: 'pending_zoom', zoom_ref: null, attendee_name: 'Bo Li' })
     expect(h.emailLink).not.toHaveBeenCalled()
   })
+  it('waits for a running registration', async () => {
+    Object.assign(adm(), { status: 'pending_zoom', zoom_attempted_at: iso(-1), zoom_ref: null, zoom_join_link: null })
+    const before = { ...adm() }
+    expect(await codeOf(await call(rename, ADM, { name: 'Bo Li' }))).toEqual([409, 'busy'])
+    expect(adm()).toEqual(before)
+    expect(h.zoom.register).not.toHaveBeenCalled()
+    adm().zoom_attempted_at = iso(-3)
+    expect(await (await call(rename, ADM, { name: 'Bo Li' })).json()).toEqual({ registered: true })
+  })
+  it('does not wait once registered', async () => {
+    adm().zoom_attempted_at = iso(0)
+    expect(await (await call(rename, ADM, { name: 'Bo Li' })).json()).toEqual({ registered: true })
+  })
   it.each<[string, () => void]>([
-    ['started', () => { h.tables.calendar_events[0].start_time = iso(-1) }],
+    ['started',() => { h.tables.calendar_events[0].start_time = iso(-1) }],
     ['attempts_used', () => { adm().zoom_attempts = 3 }],
     ['not_online', () => { adm().mode = 'in_person' }],
     ['not_online', () => { adm().status = 'revoked' }],

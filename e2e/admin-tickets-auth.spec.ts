@@ -27,6 +27,36 @@ test('an admin issues a free pass and sees its code', async ({ page }) => {
   await expect(page.getByRole('status').getByText(/^[2-9A-HJ-NP-Z]{8}$/)).toBeVisible({ timeout: 30_000 })
 })
 
+test('an admin opens every ticket list', async ({ page }) => {
+  await signInAndGoto(page, ADMIN_EMAIL, '/admin/tickets')
+  const lists = [
+    ['Passes', '/api/admin/tickets/passes'],
+    ['Orders', '/api/admin/tickets/orders'],
+    ['Sessions', '/api/admin/tickets/sessions'],
+    ['Needs attention', '/api/admin/tickets/attention'],
+  ] as const
+  for (const [tab, path] of lists) {
+    // Passes is open on arrival, so it is asked for again by a reload.
+    const answered = page.waitForResponse((r) => new URL(r.url()).pathname === path)
+    if (tab === 'Passes') await page.reload()
+    else await page.getByRole('tab', { name: tab }).click()
+    expect((await answered).status(), path).toBe(200)
+    await expect(page.getByRole('tab', { name: tab })).toHaveAttribute('aria-selected', 'true')
+    await expect(page.getByText('Something went wrong. Please try again.')).toHaveCount(0)
+  }
+})
+
+test('a member is refused every ticket list', async ({ page }) => {
+  await signInAndGoto(page, MEMBER_EMAIL, '/profile')
+  const base = '/api/admin/tickets'
+  for (const list of ['passes', 'orders']) {
+    expect((await page.request.post(`${base}/${list}`, { data: { q: '' } })).status(), list).toBe(403)
+  }
+  for (const list of ['sessions', 'attention']) {
+    expect((await page.request.get(`${base}/${list}`)).status(), list).toBe(403)
+  }
+})
+
 test('a member is sent away from the page and refused by the route', async ({ page }) => {
   await signInAndGoto(page, MEMBER_EMAIL, '/profile')
   const res = await page.request.post('/api/admin/tickets/complimentary', { data: {} })

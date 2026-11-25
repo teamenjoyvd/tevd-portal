@@ -236,4 +236,54 @@ describe('claims and healing', () => {
     expect(zoom.cancel).toHaveBeenCalledWith({ eventId: 'e1', ref: 'r9' })
     expect(row.status).toBe('revoked')
   })
+
+  it('cancels when revoked, even with the same reference', async () => {
+    const row = admission()
+    zoom.register.mockImplementationOnce(async () => {
+      Object.assign(row, { status: 'revoked', zoom_ref: 'r1' })
+      return { ref: 'r1', joinLink: 'https://zoom.example/1' }
+    })
+    expect(await registerWithZoom({ supabase: fakeDb(tableOf(row)), zoom }, { ...row })).toBeNull()
+    expect(zoom.cancel).toHaveBeenCalledWith({ eventId: 'e1', ref: 'r1' })
+  })
+
+  describe('two attempts overlap', () => {
+    /** A starts; B, allowed once A's hold is over, starts too. Zoom answers `first`, then the other. */
+    async function overlap(refs: { a: string; b: string }, first: 'a' | 'b') {
+      const row = admission()
+      const supabase = fakeDb(tableOf(row))
+      const answer: Record<string, () => void> = {}
+      for (const key of ['a', 'b'] as const) {
+        zoom.register.mockImplementationOnce(
+          () => new Promise((resolve) => { answer[key] = () => resolve({ ref: refs[key], joinLink: `https://zoom.example/${refs[key]}` }) }),
+        )
+      }
+      const asked = (key: string) => vi.waitFor(() => expect(answer[key]).toBeDefined())
+      const a = registerWithZoom({ supabase, zoom }, { ...row })
+      await asked('a')
+      row.zoom_attempted_at = new Date(Date.now() - 31_000).toISOString()
+      const b = registerWithZoom({ supabase, zoom }, { ...row })
+      await asked('b')
+      const runs = { a, b }
+      const second = first === 'a' ? 'b' : 'a'
+      answer[first]()
+      await runs[first]
+      answer[second]()
+      return { row, second: await runs[second] }
+    }
+
+    it.each(['a', 'b'] as const)('same registration, %s first: nothing is cancelled', async (first) => {
+      const { row, second } = await overlap({ a: 'r1', b: 'r1' }, first)
+      expect(row).toMatchObject({ status: 'active', zoom_ref: 'r1' })
+      expect(second).toMatchObject({ status: 'active' })
+      expect(zoom.cancel).not.toHaveBeenCalled()
+    })
+
+    it.each([['a', 'r2'], ['b', 'r1']] as const)('different registrations, %s first: only %s is cancelled', async (first, spare) => {
+      const { row, second } = await overlap({ a: 'r1', b: 'r2' }, first)
+      expect(row).toMatchObject({ status: 'active' })
+      expect(second).toBeNull()
+      expect(zoom.cancel.mock.calls).toEqual([[{ eventId: 'e1', ref: spare }]])
+    })
+  })
 })

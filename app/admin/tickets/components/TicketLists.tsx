@@ -22,7 +22,11 @@ const STATUS: Record<string, TranslationKey> = {
   paid: 'admin.tickets.status.paid',
   expired: 'admin.tickets.status.expired',
 }
-const KIND: Record<string, TranslationKey> = { single: 'admin.tickets.kind.single', pack: 'admin.tickets.kind.pack' }
+const KIND: Record<string, TranslationKey> = {
+  single: 'admin.tickets.kind.single',
+  pack: 'admin.tickets.kind.pack',
+  free_registration: 'admin.tickets.kind.free',
+}
 const SERIES: Record<string, TranslationKey> = { tuesday: 'admin.tickets.series.tuesday', monday: 'admin.tickets.series.monday' }
 
 function useLabels() {

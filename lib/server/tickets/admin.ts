@@ -17,6 +17,9 @@ export type AdminDeps = { supabase: ServiceClient; zoom: ZoomPort; adminId: stri
 /** Zoom allows 3 registrations per person per session per day; self-service stops at 2. */
 export const ADMIN_ZOOM_ATTEMPTS = 3
 
+/** Longer than one registration can take at the Zoom client's timeouts. */
+const RUNNING_MS = 2 * 60_000
+
 /** A refusal staff can act on. */
 export class AdminActionError extends Error {
   constructor(readonly code: string, readonly status = 409) {
@@ -273,6 +276,14 @@ export async function renameAdmission(deps: AdminDeps, id: string, name: string)
   const row = await admissionById(supabase, id)
   if (row.mode !== 'online' || row.status === 'revoked') throw new AdminActionError('not_online')
   if (row.zoom_attempts >= ADMIN_ZOOM_ATTEMPTS) throw new AdminActionError('attempts_used')
+  // A running attempt would finish under the old name.
+  if (
+    row.status === 'pending_zoom' &&
+    row.zoom_attempted_at !== null &&
+    Date.parse(row.zoom_attempted_at) > Date.now() - RUNNING_MS
+  ) {
+    throw new AdminActionError('busy')
+  }
   const { data: event, error: eventError } = await supabase
     .from('calendar_events')
     .select('start_time')
