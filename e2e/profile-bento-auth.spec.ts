@@ -17,12 +17,16 @@ import { BENTO_IDS } from '../app/(dashboard)/profile/components/bento-registry'
  * configured — clerk.signIn() would fail outright there, the same reason
  * admin-auth.spec.ts/los-submission-auth.spec.ts are excluded from it too.
  *
- * Requires local Supabase + a seeded Clerk test-instance member (see
+ * Requires local Supabase + the seeded Clerk test-instance CORE user (see
  * scripts/seed-clerk-test-users.js). Never target a preview/prod-DB
  * deployment — same rule as admin-auth.spec.ts.
  */
 
-const MEMBER_EMAIL = process.env.E2E_CLERK_MEMBER_EMAIL ?? 'e2e-member-tevd-portal@example.com'
+// The CORE fixture, not the member (2611-DEV-799). This spec persists collapsed
+// bentos, and Playwright runs files in parallel: as the member it hid the
+// Payments bento from payments-on-behalf.spec.ts mid-test. No other spec may
+// open /profile as this user.
+const CORE_EMAIL = process.env.E2E_CLERK_CORE_EMAIL ?? 'e2e-core-tevd-portal@example.com'
 
 // ProfileClient debounces the ui_prefs PATCH after every reorder/collapse/
 // reset. This suite used to bridge that with a fixed 800ms sleep, which
@@ -35,7 +39,7 @@ async function signInAndOpenProfile(page: Page) {
   // e2e/auth-helpers.ts). NOTE this is not the fix for this spec's known red:
   // that is #727's transient-401 eviction in lib/apiClient.ts, a different bug
   // on a different layer, fixed separately.
-  await signInAndGoto(page, MEMBER_EMAIL, '/profile')
+  await signInAndGoto(page, CORE_EMAIL, '/profile')
   // Waiting on `body` proved nothing: it is visible long before useProfile()
   // resolves, and Playwright's webServer runs `npm run dev`, so /profile is
   // compiled on demand and the first hit is slow. The layout controls are
