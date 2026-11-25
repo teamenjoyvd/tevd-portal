@@ -14,6 +14,7 @@
     "test:e2e": "playwright test",
     "test:mobile": "playwright test --project=mobile-390",
     "test:e2e:auth": "playwright test --project=authenticated",
+    "test:e2e:ticketing": "playwright test --project=ticketing",
     "e2e:seed-clerk": "node scripts/seed-clerk-test-users.js",
     "seed:smoke-guide": "node scripts/seed-smoke-guide.js",
     "seed:smoke-guest": "node scripts/seed-guest-test-user.js",

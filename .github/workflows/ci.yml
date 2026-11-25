@@ -203,6 +203,15 @@ jobs:
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
           NEXT_PUBLIC_APP_URL: "http://localhost:3400"
           ICAL_TOKEN_SECRET: "0000000000000000000000000000000000000000000000000000000000000000"
+      # Its own run, so its own dev server (playwright.config.ts).
+      - name: Run ticketing Playwright project
+        if: '!cancelled() && steps.check.outputs.ready == ''true'''
+        run: PLAYWRIGHT_HTML_OUTPUT_DIR=playwright-report/ticketing npx playwright test --project=ticketing
+        env:
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+          NEXT_PUBLIC_APP_URL: "http://localhost:3400"
+          ICAL_TOKEN_SECRET: "0000000000000000000000000000000000000000000000000000000000000000"
       # !cancelled(), NOT failure(): retries: 1 means a flaky spec passes on the
       # second attempt and the JOB succeeds, so a failure()-gated upload throws
       # away the retained trace for the one run that had something to explain.
