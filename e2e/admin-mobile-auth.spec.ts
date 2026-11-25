@@ -48,6 +48,7 @@ const TABBED_ROUTES = new Set([
   '/admin/content',
   '/admin/members',
   '/admin/settings',
+  '/admin/tickets',
 ])
 
 // Duplicated from admin-auth.spec.ts:22 rather than exported from it — that
