@@ -141,7 +141,8 @@ export async function deleteRegistrant(eventRef: string, sessionRef: string, id:
   try {
     await call('DELETE', `/webinars/${eventRef}/registrants/${encodeURIComponent(id)}?${query}`)
   } catch (err) {
-    // Already gone is what the caller wanted.
-    if (!(err instanceof ZoomError && err.status === 404)) throw err
+    // Already gone is what the caller wanted. Zoom says so with 400 / 3000, not 404.
+    const gone = err instanceof ZoomError && (err.status === 404 || (err.status === 400 && err.zoomCode === 3000))
+    if (!gone) throw err
   }
 }
